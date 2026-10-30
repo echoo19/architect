@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import {
   CorrectionKindSchema,
   GuardError,
@@ -11,34 +10,26 @@ import {
   type Correction,
   type CorrectionProposal,
   type CorrectionRequest,
-  type Harness,
   type Job,
   type JsonSchemaObject,
   type MentorCompletionRequest,
   type TeachingOverview,
 } from '@architect/shared';
 import { z } from 'zod';
-import type { AdapterFile, VersionFacts } from '../graduates/build';
-import type { KeyedLock } from '../graduates/library';
-import { nextVersion, registerVersion, writeVersionFolder } from '../graduates/versions';
 import { formatUsd } from '../loop/budget';
 import type { Clock, EngineHostDeps } from '../loop/deps';
 import { must } from '../loop/errors';
 import type { JobLibrary } from '../loop/jobs';
-import type { DataPaths } from '../loop/paths';
 import { connectMentor } from '../loop/setup';
 import { isoNow } from '../loop/time';
 import { MentorGate } from '../mentor/gate';
 import type { EngineStore } from '../store/engine-store';
-import type { GraduateRecord, StoredVersion } from '../store/records';
+import type { GraduateRecord } from '../store/records';
 import { exchangeIn, exchangeParts } from './exchange';
 
 /** The most the mentor's reading of one correction may cost, shown beside the consent. */
 export const CORRECTION_CAP_USD = 0.25;
 const CORRECTION_MAX_OUTPUT_TOKENS = 1_500;
-
-/** Where a lesson's standing instructions go in `AGENTS.md`. */
-export const LESSONS_HEADING = "## From the person's corrections";
 
 /**
  * The reply format: every key required, as constrained decoding wants, with the fields a kind
@@ -178,28 +169,18 @@ async function trainingApplies(job: Job, deps: EngineHostDeps): Promise<boolean>
   return (job.budget.maxComputeUsd ?? 0) > 0 && job.sharing?.remoteTraining === true;
 }
 
-/** `AGENTS.md` with one more standing instruction under the lessons heading. */
-export function withInstruction(system: string, instruction: string): string {
-  const line = `- ${instruction.replace(/\s+/g, ' ').trim()}`;
-  if (system.includes(LESSONS_HEADING)) return `${system.trimEnd()}\n${line}\n`;
-  return `${system.trimEnd()}\n\n${LESSONS_HEADING}\n${line}\n`;
-}
-
 export interface TeachThisContext {
   store: EngineStore;
-  paths: DataPaths;
   jobs: JobLibrary;
   deps: EngineHostDeps;
   clock: Clock;
-  /** The graduate library's lock: one writer at a time for an agent's versions. */
-  libraryLock: KeyedLock;
 }
 
 /**
  * Teach this (spec section 8). A person corrects one workspace reply; once they agree, the
  * mentor reads that exchange and what they wrote, and proposes a lesson; they queue it or
- * discard it. Nothing changes the active version: an instruction lesson can become a candidate
- * version at once, and queued lessons go to Improve agent.
+ * discard it. Nothing changes the active version: queued lessons go to Improve agent, which
+ * keeps a change only when the student learned from it (decision 066).
  */
 export class TeachThis {
   constructor(private readonly ctx: TeachThisContext) {}
@@ -416,77 +397,6 @@ export class TeachThis {
     });
   }
 
-  /**
-   * Makes a candidate version from a procedure or source lesson: the active version with the
-   * lesson's instruction added to its standing instructions, and nothing else changed. The
-   * version says no locked test measured it; the active version stays until the person
-   * accepts and promotes the candidate.
-   */
-  async apply(id: string): Promise<Correction> {
-    const graduateId = this.correction(id).graduateId;
-    return this.ctx.libraryLock.run(graduateId, () => this.applyNow(id));
-  }
-
-  private async applyNow(id: string): Promise<Correction> {
-    const { store, paths, deps } = this.ctx;
-    const correction = this.correction(id);
-    if (correction.status !== 'proposed' && correction.status !== 'queued') {
-      throw new Error(`This lesson is ${correction.status}, so it can't be applied again.`);
-    }
-    const { instruction, kind } = correction.proposal;
-    if (instruction === undefined || !INSTRUCTION_KINDS.includes(kind)) {
-      throw new Error(
-        'Only a procedure or a source lesson can take effect as an instruction. Queue this one for Improve agent.',
-      );
-    }
-    if (correction.runId !== undefined && this.improving(correction.runId)) {
-      throw new Error('An improvement is using this lesson. Wait for it, or stop it first.');
-    }
-    const agent = this.agent(correction.graduateId);
-    const active = must(
-      agent.activeVersion === null ? null : store.versions.get(agent.id, agent.activeVersion),
-      `${agent.name} has no active version.`,
-    );
-    const installation = must(
-      store.installations.get(agent.id),
-      `${agent.name} isn't installed on this computer.`,
-    );
-    const dir = paths.fromStored(active.path);
-    const parent = await deps.harness.readPackaged(dir, active.manifest);
-    const harness = deps.harness.applyEdits(parent, [
-      { op: 'write', path: 'AGENTS.md', content: withInstruction(parent.system, instruction) },
-    ]);
-    const version = nextVersion(store, agent.id);
-    const at = this.now();
-    const facts = childFacts(
-      agent,
-      active,
-      dir,
-      version,
-      {
-        ...harness,
-        meta: { ...harness.meta, version: parent.meta.version + 1, parent: parent.meta.version },
-      },
-      deps.harness.harnessToFiles,
-      at,
-    );
-    const written = await writeVersionFolder(store, paths, facts);
-    return store.transaction(() => {
-      registerVersion(store, paths, {
-        graduateId: agent.id,
-        name: agent.name,
-        version,
-        written,
-        parent: active.version,
-        state: 'candidate',
-        installation,
-        at,
-      });
-      const { runId: _taken, ...rest } = this.correction(id);
-      return this.put({ ...rest, status: 'applied', candidateVersion: version });
-    });
-  }
-
   /** Whether a run is still improving its agent. */
   private improving(runId: string): boolean {
     const run = this.ctx.store.runs.get(runId)?.run;
@@ -498,51 +408,4 @@ export class TeachThis {
     this.ctx.store.corrections.put(updated);
     return updated;
   }
-}
-
-/**
- * The facts of a version made from another without a run: its harness changed, everything else
- * as the parent had it, the adapter included. No locked test measured it, so its evidence says
- * unevaluated, and its contract is the parent's.
- */
-export function childFacts(
-  agent: GraduateRecord,
-  parent: StoredVersion,
-  parentDir: string,
-  version: number,
-  harness: Harness,
-  harnessToFiles: (harness: Harness) => Record<string, string>,
-  at: string,
-): VersionFacts {
-  const { manifest } = parent;
-  const adapter = manifest.model.adapter;
-  const columns: Record<string, string[]> = {};
-  for (const resource of manifest.resources) {
-    for (const file of resource.files) {
-      if (file.columns !== undefined) columns[file.name] = file.columns;
-    }
-  }
-  const adapterFile: AdapterFile | undefined =
-    adapter === undefined ? undefined : { ...adapter, source: join(parentDir, adapter.path) };
-  return {
-    agentId: agent.id,
-    name: agent.name,
-    version,
-    parent: { agentId: agent.id, version: parent.version, digest: parent.digest },
-    createdAt: at,
-    method: manifest.identity.method,
-    contract: manifest.contract,
-    modelLabel: manifest.model.label,
-    base: manifest.model.base,
-    contextLength: manifest.model.inference.contextLength,
-    runtime: must(manifest.model.runtime.compatible[0], 'The runtime it was made on'),
-    ...(adapterFile === undefined ? {} : { adapter: adapterFile }),
-    harness: { meta: harness.meta, files: harnessToFiles(harness) },
-    report: null,
-    lineage: [],
-    columns,
-    rounds: 0,
-    keptChanges: 0,
-    testMachine: null,
-  };
 }

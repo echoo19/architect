@@ -55,9 +55,9 @@ type Stage =
 /**
  * Teach this, opened from a reply's flag: the person says what was wrong and what it should
  * have done, with the files or rows it should have used if they have them. One line says what leaves this computer, and nothing
- * does until they send it. The mentor's proposed lesson comes back, and the person adds it to
- * the teaching queue, applies an instruction as a new version, or discards it. The version chats
- * run on never changes here. Render it inside an open Drawer.
+ * does until they send it. The mentor's proposed lesson comes back, and the person saves it for
+ * Improve or discards it. The version chats run on never changes here. Render it inside an open
+ * Drawer.
  */
 export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) {
   const overview = useTeachingOverview(agent.id);
@@ -77,8 +77,6 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     list?.find((version) => version.version === reply.graduateVersion) ??
     list?.find((version) => version.active);
   const jobFiles = wrote?.manifest.contract.inputs.files.map((file) => file.name) ?? [];
-  const nextVersion = list ? Math.max(0, ...list.map((version) => version.version)) + 1 : null;
-  const active = list?.find((version) => version.active)?.version ?? agent.activeVersion;
   const subtitle = `Reply to "${shortRequest(request)}"`;
   const ready = overview.data;
   const mentor = shortModelName(ready?.mentor ?? 'Spark');
@@ -149,7 +147,6 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       <ProposalActions
         graduateId={agent.id}
         correction={stage.correction}
-        nextVersion={nextVersion}
         onSettled={(settled) => {
           if (settled.status === 'discarded') onClose();
           else setStage({ kind: 'done', correction: settled });
@@ -159,25 +156,14 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     );
   } else if (stage.kind === 'done') {
     const queued = (corrections.data ?? []).filter((item) => item.status === 'queued').length;
-    body =
-      stage.correction.status === 'applied' ? (
-        <Settled title={`Saved as version ${stage.correction.candidateVersion ?? ''}`.trim()}>
-          <span>It hasn&apos;t taken a final test.</span>
-          {active !== null && (
-            <span>
-              Version {active} keeps answering until you use version{' '}
-              {stage.correction.candidateVersion}.
-            </span>
-          )}
-        </Settled>
-      ) : (
-        <Settled title="Saved for Improve">
-          <span>
-            {lessonCount(Math.max(queued, 1))} saved. Improve teaches {queued > 1 ? 'them' : 'it'}{' '}
-            when you run it.
-          </span>
-        </Settled>
-      );
+    body = (
+      <Settled title="Saved for Improve">
+        <span>
+          {lessonCount(Math.max(queued, 1))} saved. Improve teaches {queued > 1 ? 'them' : 'it'}{' '}
+          when you run it.
+        </span>
+      </Settled>
+    );
     footer = (
       <>
         <Button size="md" onClick={onClose}>

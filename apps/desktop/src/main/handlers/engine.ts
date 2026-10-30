@@ -110,7 +110,6 @@ export function registerEngineHandlers(
       call((api) => api.teach.propose(chatId, messageId, request)),
     queue: (correctionId) => call((api) => api.teach.queue(correctionId)),
     discard: (correctionId) => call((api) => api.teach.discard(correctionId)),
-    apply: (correctionId) => call((api) => api.teach.apply(correctionId)),
     list: (graduateId) => call((api) => api.teach.list(graduateId)),
     improve: (graduateId, options) => call((api) => api.teach.improve(graduateId, options)),
     improvements: (graduateId) => call((api) => api.teach.improvements(graduateId)),

@@ -132,7 +132,6 @@ export function connectEngine(
         request('teach.propose', [chatId, messageId, correction]),
       queue: (correctionId) => request('teach.queue', [correctionId]),
       discard: (correctionId) => request('teach.discard', [correctionId]),
-      apply: (correctionId) => request('teach.apply', [correctionId]),
       list: (graduateId) => request('teach.list', [graduateId]),
       improve: (graduateId, options) => request('teach.improve', [graduateId, options]),
       improvements: (graduateId) => request('teach.improvements', [graduateId]),

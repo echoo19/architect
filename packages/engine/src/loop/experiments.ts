@@ -30,6 +30,8 @@ export interface ExperimentOutcome {
   /** The dev seeds the decision used. */
   devSeeds?: readonly number[];
   decoding?: Decoding;
+  /** An improvement's check that the student learned its lessons. */
+  learned?: Experiment['learned'];
 }
 
 /** The experiment's id: one per round, the same however often a retry writes it. */
@@ -140,6 +142,7 @@ export function recordExperiment(
     perType,
     regressions: perType.filter((change) => change.after < change.before),
     gates: outcome.gates ?? [],
+    ...(outcome.learned === undefined ? {} : { learned: outcome.learned }),
     budget: budgetOf(state, index, trainingJobId),
     disposition: outcome.disposition,
     reason: outcome.reason,

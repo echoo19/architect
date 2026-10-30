@@ -1,13 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import type { Correction } from '@architect/shared';
 import { Button, Tooltip } from '@architect/ui';
-import { Layers, ListPlus, PencilLine, Trash2 } from 'lucide-react';
-import { refreshAgent } from '../../api/graduates';
+import { ListPlus, PencilLine, Trash2 } from 'lucide-react';
 import { refreshTeaching, teachApi } from '../../api/teaching';
 import { formatUsd } from '../../lib/format';
 import { attempt } from '../../lib/notify';
 import { KindLabel } from './kinds';
-import { canApply, canQueue, lessonChange, TRAINING_NEED } from './lessons';
+import { canQueue, lessonChange, TRAINING_NEED } from './lessons';
 
 /** What reading a correction cost, the way the cap beside the consent reads. */
 function costLabel(usd: number): string {
@@ -54,6 +53,7 @@ export function ProposalView({
           )}
         </Fact>
         <Fact label="Practice needed">{TRAINING_NEED[proposal.kind]}</Fact>
+        {correction.note !== undefined && <Fact label="Last try">{correction.note}</Fact>}
         <Fact label="Why">{proposal.reason}</Fact>
         <Fact label="Cost">
           <span className="font-mono tabular-nums">{costLabel(correction.costUsd)}</span>
@@ -69,31 +69,27 @@ export function ProposalView({
   );
 }
 
-type Action = 'queue' | 'apply' | 'discard';
+type Action = 'queue' | 'discard';
 
 const FAILED: Record<Action, string> = {
   queue: "Couldn't save it for Improve",
-  apply: "Couldn't save the new version",
   discard: "Couldn't discard it",
 };
 
 /**
- * The choices for a lesson that waits for the person: discard it, save it for Improve, or, for
- * an instruction, save it at once as a new version that hasn't taken a final test. The version
- * chats run on never changes here: only using a version does that.
+ * The choices for a lesson that waits for the person: discard it, or save it for Improve, which
+ * makes a new version only once the agent shows it learned it (decision 066). The version chats
+ * run on never changes here: only using a version does that.
  */
 export function ProposalActions({
   graduateId,
   correction,
-  nextVersion,
   onSettled,
   onEdit,
 }: {
   graduateId: string;
   correction: Correction;
-  /** The number a version saved now would get, once the versions are known. */
-  nextVersion: number | null;
-  /** The lesson after the choice: queued, saved as a version, or discarded. */
+  /** The lesson after the choice: queued or discarded. */
   onSettled: (correction: Correction) => void;
   /** Goes back to the form to say more and send it again, for a lesson that can't be taught. */
   onEdit?: () => void;
@@ -101,7 +97,6 @@ export function ProposalActions({
   const [busy, setBusy] = useState<Action | null>(null);
   const { kind } = correction.proposal;
   const queueable = correction.status === 'proposed' && canQueue(kind);
-  const applicable = canApply(correction.proposal);
 
   const act = async (action: Action) => {
     setBusy(action);
@@ -109,27 +104,21 @@ export function ProposalActions({
       const next =
         action === 'queue'
           ? await teachApi.queue(correction.id)
-          : action === 'apply'
-            ? await teachApi.apply(correction.id)
-            : await teachApi.discard(correction.id);
-      await Promise.all([
-        refreshTeaching(graduateId),
-        action === 'apply' ? refreshAgent(graduateId) : undefined,
-      ]);
+          : await teachApi.discard(correction.id);
+      await refreshTeaching(graduateId);
       return next;
     });
     setBusy(null);
     if (settled) onSettled(settled);
   };
 
-  const teachable = applicable || queueable;
   // A lesson that can't be taught is said again, or discarded.
-  const sayMore = onEdit !== undefined && !teachable && correction.status === 'proposed';
+  const sayMore = onEdit !== undefined && !queueable && correction.status === 'proposed';
   return (
     <>
       <Button
         size="md"
-        variant={teachable || sayMore ? 'ghost' : 'primary'}
+        variant={queueable || sayMore ? 'ghost' : 'primary'}
         loading={busy === 'discard'}
         disabled={busy !== null}
         onClick={() => void act('discard')}
@@ -145,35 +134,18 @@ export function ProposalActions({
       )}
       {queueable && (
         <Tooltip
-          content="Keeps it with your other flagged answers. Improve teaches them together, and makes a new version only if it scores better."
+          content="Keeps it with your other flagged answers. Improve teaches them together, and makes a new version only if the agent learns it and keeps getting its other tasks right."
           side="top"
         >
           <Button
             size="md"
-            variant={applicable ? 'secondary' : 'primary'}
+            variant="primary"
             loading={busy === 'queue'}
             disabled={busy !== null}
             onClick={() => void act('queue')}
           >
             {busy !== 'queue' && <ListPlus size={15} strokeWidth={1.7} aria-hidden />}
             Save for Improve
-          </Button>
-        </Tooltip>
-      )}
-      {applicable && (
-        <Tooltip
-          content="Adds it to the agent now as a new version. It isn't used until you choose it, and it hasn't taken a final test."
-          side="top"
-        >
-          <Button
-            size="md"
-            variant="primary"
-            loading={busy === 'apply'}
-            disabled={busy !== null}
-            onClick={() => void act('apply')}
-          >
-            {busy !== 'apply' && <Layers size={15} strokeWidth={1.7} aria-hidden />}
-            {nextVersion === null ? 'Save as a new version' : `Save as version ${nextVersion}`}
           </Button>
         </Tooltip>
       )}

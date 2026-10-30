@@ -1,6 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { currentDigest } from '@architect/harness';
 import type {
   Correction,
   CorrectionRequest,
@@ -8,10 +5,9 @@ import type {
   WorkspaceMessage,
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { KeyedLock } from '../src/graduates/library';
 import { improvementsOf } from '../src/improve/improvement';
 import { NO_LOCKED_TEST } from '../src/loop/retest';
-import { LESSONS_HEADING, TeachThis } from '../src/improve/teach-this';
+import { TeachThis } from '../src/improve/teach-this';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
 import { task } from './fakes/job';
@@ -35,11 +31,9 @@ afterEach(async () => {
 const teachThis = (engine: Engine) =>
   new TeachThis({
     store: engine.store,
-    paths: engine.paths,
     jobs: engine.jobs,
     deps: world.deps,
     clock: world.clock,
-    libraryLock: new KeyedLock(),
   });
 
 const AT = '2026-10-28T09:00:00.000Z';
@@ -231,35 +225,6 @@ describe('Teach this', () => {
     world.mentor.script = () => reading('weakness');
     const weakness = await teach.propose('cht_1', 'msg_2', correction);
     expect(teach.queue(weakness.id).status).toBe('queued');
-    await expect(teach.apply(weakness.id)).rejects.toThrow(
-      'Only a procedure or a source lesson can take effect as an instruction. Queue this one for Improve agent.',
-    );
-  });
-
-  it('applies an instruction as a candidate version, and the active version stays', async () => {
-    const { engine, graduateId } = await graduateWithChat();
-    const teach = teachThis(engine);
-    const lesson = await queued(engine);
-    const applied = await teach.apply(lesson.id);
-
-    expect(applied).toMatchObject({ status: 'applied', candidateVersion: 2 });
-    expect(engine.store.graduates.get(graduateId)?.activeVersion).toBe(1);
-    const version = engine.store.versions.get(graduateId, 2);
-    expect(version).toMatchObject({ state: 'candidate', parent: 1, evaluation: 'unevaluated' });
-    expect(version?.manifest.requirements.limitations).toContain(
-      'No locked test measured this version.',
-    );
-    const instructions = await readFile(
-      join(engine.paths.fromStored(version?.path ?? ''), 'harness', 'AGENTS.md'),
-      'utf8',
-    );
-    expect(instructions).toContain('fix:invoice');
-    expect(instructions).toContain(
-      `${LESSONS_HEADING}\n- Count an invoice as overdue only when it is unpaid and past due.`,
-    );
-    await expect(teach.apply(lesson.id)).rejects.toThrow(
-      "This lesson is applied, so it can't be applied again.",
-    );
   });
 
   it('says who reads a flagged answer, at what cap, and the budget Improve agent keeps to', async () => {
@@ -338,21 +303,6 @@ describe('Teach this', () => {
     await expect(teach.shareCorrections('grd_imported', true)).rejects.toThrow(
       'Returns desk came from a package, so this computer has no job to teach it with.',
     );
-  });
-
-  it('writes one version at a time when two lessons are applied at once', async () => {
-    const { engine, graduateId } = await graduateWithChat();
-    const teach = teachThis(engine);
-    const first = await teach.propose('cht_1', 'msg_2', correction);
-    const second = await teach.propose('cht_1', 'msg_2', correction);
-    const applied = await Promise.all([teach.apply(first.id), teach.apply(second.id)]);
-
-    expect(applied.map((item) => item.candidateVersion).sort()).toEqual([2, 3]);
-    for (const version of [2, 3]) {
-      const stored = engine.store.versions.get(graduateId, version);
-      expect(await currentDigest(engine.paths.fromStored(stored?.path ?? ''))).toBe(stored?.digest);
-    }
-    expect(engine.store.graduates.get(graduateId)?.activeVersion).toBe(1);
   });
 });
 
@@ -461,6 +411,16 @@ describe('Improve agent', () => {
       candidateVersion: 2,
       runId: start.runId,
     });
+    // Kept because the student passed the overdue tasks it had failed and held its check tasks.
+    const [experiment] = engine.store.experiments.list(start.runId);
+    const learned = [...(experiment?.learned ?? [])].sort((a, b) => (a.taskId < b.taskId ? -1 : 1));
+    expect(learned).toEqual([
+      { taskId: 'train-overdue-1', type: 'overdue', pass: true },
+      { taskId: 'train-overdue-2', type: 'overdue', pass: true },
+    ]);
+    expect(experiment?.reason).toBe(
+      'Learned: passed 2 of 2 tasks it had failed; check tasks held 3/9 → 6/9',
+    );
 
     const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
     expect(improvement).toMatchObject({
@@ -468,8 +428,16 @@ describe('Improve agent', () => {
       fromVersion: 1,
       status: 'finished',
       budget: { maxRounds: 1, maxMentorUsd: 2 },
-      dev: { before: { pass: 6, total: 18 }, after: { pass: 12, total: 18 } },
+      dev: { before: { pass: 3, total: 9 }, after: { pass: 6, total: 9 } },
       candidateVersion: 2,
+      lessons: [
+        {
+          correctionId: lesson.id,
+          verdict: 'learned',
+          reason:
+            'Passed 2 of 2 Overdue balances tasks it had failed, in round 1, and the change was kept.',
+        },
+      ],
       promotion: {
         allowed: true,
         reason:
@@ -551,6 +519,99 @@ describe('Improve agent', () => {
       allowed: false,
       reason: 'No change was kept, so there is nothing to promote.',
     });
+  });
+
+  it("keeps no change the student didn't learn from, even one that gains on dev", async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    world.mentor.script = (request) =>
+      request.json?.name === 'correction'
+        ? reading('weakness')
+        : hypothesis('Teach scheduling', 'Service desk.\nfix:invoice\nfix:scheduling');
+    const lesson = await queued(engine);
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    expect(engine.errors).toEqual([]);
+    const [experiment] = engine.store.experiments.list(start.runId);
+    expect(experiment).toMatchObject({
+      disposition: 'reverted',
+      reason: 'Not learned: passed 0 of 2 tasks it had failed; check tasks 3/9 → 6/9',
+    });
+    expect(engine.store.versions.list(graduateId)).toHaveLength(1);
+    expect(engine.store.corrections.get(lesson.id)).toMatchObject({
+      status: 'queued',
+      note: 'Not learned: passed 0 of 2 Overdue balances tasks it had failed, in round 1.',
+    });
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement?.lessons).toEqual([
+      {
+        correctionId: lesson.id,
+        verdict: 'not_learned',
+        reason: 'Passed 0 of 2 Overdue balances tasks it had failed, in round 1.',
+      },
+    ]);
+  });
+
+  it('counts a lesson as learned only when its own tasks showed it, and never one nothing could check', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    const teach = teachThis(engine);
+    world.mentor.script = () => reading('weakness');
+    const overdue = teach.queue((await teach.propose('cht_1', 'msg_2', correction)).id);
+    world.mentor.script = () => reading('weakness', { taskType: '' });
+    const vague = teach.queue(
+      (await teach.propose('cht_1', 'msg_2', { ...correction, wrong: 'It was curt.' })).id,
+    );
+    improvingMentor();
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.corrections.get(overdue.id)).toMatchObject({
+      status: 'used',
+      candidateVersion: 2,
+    });
+    const back = engine.store.corrections.get(vague.id);
+    expect(back).toMatchObject({
+      status: 'queued',
+      note: 'Not verified: it names no task type, so no task could check it.',
+    });
+    expect(back?.runId).toBeUndefined();
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement?.runId).toBe(start.runId);
+    expect(improvement?.lessons.map(({ verdict }) => verdict)).toEqual(['learned', 'not_verified']);
+  });
+
+  it('gives no learning verdict for an improvement made before the student was checked', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    improvingMentor();
+    await queued(engine);
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+    // As its records read when the keep rule asked only for a gain on dev.
+    for (const experiment of engine.store.experiments.list(start.runId)) {
+      const { learned: _checked, ...before } = experiment;
+      engine.store.experiments.put(before);
+    }
+
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement).toMatchObject({ candidateVersion: 2, lessons: [] });
+  });
+
+  it('gives an agent already at its target on dev a round to learn its lessons in', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk')),
+      requirements: { passRate: 0.3 },
+    });
+    improvingMentor();
+    const lesson = await queued(engine);
+    const start = await engine.controller.improve(graduateId, { maxRounds: 3, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.rounds.list(start.runId)).toHaveLength(1);
+    expect(engine.store.versions.get(graduateId, 2)?.state).toBe('candidate');
+    expect(engine.store.corrections.get(lesson.id)?.status).toBe('used');
   });
 
   it('ends an improvement whose mentor may change nothing, with its lessons still queued', async () => {
@@ -736,7 +797,12 @@ describe('Improve agent', () => {
       stopReason: 'user',
     });
     expect(engine.store.versions.list(graduateId)).toHaveLength(1);
-    expect(engine.store.corrections.get(lesson.id)?.status).toBe('queued');
+    const back = engine.store.corrections.get(lesson.id);
+    expect(back).toMatchObject({
+      status: 'queued',
+      note: 'Stopped: it was stopped before a change was kept.',
+    });
+    expect(back?.runId).toBeUndefined();
     expect(teachThis(engine).discard(lesson.id).status).toBe('discarded');
   });
 

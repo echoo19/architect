@@ -11,7 +11,7 @@ import {
   type TrainedAdapter,
   type TypeScore,
 } from '@architect/shared';
-import { improvementHarness } from '../improve/improvement';
+import { improvementHarness, improvementLessons, returnLessons } from '../improve/improvement';
 import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, LLAMA_CPP, llamaCppConfig, type AttemptConfig } from './configuration';
@@ -22,9 +22,11 @@ import { readJsonFile } from './files';
 import {
   confirmKeep,
   decideKeep,
+  decideLearned,
   formatScore,
   isHarmful,
   type KeepDecision,
+  type LearnedTask,
   type Measurement,
 } from './keep';
 import { percentile } from '../report/report-card';
@@ -416,6 +418,8 @@ interface Verdict {
   seeds: readonly number[];
   /** A kept adapter becomes the run's. */
   adapter?: TrainedAdapter;
+  /** An improvement's check that the student learned its lessons. */
+  learned?: LearnedTask[];
 }
 
 /**
@@ -498,6 +502,7 @@ async function decide(
       gates: verdict.gates,
       devSeeds: verdict.seeds,
       decoding,
+      ...(verdict.learned === undefined ? {} : { learned: verdict.learned }),
     });
     const kept = entry.decision === 'kept';
     return {
@@ -712,6 +717,63 @@ function verdictOf(
   return { decision, disposition: harmful ? 'rejected' : 'reverted' };
 }
 
+/**
+ * An improvement's check that the student learned its lessons (decision 066): the round's train
+ * tasks of its lessons' types that the incumbent failed, attempted again by the student with the
+ * change (`version` under `config`). Null when the attempts stopped short.
+ */
+async function learnedCheck(
+  state: RunState,
+  index: number,
+  version: number,
+  config: AttemptConfig,
+): Promise<LearnedTask[] | null> {
+  const types = new Set(
+    improvementLessons(state).flatMap(({ proposal }) => proposal.taskType ?? []),
+  );
+  const incumbent = state.incumbentConfig();
+  const failed = new Set(
+    state
+      .attempts({
+        split: 'train',
+        round: index,
+        version: state.round(index).baseVersion,
+        target: state.targetOf(incumbent),
+        config: configurationKey(incumbent),
+      })
+      .filter((attempt) => !attempt.check.pass)
+      .map((attempt) => attempt.taskId),
+  );
+  const tasks = (await state.trainBatch(index)).filter(
+    (task) => types.has(task.type) && failed.has(task.id),
+  );
+  const spec: EvaluationSpec = {
+    tasks,
+    split: 'train',
+    round: index,
+    version,
+    seeds: [roundSeed(state.record.seeds.trainStudent, index)],
+    target: state.targetOf(config),
+    purpose: 'training',
+    concurrency: state.ctx.concurrency,
+    config,
+  };
+  if (tasks.length > 0 && !(await evaluate(state, spec))) return null;
+  const passed = new Set(
+    state
+      .attempts({
+        split: 'train',
+        round: index,
+        version,
+        target: spec.target,
+        config: configurationKey(config),
+      })
+      .filter((attempt) => attempt.check.pass)
+      .map((attempt) => attempt.taskId),
+  );
+  return tasks.map((task) => ({ taskId: task.id, type: task.type, pass: passed.has(task.id) }));
+}
+
 /** The version the run measured at its baseline: the reference harness H0 an adapter is tried on. */
 function referenceVersion(state: RunState, fallback: number): number {
   return state.attempts({ split: 'dev', round: null })[0]?.harnessVersion ?? fallback;
@@ -899,16 +961,22 @@ async function evaluateAdapter(state: RunState, index: number): Promise<void> {
     after: state.devResult(h1, index, measured, a1),
   });
   const first = pairOf(seeds);
+  // An improvement keeps an adapter the student learned from and that held dev (decision 066).
+  const learned =
+    state.record.improves === undefined ? undefined : await learnedCheck(state, index, h1, a1);
+  if (learned === null) return;
   let decision: KeepDecision = oneShot
     ? {
         keep: true,
         reason: `Dev ${formatScore(first.before.score)} → ${formatScore(first.after.score)}; a one-shot adapter is kept as measured, as a one-shot harness is`,
       }
-    : decideKeep({ ...measurementOf(first), evaluation, runs });
+    : learned !== undefined
+      ? decideLearned({ ...measurementOf(first), evaluation, runs, learned })
+      : decideKeep({ ...measurementOf(first), evaluation, runs });
   let pair = first;
   let usedSeeds: readonly number[] = seeds;
   let confirmed = false;
-  if (decision.keep && !oneShot) {
+  if (decision.keep && !oneShot && learned === undefined) {
     state.log(
       'info',
       `Round ${index} cleared the keep limits; measuring every configuration again.`,
@@ -957,6 +1025,7 @@ async function evaluateAdapter(state: RunState, index: number): Promise<void> {
       measurements,
       seeds: usedSeeds,
       adapter: candidate,
+      ...(learned === undefined ? {} : { learned }),
     },
     confirmed ? first : undefined,
   );
@@ -1018,9 +1087,28 @@ export async function evaluateCandidate(state: RunState, index: number): Promise
   }
   const first = await measureRound(state, index, versions, runs);
   if (first === null) return;
-  const decision = decideKeep({ ...measurementOf(first), evaluation, runs });
   const label = (both: boolean) =>
     both ? 'Measured in this round, and again on new seeds.' : 'Measured in this round.';
+  if (state.record.improves !== undefined) {
+    // An improvement keeps a change the student learned from and that held dev (decision 066),
+    // measured once: it asks for no gain, so there is no lucky draw to measure again.
+    const learned = await learnedCheck(state, index, versions.candidate, config);
+    if (learned === null) return;
+    const measured = { ...measurementOf(first), evaluation, runs };
+    const gates = await hardGates(state, index, versions.candidate, seeds, config);
+    await decide(state, state.round(index), first, {
+      ...verdictOf(decideLearned({ ...measured, learned }), isHarmful(measured), gates),
+      gates,
+      measurements: [
+        recorded(state, 'incumbent', versions.base, index, seeds, config, label(false)),
+        recorded(state, 'candidate', versions.candidate, index, seeds, config, label(false)),
+      ],
+      seeds,
+      learned,
+    });
+    return;
+  }
+  const decision = decideKeep({ ...measurementOf(first), evaluation, runs });
   if (!decision.keep) {
     await decide(state, state.round(index), first, {
       ...verdictOf(decision, isHarmful({ ...measurementOf(first), evaluation, runs }), []),
@@ -1096,7 +1184,18 @@ export function finishTraining(
   }
   const kept = state.rounds().some(({ round }) => round.decision === 'kept');
   if (reason === 'user' && !kept) {
-    state.saveRun({ status: 'stopped', phase: 'done', stopReason: 'user', endedAt: state.now() });
+    const at = state.now();
+    const { improves } = state.record;
+    const run = state.ctx.store.transaction(() => {
+      // A stopped improvement hands its lessons back, saying why, as one that kept nothing does.
+      if (improves !== undefined) {
+        const note = 'Stopped: it was stopped before a change was kept.';
+        const notes = new Map(improves.corrections.map((id) => [id, note]));
+        returnLessons(state.ctx.store, improves, state.ctx.runId, at, notes);
+      }
+      return state.writeRun({ status: 'stopped', phase: 'done', stopReason: 'user', endedAt: at });
+    });
+    state.emit({ type: 'run.updated', run });
     state.log('info', 'Stopped before any change was kept, so there is no graduate to test.');
     return;
   }

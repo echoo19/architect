@@ -1720,7 +1720,7 @@
               src="teach-proposal-dark.png"
               x="0.575 0.995"
               y="0.01 0.99"
-              alt="A proposed lesson of the kind Rule, with the change it makes and the buttons Discard, Save for Improve and Save as version 3."
+              alt="A proposed lesson of the kind Rule, with the change it makes and the buttons Discard and Save for Improve."
             />
           </figpair>
         </div>
@@ -1763,11 +1763,9 @@
             </tbody>
           </table>
           <p>
-            For a rule or a missing fact, <b>Save as version</b> and its number adds the lesson to
-            the agent as a new version at once. That version isn't used until you choose it, and it
-            hasn't taken a final test. <b>Save for Improve</b> keeps the lesson with your other
-            flagged answers. <b>Discard</b> throws it away. <b>Say more and send again</b> lets you
-            add detail.
+            <b>Save for Improve</b> keeps the lesson with your other flagged answers, whatever its
+            kind. A lesson only goes into a new version once Improve shows the agent learned it.
+            <b>Discard</b> throws it away. <b>Say more and send again</b> lets you add detail.
           </p>
         </div>
       </div>
@@ -1785,8 +1783,8 @@
               <p>
                 Press <b>Improve</b>. A box asks <b>Improve</b> and the agent's name, and says what
                 will happen: it teaches your lessons to a copy of the current version, saves a new
-                version only if it scores better on the check tasks, and stops at the caps it shows.
-                The current version keeps answering meanwhile.
+                version only if it learns a lesson and does no worse on the check tasks, and stops
+                at the caps it shows. The current version keeps answering meanwhile.
               </p>
             </li>
             <li>
@@ -1798,8 +1796,11 @@
             <li>
               <p>
                 When it ends, press <b>See what changed</b>. The screen shows the score before and
-                after on the check tasks. A new version is marked <b>Not in use yet</b>, and it
-                hasn't taken a final test.
+                after on the check tasks, and for each lesson <b>Learned</b>, <b>Not learned</b> or
+                <b>Not verified</b>. A lesson counts as learned only when the agent passed the tasks
+                of its kind it had failed, with the change kept. The others go back to your flagged
+                answers, with why. A new version is marked <b>Not in use yet</b>, and it hasn't
+                taken a final test.
               </p>
             </li>
           </ol>

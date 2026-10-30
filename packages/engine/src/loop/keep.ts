@@ -111,6 +111,48 @@ export function decideKeep(input: KeepInput): KeepDecision {
   return { keep: verdict.keep, reason: `Dev ${verdict.scores}, ${verdict.detail}` };
 }
 
+/** One task an improvement's round checked a lesson on, and whether the student passed it. */
+export interface LearnedTask {
+  taskId: string;
+  type: string;
+  pass: boolean;
+}
+
+export interface LearnedInput extends KeepInput {
+  /** The round's failed train tasks of its lessons' types, attempted again with the change. */
+  learned: readonly LearnedTask[];
+}
+
+/**
+ * An improvement's keep rule (decision 066): the student, with the change, passes every task of
+ * its lessons' types it had failed in the round, and the change does no harm on dev, judged by
+ * `isHarmful`. A net dev gain isn't asked for, since an agent near its ceiling has none to give.
+ * Ordinary training keeps `decideKeep`.
+ */
+export function decideLearned(input: LearnedInput): KeepDecision {
+  const passed = input.learned.filter((task) => task.pass).length;
+  const total = input.learned.length;
+  const scores = `${formatScore(input.before)} → ${formatScore(input.after)}`;
+  const check = `check tasks ${scores}`;
+  if (total === 0) {
+    return {
+      keep: false,
+      reason: `Not verified: it failed no task of its lessons' types in this round; ${check}`,
+    };
+  }
+  const tried = `passed ${passed} of ${total} ${total === 1 ? 'task' : 'tasks'} it had failed`;
+  if (passed < total) return { keep: false, reason: `Not learned: ${tried}; ${check}` };
+  if (!isHarmful(input)) {
+    return { keep: true, reason: `Learned: ${tried}; check tasks held ${scores}` };
+  }
+  const worst = worstTypeLoss(input.beforePerType, input.afterPerType);
+  const harm =
+    input.after.pass < input.before.pass || worst === null
+      ? `check tasks fell ${scores}`
+      : `${worst.type} lost ${worst.lost} ${worst.lost === 1 ? 'pass' : 'passes'}; ${check}`;
+  return { keep: false, reason: `Learned: ${tried}, but ${harm}` };
+}
+
 export interface ConfirmInput {
   /** The measurement that cleared the limits. */
   first: Measurement;

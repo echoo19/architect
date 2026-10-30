@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Correction, GraduateSummary } from '@architect/shared';
 import { Button, Drawer, DrawerContent, Skeleton } from '@architect/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useVersions } from '../../api/graduates';
 import { useCorrections, useImprovements } from '../../api/teaching';
 import { ProblemState } from '../../components/ProblemState';
 import { versionDate } from '../settings/versions';
@@ -39,15 +38,11 @@ export function FlaggedAnswers({
   onClose: () => void;
 }) {
   const corrections = useCorrections(agent.id);
-  const versions = useVersions(agent.id);
   const improvements = useImprovements(agent.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = ordered(corrections.data ?? []);
   const selected = list.find((correction) => correction.id === selectedId) ?? null;
   const improving = runningImprovement(improvements.data ?? []) !== null;
-  const nextVersion = versions.data
-    ? Math.max(0, ...versions.data.map((version) => version.version)) + 1
-    : null;
   // A lesson an improvement is teaching stays as it is until that improvement ends.
   const decidable =
     selected !== null &&
@@ -82,7 +77,6 @@ export function FlaggedAnswers({
             <ProposalActions
               graduateId={agent.id}
               correction={selected}
-              nextVersion={nextVersion}
               onSettled={() => setSelectedId(null)}
             />
           )

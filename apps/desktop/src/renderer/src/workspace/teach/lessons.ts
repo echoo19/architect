@@ -1,6 +1,5 @@
 import {
   CodedError,
-  INSTRUCTION_KINDS,
   TEACHABLE_KINDS,
   type Budget,
   type Correction,
@@ -23,11 +22,6 @@ export const KIND_LABELS: Record<CorrectionKind, string> = {
 /** A lesson that can join the teaching queue. */
 export function canQueue(kind: CorrectionKind): boolean {
   return TEACHABLE_KINDS.includes(kind);
-}
-
-/** A lesson that can take effect as an instruction, with no training. */
-export function canApply(proposal: CorrectionProposal): boolean {
-  return INSTRUCTION_KINDS.includes(proposal.kind) && proposal.instruction !== undefined;
 }
 
 /** The change a lesson would make to the agent: a heading, and what it is. */
