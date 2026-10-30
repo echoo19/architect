@@ -16,6 +16,7 @@ import {
   type RunDetail,
   type StudentTarget,
   type Trace,
+  type VersionPick,
 } from '@architect/shared';
 import { reportBeside } from '../comparisons/records';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
@@ -267,6 +268,12 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     );
   }
 
+  /** A version's harness from its own folder, held to the hash its manifest records. */
+  const packagedHarness = ({ graduateId, version }: VersionPick) => {
+    const stored = graduates.version(graduateId, version);
+    return deps.harness.readPackaged(paths.fromStored(stored.path), stored.manifest);
+  };
+
   return {
     jobs: {
       list: async () => jobs.summaries(),
@@ -369,6 +376,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       versions: async (graduateId) => graduates.versions(graduateId),
       history: async (graduateId) => graduates.history(graduateId),
       report: (graduateId, version) => graduates.report(graduateId, version),
+      harnessDiff: async (from, to) =>
+        deps.harness.diffHarness(await packagedHarness(from), await packagedHarness(to)),
       acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
       rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
       promote: async (graduateId, version) => checked(graduates.promote(graduateId, version).id),

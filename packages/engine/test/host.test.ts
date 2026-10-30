@@ -528,6 +528,12 @@ describe('the engine host', () => {
       [1, true],
       [2, false],
     ]);
+    // What the improvement changed, read from each version's own folder.
+    const first = { graduateId, version: 1 };
+    const changed = await client.graduates.harnessDiff(first, { graduateId, version: 2 });
+    expect(changed).toEqual([expect.objectContaining({ path: 'AGENTS.md', status: 'modified' })]);
+    expect(changed[0]?.patch).toContain('fix:overdue');
+    expect(await client.graduates.harnessDiff(first, first)).toEqual([]);
   });
 
   it("streams a publication's progress to the client while publish waits, and then stops", async () => {
