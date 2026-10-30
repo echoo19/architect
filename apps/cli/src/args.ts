@@ -3,7 +3,8 @@ import { CliError } from './exit';
 
 type Options = NonNullable<ParseArgsConfig['options']>;
 
-export type CommandName = 'list' | 'install' | 'run' | 'inspect' | 'verify' | 'export' | 'publish';
+export type CommandName =
+  'list' | 'install' | 'run' | 'inspect' | 'verify' | 'export' | 'publish' | 'field' | 'reward';
 
 interface CommandSpec {
   usage: string;
@@ -130,6 +131,21 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --dry-run               show what would be sent, and send nothing',
       JSON_HELP,
     ],
+  },
+  field: {
+    usage: 'architect field export <job> --out <folder> [--json]',
+    summary:
+      "Export a field's verified demonstrations, outcome scorer and sealed-evaluation manifest.",
+    args: 2,
+    options: { out: { type: 'string' }, ...json },
+    help: ['  --out <folder>          the folder to write, new or empty', JSON_HELP],
+  },
+  reward: {
+    usage: 'architect reward score [--env <folder>]',
+    summary: "Score attempts at a field's train tasks: JSON lines in on stdin, scores out.",
+    args: 1,
+    options: { env: { type: 'string' } },
+    help: ["  --env <folder>          a field export's env folder; the current folder by default"],
   },
 };
 
