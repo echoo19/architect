@@ -23,7 +23,7 @@ import { AT, at, detail, graduate, makeRun, STORY, storyReport, trainedJob } fro
  * figure is one of the shared story's, so the Lab agrees with the screens it opens.
  */
 
-const PHIL_ID = 'grd_phil';
+export const PHIL_ID = 'grd_phil';
 
 const PHIL: GraduateSummary = {
   ...FIELD_AGENT,

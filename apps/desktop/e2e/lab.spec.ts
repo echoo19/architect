@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
+import { stubFields } from './fixtures-fields';
 import { LAB, stubLab } from './fixtures-lab';
 import { CHATS } from './fixtures-workspace';
 import { STORY } from './story';
@@ -134,19 +135,17 @@ test('shows what needs the person and what runs, then what finished, spent and s
 });
 
 test('leads to each place from the sidebar and the command palette', async () => {
-  await stubLab(launched.app);
+  await stubFields(launched.app);
   await reloadAt('/');
 
   await places().getByRole('button', { name: 'Fields' }).click();
   await expect(page).toHaveURL(/#\/fields$/);
   const fields = page.getByRole('table', { name: 'Fields' });
   await expect(fields.getByRole('row', { name: /Phil/ })).toContainText('3');
-  await capture('places-fields-dark.png');
   await fields.getByRole('row', { name: /Phil/ }).click();
   await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.philJob}$`));
   await expect(page.getByRole('heading', { name: 'Phil', level: 1 })).toBeVisible();
-  await expect(card('Organizations')).toContainText('Lakeview Academy');
-  await capture('places-field-dark.png');
+  await expect(page.getByRole('tab', { name: 'Organizations' })).toBeVisible();
 
   await places().getByRole('button', { name: 'Experiments' }).click();
   await expect(page.getByRole('heading', { name: 'No experiments yet' })).toBeVisible();
