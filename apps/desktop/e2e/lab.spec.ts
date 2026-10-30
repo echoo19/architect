@@ -88,7 +88,15 @@ test('shows what needs the person and what runs, then what finished, spent and s
     needs.getByRole('button', { name: /Invoice and book Cedar Ave.*approval/ }),
   ).toBeVisible();
   await expect(needs.getByRole('button', { name: /A lesson to review/ })).toBeVisible();
-  await expect(needs.getByRole('button', { name: /Version 3 is ready to promote/ })).toBeVisible();
+  // The new version beside the active one, so a lower score is never offered as the better one.
+  await expect(
+    needs.getByRole('button', {
+      name: /Version 3: 88% on check tasks, active version 2: 94%/,
+    }),
+  ).toBeVisible();
+  for (const group of ['Questions', 'Results', 'Approvals', 'Lessons', 'Versions']) {
+    await expect(needs.getByRole('region', { name: group })).toBeVisible();
+  }
   await expect(needs.getByText('Nothing waits for you')).toBeHidden();
 
   const running = card('Running');
@@ -100,8 +108,8 @@ test('shows what needs the person and what runs, then what finished, spent and s
   // Phil was tested on the academies it trained on, on one it never saw and on a real one.
   const finished = card('Recently finished');
   const phil = finished.getByRole('button', { name: /^Phil/ });
-  await expect(phil).toContainText('Seen');
-  await expect(phil).toContainText('Unseen');
+  await expect(phil).toContainText('Taught on');
+  await expect(phil).toContainText('Never seen');
   await expect(phil).toContainText('Real');
   await expect(phil).toContainText('90%');
   await expect(finished.getByRole('button', { name: /Clinic intake/ })).toContainText('92%');
@@ -115,7 +123,10 @@ test('shows what needs the person and what runs, then what finished, spent and s
   await expect(spend).toContainText('$0.61');
 
   await expect(card('Fields').getByRole('button', { name: /Phil.*3 organizations/ })).toBeVisible();
-  await expect(card('Agents').getByRole('button', { name: 'Open Phil' })).toBeVisible();
+  // The versions Models lists as active.
+  await expect(
+    card('Agents').getByRole('button', { name: 'Open Phil', exact: true }),
+  ).toContainText('Version 2');
   await capture('lab-dark.png');
   await card('Agents').scrollIntoViewIfNeeded();
   await capture('lab-lower-dark.png');

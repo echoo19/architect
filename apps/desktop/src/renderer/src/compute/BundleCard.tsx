@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  CLUSTER_TEMPLATE_WORDING,
   type ClusterTarget,
   type ModelConfigRead,
   type TrainingPlan,
@@ -11,6 +10,7 @@ import { Container, FolderInput, FolderOutput, Server, TriangleAlert } from 'luc
 import { flowApi } from '../api/client';
 import { computeApi } from '../api/compute';
 import { CopyButton } from '../components/CopyButton';
+import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { bundleBlocker, planRequest, type PlanSettings } from './model';
 
@@ -23,6 +23,10 @@ function Tile({ children }: { children: ReactNode }) {
 }
 
 const icon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
+
+/** What a cluster bundle is and isn't, once and short (docs/SCALE.md). */
+export const CLUSTER_NOTE =
+  'Architect writes this bundle and never submits it. It is checked against simulated schedulers only; GPU runs, large models and training gains are unverified.';
 
 /**
  * A launch bundle for Slurm or Kubernetes, written from the plan with a field export's verified
@@ -95,7 +99,11 @@ export function BundleCard({
           </Tile>
         }
         title="Field export"
-        detail={<span className="font-mono">{exportDir ?? 'None chosen'}</span>}
+        detail={
+          <span className="font-mono" title={exportDir ?? undefined}>
+            {exportDir === null ? 'None chosen' : shortPath(exportDir)}
+          </span>
+        }
         end={
           <Button
             size="sm"
@@ -112,7 +120,11 @@ export function BundleCard({
           </Tile>
         }
         title="Write in"
-        detail={<span className="font-mono">{parentDir ?? 'None chosen'}</span>}
+        detail={
+          <span className="font-mono" title={parentDir ?? undefined}>
+            {parentDir === null ? 'None chosen' : shortPath(parentDir)}
+          </span>
+        }
         end={
           <Button
             size="sm"
@@ -142,11 +154,15 @@ export function BundleCard({
           className="flex flex-col gap-3 border-t border-line px-6 py-5"
         >
           <p className="m-0 text-ui">
-            Wrote {written.files.length} files. Submit them with your own tools:
+            Wrote {written.files.length} files in{' '}
+            <span className="font-mono text-small" title={written.dir}>
+              {shortPath(written.dir)}
+            </span>
+            . From that folder, submit them with your own tools:
           </p>
           <div className="flex items-center gap-3 rounded-control bg-field py-2 pl-4 pr-2 shadow-edge">
             <pre className="m-0 min-w-0 flex-1 select-text whitespace-pre-wrap break-all py-1 font-mono text-small leading-6">
-              {command}
+              {written.bundle.submit}
             </pre>
             <CopyButton text={command} label="Copy command" />
           </div>
@@ -154,9 +170,7 @@ export function BundleCard({
       )}
       <div className="flex items-start gap-3 border-t border-line px-6 py-4 text-ui">
         <TriangleAlert size={16} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0" />
-        <p className="m-0">
-          Never submitted by Architect and never run on a cluster. {CLUSTER_TEMPLATE_WORDING}
-        </p>
+        <p className="m-0">{CLUSTER_NOTE}</p>
       </div>
     </Card>
   );

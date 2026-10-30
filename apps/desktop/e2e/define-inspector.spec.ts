@@ -122,7 +122,7 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
 
   // Student: the model here, where it practices, the online copy and the context.
   await inspector.getByRole('tab', { name: 'Glimmer' }).click();
-  await expect(inspector.getByRole('radiogroup', { name: 'Practices on' })).toBeVisible();
+  await expect(inspector.getByRole('radiogroup', { name: 'Runs on' })).toBeVisible();
   await expect(inspector.getByRole('textbox', { name: 'Context' })).toHaveValue('16384');
   await capture(page, 'define-inspector-student-dark');
 
@@ -154,6 +154,9 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
   await rounds.fill('8');
   await expect(inspector.getByRole('alert')).toHaveCount(0);
   await expect.poll(async () => (await lastSaved())?.budget.maxRounds).toBe(8);
+  // Back as it was, so every capture prices the same job.
+  await rounds.fill('12');
+  await expect.poll(async () => (await lastSaved())?.budget.maxRounds).toBe(12);
 
   // Evaluation: ready when, the final test and its seeds, the sets, the grading.
   await inspector.getByRole('tab', { name: 'Evaluation' }).click();
@@ -171,10 +174,17 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
     .toEqual([11, 12, 13]);
   await capture(page, 'define-inspector-evaluation-dark');
 
-  // Budget: what is expected against each cap, then the caps.
+  // Budget: what is expected against each cap, then the caps. A time limit that stops training
+  // before its last round and retraining with no compute are said plainly, beside Start training
+  // too, with the fix; the online price is the one the card beside the page shows.
   await inspector.getByRole('tab', { name: 'Budget' }).click();
   await expect(inspector.getByRole('meter', { name: 'Spark' })).toBeVisible();
   await expect(inspector.getByRole('meter', { name: 'Training time' })).toBeVisible();
+  const notes = inspector.getByRole('note');
+  await expect(notes.first()).toContainText('time limit may stop training after');
+  await expect(notes.nth(1)).toContainText("its compute cap is $0, so it won't run");
+  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Allow \d+ hours$/ }).first()).toBeVisible();
   await capture(page, 'define-inspector-budget-dark');
 
   // Closed and opened again, it is on the tab it was left on.
@@ -216,7 +226,7 @@ test('shows the organizations it practices on, and the ones it never trains on o
   const orgs = inspector.getByRole('region', { name: 'Organizations' });
   await expect(orgs).toContainText('Northside Prep');
   await expect(orgs).toContainText('1 it never trains on');
-  await expect(orgs).toContainText('Sealed');
+  await expect(orgs).toContainText('Never seen');
   // A sealed organization is never named before the final test, and nothing here unseals it.
   await expect(orgs).not.toContainText('Harbor');
   await expect(orgs.getByRole('switch')).toHaveCount(0);

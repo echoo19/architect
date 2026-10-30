@@ -8,7 +8,13 @@ import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 import { ARM_NAMES, STATUS_WORDS } from './model';
 
-/** What one experiment spent of a kind, against its total cap; absent before it ran. */
+/** States in which an experiment has spent nothing: only its cap is known. */
+const NOT_STARTED = new Set<ExperimentRecord['status']>(['draft', 'calibrating', 'preregistered']);
+
+/**
+ * What one experiment spent of a kind, against its total cap. Before it starts there is no spend
+ * to show, only the cap: "Up to $6.00".
+ */
 function SpendCell({
   record,
   kind,
@@ -17,16 +23,9 @@ function SpendCell({
   kind: 'sparkUsd' | 'studentUsd';
 }) {
   const detail = useExperiment(record.id);
-  const spent = detail.data?.report?.totals[kind];
   const cap = formatCost(record.input.caps[kind]);
-  if (spent === undefined || spent === null) {
-    return (
-      <span>
-        <span aria-hidden>–</span>
-        <span className="sr-only">None</span> of {cap}
-      </span>
-    );
-  }
+  const spent = NOT_STARTED.has(record.status) ? undefined : detail.data?.report?.totals[kind];
+  if (spent === undefined || spent === null) return <span>Up to {cap}</span>;
   return (
     <span className={spent > record.input.caps[kind] ? 'text-danger' : undefined}>
       <span className="font-medium">{formatCost(spent)}</span> of {cap}
@@ -85,6 +84,7 @@ export function ExperimentsScreen() {
               {
                 key: 'arms',
                 header: 'Arms',
+                hint: 'Arms are the setups compared, each taught and tested the same way',
                 align: 'end',
                 width: '88px',
                 sortValue: (record) => record.input.arms.length,
@@ -103,7 +103,7 @@ export function ExperimentsScreen() {
               },
               {
                 key: 'student',
-                header: 'Student',
+                header: 'Glimmer',
                 align: 'end',
                 width: '150px',
                 cell: (record) => <SpendCell record={record} kind="studentUsd" />,

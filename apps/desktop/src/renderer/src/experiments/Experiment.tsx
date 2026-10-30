@@ -20,7 +20,15 @@ import { attempt } from '../lib/notify';
 import { PlacePage } from '../shell/PlacePage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ArmTile } from './icons';
-import { ARM_NAMES, STATUS_WORDS, armStatusWord, minutesText } from './model';
+import {
+  ARM_NAMES,
+  DONE_TEACHING,
+  SPARK_ARMS,
+  STATUS_WORDS,
+  STUDENT_ARMS,
+  armStatusWord,
+  minutesText,
+} from './model';
 import { Results } from './Results';
 
 /** One arm's state while the experiment runs: never a locked result. */
@@ -53,8 +61,13 @@ function liveArms(detail: ExperimentDetail): LiveArm[] {
       status: armStatusWord(arm, experiment.status),
       reason: arm.reason,
       rounds: arm.rounds === null ? null : { used: arm.rounds.used, cap: arm.caps.rounds },
-      spark: { used: arm.spent.sparkUsd, cap: arm.caps.sparkUsd },
-      student: { used: arm.spent.studentUsd, cap: arm.caps.studentUsd },
+      // An arm that never calls a model shows nothing for it, not a $0 of a $0 cap.
+      spark: SPARK_ARMS.includes(arm.arm)
+        ? { used: arm.spent.sparkUsd, cap: arm.caps.sparkUsd }
+        : { used: null, cap: null },
+      student: STUDENT_ARMS.includes(arm.arm)
+        ? { used: arm.spent.studentUsd, cap: arm.caps.studentUsd }
+        : { used: null, cap: null },
     };
   });
 }
@@ -108,10 +121,10 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
         {
           key: 'status',
           header: 'Status',
-          width: '136px',
+          width: '176px',
           cell: (row) => (
             <span className="flex items-center gap-2" title={row.reason ?? undefined}>
-              {row.status === 'Frozen' && <Lock size={13} aria-hidden />}
+              {row.status === DONE_TEACHING && <Lock size={13} aria-hidden />}
               {row.status}
             </span>
           ),
@@ -137,7 +150,7 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
         },
         {
           key: 'student',
-          header: 'Student',
+          header: 'Glimmer',
           align: 'end',
           width: '176px',
           cell: (row) => <Spent amount={row.student} tone="student" />,
@@ -147,11 +160,18 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
   );
 }
 
-/** The whole experiment's spend against its caps, and its wall clock. */
+/** Under a cent reads as nothing spent, so a fraction of a cent never looks over a $0 cap. */
+const cents = (usd: number) => Math.round(usd * 100) / 100;
+
+/**
+ * The whole experiment's spend against its caps, and its wall clock. Compute with a $0 cap is
+ * not used at all, so it stands alone with no meter and never reads as over.
+ */
 function SpendCard({ detail }: { detail: ExperimentDetail }) {
   const { experiment, report } = detail;
   const { caps } = experiment.input;
   const student = report?.totals.studentUsd;
+  const compute = cents(report?.totals.computeUsd ?? 0);
   return (
     <Card title="Spend">
       <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -164,24 +184,23 @@ function SpendCard({ detail }: { detail: ExperimentDetail }) {
         />
         {student === null ? (
           <div className="flex items-baseline justify-between gap-3 text-ui">
-            <span>Student</span>
+            <span>Glimmer</span>
             <span title="Some attempt's price isn't known">Not known</span>
           </div>
         ) : (
           <CapMeter
             tone="student"
-            label="Student"
+            label="Glimmer"
             used={student ?? 0}
             cap={caps.studentUsd}
             format={formatCost}
           />
         )}
-        <CapMeter
-          label="Compute"
-          used={report?.totals.computeUsd ?? 0}
-          cap={caps.computeUsd}
-          format={formatCost}
-        />
+        {caps.computeUsd === 0 && compute === 0 ? (
+          <CapMeter label="Compute" used={0} format={() => 'Not used'} />
+        ) : (
+          <CapMeter label="Compute" used={compute} cap={caps.computeUsd} format={formatCost} />
+        )}
         <CapMeter
           label="Time"
           used={experiment.runningMs / 60_000}
@@ -201,7 +220,10 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
     <Card title="Preregistration" icon={<Lock size={16} strokeWidth={1.7} aria-hidden />}>
       <DetailList
         items={[
-          { label: 'Frozen', value: new Date(preregistration.at).toLocaleString('en-US') },
+          {
+            label: 'Preregistered on',
+            value: new Date(preregistration.at).toLocaleString('en-US'),
+          },
           { label: 'Plan hash', value: preregistration.sha256 },
           { label: 'Field', value: `${job.name}, ${shortPath(input.jobDir)}` },
           { label: 'Splits seed', value: job.splitsSeed },
@@ -334,7 +356,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
       status={
         <span className="flex items-center gap-2">
           <Badge>{STATUS_WORDS[status]}</Badge>
-          {report?.dryRun && <Badge>Dry run</Badge>}
+          {report?.dryRun && <Badge>Simulation, no model called</Badge>}
         </span>
       }
       action={action}
@@ -357,7 +379,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
             <SpendCard detail={detail} />
             <ArmsTable detail={detail} />
             {status !== 'preregistered' && (
-              <p className="m-0 px-1 text-ui">Results open here once every arm is frozen.</p>
+              <p className="m-0 px-1 text-ui">Results open here once every arm is done teaching.</p>
             )}
           </>
         )}
@@ -372,7 +394,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
         lines={[
           {
             icon: <Wallet aria-hidden />,
-            text: `It may spend up to ${formatCost(input.caps.sparkUsd)} of Spark, ${formatCost(input.caps.studentUsd)} of the student and ${formatCost(input.caps.computeUsd)} of compute.`,
+            text: `It may spend up to ${formatCost(input.caps.sparkUsd)} of Spark, ${formatCost(input.caps.studentUsd)} of Glimmer and ${formatCost(input.caps.computeUsd)} of compute.`,
           },
           {
             icon: <Clock aria-hidden />,

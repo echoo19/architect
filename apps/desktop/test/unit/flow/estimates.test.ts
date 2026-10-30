@@ -4,6 +4,7 @@ import {
   aboutSpan,
   aboutUsd,
   allowingLine,
+  capShortfalls,
   capText,
   comparisonCost,
   comparisonSeconds,
@@ -601,5 +602,33 @@ describe('mentor spending', () => {
     expect(aboutUsd(0.705)).toBe('About $0.70');
     expect(aboutUsd(0.048)).toBe('About $0.05');
     expect(aboutUsd(0.004)).toBe('Under $0.01');
+  });
+});
+
+describe('caps the plan does not fit in', () => {
+  const names = { mentor: 'Spark', student: 'Glimmer' };
+
+  it('says when the time limit stops training before its last round, with the limit that fits', () => {
+    const tight = makeJob({
+      budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 1200, maxComputeUsd: 5 },
+    });
+    const [time] = capShortfalls(tight, names);
+    expect(time?.what).toBe('time');
+    expect(time?.short).toMatch(/^The 20-hour limit fits .+ of 12 rounds$/);
+    expect(time?.allowMinutes).toBeGreaterThan(1200);
+    expect(time?.line).toContain(`Allowing ${capText(time?.allowMinutes ?? 0)} fits all of them.`);
+    // The limit it offers fits every round.
+    const roomy = makeJob({
+      budget: { ...tight.budget, maxWallMinutes: time?.allowMinutes ?? 0 },
+    });
+    expect(capShortfalls(roomy, names)).toEqual([]);
+  });
+
+  it('says when retraining the student is on with no compute to spend', () => {
+    const job = makeJob({
+      budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 10_000 },
+    });
+    expect(capShortfalls(job, names).map((shortfall) => shortfall.what)).toEqual(['compute']);
+    expect(capShortfalls({ ...job, interventions: ['procedure'] }, names)).toEqual([]);
   });
 });

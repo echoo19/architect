@@ -11,9 +11,9 @@ import {
   type VersionEvent,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { FIELD_AGENT, FIELD_JOB, FIELD_REPORT } from './fixtures-field';
-import { stubLab } from './fixtures-lab';
-import { AGENT_WITH_VERSIONS, hex, manifestFor } from './fixtures-versions';
+import { FIELD_JOB, FIELD_REPORT } from './fixtures-field';
+import { LAB_AGENTS, MINI_ID, PHIL_ID, stubLab } from './fixtures-lab';
+import { hex, manifestFor } from './fixtures-versions';
 import { at, FINAL_TEST, job, STORY, storyReport } from './story';
 
 /*
@@ -147,9 +147,6 @@ const DESK_VERSIONS: GraduateVersion[] = [
 const phil = (graduateId: string, spec: Omit<VersionSpec, 'graduateId' | 'job'>) =>
   makeVersion({ ...spec, graduateId, job: PHIL_JOB });
 
-const PHIL_ID = 'grd_phil';
-const MINI_ID = 'grd_phil_mini';
-
 const PHIL_VERSIONS: GraduateVersion[] = [
   phil(PHIL_ID, {
     version: 1,
@@ -252,26 +249,7 @@ const REPORTS: Record<string, ReportCard> = {
   [`${MINI_ID}:1`]: MINI_REPORT,
 };
 
-const PHIL_AGENT: GraduateSummary = {
-  ...FIELD_AGENT,
-  id: PHIL_ID,
-  path: 'graduates/phil',
-  activeVersion: 2,
-  versions: 2,
-  manifest: { ...FIELD_AGENT.manifest, id: PHIL_ID, jobId: PHIL_JOB.id },
-};
-
-const MINI_AGENT: GraduateSummary = {
-  ...PHIL_AGENT,
-  id: MINI_ID,
-  name: 'Phil Mini',
-  path: 'graduates/phil-mini',
-  activeVersion: 1,
-  versions: 1,
-  manifest: { ...PHIL_AGENT.manifest, id: MINI_ID, name: 'Phil Mini' },
-};
-
-const AGENTS: GraduateSummary[] = [AGENT_WITH_VERSIONS, PHIL_AGENT, MINI_AGENT];
+const AGENTS: GraduateSummary[] = LAB_AGENTS;
 
 const PATCH = {
   agents: [

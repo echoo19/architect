@@ -101,15 +101,35 @@ function NeedRow({ need }: { need: Need }) {
   );
 }
 
-/** One agent's approvals, lessons and versions that wait; each read on its own. */
-function AgentNeeds({ graduate }: { graduate: GraduateSummary }) {
+/** The kinds of what waits, in the order the card groups them. */
+const NEED_GROUPS: readonly { label: string; kinds: readonly NeedKind[] }[] = [
+  { label: 'Questions', kinds: ['question'] },
+  { label: 'Results', kinds: ['results', 'failed'] },
+  { label: 'Approvals', kinds: ['approval'] },
+  { label: 'Lessons', kinds: ['lessons'] },
+  { label: 'Versions', kinds: ['promote'] },
+];
+
+/**
+ * One agent's approvals, lessons and versions of the given kinds; each read on its own. Only one
+ * group shows a failed read, so a problem isn't repeated in every group.
+ */
+function AgentNeeds({
+  graduate,
+  kinds,
+  problems,
+}: {
+  graduate: GraduateSummary;
+  kinds: readonly NeedKind[];
+  problems: boolean;
+}) {
   const chats = useAgentChats(graduate.id);
   const corrections = useCorrections(graduate.id);
   const improvements = useImprovements(graduate.id);
   const needs = [
     ...approvalNeeds(graduate, chats.entry.data ?? []),
     ...teachingNeeds(graduate, corrections.data ?? [], improvements.data ?? []),
-  ];
+  ].filter((need) => kinds.includes(need.kind));
   const failed =
     chats.entry.status === 'error'
       ? { error: chats.entry.error, retry: chats.reload }
@@ -127,7 +147,7 @@ function AgentNeeds({ graduate }: { graduate: GraduateSummary }) {
       {needs.map((need) => (
         <NeedRow key={need.key} need={need} />
       ))}
-      {failed && (
+      {problems && failed && (
         <li className="border-t border-line px-6 py-3">
           <ProblemState
             layout="inline"
@@ -142,7 +162,7 @@ function AgentNeeds({ graduate }: { graduate: GraduateSummary }) {
   );
 }
 
-/** Everything that waits for the person: the focal card, with Running beside it. */
+/** Everything that waits for the person, grouped by kind: the focal card, with Running beside it. */
 export function NeedsYouCard({
   jobs,
   graduates,
@@ -150,18 +170,35 @@ export function NeedsYouCard({
   jobs: readonly JobSummary[];
   graduates: readonly GraduateSummary[];
 }) {
+  const fromJobs = jobNeeds(jobs);
   return (
     <Card title="Needs you" flush>
-      {/* Each agent's rows come from reads of their own; the quiet line shows while none has any. */}
+      {/* Each agent's rows come from reads of their own; a group shows once it holds a row. */}
       <div className="group">
-        <ul className="m-0 flex list-none flex-col p-0">
-          {jobNeeds(jobs).map((need) => (
-            <NeedRow key={need.key} need={need} />
-          ))}
-          {graduates.map((graduate) => (
-            <AgentNeeds key={graduate.id} graduate={graduate} />
-          ))}
-        </ul>
+        {NEED_GROUPS.map((group, index) => (
+          <section
+            key={group.label}
+            aria-label={group.label}
+            className="hidden has-[li:not([aria-busy])]:block"
+          >
+            <h3 className="m-0 px-6 pb-2 pt-4 text-small font-medium">{group.label}</h3>
+            <ul className="m-0 flex list-none flex-col p-0">
+              {fromJobs
+                .filter((need) => group.kinds.includes(need.kind))
+                .map((need) => (
+                  <NeedRow key={need.key} need={need} />
+                ))}
+              {graduates.map((graduate) => (
+                <AgentNeeds
+                  key={graduate.id}
+                  graduate={graduate}
+                  kinds={group.kinds}
+                  problems={index === NEED_GROUPS.length - 1}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
         <Quiet className="flex items-center gap-2.5 group-has-[li:not([aria-busy])]:hidden">
           <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />
           Nothing waits for you
@@ -223,7 +260,10 @@ function RunningRow({ row }: { row: RunRow }) {
             </span>
           </span>
           {dev && dev.total > 0 && (
-            <Tooltip content="Check tasks passed now" side="left">
+            <Tooltip
+              content="Check tasks passed now. Spark sees only this score, never the tasks."
+              side="left"
+            >
               <span className="font-display text-h2 font-semibold tabular-nums">
                 {formatPercent(dev)}
               </span>
@@ -269,7 +309,7 @@ export function RunningCard({ rows }: { rows: readonly RunRow[] }) {
   );
 }
 
-/** One figure of a final test: "Unseen 74%", or a dash when that kind wasn't tested. */
+/** One figure of a final test: "Never seen 74%", or a dash when that kind wasn't tested. */
 function Figure({ label, score, hint }: { label: string; score: Score | null; hint: string }) {
   return (
     <Tooltip content={hint} side="top">
@@ -303,9 +343,17 @@ function FinishedRow({ row }: { row: RunRow }) {
           card ? (
             scores ? (
               <span className="flex gap-5">
-                <Figure label="Seen" score={scores.seen} hint="Organizations it trained on" />
-                <Figure label="Unseen" score={scores.unseen} hint="Generated ones it never saw" />
-                <Figure label="Real" score={scores.real} hint="A real one it never saw" />
+                <Figure
+                  label="Taught on"
+                  score={scores.seen}
+                  hint="Organizations it was taught on"
+                />
+                <Figure
+                  label="Never seen"
+                  score={scores.unseen}
+                  hint="Generated ones it never saw"
+                />
+                <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
               </span>
             ) : (
               <Figure label="Passed" score={card.test.score} hint="Final test" />

@@ -66,7 +66,8 @@ test('lists every agent and version with its scores, and filters and searches th
   const phil = row(/^Phil\s+version 2/);
   await expect(phil).toContainText('Phil');
   await expect(phil).toContainText('Glimmer · 4-bit');
-  await expect(phil).toContainText('61b8a9d');
+  // Its harness hash is behind a hover, not in the row.
+  await expect(phil).not.toContainText('61b8a9d');
   await expect(phil).toContainText('93%');
   await expect(phil).toContainText('83%');
   await expect(phil).toContainText('90%');
@@ -80,6 +81,9 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(imported.getByText('None').first()).toBeAttached();
   await expect(row(/Service desk\s+version 2/)).toContainText('Adapter');
   await capture('models-dark.png');
+  await phil.getByText('Harness', { exact: true }).hover();
+  await expect(page.getByRole('tooltip')).toContainText('harness 61b8a9d');
+  await page.mouse.move(0, 0);
 
   await page.getByRole('radio', { name: 'Candidates' }).click();
   await expect(table().getByRole('row')).toHaveCount(4);
@@ -93,9 +97,9 @@ test('lists every agent and version with its scores, and filters and searches th
   await page.getByRole('searchbox', { name: 'Search models' }).fill('');
 
   // Sorted by name; the unseen column sorts with unmeasured versions last either way.
-  await table().getByRole('button', { name: 'Unseen' }).click();
+  await table().getByRole('button', { name: 'Never seen' }).click();
   await expect(table().getByRole('row').nth(2)).toContainText('Phil');
-  await table().getByRole('button', { name: 'Unseen' }).click();
+  await table().getByRole('button', { name: 'Never seen' }).click();
   await expect(table().getByRole('row').nth(2)).toContainText('Phil Mini');
   await expect(table().getByRole('row').last()).toContainText('Service desk');
 });
@@ -105,7 +109,7 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await row(/^Phil\s+version 2/).click();
   await expect(panel().getByRole('heading', { name: /Phil/ })).toBeVisible();
   const finalTest = panel().getByRole('region', { name: 'Final test' });
-  await expect(finalTest).toContainText('Seen');
+  await expect(finalTest).toContainText('Taught on');
   await expect(finalTest).toContainText('67/72');
   await expect(panel()).toContainText('Check tasks');
   await expect(panel()).toContainText('71/80');

@@ -107,6 +107,10 @@ export function matchesSearch(row: ModelRow, search: string): boolean {
   return words.every((word) => haystack.includes(word));
 }
 
+/** What the check tasks are, where a header or a label names them. */
+export const CHECK_HINT =
+  'Tasks scored at the end of teaching. Spark sees only the score, never the tasks.';
+
 export interface RowScores {
   /** The final test at the organizations it trained on (the job's own, for a one-organization job). */
   seen: Score | null;
@@ -154,11 +158,11 @@ export function ordered(a: ModelRow, b: ModelRow): [ModelRow, ModelRow] {
   return at(a) <= at(b) ? [a, b] : [b, a];
 }
 
-/** Where an organization stands to the agent: trained with, never seen, or never seen and real. */
+/** Where an organization stands to the agent: taught on, never seen, or never seen and real. */
 export type OrgGroup = 'seen' | 'unseen' | 'real';
 
 export const GROUP_LABELS: Record<OrgGroup, string> = {
-  seen: 'Trained with',
+  seen: 'Taught on',
   unseen: 'Never seen',
   real: 'Never seen, real',
 };

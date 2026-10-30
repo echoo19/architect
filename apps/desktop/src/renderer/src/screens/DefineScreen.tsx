@@ -23,10 +23,11 @@ import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { takeAdvanced } from '../flow/define/advanced-request';
 import { DefineInspector } from '../flow/define/DefineInspector';
-import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
+import { capShortfalls, capText, trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
 import { ExportJobFile } from '../flow/define/ExportJobFile';
 import { hostedAvailability } from '../flow/define/hosted';
 import { INSPECTOR_NAME, tabWithIssue, type DefineTab } from '../flow/define/inspector-tabs';
+import { modelNames } from '../flow/names';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
 import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
@@ -144,6 +145,9 @@ function DefineEditor({ initial }: { initial: Job }) {
   // Training where the job trains would run out of time before the teacher changed anything. It
   // waits like any other need, and the way out is on the page: more time, or the other place.
   const wontTeach = trainsTooSlow(job);
+  // A time limit that stops training early is said beside Start training, with its fix.
+  // Retraining with no compute is said in Budget only: jobs allow it by default and skip it.
+  const shortfall = capShortfalls(job, modelNames(job)).find((cap) => cap.what === 'time');
 
   // With no online copy there is nothing for the final test to run on.
   const hasCopy = job.student.hosted !== undefined;
@@ -240,14 +244,43 @@ function DefineEditor({ initial }: { initial: Job }) {
             <ExportJobFile editor={editor} />
           </div>
           <div className="flex items-center gap-2">
-            <span className="mr-2 text-small">
-              {waitLine(wait) ??
+            {(() => {
+              const said =
+                waitLine(wait) ??
                 (preflight.needs.length > 0
                   ? preflight.summary
                   : wontTeach
                     ? wontTeachTitle(job, job.student.trainOn, deviceInSentence(currentPlatform()))
-                    : 'Keep Architect open while it trains')}
-            </span>
+                    : null);
+              if (said !== null || !shortfall) {
+                return (
+                  <span className="mr-2 text-small">
+                    {said ?? 'Keep Architect open while it trains'}
+                  </span>
+                );
+              }
+              const allow = shortfall.allowMinutes;
+              return (
+                <>
+                  <span className="text-small">{shortfall.short}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-1"
+                    onClick={() =>
+                      allow === undefined
+                        ? openAdvanced('budget')
+                        : editor.change((current) => ({
+                            ...current,
+                            budget: { ...current.budget, maxWallMinutes: allow },
+                          }))
+                    }
+                  >
+                    {allow === undefined ? 'Open Budget' : `Allow ${capText(allow)}`}
+                  </Button>
+                </>
+              );
+            })()}
             <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
             <Button
               variant="primary"

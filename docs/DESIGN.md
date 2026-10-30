@@ -95,9 +95,16 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   and a figure, a status word or a chevron at the right. A grid holds one column on a narrow
   window and two or three on a wide one; rows of cards on one page share their columns so their
   edges line up. The cards rise in one after another on first mount.
-- **The Lab** has one focal point: Needs you and Running side by side, the same height. What a
-  card lacks is said in a few words on a quiet line ("Nothing is running"), never with a
+- **The Lab** has one focal point: Needs you and Running side by side at the top of two columns,
+  each column a stack of cards at its own height, so a short card never stretches into an empty
+  one. Needs you groups what waits by kind (questions, results, approvals, lessons, versions). What
+  a card lacks is said in a few words on a quiet line ("Nothing is running"), never with a
   placeholder illustration.
+- **One word per concept.** Organizations are "Taught on" or "Never seen" ("sealed" only where a
+  line explains what never seen means); the models go by their short names (Spark, Glimmer), never
+  "Teacher" and "Student". A new version is shown beside the one in use with both scores, never
+  as simply "ready". A change in a score carries its unit ("+25 points"), and a count agrees
+  with its number ("1 task").
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
   teacher, the student, teaching, evaluation, budget). Its tabs are a segmented strip whose
   selected fill slides between them; a button folds it to a 56px rail of the tabs' icons, and

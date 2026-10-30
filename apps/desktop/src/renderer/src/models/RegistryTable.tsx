@@ -6,6 +6,7 @@ import { shortDate } from '../flow/format';
 import { formatPercent } from '../lib/format';
 import {
   baseModelOf,
+  CHECK_HINT,
   fieldOf,
   runtimeName,
   scoresOf,
@@ -32,11 +33,13 @@ const scoreColumn = (
   key: keyof RowScores,
   header: string,
   group?: string,
+  hint?: string,
 ): DataColumn<ModelRow> => ({
   key,
   header,
   align: 'end',
   ...(group === undefined ? {} : { group }),
+  ...(hint === undefined ? {} : { hint }),
   sortValue: (row) => sortScore(scoresOf(row)[key]),
   cell: (row) =>
     key === 'seen' && row.reportError ? (
@@ -91,10 +94,10 @@ const STATUS: DataColumn<ModelRow> = {
 };
 
 const SCORES = [
-  scoreColumn('seen', 'Seen', FINAL_TEST),
-  scoreColumn('unseen', 'Unseen', FINAL_TEST),
-  scoreColumn('real', 'Real', FINAL_TEST),
-  scoreColumn('check', 'Check tasks'),
+  scoreColumn('seen', 'Taught on', FINAL_TEST, 'Organizations it was taught on'),
+  scoreColumn('unseen', 'Never seen', FINAL_TEST, 'Generated organizations it never saw'),
+  scoreColumn('real', 'Real', FINAL_TEST, 'Real organizations it never saw'),
+  scoreColumn('check', 'Check tasks', undefined, CHECK_HINT),
 ];
 
 const COLUMNS: DataColumn<ModelRow>[] = [
@@ -115,24 +118,18 @@ const COLUMNS: DataColumn<ModelRow>[] = [
     header: 'Method',
     sortValue: (row) => (row.version.manifest.model.adapter ? 1 : 0),
     cell: (row) => {
-      const adapter = row.version.manifest.model.adapter;
-      return adapter ? (
-        <TwoLines
-          top="Adapter"
-          under={<span className="font-mono">{shortHash(adapter.sha256)}</span>}
-        />
-      ) : (
-        'Harness'
+      // The hashes tell versions apart; they show on hover and in the panel.
+      const { model, harness } = row.version.manifest;
+      const method = model.adapter ? 'Adapter' : 'Harness';
+      const hashes = model.adapter
+        ? `adapter ${shortHash(model.adapter.sha256)}, harness ${shortHash(harness.hash)}`
+        : `harness ${shortHash(harness.hash)}`;
+      return (
+        <Tooltip content={<span className="font-mono">{hashes}</span>} side="top">
+          <span tabIndex={0}>{method}</span>
+        </Tooltip>
       );
     },
-  },
-  {
-    key: 'harness',
-    header: 'Harness',
-    sortValue: (row) => row.version.manifest.harness.hash,
-    cell: (row) => (
-      <span className="font-mono text-small">{shortHash(row.version.manifest.harness.hash)}</span>
-    ),
   },
   ...SCORES,
   STATUS,

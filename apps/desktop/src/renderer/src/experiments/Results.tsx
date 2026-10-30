@@ -91,7 +91,10 @@ function passes(pair: { both: number; aOnly: number; bOnly: number }, side: 'a' 
 function Summary({ report }: { report: ComparisonReport }) {
   const lead = leadPair(report);
   const { totals } = report;
-  const sentences: string[] = [];
+  // A simulation says so first, so none of its figures is read as a measured result.
+  const sentences: string[] = report.dryRun
+    ? ['A simulation on stand-in models: no model was called, so these figures are not a result.']
+    : [];
   if (lead) {
     const { pair } = lead;
     const verdict = verdictOf(pair.difference);
@@ -109,9 +112,9 @@ function Summary({ report }: { report: ComparisonReport }) {
     sentences.push('No two arms were measured on the same tasks, so nothing is compared.');
   }
   sentences.push(
-    `In all it spent ${formatCost(totals.sparkUsd)} of Spark${
-      totals.studentUsd === null ? '' : ` and ${formatCost(totals.studentUsd)} of the student`
-    }.`,
+    `${report.dryRun ? 'As simulated, it would have spent' : 'In all it spent'} ${formatCost(
+      totals.sparkUsd,
+    )} of Spark${totals.studentUsd === null ? '' : ` and ${formatCost(totals.studentUsd)} of Glimmer`}.`,
   );
   return <p className="m-0 max-w-[68ch] text-body text-pretty">{sentences.join(' ')}</p>;
 }
@@ -255,7 +258,7 @@ function SpendTable({
         },
         {
           key: 'student',
-          header: 'Student',
+          header: 'Glimmer',
           align: 'end',
           cell: (arm) => against(arm.spent.studentUsd, arm.caps.studentUsd),
         },
@@ -309,9 +312,9 @@ export function Results({ report, input }: { report: ComparisonReport; input: Ex
         <div className="flex flex-col gap-4">
           {figures.length > 1 && (
             <div className="flex items-center justify-between gap-4 px-1">
-              <span className="text-ui font-medium">Where the student ran</span>
+              <span className="text-ui font-medium">Where Glimmer ran</span>
               <Segmented<BackendId>
-                aria-label="Where the student ran"
+                aria-label="Where Glimmer ran"
                 value={measured.backend.backend}
                 onValueChange={setWhere}
                 options={figures.map((figure) => ({

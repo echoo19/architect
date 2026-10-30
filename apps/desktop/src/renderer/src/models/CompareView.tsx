@@ -221,6 +221,9 @@ function Delta({
         )}
       >
         {formatPoints(points)}
+        <span className="font-sans text-small font-normal">
+          {Math.abs(points) === 1 ? ' point' : ' points'}
+        </span>
       </span>
       <span className="font-mono text-small tabular-nums">
         {before.pass}/{before.total} → {after.pass}/{after.total}

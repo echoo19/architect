@@ -6,12 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { FAKE_HUB_TOKEN, startFakeHub, type FakeHub } from '@architect/engine/testing';
 import { planTraining } from '@architect/engine/training-plan';
-import {
-  CLUSTER_TEMPLATE_WORDING,
-  TrainBundleSchema,
-  type ModelConfig,
-  type TrainMethod,
-} from '@architect/shared';
+import { TrainBundleSchema, type ModelConfig, type TrainMethod } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, OLLAMA_READY, stubEngine } from './fixtures';
 
@@ -103,7 +98,7 @@ function gpusFor(method: TrainMethod, seqLen = 4096): number {
   return plan.fit.gpus;
 }
 
-test('shows each target with what it can do, the clusters labeled experimental', async () => {
+test('shows each target with what it can do, the clusters as bundles only', async () => {
   await goTo(page, '/compute');
   const computer = region('This computer');
   await expect(computer).toContainText('NVIDIA GeForce RTX 4070 · 12 GB');
@@ -112,8 +107,11 @@ test('shows each target with what it can do, the clusters labeled experimental',
   await expect(region('Hugging Face Jobs')).toContainText('Ready');
   await expect(region('Hugging Face Jobs')).toContainText('HF_TOKEN');
   for (const name of ['Slurm', 'Kubernetes']) {
-    await expect(region(name).getByText('Experimental')).toBeVisible();
+    await expect(region(name).getByText('Bundle only')).toBeVisible();
   }
+  // No model is planned until the person enters one.
+  await expect(region('Training plan').getByLabel('Model')).toHaveValue('');
+  await expect(region('Memory on each GPU')).toHaveCount(0);
   await expect(region('Slurm')).toContainText('sbatch submit.sbatch');
   await expect(region('Kubernetes')).toContainText('kubectl apply -f pytorchjob.yaml');
   await capture('compute-dark.png');
@@ -129,8 +127,13 @@ test('plans a mixture of experts from its config.json on the Hub, every term wit
   await expect(card).toContainText(`${REPO} @ ${commit.slice(0, 12)}`);
   await expect(card).toContainText('128');
   const lora = gpusFor('lora');
+  // The answer leads; the arithmetic is a click away.
+  await expect(breakdown).toContainText(`Fits on ${lora} GPUs in`);
   await expect(breakdown.getByText(String(lora), { exact: true }).first()).toBeVisible();
+  await expect(breakdown).toContainText('Sized for H100 80GB, 8 per node, bf16');
   const terms = breakdown.getByRole('table', { name: 'Memory terms' });
+  await expect(terms).toBeHidden();
+  await breakdown.getByRole('button', { name: 'How this is worked out' }).click();
   for (const label of [
     'Resident weights, all 128 experts in every expert layer, frozen',
     'LoRA adapter on attention and every MLP or expert projection, in fp32',
@@ -161,8 +164,16 @@ test('plans a mixture of experts from its config.json on the Hub, every term wit
   await settings().getByLabel('Tokens per sequence').fill('4096');
   await card.getByRole('radio', { name: 'LoRA', exact: true }).click();
   await expect(terms).not.toContainText('NF4 with double quantization');
-  await settings().getByRole('tab', { name: 'Hardware' }).click();
-  await capture('compute-plan-dark.png', breakdown);
+  // The hardware the plan was sized for opens beside it.
+  await breakdown.getByRole('button', { name: 'Change hardware' }).click();
+  await expect(settings().getByRole('tab', { name: 'Hardware' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await capture('compute-plan-terms-dark.png', breakdown);
+  await breakdown.getByRole('button', { name: 'How this is worked out' }).click();
+  await expect(terms).toBeHidden();
+  await capture('compute-plan-dark.png', card);
 });
 
 test("says plainly why a config can't be sized", async () => {
@@ -183,15 +194,16 @@ test("says plainly why a config can't be sized", async () => {
 });
 
 test('writes Slurm and Kubernetes bundles from a field export and shows the commands', async () => {
-  const exported = join(folders, 'tutor-export');
+  // Folders named as a person's would be, so the screen reads as it would for them.
+  const exported = join(folders, 'Architect', 'exports', 'phil');
   await mkdir(join(exported, 'sft'), { recursive: true });
   await writeFile(join(exported, 'MANIFEST.json'), JSON.stringify({ counts: {} }));
   await writeFile(
     join(exported, 'sft', 'demonstrations.jsonl'),
     `${JSON.stringify({ messages: [{ role: 'assistant', content: 'ANSWER: 12' }] })}\n`,
   );
-  const out = join(folders, 'bundles');
-  await mkdir(out);
+  const out = join(folders, 'Architect', 'bundles');
+  await mkdir(out, { recursive: true });
 
   const bundle = region('Bundle');
   const write = bundle.getByRole('button', { name: 'Write bundle' });
@@ -205,7 +217,9 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
 
   const submit = bundle.getByRole('region', { name: 'Submit command' });
   await expect(submit).toContainText('sbatch submit.sbatch');
-  await expect(bundle).toContainText(CLUSTER_TEMPLATE_WORDING);
+  await expect(bundle).toContainText('Architect writes this bundle and never submits it.');
+  await expect(bundle).toContainText(/…[\\/]exports[\\/]phil/);
+  await expect(bundle).not.toContainText(folders);
   const slurm = join(out, 'moe-235b-slurm');
   const written = TrainBundleSchema.parse(
     JSON.parse(await readFile(join(slurm, 'bundle.json'), 'utf8')),

@@ -147,7 +147,7 @@ export async function installExperimentsFake(
         status: 'preregistered',
         preregistration: {
           at: now(),
-          sha256: '7'.repeat(64),
+          sha256: '3f9a1c07d84e5b26a0c4e19f7b3d52866c1e0a4fd29b7358e6a01c4d9f2b7e35',
           pinned: data.released.inputs?.job,
         },
       });
@@ -157,7 +157,12 @@ export async function installExperimentsFake(
       if (!from.includes(record.status)) {
         throw coded('experiment_state', `It is ${record.status}.`);
       }
-      return update(record, { status: 'running', reason: undefined });
+      // Started a while ago, as a run under way would have been.
+      return update(record, {
+        status: 'running',
+        reason: undefined,
+        runningMs: record.runningMs || 47 * 60_000,
+      });
     };
     handle('experiments:start', (id: string) => run(id, ['preregistered']));
     handle('experiments:resume', (id: string) => run(id, ['paused', 'waiting', 'incomplete']));

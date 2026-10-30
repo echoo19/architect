@@ -52,9 +52,17 @@ export function NumberField({ label, value, onChange, issue, unit }: NumberField
         }}
         className="h-9 w-20 text-right tabular-nums"
       />
-      {unit && <span className="w-14 text-small">{unit}</span>}
+      {unit && <span className="w-14 text-small">{unitFor(unit, value)}</span>}
     </InspectorRow>
   );
+}
+
+/** Units said in the plural that read in the singular beside a 1: "1 task", "1 time". */
+const COUNTED = new Set(['rounds', 'tasks', 'times', 'minutes', 'seconds', 'tokens', 'dollars']);
+
+/** A unit as it reads beside its value. */
+export function unitFor(unit: string, value: number): string {
+  return value === 1 && COUNTED.has(unit) ? unit.slice(0, -1) : unit;
 }
 
 interface InspectorRowProps {

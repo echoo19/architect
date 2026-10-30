@@ -92,34 +92,42 @@ function FieldList({ ids }: { ids: readonly string[] }) {
         {
           key: 'taught',
           header: 'Taught on',
+          group: ORGANIZATIONS,
+          hint: 'Organizations it is taught on',
           align: 'end',
           cell: (row) => row.counts.taughtOn,
           sortValue: (row) => row.counts.taughtOn,
         },
         {
           key: 'sealed',
-          header: 'Sealed',
+          header: 'Never seen',
+          group: ORGANIZATIONS,
+          hint: 'Organizations kept from teaching for the final test, real ones included',
           align: 'end',
           cell: (row) => row.counts.sealed,
           sortValue: (row) => row.counts.sealed,
         },
         {
           key: 'realOrgs',
-          header: 'Real orgs',
+          header: 'Real',
+          group: ORGANIZATIONS,
+          hint: 'Real organizations among the ones it never sees',
           align: 'end',
           cell: (row) => row.counts.real,
           sortValue: (row) => row.counts.real,
         },
         {
           key: 'seen',
-          header: 'Seen',
+          header: 'Taught on',
+          group: BEST,
           align: 'end',
           cell: (row) => scoreCell(row.best?.seen ?? null),
           sortValue: (row) => rateOf(row.best?.seen),
         },
         {
           key: 'unseen',
-          header: 'Unseen',
+          header: 'Never seen',
+          group: BEST,
           align: 'end',
           cell: (row) => scoreCell(row.best?.unseen ?? null),
           sortValue: (row) => rateOf(row.best?.unseen),
@@ -127,6 +135,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
         {
           key: 'real',
           header: 'Real',
+          group: BEST,
           align: 'end',
           cell: (row) => scoreCell(row.best?.real ?? null),
           sortValue: (row) => rateOf(row.best?.real),
@@ -142,6 +151,9 @@ function FieldList({ ids }: { ids: readonly string[] }) {
     />
   );
 }
+
+const ORGANIZATIONS = 'Organizations';
+const BEST = 'Best final test';
 
 type FieldTab = 'overview' | 'organizations' | 'candidates' | 'assets';
 

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { Tooltip } from './tooltip';
 
 export type SortDirection = 'ascending' | 'descending';
 export type SortValue = string | number | null | undefined;
@@ -24,6 +25,8 @@ export interface DataColumn<R> {
    * heads them in a row above their own headers.
    */
   group?: string;
+  /** What the header means, in a sentence, shown on hover or focus of the header. */
+  hint?: string;
 }
 
 export interface DataSort {
@@ -177,27 +180,29 @@ export function DataTable<R>({
                     column.align === 'end' ? 'text-right' : 'text-left',
                   )}
                 >
-                  {column.sortValue ? (
-                    <button
-                      type="button"
-                      onClick={() => toggle(column.key)}
-                      className={cn(
-                        '-mx-1.5 inline-flex h-7 items-center gap-1 rounded-mark px-1.5',
-                        'transition-colors duration-150 hover:bg-hover',
-                        column.align === 'end' && 'flex-row-reverse',
-                      )}
-                    >
-                      {column.header}
-                      <Arrow
-                        size={13}
-                        strokeWidth={2}
-                        aria-hidden
-                        className={cn('transition-opacity duration-150', !active && 'opacity-0')}
-                      />
-                    </button>
-                  ) : (
-                    column.header
-                  )}
+                  <HeaderHint hint={column.hint}>
+                    {column.sortValue ? (
+                      <button
+                        type="button"
+                        onClick={() => toggle(column.key)}
+                        className={cn(
+                          '-mx-1.5 inline-flex h-7 items-center gap-1 rounded-mark px-1.5',
+                          'transition-colors duration-150 hover:bg-hover',
+                          column.align === 'end' && 'flex-row-reverse',
+                        )}
+                      >
+                        {column.header}
+                        <Arrow
+                          size={13}
+                          strokeWidth={2}
+                          aria-hidden
+                          className={cn('transition-opacity duration-150', !active && 'opacity-0')}
+                        />
+                      </button>
+                    ) : (
+                      <span tabIndex={column.hint ? 0 : undefined}>{column.header}</span>
+                    )}
+                  </HeaderHint>
                 </th>
               );
             })}
@@ -252,4 +257,9 @@ export function DataTable<R>({
       )}
     </div>
   );
+}
+
+/** A header with a hint: the tooltip opens from the header itself. */
+function HeaderHint({ hint, children }: { hint: string | undefined; children: ReactNode }) {
+  return hint ? <Tooltip content={hint}>{children}</Tooltip> : <>{children}</>;
 }

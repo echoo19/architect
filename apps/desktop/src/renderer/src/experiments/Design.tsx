@@ -36,6 +36,7 @@ import { PlacePage } from '../shell/PlacePage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ARM_ICONS, ArmTile } from './icons';
 import {
+  ARM_DESCRIPTIONS,
   ARM_NAMES,
   ARMS,
   SPARK_ARMS,
@@ -55,8 +56,8 @@ type Tab = 'teacher' | 'student' | 'teaching' | 'evaluation' | 'budget';
 const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
 const TABS: readonly InspectorTab<Tab>[] = [
-  { value: 'teacher', label: 'Teacher', icon: <GraduationCap {...tabIcon} /> },
-  { value: 'student', label: 'Student', icon: <User {...tabIcon} /> },
+  { value: 'teacher', label: 'Spark', icon: <GraduationCap {...tabIcon} /> },
+  { value: 'student', label: 'Glimmer', icon: <User {...tabIcon} /> },
   { value: 'teaching', label: 'Teaching', icon: <Repeat2 {...tabIcon} /> },
   { value: 'evaluation', label: 'Evaluation', icon: <ClipboardCheck {...tabIcon} /> },
   { value: 'budget', label: 'Budget', icon: <Wallet {...tabIcon} /> },
@@ -189,6 +190,9 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
           onName={(name) => input && change({ ...input, name })}
         />
         <Card title="Arms">
+          <p className="m-0 mb-4 text-small">
+            Arms are the setups compared, each taught and tested on the same tasks and seeds.
+          </p>
           <ChoiceTiles<ArmId>
             multiple
             aria-label="Arms"
@@ -199,6 +203,7 @@ export function ExperimentDesign({ detail }: { detail: ExperimentDetail | null }
             options={ARMS.map((arm) => ({
               value: arm,
               label: ARM_NAMES[arm],
+              description: ARM_DESCRIPTIONS[arm],
               icon: ARM_ICONS[arm],
               disabled: WEIGHT_ARMS.has(arm),
             }))}
@@ -267,7 +272,7 @@ function calibrationLines(detail: ExperimentDetail) {
   return [
     {
       icon: <User aria-hidden />,
-      text: `The bare student answers ${calibration.tasks} calibration tasks, about ${formatCost(calibration.studentUsdEstimate)}, and never more than ${formatCost(calibration.studentUsdCap)}.`,
+      text: `Glimmer alone answers ${calibration.tasks} calibration tasks, about ${formatCost(calibration.studentUsdEstimate)}, and never more than ${formatCost(calibration.studentUsdCap)}.`,
     },
     ...(calibration.studySparkUsdCap === null
       ? []
@@ -400,17 +405,21 @@ function EstimateCard({
         />
         <CapMeter
           tone="student"
-          label="Student"
+          label="Glimmer"
           used={funded('studentUsd') + projection.committedUsd}
           cap={input.caps.studentUsd}
           format={formatCost}
         />
-        <CapMeter
-          label="Compute"
-          used={funded('computeUsd')}
-          cap={input.caps.computeUsd}
-          format={formatCost}
-        />
+        {input.caps.computeUsd === 0 ? (
+          <CapMeter label="Compute" used={0} format={() => 'Not used'} />
+        ) : (
+          <CapMeter
+            label="Compute"
+            used={funded('computeUsd')}
+            cap={input.caps.computeUsd}
+            format={formatCost}
+          />
+        )}
         <CapMeter
           label="Time"
           used={funded('wallMinutes')}
@@ -422,7 +431,7 @@ function EstimateCard({
         const caps = own.get(arm.arm);
         const parts = [
           `Spark ${formatCost(arm.sparkUsd)}${caps?.sparkUsd === undefined ? '' : ` of ${formatCost(caps.sparkUsd)}`}`,
-          `student ${formatCost(arm.studentUsd)}${caps?.studentUsd === undefined ? '' : ` of ${formatCost(caps.studentUsd)}`}`,
+          `Glimmer ${formatCost(arm.studentUsd)}${caps?.studentUsd === undefined ? '' : ` of ${formatCost(caps.studentUsd)}`}`,
           minutesText(arm.wallMinutes),
         ];
         return (
@@ -432,9 +441,7 @@ function EstimateCard({
             title={ARM_NAMES[arm.arm]}
             detail={parts.join(' · ')}
             end={
-              arm.funded ? (
-                'Funded'
-              ) : (
+              arm.funded ? undefined : (
                 <Tooltip content={arm.reason ?? 'Not funded'}>
                   <span tabIndex={0} className="rounded-mark text-danger">
                     Not funded
@@ -452,7 +459,7 @@ function EstimateCard({
           </span>
         }
         title="Calibration"
-        detail={`${calibration.tasks} tasks, about ${formatCost(calibration.studentUsdEstimate)} of the student${
+        detail={`${calibration.tasks} tasks, about ${formatCost(calibration.studentUsdEstimate)} of Glimmer${
           calibration.studySparkUsdCap === null
             ? ''
             : `, Spark's study at most ${formatCost(calibration.studySparkUsdCap)}`
@@ -516,9 +523,7 @@ function Settings({
       return <Section title="Spark's cap for each arm">{capRows(SPARK_ARMS, 'sparkUsd')}</Section>;
     case 'student':
       return (
-        <Section title="The student's cap for each arm">
-          {capRows(STUDENT_ARMS, 'studentUsd')}
-        </Section>
+        <Section title="Glimmer's cap for each arm">{capRows(STUDENT_ARMS, 'studentUsd')}</Section>
       );
     case 'teaching':
       return (
@@ -572,7 +577,7 @@ function Settings({
             }
           />
           <NumberRow
-            label="Student"
+            label="Glimmer"
             value={input.caps.studentUsd}
             unit="USD"
             onChange={(studentUsd) =>

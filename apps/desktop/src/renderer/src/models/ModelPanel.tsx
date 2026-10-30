@@ -12,6 +12,7 @@ import {
   IconButton,
   Inspector,
   Skeleton,
+  Tooltip,
   VersionTag,
 } from '@architect/ui';
 import { ArrowUpRight, Columns2, FileText, GitBranch, Package, Undo2, X } from 'lucide-react';
@@ -29,6 +30,7 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { MOVE_WORDS, moveFor, type VersionMove } from '../workspace/settings/versions';
 import {
   baseModelOf,
+  CHECK_HINT,
   comparable,
   fieldOf,
   rowKey,
@@ -137,9 +139,11 @@ function PanelHeader({
             {STATUS_WORDS[statusOf(version)]} · {fieldOf(version)}
           </span>
         </div>
-        <IconButton label="Close" size="md" onClick={onClose}>
-          <X size={16} strokeWidth={1.8} aria-hidden />
-        </IconButton>
+        <Tooltip content="Close" side="left">
+          <IconButton label="Close" size="md" onClick={onClose}>
+            <X size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
       </div>
       <div className="flex flex-wrap gap-2">
         {move !== null && active && (
@@ -193,10 +197,18 @@ function PanelHeader({
 }
 
 /** One fact of a panel: its name, and its value at the right. */
-function Fact({ label, children }: { label: string; children: ReactNode }) {
+function Fact({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="flex min-h-10 items-center justify-between gap-4 border-t border-line py-2 first:border-t-0">
-      <dt className="text-ui">{label}</dt>
+      <dt className="text-ui">
+        {hint ? (
+          <Tooltip content={hint} side="left">
+            <span tabIndex={0}>{label}</span>
+          </Tooltip>
+        ) : (
+          label
+        )}
+      </dt>
       <dd className="m-0 min-w-0 text-right text-ui">{children}</dd>
     </div>
   );
@@ -235,14 +247,14 @@ function ReportTab({ row }: { row: ModelRow }) {
           <p className="m-0 text-ui">No final test yet</p>
         ) : (
           <div className="grid grid-cols-3 gap-3">
-            <Figure label="Seen" score={scores.seen} />
-            <Figure label="Unseen" score={scores.unseen} />
+            <Figure label="Taught on" score={scores.seen} />
+            <Figure label="Never seen" score={scores.unseen} />
             <Figure label="Real" score={scores.real} />
           </div>
         )}
       </section>
       <dl className="m-0 flex flex-col">
-        <Fact label="Check tasks">
+        <Fact label="Check tasks" hint={CHECK_HINT}>
           {scores.check ? (
             <span className="tabular-nums">
               {formatPercent(scores.check)}{' '}
@@ -271,11 +283,11 @@ function ReportTab({ row }: { row: ModelRow }) {
             <Fact label="Tested">
               {report.testedOn === 'hosted' ? 'Online copy' : 'This computer'}
             </Fact>
-            <Fact label="Teacher">{shortModelName(report.mentor.label)}</Fact>
+            <Fact label="Taught by">{shortModelName(report.mentor.label)}</Fact>
             <Fact label="Rounds">
               <span className="tabular-nums">{report.cost.rounds}</span>
             </Fact>
-            <Fact label="Teacher spend">
+            <Fact label={`${shortModelName(report.mentor.label)} spend`}>
               <span className="tabular-nums">{formatUsd(report.cost.mentorUsd)}</span>
             </Fact>
           </>

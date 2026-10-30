@@ -1,6 +1,7 @@
 import { formatDuration, formatUsd } from '../../lib/format';
 import { mentorIsLocal } from '../../lib/names';
 import {
+  allowedInterventions,
   costUsd,
   MENTOR_PRESETS,
   mentorPricing,
@@ -226,6 +227,65 @@ export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
   const { startSeconds, roundSeconds } = estimateTime(job, place);
   const minutes = Math.ceil((startSeconds + roundSeconds.most) / 3600) * 60;
   return minutes <= MOST_MINUTES ? minutes : null;
+}
+
+/**
+ * Training with every round at its longest, as if there were no time limit: what the limit is
+ * measured against, so a meter can show when the limit cuts training short.
+ */
+export function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
+  return estimate.startSeconds + job.budget.maxRounds * estimate.roundSeconds.most;
+}
+
+/** The time limit, in whole hours, that fits every round at its longest; null past a week. */
+export function minutesForAllRounds(job: Job, place: TrainPlace): number | null {
+  const minutes = Math.ceil(fullTrainingSeconds(job, estimateTime(job, place)) / 3600) * 60;
+  return minutes <= MOST_MINUTES ? minutes : null;
+}
+
+/** A cap the plan doesn't fit in, said plainly, and the fix. */
+export interface CapShortfall {
+  what: 'time' | 'compute';
+  /** A few words for beside Start training. */
+  short: string;
+  /** The whole of it, for the Budget tab. */
+  line: string;
+  /** For the time limit: the limit that fits every round. */
+  allowMinutes?: number;
+}
+
+/**
+ * Where the caps can't hold what the job asks for: a time limit that cuts training to fewer than
+ * half its rounds even at best (training often ends early at its target, so a limit that only
+ * trims the last few rounds is normal; one where not even a round fits is the callout's, not
+ * this), and retraining the student turned on with no compute to spend on it. Empty when the
+ * caps hold the plan.
+ */
+export function capShortfalls(job: Job, names: ModelNames): CapShortfall[] {
+  const shortfalls: CapShortfall[] = [];
+  const place = job.student.trainOn;
+  const estimate = estimateTime(job, place);
+  const { maxRounds, maxWallMinutes } = job.budget;
+  if (estimate.rounds.most > 0 && estimate.rounds.most < maxRounds / 2) {
+    const all = minutesForAllRounds(job, place);
+    const fit = `${countRange(estimate.rounds)} of ${maxRounds} rounds`;
+    shortfalls.push({
+      what: 'time',
+      short: `The ${limitText(maxWallMinutes)} limit fits ${fit}`,
+      line: `The ${limitText(maxWallMinutes)} time limit may stop training after ${fit}.${
+        all === null ? '' : ` Allowing ${capText(all)} fits all of them.`
+      }`,
+      ...(all === null ? {} : { allowMinutes: all }),
+    });
+  }
+  if (allowedInterventions(job).includes('weights') && (job.budget.maxComputeUsd ?? 0) <= 0) {
+    shortfalls.push({
+      what: 'compute',
+      short: `Retraining ${names.student} has a $0 cap`,
+      line: `Retraining ${names.student} is on, but its compute cap is $0, so it won't run. Set a cap below, or turn it off in Teaching.`,
+    });
+  }
+  return shortfalls;
 }
 
 /**

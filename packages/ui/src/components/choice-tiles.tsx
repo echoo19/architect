@@ -9,6 +9,8 @@ export interface ChoiceTile<T extends string> {
   label: string;
   /** A 16px Lucide icon, at the tile's top left. */
   icon: ReactNode;
+  /** One plain line under the name, for a choice whose name is a term of art. */
+  description?: string;
   disabled?: boolean;
 }
 
@@ -103,7 +105,12 @@ function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; cho
         <span aria-hidden className="flex [&_svg]:size-4">
           {option.icon}
         </span>
-        <span className="line-clamp-2 w-full break-words font-medium">{option.label}</span>
+        <span className="flex w-full flex-col gap-0.5">
+          <span className="line-clamp-2 w-full break-words font-medium">{option.label}</span>
+          {option.description && (
+            <span className="text-small text-pretty">{option.description}</span>
+          )}
+        </span>
       </motion.button>
     </ToggleGroup.Item>
   );
