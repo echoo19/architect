@@ -1,0 +1,2809 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architect, how to use it</title>
+    <link rel="stylesheet" href="guide.css" />
+  </head>
+  <body>
+    <section class="cover">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <path d="M8 16 12 8l4 8" />
+      </svg>
+      <div>
+        <h1>Architect</h1>
+        <p>How to use it</p>
+      </div>
+    </section>
+
+    <section class="contents">
+      <h1>Contents</h1>
+      <!--toc-->
+      <div class="part howto">
+        <h2>How to read this guide</h2>
+        <div class="body">
+          <p>
+            Each chapter says what you will do, gives the steps, shows what you will see, and says
+            what to do if something goes wrong. Words in <b>bold</b> are words on the screen.
+            Commands and file names are in a typewriter font. The figures are the app's own screens.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1 -->
+    <chapter id="what" title="What Architect does">
+      <p class="lead">
+        You describe a job. A large model teaches a small one to do it, and the small one stays on
+        your computer as your agent.
+      </p>
+
+      <div class="part">
+        <h2>Two models</h2>
+        <div class="body">
+          <p>
+            Architect uses two models from Meta. <b>Spark</b>, the teacher, is large. You reach it
+            over the internet with a key. <b>Glimmer</b>, the student, is small. It runs on your
+            computer through Ollama.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What you do</h2>
+        <div class="body">
+          <p>
+            You describe a job and attach the files it works from. Spark reads them and asks about
+            anything they leave open. Then it drafts the job. If your files include a policy with
+            prices or rules, Spark turns it into a rule that you check and confirm.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What Spark does</h2>
+        <div class="body">
+          <p>
+            Spark watches Glimmer try the job. When Glimmer gets something wrong, Spark finds the
+            step where it went wrong and edits Glimmer's <b>harness</b>: its instructions, the notes
+            it reads and small tools. A change stays only if Glimmer does better on check requests
+            that Spark never sees. Spark sees the score and nothing else about them.
+          </p>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <svg
+          viewBox="-1 0 683 200"
+          role="img"
+          aria-label="Five steps: describe, draft, teach, final test, your agent. The teach step loops through practice, diagnose, change and score."
+        >
+          <g
+            fill="none"
+            stroke="#15140f"
+            stroke-width="1"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="0.5" y="22.5" width="116" height="80" rx="6" />
+            <rect x="141.5" y="22.5" width="116" height="80" rx="6" />
+            <rect x="282.5" y="22.5" width="116" height="80" rx="6" />
+            <rect x="423.5" y="22.5" width="116" height="80" rx="6" />
+            <rect x="564.5" y="22.5" width="116" height="80" rx="6" />
+            <path d="M120 62.5h18M261 62.5h18M402 62.5h18M543 62.5h18" />
+            <path d="M134 58.5l4 4-4 4M275 58.5l4 4-4 4M416 58.5l4 4-4 4M557 58.5l4 4-4 4" />
+            <path d="M372 102v20q0 12-12 12h-40q-12 0-12-12v-16" />
+            <path d="M304.5 111l4-5 4 5" />
+            <path d="M481.5 102v22" stroke-dasharray="2 3" />
+          </g>
+          <text class="n" x="0" y="13">1</text>
+          <text class="n" x="141" y="13">2</text>
+          <text class="n" x="282" y="13">3</text>
+          <text class="n" x="423" y="13">4</text>
+          <text class="n" x="564" y="13">5</text>
+
+          <text class="t" x="12" y="46">Describe</text>
+          <text class="s" x="12" y="62">your job and</text>
+          <text class="s" x="12" y="74">attach your files</text>
+
+          <text class="t" x="153" y="46">Draft</text>
+          <text class="s" x="153" y="62">Spark asks questions</text>
+          <text class="s" x="153" y="74">You check the rule</text>
+
+          <text class="t" x="294" y="46">Teach</text>
+          <text class="s" x="294" y="62">Spark edits the</text>
+          <text class="s" x="294" y="74">harness, Glimmer</text>
+          <text class="s" x="294" y="86">tries again</text>
+
+          <text class="t" x="435" y="46">Final test</text>
+          <text class="s" x="435" y="62">Glimmer alone,</text>
+          <text class="s" x="435" y="74">Spark disconnected</text>
+
+          <text class="t" x="576" y="46">Your agent</text>
+          <text class="s" x="576" y="62">Runs offline on</text>
+          <text class="s" x="576" y="74">your computer</text>
+
+          <text class="s" x="340" y="152" text-anchor="middle">Each round: practice,</text>
+          <text class="s" x="340" y="165" text-anchor="middle">diagnose, change, score.</text>
+          <text class="s" x="340" y="178" text-anchor="middle">A change stays only if</text>
+          <text class="s" x="340" y="191" text-anchor="middle">the check score rises.</text>
+          <text class="s" x="481" y="138" text-anchor="middle">Sealed. Spark never</text>
+          <text class="s" x="481" y="151" text-anchor="middle">sees these requests.</text>
+        </svg>
+      </div>
+
+      <div class="part">
+        <h2>The sealed test</h2>
+        <div class="body">
+          <p>
+            When training ends, Glimmer takes a final test on its own, with Spark disconnected. The
+            requests in it were put aside before training started. Spark never sees them. If Glimmer
+            passes, it graduates and becomes your agent.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Your agent</h2>
+        <div class="body">
+          <p>
+            The agent runs offline on your computer. It works on your files and asks before it
+            changes one. It talks to nothing except the model on your computer. Later you can teach
+            it more, keep versions, share it, and run it with the <code>architect</code> command.
+          </p>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 2 -->
+    <chapter id="before" title="Before you start">
+      <p class="lead">
+        Check four things first: your computer, Ollama, a key for the teacher, and what teaching
+        will cost.
+      </p>
+
+      <div class="part">
+        <h2>Your computer</h2>
+        <div class="body">
+          <p>
+            Architect runs on Windows and macOS. Glimmer runs on the graphics card, so the size of
+            its memory decides which build of Glimmer you can use.
+          </p>
+          <p>
+            On Windows, Architect reads the memory of an NVIDIA card. On a Mac with Apple silicon,
+            the graphics chip shares the computer's memory, and Architect counts about 70 percent of
+            it. On other hardware it can't tell, and it recommends the larger build.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Build</th>
+                <th>Download</th>
+                <th>On disk</th>
+                <th>Graphics memory</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Glimmer, recommended. Most accurate.</td>
+                <td>17 GB</td>
+                <td>17 GB</td>
+                <td>20 GB or more</td>
+              </tr>
+              <tr>
+                <td>Glimmer, smaller. Lighter, but less accurate.</td>
+                <td>14 GB</td>
+                <td>10 GB</td>
+                <td>11 GB or more. Made for a 12 GB card.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            If a build doesn't fit, part of it runs on the processor. It still works, but it is
+            slower. The first setup screen says so:
+            <b>Part runs on the processor, so it is slower</b>.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Ollama</h2>
+        <div class="body">
+          <p>
+            Glimmer runs through Ollama, a free app from ollama.com. Install it and open it before
+            you start. Architect checks that it is running.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>A key for the teacher</h2>
+        <div class="body">
+          <p>
+            Spark needs a key from Meta. The setup screen has a button for it,
+            <b>Get one from Meta</b>.
+          </p>
+          <p>
+            You can choose another teacher instead. Sign in to OpenRouter and pick any of its
+            models. Use a key from OpenAI, Anthropic, Gemini or another service. Or use a model on
+            your own computer, in Ollama or LM Studio. A teacher on your computer is free, and
+            nothing you send leaves your computer.
+          </p>
+          <p>Keys are stored encrypted on your computer.</p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Two optional accounts</h2>
+        <div class="body">
+          <p>
+            An OpenRouter account lets Glimmer practice on an online copy of itself, which is about
+            ten times faster. A Hugging Face token is needed to publish an agent. It is also needed
+            if you let Spark retrain Glimmer's weights.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What teaching costs</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Glimmer on your computer: practice, the final test, chats</td>
+                <td>Free</td>
+              </tr>
+              <tr>
+                <td>Spark, the teacher</td>
+                <td>
+                  Billed by its provider for the text it reads and writes. Meta lists Spark 1.3 at
+                  $1.25 per million tokens read and $4.25 per million written.
+                </td>
+              </tr>
+              <tr>
+                <td>Online practice, if you choose it</td>
+                <td>Billed by the online host. The Define screen shows an estimate.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Before training starts, the Define screen shows an estimated time and cost, and a
+            spending cap for Spark. A job you describe starts with a $5 cap, and you can change it.
+            Training stops before it goes over. In a returns desk run the Architect team measured,
+            teaching cost 42 cents of Spark.
+          </p>
+          <p>
+            Settings, under Training, has <b>How hard Spark thinks</b>. More thinking can find
+            subtler fixes but costs more per round.
+          </p>
+          <p>
+            Time matters more than money. On your computer Glimmer takes about 2.5 minutes a task,
+            so rounds are slow and the final test of 60 tasks takes about 2.5 hours. A job starts
+            with a time limit of 4 hours. If not even one round fits, Architect says so and offers
+            more time or online practice (chapters 6 and 7).
+          </p>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 3 -->
+    <chapter id="first-run" title="First run">
+      <p class="lead">
+        Four screens set Architect up. They take a few minutes. The model downloads while you carry
+        on.
+      </p>
+
+      <div class="part">
+        <h2>Opening it</h2>
+        <div class="body">
+          <p>
+            The app isn't signed yet, so your system may warn you the first time. On Windows, choose
+            <b>More info</b>, then <b>Run anyway</b>. On a Mac, right-click the app and choose
+            <b>Open</b>.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <p>
+            The steps are named at the top of the window: <b>Model</b>, <b>Teacher</b>,
+            <b>Faster training</b> and <b>Done</b>.
+          </p>
+          <ol class="steps">
+            <li>
+              <p>
+                <b>Model.</b> Architect picks the build of Glimmer that suits your graphics card and
+                marks it <b>Recommended</b>. Press <b>Download Glimmer</b>. The download is large
+                and continues while you finish setup. You can choose the smaller build, press
+                <b>Download later</b>, or open <b>Use a different model</b> to pick a model that is
+                already on your computer. See <ref to="welcome-model" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Teacher.</b> Paste your Meta key into <b>Meta API key</b> and press
+                <b>Test connection</b>. A message says <b>Connected</b> when it works.
+                <b>Other ways to connect a teacher</b> shows the other choices: <b>OpenRouter</b>,
+                <b>Another service</b> and <b>On this computer</b>. See <ref to="welcome-mentor" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Faster training.</b> Optional. Sign in to OpenRouter, or use a key, so Glimmer
+                can practice on an online copy of itself. The finished agent still runs only on your
+                computer. Press <b>Skip</b> if you don't want it.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Done.</b> The last screen says <b>You're set up</b> and shows the state of
+                Glimmer and Spark. Press <b>Get started</b>.
+              </p>
+            </li>
+          </ol>
+          <fig
+            id="welcome-model"
+            src="welcome-model-dark.png"
+            x="0.17 0.83"
+            y="0.17 0.525"
+            alt="The Model step of setup: two builds of Glimmer, one marked Recommended, with their download sizes."
+          />
+          <fig
+            id="welcome-mentor"
+            src="welcome-mentor-dark.png"
+            x="0.17 0.83"
+            y="0.17 0.545"
+            alt="The Teacher step of setup: a field for a Meta API key and a link to get one."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What you will see</h2>
+        <div class="body">
+          <p>
+            The home screen. With no agents yet it says <b>No agents yet</b> and offers three
+            buttons: <b>New agent</b>, <b>Try the sample job</b> and <b>Try a ready-made agent</b>.
+            The sample job is a small job that Architect trains an agent for while you watch. The
+            ready-made agent is already trained, so you can start using it at once.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Ollama isn't running</b></th>
+                <td>
+                  Open Ollama. If you don't have it, press <b>Get Ollama</b>. Then press
+                  <b>Check again</b>.
+                </td>
+              </tr>
+              <tr>
+                <th>The download fails</th>
+                <td>
+                  The screen shows the error. Check that you have enough free disk space, then press
+                  <b>Try again</b>.
+                </td>
+              </tr>
+              <tr>
+                <th>The key test fails</th>
+                <td>
+                  The message says why. Check that you pasted the whole key and that it is a Meta
+                  key. You can add or replace keys later in Settings, under Models.
+                </td>
+              </tr>
+              <tr>
+                <th>You pressed <b>Skip for now</b> on the teacher</th>
+                <td>
+                  Architect can't train a new agent until a teacher is connected. Connect one in
+                  Settings, under Models.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 4 -->
+    <chapter id="describe" title="Describe a job">
+      <p class="lead">
+        Tell Architect what the agent should do, and attach the files it works from.
+      </p>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Press <b>New agent</b> in the sidebar. The screen asks
+                <b>What should your agent do?</b>
+              </p>
+            </li>
+            <li><p>Write the job in your own words in the box.</p></li>
+            <li>
+              <p>
+                Press the paperclip and pick the files the job works from. You can pick several at
+                once.
+              </p>
+            </li>
+            <li>
+              <p>
+                Look at the corner of the box. <b>Teacher: Spark</b> names who will read what you
+                send. A cloud means it is online. A laptop means it runs on your computer.
+              </p>
+            </li>
+            <li>
+              <p>Press the arrow to send. See <ref to="describe" />.</p>
+            </li>
+          </ol>
+          <fig
+            id="describe"
+            src="flow-describe-dark.png"
+            x="0.2 0.8"
+            y="0.2 0.68"
+            alt="The Describe screen: a job described in a box, with six files attached below it."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Files that work</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Use it for</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><code>.csv</code></th>
+                <td>
+                  Records the agent looks up and works out, such as invoices, jobs or tickets.
+                  Architect makes practice tasks from the rows.
+                </td>
+              </tr>
+              <tr>
+                <th><code>.txt</code>, <code>.md</code></th>
+                <td>
+                  A policy, a rate card or rules. A text file is read whole, up to 30,000
+                  characters, and 60,000 across all text files. Attach just the part the job needs.
+                </td>
+              </tr>
+              <tr>
+                <th><code>.jsonl</code></th>
+                <td>
+                  Optional. Example tasks with their answers, one task per line. Architect uses them
+                  as they are.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            You need at least 30 rows of records in all, or 30 example tasks. You can attach up to
+            12 files, 25 MB each and 60 MB together.
+          </p>
+          <p>
+            Not yet supported: spreadsheets such as <code>.xlsx</code>, PDFs, Word documents and
+            JSON files. Save or export them as CSV or text first.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Writing the description</h2>
+        <div class="body">
+          <ul class="plain">
+            <li>
+              Say what the agent should do, as tasks. "Price the visits the technicians finished" is
+              better than "help with billing".
+            </li>
+            <li>Say what each file holds if its name doesn't.</li>
+            <li>Say what it must not do. Spark lists this under <b>What it won't do</b>.</li>
+            <li>
+              Say how good it has to be if you have a target. If you don't, Spark sets one and you
+              can change it (chapter 6).
+            </li>
+            <li>
+              Put prices and rules in a file, not only in the description. Architect turns the file
+              into a rule you can check.
+            </li>
+          </ul>
+          <div class="pair">
+            <div>
+              <h3>A good description</h3>
+              <blockquote>
+                Close out the day for our home-services office: price the visits the technicians
+                finished, find customers with overdue balances, and book the earliest technician for
+                urgent calls.
+              </blockquote>
+              <p>
+                It names three tasks. The files fit them: <code>jobs.csv</code>,
+                <code>invoices.csv</code>, <code>technicians.csv</code>, <code>bookings.csv</code>,
+                <code>policy.md</code> and <code>tasks.jsonl</code>.
+              </p>
+            </div>
+            <div>
+              <h3>A weak description</h3>
+              <blockquote>Help me with my business.</blockquote>
+              <p>
+                It names no task and no limits, and it has no files. Spark has nothing to make
+                practice tasks from, and nothing says what a right answer looks like.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Other ways to start</h2>
+        <div class="body">
+          <p>
+            Under the box you will find <b>Try the sample job</b>, <b>Try a ready-made agent</b> and
+            <b>Import a job file</b>. Importing starts from a job someone made, with its tasks and
+            data beside it. Choose its <code>job.json</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What you will see</h2>
+        <div class="body">
+          <p>
+            Spark reads your description and files. The screen says so, then shows
+            <b>Read 6 files</b> or however many you sent. If it takes a while, it says
+            <b>Still working. This can take a minute.</b> Spark then asks a question (chapter 5) or
+            says it has drafted the job.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Your files hold only a few rows</th>
+                <td>
+                  Attach more of the records, or a <code>tasks.jsonl</code> file with at least 30
+                  example tasks. Then describe the job again.
+                </td>
+              </tr>
+              <tr>
+                <th>A file is "a spreadsheet", "a PDF" or "a Word document"</th>
+                <td>Save or export it as CSV or text, and attach that.</td>
+              </tr>
+              <tr>
+                <th>A text file is longer than 30,000 characters</th>
+                <td>
+                  Attach only the section the job needs, such as the part on pricing. Architect
+                  won't read part of a file, because a rule read from part of a policy can miss the
+                  exception that matters.
+                </td>
+              </tr>
+              <tr>
+                <th>Nothing to make practice tasks from</th>
+                <td>
+                  Attach the records as CSV files, or a <code>tasks.jsonl</code> file, and describe
+                  the job again.
+                </td>
+              </tr>
+              <tr>
+                <th><b>The draft couldn't be used</b></th>
+                <td>Try again, or describe the job a little differently.</td>
+              </tr>
+              <tr>
+                <th><b>Spark couldn't answer</b></th>
+                <td>
+                  Press <b>Try again</b>. If it keeps failing, check the teacher's key in Settings,
+                  under Models, or press <b>Edit the description</b>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 5 -->
+    <chapter id="questions" title="Answer the teacher's questions">
+      <p class="lead">
+        Spark asks only what your files leave open. Your answers change what the agent does and how
+        its answers are checked.
+      </p>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Read the question. Spark asks one at a time and offers two to four short answers as
+                buttons.
+              </p>
+            </li>
+            <li>
+              <p>
+                Press the answer that is true for your business. If none fits, type your own in the
+                <b>Reply</b> box.
+              </p>
+            </li>
+            <li>
+              <p>
+                Spark asks at most three questions. At any point you can choose
+                <b>Draft it now</b> to make it use what it has.
+              </p>
+            </li>
+            <li>
+              <p>
+                When it has enough, it says
+                <b>That's everything I need. I've drafted the job for you to review.</b> Press
+                <b>Review the job</b>. See <ref to="clarify" />.
+              </p>
+            </li>
+          </ol>
+          <fig
+            id="clarify"
+            src="flow-clarify-dark.png"
+            span="text"
+            x="0.2 0.8"
+            y="0.06 0.84"
+            alt="A conversation: the person's description, Spark's question with two answer buttons, and a Review the job button."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What you will see</h2>
+        <div class="body">
+          <p>
+            Your message and files appear first, then Spark's reply. Some questions come from
+            Architect itself. If your records have empty cells, or marks such as N/A or a dash where
+            a number belongs, Architect asks what to do with them: <b>Count it as zero</b> or
+            <b>Leave those rows out</b>.
+          </p>
+          <p>
+            Those answers change the numbers the agent is tested on, so they need a real answer.
+            <b>Draft it now</b> does not stand in for one.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Answering well</h2>
+        <div class="body">
+          <ul class="plain">
+            <li>
+              Answer for what happens in your business, not for what sounds right. If you are
+              unsure, pick the safer option.
+            </li>
+            <li>Short answers are fine.</li>
+            <li>
+              If you notice your description was wrong, press <b>Edit the description</b>. Your
+              words and files come back as you left them.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Spark couldn't answer</b></th>
+                <td>Press <b>Try again</b>.</td>
+              </tr>
+              <tr>
+                <th>This conversation is gone</th>
+                <td>
+                  Architect forgets a conversation left alone for about an hour. Press
+                  <b>Edit the description</b> and send it again.
+                </td>
+              </tr>
+              <tr>
+                <th>The conversation ends with no job</th>
+                <td>
+                  The message says what is missing. Press <b>Edit the description</b>, add what it
+                  names, and send again.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 6 -->
+    <chapter id="define" title="Check the job and the rule">
+      <p class="lead">
+        The Define screen shows the job Spark drafted. Read it, check the rule if there is one,
+        choose where to train, and start.
+      </p>
+
+      <div class="part">
+        <h2>What is on the screen</h2>
+        <div class="body">
+          <p>
+            Top to bottom: the job's name and summary, with a note that once trained it runs offline
+            on your computer. <b>What it does</b> and <b>What it won't do</b>.
+            <b>Check the rule</b>, if your files include a policy.
+            <b>Where should it train?</b> with its estimates and a spending cap.
+            <b>Ready when</b> and <b>Permissions</b>. At the bottom, <b>Advanced settings</b>,
+            <b>Back</b> and <b>Start training</b>. See <ref to="define-top" /> and
+            <ref to="define-bottom" />.
+          </p>
+          <fig
+            id="define-top"
+            src="flow-define-dark.png"
+            x="0.17 0.83"
+            y="0.19 0.52"
+            alt="The Define screen: the job's summary, what it does and won't do, and the choice of where to train."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Read <b>What it does</b>. Each line should be something you want. If one is wrong,
+                press <b>Back</b> and describe the job again.
+              </p>
+            </li>
+            <li>
+              <p>Read <b>What it won't do</b>. These are limits the agent keeps.</p>
+            </li>
+            <li>
+              <p>If the screen has <b>Check the rule</b>, do that next (below).</p>
+            </li>
+            <li><p>Choose where to train (below).</p></li>
+            <li>
+              <p>
+                Look at <b>Ready when</b>. It is the share of new tasks the agent must get right,
+                and training stops early once the check tasks reach it. To change it, open
+                <b>Advanced settings</b>, then <b>Ready when</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Look at <b>Saving files</b>. <b>Ask first</b> shows you each change to a file and
+                waits. <b>Allow</b> saves without asking. <b>Never</b> means it can't change your
+                files. You can change this again later.
+              </p>
+            </li>
+            <li>
+              <p>Press <b>Start training</b>.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Check the rule</h2>
+        <div class="body">
+          <p>
+            If your files include a policy with prices, discounts or rounding, Spark turns it into a
+            rule. Architect works out the right answer to every task from that rule and grades
+            Glimmer against those answers. If the rule is wrong, the grades are wrong too. So
+            nothing trains until you confirm it. See <ref to="rule" />.
+          </p>
+          <fig
+            id="rule"
+            src="rule-define-dark.png"
+            x="0.17 0.83"
+            y="0.17 0.4"
+            alt="The Check the rule section: lines from the policy, the rule in numbered words, and the first worked example."
+          />
+          <ol class="steps">
+            <li>
+              <p>
+                Under <b>From your policy</b>, read the lines Spark took. Each shows where it came
+                from: a file, or <b>your answer</b>. Are they the right lines?
+              </p>
+            </li>
+            <li>
+              <p>
+                Under <b>The rule, in words</b>, read the numbered steps. Is that how your business
+                works?
+              </p>
+            </li>
+            <li>
+              <p>
+                Under <b>Examples</b>, pick one and work it out yourself. Every example shows each
+                step. An example tagged <b>Not from your records</b> was made up to show how the
+                rule rounds.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read the notes at the bottom. They say how many rows were left out of the tasks, and
+                why.
+              </p>
+            </li>
+            <li>
+              <p>
+                If all is right, press <b>Confirm the rule</b>. If not, press
+                <b>Change the description</b>. Your words and files come back as you left them, and
+                Spark may ask its questions again.
+              </p>
+            </li>
+          </ol>
+          <div class="note">
+            <p>
+              <b>Start training</b> stays off, and the bar says <b>Confirm the rule first</b>, until
+              you confirm. If your records change afterwards, a badge says
+              <b>Changed since you confirmed it</b>. Press <b>Describe the job again</b> so the
+              tasks are made from the records as they are now.
+            </p>
+          </div>
+          <p>
+            The Results screen later repeats the point: the score shows how often the agent agreed
+            with the rule you confirmed. It can't show whether the rule is right for your business.
+            Only you can check that.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Where should it train?</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Choice</th>
+                <th>What it means</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Train on this computer</th>
+                <td>
+                  Free. Glimmer runs here, and only what Spark reads to teach goes online. Slower:
+                  about 2.5 minutes a task.
+                </td>
+              </tr>
+              <tr>
+                <th>Train online</th>
+                <td>
+                  Glimmer practices on an online copy, about 15 seconds a task. The host bills your
+                  account, and tasks and files are sent online.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            <b>Estimated time</b> and <b>Estimated cost</b> add up the training, the final test and
+            the bills. <b>How this is estimated</b> explains them. The
+            <b>Spark spending cap</b> slider sets the most Spark may cost, and training stops before
+            it goes over.
+          </p>
+          <p>
+            The final test runs on your computer unless you choose the online copy in
+            <b>Advanced settings</b>, under <b>Ready when</b>. An agent tested online is marked
+            <b>Passed online</b> until you test it on your computer too (chapter 8).
+          </p>
+          <fig
+            id="define-bottom"
+            src="flow-define-dark.png"
+            x="0.17 0.83"
+            y="0.545 1"
+            alt="The lower half of the Define screen: estimated time and cost, the spending cap, Ready when, Permissions, and the Start training button."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Not even one round of teaching fits</b> in the time</th>
+                <td>
+                  Scoring the check tasks and one round take longer than the limit. Press the button
+                  that offers more time, or <b>Train online instead</b>.
+                </td>
+              </tr>
+              <tr>
+                <th>A line saying something is missing, such as <b>Ollama isn't running</b></th>
+                <td>
+                  Each line has a button that puts it right, such as <b>Check again</b>,
+                  <b>Download</b> or <b>Add its key</b>. <b>Start training</b> waits until all are
+                  done.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Online training isn't set up yet</b></th>
+                <td>Press <b>Set up online training</b> and add the service's key.</td>
+              </tr>
+              <tr>
+                <th><b>Spark can't change anything yet</b></th>
+                <td>
+                  Every kind of change that could run here is switched off. Open Spark's tab in
+                  <b>Advanced settings</b> and switch one on.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Fix the marked fields in Advanced settings first</b></th>
+                <td>
+                  A setting is out of range. Open <b>Advanced settings</b> and correct the fields it
+                  marks.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 7 -->
+    <chapter id="train" title="Train">
+      <p class="lead">
+        Spark teaches Glimmer in rounds. You can watch, answer a question, pause or stop. Every
+        limit is a hard cap.
+      </p>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>Press <b>Start training</b>. Keep Architect open while it trains.</p>
+            </li>
+            <li>
+              <p>
+                Watch the Train screen. The large panel shows Spark and Glimmer and what each is
+                doing. See <ref to="train" />.
+              </p>
+            </li>
+            <li><p>If Spark has a question, answer it in the round panel (below).</p></li>
+            <li>
+              <p>
+                When training ends, Glimmer takes the final test by itself. Then press
+                <b>See the results</b>. If you are at the top of the page, the app opens the results
+                for you.
+              </p>
+            </li>
+          </ol>
+          <fig
+            id="train"
+            src="flow-train-dark.png"
+            x="0.03 0.97"
+            y="0.05 0.7"
+            alt="The Train screen: Spark and Glimmer, the current round, the score chart, and the time and cost meters."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What a round is</h2>
+        <div class="body">
+          <p>
+            Before round 1, Architect scores Glimmer on the check tasks, so there is a starting
+            score. If the job starts blank, round 1 is a first draft: Spark writes a whole set of
+            instructions from the job and the example tasks. After that, each round has four steps.
+          </p>
+          <ol class="steps">
+            <li>
+              <p><b>Practice.</b> Glimmer works through a set of practice tasks.</p>
+            </li>
+            <li>
+              <p>
+                <b>Diagnose.</b> Spark reads the failures and finds the step where Glimmer went
+                wrong. It picks one change and says what it expects, for example
+                <b>+3 to +6 check tasks</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Change.</b> Architect applies the change to a copy of the harness. Spark can
+                change the instructions and steps, what Glimmer reads and when, and small tools. It
+                can also ask you a question. Retraining Glimmer's weights can't run without a
+                Hugging Face key and a training budget.
+              </p>
+            </li>
+            <li>
+              <p><b>Score.</b> Glimmer takes the check tasks again with the change.</p>
+            </li>
+          </ol>
+          <p>The check tasks are separate from the practice tasks. Spark sees only their score.</p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Kept or undone</h2>
+        <div class="body">
+          <p>The <b>Rounds</b> list shows how each change ended.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Outcome</th>
+                <th>What it means</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Kept</th>
+                <td>It gained enough on the check tasks and broke no rule. The agent keeps it.</td>
+              </tr>
+              <tr>
+                <th>No gain</th>
+                <td>It didn't gain enough, so it was undone.</td>
+              </tr>
+              <tr>
+                <th>Made it worse</th>
+                <td>It made the check tasks worse or broke a rule, so it was undone.</td>
+              </tr>
+              <tr>
+                <th>Couldn't be tried</th>
+                <td>It couldn't be tried in this run, so nothing changed.</td>
+              </tr>
+              <tr>
+                <th>Stopped</th>
+                <td>Training ended before it was scored. The agent never took it.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            For a job you describe, a change must gain at least 2 check tasks, and no task type may
+            lose more than 1. A promising change is measured twice, to rule out luck. You can change
+            these numbers in <b>Advanced settings</b>, under <b>When a change stays</b>. See
+            <ref to="advanced" />.
+          </p>
+          <fig
+            id="advanced"
+            src="flow-advanced-dark.png"
+            span="text"
+            x="0.222 0.778"
+            y="0.31 0.69"
+            alt="Advanced settings: a list of sections on the left, and the task sets on the right."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>The rest of the screen</h2>
+        <div class="body">
+          <ul class="plain">
+            <li>
+              The score chart shows the share of check tasks right after each round, with the target
+              as a dotted line.
+            </li>
+            <li>
+              <b>Time</b>, <b>Spark's cost</b> and <b>Rounds</b> show how much of each limit is
+              used. <b>Changes kept</b> counts the changes kept out of those tried.
+            </li>
+            <li>
+              <b>Worked examples</b> lists corrected examples, each marked
+              <b>Checker passed it</b> or <b>Checker failed it</b>. It says
+              <b>No worked examples yet</b> until there are some.
+            </li>
+            <li>
+              <b>Rounds</b> has a row for each change. Open a row to see the diagnosis and the
+              scores before and after.
+            </li>
+            <li>
+              <b>Latest attempts</b> lists Glimmer's attempts. Open one to step through what it did.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>When Spark asks you</h2>
+        <div class="body">
+          <p>
+            Sometimes Spark stops to ask one question. The run pauses, the sidebar row says
+            <b>Needs you</b>, and the round panel shows the question. Type your answer in
+            <b>Your answer</b> and press <b>Send answer</b>. Spark keeps it as what you meant and
+            sees it in every round after.
+          </p>
+          <p>
+            Tick <b>This changes what counts as success</b> only if your answer really does. The run
+            then stops, because the final test belongs to the job as it was. You would train again
+            on the changed job.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Limits</h2>
+        <div class="body">
+          <p>
+            Rounds, Spark's dollars and time are hard caps. Architect checks them before every call
+            to Spark and before every round. A call that would go over a cap does not start. A job
+            you describe starts with 8 rounds, $5 and 4 hours. Paused time doesn't count. Practice
+            still running when the time is up is cut off and not scored, and the run goes on to its
+            final test.
+          </p>
+          <p>
+            Training ends when it reaches the target, uses a limit, or stops finding gains. The
+            Rounds list closes with the reason, such as <b>Reached the target</b>,
+            <b>Used all 8 rounds</b>, <b>Spark's budget ran out</b>,
+            <b>The time limit ran out</b> or <b>No gain in 4 rounds in a row</b>.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Pause and stop</h2>
+        <div class="body">
+          <p>
+            <b>Pause</b> holds training. <b>Resume</b> carries on from where it stopped.
+            <b>Stop</b> ends training after the step in progress. If a change has been kept, the box
+            asks <b>Stop training?</b> and offers <b>Stop and run the final test</b>: the agent
+            keeps its best version so far and Glimmer takes the final test without Spark. If no
+            change has been kept, a stop makes no agent.
+          </p>
+          <p>
+            You can leave the screen. Training goes on, and the sidebar lists the job as
+            <b>Training</b>, <b>Paused</b>, <b>Needs you</b> or <b>Results ready</b>. Architect
+            saves every step. If it closes, open it again and find the job in the sidebar.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Training is paused</b>, with a list</th>
+                <td>
+                  A run pauses when something it needs isn't there: a key (<b>Add the key</b>),
+                  Ollama (<b>Check again</b>) or the model (<b>Download</b>). Put it right, then
+                  press <b>Resume</b>.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Training stopped on an error</b></th>
+                <td>The message says why. Press <b>Back to the job</b> and start again.</td>
+              </tr>
+              <tr>
+                <th><b>Training didn't start</b></th>
+                <td>
+                  Spark had nothing it may change. The notice says what is off. Press the button on
+                  it to turn a change back on.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Spark's budget ran out</b> before the target</th>
+                <td>
+                  The run ends and Glimmer takes the final test. Raise the cap in
+                  <b>Advanced settings</b> and train again, or improve the agent later (chapter 10).
+                </td>
+              </tr>
+              <tr>
+                <th>Rounds end in <b>No gain</b></th>
+                <td>
+                  Open those rounds to see what Spark tried. Add more of your records or example
+                  tasks, and describe the job again.
+                </td>
+              </tr>
+              <tr>
+                <th>The computer is loud or hot</th>
+                <td>
+                  Turn on <b>Quiet local models</b> in Settings, under Training. It uses fewer
+                  processor cores and takes short rests, so it is slower but quieter.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 8 -->
+    <chapter id="results" title="Results">
+      <p class="lead">
+        The Results screen says whether Glimmer graduated, how it did on a test it had never seen,
+        and what it cost.
+      </p>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Read the pill and the title at the top, such as <b>Ready</b> and
+                <b>Service desk graduated</b>. The table below lists the pills.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read the sentence under the title. It says how many tasks it was tested on, where,
+                and that Spark was disconnected.
+              </p>
+            </li>
+            <li>
+              <p>
+                Look at the four tiles: score, answer time, model and cost. See
+                <ref to="report-top" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                Look at <b>By task type</b> to see which kinds of request it does well and which it
+                doesn't. See <ref to="report-body" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                Press <b>Start using</b> and the agent's name to accept it and open a chat. Press
+                <b>See all rounds</b> to look back at training.
+              </p>
+            </li>
+          </ol>
+          <fig
+            id="report-top"
+            src="flow-report-dark.png"
+            x="0.17 0.83"
+            y="0.05 0.215"
+            alt="The top of the Results screen: Ready, the title, and four tiles for score, answer time, model and cost."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>The pill</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Pill</th>
+                <th>What it means</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Ready</th>
+                <td>
+                  It passed its final test on your computer, and this computer's checks passed.
+                </td>
+              </tr>
+              <tr>
+                <th>Passed online</th>
+                <td>
+                  The final test ran on the online copy. Test it on your computer to mark it ready.
+                </td>
+              </tr>
+              <tr>
+                <th>Not ready</th>
+                <td>It missed the target. The screen says by how much. You can still use it.</td>
+              </tr>
+              <tr>
+                <th>Needs attention</th>
+                <td>One of this computer's checks needs something from you.</td>
+              </tr>
+              <tr>
+                <th>Can't run</th>
+                <td>A check on this computer failed. The button reads <b>See what's wrong</b>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What the numbers mean</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Tile</th>
+                <th>What it shows</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>of new tasks right</th>
+                <td>
+                  The share of final test tasks answered correctly, such as 55 of 60. A line such as
+                  <b>Up from 40% before training</b> compares it with Glimmer's score on the same
+                  test with no teaching, when that was measured.
+                </td>
+              </tr>
+              <tr>
+                <th>Typical answer time</th>
+                <td>
+                  The middle time for a task. <b>95% within</b> gives the time all but the slowest
+                  5% took.
+                </td>
+              </tr>
+              <tr>
+                <th>Model</th>
+                <td>Which model, and its size on disk.</td>
+              </tr>
+              <tr>
+                <th>Training cost</th>
+                <td>Spark's bill and any online practice, with the rounds and time used.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>Three sets of tasks are kept apart, and the app tells them apart in every table.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Set</th>
+                <th>What it is for</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Practice tasks</th>
+                <td>Spark teaches from these, and sees Glimmer's attempts at them.</td>
+              </tr>
+              <tr>
+                <th>Check tasks</th>
+                <td>Spark sees only the score. The score decides which changes stay.</td>
+              </tr>
+              <tr>
+                <th>Final test</th>
+                <td>
+                  Opened once, at the end. Spark never sees it, and nothing about it goes back into
+                  training.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note">
+            <p>
+              Trust the final test. The check score helped choose the changes, so it can look better
+              than the agent really is.
+            </p>
+          </div>
+          <p>
+            If you attached the tasks, the final test is part of them. Otherwise Architect made its
+            requests from your files, following the job Spark drafted. The answers are checked
+            against that job. Nobody has certified them as right for your business.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>The rest of the page</h2>
+        <div class="body">
+          <p>
+            <b>By task type</b> gives the final test result for each kind of request.
+            <b>What it won't do</b> lists what the agent leaves to you. <b>Comparisons</b> sets this
+            agent beside other setups on the same tasks: Glimmer untouched, Glimmer with Spark's
+            setup and, where it was measured, Spark doing the tasks itself. A row says
+            <b>Not run</b> where nothing was measured. Architect never fills in a number it didn't
+            measure. <b>What helped most</b> lists the rounds that gained the most check tasks.
+          </p>
+          <p>
+            If you switch on <b>Comparison mode</b> in Settings, under Training, Architect also
+            trains three simpler versions of each agent: Glimmer on its own, a setup Spark writes in
+            one go, and Glimmer revising its own. They appear under
+            <b>Compared with simpler methods</b>.
+          </p>
+          <fig
+            id="report-body"
+            src="flow-report-dark.png"
+            span="text"
+            x="0.17 0.83"
+            y="0.25 0.68"
+            alt="The middle of the Results screen: results by task type, what the agent won't do, comparisons and what helped most."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Testing on this computer</h2>
+        <div class="body">
+          <p>
+            If the final test ran on the online copy, the screen offers
+            <b>Test on this computer</b>. It takes about 2.5 hours for 60 tasks and uses the
+            graphics card. You can leave the page while it runs.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Not ready</b></th>
+                <td>
+                  The agent can still be used, but it missed its target. Teach it more (chapter 10),
+                  or train again with more files.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Can't run on this computer</b></th>
+                <td>
+                  Press <b>See what's wrong</b>. The agent's General tab lists this computer's
+                  checks and has a button for each fix.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Couldn't load the results</b></th>
+                <td>Press <b>Try again</b>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 9 -->
+    <chapter id="use" title="Use your agent">
+      <p class="lead">
+        Chat with your agent, let it work on your files, and approve each change. It works offline.
+      </p>
+
+      <div class="part">
+        <h2>Steps</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Press <b>Start using</b> on the Results screen. A chat opens. Next time, pick the
+                agent in the sidebar.
+              </p>
+            </li>
+            <li>
+              <p>
+                Ask in plain words in the box that says <b>Ask</b> and the agent's name. A new chat
+                offers a few requests to start with, taken from what the agent passed on its test.
+              </p>
+            </li>
+            <li>
+              <p>
+                Watch the reply. The line above it, such as <b>Worked for 2 min 21 s</b>, opens to
+                show each step: what the agent read, searched or ran. See <ref to="chat" />.
+              </p>
+            </li>
+            <li><p>If it wants to change a file, it shows the change first (below).</p></li>
+            <li>
+              <p>
+                The plus beside the agent's name starts a new chat. Each chat keeps its own history.
+              </p>
+            </li>
+          </ol>
+          <fig
+            id="chat"
+            src="workspace-chat-dark.png"
+            x="0 1"
+            y="0 0.98"
+            alt="A chat with an agent: a question, the reply with a table of totals, and the message box with Saving files: Ask first."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Files and folders</h2>
+        <div class="body">
+          <p>
+            The agent sees only the folders you gave it, and only the files its job names. Press the
+            three dots beside the agent's name, then <b>Permissions</b>. Each folder shows the place
+            on your computer it points to, with a button to choose another. Changing one runs this
+            computer's checks again.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Approving changes</h2>
+        <div class="body">
+          <p>
+            <b>Saving files</b> sits under the message box. A new agent starts on <b>Ask first</b>.
+            When the agent wants to change a file, a card shows the file and the rows or lines it
+            would write, and the reply waits: <b>Waiting for your approval</b>. In the sidebar, a
+            chat that waits shows <b>Approve</b>. See <ref to="approval" />.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Button</th>
+                <th>What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Allow once</th>
+                <td>Saves this change.</td>
+              </tr>
+              <tr>
+                <th>Deny</th>
+                <td>Does not save it.</td>
+              </tr>
+              <tr>
+                <th>Allow saving from now on</th>
+                <td>
+                  Saves this change and later ones without asking. It sets <b>Saving files</b> to
+                  <b>Allow</b>. Each change still shows in the chat.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p>Set <b>Saving files</b> to <b>Never</b> if the agent should only read.</p>
+          <fig
+            id="approval"
+            src="workspace-approval-dark.png"
+            x="0.32 0.85"
+            y="0.03 0.5"
+            alt="Two change cards waiting for approval, each showing the rows to add and the buttons Deny, Allow saving from now on, and Allow once."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Working offline</h2>
+        <div class="body">
+          <p>
+            The pill at the top says <b>Running on this computer</b>. The agent talks only to the
+            model on your computer. You can turn off the internet and keep using it. The first reply
+            may be slow while the model loads. If another job is using the graphics card, the step
+            says <b>Waiting: your computer is busy with another job.</b> and goes on when the card
+            is free.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What it refuses</h2>
+        <div class="body">
+          <p>
+            An agent does its job and nothing else. Ask for something outside it and it says so,
+            with the reason, instead of guessing. What it leaves to you is listed on the Results
+            screen under <b>What it won't do</b>.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>A slow reply</th>
+                <td>
+                  Glimmer is slow on a computer without much graphics memory. Architect plans for
+                  about 2.5 minutes a task. A shorter request helps.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Not saved</b> on a change you allowed</th>
+                <td>The card says why. Press <b>Try again</b>, or <b>Don't save</b>.</td>
+              </tr>
+              <tr>
+                <th><b>Not applied</b></th>
+                <td>You stopped the reply before answering, so the change was not made.</td>
+              </tr>
+              <tr>
+                <th>This task needs more room than the model's context allows</th>
+                <td>
+                  The request and what the agent had to read didn't fit. Ask for less at once.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Can't run on this computer</b></th>
+                <td>
+                  Press the three dots beside the agent's name, then <b>General</b>.
+                  <b>Works on this computer</b> says what failed and offers a fix.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 10 -->
+    <chapter id="improve" title="Make it better">
+      <p class="lead">
+        When the agent gets something wrong, say so. You choose what happens next, and the version
+        in use never changes by itself.
+      </p>
+
+      <div class="part">
+        <h2>Teach this</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Under the wrong reply, press the flag, <b>Flag for teaching</b>. A panel called
+                <b>Teach this</b> opens. See <ref to="teach" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                In <b>What was wrong</b>, say what it got wrong. Two more boxes are optional:
+                <b>What it should have done</b> and <b>What it should have used</b>, where you pick
+                files or paste rows.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read the line at the bottom. Only this exchange, its steps and your notes go to
+                Spark, for up to a small cost. Nothing goes until you press <b>Share with Spark</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Spark proposes a lesson. It says what kind it is, what change it would make, whether
+                practice is needed, and what reading it cost. See <ref to="proposal" />.
+              </p>
+            </li>
+          </ol>
+          <figpair>
+            <fig
+              id="teach"
+              src="teach-sheet-filled-dark.png"
+              x="0.575 0.995"
+              y="0.01 0.99"
+              alt="The Teach this panel with what was wrong, what it should have done and the files it should have used filled in."
+            />
+            <fig
+              id="proposal"
+              src="teach-proposal-dark.png"
+              x="0.575 0.995"
+              y="0.01 0.99"
+              alt="A proposed lesson of the kind Rule, with the change it makes and the buttons Discard, Save for Improve and Save as version 3."
+            />
+          </figpair>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Kinds of lesson</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Kind</th>
+                <th>What happens</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Rule</th>
+                <td>
+                  You state something it should do every time. It is added to the agent's
+                  instructions. No practice is needed.
+                </td>
+              </tr>
+              <tr>
+                <th>Missing fact</th>
+                <td>It lacked a fact or a file. This is added to its instructions too.</td>
+              </tr>
+              <tr>
+                <th>Needs practice</th>
+                <td>It keeps making the same kind of mistake. Improve practices tasks like it.</td>
+              </tr>
+              <tr>
+                <th>Unclear request</th>
+                <td>Nothing changes until you say which you meant.</td>
+              </tr>
+              <tr>
+                <th>Can't be checked</th>
+                <td>No change.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            For a rule or a missing fact, <b>Save as version</b> and its number adds the lesson to
+            the agent as a new version at once. That version isn't used until you choose it, and it
+            hasn't taken a final test. <b>Save for Improve</b> keeps the lesson with your other
+            flagged answers. <b>Discard</b> throws it away. <b>Say more and send again</b> lets you
+            add detail.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Improve</h2>
+        <div class="body">
+          <p>
+            Improve teaches your saved lessons together. Press the three dots beside the agent's
+            name, then <b>Teaching</b>. Under <b>Lessons</b>, <b>Flagged answers</b> lists what you
+            flagged, and <b>Improve</b> starts the run.
+          </p>
+          <ol class="steps">
+            <li>
+              <p>
+                Press <b>Improve</b>. A box asks <b>Improve</b> and the agent's name, and says what
+                will happen: it teaches your lessons to a copy of the current version, saves a new
+                version only if it scores better on the check tasks, and stops at the caps it shows.
+                The current version keeps answering meanwhile.
+              </p>
+            </li>
+            <li>
+              <p>
+                Press <b>Start improving</b>. The Train screen opens, with the steps <b>Lessons</b>,
+                <b>Improve</b> and <b>Results</b>. You can pause or stop it.
+              </p>
+            </li>
+            <li>
+              <p>
+                When it ends, press <b>See what changed</b>. The screen shows the score before and
+                after on the check tasks. A new version is marked <b>Not in use yet</b>, and it
+                hasn't taken a final test.
+              </p>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Versions</h2>
+        <div class="body">
+          <p>
+            <b>Versions</b>, under <b>Teaching</b>, lists every version of the agent, newest first.
+            Each is <b>In use</b>, <b>New, not in use yet</b>, <b>Earlier version</b> or
+            <b>Set aside</b>, and shows its final test result, <b>No final test yet</b>, or how far
+            it fell short of its target. See <ref to="teaching" />.
+          </p>
+          <ul class="plain">
+            <li>
+              To use a new version, press <b>Use this version</b>. A box says what changes: new
+              replies use that version's setup and trained weights, and the version you leave stays.
+            </li>
+            <li>
+              To go back, press <b>Go back to this version</b> on an earlier one. It restores that
+              version's setup and weights together.
+            </li>
+            <li>
+              A version that came from another computer never writes without asking. Saving files
+              goes back to <b>Ask first</b> when you use it.
+            </li>
+          </ul>
+          <fig
+            id="teaching"
+            src="agent-teaching-dark.png"
+            span="text"
+            x="0.222 0.778"
+            y="0.16 0.84"
+            alt="The Teaching tab of an agent's settings: lessons, and a list of versions with their final test results and Use this version buttons."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Can't be taught on this computer</b></th>
+                <td>
+                  The row says why. An agent that came from another computer may need its model or
+                  runtime set up first.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Not shared</b></th>
+                <td>
+                  The exchange matches a question from the final test, which Spark must never see.
+                  Flag a different answer.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Too long to review</b></th>
+                <td>
+                  Reading it would cost more than the limit. Shorten your note, or flag a shorter
+                  answer.
+                </td>
+              </tr>
+              <tr>
+                <th><b>No new version</b></th>
+                <td>
+                  No change scored better on the check tasks. The current version stays, and the
+                  lessons go back in the queue.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 11 -->
+    <chapter id="share" title="Share it">
+      <p class="lead">
+        Export an agent as one file, publish it to Hugging Face, or install one that someone sent
+        you.
+      </p>
+
+      <div class="part">
+        <h2>Export a package file</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Press the three dots beside the agent's name, then <b>Export</b>. Choose
+                <b>Package file</b>. See <ref to="export" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read <b>In the package</b>: the setup, the model's name, the job and the test
+                results, plus trained weights if it has them. The file is named like
+                <code>service-desk-v2.architect.zip</code>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read <b>Stays on this computer</b>: your folder choices and model settings, your API
+                keys, and the attempts and notes from training. Chats stay too.
+              </p>
+            </li>
+            <li>
+              <p>
+                A folder's files go only if you switch them on, with the switch beside
+                <b>Files in data/</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read <b>Scan</b>. It looks for lines that look like a key or a private path. If it
+                finds some, read each, then tick <b>Export anyway</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Press <b>Export</b> and choose a folder. <b>Export one part</b> saves only the
+                setup, the trained weights or the results.
+              </p>
+            </li>
+          </ol>
+          <div class="note">
+            <p>
+              The scan is a best effort. Trained weights may keep traces of the data they learned
+              from, and a setup written from your tasks may quote them. Leaving files out doesn't
+              make an agent anonymous.
+            </p>
+          </div>
+          <fig
+            id="export"
+            src="agent-export-dark.png"
+            span="text"
+            x="0.222 0.778"
+            y="0.16 0.8"
+            alt="The Export tab: what is in the package, the scan result and what stays on this computer."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Publish to Hugging Face</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>In the same tab, choose <b>Hugging Face</b>. See <ref to="publish" />.</p>
+            </li>
+            <li>
+              <p>
+                Type the repository as <b>owner/name</b>. Choose <b>Private</b>, which is the
+                default and lets only accounts you allow see it, or <b>Public</b>, which lets anyone
+                see and download it.
+              </p>
+            </li>
+            <li>
+              <p>
+                Check <b>Token</b>. It comes from Settings (Models, then Hugging Face), from
+                <code>HF_TOKEN</code> on your computer, or from <code>hf auth login</code>. It goes
+                only to Hugging Face's own service, never into the package.
+              </p>
+            </li>
+            <li>
+              <p>
+                Read <b>Files</b>, press <b>Preview</b> to read the model card, and read
+                <b>Scan</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                Press <b>Publish version</b> and its number. The panel shows progress, then the
+                repository and its commit, with the command that installs exactly that commit.
+              </p>
+            </li>
+          </ol>
+          <p>
+            An existing repository keeps its visibility: a private one stays private. If a
+            publication fails, it says <b>Didn't finish</b>. Press <b>Finish publishing</b> to
+            complete the same one. The agent still runs with Architect on the computer that installs
+            it, not on Hugging Face.
+          </p>
+          <fig
+            id="publish"
+            src="agent-publish-dark.png"
+            span="text"
+            x="0.222 0.778"
+            y="0.16 0.8"
+            alt="The Hugging Face publishing tab: repository name, Private visibility, the token source and the files to be sent."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Import</h2>
+        <div class="body">
+          <ol class="steps">
+            <li>
+              <p>
+                Press the three dots beside <b>New agent</b> in the sidebar. Choose
+                <b>Import agent</b> for a file or folder, or <b>Install from Hugging Face</b> and
+                type <b>owner/name</b>. A commit is optional.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Package.</b> Architect checks the package without running any of it and says
+                <b>Safe to open</b>. It shows whether your computer can run it and has the model,
+                and how it did for its author, labelled <b>Tested by its author</b>. See
+                <ref to="import" />.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Folders.</b> <b>Where are its files?</b> Choose a folder on your computer for
+                each folder the agent works in.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Permissions.</b> <b>What may it do?</b> For each folder choose
+                <b>Not allowed</b>, <b>Read</b> or <b>Read and change</b>, never more than the
+                package asks for. <b>Internet access</b> reads <b>Never, by design</b>.
+              </p>
+            </li>
+            <li>
+              <p>
+                <b>Install.</b> Architect installs it and runs its checks. When they pass, press
+                <b>Start a chat</b>.
+              </p>
+            </li>
+          </ol>
+          <p>
+            A package asks for access, and nothing is granted unless you grant it. The author's
+            score is not a test on your files. The checks on your computer show that the agent runs
+            here. They are not a new final test. A package that is a new version of an agent you
+            already have joins as a version and waits until you choose to use it.
+          </p>
+          <fig
+            id="import"
+            src="import-check-dark.png"
+            span="text"
+            x="0.17 0.83"
+            y="0 0.9"
+            alt="The Package step of an import: safe to open, this computer, the model, and the author's results."
+          />
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Couldn't check this package</b>, or a list of problems</th>
+                <td>
+                  Choose another file. If the message says the package was edited after it was made,
+                  ask whoever sent it for a new copy.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Add a Hugging Face token in Settings</b></th>
+                <td>
+                  Publishing needs a token. Create one at huggingface.co, then add it in Settings,
+                  under Models.
+                </td>
+              </tr>
+              <tr>
+                <th>Flagged lines need your OK</th>
+                <td>
+                  The scan found lines that look like keys or private paths. Read them. If they are
+                  fine, tick <b>Export anyway</b> or <b>Publish anyway</b>. If not, take them out
+                  and export again.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Didn't finish</b></th>
+                <td>
+                  Publish again to the same repository. It finishes the same publication without
+                  resending what Hugging Face already has.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 12 -->
+    <chapter id="cli" title="The command line">
+      <p class="lead">
+        The <code>architect</code> command lists, installs, runs, checks, exports and publishes
+        agents from a terminal, without opening the app.
+      </p>
+
+      <div class="part">
+        <h2>What it is</h2>
+        <div class="body">
+          <p>
+            It works on the same agents as the app, in the same folder, with the same rules. An
+            agent sees only the folders you gave it, asks before it changes a file unless you allow
+            it, and runs only on a model on your computer. The teacher is never contacted. Only
+            <code>publish</code>, and <code>install</code> from Hugging Face, go online, and only to
+            Hugging Face.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Getting it</h2>
+        <div class="body">
+          <p>The command comes with the installer.</p>
+          <table>
+            <tbody>
+              <tr>
+                <th>Windows</th>
+                <td>
+                  <code>architect.cmd</code>, beside <code>Architect.exe</code> in the folder the
+                  app installed to (<code class="wrap">%LOCALAPPDATA%\Programs\Architect</code> by
+                  default). Add that folder to <code>PATH</code> to type
+                  <code>architect</code> anywhere.
+                </td>
+              </tr>
+              <tr>
+                <th>macOS</th>
+                <td>
+                  <code class="wrap">Architect.app/Contents/Resources/architect</code>. Link it into
+                  a folder on your <code>PATH</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>ln -s /Applications/Architect.app/Contents/Resources/architect \
+  /usr/local/bin/architect</code></pre>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Commands</h2>
+        <div class="body">
+          <table class="cmd">
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><code>architect list</code></th>
+                <td>
+                  Lists every agent on this computer, with its name, id, active version and whether
+                  it can run here.
+                </td>
+              </tr>
+              <tr>
+                <th><code>architect install</code></th>
+                <td>
+                  Installs a package, or a version published to Hugging Face. Everything is checked
+                  before any of its code loads.
+                </td>
+              </tr>
+              <tr>
+                <th><code>architect run</code></th>
+                <td>Talks to an agent, or runs one task from a file.</td>
+              </tr>
+              <tr>
+                <th><code>architect inspect</code></th>
+                <td>
+                  Shows an agent's versions, model, folders, permissions, the author's results and
+                  this computer's checks. Given a package file, it checks the package without
+                  installing it.
+                </td>
+              </tr>
+              <tr>
+                <th><code>architect verify</code></th>
+                <td>
+                  Runs the active version's installation checks again. It is not an evaluation.
+                </td>
+              </tr>
+              <tr>
+                <th><code>architect export</code></th>
+                <td>Writes a version as one package file, after the same review the app shows.</td>
+              </tr>
+              <tr>
+                <th><code>architect publish</code></th>
+                <td>
+                  Publishes a version to a Hugging Face repository, private unless you add
+                  <code>--public</code>. <code>--dry-run</code> shows what would go and sends
+                  nothing.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            An agent is named by the name <code>architect list</code> shows, or by its id. Add
+            <code>--json</code> to <code>list</code>, <code>install</code>, <code>inspect</code>,
+            <code>verify</code>, <code>export</code> and <code>publish</code> for output a script
+            can read.
+          </p>
+          <pre><code>architect install ./desk.architect.zip --bind data=./records --grant data=read
+architect install hf://jake/service-desk --revision 3f1c9e2a
+architect export service-desk --output ./desk.architect.zip
+architect publish service-desk --repo jake/service-desk --private</code></pre>
+          <p>
+            A package asks for access and nothing is granted that the command doesn't name.
+            <code>--bind</code> points one of the package's folders at a folder here, and
+            <code>--grant</code> gives it <code>read</code>, <code>read_write</code> or
+            <code>none</code>. <code>--writes</code> takes <code>ask</code> (the default),
+            <code>allow</code> or <code>never</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Talking to an agent</h2>
+        <div class="body">
+          <p>
+            <code>architect run service-desk</code> starts a conversation. Type one request per
+            line. The answer streams to the terminal and the steps go to stderr. A change that needs
+            approval is asked about in the terminal. Ctrl+C stops a reply, and Ctrl+D ends the
+            conversation.
+          </p>
+          <pre><code>$ architect run service-desk
+&gt; Who owes us money?
+  read data/invoices.csv (3 rows)
+Ruiz, Ben owes $45.50 on INV-2, due November 15.</code></pre>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Running one task from a script</h2>
+        <div class="body">
+          <p>
+            Give <code>run</code> a request as a JSON file, and it writes the result as JSON.
+            Results go to stdout and everything else to stderr, so a script can read stdout.
+          </p>
+          <pre><code>architect run service-desk --input request.json --output result.json --non-interactive</code></pre>
+          <pre><code>{
+  "format": "architect.run-request/1",
+  "task": "Who owes us money, and how much?",
+  "inputs": ["data/invoices.csv"],
+  "version": 2
+}</code></pre>
+          <p>
+            <code>task</code> is what to do, in the words you would use in the app.
+            <code>inputs</code> and <code>version</code> are optional.
+            <code>--non-interactive</code> means nobody can be asked, so a change that needs
+            approval ends the run with the error <code>approval_required</code>, and nothing is
+            written. The result has a <code>status</code>, an <code>exit_code</code>, the
+            <code>answer</code>, the <code>steps</code> taken, and an <code>error</code> with a
+            <code>code</code> and a <code>hint</code> when something went wrong.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Exit codes</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Outcome</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>0</th>
+                <td>succeeded</td>
+                <td>It did what was asked.</td>
+              </tr>
+              <tr>
+                <th>1</th>
+                <td>runtime_error</td>
+                <td>
+                  Something failed while running: the model runtime isn't there, a time limit ran
+                  out, or Hugging Face couldn't be reached.
+                </td>
+              </tr>
+              <tr>
+                <th>2</th>
+                <td>invalid_input</td>
+                <td>
+                  The command line or the request is malformed, or names something that isn't there.
+                </td>
+              </tr>
+              <tr>
+                <th>3</th>
+                <td>not_permitted</td>
+                <td>
+                  A requirement or permission isn't met: a change that needs approval, a folder that
+                  isn't bound or granted, a model that isn't on this computer, or a missing token.
+                </td>
+              </tr>
+              <tr>
+                <th>4</th>
+                <td>task_failed</td>
+                <td>
+                  The agent ran and didn't do the task. It refused it, or stopped without an answer.
+                </td>
+              </tr>
+              <tr>
+                <th>130</th>
+                <td>cancelled</td>
+                <td>Ctrl+C or a stop signal ended it.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If something goes wrong</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Exit 3 after <code>install</code></th>
+                <td>
+                  A folder the package needs is not bound or granted. The checks say which. Run
+                  again with <code>--bind</code> and <code>--grant</code>.
+                </td>
+              </tr>
+              <tr>
+                <th>Exit 1, and the model isn't answering</th>
+                <td>Start Ollama. <code>architect verify</code> checks the agent again.</td>
+              </tr>
+              <tr>
+                <th>The command waits, then exits 1</th>
+                <td>
+                  The app is using the graphics card. The command waits up to 5 minutes, then says
+                  what holds it.
+                </td>
+              </tr>
+              <tr>
+                <th>Exit 3 after <code>export</code> or <code>publish</code>, with a list</th>
+                <td>
+                  The scan found lines that look like a key or a private path. Check them. If they
+                  are fine, run again with <code>--accept-findings</code> and the id it printed.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 13 -->
+    <chapter id="privacy" title="What leaves your computer">
+      <p class="lead">
+        Most of Architect stays on your computer. This chapter says exactly what doesn't, and what
+        never does.
+      </p>
+
+      <div class="part">
+        <h2>What can leave</h2>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>What goes</th>
+                <th>To whom</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>You describe a job</th>
+                <td>
+                  Your description and the files you attach. A text file goes whole. For a table,
+                  Spark sees its columns, examples of what is in them, and the first five rows.
+                </td>
+                <td>Your teacher. Nothing leaves if the teacher runs on your computer.</td>
+              </tr>
+              <tr>
+                <th>It trains</th>
+                <td>
+                  Practice attempts and samples of your files, so Spark can diagnose failures. For
+                  the check tasks, only the score.
+                </td>
+                <td>Your teacher.</td>
+              </tr>
+              <tr>
+                <th>Practice online, if you choose it</th>
+                <td>Tasks and files.</td>
+                <td>The online host you chose.</td>
+              </tr>
+              <tr>
+                <th>You use Teach this</th>
+                <td>
+                  After you confirm, the one exchange you flag, its steps and your notes, for a
+                  capped cost.
+                </td>
+                <td>Your teacher.</td>
+              </tr>
+              <tr>
+                <th>You download a model</th>
+                <td>The download.</td>
+                <td>Ollama, or Hugging Face.</td>
+              </tr>
+              <tr>
+                <th>You publish or install from Hugging Face</th>
+                <td>The package you choose. Your token goes only to Hugging Face's own service.</td>
+                <td>Hugging Face.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Each teacher has its own data terms. For Spark, the app says: Meta doesn't train on what
+            you send. Read your provider's terms if you use another teacher. Settings, under
+            Privacy, gives the short version.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What never leaves</h2>
+        <div class="body">
+          <ul class="plain">
+            <li>
+              <b>The final test.</b> Spark never sees its requests, its answers or its scores before
+              the agent graduates. Architect checks everything it sends to Spark against the final
+              test, and refuses to send a match. Nothing about the final test goes back into
+              training.
+            </li>
+            <li>
+              <b>Your chats.</b> Spark never sees them. The one exception is Teach this, and only
+              after you press <b>Share with Spark</b>.
+            </li>
+            <li>
+              <b>Your agent's work.</b> A finished agent talks only to the model on your computer.
+              Architect refuses any other connection, and an agent never calls Spark.
+            </li>
+            <li><b>Usage data.</b> Architect collects none.</li>
+            <li>
+              <b>Your keys.</b> They are stored encrypted on your computer. They never go into a
+              package.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>What Spark can and can't change</h2>
+        <div class="body">
+          <p>
+            Spark can change an agent's harness: its instructions, what it reads and when, and small
+            tools. It can't change how answers are graded, the task sets, the final test, or what
+            the agent may access.
+          </p>
+          <p>
+            The small tools Spark writes run in a sandbox. They have no network and no clock, and
+            they can read only the files the job names, without changing them. A change to your
+            files needs your approval unless you set <b>Saving files</b> to <b>Allow</b>.
+          </p>
+          <p>
+            Rounds, Spark's dollars and time are hard caps. A call that would go over one does not
+            start.
+          </p>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>If you want to share less</h2>
+        <div class="body">
+          <ul class="plain">
+            <li>
+              Use a teacher that runs on your computer, in Ollama or LM Studio. Then nothing leaves.
+            </li>
+            <li>
+              Attach only the files the job needs. For a policy, attach only the section it needs.
+            </li>
+            <li>
+              Choose <b>Train on this computer</b> on the Define screen instead of
+              <b>Train online</b>.
+            </li>
+            <li>
+              Under each choice, the app says what leaves. Read it before you press the button.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 14 -->
+    <chapter id="trouble" title="When something goes wrong">
+      <p class="lead">
+        The common problems, by where you meet them. Each chapter also lists the problems of its own
+        steps.
+      </p>
+
+      <div class="part">
+        <h2>Setting up</h2>
+        <div class="body">
+          <table class="fix">
+            <thead>
+              <tr>
+                <th>If you see</th>
+                <th>Do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><b>Ollama isn't running</b></th>
+                <td>Open Ollama, or install it from ollama.com. Then press <b>Check again</b>.</td>
+              </tr>
+              <tr>
+                <th>Windows or macOS warns about the app</th>
+                <td>
+                  The app isn't signed yet. On Windows, choose <b>More info</b>, then
+                  <b>Run anyway</b>. On a Mac, right-click it and choose <b>Open</b>.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Part runs on the processor, so it is slower</b></th>
+                <td>
+                  The build is too large for your graphics memory. Choose the smaller build, or
+                  accept the slower speed.
+                </td>
+              </tr>
+              <tr>
+                <th>The teacher's key test fails</th>
+                <td>
+                  Check that you pasted the whole key. Add or replace keys in Settings, under
+                  Models.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Describing and defining</h2>
+        <div class="body">
+          <table class="fix">
+            <tbody>
+              <tr>
+                <th>Your files hold only a few rows</th>
+                <td>
+                  Attach more records, or at least 30 example tasks in a
+                  <code>tasks.jsonl</code> file.
+                </td>
+              </tr>
+              <tr>
+                <th>A file can't be read yet</th>
+                <td>
+                  Architect reads CSV, text and Markdown. Export a spreadsheet, PDF or Word file as
+                  one of those.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Start training</b> is off</th>
+                <td>
+                  Read the line beside it. It says <b>Confirm the rule first</b>,
+                  <b>Describe the job again first</b>, or what is missing.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Changed since you confirmed it</b></th>
+                <td>
+                  Your records changed after you confirmed the rule. Press
+                  <b>Describe the job again</b>.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Not even one round of teaching fits</b></th>
+                <td>Allow more time, or train online (chapter 6).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Training</h2>
+        <div class="body">
+          <table class="fix">
+            <tbody>
+              <tr>
+                <th><b>Training is paused</b></th>
+                <td>
+                  Read what is missing, fix it with the button beside it, and press <b>Resume</b>.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Spark has a question for you</b></th>
+                <td>Answer it in the round panel. Training waits for you.</td>
+              </tr>
+              <tr>
+                <th><b>Training stopped on an error</b></th>
+                <td>Read the message, then press <b>Back to the job</b>.</td>
+              </tr>
+              <tr>
+                <th><b>Spark's budget ran out</b></th>
+                <td>
+                  Raise the cap in <b>Advanced settings</b> and train again, or improve the agent
+                  later.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Not ready</b> on the results</th>
+                <td>You can still use the agent. Teach it more, or train again with more files.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Using an agent</h2>
+        <div class="body">
+          <table class="fix">
+            <tbody>
+              <tr>
+                <th><b>Waiting: your computer is busy with another job.</b></th>
+                <td>
+                  Another run or check is using the graphics card. The reply goes on when it is
+                  free.
+                </td>
+              </tr>
+              <tr>
+                <th><b>Not saved</b></th>
+                <td>Press <b>Try again</b> on the card, or <b>Don't save</b>.</td>
+              </tr>
+              <tr>
+                <th>This task needs more room than the model's context allows</th>
+                <td>Ask for less at once.</td>
+              </tr>
+              <tr>
+                <th><b>Can't run on this computer</b></th>
+                <td>
+                  Open the agent's settings, then <b>General</b>. Use the fix button beside the
+                  failed check.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="part">
+        <h2>Sharing</h2>
+        <div class="body">
+          <table class="fix">
+            <tbody>
+              <tr>
+                <th><b>Couldn't check this package</b></th>
+                <td>Choose another file, or ask the sender for a new copy.</td>
+              </tr>
+              <tr>
+                <th>Lines that look like a key or a private path</th>
+                <td>Read each one. Take out anything private, then export or publish again.</td>
+              </tr>
+              <tr>
+                <th><b>Didn't finish</b> on a publication</th>
+                <td>Publish again to the same repository. It finishes the same publication.</td>
+              </tr>
+              <tr>
+                <th><b>Add a Hugging Face token in Settings</b></th>
+                <td>Add a token in Settings, under Models.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </chapter>
+
+    <!-- 15 -->
+    <chapter id="glossary" title="Glossary">
+      <p class="lead">The words this guide and the app use, in the order you will meet them.</p>
+      <dl class="glossary">
+        <div>
+          <dt>Agent</dt>
+          <dd>
+            What Architect makes for a job: Glimmer with its harness. It runs offline on your
+            computer.
+          </dd>
+        </div>
+        <div>
+          <dt>Spark</dt>
+          <dd>
+            The teacher. A large model, Muse Spark by default, reached over the internet with a key.
+          </dd>
+        </div>
+        <div>
+          <dt>Glimmer</dt>
+          <dd>
+            The student. A small model, Muse Glimmer, that runs on your computer through Ollama.
+          </dd>
+        </div>
+        <div>
+          <dt>Ollama</dt>
+          <dd>A free app that runs models on your computer. Glimmer runs through it.</dd>
+        </div>
+        <div>
+          <dt>Job</dt>
+          <dd>What you describe: the tasks, the files they use, the limits and the target.</dd>
+        </div>
+        <div>
+          <dt>Harness</dt>
+          <dd>
+            The plain folder of files that tells Glimmer how to do the job: instructions, notes it
+            reads, and small tools. Spark edits it.
+          </dd>
+        </div>
+        <div>
+          <dt>Rule</dt>
+          <dd>
+            A policy with prices or rounding that Spark turned into exact steps. You confirm it
+            before anything trains.
+          </dd>
+        </div>
+        <div>
+          <dt>Round</dt>
+          <dd>One cycle of training: practice, diagnose, change, score.</dd>
+        </div>
+        <div>
+          <dt>Practice tasks</dt>
+          <dd>Tasks Glimmer works through so Spark can see where it goes wrong.</dd>
+        </div>
+        <div>
+          <dt>Check tasks</dt>
+          <dd>
+            Tasks Spark never sees. Spark gets only their score, and the score decides which changes
+            stay.
+          </dd>
+        </div>
+        <div>
+          <dt>Final test</dt>
+          <dd>
+            Tasks put aside before training and opened once, at the end, with Spark disconnected.
+          </dd>
+        </div>
+        <div>
+          <dt>Kept, undone</dt>
+          <dd>
+            A change is kept if it gains enough on the check tasks and breaks no rule. Otherwise it
+            is undone.
+          </dd>
+        </div>
+        <div>
+          <dt>Graduated</dt>
+          <dd>Passed the final test on this computer. The agent is marked <b>Ready</b>.</dd>
+        </div>
+        <div>
+          <dt>Version</dt>
+          <dd>
+            A saved state of an agent. A new version waits until you choose to use it, and an
+            earlier one can be restored.
+          </dd>
+        </div>
+        <div>
+          <dt>Teach this</dt>
+          <dd>The flag under a reply. It turns a wrong answer into a lesson.</dd>
+        </div>
+        <div>
+          <dt>Improve</dt>
+          <dd>
+            A training run that teaches the saved lessons and makes a new version if it scores
+            better.
+          </dd>
+        </div>
+        <div>
+          <dt>Weights</dt>
+          <dd>
+            The numbers inside a model. Retraining them is an option for Spark, and it needs a
+            Hugging Face key and a training budget.
+          </dd>
+        </div>
+        <div>
+          <dt>Package</dt>
+          <dd>An agent exported as one <code>.architect.zip</code> file.</dd>
+        </div>
+        <div>
+          <dt>Hugging Face</dt>
+          <dd>
+            A site where models are shared. Architect can publish an agent to it and install one
+            from it.
+          </dd>
+        </div>
+      </dl>
+    </chapter>
+  </body>
+</html>
