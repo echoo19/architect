@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), platform lane "Inspector on Define" (branch `platform/inspector`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- Define's Advanced settings dialog is gone; its fields live in the inspector at the page's right, opened by the footer's settings button (which also folds it away) and remembering its tab. Tabs: Spark (the teacher's models as tiles from `models.ts`, any other model a click away, how hard it thinks, the spending cap), Glimmer (the model here, where it practices, the online copy, context), Teaching (what Spark may change as ToggleRows, rounds, patience, the keep rule: gain on check tasks, the most a skill may lose, measured again on new seeds; the starting instructions), Evaluation (ready when, where the final test runs and its seeds, the task sets and their seed, the organizations with the sealed ones only counted, grading, the example tasks), Budget (expected against each cap with meters, then the caps: Spark dollars, training compute dollars, time).
+- Every control writes an existing field of the job schema through the same `jobs.save` path; problems are said under the field and nothing is saved until they are fixed; each saved change raises one Undo toast (`toast({ key })` replaces the last). There is no control for the sealed organizations, the checker's contents, permissions beyond what Define already had, or the student's weights.
+- The page lost its Spark cap slider (now in Spark and Budget) and the export button became an icon in the footer, so the page is the job, where it trains and the estimate.
+- No temperature control: the job schema has no decoding field, and no student dollar cap: the online copy's expected bill is shown alone.
+- `packages/ui`: the Inspector takes a tab from the screen, an `open` state that slides it shut, and a width; ChoiceTiles wrap a long name to two lines. Hidden e2e `define-inspector.spec.ts`; Define's existing specs follow the inspector. Screenshots `define-inspector-{teacher,student,teaching,evaluation,budget}-dark.png`.
+
+**Next**
+- The experiments design screen and the model page can reuse the tab components where their settings are the job's.
+
 ## 2026-10-30 (Fri), scale lane "Training plan and targets" (branch `scale/targets`)
 
 **Done** (no model, GPU, cluster or cloud spend; schedulers are stand-ins)
