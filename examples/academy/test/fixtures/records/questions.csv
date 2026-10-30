@@ -1,0 +1,17 @@
+question_id,section,topic,difficulty_pct,correct
+R1,Reading and Writing,Transitions,50,B
+R2,Reading and Writing,Transitions,60,A
+R3,Reading and Writing,Transitions,30,D
+R4,Reading and Writing,Transitions,80,C
+R5,Reading and Writing,Transitions,45,A
+R6,Reading and Writing,Transitions,55,B
+R7,Reading and Writing,Transitions,90,C
+R8,Reading and Writing,Transitions,65,D
+M1,Math,Linear equations,40,C
+M2,Math,Linear equations,70,A
+M3,Math,Linear equations,20,B
+M4,Math,Linear equations,50,D
+M5,Math,Linear equations,60,A
+M6,Math,Linear equations,35,C
+M7,Math,Linear equations,48,B
+M8,Math,Linear equations,85,D

@@ -1,0 +1,253 @@
+question_id,section,topic,difficulty_pct,stem,choice_a,choice_b,choice_c,choice_d,correct
+QB-30007,Math,M-ALG-10 Function Notation,37,The function f is defined by f(x) = 5x + 7. What is f(9)?,21,68,45,52,D
+QB-30014,Math,M-ALG-10 Function Notation,22,The function f is defined by f(x) = 6x + 10. What is f(4)?,84,24,34,46,C
+QB-30021,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,87,"Late that week, the lights ___ speaker kept going anyway.",flickered the,flickered; the,flickered; and the,"flickered, the",B
+QB-30028,Math,M-GEO-05 Rectangles,74,"The perimeter of a rectangular garden is 58 meters and its length is 16 meters. What is its area, in square meters?",672,13,208,928,C
+QB-30035,Math,M-GEO-05 Rectangles,72,"The perimeter of a rectangular garden is 26 meters and its length is 9 meters. What is its area, in square meters?",13,36,234,153,B
+QB-30042,Reading and Writing,W-EXP-11 Logical Transitions,40,"The well ran dry in August. ___, the farm bought water by the truckload.",For example,In addition,However,Therefore,D
+QB-30049,Reading and Writing,W-EXP-11 Logical Transitions,22,"The team won the regional final. ___, its captain was named player of the year.",However,For example,In addition,Therefore,C
+QB-30056,Math,M-PRO-01 Part-to-part Ratios,68,"A collection has fiction books and nonfiction books in the ratio 5:4, 27 items in total. How many nonfiction books are there?",12,15,3,108,A
+QB-30063,Math,M-ALG-09 Linear Equations,20,Solve 8x + 48 = 112 for x.,56,64,20,8,D
+QB-30070,Math,M-GEO-05 Rectangles,55,"The perimeter of a rectangular garden is 42 meters and its length is 14 meters. What is its area, in square meters?",7,392,98,21,C
+QB-30077,Reading and Writing,W-GRA-12 Pronouns,39,Last week the council celebrated ___ tenth anniversary.,its,his or her,their,it's,A
+QB-30084,Math,M-PRO-08 Percent Change,31,"The regular price of a backpack is $140. During a sale the price is reduced by 20%. What is the sale price of the backpack, in dollars?",168,28,84,112,D
+QB-30091,Math,M-ALG-04 Systems of Equations,37,"In the system x + y = 26 and x - y = 12, what is the value of x?",26,19,14,7,B
+QB-30098,Reading and Writing,W-GRA-06 Subjects and Verbs,66,Today the list of old letters ___ on the front desk.,was,is,being,are,B
+QB-30105,Reading and Writing,W-GRA-12 Pronouns,63,Last week the committee posted ___ schedule for the spring.,its,it's,his or her,their,A
+QB-30112,Math,M-GEO-05 Rectangles,55,"The perimeter of a rectangular garden is 46 meters and its length is 13 meters. What is its area, in square meters?",130,10,598,23,A
+QB-30119,Math,M-ALG-09 Linear Equations,65,Solve 7x + 42 = 91 for x.,19,42,7,49,C
+QB-30126,Math,M-ALG-04 Systems of Equations,72,"In the system x + y = 25 and x - y = 11, what is the value of x?",7,14,36,18,D
+QB-30133,Math,M-GEO-05 Rectangles,47,"The perimeter of a rectangular garden is 14 meters and its length is 4 meters. What is its area, in square meters?",7,3,56,12,D
+QB-30140,Math,M-ALG-09 Linear Equations,26,Solve 9x + 9 = 81 for x.,72,8,63,10,B
+QB-30147,Math,M-ALG-09 Linear Equations,43,Solve 9x + 18 = 135 for x.,13,17,117,108,A
+QB-30154,Math,M-GEO-05 Rectangles,27,"The perimeter of a rectangular garden is 32 meters and its length is 9 meters. What is its area, in square meters?",207,63,16,288,B
+QB-30161,Math,M-ALG-04 Systems of Equations,77,"In the system x + y = 13 and x - y = 7, what is the value of x?",20,6,13,10,D
+QB-30168,Reading and Writing,W-GRA-03 Tense Consistency,24,"Back in 2000, the robotics team ___ its first regional prize.",won,has won,wins,will win,A
+QB-30175,Math,M-PRO-01 Part-to-part Ratios,20,"A collection has cats and dogs in the ratio 2:5, 77 items in total. How many dogs are there?",55,11,385,22,A
+QB-30182,Math,M-ALG-10 Function Notation,85,The function f is defined by f(x) = 8x + 7. What is f(7)?,63,22,56,112,A
+QB-30189,Reading and Writing,W-GRA-12 Pronouns,61,Last week the club moved ___ office across town.,its,it's,his or her,their,A
+QB-30196,Reading and Writing,W-GRA-06 Subjects and Verbs,43,Today the folder of maps ___ on the front desk.,are,being,was,is,D
+QB-30203,Math,M-GEO-05 Rectangles,18,"The perimeter of a rectangular garden is 20 meters and its length is 6 meters. What is its area, in square meters?",120,24,4,10,B
+QB-30210,Reading and Writing,W-GRA-07 Parallel Comparisons,78,"According to the guidebook, the climate of Kessington is more varied than ___.",that of Fenwick's,that of Fenwick,those of Fenwick,Fenwick,B
+QB-30217,Reading and Writing,W-GRA-03 Tense Consistency,37,"Back in 1999, the robotics team ___ a new name.",chooses,has chosen,will choose,chose,D
+QB-30224,Math,M-ALG-09 Linear Equations,34,Solve 8x + 32 = 56 for x.,3,24,11,16,A
+QB-30231,Math,M-PRO-08 Percent Change,75,"The regular price of a jacket is $380. During a sale the price is reduced by 20%. What is the sale price of the jacket, in dollars?",360,228,304,456,C
+QB-30238,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,82,The market ___ stalls sold out by ten.,"opened, its",opened its,opened; and its,opened; its,D
+QB-30245,Math,M-PRO-01 Part-to-part Ratios,67,"A collection has cats and dogs in the ratio 3:5, 32 items in total. How many dogs are there?",12,160,4,20,D
+QB-30252,Math,M-PRO-01 Part-to-part Ratios,92,"A collection has cats and dogs in the ratio 6:2, 104 items in total. How many dogs are there?",52,208,78,26,D
+QB-30259,Reading and Writing,W-GRA-03 Tense Consistency,92,"Back in 2011, the robotics team ___ its first regional prize.",will win,wins,has won,won,D
+QB-30266,Math,M-PRO-01 Part-to-part Ratios,18,"A collection has fiction books and nonfiction books in the ratio 7:6, 117 items in total. How many nonfiction books are there?",63,702,9,54,D
+QB-30273,Math,M-GEO-05 Rectangles,57,"The perimeter of a rectangular garden is 24 meters and its length is 8 meters. What is its area, in square meters?",192,32,4,12,B
+QB-30280,Math,M-ALG-09 Linear Equations,71,Solve 8x + 40 = 56 for x.,16,8,2,12,C
+QB-30287,Reading and Writing,W-GRA-07 Parallel Comparisons,82,"According to the guidebook, the rainfall of Corran is more varied than ___.",that of Delford,that of Delford's,Delford,those of Delford,A
+QB-30294,Reading and Writing,W-GRA-03 Tense Consistency,52,"Back in 2017, the drama club ___ the old record.",will break,has broken,broke,breaks,C
+QB-30301,Math,M-GEO-05 Rectangles,49,"The perimeter of a rectangular garden is 40 meters and its length is 14 meters. What is its area, in square meters?",20,84,6,560,B
+QB-30308,Reading and Writing,W-GRA-03 Tense Consistency,82,"Back in 2018, the drama club ___ its first regional prize.",won,wins,will win,has won,A
+QB-30315,Reading and Writing,W-GRA-06 Subjects and Verbs,84,Today the box of maps ___ in the main office.,stay,stays,staying,stayed,B
+QB-30322,Math,M-PRO-08 Percent Change,19,"The regular price of a bike is $80. During a sale the price is reduced by 35%. What is the sale price of the bike, in dollars?",108,24,52,28,C
+QB-30329,Reading and Writing,W-GRA-12 Pronouns,67,Last week the jury posted ___ schedule for the spring.,his or her,their,its,it's,C
+QB-30336,Reading and Writing,W-GRA-12 Pronouns,54,Last week the committee announced ___ decision.,their,it's,his or her,its,D
+QB-30343,Reading and Writing,W-GRA-03 Tense Consistency,61,"Back in 2019, the town ___ a record crowd.",has drawn,draws,will draw,drew,D
+QB-30350,Reading and Writing,W-GRA-06 Subjects and Verbs,68,Today the collection of maps ___ a new label.,needed,needs,need,needing,B
+QB-30357,Reading and Writing,W-GRA-12 Pronouns,67,Last week the council posted ___ schedule for the spring.,their,its,it's,his or her,B
+QB-30364,Math,M-ALG-09 Linear Equations,28,Solve 6x + 12 = 96 for x.,4,14,78,18,B
+QB-30371,Reading and Writing,W-GRA-07 Parallel Comparisons,16,"According to the guidebook, the parks of Harlow are more varied than ___.",those of Ashby,that of Ashby,Ashby,those of Ashby's,A
+QB-30378,Math,M-ALG-04 Systems of Equations,28,"In the system x + y = 16 and x - y = 6, what is the value of x?",16,5,22,11,D
+QB-30385,Math,M-ALG-09 Linear Equations,34,Solve 7x + 42 = 70 for x.,28,4,21,16,B
+QB-30392,Math,M-PRO-08 Percent Change,89,"The regular price of a bike is $300. During a sale the price is reduced by 30%. What is the sale price of the bike, in dollars?",390,90,270,210,D
+QB-30399,Reading and Writing,W-GRA-07 Parallel Comparisons,75,"According to the guidebook, the population of Harlow is more varied than ___.",Ashby,that of Ashby,those of Ashby,that of Ashby's,B
+QB-30406,Reading and Writing,W-GRA-03 Tense Consistency,91,"Back in 2012, the school band ___ a new stage.",has built,builds,will build,built,D
+QB-30413,Reading and Writing,W-GRA-07 Parallel Comparisons,54,"According to the guidebook, the streets of Elmont are more varied than ___.",that of Corran,Corran,those of Corran's,those of Corran,D
+QB-30420,Reading and Writing,W-GRA-07 Parallel Comparisons,60,"According to the guidebook, the climate of Fenwick is more varied than ___.",Kessington,those of Kessington,that of Kessington,that of Kessington's,C
+QB-30427,Reading and Writing,W-EXP-11 Logical Transitions,71,"Some birds use tools. ___, crows bend wire into hooks to reach food.",For example,However,Therefore,In addition,A
+QB-30434,Math,M-PRO-08 Percent Change,17,"The regular price of a lamp is $240. During a sale the price is reduced by 10%. What is the sale price of the lamp, in dollars?",24,230,216,264,C
+QB-30441,Math,M-GEO-05 Rectangles,78,"The perimeter of a rectangular garden is 48 meters and its length is 13 meters. What is its area, in square meters?",624,455,11,143,D
+QB-30448,Math,M-PRO-01 Part-to-part Ratios,71,"A collection has juniors and seniors in the ratio 3:5, 104 items in total. How many seniors are there?",39,65,520,13,B
+QB-30455,Math,M-PRO-08 Percent Change,43,"The regular price of a bike is $160. During a sale the price is reduced by 20%. What is the sale price of the bike, in dollars?",140,32,128,96,C
+QB-30462,Math,M-PRO-01 Part-to-part Ratios,79,"A collection has fiction books and nonfiction books in the ratio 2:6, 120 items in total. How many nonfiction books are there?",720,20,15,90,D
+QB-30469,Reading and Writing,W-GRA-07 Parallel Comparisons,20,"According to the guidebook, the streets of Fenwick are more varied than ___.",those of Marlow,that of Marlow,those of Marlow's,Marlow,A
+QB-30476,Math,M-PRO-01 Part-to-part Ratios,45,"A collection has fiction books and nonfiction books in the ratio 7:6, 182 items in total. How many nonfiction books are there?",98,14,84,1092,C
+QB-30483,Reading and Writing,W-GRA-06 Subjects and Verbs,45,Today the box of receipts ___ a torn cover.,had,have,having,has,D
+QB-30490,Math,M-ALG-04 Systems of Equations,56,"In the system x + y = 22 and x - y = 2, what is the value of x?",12,22,10,24,A
+QB-30497,Math,M-ALG-10 Function Notation,36,The function f is defined by f(x) = 9x + 12. What is f(7)?,75,28,63,171,A
+QB-30504,Reading and Writing,W-GRA-03 Tense Consistency,78,"Back in 1995, the school band ___ its first regional prize.",won,will win,has won,wins,A
+QB-30511,Reading and Writing,W-EXP-11 Logical Transitions,87,"Most critics praised the film. ___, it sold few tickets.",However,For example,In addition,Therefore,A
+QB-30518,Math,M-PRO-08 Percent Change,53,"The regular price of a bike is $140. During a sale the price is reduced by 25%. What is the sale price of the bike, in dollars?",70,115,175,105,D
+QB-30525,Reading and Writing,W-GRA-03 Tense Consistency,26,"Back in 1996, the school band ___ a weekly podcast.",has begun,will begin,begins,began,D
+QB-30532,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,38,The museum ___ new wing drew long lines.,reopened; and its,reopened; its,reopened its,"reopened, its",B
+QB-30539,Math,M-GEO-05 Rectangles,59,"The perimeter of a rectangular garden is 40 meters and its length is 13 meters. What is its area, in square meters?",351,20,7,91,D
+QB-30546,Reading and Writing,W-GRA-06 Subjects and Verbs,35,Today the folder of supplies ___ on the front desk.,are,is,being,was,B
+QB-30553,Reading and Writing,W-GRA-12 Pronouns,76,Last week the committee changed ___ rules for new members.,their,it's,his or her,its,D
+QB-30560,Math,M-ALG-04 Systems of Equations,31,"In the system x + y = 18 and x - y = 16, what is the value of x?",2,17,34,1,B
+QB-30567,Reading and Writing,W-GRA-03 Tense Consistency,29,"Back in 2015, the drama club ___ a record crowd.",will draw,draws,drew,has drawn,C
+QB-30574,Math,M-PRO-01 Part-to-part Ratios,28,"A collection has juniors and seniors in the ratio 2:5, 56 items in total. How many seniors are there?",8,16,40,280,C
+QB-30581,Math,M-ALG-09 Linear Equations,43,Solve 8x + 24 = 64 for x.,32,40,11,5,D
+QB-30588,Math,M-PRO-01 Part-to-part Ratios,44,"A collection has red marbles and blue marbles in the ratio 4:6, 80 items in total. How many blue marbles are there?",480,32,8,48,D
+QB-30595,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,78,The class ___ trip will be to the science center.,voted; and the,voted; the,"voted, the",voted the,B
+QB-30602,Reading and Writing,W-GRA-06 Subjects and Verbs,74,Today the collection of maps ___ on the front desk.,being,was,is,are,C
+QB-30609,Math,M-ALG-04 Systems of Equations,23,"In the system x + y = 15 and x - y = 1, what is the value of x?",14,16,8,7,C
+QB-30616,Math,M-PRO-08 Percent Change,35,"The regular price of a jacket is $280. During a sale the price is reduced by 35%. What is the sale price of the jacket, in dollars?",245,98,378,182,D
+QB-30623,Reading and Writing,W-GRA-06 Subjects and Verbs,25,Today the stack of photos ___ on the front desk.,was,being,are,is,D
+QB-30630,Math,M-GEO-05 Rectangles,71,"The perimeter of a rectangular garden is 52 meters and its length is 18 meters. What is its area, in square meters?",26,144,8,936,B
+QB-30637,Math,M-ALG-04 Systems of Equations,66,"In the system x + y = 16 and x - y = 4, what is the value of x?",12,16,10,6,C
+QB-30644,Reading and Writing,W-GRA-06 Subjects and Verbs,45,Today the basket of receipts ___ near the window.,sit,sits,sat,sitting,B
+QB-30651,Math,M-ALG-10 Function Notation,58,The function f is defined by f(x) = 9x + 1. What is f(3)?,36,28,12,27,B
+QB-30658,Reading and Writing,W-EXP-11 Logical Transitions,19,"The new park has a large playground. ___, it includes a quiet reading garden.",In addition,For example,Therefore,However,A
+QB-30665,Reading and Writing,W-GRA-03 Tense Consistency,32,"Back in 2000, the school band ___ a new name.",has chosen,will choose,chose,chooses,C
+QB-30672,Reading and Writing,W-EXP-11 Logical Transitions,68,"The museum added evening hours. ___, it opened a cafe on the roof.",For example,In addition,Therefore,However,B
+QB-30679,Math,M-PRO-08 Percent Change,28,"The regular price of a bike is $100. During a sale the price is reduced by 30%. What is the sale price of the bike, in dollars?",40,130,30,70,D
+QB-30686,Math,M-ALG-09 Linear Equations,64,Solve 2x + 8 = 24 for x.,4,14,8,16,C
+QB-30693,Reading and Writing,W-GRA-07 Parallel Comparisons,31,"According to the guidebook, the population of Elmont is more varied than ___.",that of Harlow,Harlow,that of Harlow's,those of Harlow,A
+QB-30700,Reading and Writing,W-GRA-06 Subjects and Verbs,46,Today the stack of receipts ___ a torn cover.,had,has,have,having,B
+QB-30707,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,35,"Late that week, the storm ___ damage was worse than expected.",passed; and its,"passed, its",passed its,passed; its,D
+QB-30714,Math,M-ALG-10 Function Notation,38,The function f is defined by f(x) = 2x + 12. What is f(2)?,26,16,4,28,B
+QB-30721,Reading and Writing,W-GRA-06 Subjects and Verbs,43,Today the basket of receipts ___ on the front desk.,was,is,being,are,B
+QB-30728,Reading and Writing,W-GRA-12 Pronouns,62,Last week the team announced ___ decision.,his or her,its,it's,their,B
+QB-30735,Reading and Writing,W-GRA-06 Subjects and Verbs,37,Today the box of supplies ___ a new label.,needs,needing,needed,need,A
+QB-30742,Reading and Writing,W-EXP-11 Logical Transitions,45,"The puzzle looked easy at first. ___, nobody in the class could solve it.",However,Therefore,In addition,For example,A
+QB-30749,Reading and Writing,W-GRA-12 Pronouns,74,Last week the council changed ___ rules for new members.,their,its,his or her,it's,B
+QB-30756,Math,M-ALG-09 Linear Equations,15,Solve 6x + 36 = 114 for x.,78,72,13,25,C
+QB-30763,Math,M-PRO-08 Percent Change,84,"The regular price of a jacket is $300. During a sale the price is reduced by 15%. What is the sale price of the jacket, in dollars?",210,45,255,285,C
+QB-30770,Math,M-PRO-01 Part-to-part Ratios,24,"A collection has fiction books and nonfiction books in the ratio 4:6, 30 items in total. How many nonfiction books are there?",5,3,18,12,C
+QB-30777,Math,M-ALG-09 Linear Equations,28,Solve 3x + 18 = 57 for x.,25,13,1,36,B
+QB-30784,Math,M-ALG-04 Systems of Equations,71,"In the system x + y = 28 and x - y = 8, what is the value of x?",28,18,36,20,B
+QB-30791,Math,M-GEO-05 Rectangles,59,"The perimeter of a rectangular garden is 24 meters and its length is 7 meters. What is its area, in square meters?",168,35,12,5,B
+QB-30798,Reading and Writing,W-GRA-12 Pronouns,33,Last week the committee celebrated ___ tenth anniversary.,his or her,it's,its,their,C
+QB-30805,Math,M-PRO-08 Percent Change,29,"The regular price of a bike is $340. During a sale the price is reduced by 25%. What is the sale price of the bike, in dollars?",85,170,425,255,D
+QB-30812,Math,M-GEO-05 Rectangles,41,"The perimeter of a rectangular garden is 34 meters and its length is 14 meters. What is its area, in square meters?",476,42,3,17,B
+QB-30819,Math,M-ALG-10 Function Notation,67,The function f is defined by f(x) = 9x + 10. What is f(3)?,22,37,27,39,B
+QB-30826,Reading and Writing,W-EXP-11 Logical Transitions,19,"The recipe called for an hour of baking. ___, the bread was done in forty minutes.",However,Therefore,For example,In addition,A
+QB-30833,Reading and Writing,W-EXP-11 Logical Transitions,26,"The library extended its hours. ___, more students studied there in the evening.",In addition,For example,Therefore,However,C
+QB-30840,Math,M-ALG-09 Linear Equations,87,Solve 5x + 20 = 80 for x.,20,12,55,60,B
+QB-30847,Math,M-GEO-05 Rectangles,41,"The perimeter of a rectangular garden is 66 meters and its length is 20 meters. What is its area, in square meters?",13,920,260,33,C
+QB-30854,Reading and Writing,W-GRA-12 Pronouns,71,Last week the jury announced ___ decision.,his or her,its,it's,their,B
+QB-30861,Math,M-ALG-04 Systems of Equations,16,"In the system x + y = 14 and x - y = 8, what is the value of x?",22,3,11,6,C
+QB-30868,Reading and Writing,W-GRA-07 Parallel Comparisons,69,"According to the guidebook, the climate of Marlow is more varied than ___.",that of Elmont,Elmont,that of Elmont's,those of Elmont,A
+QB-30875,Reading and Writing,W-GRA-03 Tense Consistency,61,"Back in 1995, the town ___ a weekly podcast.",will begin,has begun,begins,began,D
+QB-30882,Reading and Writing,W-GRA-12 Pronouns,68,Last week the club announced ___ decision.,their,it's,its,his or her,C
+QB-30889,Reading and Writing,W-GRA-06 Subjects and Verbs,64,Today the list of old letters ___ a new label.,needing,needs,need,needed,B
+QB-30896,Math,M-ALG-09 Linear Equations,28,Solve 5x + 15 = 65 for x.,45,10,50,16,B
+QB-30903,Math,M-PRO-01 Part-to-part Ratios,57,"A collection has red marbles and blue marbles in the ratio 2:3, 65 items in total. How many blue marbles are there?",26,13,39,195,C
+QB-30910,Math,M-PRO-08 Percent Change,40,"The regular price of a bike is $240. During a sale the price is reduced by 40%. What is the sale price of the bike, in dollars?",336,144,200,48,B
+QB-30917,Math,M-GEO-05 Rectangles,34,"The perimeter of a rectangular garden is 44 meters and its length is 14 meters. What is its area, in square meters?",112,420,22,616,A
+QB-30924,Reading and Writing,W-EXP-11 Logical Transitions,90,"The old bridge seemed fragile. ___, it carried trucks for ninety years.",Therefore,In addition,However,For example,C
+QB-30931,Math,M-ALG-10 Function Notation,77,The function f is defined by f(x) = 6x + 6. What is f(2)?,12,48,14,18,D
+QB-30938,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,29,"By evening, the river ___ skater in town came out.",froze every,"froze, every",froze; and every,froze; every,D
+QB-30945,Math,M-ALG-09 Linear Equations,69,Solve 3x + 12 = 39 for x.,27,24,9,1,C
+QB-30952,Math,M-GEO-05 Rectangles,28,"The perimeter of a rectangular garden is 72 meters and its length is 19 meters. What is its area, in square meters?",1368,36,323,17,C
+QB-30959,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,47,The play ___ audience stood and cheered.,ended the,"ended, the",ended; and the,ended; the,D
+QB-30966,Math,M-GEO-05 Rectangles,20,"The perimeter of a rectangular garden is 56 meters and its length is 15 meters. What is its area, in square meters?",615,195,840,28,B
+QB-30973,Reading and Writing,W-GRA-03 Tense Consistency,71,"Back in 2015, the robotics team ___ its first regional prize.",has won,won,will win,wins,B
+QB-30980,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,45,"Late that week, the play ___ audience stood and cheered.",ended the,ended; and the,ended; the,"ended, the",C
+QB-30987,Reading and Writing,W-GRA-03 Tense Consistency,31,"Back in 2006, the drama club ___ a short history of the town.",wrote,has written,writes,will write,A
+QB-30994,Math,M-ALG-04 Systems of Equations,39,"In the system x + y = 21 and x - y = 9, what is the value of x?",21,15,30,12,B
+QB-31001,Math,M-ALG-09 Linear Equations,64,Solve 9x + 9 = 135 for x.,6,14,16,126,B
+QB-31008,Reading and Writing,W-GRA-06 Subjects and Verbs,37,Today the box of old letters ___ in the main office.,stayed,staying,stays,stay,C
+QB-31015,Math,M-ALG-10 Function Notation,86,The function f is defined by f(x) = 2x + 4. What is f(3)?,9,10,6,14,B
+QB-31022,Reading and Writing,W-GRA-06 Subjects and Verbs,37,Today the folder of old letters ___ near the window.,sitting,sits,sat,sit,B
+QB-31029,Reading and Writing,W-GRA-06 Subjects and Verbs,16,Today the list of maps ___ in the main office.,stay,stayed,staying,stays,D
+QB-31036,Math,M-PRO-08 Percent Change,67,"The regular price of a jacket is $60. During a sale the price is reduced by 10%. What is the sale price of the jacket, in dollars?",66,48,54,6,C
+QB-31043,Reading and Writing,W-GRA-06 Subjects and Verbs,66,Today the stack of maps ___ a new label.,need,needing,needs,needed,C
+QB-31050,Math,M-PRO-01 Part-to-part Ratios,65,"A collection has juniors and seniors in the ratio 6:5, 33 items in total. How many seniors are there?",18,165,15,3,C
+QB-31057,Reading and Writing,W-GRA-07 Parallel Comparisons,21,"According to the guidebook, the parks of Delford are more varied than ___.",Ashby,that of Ashby,those of Ashby,those of Ashby's,C
+QB-31064,Reading and Writing,W-GRA-06 Subjects and Verbs,17,Today the stack of maps ___ on the front desk.,being,are,is,was,C
+QB-31071,Reading and Writing,W-GRA-07 Parallel Comparisons,59,"According to the guidebook, the rainfall of Fenwick is more varied than ___.",Delford,that of Delford's,those of Delford,that of Delford,D
+QB-31078,Reading and Writing,W-GRA-07 Parallel Comparisons,49,"According to the guidebook, the climate of Corran is more varied than ___.",those of Ashby,that of Ashby,Ashby,that of Ashby's,B
+QB-31085,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,55,"By evening, the bell ___ hallway filled at once.",rang; every,rang every,rang; and every,"rang, every",A
+QB-31092,Reading and Writing,W-GRA-12 Pronouns,21,Last week the committee moved ___ office across town.,its,their,it's,his or her,A
+QB-31099,Math,M-PRO-08 Percent Change,18,"The regular price of a lamp is $320. During a sale the price is reduced by 15%. What is the sale price of the lamp, in dollars?",272,305,224,368,A
+QB-31106,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,64,"Late that week, the snow ___ river rose by noon.","melted, the",melted the,melted; the,melted; and the,C
+QB-31113,Math,M-ALG-04 Systems of Equations,56,"In the system x + y = 10 and x - y = 2, what is the value of x?",10,4,6,12,C
+QB-31120,Reading and Writing,W-EXP-11 Logical Transitions,72,"The new bus line runs every ten minutes. ___, it stops at both high schools.",In addition,Therefore,For example,However,A
+QB-31127,Math,M-PRO-08 Percent Change,61,"The regular price of a backpack is $240. During a sale the price is reduced by 10%. What is the sale price of the backpack, in dollars?",264,216,230,192,B
+QB-31134,Math,M-PRO-08 Percent Change,53,"The regular price of a backpack is $320. During a sale the price is reduced by 35%. What is the sale price of the backpack, in dollars?",285,96,208,112,C
+QB-31141,Reading and Writing,W-GRA-12 Pronouns,86,Last week the council announced ___ decision.,their,his or her,its,it's,C
+QB-31148,Reading and Writing,W-GRA-06 Subjects and Verbs,40,Today the folder of maps ___ in the main office.,staying,stay,stayed,stays,D
+QB-31155,Math,M-PRO-01 Part-to-part Ratios,35,"A collection has fiction books and nonfiction books in the ratio 1:3, 24 items in total. How many nonfiction books are there?",6,72,8,18,D
+QB-31162,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,37,"Late that week, the river ___ skater in town came out.",froze; and every,froze every,froze; every,"froze, every",C
+QB-31169,Math,M-ALG-04 Systems of Equations,60,"In the system x + y = 24 and x - y = 2, what is the value of x?",11,13,26,22,B
+QB-31176,Math,M-ALG-04 Systems of Equations,47,"In the system x + y = 9 and x - y = 3, what is the value of x?",3,9,12,6,D
+QB-31183,Math,M-ALG-10 Function Notation,33,The function f is defined by f(x) = 2x + 9. What is f(2)?,13,22,4,20,A
+QB-31190,Math,M-PRO-01 Part-to-part Ratios,84,"A collection has cats and dogs in the ratio 3:7, 130 items in total. How many dogs are there?",13,910,91,39,C
+QB-31197,Reading and Writing,W-EXP-11 Logical Transitions,58,"The club raised money for the shelter. ___, its members spent weekends walking dogs.",However,In addition,Therefore,For example,B
+QB-31204,Reading and Writing,W-GRA-12 Pronouns,69,Last week the team changed ___ rules for new members.,his or her,it's,its,their,C
+QB-31211,Reading and Writing,W-GRA-12 Pronouns,87,Last week the team posted ___ schedule for the spring.,his or her,it's,its,their,C
+QB-31218,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,31,The garden ___ tomatoes did not survive.,flooded; and the,flooded the,flooded; the,"flooded, the",C
+QB-31225,Math,M-ALG-10 Function Notation,78,The function f is defined by f(x) = 8x + 11. What is f(9)?,83,28,72,107,A
+QB-31232,Reading and Writing,W-GRA-06 Subjects and Verbs,24,Today the stack of old letters ___ in the main office.,staying,stays,stay,stayed,B
+QB-31239,Reading and Writing,W-EXP-11 Logical Transitions,29,"The forecast promised sun. ___, we spent the afternoon under umbrellas.",In addition,Therefore,For example,However,D
+QB-31246,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,59,Our team ___ drill took twice as long as planned.,"practiced, every",practiced; every,practiced every,practiced; and every,B
+QB-31253,Reading and Writing,W-EXP-11 Logical Transitions,78,"The coach planned extra practices. ___, she arranged two games with nearby schools.",However,For example,In addition,Therefore,C
+QB-31260,Reading and Writing,W-GRA-07 Parallel Comparisons,75,"According to the guidebook, the parks of Marlow are more varied than ___.",those of Delford,those of Delford's,Delford,that of Delford,A
+QB-31267,Math,M-ALG-04 Systems of Equations,61,"In the system x + y = 24 and x - y = 6, what is the value of x?",15,24,30,9,A
+QB-31274,Math,M-PRO-01 Part-to-part Ratios,51,"A collection has juniors and seniors in the ratio 2:4, 48 items in total. How many seniors are there?",192,8,32,12,C
+QB-31281,Math,M-ALG-10 Function Notation,44,The function f is defined by f(x) = 9x + 5. What is f(5)?,45,50,90,34,B
+QB-31288,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,23,"By evening, the bus ___ riders walked the last mile.","broke down, most",broke down most,broke down; and most,broke down; most,D
+QB-31295,Reading and Writing,W-GRA-07 Parallel Comparisons,74,"According to the guidebook, the climate of Elmont is more varied than ___.",that of Corran's,those of Corran,that of Corran,Corran,C
+QB-31302,Reading and Writing,W-GRA-07 Parallel Comparisons,67,"According to the guidebook, the rainfall of Marlow is more varied than ___.",those of Corran,that of Corran,that of Corran's,Corran,B
+QB-31309,Reading and Writing,W-GRA-12 Pronouns,56,Last week the team moved ___ office across town.,their,his or her,it's,its,D
+QB-31316,Math,M-PRO-08 Percent Change,62,"The regular price of a lamp is $360. During a sale the price is reduced by 10%. What is the sale price of the lamp, in dollars?",324,396,288,36,A
+QB-31323,Math,M-GEO-05 Rectangles,91,"The perimeter of a rectangular garden is 56 meters and its length is 17 meters. What is its area, in square meters?",187,952,28,11,A
+QB-31330,Reading and Writing,W-GRA-06 Subjects and Verbs,71,Today the box of notes ___ near the window.,sit,sat,sits,sitting,C
+QB-31337,Math,M-ALG-04 Systems of Equations,61,"In the system x + y = 25 and x - y = 7, what is the value of x?",32,18,16,25,C
+QB-31344,Reading and Writing,W-GRA-12 Pronouns,42,Last week the band announced ___ decision.,its,their,his or her,it's,A
+QB-31351,Math,M-PRO-01 Part-to-part Ratios,72,"A collection has cats and dogs in the ratio 1:5, 30 items in total. How many dogs are there?",5,150,25,6,C
+QB-31358,Math,M-PRO-08 Percent Change,48,"The regular price of a jacket is $340. During a sale the price is reduced by 10%. What is the sale price of the jacket, in dollars?",374,306,272,330,B
+QB-31365,Reading and Writing,W-GRA-12 Pronouns,62,Last week the council moved ___ office across town.,his or her,their,it's,its,D
+QB-31372,Reading and Writing,W-GRA-03 Tense Consistency,73,"Back in 2004, the town ___ a new name.",will choose,has chosen,chooses,chose,D
+QB-31379,Reading and Writing,W-EXP-11 Logical Transitions,31,"The town repaved Main Street. ___, it planted trees along both sidewalks.",Therefore,However,For example,In addition,D
+QB-31386,Reading and Writing,W-EXP-11 Logical Transitions,16,"Several streets were renamed. ___, Mill Road is now Founders Way.",However,For example,Therefore,In addition,B
+QB-31393,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,57,"Late that week, the rain finally ___ crowd returned to the field.",stopped; the,stopped the,"stopped, the",stopped; and the,A
+QB-31400,Reading and Writing,W-EXP-11 Logical Transitions,56,"The trail looked short on the map. ___, it took us four hours to finish.",Therefore,In addition,For example,However,D
+QB-31407,Reading and Writing,W-GRA-07 Parallel Comparisons,84,"According to the guidebook, the population of Marlow is more varied than ___.",that of Elmont's,Elmont,those of Elmont,that of Elmont,D
+QB-31414,Math,M-PRO-08 Percent Change,30,"The regular price of a bike is $220. During a sale the price is reduced by 15%. What is the sale price of the bike, in dollars?",154,187,205,253,B
+QB-31421,Math,M-ALG-10 Function Notation,70,The function f is defined by f(x) = 8x + 3. What is f(8)?,19,67,32,88,B
+QB-31428,Math,M-ALG-04 Systems of Equations,18,"In the system x + y = 24 and x - y = 4, what is the value of x?",14,28,20,24,A
+QB-31435,Math,M-ALG-04 Systems of Equations,59,"In the system x + y = 25 and x - y = 15, what is the value of x?",20,40,10,5,A
+QB-31442,Math,M-ALG-10 Function Notation,39,The function f is defined by f(x) = 8x + 1. What is f(2)?,24,11,17,16,C
+QB-31449,Reading and Writing,W-GRA-12 Pronouns,83,Last week the band posted ___ schedule for the spring.,its,their,his or her,it's,A
+QB-31456,Math,M-ALG-10 Function Notation,80,The function f is defined by f(x) = 7x + 9. What is f(5)?,35,21,44,52,C
+QB-31463,Reading and Writing,W-EXP-11 Logical Transitions,26,"The orchestra lost its conductor. ___, the spring concert was postponed.",Therefore,For example,However,In addition,A
+QB-31470,Math,M-ALG-04 Systems of Equations,64,"In the system x + y = 11 and x - y = 9, what is the value of x?",1,10,20,2,B
+QB-31477,Math,M-ALG-09 Linear Equations,17,Solve 9x + 45 = 63 for x.,18,2,12,9,B
+QB-31484,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,86,"Late that week, the printer ___ flyers were late for the fair.","jammed, the",jammed; the,jammed; and the,jammed the,B
+QB-31491,Math,M-ALG-10 Function Notation,52,The function f is defined by f(x) = 4x + 12. What is f(2)?,18,8,20,56,C
+QB-31498,Reading and Writing,W-GRA-03 Tense Consistency,64,"Back in 2014, the drama club ___ a new name.",chose,will choose,has chosen,chooses,A
+QB-31505,Math,M-ALG-09 Linear Equations,44,Solve 2x + 6 = 22 for x.,8,16,5,14,A
+QB-31512,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,50,"By evening, the play ___ audience stood and cheered.",ended the,ended; the,ended; and the,"ended, the",B
+QB-31519,Reading and Writing,W-GRA-03 Tense Consistency,25,"Back in 2003, the drama club ___ its first regional prize.",wins,has won,won,will win,C
+QB-31526,Math,M-ALG-10 Function Notation,59,The function f is defined by f(x) = 6x + 4. What is f(9)?,58,54,19,78,A
+QB-31533,Reading and Writing,W-GRA-07 Parallel Comparisons,77,"According to the guidebook, the rainfall of Kessington is more varied than ___.",those of Delford,that of Delford,Delford,that of Delford's,B
+QB-31540,Math,M-PRO-01 Part-to-part Ratios,29,"A collection has red marbles and blue marbles in the ratio 6:3, 54 items in total. How many blue marbles are there?",36,162,6,18,D
+QB-31547,Math,M-PRO-01 Part-to-part Ratios,20,"A collection has red marbles and blue marbles in the ratio 1:2, 24 items in total. How many blue marbles are there?",12,8,48,16,D
+QB-31554,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,48,The rain finally ___ crowd returned to the field.,stopped; and the,"stopped, the",stopped the,stopped; the,D
+QB-31561,Math,M-ALG-09 Linear Equations,45,Solve 5x + 20 = 50 for x.,6,14,25,30,A
+QB-31568,Reading and Writing,W-EXP-11 Logical Transitions,61,"The roads iced over before dawn. ___, the schools opened two hours late.",In addition,For example,Therefore,However,C
+QB-31575,Math,M-ALG-09 Linear Equations,60,Solve 9x + 36 = 162 for x.,22,14,117,126,B
+QB-31582,Math,M-ALG-10 Function Notation,52,The function f is defined by f(x) = 5x + 1. What is f(4)?,10,20,21,25,C
+QB-31589,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,34,"By evening, the garden ___ tomatoes did not survive.",flooded; the,flooded the,flooded; and the,"flooded, the",A
+QB-31596,Math,M-PRO-08 Percent Change,34,"The regular price of a jacket is $80. During a sale the price is reduced by 30%. What is the sale price of the jacket, in dollars?",24,56,104,32,B
+QB-31603,Reading and Writing,W-EXP-11 Logical Transitions,39,"Some metals resist rust. ___, stainless steel stays bright for decades.",For example,Therefore,However,In addition,A
+QB-31610,Reading and Writing,W-GRA-07 Parallel Comparisons,83,"According to the guidebook, the population of Kessington is more varied than ___.",those of Ashby,Ashby,that of Ashby,that of Ashby's,C
+QB-31617,Math,M-ALG-09 Linear Equations,45,Solve 8x + 16 = 96 for x.,72,14,80,10,D
+QB-31624,Math,M-ALG-10 Function Notation,23,The function f is defined by f(x) = 2x + 1. What is f(3)?,6,5,8,7,D
+QB-31631,Reading and Writing,W-GRA-03 Tense Consistency,75,"Back in 1996, the town ___ the old record.",has broken,broke,breaks,will break,B
+QB-31638,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,77,The river ___ skater in town came out.,froze; every,"froze, every",froze every,froze; and every,A
+QB-31645,Math,M-GEO-05 Rectangles,65,"The perimeter of a rectangular garden is 40 meters and its length is 18 meters. What is its area, in square meters?",20,396,720,36,D
+QB-31652,Math,M-PRO-01 Part-to-part Ratios,50,"A collection has cats and dogs in the ratio 7:5, 144 items in total. How many dogs are there?",60,12,84,720,A
+QB-31659,Reading and Writing,W-GRA-07 Parallel Comparisons,16,"According to the guidebook, the rainfall of Delford is more varied than ___.",Kessington,that of Kessington's,that of Kessington,those of Kessington,C
+QB-31666,Reading and Writing,W-GRA-12 Pronouns,73,Last week the club celebrated ___ tenth anniversary.,his or her,its,it's,their,B
+QB-31673,Reading and Writing,W-GRA-07 Parallel Comparisons,88,"According to the guidebook, the rainfall of Ashby is more varied than ___.",that of Kessington's,those of Kessington,that of Kessington,Kessington,C
+QB-31680,Reading and Writing,W-PUN-02 Run-ons and Comma Splices,17,"Late that week, the market ___ stalls sold out by ten.",opened; its,opened; and its,opened its,"opened, its",A
+QB-31687,Math,M-PRO-01 Part-to-part Ratios,46,"A collection has fiction books and nonfiction books in the ratio 7:5, 96 items in total. How many nonfiction books are there?",480,56,40,8,C
+QB-31694,Math,M-PRO-08 Percent Change,60,"The regular price of a backpack is $320. During a sale the price is reduced by 40%. What is the sale price of the backpack, in dollars?",128,448,192,280,C
+QB-31701,Math,M-ALG-04 Systems of Equations,50,"In the system x + y = 11 and x - y = 1, what is the value of x?",10,11,6,5,C
+QB-31708,Reading and Writing,W-GRA-03 Tense Consistency,91,"Back in 2013, the robotics team ___ the old record.",has broken,breaks,broke,will break,C
+QB-31715,Reading and Writing,W-GRA-03 Tense Consistency,22,"Back in 2009, the robotics team ___ a new stage.",has built,built,will build,builds,B
+QB-31722,Reading and Writing,W-GRA-03 Tense Consistency,59,"Back in 2015, the school band ___ a short history of the town.",writes,wrote,will write,has written,B
+QB-31729,Reading and Writing,W-GRA-07 Parallel Comparisons,71,"According to the guidebook, the population of Fenwick is more varied than ___.",that of Elmont,that of Elmont's,those of Elmont,Elmont,A
+QB-31736,Reading and Writing,W-EXP-11 Logical Transitions,91,"The bridge was closed for repairs. ___, the bus took the long road around the lake.",However,Therefore,For example,In addition,B
+QB-31743,Math,M-ALG-10 Function Notation,33,The function f is defined by f(x) = 4x + 4. What is f(3)?,28,11,16,12,C
+QB-31750,Math,M-ALG-04 Systems of Equations,62,"In the system x + y = 21 and x - y = 11, what is the value of x?",16,10,5,32,A
+QB-31757,Math,M-ALG-10 Function Notation,34,The function f is defined by f(x) = 3x + 5. What is f(2)?,10,6,11,13,C
+QB-31764,Math,M-GEO-05 Rectangles,43,"The perimeter of a rectangular garden is 56 meters and its length is 19 meters. What is its area, in square meters?",28,1064,703,171,D

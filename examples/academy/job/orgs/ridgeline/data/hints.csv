@@ -1,0 +1,45 @@
+hint_id,topic,error_id,text
+H-001,Rule 5A - Part-to-part Ratios,E-29,You found one share. How many shares belong to the group asked about?
+H-002,Rule 1A - Transition Words,E-25,Does the second sentence go against the first?
+H-003,Rule 5B - Area and Perimeter,E-20,"The perimeter is a distance around, not one side."
+H-004,Rule 3B - Pronouns,E-38,"Is the noun a person, or a thing?"
+H-005,Rule 4B - Verb Tenses,,Find the words that say when the action happened.
+H-006,Rule 3A - Two-equation Systems,E-37,Which way of combining the equations leaves only x?
+H-007,Rule 3B - Pronouns,E-02,Read the apostrophe out as two words. Does the sentence still make sense?
+H-008,Rule 5A - Part-to-part Ratios,E-31,Match each number in the ratio to the group it describes.
+H-009,Rule 1A - Transition Words,E-28,Does the second sentence simply add another point?
+H-010,Rule 6B - Function Notation,E-07,"Which comes first, the multiplication or the addition?"
+H-011,Rule 5A - Part-to-part Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+H-012,Rule 5B - Area and Perimeter,E-33,Area counts the squares inside. Which operation does that?
+H-013,Rule 1B - Percent Change,E-40,A sale makes the price go down. Does your answer?
+H-014,Rule 1A - Transition Words,,Decide how the second sentence relates to the first before reading the choices.
+H-015,Rule 1A - Transition Words,E-09,Is the second sentence caused by the first?
+H-016,Rule 2A - Joining Clauses,E-16,A comma alone is not strong enough to join two complete sentences.
+H-017,Rule 5A - Part-to-part Ratios,E-41,A share comes from dividing by all the parts together.
+H-018,Rule 6B - Function Notation,E-17,"Which number multiplies x, and which is added on?"
+H-019,Rule 1B - Percent Change,E-43,Count how many times the price is reduced.
+H-020,Rule 5B - Area and Perimeter,,Use the perimeter to find the missing side before you find the area.
+H-021,Rule 3A - Two-equation Systems,E-34,Check which variable the question asks for.
+H-022,Rule 6A - Linear Equations,E-18,The number in front of x multiplies it. Which operation undoes that?
+H-023,Rule 5B - Area and Perimeter,E-21,The perimeter goes around all four sides. How many lengths does it hold?
+H-024,Rule 3B - Pronouns,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+H-025,Rule 6A - Linear Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+H-026,Rule 3A - Two-equation Systems,E-23,"After adding the equations, how many x are there?"
+H-027,Rule 2A - Joining Clauses,,Check whether each side of the blank could stand alone as a sentence.
+H-028,Rule 3A - Two-equation Systems,,Combine the two equations so that one of the variables disappears.
+H-029,Rule 2B - Logical Comparisons,E-10,Is the thing being compared one thing or several?
+H-030,Rule 6A - Linear Equations,E-24,Dividing both sides means dividing every term on each side.
+H-031,Rule 4A - Subjects and Verbs,E-01,Read the sentence with your choice. Is it a complete sentence?
+H-032,Rule 3A - Two-equation Systems,E-36,"The first equation gives x and y together, not x by itself."
+H-033,Rule 2A - Joining Clauses,E-14,A semicolon already joins the sentences. Does it need help?
+H-034,Rule 6A - Linear Equations,E-30,"Once the x term is alone, is x itself alone yet?"
+H-035,Rule 4B - Verb Tenses,E-13,Check the date in the sentence against today.
+H-036,Rule 1B - Percent Change,E-15,"A percent is a part of the price, not a number of dollars."
+H-037,Rule 4A - Subjects and Verbs,E-42,The noun right before the blank may not be the subject. Which noun is doing the action?
+H-038,Rule 4A - Subjects and Verbs,,"Cross out the phrase between the subject and the verb, then read them together."
+H-039,Rule 6B - Function Notation,E-39,A number written next to x multiplies it.
+H-040,Rule 6B - Function Notation,,"Put the input in place of x, then follow the order of operations."
+H-041,Rule 2B - Logical Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+H-042,Rule 1B - Percent Change,,"Find the percent of the original amount first, then decide what to do with it."
+H-043,Rule 2B - Logical Comparisons,E-11,Of already shows belonging. Does the name need more?
+H-044,Rule 1A - Transition Words,E-35,Is the second sentence one case of the first?
