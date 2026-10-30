@@ -1,5 +1,5 @@
 import type { JsonValue } from '@architect/shared';
-import type { AssignRequest, HistoryRequest, SolveRequest, WrongAnswer } from '../tasks/build';
+import type { AssignRequest, HistoryRequest, SolveRequest, WrongAnswer } from '../tasks/records';
 import {
   eligibleQuestions,
   errorsBehind,
@@ -79,6 +79,34 @@ export function diagnose(tools: AgentTools, w: WrongAnswer): JsonValue {
     correct: cell(question, 'correct'),
     error: errorsBehind(question, w.chosen, errors)[0]!,
   };
+}
+
+/**
+ * Diagnose from the records alone, for an academy whose files have no question text or errors:
+ * the attempt the student made carries the topic and the right choice.
+ */
+export function diagnoseRecord(tools: AgentTools, w: WrongAnswer): JsonValue {
+  const code = [
+    READ,
+    `const student = read('students.csv').find((row) => row.name === ${text(w.student)});`,
+    `const test = read('tests.csv').find((row) => row.test_name === ${text(w.test_name)});`,
+    `read('attempts.csv').filter((row) => row.student_id === student.student_id && row.test_id === test.test_id && row.section === ${text(w.section)} && row.module === ${text(w.module)} && row.number === ${text(w.number)} && row.selected === ${text(w.chosen)})`,
+  ].join('\n');
+  const [attempt] = tools.run(code, (t) => {
+    const student = t.one('students.csv', (row) => row.name === w.student);
+    const test = t.where('tests.csv', (row) => row.test_name === w.test_name)[0]!;
+    return t.where(
+      'attempts.csv',
+      (row) =>
+        row.student_id === student.student_id &&
+        row.test_id === test.test_id &&
+        row.section === w.section &&
+        row.module === String(w.module) &&
+        row.number === String(w.number) &&
+        row.selected === w.chosen,
+    );
+  });
+  return { topic: cell(attempt!, 'topic'), correct: cell(attempt!, 'correct') };
 }
 
 export function hint(tools: AgentTools, w: WrongAnswer): JsonValue {

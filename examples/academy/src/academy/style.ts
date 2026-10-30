@@ -127,8 +127,12 @@ export interface PolicyNumbers {
   bandHigh: number;
   /** History looks at the latest this many attempts on a topic. */
   window: number;
-  /** Escalate to the student's tutor when the window holds this many wrong answers or more. */
+  /**
+   * Escalate to the student's tutor when this many wrong answers or more, of the attempts that
+   * count, were taken in the last `escalateDays` days.
+   */
   escalateWrong: number;
+  escalateDays: number;
   /** Whether history counts only the first attempt at each question, or every attempt. */
   counts: 'first' | 'every';
   /** Which approved hint comes first: the one written for the error, or the topic's general one. */
@@ -145,6 +149,14 @@ export interface AcademyStyle {
   phrasing: number;
   policy: PolicyNumbers;
 }
+
+/** How many wrong answers, over how many days, call for a staff note. */
+const ESCALATION_RULES = [
+  { escalateWrong: 2, escalateDays: 7 },
+  { escalateWrong: 3, escalateDays: 14 },
+  { escalateWrong: 3, escalateDays: 21 },
+  { escalateWrong: 4, escalateDays: 30 },
+] as const;
 
 const NAMES = [
   'Northgate Prep',
@@ -174,7 +186,7 @@ export function academyStyle(random: Random): AcademyStyle {
       bandLow,
       bandHigh: bandLow + random.pick([25, 30, 35]),
       window,
-      escalateWrong: random.int(3, Math.min(5, window - 1)),
+      ...random.pick(ESCALATION_RULES),
       counts: random.pick(['first', 'every'] as const),
       hintRule: random.pick(['targeted', 'general'] as const),
     },

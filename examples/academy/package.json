@@ -8,6 +8,7 @@
   },
   "scripts": {
     "generate": "tsx src/cli/generate.ts",
+    "record-tasks": "tsx src/cli/record-tasks.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

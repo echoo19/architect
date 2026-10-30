@@ -14,10 +14,10 @@ import { buildTasks } from './tasks/build';
 
 /** The academies of the committed job: three to train on and one kept for transfer. */
 export const ACADEMY_SEEDS: readonly { seed: number; role: Organization['role'] }[] = [
+  { seed: 1100, role: 'train' },
   { seed: 1101, role: 'train' },
-  { seed: 1102, role: 'train' },
-  { seed: 1105, role: 'train' },
-  { seed: 1132, role: 'transfer' },
+  { seed: 1127, role: 'train' },
+  { seed: 1120, role: 'transfer' },
 ];
 
 const CHECKER_SOURCE = new URL('./checker.js', import.meta.url);

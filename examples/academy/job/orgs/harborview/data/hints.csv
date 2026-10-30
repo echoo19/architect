@@ -1,0 +1,43 @@
+hint_id,topic,error_id,text
+FH-001,M-GEO-05 Rectangles,X43,The perimeter goes around all four sides. How many lengths does it hold?
+FH-002,W-GRA-12 Pronouns,X05,A group acting together counts as one thing.
+FH-003,W-PUN-02 Run-ons and Comma Splices,X32,Read the sentence aloud. Where would you pause?
+FH-004,M-ALG-10 Function Notation,X26,"Which comes first, the multiplication or the addition?"
+FH-005,W-GRA-03 Tense Consistency,X20,Check the date in the sentence against today.
+FH-006,W-GRA-07 Parallel Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+FH-007,M-PRO-08 Percent Change,,"Find the percent of the original amount first, then decide what to do with it."
+FH-008,W-PUN-02 Run-ons and Comma Splices,,Check whether each side of the blank could stand alone as a sentence.
+FH-009,M-ALG-10 Function Notation,,"Put the input in place of x, then follow the order of operations."
+FH-010,M-GEO-05 Rectangles,X09,"The perimeter is a distance around, not one side."
+FH-011,M-ALG-10 Function Notation,X14,"Which number multiplies x, and which is added on?"
+FH-012,M-PRO-01 Part-to-part Ratios,X31,A share comes from dividing by all the parts together.
+FH-013,M-GEO-05 Rectangles,X21,Area counts the squares inside. Which operation does that?
+FH-014,M-PRO-01 Part-to-part Ratios,X28,Match each number in the ratio to the group it describes.
+FH-015,M-ALG-09 Linear Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+FH-016,M-PRO-08 Percent Change,X17,A sale makes the price go down. Does your answer?
+FH-017,W-PUN-02 Run-ons and Comma Splices,X42,A semicolon already joins the sentences. Does it need help?
+FH-018,W-GRA-03 Tense Consistency,X38,A specific year in the past calls for a simple form of the verb.
+FH-019,W-EXP-11 Logical Transitions,,Decide how the second sentence relates to the first before reading the choices.
+FH-020,W-GRA-07 Parallel Comparisons,X33,Of already shows belonging. Does the name need more?
+FH-021,W-EXP-11 Logical Transitions,X24,Does the second sentence go against the first?
+FH-022,M-PRO-08 Percent Change,X27,Count how many times the price is reduced.
+FH-023,W-GRA-03 Tense Consistency,X19,"Is the action happening now, or did it already happen?"
+FH-024,W-GRA-06 Subjects and Verbs,X03,Look at the time words at the start of the sentence.
+FH-025,M-ALG-04 Systems of Equations,,Combine the two equations so that one of the variables disappears.
+FH-026,M-ALG-09 Linear Equations,X08,"Once the x term is alone, is x itself alone yet?"
+FH-027,W-GRA-12 Pronouns,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+FH-028,W-GRA-07 Parallel Comparisons,X41,Is the thing being compared one thing or several?
+FH-029,M-ALG-04 Systems of Equations,X04,"The first equation gives x and y together, not x by itself."
+FH-030,M-ALG-04 Systems of Equations,X36,Which way of combining the equations leaves only x?
+FH-031,M-GEO-05 Rectangles,,Use the perimeter to find the missing side before you find the area.
+FH-032,W-EXP-11 Logical Transitions,X35,Is the second sentence one case of the first?
+FH-033,W-GRA-06 Subjects and Verbs,,"Cross out the phrase between the subject and the verb, then read them together."
+FH-034,M-ALG-04 Systems of Equations,X30,Check which variable the question asks for.
+FH-035,M-ALG-10 Function Notation,X40,Check that every term of the function made it into your work.
+FH-036,M-ALG-09 Linear Equations,X02,Dividing both sides means dividing every term on each side.
+FH-037,M-ALG-09 Linear Equations,X07,The number in front of x multiplies it. Which operation undoes that?
+FH-038,M-PRO-08 Percent Change,X29,"A percent is a part of the price, not a number of dollars."
+FH-039,M-PRO-01 Part-to-part Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+FH-040,M-PRO-01 Part-to-part Ratios,X13,The total is already the whole group. Should it get bigger?
+FH-041,W-GRA-03 Tense Consistency,,Find the words that say when the action happened.
+FH-042,M-GEO-05 Rectangles,X37,You have both sides now. What does the question ask for?

@@ -46,6 +46,10 @@ export class JobFiles {
 
   constructor(private readonly texts: ReadonlyMap<string, string>) {}
 
+  has(name: string): boolean {
+    return this.texts.has(name);
+  }
+
   text(name: string): string {
     const text = this.texts.get(name);
     if (text === undefined) throw new Error(`No file ${name}`);

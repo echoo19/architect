@@ -179,26 +179,26 @@
   },
   "organizations": [
     {
+      "id": "ridgeline",
+      "name": "Ridgeline Test Prep",
+      "synthetic": true,
+      "role": "train"
+    },
+    {
       "id": "wrenfield",
       "name": "Wrenfield Prep",
       "synthetic": true,
       "role": "train"
     },
     {
-      "id": "copperfield",
-      "name": "Copperfield Learning",
+      "id": "lakemont",
+      "name": "Lakemont Scholars",
       "synthetic": true,
       "role": "train"
     },
     {
-      "id": "oakhollow",
-      "name": "Oakhollow Academy",
-      "synthetic": true,
-      "role": "train"
-    },
-    {
-      "id": "northgate",
-      "name": "Northgate Prep",
+      "id": "harborview",
+      "name": "Harborview Prep",
       "synthetic": true,
       "role": "transfer"
     }

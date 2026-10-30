@@ -216,6 +216,7 @@ describe('practice_assigned', () => {
     const twice = [
       assignments[0]!,
       { ...assignments[1]!, question_id: assignments[0]!.question_id ?? null },
+      ...assignments.slice(2),
     ];
     failsWith(endState(task, answer, twice), 'question_id');
     failsWith(endState(task, answer, assignments.slice(1)), 'assignments.csv gained');

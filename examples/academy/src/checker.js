@@ -21,7 +21,8 @@ var validators = {};
 const WRITABLE_TABLES = ['assignments.csv', 'staff_notes.csv'];
 
 // diagnosis: no table changed, and the ANSWER names the topic, the right choice and an error
-// that produces the chosen wrong answer.
+// that produces the chosen wrong answer. A task from an academy's records alone has no
+// params.errors, and then only the topic and the right choice are checked.
 validators.diagnosis = (params, ctx) => {
   const other = otherTableChanged(ctx, null);
   if (other) return fail(`${other} changed, but this task only asks a question.`);
@@ -30,7 +31,7 @@ validators.diagnosis = (params, ctx) => {
   return (
     topicProblem(answer, params) ||
     correctProblem(answer, params) ||
-    errorProblem(answer, params) ||
+    (params.errors === undefined ? null : errorProblem(answer, params)) ||
     pass(`Diagnosed: ${params.topic}, right choice ${params.correct}.`)
   );
 };
@@ -275,14 +276,25 @@ function compareRows(before, after) {
   return { added, removed };
 }
 
-// The first writable table other than `allowed` whose rows the attempt changed, or null.
+// The first writable table other than `allowed` whose rows the attempt changed, or null. An
+// academy's export may have no staff_notes.csv, and a table that isn't there hasn't changed.
 function otherTableChanged(ctx, allowed) {
   for (const table of WRITABLE_TABLES) {
     if (table === allowed) continue;
-    const change = compareRows(ctx.readOriginalTable(table), ctx.readTable(table));
+    const before = rowsIfPresent(() => ctx.readOriginalTable(table));
+    if (before === null) continue;
+    const change = compareRows(before, ctx.readTable(table));
     if (change.added.length > 0 || change.removed.length > 0) return table;
   }
   return null;
+}
+
+function rowsIfPresent(read) {
+  try {
+    return read();
+  } catch {
+    return null;
+  }
 }
 
 // The same text, ignoring case, spaces at the ends and runs of spaces.

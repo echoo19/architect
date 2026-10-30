@@ -1,0 +1,17 @@
+student_id,name,grade,target_score,test_date,tutor_id
+L001,Ulla Underhill,10,1370,2027-06-05,C4
+L002,Xavi Lindqvist,10,1530,2026-12-05,C2
+L003,Bram Marchetti,11,1440,2027-03-13,C4
+L004,Gideon Ellery,11,1490,2026-12-05,C4
+L005,Vito Vasquez,10,1240,2027-03-13,C3
+L006,Ulla Holloway,11,1210,2027-06-05,C2
+L007,Joran Kettering,10,1270,2027-06-05,C3
+L008,Vito Thorne,11,1550,2027-03-13,C3
+L009,Kaia Fairbank,11,1220,2027-05-01,C4
+L010,Fenna Dunmore,12,1300,2027-03-13,C2
+L011,Dario Holloway,11,1280,2026-12-05,C2
+L012,Ulla Marchetti,12,1540,2027-06-05,C2
+L013,Pell Underhill,10,1450,2027-03-13,C3
+L014,Soren Calloway,12,1500,2026-12-05,C2
+L015,Ilse Calloway,11,1400,2027-03-13,C3
+L016,Rosalind Vasquez,12,1290,2026-12-05,C2

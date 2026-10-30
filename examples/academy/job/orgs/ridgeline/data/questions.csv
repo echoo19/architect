@@ -1,0 +1,289 @@
+question_id,section,topic,difficulty_pct,stem,choice_a,choice_b,choice_c,choice_d,correct
+Q-0001,Math,Rule 6B - Function Notation,16,The function f is defined by f(x) = 9x + 6. What is f(3)?,27,81,18,33,D
+Q-0002,Reading and Writing,Rule 3B - Pronouns,57,Last week the team posted ___ schedule for the spring.,it's,its,their,his or her,B
+Q-0003,Reading and Writing,Rule 2B - Logical Comparisons,21,"According to the guidebook, the museums of Fenwick are more varied than ___.",that of Elmont,those of Elmont,Elmont,those of Elmont's,B
+Q-0004,Reading and Writing,Rule 2A - Joining Clauses,73,"By evening, the storm ___ damage was worse than expected.",passed; and its,passed its,passed; its,"passed, its",C
+Q-0005,Math,Rule 5B - Area and Perimeter,75,"The perimeter of a rectangular garden is 14 meters and its length is 4 meters. What is its area, in square meters?",12,56,40,7,A
+Q-0006,Reading and Writing,Rule 1A - Transition Words,77,"Most critics praised the film. ___, it sold few tickets.",Therefore,For example,In addition,However,D
+Q-0007,Reading and Writing,Rule 2A - Joining Clauses,62,"Late that week, the lights ___ speaker kept going anyway.",flickered the,flickered; the,flickered; and the,"flickered, the",B
+Q-0008,Math,Rule 6A - Linear Equations,73,Solve 7x + 21 = 84 for x.,56,63,15,9,D
+Q-0009,Math,Rule 6B - Function Notation,28,The function f is defined by f(x) = 7x + 4. What is f(3)?,25,21,19,49,A
+Q-0010,Reading and Writing,Rule 4B - Verb Tenses,56,"Back in 2012, the school band ___ a record crowd.",has drawn,draws,will draw,drew,D
+Q-0011,Reading and Writing,Rule 4A - Subjects and Verbs,36,Today the box of receipts ___ on the front desk.,are,was,is,being,C
+Q-0012,Reading and Writing,Rule 1A - Transition Words,48,"The bakery doubled its prices. ___, many regulars started baking at home.",Therefore,For example,In addition,However,A
+Q-0013,Reading and Writing,Rule 1A - Transition Words,57,"Our library lends more than books. ___, members can borrow telescopes and tools.",For example,Therefore,However,In addition,A
+Q-0014,Math,Rule 6B - Function Notation,30,The function f is defined by f(x) = 7x + 6. What is f(3)?,27,21,25,16,A
+Q-0015,Reading and Writing,Rule 4A - Subjects and Verbs,88,Today the list of old letters ___ a new label.,needs,need,needing,needed,A
+Q-0016,Math,Rule 6B - Function Notation,72,The function f is defined by f(x) = 2x + 7. What is f(3)?,6,20,12,13,D
+Q-0017,Math,Rule 5B - Area and Perimeter,86,"The perimeter of a rectangular garden is 24 meters and its length is 7 meters. What is its area, in square meters?",119,12,168,35,D
+Q-0018,Reading and Writing,Rule 2B - Logical Comparisons,43,"According to the guidebook, the rainfall of Corran is more varied than ___.",those of Fenwick,that of Fenwick's,that of Fenwick,Fenwick,C
+Q-0019,Math,Rule 6A - Linear Equations,80,Solve 6x + 30 = 108 for x.,78,13,72,23,B
+Q-0020,Reading and Writing,Rule 4B - Verb Tenses,81,"Back in 2014, the robotics team ___ a new name.",has chosen,chooses,will choose,chose,D
+Q-0021,Math,Rule 5A - Part-to-part Ratios,72,"A collection has red marbles and blue marbles in the ratio 2:4, 84 items in total. How many blue marbles are there?",336,28,56,14,C
+Q-0022,Math,Rule 5A - Part-to-part Ratios,66,"A collection has cats and dogs in the ratio 2:3, 45 items in total. How many dogs are there?",15,135,27,18,C
+Q-0023,Math,Rule 5A - Part-to-part Ratios,21,"A collection has red marbles and blue marbles in the ratio 6:2, 72 items in total. How many blue marbles are there?",9,144,36,18,D
+Q-0024,Reading and Writing,Rule 3B - Pronouns,56,Last week the company celebrated ___ tenth anniversary.,it's,his or her,their,its,D
+Q-0025,Reading and Writing,Rule 2B - Logical Comparisons,80,"According to the guidebook, the population of Ashby is more varied than ___.",that of Kessington's,those of Kessington,that of Kessington,Kessington,C
+Q-0026,Math,Rule 3A - Two-equation Systems,22,"In the system x + y = 28 and x - y = 2, what is the value of x?",15,26,13,28,A
+Q-0027,Reading and Writing,Rule 4B - Verb Tenses,40,"Back in 2011, the school band ___ a new stage.",will build,has built,built,builds,C
+Q-0028,Math,Rule 5B - Area and Perimeter,38,"The perimeter of a rectangular garden is 44 meters and its length is 12 meters. What is its area, in square meters?",384,22,120,528,C
+Q-0029,Math,Rule 3A - Two-equation Systems,29,"In the system x + y = 29 and x - y = 3, what is the value of x?",16,32,26,13,A
+Q-0030,Math,Rule 5A - Part-to-part Ratios,58,"A collection has cats and dogs in the ratio 4:7, 33 items in total. How many dogs are there?",21,3,231,12,A
+Q-0031,Reading and Writing,Rule 3B - Pronouns,38,Last week the committee changed ___ rules for new members.,its,his or her,it's,their,A
+Q-0032,Math,Rule 1B - Percent Change,85,"The regular price of a backpack is $60. During a sale the price is reduced by 10%. What is the sale price of the backpack, in dollars?",50,6,54,66,C
+Q-0033,Math,Rule 6B - Function Notation,66,The function f is defined by f(x) = 7x + 12. What is f(9)?,115,28,75,147,C
+Q-0034,Reading and Writing,Rule 3B - Pronouns,82,Last week the club changed ___ rules for new members.,its,their,his or her,it's,A
+Q-0035,Math,Rule 6A - Linear Equations,35,Solve 4x + 8 = 48 for x.,14,10,40,4,B
+Q-0036,Math,Rule 1B - Percent Change,83,"The regular price of a lamp is $160. During a sale the price is reduced by 40%. What is the sale price of the lamp, in dollars?",224,64,96,120,C
+Q-0037,Math,Rule 1B - Percent Change,85,"The regular price of a bike is $120. During a sale the price is reduced by 40%. What is the sale price of the bike, in dollars?",72,80,48,168,A
+Q-0038,Math,Rule 6A - Linear Equations,55,Solve 2x + 12 = 22 for x.,10,8,17,5,D
+Q-0039,Math,Rule 5B - Area and Perimeter,54,"The perimeter of a rectangular garden is 44 meters and its length is 14 meters. What is its area, in square meters?",112,8,616,22,A
+Q-0040,Math,Rule 6B - Function Notation,87,The function f is defined by f(x) = 6x + 10. What is f(4)?,24,84,34,46,C
+Q-0041,Math,Rule 6B - Function Notation,65,The function f is defined by f(x) = 7x + 6. What is f(7)?,55,91,20,49,A
+Q-0042,Reading and Writing,Rule 2B - Logical Comparisons,30,"According to the guidebook, the museums of Ashby are more varied than ___.",those of Fenwick,Fenwick,those of Fenwick's,that of Fenwick,A
+Q-0043,Reading and Writing,Rule 1A - Transition Words,75,"The town keeps old traditions. ___, it still rings the noon bell by hand.",For example,Therefore,However,In addition,A
+Q-0044,Math,Rule 5B - Area and Perimeter,16,"The perimeter of a rectangular garden is 46 meters and its length is 12 meters. What is its area, in square meters?",132,408,23,11,A
+Q-0045,Reading and Writing,Rule 2B - Logical Comparisons,38,"According to the guidebook, the rainfall of Elmont is more varied than ___.",that of Fenwick's,that of Fenwick,Fenwick,those of Fenwick,B
+Q-0046,Math,Rule 5A - Part-to-part Ratios,90,"A collection has red marbles and blue marbles in the ratio 6:7, 39 items in total. How many blue marbles are there?",273,18,3,21,D
+Q-0047,Math,Rule 5A - Part-to-part Ratios,84,"A collection has cats and dogs in the ratio 3:2, 55 items in total. How many dogs are there?",22,33,11,110,A
+Q-0048,Reading and Writing,Rule 2A - Joining Clauses,25,The snow ___ river rose by noon.,"melted, the",melted; and the,melted; the,melted the,C
+Q-0049,Reading and Writing,Rule 4B - Verb Tenses,73,"Back in 2007, the school band ___ the old record.",will break,has broken,broke,breaks,C
+Q-0050,Reading and Writing,Rule 4A - Subjects and Verbs,52,Today the folder of old letters ___ a torn cover.,having,has,had,have,B
+Q-0051,Math,Rule 5A - Part-to-part Ratios,15,"A collection has red marbles and blue marbles in the ratio 3:4, 63 items in total. How many blue marbles are there?",9,36,27,252,B
+Q-0052,Reading and Writing,Rule 2B - Logical Comparisons,78,"According to the guidebook, the museums of Elmont are more varied than ___.",those of Ashby's,those of Ashby,Ashby,that of Ashby,B
+Q-0053,Reading and Writing,Rule 4B - Verb Tenses,92,"Back in 2003, the drama club ___ a record crowd.",will draw,drew,draws,has drawn,B
+Q-0054,Reading and Writing,Rule 3B - Pronouns,16,Last week the company announced ___ decision.,their,his or her,it's,its,D
+Q-0055,Reading and Writing,Rule 4A - Subjects and Verbs,48,Today the basket of supplies ___ a new label.,needing,needed,needs,need,C
+Q-0056,Reading and Writing,Rule 2A - Joining Clauses,86,"Late that week, the bell ___ hallway filled at once.","rang, every",rang; and every,rang; every,rang every,C
+Q-0057,Reading and Writing,Rule 4B - Verb Tenses,29,"Back in 2004, the school band ___ its first regional prize.",has won,will win,won,wins,C
+Q-0058,Math,Rule 3A - Two-equation Systems,24,"In the system x + y = 16 and x - y = 4, what is the value of x?",20,16,12,10,D
+Q-0059,Math,Rule 5A - Part-to-part Ratios,19,"A collection has red marbles and blue marbles in the ratio 1:4, 60 items in total. How many blue marbles are there?",240,12,48,15,C
+Q-0060,Math,Rule 5A - Part-to-part Ratios,54,"A collection has fiction books and nonfiction books in the ratio 2:3, 60 items in total. How many nonfiction books are there?",12,20,180,36,D
+Q-0061,Reading and Writing,Rule 4B - Verb Tenses,90,"Back in 1998, the school band ___ a short history of the town.",writes,will write,wrote,has written,C
+Q-0062,Reading and Writing,Rule 1A - Transition Words,88,"The new park has a large playground. ___, it includes a quiet reading garden.",In addition,For example,Therefore,However,A
+Q-0063,Math,Rule 6B - Function Notation,54,The function f is defined by f(x) = 9x + 2. What is f(6)?,21,56,72,17,B
+Q-0064,Math,Rule 1B - Percent Change,79,"The regular price of a lamp is $260. During a sale the price is reduced by 40%. What is the sale price of the lamp, in dollars?",364,156,220,104,B
+Q-0065,Reading and Writing,Rule 3B - Pronouns,91,Last week the jury posted ___ schedule for the spring.,their,his or her,it's,its,D
+Q-0066,Reading and Writing,Rule 1A - Transition Words,62,"Some metals resist rust. ___, stainless steel stays bright for decades.",Therefore,However,In addition,For example,D
+Q-0067,Reading and Writing,Rule 1A - Transition Words,82,"The orchestra lost its conductor. ___, the spring concert was postponed.",However,Therefore,In addition,For example,B
+Q-0068,Math,Rule 1B - Percent Change,15,"The regular price of a lamp is $280. During a sale the price is reduced by 35%. What is the sale price of the lamp, in dollars?",84,245,98,182,D
+Q-0069,Reading and Writing,Rule 1A - Transition Words,81,"The museum added evening hours. ___, it opened a cafe on the roof.",In addition,Therefore,However,For example,A
+Q-0070,Math,Rule 5A - Part-to-part Ratios,46,"A collection has red marbles and blue marbles in the ratio 7:4, 143 items in total. How many blue marbles are there?",91,572,52,13,C
+Q-0071,Reading and Writing,Rule 2B - Logical Comparisons,22,"According to the guidebook, the parks of Kessington are more varied than ___.",those of Marlow's,Marlow,that of Marlow,those of Marlow,D
+Q-0072,Reading and Writing,Rule 1A - Transition Words,23,"Many desert plants store water. ___, the barrel cactus can go months without rain.",For example,In addition,Therefore,However,A
+Q-0073,Math,Rule 6A - Linear Equations,28,Solve 2x + 6 = 28 for x.,8,20,17,11,D
+Q-0074,Reading and Writing,Rule 3B - Pronouns,69,Last week the team changed ___ rules for new members.,it's,his or her,their,its,D
+Q-0075,Reading and Writing,Rule 1A - Transition Words,50,"The forecast promised sun. ___, we spent the afternoon under umbrellas.",For example,However,In addition,Therefore,B
+Q-0076,Math,Rule 5A - Part-to-part Ratios,16,"A collection has juniors and seniors in the ratio 2:4, 72 items in total. How many seniors are there?",18,288,48,24,C
+Q-0077,Math,Rule 1B - Percent Change,76,"The regular price of a lamp is $340. During a sale the price is reduced by 15%. What is the sale price of the lamp, in dollars?",325,391,238,289,D
+Q-0078,Reading and Writing,Rule 4B - Verb Tenses,17,"Back in 1995, the drama club ___ the old record.",broke,has broken,will break,breaks,A
+Q-0079,Reading and Writing,Rule 2A - Joining Clauses,24,The power ___ students kept reading by window light.,failed; and most,failed most,"failed, most",failed; most,D
+Q-0080,Math,Rule 5B - Area and Perimeter,65,"The perimeter of a rectangular garden is 38 meters and its length is 16 meters. What is its area, in square meters?",608,352,3,48,D
+Q-0081,Math,Rule 5B - Area and Perimeter,38,"The perimeter of a rectangular garden is 32 meters and its length is 10 meters. What is its area, in square meters?",60,220,16,6,A
+Q-0082,Reading and Writing,Rule 3B - Pronouns,69,Last week the jury moved ___ office across town.,their,it's,his or her,its,D
+Q-0083,Math,Rule 6A - Linear Equations,74,Solve 5x + 10 = 35 for x.,25,9,20,5,D
+Q-0084,Reading and Writing,Rule 1A - Transition Words,72,"The old bridge seemed fragile. ___, it carried trucks for ninety years.",However,In addition,For example,Therefore,A
+Q-0085,Math,Rule 3A - Two-equation Systems,59,"In the system x + y = 13 and x - y = 3, what is the value of x?",10,13,16,8,D
+Q-0086,Math,Rule 5B - Area and Perimeter,55,"The perimeter of a rectangular garden is 52 meters and its length is 19 meters. What is its area, in square meters?",988,133,627,7,B
+Q-0087,Reading and Writing,Rule 1A - Transition Words,83,"Several streets were renamed. ___, Mill Road is now Founders Way.",Therefore,In addition,For example,However,C
+Q-0088,Reading and Writing,Rule 3B - Pronouns,65,Last week the team moved ___ office across town.,his or her,it's,their,its,D
+Q-0089,Reading and Writing,Rule 3B - Pronouns,85,Last week the band posted ___ schedule for the spring.,his or her,their,its,it's,C
+Q-0090,Reading and Writing,Rule 2B - Logical Comparisons,24,"According to the guidebook, the streets of Kessington are more varied than ___.",Marlow,those of Marlow,that of Marlow,those of Marlow's,B
+Q-0091,Math,Rule 6B - Function Notation,91,The function f is defined by f(x) = 2x + 5. What is f(9)?,47,23,16,18,B
+Q-0092,Reading and Writing,Rule 3B - Pronouns,88,Last week the committee moved ___ office across town.,his or her,its,it's,their,B
+Q-0093,Reading and Writing,Rule 4B - Verb Tenses,78,"Back in 2001, the town ___ a weekly podcast.",begins,has begun,began,will begin,C
+Q-0094,Reading and Writing,Rule 4A - Subjects and Verbs,74,Today the stack of notes ___ near the window.,sits,sit,sitting,sat,A
+Q-0095,Math,Rule 1B - Percent Change,29,"The regular price of a lamp is $360. During a sale the price is reduced by 10%. What is the sale price of the lamp, in dollars?",350,288,36,324,D
+Q-0096,Reading and Writing,Rule 4A - Subjects and Verbs,55,Today the stack of maps ___ a new label.,need,needs,needed,needing,B
+Q-0097,Math,Rule 6A - Linear Equations,87,Solve 3x + 6 = 36 for x.,10,6,30,27,A
+Q-0098,Math,Rule 6A - Linear Equations,43,Solve 4x + 16 = 64 for x.,12,20,44,48,A
+Q-0099,Math,Rule 6B - Function Notation,63,The function f is defined by f(x) = 4x + 6. What is f(9)?,60,58,36,42,D
+Q-0100,Reading and Writing,Rule 2A - Joining Clauses,30,"By evening, the bakery ___ owners moved to the coast.",closed; its,"closed, its",closed its,closed; and its,A
+Q-0101,Reading and Writing,Rule 1A - Transition Words,45,"The roads iced over before dawn. ___, the schools opened two hours late.",However,In addition,Therefore,For example,C
+Q-0102,Math,Rule 3A - Two-equation Systems,77,"In the system x + y = 21 and x - y = 9, what is the value of x?",15,6,12,21,A
+Q-0103,Math,Rule 5B - Area and Perimeter,76,"The perimeter of a rectangular garden is 38 meters and its length is 13 meters. What is its area, in square meters?",494,19,325,78,D
+Q-0104,Math,Rule 5B - Area and Perimeter,63,"The perimeter of a rectangular garden is 32 meters and its length is 9 meters. What is its area, in square meters?",63,207,288,7,A
+Q-0105,Reading and Writing,Rule 3B - Pronouns,91,Last week the company posted ___ schedule for the spring.,it's,his or her,its,their,C
+Q-0106,Math,Rule 3A - Two-equation Systems,78,"In the system x + y = 17 and x - y = 7, what is the value of x?",5,10,12,24,C
+Q-0107,Math,Rule 6A - Linear Equations,22,Solve 4x + 16 = 44 for x.,15,7,24,28,B
+Q-0108,Reading and Writing,Rule 4B - Verb Tenses,20,"Back in 2011, the drama club ___ a short history of the town.",wrote,writes,will write,has written,A
+Q-0109,Math,Rule 6B - Function Notation,90,The function f is defined by f(x) = 8x + 9. What is f(5)?,49,112,53,22,A
+Q-0110,Reading and Writing,Rule 2A - Joining Clauses,41,"By evening, the play ___ audience stood and cheered.",ended the,ended; and the,ended; the,"ended, the",C
+Q-0111,Reading and Writing,Rule 3B - Pronouns,53,Last week the club moved ___ office across town.,his or her,their,its,it's,C
+Q-0112,Reading and Writing,Rule 4A - Subjects and Verbs,21,Today the collection of maps ___ on the front desk.,was,are,being,is,D
+Q-0113,Math,Rule 1B - Percent Change,44,"The regular price of a bike is $300. During a sale the price is reduced by 10%. What is the sale price of the bike, in dollars?",290,30,270,330,C
+Q-0114,Math,Rule 1B - Percent Change,82,"The regular price of a backpack is $240. During a sale the price is reduced by 15%. What is the sale price of the backpack, in dollars?",204,276,168,36,A
+Q-0115,Reading and Writing,Rule 4B - Verb Tenses,89,"Back in 1995, the town ___ a record crowd.",will draw,has drawn,draws,drew,D
+Q-0116,Reading and Writing,Rule 2A - Joining Clauses,77,"Late that week, the shop ___ second floor now sells books.",expanded; its,"expanded, its",expanded; and its,expanded its,A
+Q-0117,Math,Rule 6B - Function Notation,87,The function f is defined by f(x) = 2x + 8. What is f(7)?,22,30,14,17,A
+Q-0118,Math,Rule 3A - Two-equation Systems,77,"In the system x + y = 9 and x - y = 1, what is the value of x?",5,10,9,4,A
+Q-0119,Reading and Writing,Rule 2B - Logical Comparisons,61,"According to the guidebook, the parks of Corran are more varied than ___.",that of Harlow,those of Harlow's,those of Harlow,Harlow,C
+Q-0120,Math,Rule 6B - Function Notation,17,The function f is defined by f(x) = 8x + 8. What is f(8)?,72,24,128,64,A
+Q-0121,Reading and Writing,Rule 3B - Pronouns,46,Last week the council posted ___ schedule for the spring.,their,his or her,it's,its,D
+Q-0122,Reading and Writing,Rule 4A - Subjects and Verbs,77,Today the folder of photos ___ near the window.,sitting,sat,sits,sit,C
+Q-0123,Reading and Writing,Rule 4B - Verb Tenses,65,"Back in 1997, the drama club ___ its first regional prize.",wins,has won,will win,won,D
+Q-0124,Reading and Writing,Rule 1A - Transition Words,28,"The club raised money for the shelter. ___, its members spent weekends walking dogs.",However,In addition,For example,Therefore,B
+Q-0125,Math,Rule 5A - Part-to-part Ratios,35,"A collection has cats and dogs in the ratio 6:4, 80 items in total. How many dogs are there?",32,8,48,20,A
+Q-0126,Math,Rule 6B - Function Notation,17,The function f is defined by f(x) = 6x + 4. What is f(8)?,52,48,38,18,A
+Q-0127,Math,Rule 5B - Area and Perimeter,34,"The perimeter of a rectangular garden is 34 meters and its length is 12 meters. What is its area, in square meters?",60,408,264,17,A
+Q-0128,Math,Rule 6A - Linear Equations,49,Solve 5x + 10 = 60 for x.,14,45,50,10,D
+Q-0129,Math,Rule 5B - Area and Perimeter,43,"The perimeter of a rectangular garden is 40 meters and its length is 15 meters. What is its area, in square meters?",600,20,375,75,D
+Q-0130,Math,Rule 3A - Two-equation Systems,25,"In the system x + y = 27 and x - y = 7, what is the value of x?",17,34,27,10,A
+Q-0131,Reading and Writing,Rule 4B - Verb Tenses,84,"Back in 2007, the school band ___ a record crowd.",draws,drew,will draw,has drawn,B
+Q-0132,Reading and Writing,Rule 3B - Pronouns,87,Last week the team celebrated ___ tenth anniversary.,it's,their,his or her,its,D
+Q-0133,Math,Rule 3A - Two-equation Systems,73,"In the system x + y = 21 and x - y = 1, what is the value of x?",22,21,11,10,C
+Q-0134,Math,Rule 6B - Function Notation,78,The function f is defined by f(x) = 3x + 1. What is f(3)?,12,10,6,7,B
+Q-0135,Reading and Writing,Rule 4A - Subjects and Verbs,35,Today the list of supplies ___ a torn cover.,has,have,having,had,A
+Q-0136,Math,Rule 6A - Linear Equations,47,Solve 5x + 10 = 20 for x.,5,6,2,10,C
+Q-0137,Reading and Writing,Rule 1A - Transition Words,26,"The tickets sold out in a day. ___, the theater added a second show.",However,In addition,Therefore,For example,C
+Q-0138,Math,Rule 1B - Percent Change,90,"The regular price of a bike is $380. During a sale the price is reduced by 10%. What is the sale price of the bike, in dollars?",370,304,342,38,C
+Q-0139,Math,Rule 5A - Part-to-part Ratios,42,"A collection has cats and dogs in the ratio 2:6, 112 items in total. How many dogs are there?",28,14,84,672,C
+Q-0140,Math,Rule 5B - Area and Perimeter,29,"The perimeter of a rectangular garden is 46 meters and its length is 19 meters. What is its area, in square meters?",23,4,76,874,C
+Q-0141,Math,Rule 6A - Linear Equations,63,Solve 3x + 6 = 21 for x.,5,9,1,12,A
+Q-0142,Math,Rule 6A - Linear Equations,59,Solve 4x + 20 = 48 for x.,28,17,24,7,D
+Q-0143,Reading and Writing,Rule 4B - Verb Tenses,17,"Back in 2010, the town ___ the old record.",will break,broke,breaks,has broken,B
+Q-0144,Math,Rule 3A - Two-equation Systems,33,"In the system x + y = 30 and x - y = 4, what is the value of x?",13,30,17,34,C
+Q-0145,Reading and Writing,Rule 4A - Subjects and Verbs,84,Today the folder of receipts ___ near the window.,sat,sitting,sits,sit,C
+Q-0146,Math,Rule 5A - Part-to-part Ratios,23,"A collection has juniors and seniors in the ratio 5:7, 36 items in total. How many seniors are there?",15,3,21,252,C
+Q-0147,Reading and Writing,Rule 1A - Transition Words,59,"The coach planned extra practices. ___, she arranged two games with nearby schools.",In addition,For example,Therefore,However,A
+Q-0148,Math,Rule 1B - Percent Change,38,"The regular price of a jacket is $300. During a sale the price is reduced by 35%. What is the sale price of the jacket, in dollars?",265,405,195,105,C
+Q-0149,Math,Rule 6B - Function Notation,30,The function f is defined by f(x) = 3x + 3. What is f(4)?,21,12,15,10,C
+Q-0150,Reading and Writing,Rule 2B - Logical Comparisons,28,"According to the guidebook, the climate of Fenwick is more varied than ___.",that of Kessington's,that of Kessington,Kessington,those of Kessington,B
+Q-0151,Reading and Writing,Rule 2A - Joining Clauses,80,The rain finally ___ crowd returned to the field.,"stopped, the",stopped the,stopped; the,stopped; and the,C
+Q-0152,Reading and Writing,Rule 4A - Subjects and Verbs,67,Today the box of receipts ___ near the window.,sitting,sat,sit,sits,D
+Q-0153,Reading and Writing,Rule 3B - Pronouns,44,Last week the band moved ___ office across town.,his or her,it's,its,their,C
+Q-0154,Reading and Writing,Rule 4A - Subjects and Verbs,89,Today the box of photos ___ on the front desk.,being,is,was,are,B
+Q-0155,Math,Rule 5B - Area and Perimeter,41,"The perimeter of a rectangular garden is 26 meters and its length is 10 meters. What is its area, in square meters?",260,30,160,13,B
+Q-0156,Math,Rule 5B - Area and Perimeter,27,"The perimeter of a rectangular garden is 40 meters and its length is 17 meters. What is its area, in square meters?",391,20,51,680,C
+Q-0157,Reading and Writing,Rule 4B - Verb Tenses,69,"Back in 2016, the school band ___ a new name.",chose,chooses,has chosen,will choose,A
+Q-0158,Reading and Writing,Rule 2A - Joining Clauses,84,The shop ___ second floor now sells books.,expanded; its,expanded; and its,"expanded, its",expanded its,A
+Q-0159,Math,Rule 5B - Area and Perimeter,61,"The perimeter of a rectangular garden is 28 meters and its length is 8 meters. What is its area, in square meters?",160,48,6,224,B
+Q-0160,Math,Rule 6A - Linear Equations,67,Solve 5x + 10 = 55 for x.,1,40,9,45,C
+Q-0161,Reading and Writing,Rule 3B - Pronouns,88,Last week the jury celebrated ___ tenth anniversary.,their,it's,its,his or her,C
+Q-0162,Reading and Writing,Rule 3B - Pronouns,68,Last week the team announced ___ decision.,its,his or her,their,it's,A
+Q-0163,Math,Rule 6A - Linear Equations,77,Solve 3x + 3 = 12 for x.,5,3,6,1,B
+Q-0164,Reading and Writing,Rule 2A - Joining Clauses,86,"By evening, the printer ___ flyers were late for the fair.",jammed; the,jammed; and the,"jammed, the",jammed the,A
+Q-0165,Math,Rule 6A - Linear Equations,71,Solve 3x + 18 = 33 for x.,12,5,17,15,B
+Q-0166,Reading and Writing,Rule 1A - Transition Words,59,"The first draft ran to ten pages. ___, the final essay fit on one.",For example,Therefore,In addition,However,D
+Q-0167,Reading and Writing,Rule 3B - Pronouns,69,Last week the club posted ___ schedule for the spring.,it's,its,his or her,their,B
+Q-0168,Math,Rule 1B - Percent Change,54,"The regular price of a lamp is $80. During a sale the price is reduced by 15%. What is the sale price of the lamp, in dollars?",92,68,56,65,B
+Q-0169,Math,Rule 5A - Part-to-part Ratios,88,"A collection has cats and dogs in the ratio 2:5, 77 items in total. How many dogs are there?",385,55,11,22,B
+Q-0170,Math,Rule 1B - Percent Change,32,"The regular price of a bike is $100. During a sale the price is reduced by 30%. What is the sale price of the bike, in dollars?",70,30,40,130,A
+Q-0171,Math,Rule 5A - Part-to-part Ratios,58,"A collection has juniors and seniors in the ratio 3:7, 80 items in total. How many seniors are there?",8,560,24,56,D
+Q-0172,Math,Rule 3A - Two-equation Systems,60,"In the system x + y = 15 and x - y = 7, what is the value of x?",22,11,15,4,B
+Q-0173,Math,Rule 1B - Percent Change,33,"The regular price of a backpack is $120. During a sale the price is reduced by 10%. What is the sale price of the backpack, in dollars?",108,132,96,12,A
+Q-0174,Reading and Writing,Rule 2A - Joining Clauses,16,"Late that week, the bakery ___ owners moved to the coast.","closed, its",closed; and its,closed; its,closed its,C
+Q-0175,Reading and Writing,Rule 2B - Logical Comparisons,37,"According to the guidebook, the streets of Marlow are more varied than ___.",those of Harlow,those of Harlow's,Harlow,that of Harlow,A
+Q-0176,Math,Rule 3A - Two-equation Systems,72,"In the system x + y = 16 and x - y = 12, what is the value of x?",2,14,4,28,B
+Q-0177,Math,Rule 6A - Linear Equations,17,Solve 4x + 12 = 68 for x.,52,20,5,14,D
+Q-0178,Math,Rule 5B - Area and Perimeter,64,"The perimeter of a rectangular garden is 16 meters and its length is 5 meters. What is its area, in square meters?",8,15,80,3,B
+Q-0179,Reading and Writing,Rule 2A - Joining Clauses,64,"Late that week, the garden ___ tomatoes did not survive.",flooded; and the,"flooded, the",flooded; the,flooded the,C
+Q-0180,Math,Rule 3A - Two-equation Systems,30,"In the system x + y = 35 and x - y = 1, what is the value of x?",34,35,18,36,C
+Q-0181,Math,Rule 3A - Two-equation Systems,52,"In the system x + y = 11 and x - y = 1, what is the value of x?",6,12,5,10,A
+Q-0182,Math,Rule 1B - Percent Change,78,"The regular price of a jacket is $320. During a sale the price is reduced by 15%. What is the sale price of the jacket, in dollars?",368,305,48,272,D
+Q-0183,Math,Rule 6B - Function Notation,77,The function f is defined by f(x) = 2x + 1. What is f(4)?,8,10,6,9,D
+Q-0184,Math,Rule 6B - Function Notation,20,The function f is defined by f(x) = 7x + 11. What is f(3)?,40,98,21,32,D
+Q-0185,Reading and Writing,Rule 4A - Subjects and Verbs,79,Today the stack of notes ___ a torn cover.,have,having,has,had,C
+Q-0186,Reading and Writing,Rule 2A - Joining Clauses,40,"Late that week, the river ___ skater in town came out.",froze every,froze; every,froze; and every,"froze, every",B
+Q-0187,Math,Rule 6B - Function Notation,73,The function f is defined by f(x) = 3x + 10. What is f(9)?,57,22,37,27,C
+Q-0188,Math,Rule 6A - Linear Equations,79,Solve 4x + 24 = 64 for x.,40,36,22,10,D
+Q-0189,Reading and Writing,Rule 4B - Verb Tenses,79,"Back in 1998, the drama club ___ its first regional prize.",will win,wins,has won,won,D
+Q-0190,Reading and Writing,Rule 2A - Joining Clauses,37,The river ___ skater in town came out.,froze; every,"froze, every",froze every,froze; and every,A
+Q-0191,Reading and Writing,Rule 2B - Logical Comparisons,24,"According to the guidebook, the streets of Elmont are more varied than ___.",Fenwick,those of Fenwick's,that of Fenwick,those of Fenwick,D
+Q-0192,Reading and Writing,Rule 1A - Transition Words,60,"The new bus line runs every ten minutes. ___, it stops at both high schools.",Therefore,In addition,For example,However,B
+Q-0193,Math,Rule 6B - Function Notation,59,The function f is defined by f(x) = 3x + 10. What is f(3)?,39,19,33,9,B
+Q-0194,Reading and Writing,Rule 2B - Logical Comparisons,43,"According to the guidebook, the population of Corran is more varied than ___.",that of Marlow's,that of Marlow,Marlow,those of Marlow,B
+Q-0195,Reading and Writing,Rule 2B - Logical Comparisons,76,"According to the guidebook, the museums of Kessington are more varied than ___.",those of Corran,those of Corran's,Corran,that of Corran,A
+Q-0196,Math,Rule 5A - Part-to-part Ratios,73,"A collection has cats and dogs in the ratio 4:7, 66 items in total. How many dogs are there?",42,6,462,24,A
+Q-0197,Math,Rule 5B - Area and Perimeter,20,"The perimeter of a rectangular garden is 52 meters and its length is 16 meters. What is its area, in square meters?",10,576,832,160,D
+Q-0198,Reading and Writing,Rule 4B - Verb Tenses,19,"Back in 2000, the robotics team ___ a record crowd.",has drawn,drew,draws,will draw,B
+Q-0199,Math,Rule 5A - Part-to-part Ratios,58,"A collection has cats and dogs in the ratio 2:5, 98 items in total. How many dogs are there?",490,70,28,14,B
+Q-0200,Reading and Writing,Rule 4A - Subjects and Verbs,26,Today the folder of photos ___ a new label.,needs,needed,need,needing,A
+Q-0201,Math,Rule 6A - Linear Equations,78,Solve 6x + 6 = 90 for x.,78,16,9,14,D
+Q-0202,Math,Rule 6A - Linear Equations,85,Solve 4x + 24 = 68 for x.,11,44,40,23,A
+Q-0203,Reading and Writing,Rule 4A - Subjects and Verbs,62,Today the collection of old letters ___ a new label.,needing,needs,need,needed,B
+Q-0204,Math,Rule 3A - Two-equation Systems,19,"In the system x + y = 22 and x - y = 4, what is the value of x?",18,22,13,9,C
+Q-0205,Reading and Writing,Rule 4B - Verb Tenses,20,"Back in 2010, the drama club ___ a record crowd.",will draw,draws,drew,has drawn,C
+Q-0206,Math,Rule 1B - Percent Change,64,"The regular price of a lamp is $80. During a sale the price is reduced by 20%. What is the sale price of the lamp, in dollars?",96,64,60,16,B
+Q-0207,Math,Rule 3A - Two-equation Systems,19,"In the system x + y = 6 and x - y = 4, what is the value of x?",6,5,10,1,B
+Q-0208,Reading and Writing,Rule 4A - Subjects and Verbs,36,Today the list of photos ___ a new label.,needed,need,needing,needs,D
+Q-0209,Reading and Writing,Rule 2B - Logical Comparisons,80,"According to the guidebook, the rainfall of Harlow is more varied than ___.",those of Kessington,Kessington,that of Kessington,that of Kessington's,C
+Q-0210,Math,Rule 3A - Two-equation Systems,17,"In the system x + y = 17 and x - y = 1, what is the value of x?",8,17,16,9,D
+Q-0211,Reading and Writing,Rule 2A - Joining Clauses,53,"Late that week, the play ___ audience stood and cheered.",ended; the,ended the,ended; and the,"ended, the",A
+Q-0212,Reading and Writing,Rule 4B - Verb Tenses,45,"Back in 2017, the robotics team ___ its first regional prize.",won,will win,has won,wins,A
+Q-0213,Math,Rule 3A - Two-equation Systems,29,"In the system x + y = 31 and x - y = 3, what is the value of x?",14,31,34,17,D
+Q-0214,Reading and Writing,Rule 4A - Subjects and Verbs,62,Today the list of receipts ___ a new label.,need,needs,needed,needing,B
+Q-0215,Math,Rule 3A - Two-equation Systems,27,"In the system x + y = 24 and x - y = 16, what is the value of x?",8,20,4,24,B
+Q-0216,Math,Rule 6B - Function Notation,66,The function f is defined by f(x) = 6x + 2. What is f(2)?,24,12,14,10,C
+Q-0217,Reading and Writing,Rule 2A - Joining Clauses,26,"Late that week, the storm ___ damage was worse than expected.",passed; and its,passed; its,passed its,"passed, its",B
+Q-0218,Reading and Writing,Rule 4A - Subjects and Verbs,46,Today the list of receipts ___ on the front desk.,are,is,being,was,B
+Q-0219,Math,Rule 3A - Two-equation Systems,82,"In the system x + y = 9 and x - y = 3, what is the value of x?",6,12,9,3,A
+Q-0220,Math,Rule 1B - Percent Change,34,"The regular price of a lamp is $160. During a sale the price is reduced by 25%. What is the sale price of the lamp, in dollars?",120,40,200,135,A
+Q-0221,Math,Rule 5B - Area and Perimeter,61,"The perimeter of a rectangular garden is 50 meters and its length is 18 meters. What is its area, in square meters?",900,576,25,126,D
+Q-0222,Reading and Writing,Rule 1A - Transition Words,66,"The puzzle looked easy at first. ___, nobody in the class could solve it.",In addition,Therefore,For example,However,D
+Q-0223,Reading and Writing,Rule 2B - Logical Comparisons,59,"According to the guidebook, the climate of Ashby is more varied than ___.",Elmont,that of Elmont's,those of Elmont,that of Elmont,D
+Q-0224,Reading and Writing,Rule 2B - Logical Comparisons,45,"According to the guidebook, the parks of Fenwick are more varied than ___.",Ashby,those of Ashby's,that of Ashby,those of Ashby,D
+Q-0225,Math,Rule 5B - Area and Perimeter,47,"The perimeter of a rectangular garden is 24 meters and its length is 9 meters. What is its area, in square meters?",135,27,12,216,B
+Q-0226,Math,Rule 5A - Part-to-part Ratios,28,"A collection has cats and dogs in the ratio 4:5, 36 items in total. How many dogs are there?",4,180,20,16,C
+Q-0227,Math,Rule 1B - Percent Change,80,"The regular price of a bike is $240. During a sale the price is reduced by 25%. What is the sale price of the bike, in dollars?",60,300,180,120,C
+Q-0228,Reading and Writing,Rule 3B - Pronouns,45,Last week the council moved ___ office across town.,it's,his or her,its,their,C
+Q-0229,Math,Rule 3A - Two-equation Systems,91,"In the system x + y = 31 and x - y = 7, what is the value of x?",31,19,24,12,B
+Q-0230,Math,Rule 1B - Percent Change,65,"The regular price of a bike is $380. During a sale the price is reduced by 35%. What is the sale price of the bike, in dollars?",345,133,114,247,D
+Q-0231,Math,Rule 1B - Percent Change,61,"The regular price of a jacket is $300. During a sale the price is reduced by 30%. What is the sale price of the jacket, in dollars?",90,390,120,210,D
+Q-0232,Reading and Writing,Rule 3B - Pronouns,20,Last week the band celebrated ___ tenth anniversary.,its,his or her,their,it's,A
+Q-0233,Reading and Writing,Rule 4A - Subjects and Verbs,88,Today the collection of old letters ___ a torn cover.,has,had,having,have,A
+Q-0234,Math,Rule 5A - Part-to-part Ratios,60,"A collection has red marbles and blue marbles in the ratio 1:6, 84 items in total. How many blue marbles are there?",12,14,504,72,D
+Q-0235,Math,Rule 3A - Two-equation Systems,24,"In the system x + y = 15 and x - y = 9, what is the value of x?",15,12,6,3,B
+Q-0236,Math,Rule 1B - Percent Change,48,"The regular price of a bike is $180. During a sale the price is reduced by 20%. What is the sale price of the bike, in dollars?",216,108,36,144,D
+Q-0237,Math,Rule 3A - Two-equation Systems,72,"In the system x + y = 27 and x - y = 1, what is the value of x?",13,28,14,27,C
+Q-0238,Math,Rule 6B - Function Notation,82,The function f is defined by f(x) = 3x + 11. What is f(3)?,36,20,17,42,B
+Q-0239,Math,Rule 6A - Linear Equations,57,Solve 7x + 28 = 84 for x.,16,56,49,8,D
+Q-0240,Reading and Writing,Rule 2B - Logical Comparisons,48,"According to the guidebook, the population of Delford is more varied than ___.",those of Ashby,that of Ashby's,that of Ashby,Ashby,C
+Q-0241,Reading and Writing,Rule 4B - Verb Tenses,51,"Back in 2013, the school band ___ its first regional prize.",won,will win,wins,has won,A
+Q-0242,Reading and Writing,Rule 2B - Logical Comparisons,90,"According to the guidebook, the museums of Corran are more varied than ___.",Elmont,that of Elmont,those of Elmont's,those of Elmont,D
+Q-0243,Reading and Writing,Rule 3B - Pronouns,61,Last week the committee posted ___ schedule for the spring.,it's,their,its,his or her,C
+Q-0244,Math,Rule 5A - Part-to-part Ratios,62,"A collection has red marbles and blue marbles in the ratio 5:4, 108 items in total. How many blue marbles are there?",12,60,27,48,D
+Q-0245,Reading and Writing,Rule 4A - Subjects and Verbs,82,Today the box of supplies ___ on the front desk.,are,is,being,was,B
+Q-0246,Reading and Writing,Rule 3B - Pronouns,26,Last week the club celebrated ___ tenth anniversary.,its,his or her,it's,their,A
+Q-0247,Reading and Writing,Rule 4B - Verb Tenses,57,"Back in 2015, the drama club ___ its first regional prize.",wins,has won,won,will win,C
+Q-0248,Reading and Writing,Rule 1A - Transition Words,38,"The trail looked short on the map. ___, it took us four hours to finish.",For example,Therefore,However,In addition,C
+Q-0249,Math,Rule 3A - Two-equation Systems,76,"In the system x + y = 23 and x - y = 5, what is the value of x?",23,18,14,28,C
+Q-0250,Reading and Writing,Rule 2A - Joining Clauses,52,"Late that week, the museum ___ new wing drew long lines.",reopened; and its,reopened; its,"reopened, its",reopened its,B
+Q-0251,Math,Rule 5B - Area and Perimeter,28,"The perimeter of a rectangular garden is 18 meters and its length is 6 meters. What is its area, in square meters?",108,18,3,9,B
+Q-0252,Reading and Writing,Rule 1A - Transition Words,77,"The recipe called for an hour of baking. ___, the bread was done in forty minutes.",However,For example,Therefore,In addition,A
+Q-0253,Reading and Writing,Rule 3B - Pronouns,27,Last week the council announced ___ decision.,it's,its,his or her,their,B
+Q-0254,Math,Rule 5A - Part-to-part Ratios,33,"A collection has juniors and seniors in the ratio 5:3, 120 items in total. How many seniors are there?",75,40,360,45,D
+Q-0255,Reading and Writing,Rule 4A - Subjects and Verbs,91,Today the stack of old letters ___ a torn cover.,had,has,have,having,B
+Q-0256,Reading and Writing,Rule 4B - Verb Tenses,47,"Back in 2010, the robotics team ___ a new name.",chose,will choose,has chosen,chooses,A
+Q-0257,Math,Rule 6A - Linear Equations,34,Solve 8x + 24 = 72 for x.,48,12,6,40,C
+Q-0258,Reading and Writing,Rule 1A - Transition Words,49,"The well ran dry in August. ___, the farm bought water by the truckload.",However,In addition,Therefore,For example,C
+Q-0259,Reading and Writing,Rule 2A - Joining Clauses,42,The class ___ trip will be to the science center.,voted; the,voted; and the,voted the,"voted, the",A
+Q-0260,Reading and Writing,Rule 2B - Logical Comparisons,68,"According to the guidebook, the parks of Ashby are more varied than ___.",those of Kessington's,those of Kessington,Kessington,that of Kessington,B
+Q-0261,Math,Rule 5B - Area and Perimeter,89,"The perimeter of a rectangular garden is 46 meters and its length is 14 meters. What is its area, in square meters?",126,448,23,644,A
+Q-0262,Reading and Writing,Rule 1A - Transition Words,19,"The museum offers free programs. ___, it hosts a drawing class every Saturday.",However,Therefore,For example,In addition,C
+Q-0263,Reading and Writing,Rule 2A - Joining Clauses,40,The ferry ___ passengers hurried down the ramp.,arrived; the,arrived the,arrived; and the,"arrived, the",A
+Q-0264,Reading and Writing,Rule 2A - Joining Clauses,48,The bell ___ hallway filled at once.,rang every,"rang, every",rang; and every,rang; every,D
+Q-0265,Reading and Writing,Rule 4B - Verb Tenses,17,"Back in 2018, the robotics team ___ a new stage.",will build,builds,has built,built,D
+Q-0266,Math,Rule 5B - Area and Perimeter,66,"The perimeter of a rectangular garden is 74 meters and its length is 20 meters. What is its area, in square meters?",340,1080,1480,37,A
+Q-0267,Reading and Writing,Rule 1A - Transition Words,88,"The team won the regional final. ___, its captain was named player of the year.",However,In addition,For example,Therefore,B
+Q-0268,Math,Rule 6A - Linear Equations,81,Solve 8x + 16 = 104 for x.,11,15,88,80,A
+Q-0269,Math,Rule 5A - Part-to-part Ratios,44,"A collection has fiction books and nonfiction books in the ratio 6:4, 130 items in total. How many nonfiction books are there?",78,520,52,13,C
+Q-0270,Math,Rule 5B - Area and Perimeter,56,"The perimeter of a rectangular garden is 18 meters and its length is 7 meters. What is its area, in square meters?",14,126,2,9,A
+Q-0271,Math,Rule 6B - Function Notation,25,The function f is defined by f(x) = 4x + 3. What is f(6)?,27,13,36,24,A
+Q-0272,Reading and Writing,Rule 4A - Subjects and Verbs,28,Today the box of maps ___ near the window.,sits,sat,sitting,sit,A
+Q-0273,Reading and Writing,Rule 2B - Logical Comparisons,21,"According to the guidebook, the parks of Delford are more varied than ___.",those of Elmont's,that of Elmont,those of Elmont,Elmont,C
+Q-0274,Reading and Writing,Rule 2A - Joining Clauses,40,"By evening, the rain finally ___ crowd returned to the field.",stopped; the,stopped; and the,stopped the,"stopped, the",A
+Q-0275,Math,Rule 5A - Part-to-part Ratios,79,"A collection has cats and dogs in the ratio 4:5, 81 items in total. How many dogs are there?",36,405,45,9,C
+Q-0276,Math,Rule 1B - Percent Change,66,"The regular price of a backpack is $220. During a sale the price is reduced by 35%. What is the sale price of the backpack, in dollars?",185,297,143,77,C
+Q-0277,Math,Rule 6A - Linear Equations,91,Solve 9x + 36 = 108 for x.,8,63,16,72,A
+Q-0278,Math,Rule 6B - Function Notation,67,The function f is defined by f(x) = 7x + 2. What is f(5)?,37,35,14,49,A
+Q-0279,Reading and Writing,Rule 2A - Joining Clauses,44,"By evening, the bell ___ hallway filled at once.",rang; every,"rang, every",rang; and every,rang every,A
+Q-0280,Math,Rule 1B - Percent Change,89,"The regular price of a backpack is $160. During a sale the price is reduced by 15%. What is the sale price of the backpack, in dollars?",136,145,184,24,A
+Q-0281,Reading and Writing,Rule 2B - Logical Comparisons,91,"According to the guidebook, the rainfall of Fenwick is more varied than ___.",Harlow,that of Harlow's,those of Harlow,that of Harlow,D
+Q-0282,Reading and Writing,Rule 2B - Logical Comparisons,62,"According to the guidebook, the population of Elmont is more varied than ___.",those of Kessington,Kessington,that of Kessington's,that of Kessington,D
+Q-0283,Reading and Writing,Rule 2B - Logical Comparisons,88,"According to the guidebook, the population of Harlow is more varied than ___.",those of Elmont,that of Elmont's,Elmont,that of Elmont,D
+Q-0284,Reading and Writing,Rule 4B - Verb Tenses,47,"Back in 2004, the drama club ___ a short history of the town.",has written,writes,will write,wrote,D
+Q-0285,Reading and Writing,Rule 4A - Subjects and Verbs,31,Today the list of supplies ___ on the front desk.,are,being,is,was,C
+Q-0286,Reading and Writing,Rule 2A - Joining Clauses,23,"Late that week, the power ___ students kept reading by window light.",failed; most,failed; and most,failed most,"failed, most",A
+Q-0287,Math,Rule 1B - Percent Change,67,"The regular price of a backpack is $340. During a sale the price is reduced by 30%. What is the sale price of the backpack, in dollars?",310,442,102,238,D
+Q-0288,Reading and Writing,Rule 4A - Subjects and Verbs,15,Today the box of supplies ___ a torn cover.,having,has,have,had,B

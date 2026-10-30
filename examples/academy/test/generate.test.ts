@@ -97,8 +97,9 @@ describe('the organizations', () => {
         expect(a.academy.style.policy, pair).not.toEqual(b.academy.style.policy);
       }
     }
-    const counts = academies.map((a) => a.academy.style.policy.practiceCount);
-    expect(new Set(counts.slice(0, 3)).size).toBe(3);
+    const policies = academies.map((a) => a.academy.style.policy);
+    expect(new Set(policies.map((p) => p.practiceCount)).size).toBe(4);
+    expect(new Set(policies.map((p) => `${p.escalateWrong} in ${p.escalateDays}`)).size).toBe(4);
   });
 
   it('state their policy numbers in policy.md, where the reference reads them', () => {
@@ -200,14 +201,19 @@ describe('the tasks', () => {
     }
   });
 
-  it('include assignments where fewer questions qualify than the policy asks for', () => {
-    for (const org of job.orgs()) {
-      const short = job
-        .tasksOfType('assign')
-        .filter((t) => t.org === org)
-        .filter((t) => Number(paramsOf(t).expected_count) < Number(paramsOf(t).count));
-      expect(short.length, org).toBeGreaterThan(0);
-    }
+  it('include diagnoses whose wrong choice two errors produce', () => {
+    const sets = job
+      .tasksOfType('diagnose')
+      .filter((t) => (paramsOf(t).errors as string[]).length > 1);
+    expect(sets.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('include a few assignments where fewer questions qualify than the policy asks for', () => {
+    const short = [...job.tasksOfType('assign'), ...job.tasksOfType('after_wrong')].filter(
+      (t) => Number(paramsOf(t).expected_count) < Number(paramsOf(t).count),
+    );
+    expect(short.length).toBeGreaterThanOrEqual(2);
+    expect(short.length).toBeLessThanOrEqual(8);
   });
 
   it('open the tutoring turns with the same wrong answer at every academy, acted on differently', () => {
@@ -220,8 +226,9 @@ describe('the tasks', () => {
       const nearer = academy.errors.find((e) => e.code === 'agreement-nearer-noun')!.error_id;
       expect(paramsOf(task).errors, task.id).toEqual([nearer]);
     }
-    const [wrenfield, , oakhollow] = first.map(paramsOf);
-    expect(wrenfield!.expected_count).not.toBe(oakhollow!.expected_count);
-    expect(wrenfield!.escalate).not.toBe(oakhollow!.escalate);
+    // The demo pair: Wrenfield assigns 2 and leaves no note; Lakemont assigns 5 and leaves one.
+    const turn = (org: string) => paramsOf(first.find((t) => t.org === org)!);
+    expect([turn('wrenfield').expected_count, turn('wrenfield').escalate]).toEqual([2, false]);
+    expect([turn('lakemont').expected_count, turn('lakemont').escalate]).toEqual([5, true]);
   });
 });

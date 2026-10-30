@@ -26,13 +26,13 @@ Give the approved hint written for the error behind the student's choice (hints.
 
 A student's history on a topic is read as of a date: attempts taken after that date are left out. Every attempt counts, retakes included: a question answered twice is two attempts. Of the attempts that count, take the latest 5, ordered by the date taken, then module, then question number (fewer if the student has fewer). Report how many attempts that is, how many were right, and the accuracy: right answers divided by those attempts, as a whole percent, rounded half up.
 
-Escalate when those attempts hold 3 or more wrong answers.
+Escalation looks at time, not at the window: escalate when the attempts that count, taken in the 14 days ending on that date (the date itself and the 13 before it), hold 3 or more wrong answers.
 
 ## Follow-up practice
 
 Assign 2 questions from the bank. Each must be of the same topic, never attempted by the student on any test, not already assigned to them, and with `difficulty_pct` from 35 to 60, both included. Any questions that meet these rules will do; never assign the same question twice. If fewer than 2 questions qualify, assign all that do and say how many.
 
-Each question is one row of `assignments.csv`: a new `assignment_id` (number on from the highest id already in the file, in the same format, one per row), the student, the question, today's date as `assigned_on`, and the student's tutor as `assigned_by`.
+Each question is one row of `assignments.csv`: a new `assignment_id` (number on from the highest id already in the file, in the same format, one per row; A-0001 if the file has none yet), the student, the question, today's date as `assigned_on`, and the student's tutor as `assigned_by`.
 
 ## The tutoring turn after a wrong answer
 
@@ -52,6 +52,7 @@ Change nothing else. Never edit or delete a row that is already there.
 | Practice difficulty, lowest percent correct | 35 |
 | Practice difficulty, highest percent correct | 60 |
 | History window, latest attempts on the topic | 5 |
-| Wrong answers in the window that call for a staff note | 3 |
+| Wrong answers that call for a staff note | 3 |
+| Days those wrong answers are counted over | 14 |
 | Attempts that count in history | every attempt |
 | First hint | the hint for the error |

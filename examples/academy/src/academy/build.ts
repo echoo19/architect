@@ -1,3 +1,4 @@
+import { addDays } from '../lib/calendar';
 import { compareText } from '../lib/compare';
 import type { Random } from '../lib/random';
 import { academyStyle } from './style';
@@ -20,7 +21,8 @@ const TESTS = 5;
 const STUDENTS = 16;
 /** Questions in each module of a practice test: one per topic of the section. */
 const MODULE_QUESTIONS = 6;
-const BANK_PER_TOPIC = 18;
+/** Bank questions per topic: more for an academy that assigns more practice at a time. */
+const bankPerTopic = (style: AcademyStyle) => 12 + 3 * style.policy.practiceCount;
 
 export interface Topic {
   kind: TopicKind;
@@ -260,7 +262,9 @@ function buildBank(random: Random, style: AcademyStyle, topics: Topic[]): Questi
   const drafts: Omit<Question, 'question_id'>[] = [];
   for (const topic of topics) {
     const stems = new Set<string>();
-    while (stems.size < BANK_PER_TOPIC) {
+    for (let tries = 0; stems.size < bankPerTopic(style); tries += 1) {
+      if (tries > 5000)
+        throw new Error(`${topic.kind.kind} can't write enough different questions`);
       const item = topic.kind.make(random, style.phrasing);
       if (stems.has(item.stem)) continue;
       stems.add(item.stem);
@@ -367,7 +371,11 @@ function buildAttempts(
     const taken = random.sample(testIds, random.int(2, TESTS)).sort(compareText);
     const sittings = [...taken];
     if (random.chance(0.35)) sittings.push(random.pick(taken));
-    const days = random.sample(range(0, 75), sittings.length).sort((a, b) => a - b);
+    // Earlier sittings from September on; the latest in the last two weeks.
+    const days = [
+      ...random.sample(range(0, 60), sittings.length - 1).sort((a, b) => a - b),
+      random.int(62, 76),
+    ];
     sittings.forEach((testId, s) => {
       const retake = sittings.indexOf(testId) !== s;
       const day = addDays('2026-08-31', days[s]!);
@@ -492,10 +500,4 @@ function buildNotes(
 
 function range(from: number, to: number): number[] {
   return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-}
-
-/** A YYYY-MM-DD date moved by whole days. */
-export function addDays(date: string, days: number): string {
-  const [year, month, day] = date.split('-').map(Number) as [number, number, number];
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 }

@@ -494,6 +494,14 @@ const TRANSITION_PAIRS: readonly [Relation, string, string][] = [
     'its members spent weekends walking dogs.',
   ],
   ['addition', 'The new bus line runs every ten minutes.', 'it stops at both high schools.'],
+  ['contrast', 'The puzzle looked easy at first.', 'nobody in the class could solve it.'],
+  ['contrast', 'The old bridge seemed fragile.', 'it carried trucks for ninety years.'],
+  ['result', 'The roads iced over before dawn.', 'the schools opened two hours late.'],
+  ['result', 'The bakery doubled its prices.', 'many regulars started baking at home.'],
+  ['example', 'Some metals resist rust.', 'stainless steel stays bright for decades.'],
+  ['example', 'Our library lends more than books.', 'members can borrow telescopes and tools.'],
+  ['addition', 'The museum added evening hours.', 'it opened a cafe on the roof.'],
+  ['addition', 'The team won the regional final.', 'its captain was named player of the year.'],
 ];
 
 export const GRAMMAR_KINDS: readonly TopicKind[] = [
@@ -706,8 +714,11 @@ export const GRAMMAR_KINDS: readonly TopicKind[] = [
     },
     (r) => {
       const [start, verb, next, rest] = r.pick(BOUNDARY_CLAUSES);
+      const when = r.pick(['', 'By evening, ', 'Late that week, ']);
+      const opening =
+        when === '' ? start : `${when}${start.charAt(0).toLowerCase()}${start.slice(1)}`;
       return {
-        stem: `${start} ___ ${rest}`,
+        stem: `${opening} ___ ${rest}`,
         right: `${verb}; ${next}`,
         wrong: [
           ['boundary-comma-splice', `${verb}, ${next}`],

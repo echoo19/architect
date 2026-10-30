@@ -1,0 +1,325 @@
+question_id,section,topic,difficulty_pct,stem,choice_a,choice_b,choice_c,choice_d,correct
+M103,Math,Algebra: solving linear equations,15,Solve 5x + 30 = 80 for x.,10,50,22,45,A
+M104,Math,Problem solving: ratios and proportions,15,"A collection has fiction books and nonfiction books in the ratio 3:6, 27 items in total. How many nonfiction books are there?",3,9,18,162,C
+M106,Math,Algebra: two-equation systems,81,"In the system x + y = 16 and x - y = 6, what is the value of x?",11,10,22,16,A
+M107,Math,Algebra: solving linear equations,73,Solve 8x + 48 = 104 for x.,7,56,19,48,A
+M108,Math,Algebra: evaluating functions,70,The function f is defined by f(x) = 4x + 3. What is f(3)?,15,24,10,12,A
+M111,Math,Problem solving: ratios and proportions,83,"A collection has cats and dogs in the ratio 2:6, 48 items in total. How many dogs are there?",36,6,8,12,A
+M114,Math,Geometry: area and perimeter,76,"The perimeter of a rectangular garden is 74 meters and its length is 19 meters. What is its area, in square meters?",18,37,1406,342,D
+M115,Math,Geometry: area and perimeter,21,"The perimeter of a rectangular garden is 22 meters and its length is 8 meters. What is its area, in square meters?",24,112,11,3,A
+M117,Math,Algebra: two-equation systems,37,"In the system x + y = 32 and x - y = 2, what is the value of x?",17,15,34,32,A
+M118,Math,Geometry: area and perimeter,20,"The perimeter of a rectangular garden is 12 meters and its length is 4 meters. What is its area, in square meters?",6,2,8,48,C
+M119,Math,Problem solving: percents and discounts,74,"The regular price of a bike is $100. During a sale the price is reduced by 10%. What is the sale price of the bike, in dollars?",90,10,80,110,A
+M123,Math,Algebra: two-equation systems,83,"In the system x + y = 33 and x - y = 3, what is the value of x?",30,36,18,15,C
+M125,Math,Algebra: two-equation systems,57,"In the system x + y = 15 and x - y = 9, what is the value of x?",6,15,3,12,D
+M126,Math,Algebra: two-equation systems,58,"In the system x + y = 31 and x - y = 1, what is the value of x?",16,15,32,30,A
+M128,Math,Algebra: solving linear equations,66,Solve 4x + 24 = 64 for x.,22,10,36,40,B
+M131,Math,Geometry: area and perimeter,69,"The perimeter of a rectangular garden is 26 meters and its length is 10 meters. What is its area, in square meters?",13,260,30,160,C
+M133,Math,Algebra: two-equation systems,78,"In the system x + y = 33 and x - y = 7, what is the value of x?",33,40,20,13,C
+M134,Math,Geometry: area and perimeter,34,"The perimeter of a rectangular garden is 54 meters and its length is 14 meters. What is its area, in square meters?",13,560,27,182,D
+M135,Math,Algebra: two-equation systems,72,"In the system x + y = 24 and x - y = 4, what is the value of x?",14,20,24,10,A
+M137,Math,Geometry: area and perimeter,74,"The perimeter of a rectangular garden is 42 meters and its length is 17 meters. What is its area, in square meters?",4,425,68,21,C
+M138,Math,Algebra: solving linear equations,77,Solve 7x + 28 = 49 for x.,14,21,3,11,C
+M140,Math,Algebra: solving linear equations,90,Solve 7x + 7 = 21 for x.,14,4,2,7,C
+M141,Math,Problem solving: percents and discounts,24,"The regular price of a bike is $300. During a sale the price is reduced by 40%. What is the sale price of the bike, in dollars?",260,180,60,120,B
+M145,Math,Geometry: area and perimeter,18,"The perimeter of a rectangular garden is 34 meters and its length is 11 meters. What is its area, in square meters?",66,374,17,253,A
+M146,Math,Geometry: area and perimeter,55,"The perimeter of a rectangular garden is 40 meters and its length is 16 meters. What is its area, in square meters?",64,384,640,20,A
+M148,Math,Geometry: area and perimeter,65,"The perimeter of a rectangular garden is 38 meters and its length is 14 meters. What is its area, in square meters?",5,532,19,70,D
+M149,Math,Problem solving: ratios and proportions,35,"A collection has cats and dogs in the ratio 3:4, 63 items in total. How many dogs are there?",9,27,36,252,C
+M150,Math,Problem solving: ratios and proportions,24,"A collection has juniors and seniors in the ratio 4:6, 110 items in total. How many seniors are there?",66,44,660,11,A
+M153,Math,Algebra: solving linear equations,70,Solve 8x + 40 = 80 for x.,5,32,15,40,A
+M156,Math,Problem solving: ratios and proportions,78,"A collection has juniors and seniors in the ratio 1:4, 20 items in total. How many seniors are there?",5,4,80,16,D
+M159,Math,Algebra: two-equation systems,49,"In the system x + y = 7 and x - y = 3, what is the value of x?",7,2,4,5,D
+M160,Math,Algebra: solving linear equations,25,Solve 2x + 10 = 30 for x.,10,5,20,18,A
+M161,Math,Problem solving: percents and discounts,18,"The regular price of a backpack is $160. During a sale the price is reduced by 25%. What is the sale price of the backpack, in dollars?",80,135,120,40,C
+M164,Math,Geometry: area and perimeter,85,"The perimeter of a rectangular garden is 52 meters and its length is 14 meters. What is its area, in square meters?",168,728,26,12,A
+M168,Math,Algebra: solving linear equations,41,Solve 3x + 12 = 54 for x.,14,22,39,42,A
+M169,Math,Algebra: evaluating functions,59,The function f is defined by f(x) = 8x + 5. What is f(4)?,28,72,17,37,D
+M170,Math,Algebra: two-equation systems,65,"In the system x + y = 15 and x - y = 3, what is the value of x?",18,15,12,9,D
+M171,Math,Geometry: area and perimeter,72,"The perimeter of a rectangular garden is 52 meters and its length is 16 meters. What is its area, in square meters?",832,576,160,10,C
+M173,Math,Algebra: solving linear equations,25,Solve 3x + 12 = 21 for x.,6,3,9,11,B
+M174,Math,Geometry: area and perimeter,26,"The perimeter of a rectangular garden is 22 meters and its length is 7 meters. What is its area, in square meters?",28,4,11,154,A
+M177,Math,Geometry: area and perimeter,49,"The perimeter of a rectangular garden is 28 meters and its length is 9 meters. What is its area, in square meters?",14,45,252,171,B
+M178,Math,Problem solving: percents and discounts,56,"The regular price of a bike is $80. During a sale the price is reduced by 25%. What is the sale price of the bike, in dollars?",100,20,40,60,D
+M181,Math,Geometry: area and perimeter,74,"The perimeter of a rectangular garden is 30 meters and its length is 8 meters. What is its area, in square meters?",56,176,240,15,A
+M182,Math,Geometry: area and perimeter,83,"The perimeter of a rectangular garden is 34 meters and its length is 9 meters. What is its area, in square meters?",225,306,17,72,D
+M184,Math,Algebra: solving linear equations,42,Solve 9x + 9 = 45 for x.,6,27,4,36,C
+M188,Math,Algebra: evaluating functions,64,The function f is defined by f(x) = 6x + 10. What is f(3)?,78,28,19,36,B
+M191,Math,Algebra: evaluating functions,62,The function f is defined by f(x) = 6x + 11. What is f(5)?,30,41,61,22,B
+M195,Math,Algebra: solving linear equations,15,Solve 7x + 42 = 63 for x.,14,21,15,3,D
+M197,Math,Problem solving: ratios and proportions,52,"A collection has cats and dogs in the ratio 4:7, 66 items in total. How many dogs are there?",42,6,462,24,A
+M203,Math,Algebra: evaluating functions,79,The function f is defined by f(x) = 8x + 12. What is f(6)?,60,26,144,48,A
+M204,Math,Algebra: evaluating functions,56,The function f is defined by f(x) = 3x + 1. What is f(5)?,16,9,18,15,A
+M210,Math,Problem solving: percents and discounts,32,"The regular price of a jacket is $360. During a sale the price is reduced by 40%. What is the sale price of the jacket, in dollars?",216,72,320,144,A
+M211,Math,Algebra: two-equation systems,76,"In the system x + y = 8 and x - y = 6, what is the value of x?",8,14,2,7,D
+M213,Math,Algebra: evaluating functions,90,The function f is defined by f(x) = 5x + 1. What is f(4)?,25,9,10,21,D
+M215,Math,Geometry: area and perimeter,67,"The perimeter of a rectangular garden is 46 meters and its length is 14 meters. What is its area, in square meters?",644,126,23,448,B
+M216,Math,Problem solving: percents and discounts,31,"The regular price of a backpack is $40. During a sale the price is reduced by 20%. What is the sale price of the backpack, in dollars?",32,48,20,8,A
+M218,Math,Geometry: area and perimeter,47,"The perimeter of a rectangular garden is 38 meters and its length is 16 meters. What is its area, in square meters?",3,48,352,19,B
+M220,Math,Algebra: solving linear equations,43,Solve 5x + 20 = 50 for x.,25,30,6,14,C
+M223,Math,Geometry: area and perimeter,60,"The perimeter of a rectangular garden is 26 meters and its length is 7 meters. What is its area, in square meters?",13,42,182,6,B
+M224,Math,Algebra: solving linear equations,34,Solve 3x + 15 = 54 for x.,39,23,3,13,D
+M225,Math,Algebra: evaluating functions,81,The function f is defined by f(x) = 9x + 9. What is f(6)?,63,54,24,135,A
+M226,Math,Problem solving: ratios and proportions,92,"A collection has juniors and seniors in the ratio 3:6, 63 items in total. How many seniors are there?",42,7,378,21,A
+M227,Math,Problem solving: ratios and proportions,54,"A collection has fiction books and nonfiction books in the ratio 5:4, 135 items in total. How many nonfiction books are there?",60,540,15,75,A
+M228,Math,Problem solving: percents and discounts,46,"The regular price of a bike is $160. During a sale the price is reduced by 20%. What is the sale price of the bike, in dollars?",140,128,32,192,B
+M229,Math,Algebra: evaluating functions,20,The function f is defined by f(x) = 3x + 11. What is f(2)?,16,39,6,17,D
+M230,Math,Algebra: two-equation systems,26,"In the system x + y = 16 and x - y = 4, what is the value of x?",10,16,12,20,A
+M231,Math,Problem solving: percents and discounts,36,"The regular price of a lamp is $100. During a sale the price is reduced by 15%. What is the sale price of the lamp, in dollars?",115,85,70,15,B
+M232,Math,Algebra: two-equation systems,37,"In the system x + y = 22 and x - y = 2, what is the value of x?",12,24,20,22,A
+M233,Math,Algebra: evaluating functions,33,The function f is defined by f(x) = 8x + 9. What is f(5)?,22,40,112,49,D
+M235,Math,Geometry: area and perimeter,57,"The perimeter of a rectangular garden is 16 meters and its length is 6 meters. What is its area, in square meters?",8,60,96,12,D
+M237,Math,Problem solving: ratios and proportions,60,"A collection has cats and dogs in the ratio 2:6, 96 items in total. How many dogs are there?",12,576,72,24,C
+M240,Math,Geometry: area and perimeter,31,"The perimeter of a rectangular garden is 50 meters and its length is 20 meters. What is its area, in square meters?",5,1000,25,100,D
+M241,Math,Problem solving: ratios and proportions,23,"A collection has red marbles and blue marbles in the ratio 5:7, 72 items in total. How many blue marbles are there?",6,504,30,42,D
+M244,Math,Algebra: solving linear equations,19,Solve 5x + 25 = 55 for x.,6,30,25,16,A
+M245,Math,Problem solving: ratios and proportions,52,"A collection has cats and dogs in the ratio 4:3, 49 items in total. How many dogs are there?",147,28,21,7,C
+M247,Math,Problem solving: percents and discounts,46,"The regular price of a jacket is $180. During a sale the price is reduced by 20%. What is the sale price of the jacket, in dollars?",36,216,160,144,D
+M248,Math,Problem solving: percents and discounts,25,"The regular price of a lamp is $140. During a sale the price is reduced by 25%. What is the sale price of the lamp, in dollars?",70,175,105,35,C
+M252,Math,Problem solving: ratios and proportions,80,"A collection has juniors and seniors in the ratio 6:5, 110 items in total. How many seniors are there?",50,550,60,22,A
+M253,Math,Problem solving: percents and discounts,73,"The regular price of a backpack is $160. During a sale the price is reduced by 10%. What is the sale price of the backpack, in dollars?",16,176,150,144,D
+M254,Math,Algebra: solving linear equations,35,Solve 3x + 6 = 51 for x.,42,19,11,15,D
+M255,Math,Algebra: two-equation systems,75,"In the system x + y = 24 and x - y = 16, what is the value of x?",20,40,4,8,A
+M258,Math,Algebra: solving linear equations,51,Solve 7x + 42 = 140 for x.,98,14,26,91,B
+M260,Math,Algebra: solving linear equations,35,Solve 8x + 32 = 112 for x.,10,80,72,18,A
+M261,Math,Algebra: two-equation systems,18,"In the system x + y = 20 and x - y = 2, what is the value of x?",11,20,18,9,A
+M264,Math,Problem solving: percents and discounts,44,"The regular price of a jacket is $340. During a sale the price is reduced by 25%. What is the sale price of the jacket, in dollars?",170,85,425,255,D
+M268,Math,Problem solving: ratios and proportions,65,"A collection has red marbles and blue marbles in the ratio 3:2, 25 items in total. How many blue marbles are there?",50,15,5,10,D
+M269,Math,Problem solving: ratios and proportions,47,"A collection has red marbles and blue marbles in the ratio 6:2, 88 items in total. How many blue marbles are there?",176,44,22,66,C
+M270,Math,Algebra: evaluating functions,75,The function f is defined by f(x) = 6x + 3. What is f(9)?,33,72,57,18,C
+M271,Math,Algebra: solving linear equations,59,Solve 4x + 20 = 68 for x.,12,44,22,48,A
+M272,Math,Algebra: evaluating functions,38,The function f is defined by f(x) = 9x + 5. What is f(3)?,32,27,24,17,A
+M273,Math,Algebra: two-equation systems,50,"In the system x + y = 11 and x - y = 3, what is the value of x?",11,8,14,7,D
+M277,Math,Problem solving: percents and discounts,26,"The regular price of a backpack is $80. During a sale the price is reduced by 30%. What is the sale price of the backpack, in dollars?",104,32,24,56,D
+M278,Math,Problem solving: ratios and proportions,19,"A collection has cats and dogs in the ratio 3:4, 35 items in total. How many dogs are there?",15,20,140,5,B
+M279,Math,Algebra: evaluating functions,63,The function f is defined by f(x) = 5x + 12. What is f(4)?,80,53,20,32,D
+M282,Math,Problem solving: ratios and proportions,69,"A collection has cats and dogs in the ratio 6:3, 135 items in total. How many dogs are there?",90,15,45,405,C
+M283,Math,Problem solving: percents and discounts,75,"The regular price of a bike is $220. During a sale the price is reduced by 40%. What is the sale price of the bike, in dollars?",132,88,308,180,A
+M284,Math,Problem solving: percents and discounts,51,"The regular price of a jacket is $80. During a sale the price is reduced by 20%. What is the sale price of the jacket, in dollars?",64,60,16,48,A
+M287,Math,Geometry: area and perimeter,31,"The perimeter of a rectangular garden is 20 meters and its length is 7 meters. What is its area, in square meters?",140,21,10,91,B
+M291,Math,Algebra: evaluating functions,35,The function f is defined by f(x) = 8x + 1. What is f(4)?,40,12,33,32,C
+M295,Math,Geometry: area and perimeter,74,"The perimeter of a rectangular garden is 50 meters and its length is 18 meters. What is its area, in square meters?",126,25,7,576,A
+M296,Math,Geometry: area and perimeter,56,"The perimeter of a rectangular garden is 22 meters and its length is 9 meters. What is its area, in square meters?",117,2,18,198,C
+M297,Math,Algebra: evaluating functions,54,The function f is defined by f(x) = 3x + 2. What is f(4)?,11,18,14,12,C
+M298,Math,Algebra: solving linear equations,83,Solve 9x + 18 = 63 for x.,45,36,9,5,D
+M299,Math,Algebra: evaluating functions,21,The function f is defined by f(x) = 9x + 6. What is f(2)?,24,21,72,18,A
+M301,Math,Algebra: evaluating functions,49,The function f is defined by f(x) = 3x + 5. What is f(2)?,6,21,11,10,C
+M303,Math,Algebra: evaluating functions,75,The function f is defined by f(x) = 5x + 9. What is f(3)?,17,15,24,32,C
+M306,Math,Geometry: area and perimeter,44,"The perimeter of a rectangular garden is 46 meters and its length is 17 meters. What is its area, in square meters?",6,102,23,782,B
+M307,Math,Algebra: two-equation systems,63,"In the system x + y = 37 and x - y = 1, what is the value of x?",19,18,38,37,A
+M309,Math,Algebra: solving linear equations,54,Solve 2x + 4 = 22 for x.,7,13,16,9,D
+M312,Math,Algebra: two-equation systems,22,"In the system x + y = 20 and x - y = 14, what is the value of x?",17,34,3,20,A
+M315,Math,Algebra: solving linear equations,50,Solve 7x + 14 = 84 for x.,10,63,14,70,A
+M320,Math,Algebra: two-equation systems,49,"In the system x + y = 26 and x - y = 8, what is the value of x?",34,17,9,18,B
+M321,Math,Problem solving: percents and discounts,19,"The regular price of a lamp is $160. During a sale the price is reduced by 10%. What is the sale price of the lamp, in dollars?",176,150,128,144,D
+M325,Math,Algebra: solving linear equations,89,Solve 8x + 16 = 88 for x.,9,72,64,13,A
+M327,Math,Algebra: two-equation systems,75,"In the system x + y = 9 and x - y = 7, what is the value of x?",8,16,2,1,A
+M331,Math,Algebra: solving linear equations,32,Solve 5x + 10 = 25 for x.,7,15,10,3,D
+M333,Math,Problem solving: percents and discounts,28,"The regular price of a backpack is $280. During a sale the price is reduced by 40%. What is the sale price of the backpack, in dollars?",112,168,392,240,B
+M336,Math,Problem solving: percents and discounts,17,"The regular price of a bike is $80. During a sale the price is reduced by 10%. What is the sale price of the bike, in dollars?",70,88,64,72,D
+M337,Math,Problem solving: ratios and proportions,26,"A collection has fiction books and nonfiction books in the ratio 6:7, 130 items in total. How many nonfiction books are there?",10,70,910,60,B
+M340,Math,Algebra: solving linear equations,64,Solve 6x + 6 = 24 for x.,5,3,12,18,B
+M345,Math,Problem solving: ratios and proportions,50,"A collection has red marbles and blue marbles in the ratio 2:3, 45 items in total. How many blue marbles are there?",9,18,27,15,C
+M346,Math,Problem solving: percents and discounts,18,"The regular price of a lamp is $200. During a sale the price is reduced by 25%. What is the sale price of the lamp, in dollars?",175,150,250,50,B
+M347,Math,Algebra: two-equation systems,16,"In the system x + y = 10 and x - y = 2, what is the value of x?",8,6,12,4,B
+M352,Math,Problem solving: ratios and proportions,85,"A collection has cats and dogs in the ratio 7:3, 70 items in total. How many dogs are there?",210,21,49,7,B
+M353,Math,Algebra: two-equation systems,15,"In the system x + y = 12 and x - y = 2, what is the value of x?",10,5,7,14,C
+M356,Math,Algebra: two-equation systems,45,"In the system x + y = 19 and x - y = 7, what is the value of x?",26,19,13,6,C
+M357,Math,Algebra: solving linear equations,92,Solve 4x + 16 = 68 for x.,52,1,13,21,C
+M358,Math,Algebra: two-equation systems,37,"In the system x + y = 25 and x - y = 7, what is the value of x?",16,9,32,25,A
+M359,Math,Algebra: two-equation systems,17,"In the system x + y = 23 and x - y = 1, what is the value of x?",22,11,24,12,D
+M360,Math,Problem solving: ratios and proportions,44,"A collection has red marbles and blue marbles in the ratio 7:3, 120 items in total. How many blue marbles are there?",36,360,40,84,A
+M361,Math,Problem solving: percents and discounts,26,"The regular price of a lamp is $100. During a sale the price is reduced by 25%. What is the sale price of the lamp, in dollars?",75,125,50,25,A
+M362,Math,Algebra: evaluating functions,43,The function f is defined by f(x) = 2x + 1. What is f(7)?,14,10,15,16,C
+M367,Math,Algebra: evaluating functions,22,The function f is defined by f(x) = 3x + 12. What is f(4)?,24,12,19,51,A
+M370,Math,Problem solving: ratios and proportions,50,"A collection has juniors and seniors in the ratio 4:3, 42 items in total. How many seniors are there?",24,18,14,6,B
+M372,Math,Algebra: evaluating functions,70,The function f is defined by f(x) = 7x + 8. What is f(9)?,24,119,79,71,D
+M373,Math,Algebra: two-equation systems,80,"In the system x + y = 11 and x - y = 1, what is the value of x?",11,5,6,12,C
+M380,Math,Problem solving: ratios and proportions,34,"A collection has fiction books and nonfiction books in the ratio 5:7, 132 items in total. How many nonfiction books are there?",77,55,11,924,A
+M381,Math,Problem solving: percents and discounts,56,"The regular price of a jacket is $180. During a sale the price is reduced by 40%. What is the sale price of the jacket, in dollars?",108,140,72,252,A
+M382,Math,Geometry: area and perimeter,79,"The perimeter of a rectangular garden is 66 meters and its length is 17 meters. What is its area, in square meters?",16,1122,833,272,D
+M384,Math,Geometry: area and perimeter,15,"The perimeter of a rectangular garden is 30 meters and its length is 10 meters. What is its area, in square meters?",50,15,200,300,A
+M385,Math,Algebra: two-equation systems,20,"In the system x + y = 20 and x - y = 16, what is the value of x?",18,2,4,20,A
+M386,Math,Problem solving: percents and discounts,54,"The regular price of a backpack is $200. During a sale the price is reduced by 15%. What is the sale price of the backpack, in dollars?",185,30,170,140,C
+M387,Math,Problem solving: ratios and proportions,89,"A collection has cats and dogs in the ratio 7:4, 165 items in total. How many dogs are there?",105,60,15,660,B
+M388,Math,Problem solving: ratios and proportions,86,"A collection has red marbles and blue marbles in the ratio 6:7, 195 items in total. How many blue marbles are there?",105,90,1365,15,A
+M390,Math,Problem solving: ratios and proportions,23,"A collection has fiction books and nonfiction books in the ratio 2:4, 84 items in total. How many nonfiction books are there?",28,336,21,56,D
+M391,Math,Geometry: area and perimeter,52,"The perimeter of a rectangular garden is 38 meters and its length is 17 meters. What is its area, in square meters?",357,34,19,646,B
+M392,Math,Algebra: solving linear equations,65,Solve 3x + 3 = 9 for x.,3,6,4,2,D
+M394,Math,Problem solving: percents and discounts,52,"The regular price of a jacket is $380. During a sale the price is reduced by 10%. What is the sale price of the jacket, in dollars?",370,342,418,304,B
+M395,Math,Problem solving: percents and discounts,70,"The regular price of a bike is $280. During a sale the price is reduced by 35%. What is the sale price of the bike, in dollars?",378,84,245,182,D
+M396,Math,Algebra: solving linear equations,47,Solve 6x + 6 = 96 for x.,84,17,90,15,D
+M397,Math,Algebra: two-equation systems,91,"In the system x + y = 26 and x - y = 10, what is the value of x?",26,8,18,36,C
+M398,Math,Algebra: evaluating functions,77,The function f is defined by f(x) = 9x + 5. What is f(5)?,34,50,45,90,B
+M400,Math,Algebra: evaluating functions,36,The function f is defined by f(x) = 4x + 9. What is f(5)?,29,49,56,18,A
+M401,Math,Problem solving: ratios and proportions,33,"A collection has cats and dogs in the ratio 6:4, 40 items in total. How many dogs are there?",16,10,160,24,A
+M402,Math,Algebra: evaluating functions,49,The function f is defined by f(x) = 2x + 1. What is f(9)?,19,20,18,12,A
+M405,Math,Algebra: evaluating functions,35,The function f is defined by f(x) = 4x + 10. What is f(3)?,12,22,52,34,B
+M407,Math,Problem solving: percents and discounts,76,"The regular price of a jacket is $400. During a sale the price is reduced by 30%. What is the sale price of the jacket, in dollars?",280,370,520,160,A
+M410,Math,Algebra: evaluating functions,57,The function f is defined by f(x) = 8x + 10. What is f(9)?,72,82,27,152,B
+M412,Math,Algebra: evaluating functions,68,The function f is defined by f(x) = 7x + 8. What is f(7)?,57,22,105,63,A
+M413,Math,Problem solving: percents and discounts,35,"The regular price of a backpack is $380. During a sale the price is reduced by 40%. What is the sale price of the backpack, in dollars?",152,532,76,228,D
+M416,Math,Problem solving: ratios and proportions,85,"A collection has fiction books and nonfiction books in the ratio 2:5, 84 items in total. How many nonfiction books are there?",12,420,24,60,D
+M417,Math,Problem solving: percents and discounts,29,"The regular price of a backpack is $200. During a sale the price is reduced by 35%. What is the sale price of the backpack, in dollars?",165,70,60,130,D
+RW101,Reading and Writing,Punctuation: joining clauses,56,The ferry ___ passengers hurried down the ramp.,"arrived, the",arrived; and the,arrived; the,arrived the,C
+RW102,Reading and Writing,Grammar: agreement,70,Today the box of receipts ___ near the window.,sit,sitting,sits,sat,C
+RW105,Reading and Writing,Expression of ideas: transitions,66,"The new park has a large playground. ___, it includes a quiet reading garden.",Therefore,For example,In addition,However,C
+RW109,Reading and Writing,Expression of ideas: transitions,81,"The first draft ran to ten pages. ___, the final essay fit on one.",However,In addition,Therefore,For example,A
+RW110,Reading and Writing,Grammar: logical comparisons,64,"According to the guidebook, the museums of Marlow are more varied than ___.",that of Harlow,Harlow,those of Harlow,those of Harlow's,C
+RW112,Reading and Writing,Expression of ideas: transitions,38,"The new bus line runs every ten minutes. ___, it stops at both high schools.",For example,However,Therefore,In addition,D
+RW113,Reading and Writing,Punctuation: joining clauses,25,The museum ___ new wing drew long lines.,"reopened, its",reopened its,reopened; its,reopened; and its,C
+RW116,Reading and Writing,Grammar: verb tenses,84,"Back in 2011, the drama club ___ a record crowd.",will draw,draws,has drawn,drew,D
+RW120,Reading and Writing,Expression of ideas: transitions,18,"Many desert plants store water. ___, the barrel cactus can go months without rain.",Therefore,However,In addition,For example,D
+RW121,Reading and Writing,Grammar: agreement,19,Today the collection of maps ___ a torn cover.,had,having,have,has,D
+RW122,Reading and Writing,Grammar: agreement,70,Today the list of photos ___ a new label.,need,needs,needed,needing,B
+RW124,Reading and Writing,Grammar: verb tenses,65,"Back in 2011, the robotics team ___ the old record.",has broken,breaks,will break,broke,D
+RW127,Reading and Writing,Grammar: verb tenses,52,"Back in 1999, the drama club ___ a weekly podcast.",began,begins,has begun,will begin,A
+RW129,Reading and Writing,Grammar: logical comparisons,32,"According to the guidebook, the climate of Harlow is more varied than ___.",that of Marlow's,that of Marlow,Marlow,those of Marlow,B
+RW130,Reading and Writing,Grammar: verb tenses,91,"Back in 2001, the robotics team ___ a new stage.",built,will build,builds,has built,A
+RW132,Reading and Writing,Grammar: pronouns,70,Last week the team posted ___ schedule for the spring.,his or her,their,its,it's,C
+RW136,Reading and Writing,Grammar: agreement,66,Today the list of notes ___ near the window.,sat,sits,sit,sitting,B
+RW139,Reading and Writing,Grammar: pronouns,88,Last week the club announced ___ decision.,its,it's,his or her,their,A
+RW142,Reading and Writing,Grammar: pronouns,29,Last week the committee posted ___ schedule for the spring.,their,its,his or her,it's,B
+RW143,Reading and Writing,Expression of ideas: transitions,48,"Our library lends more than books. ___, members can borrow telescopes and tools.",Therefore,For example,In addition,However,B
+RW144,Reading and Writing,Expression of ideas: transitions,72,"The old bridge seemed fragile. ___, it carried trucks for ninety years.",For example,In addition,Therefore,However,D
+RW147,Reading and Writing,Punctuation: joining clauses,20,"By evening, the snow ___ river rose by noon.",melted; and the,melted the,melted; the,"melted, the",C
+RW151,Reading and Writing,Grammar: logical comparisons,84,"According to the guidebook, the streets of Ashby are more varied than ___.",those of Delford's,those of Delford,Delford,that of Delford,B
+RW152,Reading and Writing,Punctuation: joining clauses,32,"Late that week, the shop ___ second floor now sells books.","expanded, its",expanded its,expanded; and its,expanded; its,D
+RW154,Reading and Writing,Grammar: pronouns,82,Last week the council posted ___ schedule for the spring.,it's,its,his or her,their,B
+RW155,Reading and Writing,Grammar: pronouns,67,Last week the band celebrated ___ tenth anniversary.,its,their,his or her,it's,A
+RW157,Reading and Writing,Grammar: verb tenses,46,"Back in 2017, the robotics team ___ a new name.",has chosen,chose,will choose,chooses,B
+RW158,Reading and Writing,Grammar: logical comparisons,42,"According to the guidebook, the parks of Fenwick are more varied than ___.",those of Ashby's,Ashby,those of Ashby,that of Ashby,C
+RW162,Reading and Writing,Grammar: agreement,56,Today the folder of receipts ___ near the window.,sit,sat,sitting,sits,D
+RW163,Reading and Writing,Grammar: agreement,34,Today the folder of maps ___ near the window.,sitting,sits,sat,sit,B
+RW165,Reading and Writing,Grammar: verb tenses,60,"Back in 2001, the drama club ___ a weekly podcast.",has begun,begins,began,will begin,C
+RW166,Reading and Writing,Grammar: logical comparisons,51,"According to the guidebook, the streets of Kessington are more varied than ___.",those of Corran,that of Corran,Corran,those of Corran's,A
+RW167,Reading and Writing,Grammar: agreement,28,Today the list of receipts ___ a torn cover.,have,having,had,has,D
+RW172,Reading and Writing,Grammar: pronouns,49,Last week the team moved ___ office across town.,their,it's,his or her,its,D
+RW175,Reading and Writing,Expression of ideas: transitions,29,"Several streets were renamed. ___, Mill Road is now Founders Way.",In addition,For example,Therefore,However,B
+RW176,Reading and Writing,Grammar: agreement,16,Today the list of notes ___ in the main office.,stay,stays,staying,stayed,B
+RW179,Reading and Writing,Grammar: agreement,39,Today the stack of photos ___ a torn cover.,has,had,having,have,A
+RW180,Reading and Writing,Grammar: pronouns,57,Last week the company moved ___ office across town.,his or her,its,it's,their,B
+RW183,Reading and Writing,Grammar: pronouns,58,Last week the committee announced ___ decision.,his or her,their,its,it's,C
+RW185,Reading and Writing,Grammar: logical comparisons,43,"According to the guidebook, the population of Delford is more varied than ___.",that of Marlow,Marlow,that of Marlow's,those of Marlow,A
+RW186,Reading and Writing,Punctuation: joining clauses,83,The shop ___ second floor now sells books.,"expanded, its",expanded; its,expanded; and its,expanded its,B
+RW187,Reading and Writing,Grammar: agreement,62,Today the basket of supplies ___ near the window.,sitting,sat,sits,sit,C
+RW189,Reading and Writing,Grammar: verb tenses,78,"Back in 2008, the town ___ a short history of the town.",has written,wrote,will write,writes,B
+RW190,Reading and Writing,Grammar: logical comparisons,53,"According to the guidebook, the climate of Kessington is more varied than ___.",that of Harlow,those of Harlow,Harlow,that of Harlow's,A
+RW192,Reading and Writing,Expression of ideas: transitions,58,"The bridge was closed for repairs. ___, the bus took the long road around the lake.",In addition,However,For example,Therefore,D
+RW193,Reading and Writing,Grammar: agreement,62,Today the box of old letters ___ near the window.,sitting,sat,sits,sit,C
+RW194,Reading and Writing,Grammar: agreement,46,Today the box of old letters ___ in the main office.,stay,stayed,staying,stays,D
+RW196,Reading and Writing,Grammar: agreement,49,Today the collection of supplies ___ near the window.,sit,sits,sat,sitting,B
+RW198,Reading and Writing,Grammar: agreement,65,Today the stack of maps ___ a torn cover.,has,have,had,having,A
+RW199,Reading and Writing,Grammar: verb tenses,84,"Back in 2018, the drama club ___ a new name.",will choose,chooses,chose,has chosen,C
+RW200,Reading and Writing,Grammar: logical comparisons,34,"According to the guidebook, the streets of Fenwick are more varied than ___.",that of Marlow,those of Marlow's,Marlow,those of Marlow,D
+RW201,Reading and Writing,Punctuation: joining clauses,70,"By evening, the garden ___ tomatoes did not survive.",flooded; the,flooded the,flooded; and the,"flooded, the",A
+RW202,Reading and Writing,Grammar: pronouns,15,Last week the company posted ___ schedule for the spring.,it's,their,his or her,its,D
+RW205,Reading and Writing,Punctuation: joining clauses,31,The snow ___ river rose by noon.,melted the,melted; and the,"melted, the",melted; the,D
+RW206,Reading and Writing,Grammar: agreement,21,Today the list of maps ___ on the front desk.,is,being,was,are,A
+RW207,Reading and Writing,Grammar: pronouns,73,Last week the jury posted ___ schedule for the spring.,it's,its,their,his or her,B
+RW208,Reading and Writing,Grammar: verb tenses,91,"Back in 2005, the drama club ___ a record crowd.",has drawn,will draw,draws,drew,D
+RW209,Reading and Writing,Expression of ideas: transitions,56,"The puzzle looked easy at first. ___, nobody in the class could solve it.",Therefore,For example,In addition,However,D
+RW212,Reading and Writing,Expression of ideas: transitions,25,"The museum added evening hours. ___, it opened a cafe on the roof.",However,For example,In addition,Therefore,C
+RW214,Reading and Writing,Grammar: agreement,66,Today the box of photos ___ on the front desk.,is,being,was,are,A
+RW217,Reading and Writing,Expression of ideas: transitions,69,"Some birds use tools. ___, crows bend wire into hooks to reach food.",Therefore,However,For example,In addition,C
+RW219,Reading and Writing,Grammar: logical comparisons,76,"According to the guidebook, the streets of Elmont are more varied than ___.",those of Kessington,Kessington,those of Kessington's,that of Kessington,A
+RW221,Reading and Writing,Grammar: logical comparisons,82,"According to the guidebook, the museums of Delford are more varied than ___.",those of Ashby's,those of Ashby,that of Ashby,Ashby,B
+RW222,Reading and Writing,Expression of ideas: transitions,58,"The library extended its hours. ___, more students studied there in the evening.",In addition,However,For example,Therefore,D
+RW234,Reading and Writing,Grammar: verb tenses,26,"Back in 2019, the school band ___ its first regional prize.",has won,won,will win,wins,B
+RW236,Reading and Writing,Grammar: logical comparisons,53,"According to the guidebook, the population of Ashby is more varied than ___.",those of Fenwick,Fenwick,that of Fenwick's,that of Fenwick,D
+RW238,Reading and Writing,Grammar: agreement,27,Today the collection of supplies ___ on the front desk.,being,was,is,are,C
+RW239,Reading and Writing,Grammar: logical comparisons,20,"According to the guidebook, the parks of Harlow are more varied than ___.",those of Ashby,that of Ashby,Ashby,those of Ashby's,A
+RW242,Reading and Writing,Expression of ideas: transitions,49,"The club raised money for the shelter. ___, its members spent weekends walking dogs.",In addition,However,For example,Therefore,A
+RW243,Reading and Writing,Grammar: pronouns,17,Last week the council announced ___ decision.,its,his or her,it's,their,A
+RW246,Reading and Writing,Grammar: agreement,78,Today the folder of maps ___ a new label.,needing,needs,needed,need,B
+RW249,Reading and Writing,Grammar: logical comparisons,68,"According to the guidebook, the streets of Corran are more varied than ___.",Fenwick,those of Fenwick,those of Fenwick's,that of Fenwick,B
+RW250,Reading and Writing,Grammar: agreement,65,Today the list of supplies ___ near the window.,sat,sits,sitting,sit,B
+RW251,Reading and Writing,Grammar: verb tenses,81,"Back in 2005, the town ___ the old record.",has broken,broke,will break,breaks,B
+RW256,Reading and Writing,Grammar: agreement,62,Today the box of old letters ___ a new label.,needs,need,needing,needed,A
+RW257,Reading and Writing,Grammar: pronouns,58,Last week the team changed ___ rules for new members.,its,his or her,it's,their,A
+RW259,Reading and Writing,Grammar: pronouns,34,Last week the company celebrated ___ tenth anniversary.,it's,its,his or her,their,B
+RW262,Reading and Writing,Punctuation: joining clauses,72,"By evening, the storm ___ damage was worse than expected.",passed its,passed; and its,passed; its,"passed, its",C
+RW263,Reading and Writing,Expression of ideas: transitions,46,"The town keeps old traditions. ___, it still rings the noon bell by hand.",For example,Therefore,However,In addition,A
+RW265,Reading and Writing,Grammar: verb tenses,85,"Back in 2002, the drama club ___ the old record.",will break,breaks,broke,has broken,C
+RW266,Reading and Writing,Punctuation: joining clauses,33,"Late that week, the lights ___ speaker kept going anyway.","flickered, the",flickered; the,flickered the,flickered; and the,B
+RW267,Reading and Writing,Expression of ideas: transitions,44,"The recipe called for an hour of baking. ___, the bread was done in forty minutes.",However,Therefore,For example,In addition,A
+RW274,Reading and Writing,Grammar: pronouns,74,Last week the company changed ___ rules for new members.,its,it's,their,his or her,A
+RW275,Reading and Writing,Grammar: pronouns,88,Last week the club celebrated ___ tenth anniversary.,it's,his or her,their,its,D
+RW276,Reading and Writing,Grammar: verb tenses,81,"Back in 2014, the school band ___ a short history of the town.",wrote,writes,will write,has written,A
+RW280,Reading and Writing,Grammar: verb tenses,16,"Back in 2005, the drama club ___ its first regional prize.",wins,won,will win,has won,B
+RW281,Reading and Writing,Punctuation: joining clauses,20,"Late that week, the printer ___ flyers were late for the fair.",jammed; the,jammed; and the,"jammed, the",jammed the,A
+RW285,Reading and Writing,Grammar: logical comparisons,35,"According to the guidebook, the rainfall of Harlow is more varied than ___.",that of Delford,Delford,that of Delford's,those of Delford,A
+RW286,Reading and Writing,Grammar: verb tenses,43,"Back in 2010, the robotics team ___ the old record.",broke,has broken,breaks,will break,A
+RW288,Reading and Writing,Expression of ideas: transitions,15,"The trail looked short on the map. ___, it took us four hours to finish.",In addition,For example,Therefore,However,D
+RW289,Reading and Writing,Grammar: logical comparisons,77,"According to the guidebook, the rainfall of Elmont is more varied than ___.",Kessington,that of Kessington,that of Kessington's,those of Kessington,B
+RW290,Reading and Writing,Grammar: pronouns,15,Last week the committee changed ___ rules for new members.,their,its,his or her,it's,B
+RW292,Reading and Writing,Grammar: pronouns,16,Last week the company announced ___ decision.,his or her,it's,their,its,D
+RW293,Reading and Writing,Punctuation: joining clauses,91,"Late that week, the ferry ___ passengers hurried down the ramp.","arrived, the",arrived the,arrived; and the,arrived; the,D
+RW294,Reading and Writing,Grammar: agreement,26,Today the collection of photos ___ a torn cover.,have,has,had,having,B
+RW300,Reading and Writing,Expression of ideas: transitions,24,"Some metals resist rust. ___, stainless steel stays bright for decades.",In addition,For example,Therefore,However,B
+RW302,Reading and Writing,Grammar: pronouns,76,Last week the team celebrated ___ tenth anniversary.,his or her,it's,their,its,D
+RW304,Reading and Writing,Grammar: agreement,51,Today the collection of notes ___ a torn cover.,having,has,have,had,B
+RW305,Reading and Writing,Grammar: agreement,82,Today the box of supplies ___ in the main office.,stayed,stay,stays,staying,C
+RW308,Reading and Writing,Grammar: logical comparisons,75,"According to the guidebook, the climate of Marlow is more varied than ___.",Corran,those of Corran,that of Corran,that of Corran's,C
+RW310,Reading and Writing,Grammar: logical comparisons,83,"According to the guidebook, the streets of Marlow are more varied than ___.",that of Kessington,those of Kessington,those of Kessington's,Kessington,B
+RW311,Reading and Writing,Expression of ideas: transitions,70,"The bakery doubled its prices. ___, many regulars started baking at home.",For example,However,In addition,Therefore,D
+RW313,Reading and Writing,Grammar: verb tenses,23,"Back in 2001, the school band ___ a new name.",chooses,chose,will choose,has chosen,B
+RW314,Reading and Writing,Grammar: verb tenses,76,"Back in 2018, the robotics team ___ its first regional prize.",will win,wins,won,has won,C
+RW316,Reading and Writing,Grammar: verb tenses,41,"Back in 1999, the drama club ___ a new stage.",built,builds,will build,has built,A
+RW317,Reading and Writing,Grammar: logical comparisons,36,"According to the guidebook, the parks of Ashby are more varied than ___.",those of Elmont's,that of Elmont,those of Elmont,Elmont,C
+RW318,Reading and Writing,Punctuation: joining clauses,27,The play ___ audience stood and cheered.,ended; and the,"ended, the",ended the,ended; the,D
+RW319,Reading and Writing,Expression of ideas: transitions,70,"The team won the regional final. ___, its captain was named player of the year.",For example,However,Therefore,In addition,D
+RW322,Reading and Writing,Grammar: logical comparisons,21,"According to the guidebook, the museums of Fenwick are more varied than ___.",Corran,those of Corran's,those of Corran,that of Corran,C
+RW323,Reading and Writing,Expression of ideas: transitions,48,"Most critics praised the film. ___, it sold few tickets.",For example,In addition,Therefore,However,D
+RW324,Reading and Writing,Grammar: logical comparisons,39,"According to the guidebook, the population of Fenwick is more varied than ___.",Elmont,that of Elmont's,those of Elmont,that of Elmont,D
+RW326,Reading and Writing,Punctuation: joining clauses,89,The rain finally ___ crowd returned to the field.,stopped the,stopped; the,"stopped, the",stopped; and the,B
+RW328,Reading and Writing,Punctuation: joining clauses,15,"By evening, the bakery ___ owners moved to the coast.",closed its,closed; and its,"closed, its",closed; its,D
+RW329,Reading and Writing,Punctuation: joining clauses,81,"By evening, the power ___ students kept reading by window light.",failed; most,failed most,"failed, most",failed; and most,A
+RW330,Reading and Writing,Punctuation: joining clauses,17,"By evening, the market ___ stalls sold out by ten.","opened, its",opened its,opened; its,opened; and its,C
+RW332,Reading and Writing,Punctuation: joining clauses,81,The garden ___ tomatoes did not survive.,flooded the,flooded; the,"flooded, the",flooded; and the,B
+RW334,Reading and Writing,Expression of ideas: transitions,79,"The roads iced over before dawn. ___, the schools opened two hours late.",However,In addition,For example,Therefore,D
+RW335,Reading and Writing,Expression of ideas: transitions,61,"The museum offers free programs. ___, it hosts a drawing class every Saturday.",In addition,Therefore,For example,However,C
+RW338,Reading and Writing,Grammar: verb tenses,67,"Back in 1999, the robotics team ___ a new name.",chooses,chose,will choose,has chosen,B
+RW339,Reading and Writing,Grammar: pronouns,63,Last week the club changed ___ rules for new members.,his or her,their,it's,its,D
+RW341,Reading and Writing,Grammar: verb tenses,73,"Back in 1996, the drama club ___ a record crowd.",has drawn,will draw,draws,drew,D
+RW342,Reading and Writing,Grammar: pronouns,42,Last week the band moved ___ office across town.,it's,its,his or her,their,B
+RW343,Reading and Writing,Grammar: logical comparisons,92,"According to the guidebook, the parks of Elmont are more varied than ___.",those of Marlow,that of Marlow,those of Marlow's,Marlow,A
+RW344,Reading and Writing,Punctuation: joining clauses,46,"Late that week, the garden ___ tomatoes did not survive.",flooded; and the,"flooded, the",flooded; the,flooded the,C
+RW348,Reading and Writing,Grammar: agreement,62,Today the basket of photos ___ near the window.,sitting,sat,sits,sit,C
+RW349,Reading and Writing,Punctuation: joining clauses,81,The power ___ students kept reading by window light.,"failed, most",failed most,failed; and most,failed; most,D
+RW350,Reading and Writing,Grammar: pronouns,44,Last week the council celebrated ___ tenth anniversary.,their,its,his or her,it's,B
+RW351,Reading and Writing,Grammar: logical comparisons,85,"According to the guidebook, the rainfall of Corran is more varied than ___.",those of Kessington,that of Kessington's,Kessington,that of Kessington,D
+RW354,Reading and Writing,Grammar: verb tenses,30,"Back in 2000, the drama club ___ its first regional prize.",won,will win,wins,has won,A
+RW355,Reading and Writing,Grammar: verb tenses,49,"Back in 1997, the school band ___ its first regional prize.",has won,won,wins,will win,B
+RW363,Reading and Writing,Grammar: pronouns,84,Last week the jury changed ___ rules for new members.,it's,his or her,their,its,D
+RW364,Reading and Writing,Punctuation: joining clauses,28,The printer ___ flyers were late for the fair.,"jammed, the",jammed the,jammed; and the,jammed; the,D
+RW365,Reading and Writing,Grammar: logical comparisons,19,"According to the guidebook, the streets of Harlow are more varied than ___.",those of Corran's,those of Corran,that of Corran,Corran,B
+RW366,Reading and Writing,Expression of ideas: transitions,89,"The town repaved Main Street. ___, it planted trees along both sidewalks.",However,In addition,Therefore,For example,B
+RW368,Reading and Writing,Grammar: verb tenses,81,"Back in 2011, the robotics team ___ a short history of the town.",wrote,writes,has written,will write,A
+RW369,Reading and Writing,Grammar: logical comparisons,19,"According to the guidebook, the population of Corran is more varied than ___.",that of Fenwick's,those of Fenwick,that of Fenwick,Fenwick,C
+RW371,Reading and Writing,Grammar: agreement,91,Today the folder of notes ___ on the front desk.,is,was,are,being,A
+RW374,Reading and Writing,Grammar: pronouns,22,Last week the band announced ___ decision.,their,it's,his or her,its,D
+RW375,Reading and Writing,Expression of ideas: transitions,81,"The well ran dry in August. ___, the farm bought water by the truckload.",However,In addition,Therefore,For example,C
+RW376,Reading and Writing,Punctuation: joining clauses,37,Our team ___ drill took twice as long as planned.,practiced; every,practiced; and every,"practiced, every",practiced every,A
+RW377,Reading and Writing,Grammar: logical comparisons,22,"According to the guidebook, the museums of Corran are more varied than ___.",those of Fenwick's,Fenwick,those of Fenwick,that of Fenwick,C
+RW378,Reading and Writing,Expression of ideas: transitions,27,"The forecast promised sun. ___, we spent the afternoon under umbrellas.",For example,Therefore,However,In addition,C
+RW379,Reading and Writing,Grammar: agreement,59,Today the basket of old letters ___ on the front desk.,are,is,was,being,B
+RW383,Reading and Writing,Punctuation: joining clauses,67,"Late that week, the museum ___ new wing drew long lines.","reopened, its",reopened its,reopened; and its,reopened; its,D
+RW389,Reading and Writing,Grammar: pronouns,83,Last week the council changed ___ rules for new members.,it's,their,his or her,its,D
+RW393,Reading and Writing,Expression of ideas: transitions,18,"The tickets sold out in a day. ___, the theater added a second show.",In addition,For example,However,Therefore,D
+RW399,Reading and Writing,Punctuation: joining clauses,32,The bus ___ riders walked the last mile.,broke down; and most,broke down most,broke down; most,"broke down, most",C
+RW403,Reading and Writing,Grammar: pronouns,42,Last week the jury celebrated ___ tenth anniversary.,their,its,his or her,it's,B
+RW404,Reading and Writing,Grammar: verb tenses,71,"Back in 2003, the town ___ a new stage.",builds,built,has built,will build,B
+RW406,Reading and Writing,Grammar: pronouns,70,Last week the band posted ___ schedule for the spring.,its,it's,his or her,their,A
+RW408,Reading and Writing,Punctuation: joining clauses,31,The bell ___ hallway filled at once.,rang every,rang; and every,rang; every,"rang, every",C
+RW409,Reading and Writing,Grammar: agreement,70,Today the list of old letters ___ on the front desk.,are,being,is,was,C
+RW411,Reading and Writing,Grammar: verb tenses,85,"Back in 2013, the drama club ___ a short history of the town.",has written,will write,writes,wrote,D
+RW414,Reading and Writing,Punctuation: joining clauses,65,"Late that week, the storm ___ damage was worse than expected.",passed; its,passed; and its,passed its,"passed, its",A
+RW415,Reading and Writing,Grammar: logical comparisons,46,"According to the guidebook, the rainfall of Marlow is more varied than ___.",that of Delford,that of Delford's,Delford,those of Delford,A
+RW418,Reading and Writing,Grammar: verb tenses,34,"Back in 2000, the robotics team ___ a record crowd.",has drawn,will draw,draws,drew,D
+RW419,Reading and Writing,Grammar: verb tenses,29,"Back in 2016, the school band ___ a new stage.",built,will build,has built,builds,A
+RW420,Reading and Writing,Grammar: pronouns,80,Last week the club posted ___ schedule for the spring.,his or her,their,it's,its,D
+RW421,Reading and Writing,Grammar: logical comparisons,84,"According to the guidebook, the population of Harlow is more varied than ___.",Fenwick,those of Fenwick,that of Fenwick's,that of Fenwick,D
+RW422,Reading and Writing,Punctuation: joining clauses,28,The lights ___ speaker kept going anyway.,flickered; the,"flickered, the",flickered; and the,flickered the,A
+RW423,Reading and Writing,Punctuation: joining clauses,52,"By evening, the rain finally ___ crowd returned to the field.",stopped; and the,stopped; the,stopped the,"stopped, the",B
+RW424,Reading and Writing,Expression of ideas: transitions,29,"The coach planned extra practices. ___, she arranged two games with nearby schools.",In addition,For example,Therefore,However,A

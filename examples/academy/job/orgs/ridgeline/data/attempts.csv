@@ -1,0 +1,1609 @@
+student_id,test_id,taken_on,section,module,number,question_id,topic,selected,correct,result
+S-1005,PT-2,2026-08-31,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,C,D,wrong
+S-1005,PT-2,2026-08-31,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,A,C,wrong
+S-1005,PT-2,2026-08-31,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,A,D,wrong
+S-1005,PT-2,2026-08-31,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,C,B,wrong
+S-1005,PT-2,2026-08-31,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1005,PT-2,2026-08-31,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1005,PT-2,2026-08-31,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1005,PT-2,2026-08-31,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1005,PT-2,2026-08-31,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1005,PT-2,2026-08-31,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,A,D,wrong
+S-1005,PT-2,2026-08-31,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,C,B,wrong
+S-1005,PT-2,2026-08-31,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1005,PT-2,2026-08-31,Math,1,1,Q-0014,Rule 6B - Function Notation,B,A,wrong
+S-1005,PT-2,2026-08-31,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1005,PT-2,2026-08-31,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1005,PT-2,2026-08-31,Math,1,4,Q-0138,Rule 1B - Percent Change,B,C,wrong
+S-1005,PT-2,2026-08-31,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1005,PT-2,2026-08-31,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1005,PT-2,2026-08-31,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,C,B,wrong
+S-1005,PT-2,2026-08-31,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1005,PT-2,2026-08-31,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1005,PT-2,2026-08-31,Math,2,4,Q-0183,Rule 6B - Function Notation,B,D,wrong
+S-1005,PT-2,2026-08-31,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1005,PT-2,2026-08-31,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1007,PT-1,2026-08-31,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,A,A,right
+S-1007,PT-1,2026-08-31,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,D,C,wrong
+S-1007,PT-1,2026-08-31,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,C,A,wrong
+S-1007,PT-1,2026-08-31,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1007,PT-1,2026-08-31,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,C,D,wrong
+S-1007,PT-1,2026-08-31,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1007,PT-1,2026-08-31,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1007,PT-1,2026-08-31,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,B,C,wrong
+S-1007,PT-1,2026-08-31,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1007,PT-1,2026-08-31,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,B,C,wrong
+S-1007,PT-1,2026-08-31,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,B,A,wrong
+S-1007,PT-1,2026-08-31,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1007,PT-1,2026-08-31,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,A,D,wrong
+S-1007,PT-1,2026-08-31,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1007,PT-1,2026-08-31,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1007,PT-1,2026-08-31,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1007,PT-1,2026-08-31,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1007,PT-1,2026-08-31,Math,1,6,Q-0231,Rule 1B - Percent Change,A,D,wrong
+S-1007,PT-1,2026-08-31,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1007,PT-1,2026-08-31,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1007,PT-1,2026-08-31,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,B,A,wrong
+S-1007,PT-1,2026-08-31,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1007,PT-1,2026-08-31,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,C,B,wrong
+S-1007,PT-1,2026-08-31,Math,2,6,Q-0097,Rule 6A - Linear Equations,C,A,wrong
+S-1004,PT-1,2026-09-01,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,A,A,right
+S-1004,PT-1,2026-09-01,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,D,C,wrong
+S-1004,PT-1,2026-09-01,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1004,PT-1,2026-09-01,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1004,PT-1,2026-09-01,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,A,D,wrong
+S-1004,PT-1,2026-09-01,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1004,PT-1,2026-09-01,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1004,PT-1,2026-09-01,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,A,C,wrong
+S-1004,PT-1,2026-09-01,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1004,PT-1,2026-09-01,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1004,PT-1,2026-09-01,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1004,PT-1,2026-09-01,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1004,PT-1,2026-09-01,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,D,D,right
+S-1004,PT-1,2026-09-01,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1004,PT-1,2026-09-01,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1004,PT-1,2026-09-01,Math,1,4,Q-0257,Rule 6A - Linear Equations,A,C,wrong
+S-1004,PT-1,2026-09-01,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1004,PT-1,2026-09-01,Math,1,6,Q-0231,Rule 1B - Percent Change,D,D,right
+S-1004,PT-1,2026-09-01,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1004,PT-1,2026-09-01,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1004,PT-1,2026-09-01,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1004,PT-1,2026-09-01,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1004,PT-1,2026-09-01,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1004,PT-1,2026-09-01,Math,2,6,Q-0097,Rule 6A - Linear Equations,A,A,right
+S-1001,PT-1,2026-09-02,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,A,A,right
+S-1001,PT-1,2026-09-02,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,D,C,wrong
+S-1001,PT-1,2026-09-02,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1001,PT-1,2026-09-02,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1001,PT-1,2026-09-02,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,D,D,right
+S-1001,PT-1,2026-09-02,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1001,PT-1,2026-09-02,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1001,PT-1,2026-09-02,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1001,PT-1,2026-09-02,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,B,D,wrong
+S-1001,PT-1,2026-09-02,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1001,PT-1,2026-09-02,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1001,PT-1,2026-09-02,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1001,PT-1,2026-09-02,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,D,D,right
+S-1001,PT-1,2026-09-02,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,D,A,wrong
+S-1001,PT-1,2026-09-02,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1001,PT-1,2026-09-02,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1001,PT-1,2026-09-02,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1001,PT-1,2026-09-02,Math,1,6,Q-0231,Rule 1B - Percent Change,B,D,wrong
+S-1001,PT-1,2026-09-02,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1001,PT-1,2026-09-02,Math,2,2,Q-0168,Rule 1B - Percent Change,C,B,wrong
+S-1001,PT-1,2026-09-02,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1001,PT-1,2026-09-02,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1001,PT-1,2026-09-02,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1001,PT-1,2026-09-02,Math,2,6,Q-0097,Rule 6A - Linear Equations,A,A,right
+S-1009,PT-3,2026-09-02,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1009,PT-3,2026-09-02,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1009,PT-3,2026-09-02,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1009,PT-3,2026-09-02,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1009,PT-3,2026-09-02,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,B,D,wrong
+S-1009,PT-3,2026-09-02,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,A,B,wrong
+S-1009,PT-3,2026-09-02,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1009,PT-3,2026-09-02,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,C,B,wrong
+S-1009,PT-3,2026-09-02,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1009,PT-3,2026-09-02,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,C,A,wrong
+S-1009,PT-3,2026-09-02,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1009,PT-3,2026-09-02,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1009,PT-3,2026-09-02,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,C,B,wrong
+S-1009,PT-3,2026-09-02,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1009,PT-3,2026-09-02,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1009,PT-3,2026-09-02,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1009,PT-3,2026-09-02,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1009,PT-3,2026-09-02,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1009,PT-3,2026-09-02,Math,2,1,Q-0041,Rule 6B - Function Notation,A,A,right
+S-1009,PT-3,2026-09-02,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1009,PT-3,2026-09-02,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,C,A,wrong
+S-1009,PT-3,2026-09-02,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,A,B,wrong
+S-1009,PT-3,2026-09-02,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1009,PT-3,2026-09-02,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1010,PT-1,2026-09-02,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,D,A,wrong
+S-1010,PT-1,2026-09-02,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,C,C,right
+S-1010,PT-1,2026-09-02,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1010,PT-1,2026-09-02,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,A,B,wrong
+S-1010,PT-1,2026-09-02,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,A,D,wrong
+S-1010,PT-1,2026-09-02,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,A,C,wrong
+S-1010,PT-1,2026-09-02,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1010,PT-1,2026-09-02,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1010,PT-1,2026-09-02,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,A,D,wrong
+S-1010,PT-1,2026-09-02,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,B,C,wrong
+S-1010,PT-1,2026-09-02,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1010,PT-1,2026-09-02,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1010,PT-1,2026-09-02,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,C,D,wrong
+S-1010,PT-1,2026-09-02,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,A,A,right
+S-1010,PT-1,2026-09-02,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1010,PT-1,2026-09-02,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1010,PT-1,2026-09-02,Math,1,5,Q-0126,Rule 6B - Function Notation,C,A,wrong
+S-1010,PT-1,2026-09-02,Math,1,6,Q-0231,Rule 1B - Percent Change,B,D,wrong
+S-1010,PT-1,2026-09-02,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1010,PT-1,2026-09-02,Math,2,2,Q-0168,Rule 1B - Percent Change,C,B,wrong
+S-1010,PT-1,2026-09-02,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1010,PT-1,2026-09-02,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1010,PT-1,2026-09-02,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1010,PT-1,2026-09-02,Math,2,6,Q-0097,Rule 6A - Linear Equations,B,A,wrong
+S-1011,PT-2,2026-09-03,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1011,PT-2,2026-09-03,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1011,PT-2,2026-09-03,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1011,PT-2,2026-09-03,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,C,B,wrong
+S-1011,PT-2,2026-09-03,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1011,PT-2,2026-09-03,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1011,PT-2,2026-09-03,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1011,PT-2,2026-09-03,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1011,PT-2,2026-09-03,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1011,PT-2,2026-09-03,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1011,PT-2,2026-09-03,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1011,PT-2,2026-09-03,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1011,PT-2,2026-09-03,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1011,PT-2,2026-09-03,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1011,PT-2,2026-09-03,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1011,PT-2,2026-09-03,Math,1,4,Q-0138,Rule 1B - Percent Change,B,C,wrong
+S-1011,PT-2,2026-09-03,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1011,PT-2,2026-09-03,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1011,PT-2,2026-09-03,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1011,PT-2,2026-09-03,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,C,A,wrong
+S-1011,PT-2,2026-09-03,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1011,PT-2,2026-09-03,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1011,PT-2,2026-09-03,Math,2,5,Q-0227,Rule 1B - Percent Change,D,C,wrong
+S-1011,PT-2,2026-09-03,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1014,PT-2,2026-09-03,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1014,PT-2,2026-09-03,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1014,PT-2,2026-09-03,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1014,PT-2,2026-09-03,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,D,B,wrong
+S-1014,PT-2,2026-09-03,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1014,PT-2,2026-09-03,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1014,PT-2,2026-09-03,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1014,PT-2,2026-09-03,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1014,PT-2,2026-09-03,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,B,D,wrong
+S-1014,PT-2,2026-09-03,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,B,D,wrong
+S-1014,PT-2,2026-09-03,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1014,PT-2,2026-09-03,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,A,C,wrong
+S-1014,PT-2,2026-09-03,Math,1,1,Q-0014,Rule 6B - Function Notation,D,A,wrong
+S-1014,PT-2,2026-09-03,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1014,PT-2,2026-09-03,Math,1,3,Q-0136,Rule 6A - Linear Equations,A,C,wrong
+S-1014,PT-2,2026-09-03,Math,1,4,Q-0138,Rule 1B - Percent Change,B,C,wrong
+S-1014,PT-2,2026-09-03,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1014,PT-2,2026-09-03,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1014,PT-2,2026-09-03,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1014,PT-2,2026-09-03,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1014,PT-2,2026-09-03,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1014,PT-2,2026-09-03,Math,2,4,Q-0183,Rule 6B - Function Notation,B,D,wrong
+S-1014,PT-2,2026-09-03,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1014,PT-2,2026-09-03,Math,2,6,Q-0141,Rule 6A - Linear Equations,D,A,wrong
+S-1002,PT-1,2026-09-11,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,A,A,right
+S-1002,PT-1,2026-09-11,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,B,C,wrong
+S-1002,PT-1,2026-09-11,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1002,PT-1,2026-09-11,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,C,B,wrong
+S-1002,PT-1,2026-09-11,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,D,D,right
+S-1002,PT-1,2026-09-11,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,B,C,wrong
+S-1002,PT-1,2026-09-11,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1002,PT-1,2026-09-11,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1002,PT-1,2026-09-11,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1002,PT-1,2026-09-11,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1002,PT-1,2026-09-11,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1002,PT-1,2026-09-11,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1002,PT-1,2026-09-11,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,B,D,wrong
+S-1002,PT-1,2026-09-11,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1002,PT-1,2026-09-11,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,A,C,wrong
+S-1002,PT-1,2026-09-11,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1002,PT-1,2026-09-11,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1002,PT-1,2026-09-11,Math,1,6,Q-0231,Rule 1B - Percent Change,B,D,wrong
+S-1002,PT-1,2026-09-11,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,B,C,wrong
+S-1002,PT-1,2026-09-11,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1002,PT-1,2026-09-11,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1002,PT-1,2026-09-11,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1002,PT-1,2026-09-11,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,D,B,wrong
+S-1002,PT-1,2026-09-11,Math,2,6,Q-0097,Rule 6A - Linear Equations,A,A,right
+S-1005,PT-3,2026-09-12,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1005,PT-3,2026-09-12,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1005,PT-3,2026-09-12,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,D,B,wrong
+S-1005,PT-3,2026-09-12,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,C,D,wrong
+S-1005,PT-3,2026-09-12,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1005,PT-3,2026-09-12,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1005,PT-3,2026-09-12,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,B,A,wrong
+S-1005,PT-3,2026-09-12,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1005,PT-3,2026-09-12,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1005,PT-3,2026-09-12,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1005,PT-3,2026-09-12,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1005,PT-3,2026-09-12,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1005,PT-3,2026-09-12,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1005,PT-3,2026-09-12,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1005,PT-3,2026-09-12,Math,1,3,Q-0165,Rule 6A - Linear Equations,A,B,wrong
+S-1005,PT-3,2026-09-12,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,B,A,wrong
+S-1005,PT-3,2026-09-12,Math,1,5,Q-0182,Rule 1B - Percent Change,C,D,wrong
+S-1005,PT-3,2026-09-12,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1005,PT-3,2026-09-12,Math,2,1,Q-0041,Rule 6B - Function Notation,C,A,wrong
+S-1005,PT-3,2026-09-12,Math,2,2,Q-0107,Rule 6A - Linear Equations,D,B,wrong
+S-1005,PT-3,2026-09-12,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1005,PT-3,2026-09-12,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1005,PT-3,2026-09-12,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1005,PT-3,2026-09-12,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1006,PT-1,2026-09-12,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,A,A,right
+S-1006,PT-1,2026-09-12,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,C,C,right
+S-1006,PT-1,2026-09-12,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,B,A,wrong
+S-1006,PT-1,2026-09-12,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1006,PT-1,2026-09-12,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,D,D,right
+S-1006,PT-1,2026-09-12,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1006,PT-1,2026-09-12,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,D,A,wrong
+S-1006,PT-1,2026-09-12,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1006,PT-1,2026-09-12,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1006,PT-1,2026-09-12,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,B,C,wrong
+S-1006,PT-1,2026-09-12,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1006,PT-1,2026-09-12,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,C,D,wrong
+S-1006,PT-1,2026-09-12,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,D,D,right
+S-1006,PT-1,2026-09-12,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,A,A,right
+S-1006,PT-1,2026-09-12,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1006,PT-1,2026-09-12,Math,1,4,Q-0257,Rule 6A - Linear Equations,B,C,wrong
+S-1006,PT-1,2026-09-12,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1006,PT-1,2026-09-12,Math,1,6,Q-0231,Rule 1B - Percent Change,D,D,right
+S-1006,PT-1,2026-09-12,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1006,PT-1,2026-09-12,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1006,PT-1,2026-09-12,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,C,A,wrong
+S-1006,PT-1,2026-09-12,Math,2,4,Q-0040,Rule 6B - Function Notation,B,C,wrong
+S-1006,PT-1,2026-09-12,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,A,B,wrong
+S-1006,PT-1,2026-09-12,Math,2,6,Q-0097,Rule 6A - Linear Equations,A,A,right
+S-1003,PT-1,2026-09-15,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,C,A,wrong
+S-1003,PT-1,2026-09-15,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,C,C,right
+S-1003,PT-1,2026-09-15,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,B,A,wrong
+S-1003,PT-1,2026-09-15,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-1,2026-09-15,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,D,D,right
+S-1003,PT-1,2026-09-15,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1003,PT-1,2026-09-15,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1003,PT-1,2026-09-15,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1003,PT-1,2026-09-15,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,B,D,wrong
+S-1003,PT-1,2026-09-15,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1003,PT-1,2026-09-15,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1003,PT-1,2026-09-15,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1003,PT-1,2026-09-15,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,A,D,wrong
+S-1003,PT-1,2026-09-15,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1003,PT-1,2026-09-15,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1003,PT-1,2026-09-15,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1003,PT-1,2026-09-15,Math,1,5,Q-0126,Rule 6B - Function Notation,D,A,wrong
+S-1003,PT-1,2026-09-15,Math,1,6,Q-0231,Rule 1B - Percent Change,D,D,right
+S-1003,PT-1,2026-09-15,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1003,PT-1,2026-09-15,Math,2,2,Q-0168,Rule 1B - Percent Change,D,B,wrong
+S-1003,PT-1,2026-09-15,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1003,PT-1,2026-09-15,Math,2,4,Q-0040,Rule 6B - Function Notation,A,C,wrong
+S-1003,PT-1,2026-09-15,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1003,PT-1,2026-09-15,Math,2,6,Q-0097,Rule 6A - Linear Equations,D,A,wrong
+S-1013,PT-1,2026-09-15,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,A,A,right
+S-1013,PT-1,2026-09-15,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,A,C,wrong
+S-1013,PT-1,2026-09-15,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1013,PT-1,2026-09-15,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1013,PT-1,2026-09-15,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,A,D,wrong
+S-1013,PT-1,2026-09-15,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1013,PT-1,2026-09-15,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1013,PT-1,2026-09-15,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1013,PT-1,2026-09-15,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1013,PT-1,2026-09-15,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1013,PT-1,2026-09-15,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,D,A,wrong
+S-1013,PT-1,2026-09-15,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1013,PT-1,2026-09-15,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,D,D,right
+S-1013,PT-1,2026-09-15,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,A,A,right
+S-1013,PT-1,2026-09-15,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1013,PT-1,2026-09-15,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1013,PT-1,2026-09-15,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1013,PT-1,2026-09-15,Math,1,6,Q-0231,Rule 1B - Percent Change,B,D,wrong
+S-1013,PT-1,2026-09-15,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1013,PT-1,2026-09-15,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1013,PT-1,2026-09-15,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,D,A,wrong
+S-1013,PT-1,2026-09-15,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1013,PT-1,2026-09-15,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1013,PT-1,2026-09-15,Math,2,6,Q-0097,Rule 6A - Linear Equations,A,A,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,A,D,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,A,B,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,D,A,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1011,PT-3,2026-09-16,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1011,PT-3,2026-09-16,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1011,PT-3,2026-09-16,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1011,PT-3,2026-09-16,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,D,A,wrong
+S-1011,PT-3,2026-09-16,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1011,PT-3,2026-09-16,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1011,PT-3,2026-09-16,Math,2,1,Q-0041,Rule 6B - Function Notation,B,A,wrong
+S-1011,PT-3,2026-09-16,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1011,PT-3,2026-09-16,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1011,PT-3,2026-09-16,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1011,PT-3,2026-09-16,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1011,PT-3,2026-09-16,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,D,A,wrong
+S-1012,PT-1,2026-09-17,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,C,A,wrong
+S-1012,PT-1,2026-09-17,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,C,C,right
+S-1012,PT-1,2026-09-17,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1012,PT-1,2026-09-17,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1012,PT-1,2026-09-17,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,D,D,right
+S-1012,PT-1,2026-09-17,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1012,PT-1,2026-09-17,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1012,PT-1,2026-09-17,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1012,PT-1,2026-09-17,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1012,PT-1,2026-09-17,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1012,PT-1,2026-09-17,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1012,PT-1,2026-09-17,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1012,PT-1,2026-09-17,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,C,D,wrong
+S-1012,PT-1,2026-09-17,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1012,PT-1,2026-09-17,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1012,PT-1,2026-09-17,Math,1,4,Q-0257,Rule 6A - Linear Equations,D,C,wrong
+S-1012,PT-1,2026-09-17,Math,1,5,Q-0126,Rule 6B - Function Notation,D,A,wrong
+S-1012,PT-1,2026-09-17,Math,1,6,Q-0231,Rule 1B - Percent Change,D,D,right
+S-1012,PT-1,2026-09-17,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1012,PT-1,2026-09-17,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1012,PT-1,2026-09-17,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1012,PT-1,2026-09-17,Math,2,4,Q-0040,Rule 6B - Function Notation,A,C,wrong
+S-1012,PT-1,2026-09-17,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1012,PT-1,2026-09-17,Math,2,6,Q-0097,Rule 6A - Linear Equations,D,A,wrong
+S-1015,PT-1,2026-09-18,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,D,A,wrong
+S-1015,PT-1,2026-09-18,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,C,C,right
+S-1015,PT-1,2026-09-18,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,A,A,right
+S-1015,PT-1,2026-09-18,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1015,PT-1,2026-09-18,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,A,D,wrong
+S-1015,PT-1,2026-09-18,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1015,PT-1,2026-09-18,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,C,A,wrong
+S-1015,PT-1,2026-09-18,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1015,PT-1,2026-09-18,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1015,PT-1,2026-09-18,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1015,PT-1,2026-09-18,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,D,A,wrong
+S-1015,PT-1,2026-09-18,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1015,PT-1,2026-09-18,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,D,D,right
+S-1015,PT-1,2026-09-18,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,A,A,right
+S-1015,PT-1,2026-09-18,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,D,C,wrong
+S-1015,PT-1,2026-09-18,Math,1,4,Q-0257,Rule 6A - Linear Equations,B,C,wrong
+S-1015,PT-1,2026-09-18,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1015,PT-1,2026-09-18,Math,1,6,Q-0231,Rule 1B - Percent Change,C,D,wrong
+S-1015,PT-1,2026-09-18,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,C,C,right
+S-1015,PT-1,2026-09-18,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1015,PT-1,2026-09-18,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,A,A,right
+S-1015,PT-1,2026-09-18,Math,2,4,Q-0040,Rule 6B - Function Notation,A,C,wrong
+S-1015,PT-1,2026-09-18,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1015,PT-1,2026-09-18,Math,2,6,Q-0097,Rule 6A - Linear Equations,A,A,right
+S-1011,PT-5,2026-09-19,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1011,PT-5,2026-09-19,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1011,PT-5,2026-09-19,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1011,PT-5,2026-09-19,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1011,PT-5,2026-09-19,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,C,B,wrong
+S-1011,PT-5,2026-09-19,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1011,PT-5,2026-09-19,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1011,PT-5,2026-09-19,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1011,PT-5,2026-09-19,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1011,PT-5,2026-09-19,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1011,PT-5,2026-09-19,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1011,PT-5,2026-09-19,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1011,PT-5,2026-09-19,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1011,PT-5,2026-09-19,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1011,PT-5,2026-09-19,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1011,PT-5,2026-09-19,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1011,PT-5,2026-09-19,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1011,PT-5,2026-09-19,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1011,PT-5,2026-09-19,Math,2,1,Q-0114,Rule 1B - Percent Change,C,A,wrong
+S-1011,PT-5,2026-09-19,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1011,PT-5,2026-09-19,Math,2,3,Q-0278,Rule 6B - Function Notation,B,A,wrong
+S-1011,PT-5,2026-09-19,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1011,PT-5,2026-09-19,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1011,PT-5,2026-09-19,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,D,C,wrong
+S-1016,PT-1,2026-09-20,Reading and Writing,1,1,Q-0256,Rule 4B - Verb Tenses,D,A,wrong
+S-1016,PT-1,2026-09-20,Reading and Writing,1,2,Q-0137,Rule 1A - Transition Words,C,C,right
+S-1016,PT-1,2026-09-20,Reading and Writing,1,3,Q-0042,Rule 2B - Logical Comparisons,D,A,wrong
+S-1016,PT-1,2026-09-20,Reading and Writing,1,4,Q-0096,Rule 4A - Subjects and Verbs,B,B,right
+S-1016,PT-1,2026-09-20,Reading and Writing,1,5,Q-0082,Rule 3B - Pronouns,D,D,right
+S-1016,PT-1,2026-09-20,Reading and Writing,1,6,Q-0179,Rule 2A - Joining Clauses,C,C,right
+S-1016,PT-1,2026-09-20,Reading and Writing,2,1,Q-0286,Rule 2A - Joining Clauses,A,A,right
+S-1016,PT-1,2026-09-20,Reading and Writing,2,2,Q-0228,Rule 3B - Pronouns,C,C,right
+S-1016,PT-1,2026-09-20,Reading and Writing,2,3,Q-0281,Rule 2B - Logical Comparisons,D,D,right
+S-1016,PT-1,2026-09-20,Reading and Writing,2,4,Q-0011,Rule 4A - Subjects and Verbs,C,C,right
+S-1016,PT-1,2026-09-20,Reading and Writing,2,5,Q-0062,Rule 1A - Transition Words,A,A,right
+S-1016,PT-1,2026-09-20,Reading and Writing,2,6,Q-0189,Rule 4B - Verb Tenses,D,D,right
+S-1016,PT-1,2026-09-20,Math,1,1,Q-0017,Rule 5B - Area and Perimeter,C,D,wrong
+S-1016,PT-1,2026-09-20,Math,1,2,Q-0030,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1016,PT-1,2026-09-20,Math,1,3,Q-0237,Rule 3A - Two-equation Systems,C,C,right
+S-1016,PT-1,2026-09-20,Math,1,4,Q-0257,Rule 6A - Linear Equations,C,C,right
+S-1016,PT-1,2026-09-20,Math,1,5,Q-0126,Rule 6B - Function Notation,A,A,right
+S-1016,PT-1,2026-09-20,Math,1,6,Q-0231,Rule 1B - Percent Change,B,D,wrong
+S-1016,PT-1,2026-09-20,Math,2,1,Q-0139,Rule 5A - Part-to-part Ratios,B,C,wrong
+S-1016,PT-1,2026-09-20,Math,2,2,Q-0168,Rule 1B - Percent Change,B,B,right
+S-1016,PT-1,2026-09-20,Math,2,3,Q-0044,Rule 5B - Area and Perimeter,B,A,wrong
+S-1016,PT-1,2026-09-20,Math,2,4,Q-0040,Rule 6B - Function Notation,C,C,right
+S-1016,PT-1,2026-09-20,Math,2,5,Q-0207,Rule 3A - Two-equation Systems,B,B,right
+S-1016,PT-1,2026-09-20,Math,2,6,Q-0097,Rule 6A - Linear Equations,C,A,wrong
+S-1013,PT-2,2026-09-21,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1013,PT-2,2026-09-21,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1013,PT-2,2026-09-21,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1013,PT-2,2026-09-21,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1013,PT-2,2026-09-21,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,C,A,wrong
+S-1013,PT-2,2026-09-21,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1013,PT-2,2026-09-21,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,D,C,wrong
+S-1013,PT-2,2026-09-21,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1013,PT-2,2026-09-21,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1013,PT-2,2026-09-21,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1013,PT-2,2026-09-21,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1013,PT-2,2026-09-21,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1013,PT-2,2026-09-21,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1013,PT-2,2026-09-21,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1013,PT-2,2026-09-21,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1013,PT-2,2026-09-21,Math,1,4,Q-0138,Rule 1B - Percent Change,D,C,wrong
+S-1013,PT-2,2026-09-21,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1013,PT-2,2026-09-21,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1013,PT-2,2026-09-21,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1013,PT-2,2026-09-21,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1013,PT-2,2026-09-21,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-2,2026-09-21,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1013,PT-2,2026-09-21,Math,2,5,Q-0227,Rule 1B - Percent Change,B,C,wrong
+S-1013,PT-2,2026-09-21,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1010,PT-2,2026-09-22,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1010,PT-2,2026-09-22,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,D,C,wrong
+S-1010,PT-2,2026-09-22,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1010,PT-2,2026-09-22,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1010,PT-2,2026-09-22,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1010,PT-2,2026-09-22,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1010,PT-2,2026-09-22,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,D,C,wrong
+S-1010,PT-2,2026-09-22,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1010,PT-2,2026-09-22,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1010,PT-2,2026-09-22,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1010,PT-2,2026-09-22,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1010,PT-2,2026-09-22,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1010,PT-2,2026-09-22,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1010,PT-2,2026-09-22,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,D,B,wrong
+S-1010,PT-2,2026-09-22,Math,1,3,Q-0136,Rule 6A - Linear Equations,A,C,wrong
+S-1010,PT-2,2026-09-22,Math,1,4,Q-0138,Rule 1B - Percent Change,B,C,wrong
+S-1010,PT-2,2026-09-22,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,A,B,wrong
+S-1010,PT-2,2026-09-22,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1010,PT-2,2026-09-22,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1010,PT-2,2026-09-22,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1010,PT-2,2026-09-22,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1010,PT-2,2026-09-22,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1010,PT-2,2026-09-22,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1010,PT-2,2026-09-22,Math,2,6,Q-0141,Rule 6A - Linear Equations,C,A,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,A,D,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1008,PT-2,2026-09-24,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,A,D,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,C,B,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,D,A,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1008,PT-2,2026-09-24,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1008,PT-2,2026-09-24,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1008,PT-2,2026-09-24,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,C,D,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,A,B,wrong
+S-1008,PT-2,2026-09-24,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1008,PT-2,2026-09-24,Math,1,1,Q-0014,Rule 6B - Function Notation,C,A,wrong
+S-1008,PT-2,2026-09-24,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1008,PT-2,2026-09-24,Math,1,3,Q-0136,Rule 6A - Linear Equations,A,C,wrong
+S-1008,PT-2,2026-09-24,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1008,PT-2,2026-09-24,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1008,PT-2,2026-09-24,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,A,C,wrong
+S-1008,PT-2,2026-09-24,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1008,PT-2,2026-09-24,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1008,PT-2,2026-09-24,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-2,2026-09-24,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1008,PT-2,2026-09-24,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1008,PT-2,2026-09-24,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1016,PT-2,2026-09-24,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1016,PT-2,2026-09-24,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,A,C,wrong
+S-1016,PT-2,2026-09-24,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1016,PT-2,2026-09-24,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,A,B,wrong
+S-1016,PT-2,2026-09-24,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1016,PT-2,2026-09-24,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1016,PT-2,2026-09-24,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1016,PT-2,2026-09-24,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,A,C,wrong
+S-1016,PT-2,2026-09-24,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1016,PT-2,2026-09-24,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1016,PT-2,2026-09-24,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1016,PT-2,2026-09-24,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1016,PT-2,2026-09-24,Math,1,1,Q-0014,Rule 6B - Function Notation,D,A,wrong
+S-1016,PT-2,2026-09-24,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1016,PT-2,2026-09-24,Math,1,3,Q-0136,Rule 6A - Linear Equations,A,C,wrong
+S-1016,PT-2,2026-09-24,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1016,PT-2,2026-09-24,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1016,PT-2,2026-09-24,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1016,PT-2,2026-09-24,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,A,B,wrong
+S-1016,PT-2,2026-09-24,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,D,A,wrong
+S-1016,PT-2,2026-09-24,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1016,PT-2,2026-09-24,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1016,PT-2,2026-09-24,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1016,PT-2,2026-09-24,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1002,PT-2,2026-09-25,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1002,PT-2,2026-09-25,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1002,PT-2,2026-09-25,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1002,PT-2,2026-09-25,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1002,PT-2,2026-09-25,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1002,PT-2,2026-09-25,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1002,PT-2,2026-09-25,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1002,PT-2,2026-09-25,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1002,PT-2,2026-09-25,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1002,PT-2,2026-09-25,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1002,PT-2,2026-09-25,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1002,PT-2,2026-09-25,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1002,PT-2,2026-09-25,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1002,PT-2,2026-09-25,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1002,PT-2,2026-09-25,Math,1,3,Q-0136,Rule 6A - Linear Equations,B,C,wrong
+S-1002,PT-2,2026-09-25,Math,1,4,Q-0138,Rule 1B - Percent Change,B,C,wrong
+S-1002,PT-2,2026-09-25,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1002,PT-2,2026-09-25,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,D,C,wrong
+S-1002,PT-2,2026-09-25,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,D,B,wrong
+S-1002,PT-2,2026-09-25,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1002,PT-2,2026-09-25,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1002,PT-2,2026-09-25,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1002,PT-2,2026-09-25,Math,2,5,Q-0227,Rule 1B - Percent Change,D,C,wrong
+S-1002,PT-2,2026-09-25,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1014,PT-3,2026-09-25,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1014,PT-3,2026-09-25,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1014,PT-3,2026-09-25,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1014,PT-3,2026-09-25,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1014,PT-3,2026-09-25,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1014,PT-3,2026-09-25,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1014,PT-3,2026-09-25,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1014,PT-3,2026-09-25,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1014,PT-3,2026-09-25,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1014,PT-3,2026-09-25,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1014,PT-3,2026-09-25,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1014,PT-3,2026-09-25,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1014,PT-3,2026-09-25,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1014,PT-3,2026-09-25,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1014,PT-3,2026-09-25,Math,1,3,Q-0165,Rule 6A - Linear Equations,A,B,wrong
+S-1014,PT-3,2026-09-25,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,C,A,wrong
+S-1014,PT-3,2026-09-25,Math,1,5,Q-0182,Rule 1B - Percent Change,C,D,wrong
+S-1014,PT-3,2026-09-25,Math,1,6,Q-0184,Rule 6B - Function Notation,B,D,wrong
+S-1014,PT-3,2026-09-25,Math,2,1,Q-0041,Rule 6B - Function Notation,D,A,wrong
+S-1014,PT-3,2026-09-25,Math,2,2,Q-0107,Rule 6A - Linear Equations,C,B,wrong
+S-1014,PT-3,2026-09-25,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,C,A,wrong
+S-1014,PT-3,2026-09-25,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1014,PT-3,2026-09-25,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1014,PT-3,2026-09-25,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,D,A,wrong
+S-1003,PT-2,2026-09-27,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1003,PT-2,2026-09-27,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1003,PT-2,2026-09-27,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,C,D,wrong
+S-1003,PT-2,2026-09-27,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,A,B,wrong
+S-1003,PT-2,2026-09-27,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1003,PT-2,2026-09-27,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-2,2026-09-27,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,A,C,wrong
+S-1003,PT-2,2026-09-27,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,D,C,wrong
+S-1003,PT-2,2026-09-27,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1003,PT-2,2026-09-27,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,A,D,wrong
+S-1003,PT-2,2026-09-27,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-2,2026-09-27,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1003,PT-2,2026-09-27,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1003,PT-2,2026-09-27,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,C,B,wrong
+S-1003,PT-2,2026-09-27,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1003,PT-2,2026-09-27,Math,1,4,Q-0138,Rule 1B - Percent Change,D,C,wrong
+S-1003,PT-2,2026-09-27,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,A,B,wrong
+S-1003,PT-2,2026-09-27,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1003,PT-2,2026-09-27,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1003,PT-2,2026-09-27,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1003,PT-2,2026-09-27,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1003,PT-2,2026-09-27,Math,2,4,Q-0183,Rule 6B - Function Notation,A,D,wrong
+S-1003,PT-2,2026-09-27,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1003,PT-2,2026-09-27,Math,2,6,Q-0141,Rule 6A - Linear Equations,B,A,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,D,A,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,B,B,right
+S-1008,PT-4,2026-09-27,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,D,C,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,C,C,right
+S-1008,PT-4,2026-09-27,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,B,D,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,A,B,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,C,A,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,D,D,right
+S-1008,PT-4,2026-09-27,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1008,PT-4,2026-09-27,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,C,A,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,A,C,wrong
+S-1008,PT-4,2026-09-27,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1008,PT-4,2026-09-27,Math,1,1,Q-0009,Rule 6B - Function Notation,D,A,wrong
+S-1008,PT-4,2026-09-27,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1008,PT-4,2026-09-27,Math,1,3,Q-0177,Rule 6A - Linear Equations,A,D,wrong
+S-1008,PT-4,2026-09-27,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1008,PT-4,2026-09-27,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,A,D,wrong
+S-1008,PT-4,2026-09-27,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1008,PT-4,2026-09-27,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,C,A,wrong
+S-1008,PT-4,2026-09-27,Math,2,2,Q-0001,Rule 6B - Function Notation,D,D,right
+S-1008,PT-4,2026-09-27,Math,2,3,Q-0019,Rule 6A - Linear Equations,C,B,wrong
+S-1008,PT-4,2026-09-27,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,A,A,right
+S-1008,PT-4,2026-09-27,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-4,2026-09-27,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1003,PT-3,2026-09-28,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,D,B,wrong
+S-1003,PT-3,2026-09-28,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1003,PT-3,2026-09-28,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1003,PT-3,2026-09-28,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,B,D,wrong
+S-1003,PT-3,2026-09-28,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,B,D,wrong
+S-1003,PT-3,2026-09-28,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1003,PT-3,2026-09-28,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1003,PT-3,2026-09-28,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-3,2026-09-28,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,A,D,wrong
+S-1003,PT-3,2026-09-28,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1003,PT-3,2026-09-28,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1003,PT-3,2026-09-28,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1003,PT-3,2026-09-28,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1003,PT-3,2026-09-28,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1003,PT-3,2026-09-28,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1003,PT-3,2026-09-28,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1003,PT-3,2026-09-28,Math,1,5,Q-0182,Rule 1B - Percent Change,B,D,wrong
+S-1003,PT-3,2026-09-28,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1003,PT-3,2026-09-28,Math,2,1,Q-0041,Rule 6B - Function Notation,B,A,wrong
+S-1003,PT-3,2026-09-28,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1003,PT-3,2026-09-28,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1003,PT-3,2026-09-28,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1003,PT-3,2026-09-28,Math,2,5,Q-0287,Rule 1B - Percent Change,C,D,wrong
+S-1003,PT-3,2026-09-28,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1013,PT-3,2026-09-29,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1013,PT-3,2026-09-29,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1013,PT-3,2026-09-29,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1013,PT-3,2026-09-29,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1013,PT-3,2026-09-29,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,B,D,wrong
+S-1013,PT-3,2026-09-29,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1013,PT-3,2026-09-29,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,B,A,wrong
+S-1013,PT-3,2026-09-29,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1013,PT-3,2026-09-29,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1013,PT-3,2026-09-29,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,D,A,wrong
+S-1013,PT-3,2026-09-29,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,C,A,wrong
+S-1013,PT-3,2026-09-29,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,D,A,wrong
+S-1013,PT-3,2026-09-29,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1013,PT-3,2026-09-29,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1013,PT-3,2026-09-29,Math,1,3,Q-0165,Rule 6A - Linear Equations,D,B,wrong
+S-1013,PT-3,2026-09-29,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,C,A,wrong
+S-1013,PT-3,2026-09-29,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1013,PT-3,2026-09-29,Math,1,6,Q-0184,Rule 6B - Function Notation,A,D,wrong
+S-1013,PT-3,2026-09-29,Math,2,1,Q-0041,Rule 6B - Function Notation,C,A,wrong
+S-1013,PT-3,2026-09-29,Math,2,2,Q-0107,Rule 6A - Linear Equations,D,B,wrong
+S-1013,PT-3,2026-09-29,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1013,PT-3,2026-09-29,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1013,PT-3,2026-09-29,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1013,PT-3,2026-09-29,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1007,PT-2,2026-10-01,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1007,PT-2,2026-10-01,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1007,PT-2,2026-10-01,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1007,PT-2,2026-10-01,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1007,PT-2,2026-10-01,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,C,A,wrong
+S-1007,PT-2,2026-10-01,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1007,PT-2,2026-10-01,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1007,PT-2,2026-10-01,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1007,PT-2,2026-10-01,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,B,D,wrong
+S-1007,PT-2,2026-10-01,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1007,PT-2,2026-10-01,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1007,PT-2,2026-10-01,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,A,C,wrong
+S-1007,PT-2,2026-10-01,Math,1,1,Q-0014,Rule 6B - Function Notation,C,A,wrong
+S-1007,PT-2,2026-10-01,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1007,PT-2,2026-10-01,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1007,PT-2,2026-10-01,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1007,PT-2,2026-10-01,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1007,PT-2,2026-10-01,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1007,PT-2,2026-10-01,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,A,B,wrong
+S-1007,PT-2,2026-10-01,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,C,A,wrong
+S-1007,PT-2,2026-10-01,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1007,PT-2,2026-10-01,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1007,PT-2,2026-10-01,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1007,PT-2,2026-10-01,Math,2,6,Q-0141,Rule 6A - Linear Equations,D,A,wrong
+S-1012,PT-2,2026-10-02,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1012,PT-2,2026-10-02,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,A,C,wrong
+S-1012,PT-2,2026-10-02,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,C,D,wrong
+S-1012,PT-2,2026-10-02,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1012,PT-2,2026-10-02,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,C,A,wrong
+S-1012,PT-2,2026-10-02,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1012,PT-2,2026-10-02,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1012,PT-2,2026-10-02,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1012,PT-2,2026-10-02,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1012,PT-2,2026-10-02,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,B,D,wrong
+S-1012,PT-2,2026-10-02,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1012,PT-2,2026-10-02,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,B,C,wrong
+S-1012,PT-2,2026-10-02,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1012,PT-2,2026-10-02,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,D,B,wrong
+S-1012,PT-2,2026-10-02,Math,1,3,Q-0136,Rule 6A - Linear Equations,D,C,wrong
+S-1012,PT-2,2026-10-02,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1012,PT-2,2026-10-02,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1012,PT-2,2026-10-02,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1012,PT-2,2026-10-02,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1012,PT-2,2026-10-02,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,D,A,wrong
+S-1012,PT-2,2026-10-02,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1012,PT-2,2026-10-02,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1012,PT-2,2026-10-02,Math,2,5,Q-0227,Rule 1B - Percent Change,A,C,wrong
+S-1012,PT-2,2026-10-02,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1013,PT-4,2026-10-02,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,A,A,right
+S-1013,PT-4,2026-10-02,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,B,B,right
+S-1013,PT-4,2026-10-02,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,C,C,right
+S-1013,PT-4,2026-10-02,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,C,C,right
+S-1013,PT-4,2026-10-02,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1013,PT-4,2026-10-02,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,A,B,wrong
+S-1013,PT-4,2026-10-02,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,B,A,wrong
+S-1013,PT-4,2026-10-02,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,A,D,wrong
+S-1013,PT-4,2026-10-02,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,D,A,wrong
+S-1013,PT-4,2026-10-02,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,C,A,wrong
+S-1013,PT-4,2026-10-02,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,B,C,wrong
+S-1013,PT-4,2026-10-02,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1013,PT-4,2026-10-02,Math,1,1,Q-0009,Rule 6B - Function Notation,A,A,right
+S-1013,PT-4,2026-10-02,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1013,PT-4,2026-10-02,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1013,PT-4,2026-10-02,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1013,PT-4,2026-10-02,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,D,D,right
+S-1013,PT-4,2026-10-02,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,C,C,right
+S-1013,PT-4,2026-10-02,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1013,PT-4,2026-10-02,Math,2,2,Q-0001,Rule 6B - Function Notation,D,D,right
+S-1013,PT-4,2026-10-02,Math,2,3,Q-0019,Rule 6A - Linear Equations,B,B,right
+S-1013,PT-4,2026-10-02,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,D,A,wrong
+S-1013,PT-4,2026-10-02,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-4,2026-10-02,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1003,PT-4,2026-10-03,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,D,A,wrong
+S-1003,PT-4,2026-10-03,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,B,B,right
+S-1003,PT-4,2026-10-03,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,C,C,right
+S-1003,PT-4,2026-10-03,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,C,C,right
+S-1003,PT-4,2026-10-03,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1003,PT-4,2026-10-03,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,B,B,right
+S-1003,PT-4,2026-10-03,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,A,A,right
+S-1003,PT-4,2026-10-03,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,B,D,wrong
+S-1003,PT-4,2026-10-03,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1003,PT-4,2026-10-03,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,A,A,right
+S-1003,PT-4,2026-10-03,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,C,C,right
+S-1003,PT-4,2026-10-03,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,C,D,wrong
+S-1003,PT-4,2026-10-03,Math,1,1,Q-0009,Rule 6B - Function Notation,C,A,wrong
+S-1003,PT-4,2026-10-03,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1003,PT-4,2026-10-03,Math,1,3,Q-0177,Rule 6A - Linear Equations,A,D,wrong
+S-1003,PT-4,2026-10-03,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1003,PT-4,2026-10-03,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,B,D,wrong
+S-1003,PT-4,2026-10-03,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,C,C,right
+S-1003,PT-4,2026-10-03,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1003,PT-4,2026-10-03,Math,2,2,Q-0001,Rule 6B - Function Notation,D,D,right
+S-1003,PT-4,2026-10-03,Math,2,3,Q-0019,Rule 6A - Linear Equations,C,B,wrong
+S-1003,PT-4,2026-10-03,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,C,A,wrong
+S-1003,PT-4,2026-10-03,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1003,PT-4,2026-10-03,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1007,PT-3,2026-10-05,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1007,PT-3,2026-10-05,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,C,A,wrong
+S-1007,PT-3,2026-10-05,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,C,B,wrong
+S-1007,PT-3,2026-10-05,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1007,PT-3,2026-10-05,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,C,D,wrong
+S-1007,PT-3,2026-10-05,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1007,PT-3,2026-10-05,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,D,A,wrong
+S-1007,PT-3,2026-10-05,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1007,PT-3,2026-10-05,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1007,PT-3,2026-10-05,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,B,A,wrong
+S-1007,PT-3,2026-10-05,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1007,PT-3,2026-10-05,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1007,PT-3,2026-10-05,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1007,PT-3,2026-10-05,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1007,PT-3,2026-10-05,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1007,PT-3,2026-10-05,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,C,A,wrong
+S-1007,PT-3,2026-10-05,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1007,PT-3,2026-10-05,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1007,PT-3,2026-10-05,Math,2,1,Q-0041,Rule 6B - Function Notation,B,A,wrong
+S-1007,PT-3,2026-10-05,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1007,PT-3,2026-10-05,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1007,PT-3,2026-10-05,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1007,PT-3,2026-10-05,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1007,PT-3,2026-10-05,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1012,PT-3,2026-10-05,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,D,B,wrong
+S-1012,PT-3,2026-10-05,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1012,PT-3,2026-10-05,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,C,B,wrong
+S-1012,PT-3,2026-10-05,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1012,PT-3,2026-10-05,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1012,PT-3,2026-10-05,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1012,PT-3,2026-10-05,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,C,A,wrong
+S-1012,PT-3,2026-10-05,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1012,PT-3,2026-10-05,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1012,PT-3,2026-10-05,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1012,PT-3,2026-10-05,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1012,PT-3,2026-10-05,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1012,PT-3,2026-10-05,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1012,PT-3,2026-10-05,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1012,PT-3,2026-10-05,Math,1,3,Q-0165,Rule 6A - Linear Equations,A,B,wrong
+S-1012,PT-3,2026-10-05,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1012,PT-3,2026-10-05,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1012,PT-3,2026-10-05,Math,1,6,Q-0184,Rule 6B - Function Notation,A,D,wrong
+S-1012,PT-3,2026-10-05,Math,2,1,Q-0041,Rule 6B - Function Notation,A,A,right
+S-1012,PT-3,2026-10-05,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1012,PT-3,2026-10-05,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1012,PT-3,2026-10-05,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1012,PT-3,2026-10-05,Math,2,5,Q-0287,Rule 1B - Percent Change,C,D,wrong
+S-1012,PT-3,2026-10-05,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1015,PT-2,2026-10-06,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,B,D,wrong
+S-1015,PT-2,2026-10-06,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,A,C,wrong
+S-1015,PT-2,2026-10-06,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1015,PT-2,2026-10-06,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1015,PT-2,2026-10-06,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1015,PT-2,2026-10-06,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1015,PT-2,2026-10-06,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1015,PT-2,2026-10-06,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1015,PT-2,2026-10-06,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,C,D,wrong
+S-1015,PT-2,2026-10-06,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1015,PT-2,2026-10-06,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,A,B,wrong
+S-1015,PT-2,2026-10-06,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1015,PT-2,2026-10-06,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1015,PT-2,2026-10-06,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,A,B,wrong
+S-1015,PT-2,2026-10-06,Math,1,3,Q-0136,Rule 6A - Linear Equations,A,C,wrong
+S-1015,PT-2,2026-10-06,Math,1,4,Q-0138,Rule 1B - Percent Change,D,C,wrong
+S-1015,PT-2,2026-10-06,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1015,PT-2,2026-10-06,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1015,PT-2,2026-10-06,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1015,PT-2,2026-10-06,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1015,PT-2,2026-10-06,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1015,PT-2,2026-10-06,Math,2,4,Q-0183,Rule 6B - Function Notation,A,D,wrong
+S-1015,PT-2,2026-10-06,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1015,PT-2,2026-10-06,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1016,PT-3,2026-10-06,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1016,PT-3,2026-10-06,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1016,PT-3,2026-10-06,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,D,B,wrong
+S-1016,PT-3,2026-10-06,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1016,PT-3,2026-10-06,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,A,D,wrong
+S-1016,PT-3,2026-10-06,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,D,B,wrong
+S-1016,PT-3,2026-10-06,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1016,PT-3,2026-10-06,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1016,PT-3,2026-10-06,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,A,D,wrong
+S-1016,PT-3,2026-10-06,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1016,PT-3,2026-10-06,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,C,A,wrong
+S-1016,PT-3,2026-10-06,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,D,A,wrong
+S-1016,PT-3,2026-10-06,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1016,PT-3,2026-10-06,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,B,C,wrong
+S-1016,PT-3,2026-10-06,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1016,PT-3,2026-10-06,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,C,A,wrong
+S-1016,PT-3,2026-10-06,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1016,PT-3,2026-10-06,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1016,PT-3,2026-10-06,Math,2,1,Q-0041,Rule 6B - Function Notation,D,A,wrong
+S-1016,PT-3,2026-10-06,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1016,PT-3,2026-10-06,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1016,PT-3,2026-10-06,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1016,PT-3,2026-10-06,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1016,PT-3,2026-10-06,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,D,A,wrong
+S-1012,PT-4,2026-10-07,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,A,A,right
+S-1012,PT-4,2026-10-07,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,B,B,right
+S-1012,PT-4,2026-10-07,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,C,C,right
+S-1012,PT-4,2026-10-07,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,D,C,wrong
+S-1012,PT-4,2026-10-07,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,B,D,wrong
+S-1012,PT-4,2026-10-07,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,D,B,wrong
+S-1012,PT-4,2026-10-07,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,A,A,right
+S-1012,PT-4,2026-10-07,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,D,D,right
+S-1012,PT-4,2026-10-07,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1012,PT-4,2026-10-07,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,A,A,right
+S-1012,PT-4,2026-10-07,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,C,C,right
+S-1012,PT-4,2026-10-07,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1012,PT-4,2026-10-07,Math,1,1,Q-0009,Rule 6B - Function Notation,A,A,right
+S-1012,PT-4,2026-10-07,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1012,PT-4,2026-10-07,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1012,PT-4,2026-10-07,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1012,PT-4,2026-10-07,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,C,D,wrong
+S-1012,PT-4,2026-10-07,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,C,C,right
+S-1012,PT-4,2026-10-07,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1012,PT-4,2026-10-07,Math,2,2,Q-0001,Rule 6B - Function Notation,A,D,wrong
+S-1012,PT-4,2026-10-07,Math,2,3,Q-0019,Rule 6A - Linear Equations,B,B,right
+S-1012,PT-4,2026-10-07,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,C,A,wrong
+S-1012,PT-4,2026-10-07,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1012,PT-4,2026-10-07,Math,2,6,Q-0148,Rule 1B - Percent Change,B,C,wrong
+S-1014,PT-4,2026-10-08,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,A,A,right
+S-1014,PT-4,2026-10-08,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,B,B,right
+S-1014,PT-4,2026-10-08,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,D,C,wrong
+S-1014,PT-4,2026-10-08,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,B,C,wrong
+S-1014,PT-4,2026-10-08,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1014,PT-4,2026-10-08,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,B,B,right
+S-1014,PT-4,2026-10-08,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,A,A,right
+S-1014,PT-4,2026-10-08,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,D,D,right
+S-1014,PT-4,2026-10-08,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1014,PT-4,2026-10-08,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,A,A,right
+S-1014,PT-4,2026-10-08,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,C,C,right
+S-1014,PT-4,2026-10-08,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1014,PT-4,2026-10-08,Math,1,1,Q-0009,Rule 6B - Function Notation,D,A,wrong
+S-1014,PT-4,2026-10-08,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1014,PT-4,2026-10-08,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1014,PT-4,2026-10-08,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1014,PT-4,2026-10-08,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,D,D,right
+S-1014,PT-4,2026-10-08,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,B,C,wrong
+S-1014,PT-4,2026-10-08,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1014,PT-4,2026-10-08,Math,2,2,Q-0001,Rule 6B - Function Notation,D,D,right
+S-1014,PT-4,2026-10-08,Math,2,3,Q-0019,Rule 6A - Linear Equations,B,B,right
+S-1014,PT-4,2026-10-08,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,D,A,wrong
+S-1014,PT-4,2026-10-08,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1014,PT-4,2026-10-08,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1016,PT-4,2026-10-12,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,C,A,wrong
+S-1016,PT-4,2026-10-12,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,A,B,wrong
+S-1016,PT-4,2026-10-12,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,C,C,right
+S-1016,PT-4,2026-10-12,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,A,C,wrong
+S-1016,PT-4,2026-10-12,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1016,PT-4,2026-10-12,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,D,B,wrong
+S-1016,PT-4,2026-10-12,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,A,A,right
+S-1016,PT-4,2026-10-12,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,C,D,wrong
+S-1016,PT-4,2026-10-12,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1016,PT-4,2026-10-12,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,A,A,right
+S-1016,PT-4,2026-10-12,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,A,C,wrong
+S-1016,PT-4,2026-10-12,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,C,D,wrong
+S-1016,PT-4,2026-10-12,Math,1,1,Q-0009,Rule 6B - Function Notation,A,A,right
+S-1016,PT-4,2026-10-12,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,B,A,wrong
+S-1016,PT-4,2026-10-12,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1016,PT-4,2026-10-12,Math,1,4,Q-0095,Rule 1B - Percent Change,A,D,wrong
+S-1016,PT-4,2026-10-12,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,D,D,right
+S-1016,PT-4,2026-10-12,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,D,C,wrong
+S-1016,PT-4,2026-10-12,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1016,PT-4,2026-10-12,Math,2,2,Q-0001,Rule 6B - Function Notation,A,D,wrong
+S-1016,PT-4,2026-10-12,Math,2,3,Q-0019,Rule 6A - Linear Equations,B,B,right
+S-1016,PT-4,2026-10-12,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,D,A,wrong
+S-1016,PT-4,2026-10-12,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1016,PT-4,2026-10-12,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1001,PT-2,2026-10-13,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1001,PT-2,2026-10-13,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1001,PT-2,2026-10-13,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1001,PT-2,2026-10-13,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,D,B,wrong
+S-1001,PT-2,2026-10-13,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1001,PT-2,2026-10-13,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1001,PT-2,2026-10-13,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1001,PT-2,2026-10-13,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1001,PT-2,2026-10-13,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,C,D,wrong
+S-1001,PT-2,2026-10-13,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1001,PT-2,2026-10-13,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1001,PT-2,2026-10-13,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,D,C,wrong
+S-1001,PT-2,2026-10-13,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1001,PT-2,2026-10-13,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,D,B,wrong
+S-1001,PT-2,2026-10-13,Math,1,3,Q-0136,Rule 6A - Linear Equations,B,C,wrong
+S-1001,PT-2,2026-10-13,Math,1,4,Q-0138,Rule 1B - Percent Change,A,C,wrong
+S-1001,PT-2,2026-10-13,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1001,PT-2,2026-10-13,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1001,PT-2,2026-10-13,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1001,PT-2,2026-10-13,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1001,PT-2,2026-10-13,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1001,PT-2,2026-10-13,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1001,PT-2,2026-10-13,Math,2,5,Q-0227,Rule 1B - Percent Change,D,C,wrong
+S-1001,PT-2,2026-10-13,Math,2,6,Q-0141,Rule 6A - Linear Equations,D,A,wrong
+S-1005,PT-4,2026-10-14,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,C,A,wrong
+S-1005,PT-4,2026-10-14,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,D,B,wrong
+S-1005,PT-4,2026-10-14,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,C,C,right
+S-1005,PT-4,2026-10-14,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,C,C,right
+S-1005,PT-4,2026-10-14,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1005,PT-4,2026-10-14,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,B,B,right
+S-1005,PT-4,2026-10-14,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,A,A,right
+S-1005,PT-4,2026-10-14,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,D,D,right
+S-1005,PT-4,2026-10-14,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,B,A,wrong
+S-1005,PT-4,2026-10-14,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,B,A,wrong
+S-1005,PT-4,2026-10-14,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,C,C,right
+S-1005,PT-4,2026-10-14,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1005,PT-4,2026-10-14,Math,1,1,Q-0009,Rule 6B - Function Notation,A,A,right
+S-1005,PT-4,2026-10-14,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1005,PT-4,2026-10-14,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1005,PT-4,2026-10-14,Math,1,4,Q-0095,Rule 1B - Percent Change,B,D,wrong
+S-1005,PT-4,2026-10-14,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,A,D,wrong
+S-1005,PT-4,2026-10-14,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,C,C,right
+S-1005,PT-4,2026-10-14,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1005,PT-4,2026-10-14,Math,2,2,Q-0001,Rule 6B - Function Notation,D,D,right
+S-1005,PT-4,2026-10-14,Math,2,3,Q-0019,Rule 6A - Linear Equations,C,B,wrong
+S-1005,PT-4,2026-10-14,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,A,A,right
+S-1005,PT-4,2026-10-14,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1005,PT-4,2026-10-14,Math,2,6,Q-0148,Rule 1B - Percent Change,A,C,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,C,D,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1006,PT-2,2026-10-15,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1006,PT-2,2026-10-15,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,A,B,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,B,A,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1006,PT-2,2026-10-15,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1006,PT-2,2026-10-15,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,D,C,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,B,D,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1006,PT-2,2026-10-15,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1006,PT-2,2026-10-15,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,D,C,wrong
+S-1006,PT-2,2026-10-15,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1006,PT-2,2026-10-15,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,D,B,wrong
+S-1006,PT-2,2026-10-15,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1006,PT-2,2026-10-15,Math,1,4,Q-0138,Rule 1B - Percent Change,A,C,wrong
+S-1006,PT-2,2026-10-15,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1006,PT-2,2026-10-15,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1006,PT-2,2026-10-15,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,A,B,wrong
+S-1006,PT-2,2026-10-15,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,B,A,wrong
+S-1006,PT-2,2026-10-15,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1006,PT-2,2026-10-15,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1006,PT-2,2026-10-15,Math,2,5,Q-0227,Rule 1B - Percent Change,B,C,wrong
+S-1006,PT-2,2026-10-15,Math,2,6,Q-0141,Rule 6A - Linear Equations,C,A,wrong
+S-1010,PT-3,2026-10-16,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,D,B,wrong
+S-1010,PT-3,2026-10-16,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,D,A,wrong
+S-1010,PT-3,2026-10-16,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1010,PT-3,2026-10-16,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1010,PT-3,2026-10-16,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1010,PT-3,2026-10-16,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1010,PT-3,2026-10-16,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1010,PT-3,2026-10-16,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1010,PT-3,2026-10-16,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1010,PT-3,2026-10-16,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,D,A,wrong
+S-1010,PT-3,2026-10-16,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1010,PT-3,2026-10-16,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1010,PT-3,2026-10-16,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1010,PT-3,2026-10-16,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1010,PT-3,2026-10-16,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1010,PT-3,2026-10-16,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1010,PT-3,2026-10-16,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1010,PT-3,2026-10-16,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1010,PT-3,2026-10-16,Math,2,1,Q-0041,Rule 6B - Function Notation,C,A,wrong
+S-1010,PT-3,2026-10-16,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1010,PT-3,2026-10-16,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1010,PT-3,2026-10-16,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1010,PT-3,2026-10-16,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1010,PT-3,2026-10-16,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1003,PT-5,2026-10-17,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1003,PT-5,2026-10-17,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1003,PT-5,2026-10-17,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1003,PT-5,2026-10-17,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,B,C,wrong
+S-1003,PT-5,2026-10-17,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1003,PT-5,2026-10-17,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1003,PT-5,2026-10-17,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1003,PT-5,2026-10-17,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,C,B,wrong
+S-1003,PT-5,2026-10-17,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1003,PT-5,2026-10-17,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1003,PT-5,2026-10-17,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-5,2026-10-17,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1003,PT-5,2026-10-17,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1003,PT-5,2026-10-17,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,D,C,wrong
+S-1003,PT-5,2026-10-17,Math,1,3,Q-0193,Rule 6B - Function Notation,A,B,wrong
+S-1003,PT-5,2026-10-17,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1003,PT-5,2026-10-17,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1003,PT-5,2026-10-17,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,B,D,wrong
+S-1003,PT-5,2026-10-17,Math,2,1,Q-0114,Rule 1B - Percent Change,B,A,wrong
+S-1003,PT-5,2026-10-17,Math,2,2,Q-0098,Rule 6A - Linear Equations,B,A,wrong
+S-1003,PT-5,2026-10-17,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1003,PT-5,2026-10-17,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1003,PT-5,2026-10-17,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1003,PT-5,2026-10-17,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1005,PT-5,2026-10-20,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1005,PT-5,2026-10-20,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,B,C,wrong
+S-1005,PT-5,2026-10-20,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1005,PT-5,2026-10-20,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,A,C,wrong
+S-1005,PT-5,2026-10-20,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1005,PT-5,2026-10-20,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1005,PT-5,2026-10-20,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1005,PT-5,2026-10-20,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,C,B,wrong
+S-1005,PT-5,2026-10-20,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,C,D,wrong
+S-1005,PT-5,2026-10-20,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1005,PT-5,2026-10-20,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1005,PT-5,2026-10-20,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1005,PT-5,2026-10-20,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1005,PT-5,2026-10-20,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1005,PT-5,2026-10-20,Math,1,3,Q-0193,Rule 6B - Function Notation,D,B,wrong
+S-1005,PT-5,2026-10-20,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1005,PT-5,2026-10-20,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1005,PT-5,2026-10-20,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1005,PT-5,2026-10-20,Math,2,1,Q-0114,Rule 1B - Percent Change,D,A,wrong
+S-1005,PT-5,2026-10-20,Math,2,2,Q-0098,Rule 6A - Linear Equations,D,A,wrong
+S-1005,PT-5,2026-10-20,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1005,PT-5,2026-10-20,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1005,PT-5,2026-10-20,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,D,B,wrong
+S-1005,PT-5,2026-10-20,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1006,PT-3,2026-10-20,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1006,PT-3,2026-10-20,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1006,PT-3,2026-10-20,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1006,PT-3,2026-10-20,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1006,PT-3,2026-10-20,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1006,PT-3,2026-10-20,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1006,PT-3,2026-10-20,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,C,A,wrong
+S-1006,PT-3,2026-10-20,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,A,B,wrong
+S-1006,PT-3,2026-10-20,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1006,PT-3,2026-10-20,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,B,A,wrong
+S-1006,PT-3,2026-10-20,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1006,PT-3,2026-10-20,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,B,A,wrong
+S-1006,PT-3,2026-10-20,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1006,PT-3,2026-10-20,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,D,C,wrong
+S-1006,PT-3,2026-10-20,Math,1,3,Q-0165,Rule 6A - Linear Equations,C,B,wrong
+S-1006,PT-3,2026-10-20,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,D,A,wrong
+S-1006,PT-3,2026-10-20,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1006,PT-3,2026-10-20,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1006,PT-3,2026-10-20,Math,2,1,Q-0041,Rule 6B - Function Notation,A,A,right
+S-1006,PT-3,2026-10-20,Math,2,2,Q-0107,Rule 6A - Linear Equations,A,B,wrong
+S-1006,PT-3,2026-10-20,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1006,PT-3,2026-10-20,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1006,PT-3,2026-10-20,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1006,PT-3,2026-10-20,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1016,PT-5,2026-10-22,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,C,A,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1016,PT-5,2026-10-22,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,B,C,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1016,PT-5,2026-10-22,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1016,PT-5,2026-10-22,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,C,D,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,A,B,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,C,B,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1016,PT-5,2026-10-22,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,A,C,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,A,B,wrong
+S-1016,PT-5,2026-10-22,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1016,PT-5,2026-10-22,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1016,PT-5,2026-10-22,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,B,C,wrong
+S-1016,PT-5,2026-10-22,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1016,PT-5,2026-10-22,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1016,PT-5,2026-10-22,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1016,PT-5,2026-10-22,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1016,PT-5,2026-10-22,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1016,PT-5,2026-10-22,Math,2,2,Q-0098,Rule 6A - Linear Equations,D,A,wrong
+S-1016,PT-5,2026-10-22,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1016,PT-5,2026-10-22,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1016,PT-5,2026-10-22,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1016,PT-5,2026-10-22,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,D,C,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1013,PT-5,2026-10-24,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1013,PT-5,2026-10-24,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,A,C,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1013,PT-5,2026-10-24,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,C,B,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1013,PT-5,2026-10-24,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,C,B,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1013,PT-5,2026-10-24,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,C,D,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,D,C,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1013,PT-5,2026-10-24,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1013,PT-5,2026-10-24,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1013,PT-5,2026-10-24,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1013,PT-5,2026-10-24,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1013,PT-5,2026-10-24,Math,1,4,Q-0038,Rule 6A - Linear Equations,A,D,wrong
+S-1013,PT-5,2026-10-24,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1013,PT-5,2026-10-24,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1013,PT-5,2026-10-24,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1013,PT-5,2026-10-24,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1013,PT-5,2026-10-24,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1013,PT-5,2026-10-24,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-5,2026-10-24,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,D,B,wrong
+S-1013,PT-5,2026-10-24,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1006,PT-4,2026-10-27,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,A,A,right
+S-1006,PT-4,2026-10-27,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,B,B,right
+S-1006,PT-4,2026-10-27,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,B,C,wrong
+S-1006,PT-4,2026-10-27,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,A,C,wrong
+S-1006,PT-4,2026-10-27,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1006,PT-4,2026-10-27,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,D,B,wrong
+S-1006,PT-4,2026-10-27,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,B,A,wrong
+S-1006,PT-4,2026-10-27,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,D,D,right
+S-1006,PT-4,2026-10-27,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1006,PT-4,2026-10-27,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,A,A,right
+S-1006,PT-4,2026-10-27,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,C,C,right
+S-1006,PT-4,2026-10-27,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1006,PT-4,2026-10-27,Math,1,1,Q-0009,Rule 6B - Function Notation,A,A,right
+S-1006,PT-4,2026-10-27,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1006,PT-4,2026-10-27,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1006,PT-4,2026-10-27,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1006,PT-4,2026-10-27,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,D,D,right
+S-1006,PT-4,2026-10-27,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,C,C,right
+S-1006,PT-4,2026-10-27,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,A,A,right
+S-1006,PT-4,2026-10-27,Math,2,2,Q-0001,Rule 6B - Function Notation,C,D,wrong
+S-1006,PT-4,2026-10-27,Math,2,3,Q-0019,Rule 6A - Linear Equations,B,B,right
+S-1006,PT-4,2026-10-27,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,D,A,wrong
+S-1006,PT-4,2026-10-27,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1006,PT-4,2026-10-27,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1001,PT-5,2026-10-29,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,D,A,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,A,C,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1001,PT-5,2026-10-29,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,D,C,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,D,B,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,B,D,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,A,C,wrong
+S-1001,PT-5,2026-10-29,Math,1,1,Q-0206,Rule 1B - Percent Change,A,B,wrong
+S-1001,PT-5,2026-10-29,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1001,PT-5,2026-10-29,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1001,PT-5,2026-10-29,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1001,PT-5,2026-10-29,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1001,PT-5,2026-10-29,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1001,PT-5,2026-10-29,Math,2,1,Q-0114,Rule 1B - Percent Change,C,A,wrong
+S-1001,PT-5,2026-10-29,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1001,PT-5,2026-10-29,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1001,PT-5,2026-10-29,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1001,PT-5,2026-10-29,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,A,B,wrong
+S-1001,PT-5,2026-10-29,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1015,PT-3,2026-10-29,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1015,PT-3,2026-10-29,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1015,PT-3,2026-10-29,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1015,PT-3,2026-10-29,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1015,PT-3,2026-10-29,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1015,PT-3,2026-10-29,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,D,B,wrong
+S-1015,PT-3,2026-10-29,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1015,PT-3,2026-10-29,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1015,PT-3,2026-10-29,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1015,PT-3,2026-10-29,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,D,A,wrong
+S-1015,PT-3,2026-10-29,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,C,A,wrong
+S-1015,PT-3,2026-10-29,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1015,PT-3,2026-10-29,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1015,PT-3,2026-10-29,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1015,PT-3,2026-10-29,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1015,PT-3,2026-10-29,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1015,PT-3,2026-10-29,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1015,PT-3,2026-10-29,Math,1,6,Q-0184,Rule 6B - Function Notation,A,D,wrong
+S-1015,PT-3,2026-10-29,Math,2,1,Q-0041,Rule 6B - Function Notation,A,A,right
+S-1015,PT-3,2026-10-29,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1015,PT-3,2026-10-29,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1015,PT-3,2026-10-29,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1015,PT-3,2026-10-29,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1015,PT-3,2026-10-29,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1016,PT-4,2026-11-02,Reading and Writing,1,1,Q-0241,Rule 4B - Verb Tenses,D,A,wrong
+S-1016,PT-4,2026-11-02,Reading and Writing,1,2,Q-0003,Rule 2B - Logical Comparisons,A,B,wrong
+S-1016,PT-4,2026-11-02,Reading and Writing,1,3,Q-0285,Rule 4A - Subjects and Verbs,A,C,wrong
+S-1016,PT-4,2026-11-02,Reading and Writing,1,4,Q-0056,Rule 2A - Joining Clauses,C,C,right
+S-1016,PT-4,2026-11-02,Reading and Writing,1,5,Q-0121,Rule 3B - Pronouns,D,D,right
+S-1016,PT-4,2026-11-02,Reading and Writing,1,6,Q-0124,Rule 1A - Transition Words,B,B,right
+S-1016,PT-4,2026-11-02,Reading and Writing,2,1,Q-0100,Rule 2A - Joining Clauses,A,A,right
+S-1016,PT-4,2026-11-02,Reading and Writing,2,2,Q-0123,Rule 4B - Verb Tenses,D,D,right
+S-1016,PT-4,2026-11-02,Reading and Writing,2,3,Q-0012,Rule 1A - Transition Words,A,A,right
+S-1016,PT-4,2026-11-02,Reading and Writing,2,4,Q-0162,Rule 3B - Pronouns,A,A,right
+S-1016,PT-4,2026-11-02,Reading and Writing,2,5,Q-0122,Rule 4A - Subjects and Verbs,A,C,wrong
+S-1016,PT-4,2026-11-02,Reading and Writing,2,6,Q-0242,Rule 2B - Logical Comparisons,D,D,right
+S-1016,PT-4,2026-11-02,Math,1,1,Q-0009,Rule 6B - Function Notation,A,A,right
+S-1016,PT-4,2026-11-02,Math,1,2,Q-0130,Rule 3A - Two-equation Systems,A,A,right
+S-1016,PT-4,2026-11-02,Math,1,3,Q-0177,Rule 6A - Linear Equations,D,D,right
+S-1016,PT-4,2026-11-02,Math,1,4,Q-0095,Rule 1B - Percent Change,D,D,right
+S-1016,PT-4,2026-11-02,Math,1,5,Q-0197,Rule 5B - Area and Perimeter,D,D,right
+S-1016,PT-4,2026-11-02,Math,1,6,Q-0021,Rule 5A - Part-to-part Ratios,C,C,right
+S-1016,PT-4,2026-11-02,Math,2,1,Q-0005,Rule 5B - Area and Perimeter,C,A,wrong
+S-1016,PT-4,2026-11-02,Math,2,2,Q-0001,Rule 6B - Function Notation,D,D,right
+S-1016,PT-4,2026-11-02,Math,2,3,Q-0019,Rule 6A - Linear Equations,B,B,right
+S-1016,PT-4,2026-11-02,Math,2,4,Q-0102,Rule 3A - Two-equation Systems,A,A,right
+S-1016,PT-4,2026-11-02,Math,2,5,Q-0234,Rule 5A - Part-to-part Ratios,D,D,right
+S-1016,PT-4,2026-11-02,Math,2,6,Q-0148,Rule 1B - Percent Change,C,C,right
+S-1004,PT-5,2026-11-03,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,B,A,wrong
+S-1004,PT-5,2026-11-03,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,B,C,wrong
+S-1004,PT-5,2026-11-03,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1004,PT-5,2026-11-03,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1004,PT-5,2026-11-03,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1004,PT-5,2026-11-03,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1004,PT-5,2026-11-03,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1004,PT-5,2026-11-03,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1004,PT-5,2026-11-03,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,B,D,wrong
+S-1004,PT-5,2026-11-03,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1004,PT-5,2026-11-03,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1004,PT-5,2026-11-03,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,B,C,wrong
+S-1004,PT-5,2026-11-03,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1004,PT-5,2026-11-03,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1004,PT-5,2026-11-03,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1004,PT-5,2026-11-03,Math,1,4,Q-0038,Rule 6A - Linear Equations,C,D,wrong
+S-1004,PT-5,2026-11-03,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,B,D,wrong
+S-1004,PT-5,2026-11-03,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,C,D,wrong
+S-1004,PT-5,2026-11-03,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1004,PT-5,2026-11-03,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1004,PT-5,2026-11-03,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1004,PT-5,2026-11-03,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1004,PT-5,2026-11-03,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1004,PT-5,2026-11-03,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1008,PT-2,2026-11-03,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1008,PT-2,2026-11-03,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1008,PT-2,2026-11-03,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,B,D,wrong
+S-1008,PT-2,2026-11-03,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1008,PT-2,2026-11-03,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,B,A,wrong
+S-1008,PT-2,2026-11-03,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,A,B,wrong
+S-1008,PT-2,2026-11-03,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1008,PT-2,2026-11-03,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1008,PT-2,2026-11-03,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,B,D,wrong
+S-1008,PT-2,2026-11-03,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1008,PT-2,2026-11-03,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1008,PT-2,2026-11-03,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1008,PT-2,2026-11-03,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1008,PT-2,2026-11-03,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1008,PT-2,2026-11-03,Math,1,3,Q-0136,Rule 6A - Linear Equations,D,C,wrong
+S-1008,PT-2,2026-11-03,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1008,PT-2,2026-11-03,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1008,PT-2,2026-11-03,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1008,PT-2,2026-11-03,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1008,PT-2,2026-11-03,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1008,PT-2,2026-11-03,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-2,2026-11-03,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1008,PT-2,2026-11-03,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1008,PT-2,2026-11-03,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1003,PT-2,2026-11-04,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1003,PT-2,2026-11-04,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1003,PT-2,2026-11-04,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1003,PT-2,2026-11-04,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1003,PT-2,2026-11-04,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1003,PT-2,2026-11-04,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-2,2026-11-04,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,A,C,wrong
+S-1003,PT-2,2026-11-04,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1003,PT-2,2026-11-04,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1003,PT-2,2026-11-04,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1003,PT-2,2026-11-04,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1003,PT-2,2026-11-04,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1003,PT-2,2026-11-04,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1003,PT-2,2026-11-04,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1003,PT-2,2026-11-04,Math,1,3,Q-0136,Rule 6A - Linear Equations,B,C,wrong
+S-1003,PT-2,2026-11-04,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1003,PT-2,2026-11-04,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1003,PT-2,2026-11-04,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1003,PT-2,2026-11-04,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1003,PT-2,2026-11-04,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1003,PT-2,2026-11-04,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1003,PT-2,2026-11-04,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1003,PT-2,2026-11-04,Math,2,5,Q-0227,Rule 1B - Percent Change,A,C,wrong
+S-1003,PT-2,2026-11-04,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1006,PT-5,2026-11-04,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1006,PT-5,2026-11-04,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,B,C,wrong
+S-1006,PT-5,2026-11-04,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1006,PT-5,2026-11-04,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1006,PT-5,2026-11-04,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1006,PT-5,2026-11-04,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1006,PT-5,2026-11-04,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,C,B,wrong
+S-1006,PT-5,2026-11-04,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1006,PT-5,2026-11-04,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,A,D,wrong
+S-1006,PT-5,2026-11-04,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1006,PT-5,2026-11-04,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1006,PT-5,2026-11-04,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1006,PT-5,2026-11-04,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1006,PT-5,2026-11-04,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1006,PT-5,2026-11-04,Math,1,3,Q-0193,Rule 6B - Function Notation,D,B,wrong
+S-1006,PT-5,2026-11-04,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1006,PT-5,2026-11-04,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1006,PT-5,2026-11-04,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1006,PT-5,2026-11-04,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1006,PT-5,2026-11-04,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1006,PT-5,2026-11-04,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1006,PT-5,2026-11-04,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1006,PT-5,2026-11-04,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,D,B,wrong
+S-1006,PT-5,2026-11-04,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1013,PT-2,2026-11-05,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,D,D,right
+S-1013,PT-2,2026-11-05,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1013,PT-2,2026-11-05,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1013,PT-2,2026-11-05,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1013,PT-2,2026-11-05,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,B,A,wrong
+S-1013,PT-2,2026-11-05,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,B,B,right
+S-1013,PT-2,2026-11-05,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1013,PT-2,2026-11-05,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,A,C,wrong
+S-1013,PT-2,2026-11-05,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,B,D,wrong
+S-1013,PT-2,2026-11-05,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1013,PT-2,2026-11-05,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1013,PT-2,2026-11-05,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1013,PT-2,2026-11-05,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1013,PT-2,2026-11-05,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1013,PT-2,2026-11-05,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1013,PT-2,2026-11-05,Math,1,4,Q-0138,Rule 1B - Percent Change,C,C,right
+S-1013,PT-2,2026-11-05,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1013,PT-2,2026-11-05,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,C,C,right
+S-1013,PT-2,2026-11-05,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1013,PT-2,2026-11-05,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1013,PT-2,2026-11-05,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-2,2026-11-05,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1013,PT-2,2026-11-05,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1013,PT-2,2026-11-05,Math,2,6,Q-0141,Rule 6A - Linear Equations,D,A,wrong
+S-1007,PT-5,2026-11-06,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1007,PT-5,2026-11-06,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1007,PT-5,2026-11-06,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,A,C,wrong
+S-1007,PT-5,2026-11-06,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1007,PT-5,2026-11-06,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,D,B,wrong
+S-1007,PT-5,2026-11-06,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,B,D,wrong
+S-1007,PT-5,2026-11-06,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1007,PT-5,2026-11-06,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1007,PT-5,2026-11-06,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1007,PT-5,2026-11-06,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1007,PT-5,2026-11-06,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1007,PT-5,2026-11-06,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1007,PT-5,2026-11-06,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1007,PT-5,2026-11-06,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1007,PT-5,2026-11-06,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1007,PT-5,2026-11-06,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1007,PT-5,2026-11-06,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1007,PT-5,2026-11-06,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1007,PT-5,2026-11-06,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1007,PT-5,2026-11-06,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1007,PT-5,2026-11-06,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1007,PT-5,2026-11-06,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1007,PT-5,2026-11-06,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1007,PT-5,2026-11-06,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1010,PT-3,2026-11-06,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1010,PT-3,2026-11-06,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,D,A,wrong
+S-1010,PT-3,2026-11-06,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1010,PT-3,2026-11-06,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1010,PT-3,2026-11-06,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1010,PT-3,2026-11-06,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,C,B,wrong
+S-1010,PT-3,2026-11-06,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1010,PT-3,2026-11-06,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1010,PT-3,2026-11-06,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1010,PT-3,2026-11-06,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,C,A,wrong
+S-1010,PT-3,2026-11-06,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1010,PT-3,2026-11-06,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1010,PT-3,2026-11-06,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1010,PT-3,2026-11-06,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1010,PT-3,2026-11-06,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1010,PT-3,2026-11-06,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1010,PT-3,2026-11-06,Math,1,5,Q-0182,Rule 1B - Percent Change,C,D,wrong
+S-1010,PT-3,2026-11-06,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1010,PT-3,2026-11-06,Math,2,1,Q-0041,Rule 6B - Function Notation,D,A,wrong
+S-1010,PT-3,2026-11-06,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1010,PT-3,2026-11-06,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1010,PT-3,2026-11-06,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1010,PT-3,2026-11-06,Math,2,5,Q-0287,Rule 1B - Percent Change,B,D,wrong
+S-1010,PT-3,2026-11-06,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1009,PT-5,2026-11-08,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1009,PT-5,2026-11-08,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1009,PT-5,2026-11-08,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1009,PT-5,2026-11-08,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1009,PT-5,2026-11-08,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1009,PT-5,2026-11-08,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1009,PT-5,2026-11-08,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1009,PT-5,2026-11-08,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1009,PT-5,2026-11-08,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1009,PT-5,2026-11-08,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1009,PT-5,2026-11-08,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,C,B,wrong
+S-1009,PT-5,2026-11-08,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1009,PT-5,2026-11-08,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1009,PT-5,2026-11-08,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,B,C,wrong
+S-1009,PT-5,2026-11-08,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1009,PT-5,2026-11-08,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1009,PT-5,2026-11-08,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1009,PT-5,2026-11-08,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,C,D,wrong
+S-1009,PT-5,2026-11-08,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1009,PT-5,2026-11-08,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1009,PT-5,2026-11-08,Math,2,3,Q-0278,Rule 6B - Function Notation,A,A,right
+S-1009,PT-5,2026-11-08,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1009,PT-5,2026-11-08,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,A,B,wrong
+S-1009,PT-5,2026-11-08,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1011,PT-3,2026-11-08,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1011,PT-3,2026-11-08,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1011,PT-3,2026-11-08,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,D,B,wrong
+S-1011,PT-3,2026-11-08,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,B,D,wrong
+S-1011,PT-3,2026-11-08,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,A,D,wrong
+S-1011,PT-3,2026-11-08,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,A,B,wrong
+S-1011,PT-3,2026-11-08,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1011,PT-3,2026-11-08,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1011,PT-3,2026-11-08,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,B,D,wrong
+S-1011,PT-3,2026-11-08,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,C,A,wrong
+S-1011,PT-3,2026-11-08,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1011,PT-3,2026-11-08,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,D,A,wrong
+S-1011,PT-3,2026-11-08,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,C,B,wrong
+S-1011,PT-3,2026-11-08,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,D,C,wrong
+S-1011,PT-3,2026-11-08,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1011,PT-3,2026-11-08,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1011,PT-3,2026-11-08,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1011,PT-3,2026-11-08,Math,1,6,Q-0184,Rule 6B - Function Notation,C,D,wrong
+S-1011,PT-3,2026-11-08,Math,2,1,Q-0041,Rule 6B - Function Notation,A,A,right
+S-1011,PT-3,2026-11-08,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1011,PT-3,2026-11-08,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1011,PT-3,2026-11-08,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1011,PT-3,2026-11-08,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1011,PT-3,2026-11-08,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1014,PT-5,2026-11-08,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1014,PT-5,2026-11-08,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,B,C,wrong
+S-1014,PT-5,2026-11-08,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,C,C,right
+S-1014,PT-5,2026-11-08,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1014,PT-5,2026-11-08,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1014,PT-5,2026-11-08,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1014,PT-5,2026-11-08,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1014,PT-5,2026-11-08,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1014,PT-5,2026-11-08,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1014,PT-5,2026-11-08,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1014,PT-5,2026-11-08,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1014,PT-5,2026-11-08,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,D,C,wrong
+S-1014,PT-5,2026-11-08,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1014,PT-5,2026-11-08,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,C,C,right
+S-1014,PT-5,2026-11-08,Math,1,3,Q-0193,Rule 6B - Function Notation,B,B,right
+S-1014,PT-5,2026-11-08,Math,1,4,Q-0038,Rule 6A - Linear Equations,D,D,right
+S-1014,PT-5,2026-11-08,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1014,PT-5,2026-11-08,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1014,PT-5,2026-11-08,Math,2,1,Q-0114,Rule 1B - Percent Change,A,A,right
+S-1014,PT-5,2026-11-08,Math,2,2,Q-0098,Rule 6A - Linear Equations,D,A,wrong
+S-1014,PT-5,2026-11-08,Math,2,3,Q-0278,Rule 6B - Function Notation,C,A,wrong
+S-1014,PT-5,2026-11-08,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1014,PT-5,2026-11-08,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1014,PT-5,2026-11-08,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,C,C,right
+S-1002,PT-3,2026-11-09,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1002,PT-3,2026-11-09,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,C,A,wrong
+S-1002,PT-3,2026-11-09,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1002,PT-3,2026-11-09,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,A,D,wrong
+S-1002,PT-3,2026-11-09,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,D,D,right
+S-1002,PT-3,2026-11-09,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,D,B,wrong
+S-1002,PT-3,2026-11-09,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,A,A,right
+S-1002,PT-3,2026-11-09,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1002,PT-3,2026-11-09,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,D,D,right
+S-1002,PT-3,2026-11-09,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1002,PT-3,2026-11-09,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,B,A,wrong
+S-1002,PT-3,2026-11-09,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1002,PT-3,2026-11-09,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1002,PT-3,2026-11-09,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1002,PT-3,2026-11-09,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1002,PT-3,2026-11-09,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1002,PT-3,2026-11-09,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1002,PT-3,2026-11-09,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1002,PT-3,2026-11-09,Math,2,1,Q-0041,Rule 6B - Function Notation,B,A,wrong
+S-1002,PT-3,2026-11-09,Math,2,2,Q-0107,Rule 6A - Linear Equations,B,B,right
+S-1002,PT-3,2026-11-09,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1002,PT-3,2026-11-09,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1002,PT-3,2026-11-09,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1002,PT-3,2026-11-09,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1005,PT-3,2026-11-09,Reading and Writing,1,1,Q-0053,Rule 4B - Verb Tenses,B,B,right
+S-1005,PT-3,2026-11-09,Reading and Writing,1,2,Q-0116,Rule 2A - Joining Clauses,A,A,right
+S-1005,PT-3,2026-11-09,Reading and Writing,1,3,Q-0002,Rule 3B - Pronouns,B,B,right
+S-1005,PT-3,2026-11-09,Reading and Writing,1,4,Q-0283,Rule 2B - Logical Comparisons,D,D,right
+S-1005,PT-3,2026-11-09,Reading and Writing,1,5,Q-0112,Rule 4A - Subjects and Verbs,B,D,wrong
+S-1005,PT-3,2026-11-09,Reading and Writing,1,6,Q-0267,Rule 1A - Transition Words,B,B,right
+S-1005,PT-3,2026-11-09,Reading and Writing,2,1,Q-0246,Rule 3B - Pronouns,C,A,wrong
+S-1005,PT-3,2026-11-09,Reading and Writing,2,2,Q-0245,Rule 4A - Subjects and Verbs,B,B,right
+S-1005,PT-3,2026-11-09,Reading and Writing,2,3,Q-0071,Rule 2B - Logical Comparisons,C,D,wrong
+S-1005,PT-3,2026-11-09,Reading and Writing,2,4,Q-0252,Rule 1A - Transition Words,A,A,right
+S-1005,PT-3,2026-11-09,Reading and Writing,2,5,Q-0157,Rule 4B - Verb Tenses,A,A,right
+S-1005,PT-3,2026-11-09,Reading and Writing,2,6,Q-0164,Rule 2A - Joining Clauses,A,A,right
+S-1005,PT-3,2026-11-09,Math,1,1,Q-0229,Rule 3A - Two-equation Systems,B,B,right
+S-1005,PT-3,2026-11-09,Math,1,2,Q-0226,Rule 5A - Part-to-part Ratios,C,C,right
+S-1005,PT-3,2026-11-09,Math,1,3,Q-0165,Rule 6A - Linear Equations,B,B,right
+S-1005,PT-3,2026-11-09,Math,1,4,Q-0081,Rule 5B - Area and Perimeter,A,A,right
+S-1005,PT-3,2026-11-09,Math,1,5,Q-0182,Rule 1B - Percent Change,D,D,right
+S-1005,PT-3,2026-11-09,Math,1,6,Q-0184,Rule 6B - Function Notation,D,D,right
+S-1005,PT-3,2026-11-09,Math,2,1,Q-0041,Rule 6B - Function Notation,A,A,right
+S-1005,PT-3,2026-11-09,Math,2,2,Q-0107,Rule 6A - Linear Equations,C,B,wrong
+S-1005,PT-3,2026-11-09,Math,2,3,Q-0029,Rule 3A - Two-equation Systems,A,A,right
+S-1005,PT-3,2026-11-09,Math,2,4,Q-0086,Rule 5B - Area and Perimeter,B,B,right
+S-1005,PT-3,2026-11-09,Math,2,5,Q-0287,Rule 1B - Percent Change,D,D,right
+S-1005,PT-3,2026-11-09,Math,2,6,Q-0125,Rule 5A - Part-to-part Ratios,A,A,right
+S-1015,PT-5,2026-11-09,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1015,PT-5,2026-11-09,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1015,PT-5,2026-11-09,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,A,C,wrong
+S-1015,PT-5,2026-11-09,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1015,PT-5,2026-11-09,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,C,B,wrong
+S-1015,PT-5,2026-11-09,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1015,PT-5,2026-11-09,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,D,B,wrong
+S-1015,PT-5,2026-11-09,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1015,PT-5,2026-11-09,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1015,PT-5,2026-11-09,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1015,PT-5,2026-11-09,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1015,PT-5,2026-11-09,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,D,C,wrong
+S-1015,PT-5,2026-11-09,Math,1,1,Q-0206,Rule 1B - Percent Change,D,B,wrong
+S-1015,PT-5,2026-11-09,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1015,PT-5,2026-11-09,Math,1,3,Q-0193,Rule 6B - Function Notation,D,B,wrong
+S-1015,PT-5,2026-11-09,Math,1,4,Q-0038,Rule 6A - Linear Equations,B,D,wrong
+S-1015,PT-5,2026-11-09,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1015,PT-5,2026-11-09,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1015,PT-5,2026-11-09,Math,2,1,Q-0114,Rule 1B - Percent Change,D,A,wrong
+S-1015,PT-5,2026-11-09,Math,2,2,Q-0098,Rule 6A - Linear Equations,A,A,right
+S-1015,PT-5,2026-11-09,Math,2,3,Q-0278,Rule 6B - Function Notation,D,A,wrong
+S-1015,PT-5,2026-11-09,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1015,PT-5,2026-11-09,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1015,PT-5,2026-11-09,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,D,C,wrong
+S-1001,PT-2,2026-11-14,Reading and Writing,1,1,Q-0264,Rule 2A - Joining Clauses,B,D,wrong
+S-1001,PT-2,2026-11-14,Reading and Writing,1,2,Q-0049,Rule 4B - Verb Tenses,C,C,right
+S-1001,PT-2,2026-11-14,Reading and Writing,1,3,Q-0054,Rule 3B - Pronouns,D,D,right
+S-1001,PT-2,2026-11-14,Reading and Writing,1,4,Q-0090,Rule 2B - Logical Comparisons,B,B,right
+S-1001,PT-2,2026-11-14,Reading and Writing,1,5,Q-0084,Rule 1A - Transition Words,A,A,right
+S-1001,PT-2,2026-11-14,Reading and Writing,1,6,Q-0154,Rule 4A - Subjects and Verbs,D,B,wrong
+S-1001,PT-2,2026-11-14,Reading and Writing,2,1,Q-0018,Rule 2B - Logical Comparisons,C,C,right
+S-1001,PT-2,2026-11-14,Reading and Writing,2,2,Q-0027,Rule 4B - Verb Tenses,C,C,right
+S-1001,PT-2,2026-11-14,Reading and Writing,2,3,Q-0066,Rule 1A - Transition Words,D,D,right
+S-1001,PT-2,2026-11-14,Reading and Writing,2,4,Q-0132,Rule 3B - Pronouns,D,D,right
+S-1001,PT-2,2026-11-14,Reading and Writing,2,5,Q-0288,Rule 4A - Subjects and Verbs,B,B,right
+S-1001,PT-2,2026-11-14,Reading and Writing,2,6,Q-0174,Rule 2A - Joining Clauses,C,C,right
+S-1001,PT-2,2026-11-14,Math,1,1,Q-0014,Rule 6B - Function Notation,A,A,right
+S-1001,PT-2,2026-11-14,Math,1,2,Q-0169,Rule 5A - Part-to-part Ratios,B,B,right
+S-1001,PT-2,2026-11-14,Math,1,3,Q-0136,Rule 6A - Linear Equations,C,C,right
+S-1001,PT-2,2026-11-14,Math,1,4,Q-0138,Rule 1B - Percent Change,A,C,wrong
+S-1001,PT-2,2026-11-14,Math,1,5,Q-0251,Rule 5B - Area and Perimeter,B,B,right
+S-1001,PT-2,2026-11-14,Math,1,6,Q-0144,Rule 3A - Two-equation Systems,D,C,wrong
+S-1001,PT-2,2026-11-14,Math,2,1,Q-0225,Rule 5B - Area and Perimeter,B,B,right
+S-1001,PT-2,2026-11-14,Math,2,2,Q-0026,Rule 3A - Two-equation Systems,A,A,right
+S-1001,PT-2,2026-11-14,Math,2,3,Q-0171,Rule 5A - Part-to-part Ratios,D,D,right
+S-1001,PT-2,2026-11-14,Math,2,4,Q-0183,Rule 6B - Function Notation,D,D,right
+S-1001,PT-2,2026-11-14,Math,2,5,Q-0227,Rule 1B - Percent Change,C,C,right
+S-1001,PT-2,2026-11-14,Math,2,6,Q-0141,Rule 6A - Linear Equations,A,A,right
+S-1012,PT-5,2026-11-15,Reading and Writing,1,1,Q-0195,Rule 2B - Logical Comparisons,A,A,right
+S-1012,PT-5,2026-11-15,Reading and Writing,1,2,Q-0110,Rule 2A - Joining Clauses,C,C,right
+S-1012,PT-5,2026-11-15,Reading and Writing,1,3,Q-0105,Rule 3B - Pronouns,D,C,wrong
+S-1012,PT-5,2026-11-15,Reading and Writing,1,4,Q-0061,Rule 4B - Verb Tenses,C,C,right
+S-1012,PT-5,2026-11-15,Reading and Writing,1,5,Q-0192,Rule 1A - Transition Words,B,B,right
+S-1012,PT-5,2026-11-15,Reading and Writing,1,6,Q-0208,Rule 4A - Subjects and Verbs,D,D,right
+S-1012,PT-5,2026-11-15,Reading and Writing,2,1,Q-0198,Rule 4B - Verb Tenses,B,B,right
+S-1012,PT-5,2026-11-15,Reading and Writing,2,2,Q-0194,Rule 2B - Logical Comparisons,B,B,right
+S-1012,PT-5,2026-11-15,Reading and Writing,2,3,Q-0079,Rule 2A - Joining Clauses,D,D,right
+S-1012,PT-5,2026-11-15,Reading and Writing,2,4,Q-0262,Rule 1A - Transition Words,C,C,right
+S-1012,PT-5,2026-11-15,Reading and Writing,2,5,Q-0203,Rule 4A - Subjects and Verbs,B,B,right
+S-1012,PT-5,2026-11-15,Reading and Writing,2,6,Q-0243,Rule 3B - Pronouns,C,C,right
+S-1012,PT-5,2026-11-15,Math,1,1,Q-0206,Rule 1B - Percent Change,B,B,right
+S-1012,PT-5,2026-11-15,Math,1,2,Q-0070,Rule 5A - Part-to-part Ratios,A,C,wrong
+S-1012,PT-5,2026-11-15,Math,1,3,Q-0193,Rule 6B - Function Notation,C,B,wrong
+S-1012,PT-5,2026-11-15,Math,1,4,Q-0038,Rule 6A - Linear Equations,A,D,wrong
+S-1012,PT-5,2026-11-15,Math,1,5,Q-0210,Rule 3A - Two-equation Systems,D,D,right
+S-1012,PT-5,2026-11-15,Math,1,6,Q-0221,Rule 5B - Area and Perimeter,D,D,right
+S-1012,PT-5,2026-11-15,Math,2,1,Q-0114,Rule 1B - Percent Change,C,A,wrong
+S-1012,PT-5,2026-11-15,Math,2,2,Q-0098,Rule 6A - Linear Equations,D,A,wrong
+S-1012,PT-5,2026-11-15,Math,2,3,Q-0278,Rule 6B - Function Notation,B,A,wrong
+S-1012,PT-5,2026-11-15,Math,2,4,Q-0254,Rule 5A - Part-to-part Ratios,D,D,right
+S-1012,PT-5,2026-11-15,Math,2,5,Q-0178,Rule 5B - Area and Perimeter,B,B,right
+S-1012,PT-5,2026-11-15,Math,2,6,Q-0204,Rule 3A - Two-equation Systems,A,C,wrong

@@ -1,5 +1,6 @@
 import { POLICY_SETTINGS } from '../academy/files';
 import { MATH_SPECS, TOPIC_KINDS, numbersIn } from '../academy/topics';
+import { addDays } from '../lib/calendar';
 import type { CodeRow } from './tools';
 
 /**
@@ -16,6 +17,7 @@ export interface Policy {
   bandHigh: number;
   window: number;
   escalateWrong: number;
+  escalateDays: number;
   counts: 'first' | 'every';
   hintRule: 'targeted' | 'general';
 }
@@ -34,6 +36,7 @@ export function readPolicy(text: string): Policy {
     bandHigh: number(POLICY_SETTINGS.bandHigh),
     window: number(POLICY_SETTINGS.window),
     escalateWrong: number(POLICY_SETTINGS.escalateWrong),
+    escalateDays: number(POLICY_SETTINGS.escalateDays),
     counts: value(POLICY_SETTINGS.counts).startsWith('first') ? 'first' : 'every',
     hintRule: value(POLICY_SETTINGS.hintRule).includes('error') ? 'targeted' : 'general',
   };
@@ -64,11 +67,15 @@ export function topicHistory(rows: readonly CodeRow[], policy: Policy, asOf: str
       : ordered;
   const latest = counted.slice(-policy.window);
   const correct = latest.filter((row) => row.result === 'right').length;
+  const since = addDays(asOf, 1 - policy.escalateDays);
+  const recentWrong = counted.filter(
+    (row) => row.taken_on! >= since && row.result === 'wrong',
+  ).length;
   return {
     attempts: latest.length,
     correct,
     accuracy_pct: latest.length === 0 ? 0 : Math.floor((100 * correct) / latest.length + 0.5),
-    escalate: latest.length - correct >= policy.escalateWrong,
+    escalate: recentWrong >= policy.escalateWrong,
   };
 }
 
@@ -95,9 +102,12 @@ export function eligibleQuestions(
     .map((row) => row.question_id!);
 }
 
-/** The next `count` ids after the highest in `existing`, in its format. */
-export function nextIds(existing: readonly string[], count: number): string[] {
-  const parsed = existing.map((id) => {
+/**
+ * The next `count` ids after the highest in `existing`, in its format. A file with no ids yet
+ * starts after `none` (A-0001 first, as the policy says).
+ */
+export function nextIds(existing: readonly string[], count: number, none = 'A-0000'): string[] {
+  const parsed = (existing.length > 0 ? existing : [none]).map((id) => {
     const match = /^(.*?)(\d+)$/.exec(id);
     if (!match) throw new Error(`An id without a number: ${id}`);
     return { prefix: match[1]!, digits: match[2]!, number: Number(match[2]) };
