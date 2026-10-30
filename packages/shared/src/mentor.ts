@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CaseTableSchema } from './counterexamples';
 import { InterventionTypeSchema, type InterventionType } from './interventions';
 import { JsonValueSchema } from './json';
 import { RequirementsSchema, TaskTypeInfoSchema } from './job';
@@ -215,6 +216,28 @@ export const MentorViewSchema = z.object({
     total: z.number().int().nonnegative(),
   }),
   lineage: z.array(MentorLineageItemSchema),
+  /**
+   * Helpers that failed on this round's train attempts, each reduced to a small case the helper
+   * still fails on (decision 078), and how many cases each helper's suite holds. A change to a
+   * helper must pass every case of its suite. Train-only.
+   */
+  counterexamples: z
+    .object({
+      cases: z.array(
+        z.object({
+          helper: z.string(),
+          taskId: z.string(),
+          failure: z.string(),
+          arguments: z.record(z.string(), JsonValueSchema),
+          tables: z.record(z.string(), CaseTableSchema),
+          texts: z.array(z.string()),
+          originalRows: z.number().int().nonnegative(),
+          reducedRows: z.number().int().nonnegative(),
+        }),
+      ),
+      suite: z.record(z.string(), z.number().int().positive()),
+    })
+    .optional(),
   /**
    * For a mentor choosing from the intervention menu: what it may choose this round and why the
    * rest are off it, the job's failure vocabulary with what each category has been taught, and

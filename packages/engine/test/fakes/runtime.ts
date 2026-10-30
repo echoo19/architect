@@ -4,10 +4,13 @@ import {
   type Harness,
   type HarnessTool,
   type Job,
+  type SuiteResult,
   type Task,
   type Trace,
   type Usage,
 } from '@architect/shared';
+import type { FoundCounterexample } from '../../src/counterexamples/find';
+import type { SuiteCase } from '../../src/counterexamples/suite';
 import type {
   Evaluation,
   EvaluationContext,
@@ -273,6 +276,44 @@ export class FakeRuntime implements RuntimeDeps {
       // The turn's content doesn't matter here; asking for it is what the gate sees.
     }
     return correctionResult(task, ctx, start, this.correction(task, start));
+  }
+
+  /** Every counterexample search: the failed attempts' task ids. */
+  readonly searches: string[][] = [];
+  /** What a search finds for the failed attempts it is given: nothing unless a test says. */
+  counterexamples: (
+    search: Parameters<RuntimeDeps['findCounterexamples']>[0],
+  ) => FoundCounterexample[] = () => [];
+  /** Every suite run: the helper's name and the cases it ran, `<id>:reduced` or `<id>:original`. */
+  readonly suites: { tool: string; cases: string[] }[] = [];
+
+  async findCounterexamples(search: Parameters<RuntimeDeps['findCounterexamples']>[0]) {
+    this.searches.push(search.attempts.map((attempt) => attempt.task.id));
+    return this.counterexamples(search);
+  }
+
+  /** A helper passes every case unless its code says it is still broken. */
+  async runSuite(
+    _ctx: Parameters<RuntimeDeps['runSuite']>[0],
+    tool: Pick<HarnessTool, 'name' | 'code'>,
+    cases: readonly SuiteCase[],
+  ): Promise<SuiteResult[]> {
+    const passed = !tool.code.includes('still broken');
+    const results: SuiteResult[] = cases.flatMap(({ counterexample, original }) =>
+      (original === undefined ? (['reduced'] as const) : (['reduced', 'original'] as const)).map(
+        (kind) => ({
+          counterexampleId: counterexample.id,
+          case: kind,
+          passed,
+          detail: passed ? 'No longer fails.' : 'Still fails.',
+        }),
+      ),
+    );
+    this.suites.push({
+      tool: tool.name,
+      cases: results.map((result) => `${result.counterexampleId}:${result.case}`),
+    });
+    return results;
   }
 
   async releaseMentor(session: MentorSession) {

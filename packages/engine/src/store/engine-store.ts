@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import {
   CategorySchema,
   CorrectionSchema,
+  CounterexampleSchema,
   DEFAULT_CONFIG_KEY,
   ExperimentSchema,
   InterventionSchema,
@@ -14,6 +15,7 @@ import {
   WorkspaceMessageSchema,
   type Category,
   type Correction,
+  type Counterexample,
   type CorrectionStatus,
   type Experiment,
   type Intervention,
@@ -272,6 +274,13 @@ export interface EngineStore {
     put(correction: Correction): void;
     get(id: string): Correction | null;
     list(graduateId: string, statuses?: readonly CorrectionStatus[]): Correction[];
+  };
+  /** A field's counterexamples from failing helpers (decision 078), oldest first. */
+  counterexamples: {
+    /** Writes one by its id, replacing one with the same id. */
+    put(counterexample: Counterexample): void;
+    get(id: string): Counterexample | null;
+    list(filter: { jobId: string } | { runId: string; round?: number }): Counterexample[];
   };
 }
 
@@ -1450,6 +1459,45 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             (row) => statuses === undefined || statuses.includes(row.status as CorrectionStatus),
           )
           .map((row) => bodyOf(CorrectionSchema, row)),
+    },
+
+    counterexamples: {
+      put: (counterexample) => {
+        const parsed = CounterexampleSchema.parse(counterexample);
+        sql.insert(
+          'counterexamples',
+          {
+            id: parsed.id,
+            job_id: parsed.jobId,
+            run_id: parsed.runId,
+            round: parsed.round,
+            body: json(parsed),
+            created_at: parsed.createdAt,
+          },
+          'replace',
+        );
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM counterexamples WHERE id = :id', { id });
+        return row ? bodyOf(CounterexampleSchema, row) : null;
+      },
+      list: (filter) => {
+        const query: { where: string; params: Params } =
+          'jobId' in filter
+            ? { where: 'job_id = :job_id', params: { job_id: filter.jobId } }
+            : filter.round === undefined
+              ? { where: 'run_id = :run_id', params: { run_id: filter.runId } }
+              : {
+                  where: 'run_id = :run_id AND round = :round',
+                  params: { run_id: filter.runId, round: filter.round },
+                };
+        return sql
+          .all(
+            `SELECT body FROM counterexamples WHERE ${query.where} ORDER BY created_at, rowid`,
+            query.params,
+          )
+          .map((row) => bodyOf(CounterexampleSchema, row));
+      },
     },
   };
 }

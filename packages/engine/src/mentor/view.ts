@@ -48,6 +48,8 @@ export interface MentorViewInput {
   rejected: RejectedRound[];
   /** For a mentor choosing from the intervention menu: the menu, the vocabulary, the answers. */
   mentoring?: MentorView['mentoring'];
+  /** This round's counterexamples and the size of each helper's suite (decision 078). */
+  counterexamples?: MentorView['counterexamples'];
 }
 
 function jobView(job: Job, dataFiles: MentorDataFile[]): MentorView['job'] {
@@ -161,6 +163,7 @@ export function buildMentorView(input: MentorViewInput): MentorView {
     },
     dev: { pass: input.dev.pass, total: input.dev.total },
     lineage: mentorLineage(input.lineage, input.rejected),
+    ...(input.counterexamples === undefined ? {} : { counterexamples: input.counterexamples }),
     ...(input.mentoring === undefined ? {} : { mentoring: input.mentoring }),
   });
 }
@@ -233,6 +236,10 @@ export function mentorViewParts(view: MentorView): PayloadPart[] {
       text: JSON.stringify(result),
     })),
     { label: 'the earlier hypotheses', text: JSON.stringify(view.lineage) },
+    ...(view.counterexamples?.cases ?? []).map((example) => ({
+      label: `the counterexample for ${example.helper} from ${example.taskId}`,
+      text: JSON.stringify(example),
+    })),
     ...(view.mentoring === undefined
       ? []
       : [
