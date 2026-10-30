@@ -133,14 +133,21 @@ const invoicesFile = (world: World) =>
 
 /**
  * Puts a folder where one of the graduate's data files is, so saving to it fails as it would
- * when another program holds the file. `release` takes the folder away again.
+ * when another program holds the file. `release` takes the folder away and puts the file's
+ * bytes back, as they were.
  */
 async function holdFile(world: World, name: string): Promise<{ release: () => Promise<void> }> {
   const path = join(world.graduate.workspaceDataDir, name);
+  const bytes = await readFile(path);
   await rm(path, { force: true });
   await mkdir(path);
   await writeFile(join(path, 'in-use.txt'), 'another program has this open\n');
-  return { release: () => rm(path, { recursive: true, force: true }) };
+  return {
+    release: async () => {
+      await rm(path, { recursive: true, force: true });
+      await writeFile(path, bytes);
+    },
+  };
 }
 
 const NEW_INVOICE = 'INV-4,C-2,5000,2026-12-05,false';

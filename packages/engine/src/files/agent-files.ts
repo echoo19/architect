@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { lstatSync } from 'node:fs';
+import { lstatSync, readFileSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import {
@@ -123,6 +123,7 @@ export interface AgentFiles extends CheckedFiles {
 /** Files read from an output folder at most, and the largest one read. */
 const MAX_OUTPUT_FILES = 500;
 const MAX_OUTPUT_FILE_BYTES = 1024 * 1024;
+const UNREADABLE = 'unreadable';
 const LF: TextFormat = { linebreak: '\n', bom: false };
 
 interface FileState {
@@ -150,6 +151,8 @@ interface PlanState {
   readonly state: FileState | null;
   readonly version: number;
   readonly text: string;
+  /** A live store's hash of the file's bytes on disk when planned; null when it had none. */
+  readonly disk: string | null;
 }
 
 /** Opens the agent's folder. Undeclared and linked data files can't be read or written through it. */
@@ -348,7 +351,12 @@ class FolderFiles implements AgentFiles {
       ...(rows === undefined ? {} : { rows }),
       changes: before !== text,
     });
-    this.plans.set(plan, { state, version: state?.version ?? 0, text });
+    this.plans.set(plan, {
+      state,
+      version: state?.version ?? 0,
+      text,
+      disk: this.diskHash((state ?? this.newOutputFile(path)).disk),
+    });
     return plan;
   }
 
@@ -361,6 +369,12 @@ class FolderFiles implements AgentFiles {
     }
     if (!plan.changes) return;
     const state = current ?? this.newOutputFile(plan.path);
+    const onDisk = this.diskHash(state.disk);
+    if (this.mode === 'live' && onDisk !== UNREADABLE && onDisk !== planned.disk) {
+      throw new DataError(
+        `${plan.path} changed on disk since this change was proposed, so nothing was written. Read ${plan.path} again and propose the change again.`,
+      );
+    }
     const previous = { text: state.text, version: state.version };
     state.text = planned.text;
     state.version += 1;
@@ -569,6 +583,20 @@ class FolderFiles implements AgentFiles {
       text: '',
       version: 0,
     };
+  }
+
+  /**
+   * A sha256 of the file's bytes on disk now; null when it isn't there or isn't saved to disk;
+   * UNREADABLE when it can't be read, which the save then reports in its own words.
+   */
+  private diskHash(disk: string | undefined): string | null {
+    if (this.mode !== 'live' || disk === undefined) return null;
+    try {
+      return createHash('sha256').update(readFileSync(disk)).digest('hex');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      return UNREADABLE;
+    }
   }
 
   private async save(state: FileState): Promise<void> {
