@@ -33,6 +33,7 @@ export * from './steps';
 export * from './study';
 export * from './task';
 export * from './training';
+export * from './training-plan';
 export * from './trace';
 export * from './versions';
 export * from './workspace';

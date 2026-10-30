@@ -9,6 +9,7 @@
     "./graduates": "./src/graduates/index.ts",
     "./hub": "./src/hub/index.ts",
     "./local-runtime": "./src/local-runtime/index.ts",
+    "./training-plan": "./src/training-plan/index.ts",
     "./testing": "./test/support/testing.ts"
   },
   "scripts": {
