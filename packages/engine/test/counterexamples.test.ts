@@ -170,7 +170,7 @@ describe('counterexamples from a failing helper', () => {
     if (!cx) throw new Error('No counterexample');
     expect(cx.predicate).toEqual({
       kind: 'threw',
-      message: expect.stringContaining('test position not found'),
+      message: 'Error: test position not found',
     });
     expect(cx.minimality).toBe('1-minimal');
     expect(cx.size.originalRows).toBeGreaterThan(2_000);
@@ -326,5 +326,15 @@ describe('reducing a case', () => {
     expect(failureHolds(predicate, { ok: false, failure: { kind: 'error', message: 'x' } })).toBe(
       false,
     );
+  });
+
+  it('judges a crash by its message wherever in the code it was thrown', () => {
+    const predicate = { kind: 'threw' as const, message: 'Error: not found' };
+    const thrown = (message: string) => ({
+      ok: false as const,
+      failure: { kind: 'error' as const, message },
+    });
+    expect(failureHolds(predicate, thrown('Error: not found (tools/lookup.js:9:3)'))).toBe(true);
+    expect(failureHolds(predicate, thrown('Error: not found at all'))).toBe(false);
   });
 });

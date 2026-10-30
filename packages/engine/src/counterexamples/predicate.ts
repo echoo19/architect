@@ -66,6 +66,14 @@ export function valuesAt(value: JsonValue, key: string): JsonValue[] {
 }
 
 /**
+ * An error message without the place in the code it was thrown from, so the same error thrown
+ * from another line of a changed helper is still the same error.
+ */
+export function errorText(message: string): string {
+  return message.replace(/\s*\([^()]*\.js:\d+(:\d+)?\)\s*$/, '');
+}
+
+/**
  * The failure of one helper call, or null when it did nothing wrong that can be shown. It threw;
  * or its output names a field the checker expects, and no value it gives there is the expected
  * one. A field the output doesn't name is no evidence: a lookup needn't return every field.
@@ -74,7 +82,7 @@ export function detectFailure(
   outcome: SandboxOutcome,
   expected: Record<string, Scalar>,
 ): CounterexamplePredicate | null {
-  if (!outcome.ok) return { kind: 'threw', message: outcome.failure.message };
+  if (!outcome.ok) return { kind: 'threw', message: errorText(outcome.failure.message) };
   for (const [field, value] of Object.entries(expected)) {
     const given = valuesAt(outcome.value, field);
     const got = given[0];
@@ -91,7 +99,7 @@ export function detectFailure(
  */
 export function failureHolds(predicate: CounterexamplePredicate, outcome: SandboxOutcome): boolean {
   if (predicate.kind === 'threw') {
-    return !outcome.ok && outcome.failure.message === predicate.message;
+    return !outcome.ok && errorText(outcome.failure.message) === predicate.message;
   }
   if (!outcome.ok) return false;
   const given = valuesAt(outcome.value, predicate.field);
