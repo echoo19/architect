@@ -21,13 +21,17 @@ You describe the job and attach the files it works from. Muse Spark, a large mod
 - The teaching cost 42 cents of Spark.
 - An earlier run, with teaching held to two rounds, showed no clear gain.
 
-Those numbers come from 1,956 real attempts. Glimmer read 78 million tokens and wrote 2.7 million through OpenRouter ($7.92), and Spark used 4.7 million ($3.06). The full reports are in [docs/comparisons](docs/comparisons).
+Those numbers were measured on full-precision Glimmer, hosted through OpenRouter. The gain came from changes to Glimmer's instructions and tools; no weights were trained. The smaller 4-bit build that runs on your computer has not been measured on this test. The numbers come from 1,956 real attempts. Glimmer read 78 million tokens and wrote 2.7 million through OpenRouter ($7.92), and Spark used 4.7 million ($3.06). The full reports are in [docs/comparisons](docs/comparisons).
 
 ## Where it fits
 
 <img align="right" width="64" alt="Y Combinator" src="docs/images/yc-logo.svg">
 
-Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. Architect is that idea at the size of one job. It turns a business's own records and policy into requests with exact answers, and a large model teaches a small one until it passes them on its own, on the business's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
+Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. This is our reading of that request, and Architect does not claim to meet it. We see it as a small step in that direction, at the size of one job. It turns a business's own records and policy into requests with exact answers, and a large model teaches a small one until it passes them on its own, on the business's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
+
+## Related work
+
+Improving an agent from its failures already has published work, such as GEPA ([arXiv 2507.19457](https://arxiv.org/abs/2507.19457)) and ACE ([arXiv 2510.04618](https://arxiv.org/abs/2510.04618)). Checking an agent's work by the state it leaves behind has precedent too, in tau-bench ([arXiv 2406.12045](https://arxiv.org/abs/2406.12045)). Architect puts these ideas into one product you can inspect. It has a sealed final test, a checker that is the same every time, and a result that runs offline.
 
 ## Get it
 

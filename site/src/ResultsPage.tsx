@@ -38,16 +38,28 @@ const dollars = (value: number) => `$${value.toFixed(2)}`;
 const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 
 /** The documents cited, in the order the page first cites them, with what each one is. */
-const REFERENCES: readonly { key: SourceKey; what: string }[] = [
+type RefKey = SourceKey | 'gepa' | 'ace' | 'taubench';
+
+/** Published papers cited, by the address they are read at. */
+const PAPERS: Partial<Record<RefKey, { url: string; label: string }>> = {
+  gepa: { url: 'https://arxiv.org/abs/2507.19457', label: 'arXiv 2507.19457' },
+  ace: { url: 'https://arxiv.org/abs/2510.04618', label: 'arXiv 2510.04618' },
+  taubench: { url: 'https://arxiv.org/abs/2406.12045', label: 'arXiv 2406.12045' },
+};
+
+const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'plan', what: "The second comparison's plan, published before it ran." },
   { key: 'second', what: "The second comparison's report." },
   { key: 'first', what: "The first comparison's report." },
   { key: 'hackathon', what: "The repair shop's run." },
   { key: 'readme', what: 'The project overview.' },
+  { key: 'gepa', what: 'GEPA: improving prompts from failures by reflection.' },
+  { key: 'ace', what: 'ACE: agents that grow their own context from experience.' },
+  { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
 ];
 
 /** Numbered citations, each a link to its entry in the references. */
-function Cite({ to }: { to: readonly SourceKey[] }) {
+function Cite({ to }: { to: readonly RefKey[] }) {
   return (
     <span className="whitespace-nowrap tabular-nums">
       {' ['}
@@ -432,6 +444,15 @@ export function ResultsPage() {
             />
           </Text>
           <Text>
+            Improving an agent from its failures is already published work, such as GEPA
+            <Cite to={['gepa']} /> and ACE
+            <Cite to={['ace']} />. Checking an agent's work by the state it leaves behind has
+            precedent too, in tau-bench
+            <Cite to={['taubench']} />. Architect puts these ideas into one product you can inspect.
+            It has a sealed final test, a checker that is the same every time, and a result that
+            runs offline.
+          </Text>
+          <Text>
             <Actors text="Teaching runs in rounds (Figure 1). Spark reads Glimmer's failed practice attempts and makes one change to its instructions or small tools. The change is kept only if check-task passes rise by at least 2 a run, measured again on new seeds over 2 runs, and no kind of task loses more than 1. Spark sees the check-task score, never the tasks" />
             <Cite to={['plan', 'second']} />.
           </Text>
@@ -649,9 +670,9 @@ export function ResultsPage() {
                   <span className="text-pretty">{reference.what}</span>
                   <a
                     className="link-quiet underline [overflow-wrap:anywhere]"
-                    href={sourceUrl(reference.key)}
+                    href={PAPERS[reference.key]?.url ?? sourceUrl(reference.key as SourceKey)}
                   >
-                    {SOURCES[reference.key].path}
+                    {PAPERS[reference.key]?.label ?? SOURCES[reference.key as SourceKey].path}
                   </a>
                 </span>
               </li>
