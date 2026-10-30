@@ -6,33 +6,32 @@ import type { Random } from '../lib/random';
 import { firstHints, nextIds } from '../reference/rules';
 import { cell } from '../reference/tools';
 import type { CodeRow, JobFiles } from '../reference/tools';
-import {
-  PER_SKILL,
-  Records,
-  assignTasks,
-  diagnoseTasks,
-  historyTasks,
-  pickWrong,
-  where,
-} from './records';
+import { Records, assignTasks, diagnoseTasks, historyTasks, pickWrong, where } from './records';
 
 export { SKILLS } from './records';
 export type { AssignRequest, HistoryRequest, Skill, SolveRequest, WrongAnswer } from './records';
 
 /**
- * The six kinds of request Phil answers at a synthetic academy, eight of each, written the way a
+ * The six kinds of request Phil answers at a synthetic academy, a set number of each, written the way a
  * tutor or a student would ask. Expected values come from the construction where it decides them
  * (the right choice and the error behind each wrong one) and otherwise from the reference rules
  * applied to the academy's own files.
  */
 
 export interface TaskOptions {
+  /** Tasks of each skill at this academy. */
+  perSkill: number;
   /** Prefer an escalation in the first tutoring turn, so two academies' turns visibly differ. */
   demoEscalates: boolean;
 }
 
 /** Diagnose tasks whose wrong choice two errors produce, when the academy has such answers. */
 const AMBIGUOUS_DIAGNOSES = 2;
+
+/** Tasks of each skill at an academy the job trains on: with six skills, 84 an academy. */
+export const TRAINED_PER_SKILL = 14;
+/** ...and at the transfer academy, whose tasks are for the locked test only. */
+export const TRANSFER_PER_SKILL = 8;
 
 export function buildTasks(
   random: Random,
@@ -51,14 +50,14 @@ export function buildTasks(
   ambiguous.forEach((a) => context.taken.add(a));
   const wrong = [
     ...ambiguous,
-    ...pickWrong(random.fork('diagnose'), context, PER_SKILL - ambiguous.length, hasChoices),
+    ...pickWrong(random.fork('diagnose'), context, options.perSkill - ambiguous.length, hasChoices),
   ];
   return [
     ...diagnoseTasks(random.fork('diagnose prompts'), context, wrong, errorsOf),
-    ...solveTasks(random.fork('solve'), context),
-    ...hintTasks(random.fork('hint'), context),
-    ...historyTasks(random.fork('history'), context),
-    ...assignTasks(random.fork('assign'), context),
+    ...solveTasks(random.fork('solve'), context, options.perSkill),
+    ...hintTasks(random.fork('hint'), context, options.perSkill),
+    ...historyTasks(random.fork('history'), context, options.perSkill),
+    ...assignTasks(random.fork('assign'), context, options.perSkill),
     ...afterWrongTasks(random.fork('after_wrong'), context, options),
   ];
 }
@@ -98,8 +97,13 @@ class Synthetic extends Records {
   }
 }
 
-function solveTasks(random: Random, context: Synthetic): Task[] {
-  const kinds = [...MATH_KINDS, ...random.sample(MATH_KINDS, PER_SKILL - MATH_KINDS.length)];
+function solveTasks(random: Random, context: Synthetic, perSkill: number): Task[] {
+  // Every kind in turn, and the last round's kinds picked at random.
+  const rounds = Math.floor(perSkill / MATH_KINDS.length);
+  const kinds = [
+    ...Array.from({ length: rounds }, () => MATH_KINDS).flat(),
+    ...random.sample(MATH_KINDS, perSkill - rounds * MATH_KINDS.length),
+  ];
   // A question from outside the keyed bank, so its answer can't be read off the files.
   const banked = new Set(context.academy.questions.map((q) => q.item.stem));
   return kinds.map((kind, i) => {
@@ -130,8 +134,8 @@ function solveTasks(random: Random, context: Synthetic): Task[] {
   });
 }
 
-function hintTasks(random: Random, context: Synthetic): Task[] {
-  return pickWrong(random, context, PER_SKILL, hasChoices).map((attempt, i) => {
+function hintTasks(random: Random, context: Synthetic, perSkill: number): Task[] {
+  return pickWrong(random, context, perSkill, hasChoices).map((attempt, i) => {
     const w = context.wrongAnswer(attempt);
     const tutor = context.tutorName(context.student(cell(attempt, 'student_id')));
     const prompt = random.chance(0.5)
@@ -180,7 +184,7 @@ function afterWrongTasks(random: Random, context: Synthetic, options: TaskOption
   const picked = [demo];
   const seen = new Set([demo.student_id]);
   for (const attempt of random.shuffle(fresh)) {
-    if (picked.length === PER_SKILL) break;
+    if (picked.length === options.perSkill) break;
     if (seen.has(attempt.student_id)) continue;
     seen.add(attempt.student_id);
     picked.push(attempt);
