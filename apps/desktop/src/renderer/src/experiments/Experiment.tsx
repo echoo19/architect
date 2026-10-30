@@ -225,7 +225,7 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
             value: new Date(preregistration.at).toLocaleString('en-US'),
           },
           { label: 'Plan hash', value: preregistration.sha256 },
-          { label: 'Field', value: `${job.name}, ${shortPath(input.jobDir)}` },
+          { label: 'Field', value: `${job.name}, ${shortPath(input.jobDir ?? '')}` },
           { label: 'Splits seed', value: job.splitsSeed },
           { label: 'Teaching seed', value: input.seeds.mentoring },
           { label: 'Final-test seeds', value: input.seeds.lockedTest.join(', ') },

@@ -44,6 +44,8 @@ function inputFor(jobDir: string, changes: Partial<ExperimentInput> = {}): Exper
   return {
     name: 'Desks',
     jobDir,
+    hypothesis: "Spark's one-shot draft passes more of the final test than Glimmer alone.",
+    primaryComparison: { a: 'draft', b: 'bare', group: 'all' },
     arms: [{ arm: 'bare' }, { arm: 'draft', sparkUsd: 0.8 }],
     seeds: { mentoring: 1, lockedTest: [101, 102] },
     rounds: 2,

@@ -127,11 +127,9 @@ export function registerEngineHandlers(
       call((api) => api.teach.shareCorrections(graduateId, allowed)),
   });
 
-  // An experiment runs on a job folder the person chose in a file dialog.
-  const chosenJob = <T extends { jobDir: string }>(input: T): T => ({
-    ...input,
-    jobDir: picked.check(input.jobDir),
-  });
+  // An experiment runs on a field in the library, or on a job folder the person chose in a dialog.
+  const chosenJob = <T extends { jobDir?: string | undefined }>(input: T): T =>
+    input.jobDir === undefined ? input : { ...input, jobDir: picked.check(input.jobDir) };
   router.registerHandlers('experiments', {
     plan: (input) => call((api) => api.experiments.plan(chosenJob(input))),
     revise: (experimentId, input) =>

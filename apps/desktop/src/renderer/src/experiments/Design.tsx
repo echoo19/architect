@@ -333,7 +333,7 @@ function FieldCard({
         title={detail.experiment.job.name}
         detail={
           <>
-            <span className="font-mono">{shortPath(input.jobDir)}</span>
+            <span className="font-mono">{shortPath(input.jobDir ?? "")}</span>
             {` · splits seed ${detail.experiment.job.splitsSeed}`}
           </>
         }

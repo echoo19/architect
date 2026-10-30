@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ExperimentEventSchema, PublishProgressSchema, RunEventSchema } from '@architect/shared';
+import { stageLibraryJob } from '../experiments/library';
 import { ExperimentService, type ExperimentEnvironment } from '../experiments/service';
 import {
   CHECK_PURPOSE,
@@ -157,6 +158,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     dir: join(paths.root, 'experiments'),
     clock,
     onError,
+    library: (jobId, dir) => stageLibraryJob({ jobs, paths, vault: deps.vault }, jobId, dir),
     ...(options.experimentEnvironment === undefined
       ? {}
       : { environment: options.experimentEnvironment }),
