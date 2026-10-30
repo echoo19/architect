@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Tabs } from 'radix-ui';
@@ -23,6 +23,16 @@ export interface InspectorProps<T extends string> {
    * as it was left. Without it, it opens on the first tab, unfolded.
    */
   rememberAs?: string;
+  /**
+   * The tab, when the screen chooses it too, such as a line that sends the person to the budget.
+   * A tab chosen this way also unfolds the panel. Without it, the inspector keeps its own.
+   */
+  tab?: T;
+  onTabChange?: (tab: T) => void;
+  /** Whether the panel is shown. Closing slides it shut; it stays mounted, so it keeps its tab. */
+  open?: boolean;
+  /** Its width open, for tabs whose names need more room than the usual 360. */
+  width?: number;
   /** What the open tab shows. */
   children: (tab: T) => ReactNode;
   className?: string;
@@ -84,6 +94,10 @@ function keep(name: string | undefined, state: Remembered): void {
 export function Inspector<T extends string>({
   tabs,
   rememberAs,
+  tab: asked,
+  onTabChange,
+  open = true,
+  width: openWidth = INSPECTOR_WIDTH.open,
   children,
   className,
   ...props
@@ -99,23 +113,36 @@ export function Inspector<T extends string>({
   const update = (next: { tab: T | undefined; folded: boolean }) => {
     setState(next);
     keep(rememberAs, next);
+    if (next.tab !== undefined && next.tab !== asked) onTabChange?.(next.tab);
   };
-  const tab = state.tab ?? first;
+  // A tab the screen asks for opens the panel on it, folded or not.
+  const lastAsked = useRef(asked);
+  useEffect(() => {
+    if (asked === undefined || asked === lastAsked.current) return;
+    lastAsked.current = asked;
+    const next = { tab: asked, folded: false };
+    setState(next);
+    keep(rememberAs, next);
+  }, [asked, rememberAs]);
+  const tab = asked ?? state.tab ?? first;
   if (tab === undefined) return null;
+  const width = !open ? 0 : state.folded ? INSPECTOR_WIDTH.folded : openWidth;
 
   return (
     <motion.aside
       aria-label={props['aria-label']}
       initial={false}
-      animate={{ width: state.folded ? INSPECTOR_WIDTH.folded : INSPECTOR_WIDTH.open }}
+      animate={{ width }}
       transition={springs.smooth}
       data-folded={state.folded || undefined}
+      aria-hidden={!open || undefined}
       className={cn(
-        'flex h-full shrink-0 flex-col overflow-hidden border-l border-line bg-ground',
+        'flex h-full shrink-0 flex-col overflow-hidden border-line bg-ground',
+        open && 'border-l',
         className,
       )}
     >
-      {state.folded ? (
+      {!open ? null : state.folded ? (
         <div className="flex flex-col items-center gap-1 py-3">
           <Tooltip content="Open" side="left">
             <IconButton
@@ -148,7 +175,8 @@ export function Inspector<T extends string>({
             const match = tabs.find((t) => t.value === next);
             if (match) update({ tab: match.value, folded: false });
           }}
-          className="flex min-h-0 w-[360px] flex-1 flex-col"
+          style={{ width: openWidth }}
+          className="flex min-h-0 flex-1 flex-col"
         >
           <div className="flex items-center gap-2 px-3 pb-2 pt-3">
             <Tabs.List
@@ -160,7 +188,7 @@ export function Inspector<T extends string>({
                   key={t.value}
                   value={t.value}
                   className={cn(
-                    'relative h-8 min-w-0 flex-1 rounded-mark px-2 text-small font-medium',
+                    'relative h-8 min-w-0 flex-auto rounded-mark px-1.5 text-small font-medium',
                     'transition-colors duration-150 hover:bg-hover',
                   )}
                 >

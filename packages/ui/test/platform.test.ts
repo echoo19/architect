@@ -175,6 +175,39 @@ describe('Inspector', () => {
     expect(html).toContain('aria-label="Fold Settings"');
   });
 
+  it('opens on the tab the screen asks for, at the width it is given', () => {
+    const html = renderToStaticMarkup(
+      createElement(TooltipProvider, {
+        children: createElement(Inspector<'teacher' | 'budget'>, {
+          'aria-label': 'Settings',
+          tabs,
+          tab: 'budget',
+          width: 400,
+          children: (tab: string) => `content of ${tab}`,
+        }),
+      }),
+    );
+    expect(html).toMatch(/aria-selected="true"[^>]*>.*?Budget/);
+    expect(html).toContain('content of budget');
+    expect(html).toContain('width:400px');
+  });
+
+  it('holds nothing while closed, and is hidden from assistive tech', () => {
+    const html = renderToStaticMarkup(
+      createElement(TooltipProvider, {
+        children: createElement(Inspector<'teacher' | 'budget'>, {
+          'aria-label': 'Settings',
+          tabs,
+          open: false,
+          children: (tab: string) => `content of ${tab}`,
+        }),
+      }),
+    );
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain('content of');
+  });
+
   it('reads back the tab and fold it kept, and ignores what no longer fits', () => {
     const storage = (value: string | null) => ({ getItem: () => value });
     expect(readInspector(storage('{"tab":"budget","folded":true}'), 'define', tabs)).toEqual({

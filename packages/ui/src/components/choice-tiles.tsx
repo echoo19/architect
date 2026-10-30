@@ -103,7 +103,7 @@ function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; cho
         <span aria-hidden className="flex [&_svg]:size-4">
           {option.icon}
         </span>
-        <span className="w-full truncate font-medium">{option.label}</span>
+        <span className="line-clamp-2 w-full break-words font-medium">{option.label}</span>
       </motion.button>
     </ToggleGroup.Item>
   );
