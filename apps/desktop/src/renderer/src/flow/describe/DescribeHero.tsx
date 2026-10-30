@@ -111,6 +111,7 @@ export function DescribeHero() {
           <Collapse open={empty}>
             <div className="flex flex-wrap items-center gap-2">
               <SampleJobButton size="sm" />
+              <SampleJobButton size="sm" sample="academy" />
               <ReadyMadeAgentButton size="sm" />
               <ImportJobButton size="sm" />
             </div>

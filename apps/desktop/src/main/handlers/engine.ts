@@ -55,10 +55,10 @@ export function registerEngineHandlers(
       list: () => call((api) => api.jobs.list()),
       get: (jobId) => call((api) => api.jobs.get(jobId)),
       save: (job) => call((api) => api.jobs.save(checkedJob(job))),
-      createSample: async () => {
-        // The sample job is made once; asking again opens it as it is.
+      createSample: async (sample) => {
+        // A sample job is made once; asking again opens it as it is.
         const known = new Set((await call((api) => api.jobs.list())).map(({ id }) => id));
-        const job = await call((api) => api.jobs.createSample());
+        const job = await call((api) => api.jobs.createSample(sample));
         return known.has(job.id) ? job : chosenFor(job);
       },
       importFile: async (file) => {

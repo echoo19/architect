@@ -26,6 +26,7 @@ import {
   type Job,
   type ModelSource,
   type RunStartOptions,
+  type SampleJob,
   type StudentEndpoint,
   type StudentTarget,
 } from '@architect/shared';
@@ -127,7 +128,8 @@ export const flowApi = {
   /** The system's save dialog: the file chosen, or null when the person cancels. */
   saveFile: (options: Parameters<ArchitectApi['files']['save']>[0]) =>
     read('files.save', z.string().nullable(), bridge().files.save(options)),
-  createSample: () => read('jobs.createSample', JobSchema, bridge().jobs.createSample()),
+  createSample: (sample?: SampleJob) =>
+    read('jobs.createSample', JobSchema, bridge().jobs.createSample(sample)),
   /** Whether a model's server answers and has the model, without running it. */
   testStudent: (endpoint: StudentEndpoint) =>
     read(
