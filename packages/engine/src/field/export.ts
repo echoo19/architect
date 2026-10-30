@@ -20,7 +20,7 @@ import { transferDetector } from '../drafting/study';
 import { readJsonLines } from '../loop/files';
 import { orgDataDir } from '../loop/organizations';
 import { DataPaths } from '../loop/paths';
-import { openEngineStore } from '../store/engine-store';
+import { openEngineStore, type EngineStore } from '../store/engine-store';
 import { buildTrainingDataset, DatasetError } from '../training/dataset';
 import type { LeakDetector } from '../vault/fingerprint';
 import { Vault } from '../vault/vault';
@@ -79,10 +79,31 @@ function sealedDetectors(job: Job, vault: SealedView): { all: LeakDetector; orgs
  * locked-test content or names a sealed organization, stops the export with nothing written.
  */
 export function exportField(source: FieldSource, outDir: string): FieldExportManifest {
-  const { job, jobDir, vault } = source;
   if (existsSync(outDir) && readdirSync(outDir).length > 0) {
     throw new Error(`${outDir} already has files in it.`);
   }
+  const { files, manifest } = buildFieldExport(source);
+  for (const [path, content] of [
+    ...files,
+    ['MANIFEST.json', `${JSON.stringify(manifest, null, 2)}\n`],
+  ]) {
+    const target = join(outDir, ...(path as string).split('/'));
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, content as string);
+  }
+  return manifest;
+}
+
+/**
+ * A field export built and checked in memory, with nothing written: each file's text by its
+ * path, and the manifest. The same guards as writing it, so what it counts is what an export
+ * would hold.
+ */
+export function buildFieldExport(source: FieldSource): {
+  files: Map<string, string>;
+  manifest: FieldExportManifest;
+} {
+  const { job, jobDir, vault } = source;
   const orgs = trainOrganizations(job);
   const trainIds = new Set(source.trainTasks.map((task) => task.id));
   const orgIds = new Set(orgs.map((org) => org.id));
@@ -241,16 +262,7 @@ export function exportField(source: FieldSource, outDir: string): FieldExportMan
       ...leftOut,
     ],
   });
-
-  for (const [path, content] of [
-    ...files,
-    ['MANIFEST.json', `${JSON.stringify(manifest, null, 2)}\n`],
-  ]) {
-    const target = join(outDir, ...(path as string).split('/'));
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, content as string);
-  }
-  return manifest;
+  return { files, manifest };
 }
 
 function demonstrationLeftOut(entry: { episode_id: string; reason: string }) {
@@ -285,18 +297,27 @@ export async function exportFieldFromData(
     if (record === undefined) {
       throw new CodedError('job_not_found', `There is no job "${options.job}".`);
     }
-    const job = JobSchema.parse(JSON.parse(readFileSync(paths.jobFile(record.id), 'utf8')));
-    const trainTasks = (await readJsonLines(paths.tasksFile(record.id, 'train'))).map((line) =>
-      TaskSchema.parse(line),
-    );
-    const episodes = store.lessons
-      .list({ jobId: record.id, status: 'verified' })
-      .flatMap((lesson) => (lesson.episode === null ? [] : [lesson.episode]));
-    return exportField(
-      { job, jobDir: paths.jobDir(record.id), trainTasks, episodes, vault: new Vault(paths.root) },
-      options.outDir,
-    );
+    return exportField(await fieldSource(store, paths, record.id), options.outDir);
   } finally {
     store.close();
   }
+}
+
+/**
+ * What a field export of a stored job is made from: the job and its train split as the library
+ * keeps them, the verified episodes of its lessons, and the vault's view of its sealed part.
+ */
+export async function fieldSource(
+  store: Pick<EngineStore, 'lessons'>,
+  paths: DataPaths,
+  jobId: string,
+): Promise<FieldSource> {
+  const job = JobSchema.parse(JSON.parse(readFileSync(paths.jobFile(jobId), 'utf8')));
+  const trainTasks = (await readJsonLines(paths.tasksFile(jobId, 'train'))).map((line) =>
+    TaskSchema.parse(line),
+  );
+  const episodes = store.lessons
+    .list({ jobId, status: 'verified' })
+    .flatMap((lesson) => (lesson.episode === null ? [] : [lesson.episode]));
+  return { job, jobDir: paths.jobDir(jobId), trainTasks, episodes, vault: new Vault(paths.root) };
 }

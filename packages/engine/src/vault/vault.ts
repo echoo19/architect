@@ -161,6 +161,20 @@ export class Vault {
   }
 
   /**
+   * Each sealed organization by name and kind, with how many files it holds, for the person's
+   * own view of their field. No id, file name or task leaves, and nothing here may reach a
+   * mentor: the leak gate holds every request to not naming one.
+   */
+  sealedOrganizations(jobId: string): { name: string; synthetic: boolean; files: number }[] {
+    if (!this.isSealed(jobId)) return [];
+    return (this.fingerprint(jobId).transfer ?? []).map(({ org, files }) => ({
+      name: org.name,
+      synthetic: org.synthetic,
+      files: files.length,
+    }));
+  }
+
+  /**
    * The sealed part of a job by hash only, for a field export's evaluation manifest: the locked
    * test file with its task count, and each sealed organization hashed over its files' names and
    * hashes, in no telling order. No id, name, file name or task leaves.

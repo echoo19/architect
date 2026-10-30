@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Score } from '@architect/shared';
 import { cn } from '@architect/ui';
 import { Section } from '../ledger';
@@ -30,11 +31,11 @@ function Cell({ score, label, strong }: { score: Score | null; label: string; st
  * saw, and a real one it never saw, each with its own result. A skill not tested at an
  * organization leaves its cell empty, which is not a zero.
  */
-export function Organizations({ grid }: { grid: OrgGrid }) {
+export function Organizations({ grid, actions }: { grid: OrgGrid; actions?: ReactNode }) {
   const columns = grid.groups.flatMap((group) => group.columns);
   const edge = (index: number) => (opensGroup(grid, index) ? 'border-l border-line' : '');
   return (
-    <Section title="By organization" id="organizations">
+    <Section title="By organization" id="organizations" actions={actions}>
       <div className="overflow-x-auto border-b border-line">
         <table
           aria-label="Final test by organization"

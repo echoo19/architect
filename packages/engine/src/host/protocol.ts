@@ -24,6 +24,8 @@ import {
   ExportRequestSchema,
   ExportResultSchema,
   ExportReviewSchema,
+  FieldExportManifestSchema,
+  FieldViewSchema,
   FileDiffSchema,
   FolderFitSchema,
   GraduateSettingsSchema,
@@ -148,6 +150,13 @@ export const ENGINE_ROUTES = {
   'jobs.study': route(z.tuple([id]), StudyStateSchema, (api, [jobId]) => api.jobs.study(jobId)),
   'jobs.confirmStudy': route(z.tuple([id, id]), StudyStateSchema, (api, [jobId, token]) =>
     api.jobs.confirmStudy(jobId, token),
+  ),
+  'jobs.field': route(z.tuple([id]), FieldViewSchema, (api, [jobId]) => api.jobs.field(jobId)),
+  'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>
+    api.jobs.fieldAssets(jobId),
+  ),
+  'jobs.exportField': route(z.tuple([id, path]), FieldExportManifestSchema, (api, [jobId, dir]) =>
+    api.jobs.exportField(jobId, dir),
   ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),

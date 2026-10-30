@@ -26,6 +26,19 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Next**
 - The experiments design screen and the model page can reuse the tab components where their settings are the job's.
 
+## 2026-10-30 (Fri, night), platform lane "Fields" (branch `platform/fields`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- Engine: `jobs.field`, `jobs.fieldAssets` and `jobs.exportField` (decision 075). A field's train organizations with their files and rows; sealed ones by name, kind and file count only; the field export's manifest built in memory with nothing written; the export written to a picked, empty folder.
+- `/fields` lists every job as a field (one-organization jobs too): taught on, sealed, real organizations, the best candidate's seen, unseen and real scores, last activity. New field opens Describe.
+- `/fields/:jobId` has Overview (the best candidate's skill by organization grid, skills, the study brief with Open), Organizations (each one's files beside the list), Candidates (every tested run, the best marked, Open Models) and Assets (counts, what is left out, decision 071's wording, Export).
+- `packages/ui`: PageTabs, and CardRow's `selected`.
+- Engine `field-view.test.ts`; hidden e2e `fields.spec.ts`; `lab.spec.ts` follows the new Fields screens. Screenshots `fields-dark.png`, `field-overview-dark.png`, `field-orgs-dark.png`, `field-assets-dark.png`; `places-field(s)-dark.png` removed.
+
+**Open**
+- Adding an organization (a generated academy from a seed, or a folder of your own as sealed) is not offered: it needs resealing the vault and building tasks for a new organization, which the engine doesn't do. Left out on purpose.
+- The list reads every finished run's card of every job on open; fine for tens of runs, slow for hundreds.
+
 ## 2026-10-30 (Fri, night), platform lane "Experiments screens" (branch `platform/experiments`)
 
 **Done** (stand-in engine only: no model was called, no GPU, no spend)

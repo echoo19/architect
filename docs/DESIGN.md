@@ -105,6 +105,9 @@ right.
   model's name) and may open it on a tab, such as Budget from a line that sends the person there.
   It remembers its tab and whether it was folded, per screen.
   Width changes with the `smooth` spring. It never holds a control that would break an invariant.
+- **PageTabs.** A place's page in sections: a segmented strip under the title, an icon and a word
+  each, whose selected fill slides between them; the open tab's content below. A click opens a
+  tab without drawing the keyboard ring; arrow keys move between tabs.
 - **ChoiceTiles.** A choice among a few things shown as icon tiles (an icon at the top left, the
   name under it), three to a row in an inspector. One or several may be chosen; the chosen tile
   takes the selected fill and a light edge. Arrow keys move between tiles.
