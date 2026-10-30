@@ -169,6 +169,11 @@ export {
   type TextareaProps,
 } from './components/input';
 export { Kbd, Shortcut, shortcutLabel, type ShortcutProps } from './components/kbd';
+export {
+  PageTabs,
+  type PageTab,
+  type PageTabsProps,
+} from './components/page-tabs';
 export { Progress, type ProgressProps } from './components/progress';
 export { ProviderMark, type ProviderMarkProps } from './components/provider-mark';
 export { TableCard, type TableCardProps } from './components/table-card';

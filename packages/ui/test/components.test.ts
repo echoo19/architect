@@ -9,6 +9,7 @@ import {
   EvidenceMeter,
   evidenceLabel,
   Meter,
+  PageTabs,
   ProgressStepper,
   ProviderMark,
   RadioCard,
@@ -300,5 +301,29 @@ describe('RadioCard', () => {
     // And a card that can be chosen is never quiet.
     const other = html.slice(html.lastIndexOf('<button'));
     expect(other).not.toContain('text-fg-dim');
+  });
+});
+
+describe('PageTabs', () => {
+  it("names its tabs, marks the open one, and shows only the open one's content", () => {
+    const html = renderToStaticMarkup(
+      createElement(PageTabs<'overview' | 'assets'>, {
+        'aria-label': 'Field',
+        tabs: [
+          { value: 'overview', label: 'Overview' },
+          { value: 'assets', label: 'Assets' },
+        ],
+        value: 'assets',
+        onValueChange: () => undefined,
+        children: 'The export',
+      }),
+    );
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('aria-label="Field"');
+    const assets = html.slice(html.lastIndexOf('<button'), html.lastIndexOf('</button>'));
+    expect(assets).toContain('aria-selected="true"');
+    expect(assets).toContain('Assets');
+    expect(html).toContain('The export');
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(1);
   });
 });
