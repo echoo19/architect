@@ -2,6 +2,20 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), field specialists: Phil, the academy tutor, built and measured (start the next session here)
+
+**Where things stand**
+- *Direction.* The owner asked for a more ambitious Architect ("not a little party trick that produces a small agent"), based on `docs/SPEC_FIELD_SPECIALIZATION.md`, useful in the real world, with a real business anonymized, and with the base kept as a fallback. The one-job product is frozen at branch `base/one-job` and tag `base-one-job` (`0b592784`, what `main` was). The plan and contract are `docs/FIELD.md`, amended after a GPT-6 Astra reading. Work goes to `field/main`; `main` is unchanged since `0b592784`.
+- *Built and merged into `field/main`* (each lane reviewed; GPT-6 Sol found 4 + 4 issues, all fixed): organizations in a job, with transfer academies sealed as snapshots in the vault and every attempt bound to its academy's files (decision 068); Study, Spark's cited brief of the train academies, confirmed before teaching (069); the report's skill-by-organization grid and the organization choice in the workspace, including "Another academy…" for a folder of your own, checked against the schema and labeled not tested there (070); `examples/academy`, four generated academies with six tutoring skills, a deterministic checker and a reference tutor; Phil as a ready-made job in the app. `pnpm check` exits 0 (3,510 tests), the build passes, and the hidden field, study and sample e2e pass.
+- *The real academy.* An anonymized snapshot of a real test-prep academy that uses the owner's Lectern platform, pulled read-only through its connector: 16 students, 1,990 graded answers, 38 of its own topics, 11 lessons, no question text. Names, emails, ids and notes were replaced or dropped, and lesson passcodes removed. It lives only in `C:/JakeOS/projects/architect-runs/academy-real/` and is called "Real academy" everywhere in the repo. Its policy was drafted for the test and waits for the academy's confirmation.
+- *The first field result* (`architect-runs/phil-1`, preregistered, hosted Glimmer, seed 101, every arm frozen before any locked test opened). On the academies it trained with: bare 21/48, one-shot draft 22/48, Phil 44/48. On the generated academy it never saw: bare 24/48, draft 22/48, Phil 43/48 (20 wins, 1 loss, +39.6 points, interval +22.9 to +53.7). On the real academy: bare 9/24, draft 11/24, Phil 12/24 (9 wins, 6 losses, no clear gain): assign 7/8, but history 3/8 and diagnose 2/8. Spend: OpenRouter $4.26, Spark about $0.58.
+
+**Next**
+- Merge `field/run-fixes` (the run's three workarounds made proper: Meta replies without usage, the comparisons runner for organization jobs, record-tasks), and commit the write-up as `docs/comparisons/phil-1.md` with `FAILURES.md`'s diagnosis of the real academy's misses.
+- Phil 2: widen the field so a helper can't fit one policy format, then measure on a fresh real cohort (older attempts not in the first snapshot) and a fresh generated academy.
+- Positioning (README, the results paper, the site's claim) once phil-2 is in; the film needs the owner for new narration.
+- Owner: confirm or correct the real academy's drafted policy; say whether question text can be exported.
+
 ## 2026-10-30 (Fri), field lane "Sample": Phil as a ready-made job (branch `field/sample`)
 
 **Done** (no model was called, no GPU, no spend)
