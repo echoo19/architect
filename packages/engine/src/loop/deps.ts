@@ -172,6 +172,8 @@ export interface VaultDeps {
   count(jobId: string): Awaitable<number>;
   /** How many sealed tasks there are of each type; nothing else about them leaves the vault. */
   typeCounts(jobId: string): Awaitable<Record<string, number>>;
+  /** The id and name of each sealed organization, so a request can be held to not naming one. */
+  transferIdentifiers(jobId: string): Awaitable<{ id: string; name: string }[]>;
   leakDetector(jobId: string): Awaitable<LeakDetector>;
   openForLockedTest(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
   /** The sealed organizations and each one's folder, on the same proof as the locked test. */

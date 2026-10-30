@@ -28,7 +28,7 @@ export const STUDY_CAP_USD = 1;
 export interface StudyOptions {
   jobs: JobLibrary;
   paths: DataPaths;
-  deps: Pick<LoopDeps, 'adapters' | 'secrets'>;
+  deps: Pick<LoopDeps, 'adapters' | 'secrets' | 'vault'>;
   clock: Clock;
   /** Dollars one study may cost the teacher, at most. */
   capUsd?: number;
@@ -69,7 +69,7 @@ export class JobStudy {
       );
       // A transfer organization's name in what would be sent stops the study before any call,
       // and the gate holds to the same test for every call (invariant 1).
-      const leaks = transferDetector(job);
+      const leaks = transferDetector(job, await deps.vault.transferIdentifiers(jobId));
       if (leaks.scan(`${studySystemPrompt()}\n${opening}`).leaked) {
         throw new GuardError(
           'split',

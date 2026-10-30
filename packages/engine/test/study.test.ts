@@ -6,7 +6,7 @@ import { PROCEDURE_PATH } from '../src/drafting/study';
 import { JobStudy } from '../src/drafting/studying';
 import { startingHarness } from '../src/loop/setup';
 import { payloadText } from '../src/mentor/gate';
-import { defaultJob } from './fakes/job';
+import { defaultJob, task } from './fakes/job';
 import { draftingWorld, TEACHER, type DraftingWorld } from './support/drafting-world';
 
 /*
@@ -196,6 +196,35 @@ describe('studying a field job', () => {
     const error = await study.study(job.id).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(GuardError);
     expect((error as GuardError).guard).toBe('split');
+    expect(world.mentor.requests).toHaveLength(0);
+  });
+
+  it("refuses, with no call, a mention of a transfer academy that only the vault's seal remembers", async () => {
+    // As an import leaves it: the library's job lists no transfer academy, the vault's seal does.
+    const kept = {
+      ...job,
+      organizations: job.organizations?.filter((org) => org.role === 'train'),
+    };
+    const harbor = job.organizations?.find((org) => org.id === 'harbor');
+    if (harbor === undefined) throw new Error('Expected the transfer academy.');
+    world.vault.seal(
+      job.id,
+      [{ ...task('test', 'assign', 1), org: 'harbor' }],
+      [],
+      [],
+      [{ org: harbor, files: [{ name: 'policy.md', content: Buffer.from(HARBOR_POLICY) }] }],
+    );
+    await world.jobs.save(kept as Job);
+    writeOrg(
+      'lakeview',
+      `${LAKEVIEW_POLICY}
+We share staff with Harbor Learning.
+`,
+    );
+    world.mentor.script = () => brief();
+    const error = await study.study(job.id).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(GuardError);
+    expect((error as GuardError).message).toMatch(/kept for the final test/);
     expect(world.mentor.requests).toHaveLength(0);
   });
 

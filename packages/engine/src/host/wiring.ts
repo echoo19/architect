@@ -187,6 +187,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
       typeCounts: (jobId) => vault.typeCounts(jobId),
+      transferIdentifiers: (jobId) => vault.transferIdentifiers(jobId),
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
       openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),

@@ -142,6 +142,18 @@ export class Vault {
     return createLeakDetector(this.fingerprint(jobId));
   }
 
+  /**
+   * The id and name of each organization sealed away from the mentor, so a request bound for a
+   * teacher can be held to not naming one. Nothing else of the organizations leaves.
+   */
+  transferIdentifiers(jobId: string): { id: string; name: string }[] {
+    if (!this.isSealed(jobId)) return [];
+    return (this.fingerprint(jobId).transfer ?? []).map(({ org }) => ({
+      id: org.id,
+      name: org.name,
+    }));
+  }
+
   /** The locked test tasks, for the one run that happens after the mentor is released. */
   openForLockedTest(jobId: string, proof: MentorReleased): Task[] {
     if (!isMentorReleased(proof)) {
