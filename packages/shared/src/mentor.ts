@@ -166,9 +166,16 @@ export const MentorViewSchema = z.object({
     description: z.string(),
     taskTypes: z.array(TaskTypeInfoSchema),
     requirements: RequirementsSchema,
+    /**
+     * For a job with organizations: the ones it trains on, by id and name (decision 068). The
+     * ones it never trains on are never listed.
+     */
+    organizations: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
     dataFiles: z.array(
       z.object({
         name: z.string(),
+        /** The organization whose file this is, for a job with organizations. */
+        org: z.string().optional(),
         kind: z.enum(['table', 'text']),
         access: z.enum(['read', 'write']),
         columns: z.array(z.string()).optional(),
@@ -190,6 +197,8 @@ export const MentorViewSchema = z.object({
       z.object({
         taskId: z.string(),
         taskType: z.string(),
+        /** The organization the task was for, for a job with organizations. */
+        org: z.string().optional(),
         prompt: z.string(),
         expected: JsonValueSchema,
         pass: z.boolean(),
