@@ -19,6 +19,11 @@ export interface DataColumn<R> {
   align?: 'start' | 'end';
   /** A fixed width, such as `120px`; the rest share what is left. */
   width?: string;
+  /**
+   * A name shared by columns side by side, such as "Final test" over Seen, Unseen and Real. It
+   * heads them in a row above their own headers.
+   */
+  group?: string;
 }
 
 export interface DataSort {
@@ -39,6 +44,8 @@ export interface DataTableProps<R> {
   empty?: ReactNode;
   /** The height past which the body scrolls under its header. */
   maxHeight?: number;
+  /** The row open beside the table, such as in an inspector: it keeps the selected fill. */
+  selectedKey?: string;
   className?: string;
 }
 
@@ -48,6 +55,19 @@ function compare(a: SortValue, b: SortValue): number {
 }
 
 const absent = (value: SortValue) => value === null || value === undefined;
+
+/** Runs of side-by-side columns under one group name; a column with none is a run of its own. */
+export function columnGroups<R>(
+  columns: readonly Pick<DataColumn<R>, 'key' | 'group'>[],
+): { key: string; group: string | undefined; span: number }[] {
+  const runs: { key: string; group: string | undefined; span: number }[] = [];
+  for (const column of columns) {
+    const last = runs.at(-1);
+    if (last && column.group !== undefined && last.group === column.group) last.span += 1;
+    else runs.push({ key: column.key, group: column.group, span: 1 });
+  }
+  return runs;
+}
 
 /**
  * The rows in a column's order. Rows with no value in that column go last whichever way, since
@@ -94,9 +114,13 @@ export function DataTable<R>({
   initialSort,
   empty,
   maxHeight,
+  selectedKey,
   className,
   ...props
 }: DataTableProps<R>) {
+  const groups = columns.some((column) => column.group !== undefined)
+    ? columnGroups(columns)
+    : null;
   const [sort, setSort] = useState<DataSort | undefined>(initialSort);
   const sorted = sortRows(
     rows,
@@ -120,7 +144,23 @@ export function DataTable<R>({
         aria-label={props['aria-label']}
         className="w-full border-separate border-spacing-0 text-ui tabular-nums"
       >
-        <thead>
+        <thead className="sticky top-0 z-10">
+          {groups && (
+            <tr>
+              {groups.map((run) => (
+                <th
+                  key={run.key}
+                  scope={run.group ? 'colgroup' : undefined}
+                  colSpan={run.span}
+                  className="bg-card px-4 pt-3 text-center text-small font-normal first:pl-6 last:pr-6"
+                >
+                  {run.group && (
+                    <span className="block border-b border-line pb-1.5">{run.group}</span>
+                  )}
+                </th>
+              ))}
+            </tr>
+          )}
           <tr>
             {columns.map((column) => {
               const active = sort?.key === column.key ? sort.direction : undefined;
@@ -132,7 +172,7 @@ export function DataTable<R>({
                   aria-sort={active ?? (column.sortValue ? 'none' : undefined)}
                   style={column.width ? { width: column.width } : undefined}
                   className={cn(
-                    'sticky top-0 z-10 h-11 border-b border-line bg-card px-4 font-medium',
+                    'h-11 border-b border-line bg-card px-4 font-medium',
                     'first:pl-6 last:pr-6',
                     column.align === 'end' ? 'text-right' : 'text-left',
                   )}
@@ -167,6 +207,7 @@ export function DataTable<R>({
           {sorted.map((row) => (
             <tr
               key={rowKey(row)}
+              aria-current={selectedKey === rowKey(row) ? 'true' : undefined}
               tabIndex={onRowClick ? 0 : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               onKeyDown={
@@ -181,6 +222,7 @@ export function DataTable<R>({
               }
               className={cn(
                 'group/row',
+                selectedKey === rowKey(row) && 'bg-selected',
                 onRowClick &&
                   'cursor-pointer transition-colors duration-150 hover:bg-hover focus-visible:bg-hover focus-visible:outline-none',
               )}
