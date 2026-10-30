@@ -152,12 +152,19 @@ export class ExperimentService {
   constructor(private readonly options: ExperimentServiceOptions) {
     mkdirSync(options.dir, { recursive: true });
     // A command the app closed in the middle of is paused; going on spends, so the person resumes it.
+    // The time it ran until then still counts against its wall clock.
     for (const record of this.records()) {
       if (record.status === 'running') {
+        const { runningSince, ...rest } = record;
+        const ran =
+          runningSince === undefined
+            ? 0
+            : Math.max(0, options.clock.now() - Date.parse(runningSince));
         this.write({
-          ...record,
+          ...rest,
           status: 'paused',
           reason: 'Architect closed while it ran. Resume it to go on.',
+          runningMs: record.runningMs + ran,
         });
       }
       if (record.status === 'calibrating') {
@@ -209,6 +216,7 @@ export class ExperimentService {
     if (record.status !== 'draft' && record.status !== 'preregistered') {
       throw new CodedError('experiment_state', `It is ${record.status}; calibration comes first.`);
     }
+    if (record.preregistration !== null) this.checkFrozen(record);
     return this.launch(record, 'calibrate', {});
   }
 
@@ -342,6 +350,7 @@ export class ExperimentService {
     const running = this.update(id, {
       status: kind === 'run' ? 'running' : 'calibrating',
       reason: undefined,
+      ...(kind === 'run' ? { runningSince: isoNow(this.options.clock) } : {}),
     });
     if (kind === 'run') {
       this.options.clock.timeout(wallLeftMs).addEventListener('abort', () => {
@@ -354,9 +363,9 @@ export class ExperimentService {
       const stops: (() => void)[] = [];
       let opened: ExperimentEnvironment | null = null;
       let patch: Partial<ExperimentRecord>;
+      // The runner's lines go to the experiment's own log, beside its record, which no screen reads.
+      const logFile = join(this.folder(id), 'runner.log');
       try {
-        // The runner's lines go to the experiment's own log, beside its record.
-        const logFile = join(this.folder(id), 'runner.log');
         opened = environment(join(out, 'data'), (line) =>
           appendFileSync(logFile, `${isoNow(this.options.clock)}  ${line}\n`),
         );
@@ -390,10 +399,10 @@ export class ExperimentService {
             ? { status: before, calibratedAt: isoNow(this.options.clock) }
             : this.afterRun(id, outcome);
       } catch (error) {
-        patch =
-          kind === 'calibrate'
-            ? { status: before, reason: errorMessage(error) }
-            : { status: 'failed', reason: errorMessage(error) };
+        // The runner's words can name a sealed organization; they are stored and sent without it.
+        appendFileSync(logFile, `${isoNow(this.options.clock)}  ${errorMessage(error)}\n`);
+        const reason = redacted(errorMessage(error), record.input.jobDir);
+        patch = kind === 'calibrate' ? { status: before, reason } : { status: 'failed', reason };
       }
       for (const stop of stops) stop();
       try {
@@ -403,10 +412,12 @@ export class ExperimentService {
       }
       this.active.delete(id);
       const spent = kind === 'run' ? this.options.clock.now() - started : 0;
+      // The person's pause or stop, or the wall clock, says where it ended, whatever the runner said.
       this.update(id, {
-        ...patch,
-        ...(active.ending ?? {}),
+        ...(active.ending === null ? patch : { status: active.ending.status }),
+        reason: active.ending === null ? patch.reason : active.ending.reason,
         runningMs: this.read(id).runningMs + spent,
+        runningSince: undefined,
       });
     })().catch((error: unknown) => this.options.onError(error));
     return running;
@@ -432,7 +443,8 @@ export class ExperimentService {
 
   /** Ends a command the way a closed process would, and waits for the runner to let go. */
   private async end(active: Active, ending: NonNullable<Active['ending']>): Promise<void> {
-    active.ending ??= ending;
+    // A stop wins over a pause still pending; nothing else replaces an ending already asked for.
+    if (active.ending === null || ending.status === 'stopped') active.ending = ending;
     active.abort.abort();
     await active.done;
   }
@@ -582,10 +594,36 @@ export class ExperimentService {
   private update(id: string, patch: Partial<ExperimentRecord>): ExperimentRecord {
     const next = { ...this.read(id), ...patch, updatedAt: isoNow(this.options.clock) };
     if (next.reason === undefined) delete next.reason;
+    if (next.runningSince === undefined) delete next.runningSince;
     this.write(next);
     this.emit(next);
     return next;
   }
+}
+
+/**
+ * A message with every sealed organization's id and name taken out, for a failure stored on the
+ * record and sent to screens before the release.
+ */
+function redacted(message: string, jobDir: string): string {
+  let job: Job;
+  try {
+    job = readJob(jobDir);
+  } catch {
+    // Without the job file nothing says what is sealed, so nothing of the message is kept.
+    return 'The comparison stopped with an error; its log says what.';
+  }
+  const sealed = (job.organizations ?? []).filter((org) => org.role === 'transfer');
+  let text = message;
+  for (const org of sealed) {
+    text = text.split(org.name).join('a sealed organization');
+    text = text.replace(new RegExp(`\\b${escaped(org.id)}\\b`, 'g'), 'a sealed organization');
+  }
+  return text;
+}
+
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** The names of the organizations no arm trains on, which stay sealed until the release. */

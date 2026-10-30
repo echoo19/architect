@@ -14,12 +14,20 @@ function sha256(bytes: Buffer | string): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-/** Every file under `dir`, by its path relative to `root` with forward slashes, in order. */
+/**
+ * Every file under `dir`, by its path relative to `root` with forward slashes, in order. A link
+ * is refused: what it points to could change between one arm's import and the next unpinned.
+ */
 function filesUnder(root: string, dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
     .flatMap((entry) => {
       const path = join(dir, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new Error(
+          `${relative(root, path).split(sep).join('/')} is a link; a comparison pins only files the job folder holds itself.`,
+        );
+      }
       if (entry.isDirectory()) return filesUnder(root, path);
       return entry.isFile() ? [relative(root, path).split(sep).join('/')] : [];
     })

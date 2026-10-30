@@ -117,6 +117,8 @@ export const ExperimentRecordSchema = z.object({
   calibratedAt: z.iso.datetime().nullable(),
   /** Wall clock used so far, in milliseconds, while running. */
   runningMs: z.number().nonnegative(),
+  /** When the run going on now began, so a crash still charges its time to the wall clock. */
+  runningSince: z.iso.datetime().optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

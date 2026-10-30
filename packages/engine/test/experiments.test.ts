@@ -1,6 +1,8 @@
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ExperimentDetail, ExperimentInput, ExperimentRecord } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { pinInputs } from '../src/comparisons/inputs';
 import { ExperimentService } from '../src/experiments/service';
 import { systemClock, type Clock } from '../src/loop/deps';
 import { ManualClock } from './fakes/clock';
@@ -224,10 +226,100 @@ describe('experiments from the app', () => {
       () => id,
       (record) => record.status === 'stopped',
     );
+    const { world } = { world: worlds[worlds.length - 1] as ComparisonWorld };
     await service.start(id, {});
     clock.advance(60_000);
     expect((await stopped).reason).toContain('wall clock');
+    // The abort reached calibration: no attempt started once the time was up.
+    expect(world.runtime.attempts).toHaveLength(0);
     expect((await service.get(id)).released).toBe(false);
     await expect(service.resume(id, {})).rejects.toMatchObject({ code: 'experiment_state' });
+  }, 300_000);
+
+  it('stores a failure without naming a sealed organization', async () => {
+    const { world, service } = setUp();
+    const { dir } = fieldJob(world);
+    world.env.log = (line) => {
+      if (line.startsWith('Calibration')) {
+        throw new Error('orgs/quayside/data/orders.csv of Quayside Gear could not be read.');
+      }
+    };
+    const { id } = (await service.plan(inputFor(dir))).experiment;
+    const events: string[] = [];
+    service.onEvent((event) => events.push(JSON.stringify(event)));
+    const failed = until(
+      service,
+      () => id,
+      (record) => record.status === 'draft' && record.reason !== undefined,
+    );
+    await service.calibrate(id);
+    const reason = (await failed).reason ?? '';
+    expect(reason).toContain('could not be read');
+    for (const text of [reason, JSON.stringify(await service.list()), ...events]) {
+      expect(text).not.toContain('Quayside');
+      expect(text).not.toContain('quayside');
+    }
+  }, 300_000);
+
+  it('calibrates a preregistered experiment only on the job files it froze', async () => {
+    const { world, service } = setUp();
+    const { dir } = fieldJob(world);
+    const { id } = (await service.plan(inputFor(dir))).experiment;
+    await service.preregister(id);
+    writeFileSync(join(dir, 'orgs', 'north', 'data', 'extra.txt'), 'changed');
+    await expect(service.calibrate(id)).rejects.toMatchObject({ code: 'experiment_frozen' });
+    expect(world.runtime.attempts).toHaveLength(0);
+  });
+
+  it('refuses to pin a job folder whose data holds a link', () => {
+    const { world } = setUp();
+    const { dir } = fieldJob(world);
+    const elsewhere = join(world.root, 'elsewhere');
+    mkdirSync(elsewhere);
+    // A junction needs no rights on Windows, and is a link like any other.
+    symlinkSync(elsewhere, join(dir, 'orgs', 'quayside', 'data', 'linked'), 'junction');
+    const job = JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8'));
+    expect(() => pinInputs(dir, job)).toThrow(/is a link/);
+  });
+
+  it('charges the time a run had when the app closed in the middle of it', async () => {
+    const clock = new ManualClock();
+    const { world, service } = setUp(clock);
+    const { id } = (await service.plan(inputFor(RETURNS_DESK))).experiment;
+    // As a crash leaves it: running since ten minutes ago, with nothing charged yet.
+    const file = join(world.root, 'experiments', id, 'experiment.json');
+    const record = JSON.parse(readFileSync(file, 'utf8'));
+    writeFileSync(
+      file,
+      JSON.stringify({
+        ...record,
+        status: 'running',
+        runningSince: new Date(clock.now() - 600_000).toISOString(),
+      }),
+    );
+    const reopened = new ExperimentService({
+      dir: join(world.root, 'experiments'),
+      clock,
+      onError: (error) => {
+        throw error;
+      },
+    });
+    const [after] = await reopened.list();
+    expect(after).toMatchObject({ status: 'paused', runningMs: 600_000 });
+    expect(after?.runningSince).toBeUndefined();
+  });
+
+  it('stops for good when a stop follows a pause still pending', async () => {
+    const { service } = setUp();
+    const { id } = (await service.plan(inputFor(RETURNS_DESK))).experiment;
+    await service.preregister(id);
+    await service.start(id, {});
+    const paused = service.pause(id);
+    const stopped = service.stop(id);
+    await Promise.all([paused, stopped]);
+    expect((await service.get(id)).experiment).toMatchObject({
+      status: 'stopped',
+      reason: 'Stopped by you.',
+    });
   }, 300_000);
 });

@@ -494,6 +494,7 @@ export async function runComparison(
         clock: env.clock,
         files,
         log: env.log,
+        ...(control.signal === undefined ? {} : { signal: control.signal }),
       })
     ).attempts;
     const billing = billingOf(calibration);
