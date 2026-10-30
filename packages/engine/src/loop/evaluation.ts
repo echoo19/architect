@@ -97,7 +97,8 @@ function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet
 /**
  * Persists one attempt with its student calls, in one transaction, and adds it to the run's
  * totals unless it belongs to a re-test. Locked-test attempts keep no trace file, no summaries
- * and only pass or fail with the failing field, so test prompts and answers stay in the vault.
+ * and only pass or fail with the failing field, so test prompts and answers stay in the vault,
+ * and they are not streamed one by one: the test's progress is.
  */
 async function recordAttempt(
   state: RunState,
@@ -162,11 +163,15 @@ async function recordAttempt(
       },
     }));
   });
-  state.emit({
-    type: 'attempt.finished',
-    attempt: AttemptSchema.parse(attempt),
-    prompt: locked ? undefined : item.task.prompt,
-  });
+  // A locked-test attempt is streamed as progress only: its task id can name an organization
+  // the job never trained on, and its result is the test's to report (decision 068).
+  if (!locked) {
+    state.emit({
+      type: 'attempt.finished',
+      attempt: AttemptSchema.parse(attempt),
+      prompt: item.task.prompt,
+    });
+  }
   if (run === null) return;
   state.emit({ type: 'run.updated', run });
   state.emitBudget();
@@ -317,12 +322,14 @@ async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boole
     const meter = await startMeter(state, spec, student);
     try {
       await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {
-        state.emit({
-          type: 'attempt.started',
-          taskId: task.id,
-          split: spec.split,
-          harnessVersion: spec.version,
-        });
+        if (spec.split !== 'test') {
+          state.emit({
+            type: 'attempt.started',
+            taskId: task.id,
+            split: spec.split,
+            harnessVersion: spec.version,
+          });
+        }
         const item = await attemptTask(state, task, context, { seed, signal, deadline });
         if (item === null) return;
         await recordAttempt(state, spec, seed, item, student);

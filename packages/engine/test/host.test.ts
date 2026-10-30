@@ -104,11 +104,14 @@ describe('the engine host', () => {
 
     const devAttempt = detail.recentAttempts[0];
     expect((await client.runs.trace(devAttempt?.id ?? '')).taskId).toBe(devAttempt?.taskId);
-    const testAttempt = events.find(
-      (event) => event.type === 'attempt.finished' && event.attempt.split === 'test',
-    );
-    if (testAttempt?.type !== 'attempt.finished') throw new Error('No test attempt was streamed.');
-    await expect(client.runs.trace(testAttempt.attempt.id)).rejects.toThrow(
+    expect(
+      events.some((event) => event.type === 'attempt.finished' && event.attempt.split === 'test'),
+    ).toBe(false);
+    const store = openEngineStore(new DataPaths(world.dataDir).database);
+    const [testAttempt] = store.attempts.list({ runId: run.id, split: 'test' });
+    store.close();
+    if (testAttempt === undefined) throw new Error('No test attempt was recorded.');
+    await expect(client.runs.trace(testAttempt.id)).rejects.toThrow(
       'Locked-test traces are not kept',
     );
 
@@ -203,14 +206,13 @@ describe('the engine host', () => {
     expect(kept.length).toBeGreaterThanOrEqual(seen.length);
     expect(kept.slice(0, seen.length)).toEqual(seen);
     expect(kept.every((event) => event.runId === run.id)).toBe(true);
-    // A locked-test attempt's request text is never streamed, so it is never kept either.
-    const test = kept.filter(
-      (event) => event.type === 'attempt.finished' && event.attempt.split === 'test',
-    );
-    expect(test.length).toBeGreaterThan(0);
+    // A locked-test attempt is never streamed, so it is never kept either.
     expect(
-      test.every((event) => event.type === 'attempt.finished' && event.prompt === undefined),
-    ).toBe(true);
+      kept.some((event) => event.type === 'attempt.finished' && event.attempt.split === 'test'),
+    ).toBe(false);
+    expect(kept.some((event) => event.type === 'eval.progress' && event.split === 'test')).toBe(
+      true,
+    );
   });
 
   it('rejects malformed requests with a typed error instead of acting on them', async () => {
