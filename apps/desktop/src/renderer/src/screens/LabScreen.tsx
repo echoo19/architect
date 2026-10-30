@@ -32,7 +32,7 @@ export function LabScreen() {
       <PlacePage title="Lab">
         <ProblemState
           error={failed.error}
-          title="Couldn't load the lab"
+          title={failed === graduates ? "Couldn't load your agents" : "Couldn't load your runs"}
           onRetry={() => {
             graduates.reload();
             jobs.reload();
