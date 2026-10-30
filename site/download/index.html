@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download Architect</title>
+    <meta name="description" content="Download Architect for macOS or Windows." />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070707" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Download Architect" />
+    <meta property="og:description" content="Architect for macOS and Windows." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // Motion is on only when scripts run and the visitor has not asked for less of it.
+      var root = document.documentElement;
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        root.classList.add('motion');
+      }
+      var platform =
+        (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      root.dataset.os = /mac|iphone|ipad/i.test(platform)
+        ? 'mac'
+        : /win/i.test(platform)
+          ? 'windows'
+          : 'other';
+    </script>
+  </head>
+  <body>
+    <div id="root"><!--app-html--></div>
+    <script type="module" src="/src/download-main.tsx"></script>
+  </body>
+</html>

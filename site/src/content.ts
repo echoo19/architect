@@ -9,6 +9,9 @@ export const RELEASES = `${REPO}/releases/latest`;
  */
 export const APP_VERSION = '0.4.0';
 export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VERSION}.exe`;
+/** The Mac disk images, one for Apple silicon and one for Intel, named by the same version. */
+export const MAC_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-arm64.dmg`;
+export const MAC_INTEL_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-x64.dmg`;
 /** The full reports behind the measured results. */
 export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
 
