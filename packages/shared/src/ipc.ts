@@ -80,7 +80,15 @@ import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspac
 
 export type Unsubscribe = () => void;
 
+/**
+ * Which app Architect is: the personal one that teaches an agent one job, or Architect Lab with
+ * fields, experiments, models and compute (decision 076).
+ */
+export type Edition = 'personal' | 'lab';
+
 export interface AppSettings {
+  /** The personal app or the Lab; an install from before the Lab is the personal one. */
+  edition: Edition;
   /** Tool steps in chat start collapsed or expanded. */
   steps: 'collapsed' | 'expanded';
   /** Shows the baselines comparison on report cards and the run menu. */

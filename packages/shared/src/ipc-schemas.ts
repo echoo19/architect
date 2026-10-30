@@ -11,6 +11,7 @@ import type {
   ClarificationReply,
   CustomEndpoint,
   DraftTurn,
+  Edition,
   FileDiff,
   GraduateSettings,
   GraduateSummary,
@@ -57,7 +58,10 @@ export const CustomEndpointSchema = z.object({
   label: z.string().min(1).max(200),
 }) satisfies z.ZodType<CustomEndpoint>;
 
+export const EditionSchema = z.enum(['personal', 'lab']) satisfies z.ZodType<Edition>;
+
 export const AppSettingsSchema = z.object({
+  edition: EditionSchema,
   steps: z.enum(['collapsed', 'expanded']),
   comparisonMode: z.boolean(),
   quietLocalModels: z.boolean(),

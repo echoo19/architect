@@ -21,6 +21,7 @@ afterEach(async () => {
 describe('default settings', () => {
   it('use the meta-spark mentor and the default student', () => {
     expect(defaultSettings()).toEqual({
+      edition: 'personal',
       steps: 'collapsed',
       comparisonMode: false,
       quietLocalModels: false,
@@ -116,6 +117,18 @@ describe('SettingsStore', () => {
     expect((await SettingsStore.open(file)).get().customEndpoints).toEqual([good]);
   });
 
+  it('reads an install from before the Lab as the personal edition, and keeps a chosen one', async () => {
+    await writeFile(file, JSON.stringify({ onboarded: true, steps: 'expanded' }));
+    expect((await SettingsStore.open(file)).get().edition).toBe('personal');
+
+    await writeFile(file, JSON.stringify({ edition: 'workshop', onboarded: true }));
+    expect((await SettingsStore.open(file)).get().edition).toBe('personal');
+
+    const store = await SettingsStore.open(file);
+    await store.update({ edition: 'lab' });
+    expect((await SettingsStore.open(file)).get().edition).toBe('lab');
+  });
+
   it('starts from defaults when the file is not JSON', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     await writeFile(file, '{ not json');
@@ -143,6 +156,7 @@ describe('settings patches', () => {
   it('reject unknown fields and bad values', () => {
     expect(AppSettingsPatchSchema.safeParse({ fontSize: 14 }).success).toBe(false);
     expect(AppSettingsPatchSchema.safeParse({ steps: 'sepia' }).success).toBe(false);
+    expect(AppSettingsPatchSchema.safeParse({ edition: 'studio' }).success).toBe(false);
   });
 
   it('no longer take a theme: Architect is always dark', () => {
