@@ -38,6 +38,9 @@ const GPU_NAMES: Readonly<Record<string, string>> = {
   b200: 'B200 180GB',
 };
 
+/** A GPU type as it is sold: "H100 80GB". */
+export const gpuName = (key: string) => GPU_NAMES[key] ?? key;
+
 export const GPU_OPTIONS = Object.keys(GPU_TYPES).map((key) => ({
   value: key,
   label: GPU_NAMES[key] ?? key,

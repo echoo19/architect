@@ -61,6 +61,8 @@ export function ComputeScreen() {
   const [read, setRead] = useState<ModelConfigRead | null>(null);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
+  // Undefined until the plan sends the person to its hardware: the inspector keeps its own.
+  const [tab, setTab] = useState<Tab | undefined>(undefined);
 
   useEffect(() => {
     if (read === null) return;
@@ -86,7 +88,13 @@ export function ComputeScreen() {
     <PlacePage
       title="Compute"
       aside={
-        <Inspector<Tab> aria-label="Plan settings" tabs={TABS} rememberAs="compute">
+        <Inspector<Tab>
+          aria-label="Plan settings"
+          tabs={TABS}
+          rememberAs="compute"
+          {...(tab === undefined ? {} : { tab })}
+          onTabChange={setTab}
+        >
           {(tab) => <Settings tab={tab} settings={settings} onChange={setSettings} />}
         </Inspector>
       }
@@ -110,7 +118,9 @@ export function ComputeScreen() {
             <p className="m-0 mt-2 max-w-[640px] text-body">{refusal}</p>
           </Card>
         )}
-        {plan && <Breakdown plan={plan} />}
+        {plan && (
+          <Breakdown plan={plan} settings={settings} onChangeHardware={() => setTab('hardware')} />
+        )}
         {read && <BundleCard read={read} plan={plan} settings={settings} />}
       </div>
     </PlacePage>
@@ -238,6 +248,12 @@ function PlanCard({
           <ErrorState layout="inline" title="Couldn't read the config" message={problem} />
         )}
         {read && plan && <ModelFacts read={read} plan={plan} />}
+        {read === null && (
+          <p className="m-0 text-ui">
+            Enter a model on Hugging Face, or choose its config.json, to see the GPUs training it
+            takes.
+          </p>
+        )}
         <ChoiceTiles<TrainMethod>
           aria-label="Method"
           columns={3}

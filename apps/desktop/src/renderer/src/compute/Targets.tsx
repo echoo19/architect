@@ -95,17 +95,13 @@ export function Targets() {
           )}
         </Fact>
       </Card>
-      <Card title="Slurm" icon={<Server aria-hidden />} action={<Badge>Experimental</Badge>}>
+      <Card title="Slurm" icon={<Server aria-hidden />} action={<Badge>Bundle only</Badge>}>
         <Lead>
           Writes an sbatch bundle that runs torchrun with FSDP across nodes. You submit it.
         </Lead>
         <Command>sbatch submit.sbatch</Command>
       </Card>
-      <Card
-        title="Kubernetes"
-        icon={<Container aria-hidden />}
-        action={<Badge>Experimental</Badge>}
-      >
+      <Card title="Kubernetes" icon={<Container aria-hidden />} action={<Badge>Bundle only</Badge>}>
         <Lead>Writes a PyTorchJob for the Kubeflow training operator. You apply it.</Lead>
         <Command>kubectl apply -f pytorchjob.yaml</Command>
       </Card>
