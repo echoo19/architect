@@ -39,6 +39,7 @@ import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
 import type {
   BindRequest,
+  FolderFit,
   ExportPartRequest,
   ExportPartResult,
   ExportRequest,
@@ -608,6 +609,8 @@ export interface ArchitectApi {
     installation(graduateId: string): Promise<Installation>;
     /** Binds resources to folders, changes grants or the model endpoint, then checks again. */
     bind(graduateId: string, request: BindRequest): Promise<Installation>;
+    /** What a folder lacks of the files and columns a resource needs, before it is bound to it. */
+    checkFolder(graduateId: string, resource: string, folder: string): Promise<FolderFit>;
     /** Runs the installation checks of the active version again. */
     verify(graduateId: string, options?: { loadModel?: boolean }): Promise<Installation>;
     /** What an export would carry and leave out, and what the scan finds in it. */

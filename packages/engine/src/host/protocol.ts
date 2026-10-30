@@ -20,6 +20,7 @@ import {
   ExportResultSchema,
   ExportReviewSchema,
   FileDiffSchema,
+  FolderFitSchema,
   GraduateSettingsSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
@@ -282,6 +283,12 @@ export const ENGINE_ROUTES = {
     z.tuple([id, BindRequestSchema]),
     InstallationSchema,
     (api, [graduateId, request]) => api.graduates.bind(graduateId, request),
+  ),
+  'graduates.checkFolder': route(
+    z.tuple([id, z.string().min(1), path]),
+    FolderFitSchema,
+    (api, [graduateId, resource, folder]) =>
+      api.graduates.checkFolder(graduateId, resource, folder),
   ),
   'graduates.verify': route(
     z.tuple([id, z.object({ loadModel: z.boolean().optional() }).strict()]),

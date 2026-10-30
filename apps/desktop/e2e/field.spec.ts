@@ -70,10 +70,12 @@ async function stubBinding(app: ElectronApplication, start: Installation): Promi
     const state = globalThis as unknown as {
       fieldBinds: unknown[];
       fieldPick: string;
+      fieldProblems: Record<string, string[]>;
     };
     let current = start;
     state.fieldBinds = [];
     state.fieldPick = '';
+    state.fieldProblems = {};
     const handle = (channel: string, reply: (...args: never[]) => unknown) => {
       ipcMain.removeHandler(channel);
       ipcMain.handle(channel, (_event, ...args: unknown[]) => ({
@@ -83,6 +85,9 @@ async function stubBinding(app: ElectronApplication, start: Installation): Promi
     };
     handle('graduates:installation', () => current);
     handle('files:pick', () => [state.fieldPick]);
+    handle('graduates:checkFolder', (_id: string, _resource: string, folder: string) => ({
+      problems: state.fieldProblems[folder] ?? [],
+    }));
     handle('graduates:bind', (_id: string, request: { bindings: Record<string, string> }) => {
       state.fieldBinds.push(request);
       current = { ...current, bindings: { ...current.bindings, ...request.bindings } };
@@ -95,6 +100,16 @@ function picks(app: ElectronApplication, folder: string): Promise<void> {
   return app.evaluate((_electron, folder) => {
     (globalThis as unknown as { fieldPick: string }).fieldPick = folder;
   }, folder);
+}
+
+function lacks(app: ElectronApplication, folder: string, problems: string[]): Promise<void> {
+  return app.evaluate(
+    (_electron, { folder, problems }) => {
+      (globalThis as unknown as { fieldProblems: Record<string, string[]> }).fieldProblems[folder] =
+        problems;
+    },
+    { folder, problems },
+  );
 }
 
 function binds(app: ElectronApplication): Promise<unknown[]> {
@@ -224,6 +239,66 @@ test('names the organization it works on and moves it to another in one menu', a
   await expect(page.getByRole('menuitem', { name: 'Real academy' })).toBeVisible();
   await capture('workspace-org-dark.png');
   await page.keyboard.press('Escape');
+});
+
+test("works from an academy's own records, and says it wasn't tested there", async () => {
+  const { app } = launched;
+  const start = installation(FIELD_AGENT.id, {
+    version: 1,
+    bindings: { data: orgFolder('northside') },
+  });
+  await installFakeEngine(
+    app,
+    engineSeed({
+      graduates: [FIELD_AGENT],
+      chats: [FIELD_CHAT],
+      messages: FIELD_MESSAGES,
+      report: FIELD_REPORT,
+      job: FIELD_JOB,
+      installation: start,
+    }),
+  );
+  await stubBinding(app, start);
+  await reloadAt(`/agents/${FIELD_AGENT.id}/chats/${FIELD_CHAT.id}`);
+  const control = page.getByRole('button', { name: /^Organization: / });
+  await expect(control).toHaveAccessibleName('Organization: Northside Prep');
+
+  // A folder without its attempts is refused, with what is missing, and nothing is bound.
+  const broken = 'D:/Records/Maple Academy';
+  await lacks(app, broken, [
+    "attempts.csv isn't in the folder.",
+    'students.csv has no tutor_id column.',
+  ]);
+  await picks(app, broken);
+  await control.click();
+  await page.getByRole('menuitem', { name: 'Another academy…' }).click();
+  await expect(page.getByText("attempts.csv isn't in the folder.")).toBeVisible();
+  await expect(page.getByText('students.csv has no tutor_id column.')).toBeVisible();
+  expect(await binds(app)).toEqual([]);
+  await expect(control).toHaveAccessibleName('Organization: Northside Prep');
+
+  // A folder that fits is bound, named, and marked as untested; no report number is shown for it.
+  const fitting = 'D:/Records/Maple Academy Fixed';
+  await picks(app, fitting);
+  await control.click();
+  await page.getByRole('menuitem', { name: 'Another academy…' }).click();
+  await expect(control).toHaveAccessibleName(
+    'Organization: Maple Academy Fixed, not tested at this academy',
+  );
+  await expect(control).toContainText('Not tested at this academy');
+  expect(await binds(app)).toEqual([{ bindings: { data: fitting } }]);
+  await expect(page.getByRole('button', { name: 'Allow once' })).toBeVisible();
+  await control.click();
+  await expect(page.getByRole('menuitem', { name: 'Another academy…' })).toBeVisible();
+  await capture('workspace-own-academy-dark.png');
+  await page.keyboard.press('Escape');
+
+  // Back to an academy it was tested at, and the label goes.
+  await control.click();
+  await picks(app, orgFolder('northside'));
+  await page.getByRole('menuitem', { name: 'Northside Prep' }).click();
+  await expect(control).toHaveAccessibleName('Organization: Northside Prep');
+  await expect(control).not.toContainText('Not tested');
 });
 
 test('an agent from a one-organization job has no organization control', async () => {

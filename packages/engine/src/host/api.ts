@@ -360,6 +360,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       rollback: async (graduateId, version) => checked(graduates.rollback(graduateId, version).id),
       installation: async (graduateId) => graduates.installation(graduateId),
       bind: (graduateId, request) => graduates.bind(graduateId, request),
+      checkFolder: (graduateId, resource, folder) =>
+        graduates.checkFolder(graduateId, resource, folder),
       verify: (graduateId, options) => graduates.verify(graduateId, options),
       reviewExport: (graduateId, version, include) =>
         reviewExport(packages, graduateId, version, include),

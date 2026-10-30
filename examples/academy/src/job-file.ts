@@ -20,18 +20,21 @@ const DATA_FILES: readonly DataFile[] = [
     name: 'staff.csv',
     kind: 'table',
     access: 'read',
+    optional: true,
     description: 'The staff: the director and the tutors.',
   },
   {
     name: 'topics.csv',
     kind: 'table',
     access: 'read',
+    optional: true,
     description: "The academy's topic labels, each with its section and its lesson video folder.",
   },
   {
     name: 'errors.csv',
     kind: 'table',
     access: 'read',
+    optional: true,
     description:
       "The errors the academy's answer explanations name, by topic. Each wrong choice in the bank comes from one of them.",
   },
@@ -39,6 +42,7 @@ const DATA_FILES: readonly DataFile[] = [
     name: 'hints.csv',
     kind: 'table',
     access: 'read',
+    optional: true,
     description:
       'The approved first hints by topic: one general hint per topic and hints written for particular errors.',
   },
@@ -67,6 +71,7 @@ const DATA_FILES: readonly DataFile[] = [
     name: 'videos.csv',
     kind: 'table',
     access: 'read',
+    optional: true,
     description: 'The lesson videos: title, folder, description and length in minutes.',
   },
   {
@@ -79,6 +84,7 @@ const DATA_FILES: readonly DataFile[] = [
     name: 'staff_notes.csv',
     kind: 'table',
     access: 'write',
+    optional: true,
     description:
       "Notes left for a student's tutor. A note that a student needs attention goes here.",
   },

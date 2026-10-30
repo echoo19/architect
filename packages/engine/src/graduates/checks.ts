@@ -15,6 +15,7 @@ import {
   type ModelBinding,
   type ModelProblem,
   type PackageManifest,
+  type ResourceFile,
   type StudentAdapter,
 } from '@architect/shared';
 import { parseCsv } from '../data/csv';
@@ -235,6 +236,60 @@ async function toolsCheck(
   };
 }
 
+/** What a folder lacks of a resource's files: one is gone, can't be read as a table, or has lost columns. */
+export type Shortfall =
+  | { file: string; kind: 'absent' }
+  | { file: string; kind: 'unreadable'; error: string }
+  | { file: string; kind: 'columns'; columns: string[] };
+
+/** The files a folder must hold for a resource, and the columns its tables must keep. Optional files may be absent. */
+export async function folderShortfalls(
+  files: readonly ResourceFile[],
+  folder: string,
+): Promise<Shortfall[]> {
+  const found: Shortfall[] = [];
+  for (const file of files) {
+    const path = join(folder, file.name);
+    if (!(await exists(path))) {
+      if (file.optional !== true) found.push({ file: file.name, kind: 'absent' });
+      continue;
+    }
+    if (file.kind !== 'table' || file.columns === undefined) continue;
+    let columns: string[];
+    try {
+      columns = parseCsv(file.name, await readFile(path, 'utf8')).columns;
+    } catch (error) {
+      found.push({
+        file: file.name,
+        kind: 'unreadable',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+    const missing = file.columns.filter((column) => !columns.includes(column));
+    if (missing.length > 0) found.push({ file: file.name, kind: 'columns', columns: missing });
+  }
+  return found;
+}
+
+const columnsOf = (columns: readonly string[]) =>
+  `${columns.join(', ')} column${columns.length === 1 ? '' : 's'}`;
+
+function installReason(name: string, shortfall: Shortfall): string {
+  if (shortfall.kind === 'absent') return `${name}/ has no ${shortfall.file}.`;
+  if (shortfall.kind === 'unreadable') {
+    return `${name}/${shortfall.file} can't be read as a table: ${shortfall.error}`;
+  }
+  return `${name}/${shortfall.file} has no ${columnsOf(shortfall.columns)}, which the graduate was trained with.`;
+}
+
+/** A shortfall in plain words, for a folder the person is about to choose. */
+export function shortfallInWords(shortfall: Shortfall): string {
+  if (shortfall.kind === 'absent') return `${shortfall.file} isn't in the folder.`;
+  if (shortfall.kind === 'unreadable') return `${shortfall.file} can't be read as a table.`;
+  return `${shortfall.file} has no ${columnsOf(shortfall.columns)}.`;
+}
+
 async function resourcesCheck(
   paths: DataPaths,
   manifest: PackageManifest,
@@ -276,32 +331,8 @@ async function resourcesCheck(
       wanting(name, 'missing', `The folder chosen for ${name}/ (${folder}) isn't there.`);
       continue;
     }
-    for (const file of resource.files) {
-      const path = join(folder, file.name);
-      if (!(await exists(path))) {
-        wanting(name, 'files', `${name}/ has no ${file.name}.`);
-        continue;
-      }
-      if (file.kind !== 'table' || file.columns === undefined) continue;
-      let columns: string[];
-      try {
-        columns = parseCsv(file.name, await readFile(path, 'utf8')).columns;
-      } catch (error) {
-        wanting(
-          name,
-          'files',
-          `${name}/${file.name} can't be read as a table: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        continue;
-      }
-      const missing = file.columns.filter((column) => !columns.includes(column));
-      if (missing.length > 0) {
-        wanting(
-          name,
-          'files',
-          `${name}/${file.name} has no ${missing.join(', ')} column${missing.length === 1 ? '' : 's'}, which the graduate was trained with.`,
-        );
-      }
+    for (const shortfall of await folderShortfalls(resource.files, folder)) {
+      wanting(name, 'files', installReason(name, shortfall));
     }
   }
   return {
