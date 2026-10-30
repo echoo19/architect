@@ -325,6 +325,10 @@ export class FakeVault implements VaultDeps {
     return counts;
   }
 
+  transferIdentifiers(jobId: string) {
+    return (this.transfer.get(jobId) ?? []).map(({ org }) => ({ id: org.id, name: org.name }));
+  }
+
   leakDetector(jobId: string) {
     const tests = this.sealed.get(jobId) ?? [];
     return {

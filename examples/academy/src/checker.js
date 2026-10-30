@@ -259,21 +259,17 @@ function fieldProblem(row, expected) {
   return null;
 }
 
-// Rows added to and removed from a table. A changed row counts as one of each. Rows are matched
-// on every column, so identical rows are interchangeable.
+// Rows added to and removed from a table. The rows that were there must stay, unchanged and in
+// their order, as the start of the table; whatever follows that start in the new table is added,
+// and whatever of the old table does not is removed. A changed or moved row counts as one of each.
 function compareRows(before, after) {
   const columns = Object.keys(before[0] || after[0] || {});
   const key = (row) => JSON.stringify(columns.map((column) => row[column] ?? null));
-  const unmatched = new Map();
-  for (const row of before) unmatched.set(key(row), (unmatched.get(key(row)) || 0) + 1);
-  const takeMatch = (row) => {
-    const left = unmatched.get(key(row)) || 0;
-    if (left > 0) unmatched.set(key(row), left - 1);
-    return left > 0;
-  };
-  const added = after.filter((row) => !takeMatch(row));
-  const removed = before.filter((row) => takeMatch(row));
-  return { added, removed };
+  let kept = 0;
+  while (kept < before.length && kept < after.length && key(before[kept]) === key(after[kept])) {
+    kept += 1;
+  }
+  return { added: after.slice(kept), removed: before.slice(kept) };
 }
 
 // The first writable table other than `allowed` whose rows the attempt changed, or null. An

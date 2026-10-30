@@ -133,13 +133,18 @@ function namesAny(marks: readonly string[]): (content: string) => boolean {
 }
 
 /**
- * Finds a transfer organization's id or name in a text, so that a request that would carry one is
- * refused before it leaves (invariant 1).
+ * Finds a transfer organization's id or name in a text, whether the job still lists it or only
+ * the vault's seal remembers it (the library's copy of the job drops it), so that a request that
+ * would carry one is refused before it leaves (invariant 1).
  */
-export function transferDetector(job: Job): LeakDetector {
-  const marks = (job.organizations ?? [])
-    .filter((org) => org.role === 'transfer')
-    .map((org) => ({ id: org.id, names: namesAny([org.id, org.name]) }));
+export function transferDetector(
+  job: Job,
+  sealed: readonly { id: string; name: string }[] = [],
+): LeakDetector {
+  const listed = (job.organizations ?? []).filter((org) => org.role === 'transfer');
+  const marks = [...listed, ...sealed.filter(({ id }) => !listed.some((org) => org.id === id))].map(
+    (org) => ({ id: org.id, names: namesAny([org.id, org.name]) }),
+  );
   return {
     scan(content) {
       const matchedIds = marks.filter((mark) => mark.names(content)).map((mark) => mark.id);

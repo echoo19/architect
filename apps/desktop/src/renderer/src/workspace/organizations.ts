@@ -23,6 +23,23 @@ export function orgOfFolder(folder: string): string | null {
 }
 
 /**
+ * Why a picked folder can't be bound as an organization's records, or null when it can: only the
+ * organization's own `orgs/<id>/data` folder is known to hold its records, so a folder of
+ * another organization, or one whose place says nothing, is refused rather than guessed at.
+ */
+export function folderProblem(
+  orgs: readonly AgentOrganization[],
+  chosen: AgentOrganization,
+  folder: string,
+): string | null {
+  const id = orgOfFolder(folder);
+  if (id === chosen.org) return null;
+  const other = orgs.find((item) => item.org === id);
+  if (other) return `That folder holds ${other.name}'s records, not ${chosen.name}'s.`;
+  return `Can't tell that folder holds ${chosen.name}'s records. Choose its orgs/${chosen.org}/data folder.`;
+}
+
+/**
  * Which organization's records the agent works on: the one whose folder its records are bound
  * to, or, while they aren't bound, the first it trained with, whose copy it graduated with
  * (decision 068). A folder outside any organization's place is named by the folder itself.

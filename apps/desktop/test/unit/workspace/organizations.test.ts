@@ -2,6 +2,7 @@ import type { OrgTypeResult } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   currentOrganization,
+  folderProblem,
   organizationsOf,
   orgOfFolder,
 } from '../../../src/renderer/src/workspace/organizations';
@@ -28,6 +29,21 @@ describe('the organization an agent works on', () => {
     expect(orgOfFolder('C:\\jobs\\academy\\orgs\\east\\data')).toBe('east');
     expect(orgOfFolder('/home/dana/academy/orgs/south/data/')).toBe('south');
     expect(orgOfFolder('/home/dana/records')).toBeNull();
+  });
+
+  it('binds only the chosen organizations own folder, and says why for any other', () => {
+    const orgs = organizationsOf(PER_ORG);
+    const [north, , east] = orgs;
+    if (north === undefined || east === undefined) throw new Error('Expected organizations.');
+    expect(folderProblem(orgs, east, '/a/orgs/east/data')).toBeNull();
+    expect(folderProblem(orgs, east, '/a/orgs/north/data')).toBe(
+      "That folder holds North Academy's records, not East Academy's.",
+    );
+    // North's records kept outside orgs/<id>/data can't be told from East's, so they are refused.
+    expect(folderProblem(orgs, east, '/home/dana/north-records')).toContain(
+      'orgs/east/data folder',
+    );
+    expect(folderProblem(orgs, east, '/a/orgs/unlisted/data')).toContain("Can't tell");
   });
 
   it('is the first trained one while unbound, the bound one after, or the folder by its name', () => {

@@ -115,6 +115,19 @@ describe('a job with organizations, when it is made', () => {
     });
   });
 
+  it('does not name the unseen organization when one of its files is missing', async () => {
+    world = await createWorld();
+    engine = openEngine(world);
+    opened.push({ engine, world });
+    const dir = join(world.root, 'branches');
+    const file = await writeOrgJobFolder(dir);
+    rmSync(join(dir, 'orgs', 'hillcrest', 'data', 'jobs.csv'));
+    const error = await engine.jobs.importFile(file).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toMatch(/sealed organization is missing/);
+    expect((error as Error).message).not.toMatch(/hillcrest|jobs\.csv/i);
+  });
+
   it('says what is wrong with organizations before anything is made', () => {
     const job = orgJob();
     const north = orgTask('train', 'north', 'invoice', 1);
