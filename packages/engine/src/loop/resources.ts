@@ -7,7 +7,7 @@ import {
   type StudentAdapter,
   type StudentTarget,
 } from '@architect/shared';
-import { describeDataFiles, type MentorDataFile } from '../mentor/data-files';
+import { describeJobData, organizationTexts, type MentorDataFile } from '../mentor/data-files';
 import { MentorGate } from '../mentor/gate';
 import type { BudgetGuard } from './budget';
 import { configurationKey, LLAMA_CPP, STUDENT_CONFIG, type AttemptConfig } from './configuration';
@@ -57,6 +57,7 @@ export class SessionResources {
   private reference?: StudentAdapter;
   private gateCreated?: Promise<MentorGate>;
   private dataFilesRead?: Promise<MentorDataFile[]>;
+  private orgTextsRead?: Promise<{ org: string; text: string }[]>;
   private readonly harnesses = new Map<number, Promise<Harness>>();
   private released?: Promise<MentorReleased>;
 
@@ -167,8 +168,15 @@ export class SessionResources {
   }
 
   dataFiles(): Promise<MentorDataFile[]> {
-    this.dataFilesRead ??= describeDataFiles(this.options.job.data.files, this.options.dataDir);
+    const { job, jobDir, dataDir } = this.options;
+    this.dataFilesRead ??= describeJobData(job, jobDir, dataDir);
     return this.dataFilesRead;
+  }
+
+  /** Each trained organization's files as one text, for the check against one's facts. */
+  organizationTexts(): Promise<{ org: string; text: string }[]> {
+    this.orgTextsRead ??= organizationTexts(this.options.job, this.options.jobDir);
+    return this.orgTextsRead;
   }
 
   harness(version: number): Promise<Harness> {

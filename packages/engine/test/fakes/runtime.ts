@@ -23,6 +23,7 @@ import type {
   CorrectionResult,
   CorrectionStart,
 } from '../../src/teaching/correction';
+import type { OpenedTransfer, TransferOrganization } from '../../src/vault/vault';
 
 export type AttemptHook = (
   task: Task,
@@ -286,17 +287,27 @@ export class FakeRuntime implements RuntimeDeps {
 /** Holds test tasks in memory and opens them only for a proof the runtime handed out. */
 export class FakeVault implements VaultDeps {
   private readonly sealed = new Map<string, Task[]>();
+  /** The organizations sealed with each job, with their files, which only a proof opens. */
+  readonly transfer = new Map<string, TransferOrganization[]>();
   readonly opened: string[] = [];
 
   constructor(private readonly runtime: FakeRuntime) {}
 
-  seal(jobId: string, tests: Task[]): void {
+  seal(
+    jobId: string,
+    tests: Task[],
+    _others?: Task[],
+    _data?: string[],
+    transfer: TransferOrganization[] = [],
+  ): void {
     if (this.sealed.has(jobId)) throw new Error(`${jobId} is already sealed.`);
     this.sealed.set(jobId, structuredClone(tests));
+    this.transfer.set(jobId, transfer);
   }
 
   discard(jobId: string): void {
     this.sealed.delete(jobId);
+    this.transfer.delete(jobId);
   }
 
   isSealed(jobId: string): boolean {
@@ -332,5 +343,22 @@ export class FakeVault implements VaultDeps {
     }
     this.opened.push(jobId);
     return structuredClone(this.sealed.get(jobId) ?? []);
+  }
+
+  /** Each sealed organization with a stand-in folder, `sealed:<job>/<org>`. */
+  openTransfer(jobId: string, proof: unknown): OpenedTransfer {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError(
+        'split',
+        'The sealed organizations open only after the mentor is released.',
+      );
+    }
+    const transfer = this.transfer.get(jobId) ?? [];
+    return {
+      organizations: transfer.map(({ org }) => org),
+      dataDirs: Object.fromEntries(
+        transfer.map(({ org }) => [org.id, `sealed:${jobId}/${org.id}`]),
+      ),
+    };
   }
 }

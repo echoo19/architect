@@ -1,6 +1,7 @@
 import {
   JsonValueSchema,
   MentorViewSchema,
+  trainOrganizations,
   type Job,
   type JsonValue,
   type LineageEntry,
@@ -50,11 +51,16 @@ export interface MentorViewInput {
 }
 
 function jobView(job: Job, dataFiles: MentorDataFile[]): MentorView['job'] {
+  const orgs = trainOrganizations(job);
   return {
     name: job.name,
     description: job.description,
     taskTypes: job.taskTypes,
     requirements: job.requirements,
+    // Only the organizations the job trains on: the others are sealed and never named here.
+    ...(orgs.length === 0
+      ? {}
+      : { organizations: orgs.map((org) => ({ id: org.id, name: org.name })) }),
     dataFiles,
   };
 }
@@ -141,6 +147,7 @@ export function buildMentorView(input: MentorViewInput): MentorView {
       results: input.train.map((result) => ({
         taskId: result.task.id,
         taskType: result.task.type,
+        ...(result.task.org === undefined ? {} : { org: result.task.org }),
         prompt: result.task.prompt,
         expected: expectedJson(result.task),
         pass: result.pass,
@@ -167,6 +174,7 @@ export const OneShotViewSchema = z.object({
     z.object({
       taskId: z.string(),
       taskType: z.string(),
+      org: z.string().optional(),
       prompt: z.string(),
       expected: JsonValueSchema,
     }),
@@ -192,6 +200,7 @@ export function buildOneShotView(input: OneShotViewInput): OneShotView {
     examples: input.train.map((task) => ({
       taskId: task.id,
       taskType: task.type,
+      ...(task.org === undefined ? {} : { org: task.org }),
       prompt: task.prompt,
       expected: expectedJson(task),
     })),
@@ -203,7 +212,11 @@ function setupParts(view: MentorView | OneShotView): PayloadPart[] {
   const { dataFiles, ...job } = view.job;
   return [
     { label: 'the job description', text: JSON.stringify(job) },
-    ...dataFiles.map((file) => ({ label: `data file ${file.name}`, text: JSON.stringify(file) })),
+    ...dataFiles.map((file) => ({
+      label:
+        file.org === undefined ? `data file ${file.name}` : `data file ${file.name} of ${file.org}`,
+      text: JSON.stringify(file),
+    })),
     ...Object.entries(view.harnessFiles).map(([path, text]) => ({
       label: `harness file ${path}`,
       text,

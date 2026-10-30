@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Expected, JsonValue, Task } from '@architect/shared';
+import { OrganizationSchema, type Expected, type JsonValue, type Task } from '@architect/shared';
 import { z } from 'zod';
 
 /** Long enough to be specific to one prompt, short enough to catch a partial copy. */
@@ -34,6 +34,18 @@ export const FingerprintSchema = z.object({
       values: z.array(z.string()).default([]),
     }),
   ),
+  /**
+   * The organizations the job never trains on (decision 068): each with its files' sha256,
+   * checked whenever they are opened for the locked test. Absent for a job without them.
+   */
+  transfer: z
+    .array(
+      z.object({
+        org: OrganizationSchema,
+        files: z.array(z.object({ name: z.string(), sha256: z.string() })),
+      }),
+    )
+    .optional(),
 });
 export type Fingerprint = z.infer<typeof FingerprintSchema>;
 
@@ -59,6 +71,8 @@ export function fingerprintTests(
   others: readonly Task[],
   data: readonly string[],
   testFileSha256: string,
+  /** Words a task gives away besides its own, such as a sealed organization's name. */
+  sealedWords: (task: Task) => readonly string[] = () => [],
 ): Fingerprint {
   const otherPrompts = others.map((task) => words(task.prompt));
   const otherTexts = otherPrompts.map((tokens) => ` ${tokens.join(' ')} `);
@@ -81,10 +95,14 @@ export function fingerprintTests(
         tokens.length >= MIN_PROMPT_WORDS &&
         !otherTexts.some((text) => text.includes(` ${prompt} `));
       const grams = [tokens, ...expectedWords(task.expected)].flatMap(gramHashes);
-      const values = [task.id, ...expectedScalars(task.expected)]
-        .map((value) => words(String(value)))
-        .filter(specific)
-        .map((value) => value.join(' '));
+      const values = [
+        ...[task.id, ...expectedScalars(task.expected)]
+          .map((value) => words(String(value)))
+          .filter(specific),
+        ...sealedWords(task)
+          .map(words)
+          .filter((value) => value.length > 0),
+      ].map((value) => value.join(' '));
       return {
         id: task.id,
         prompt: distinctive ? prompt : null,

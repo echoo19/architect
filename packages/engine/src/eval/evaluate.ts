@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import { skillFiles } from '@architect/harness';
 import type {
   CheckOutcome,
@@ -18,14 +17,20 @@ import { parseAnswerLine } from '../agent/answer';
 import { runAgent } from '../agent/loop';
 import type { Checker } from '../checker/checker';
 import { openAgentFiles } from '../files/agent-files';
+import { taskDataDir } from '../loop/organizations';
 import type { Sandbox } from '../sandbox/types';
 import { taskSeed } from './seed';
 
 /** Everything an evaluation needs besides the tasks. */
 export interface EvalContext {
   job: Job;
-  /** The job folder: data files live in `data/`, and the checker path is relative to it. */
+  /**
+   * The job folder: data files live in `data/`, or in `orgs/<id>/data/` for a task of an
+   * organization, and the checker path is relative to it.
+   */
   jobDir: string;
+  /** The sealed folders of organizations the job never trains on, for the locked test only. */
+  sealedData?: Readonly<Record<string, string>>;
   harness: Harness;
   student: StudentAdapter;
   sandbox: Sandbox;
@@ -72,7 +77,8 @@ export interface EvaluationResult {
 }
 
 /**
- * One attempt at a task: a fresh scratch copy of the agent's files (the job's data, an empty
+ * One attempt at a task: a fresh scratch copy of the agent's files (the task's organization's
+ * data, or the job's, an empty
  * output folder when the job has one, the harness's skills), the agent in task mode with the
  * given sampler seed, the ANSWER line parsed, and the attempt checked.
  */
@@ -82,7 +88,7 @@ export async function runTaskAttempt(
   options: AttemptOptions = {},
 ): Promise<TaskAttemptResult> {
   const files = await openAgentFiles({
-    dataDir: join(ctx.jobDir, 'data'),
+    dataDir: taskDataDir(ctx.jobDir, task, ctx.sealedData),
     files: ctx.job.data.files,
     ...(ctx.job.data.output === undefined ? {} : { output: ctx.job.data.output }),
     skills: skillFiles(ctx.harness),

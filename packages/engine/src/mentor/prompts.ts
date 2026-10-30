@@ -281,11 +281,12 @@ function renderJob(job: MentorView['job']): string {
     : '';
   const files = job.dataFiles.map((file) => {
     const access = file.access === 'write' ? 'writable' : 'read-only';
+    const at = file.org === undefined ? '' : ` at ${file.org}`;
     if (file.kind === 'text')
-      return `## data/${file.name} (text, ${access})\n${fenced(file.text ?? '')}`;
+      return `## data/${file.name}${at} (text, ${access})\n${fenced(file.text ?? '')}`;
     const rows = (file.sampleRows ?? []).map((row) => JSON.stringify(row)).join('\n');
     return [
-      `## data/${file.name} (table, ${access}, ${file.rowCount ?? 0} rows)`,
+      `## data/${file.name}${at} (table, ${access}, ${file.rowCount ?? 0} rows)`,
       `Columns: ${(file.columns ?? []).join(', ')}`,
       `First rows:\n${fenced(rows)}`,
     ].join('\n');
@@ -295,9 +296,22 @@ function renderJob(job: MentorView['job']): string {
     job.description,
     `Task types:\n${types.join('\n')}`,
     `Requirement: pass at least ${percent(job.requirements.passRate)} of the locked test${latency}.`,
+    ...(job.organizations === undefined ? [] : [renderOrganizations(job.organizations)]),
     `# Data files`,
     ...files,
   ].join('\n\n');
+}
+
+/**
+ * For a job with organizations: one agent serves them all, and every fact comes from the files
+ * of the organization a request is for (decision 068).
+ */
+function renderOrganizations(orgs: NonNullable<MentorView['job']['organizations']>): string {
+  const listed = orgs.map((org) => `- ${org.id}: ${org.name}`).join('\n');
+  return `# Organizations
+The agent serves several organizations with one harness:
+${listed}
+Each task is for one of them, and its data/ holds that organization's own files: the same file names, with its own records, labels and policy. Teach the agent to read every fact and policy number from data/ for the request in front of it. Never write one organization's facts, labels or numbers into the harness: the change is refused, and the agent must also serve organizations that are not listed here.`;
 }
 
 function renderHarness(files: Record<string, string>): string {
@@ -337,7 +351,7 @@ function renderTrain(train: MentorView['train']): string {
   const perType = train.perType.map((type) => `${type.type} ${type.pass}/${type.total}`).join(', ');
   const attempts = train.results.map((result) =>
     [
-      `## ${result.taskId} (${result.taskType}): ${result.pass ? 'PASS' : 'FAIL'}`,
+      `## ${result.taskId} (${result.taskType}${result.org === undefined ? '' : ` at ${result.org}`}): ${result.pass ? 'PASS' : 'FAIL'}`,
       `Checker: ${result.reason}`,
       `Request:\n${fenced(result.prompt)}`,
       `Expected:\n${fenced(JSON.stringify(result.expected, null, 2))}`,
@@ -364,7 +378,7 @@ export function renderMentorView(view: MentorView): string {
 export function renderOneShotView(view: OneShotView): string {
   const examples = view.examples.map((example) =>
     [
-      `## ${example.taskId} (${example.taskType})`,
+      `## ${example.taskId} (${example.taskType}${example.org === undefined ? '' : ` at ${example.org}`})`,
       `Request:\n${fenced(example.prompt)}`,
       `Expected:\n${fenced(JSON.stringify(example.expected, null, 2))}`,
     ].join('\n'),

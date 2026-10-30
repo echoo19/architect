@@ -9,6 +9,7 @@ import {
   newId,
   RuleConfirmationSchema,
   TaskSchema,
+  trainOrganizations,
   type DraftRecord,
   type Job,
   type JobRun,
@@ -26,9 +27,11 @@ import { buildTaskPlan } from '../drafting/plan';
 import { ContractBook } from '../graduates/contracts';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
+import type { TransferOrganization } from '../vault/vault';
 import type { Clock, LoopDeps } from './deps';
 import { readJsonFile, readJsonLines, writeJsonFile, writeJsonLines } from './files';
 import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
+import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
 
 /** A relative path that stays inside its folder. */
@@ -50,6 +53,16 @@ function checkTasks(job: Job, tasks: readonly Task[]): void {
       throw new Error(`Task "${task.id}" has type "${task.type}", which the job doesn't declare.`);
     }
   }
+  checkOrganizations(job, tasks);
+}
+
+/**
+ * The job as the library keeps it: only the organizations it trains on. The ones it never
+ * trains on go to the vault with their files and tasks, so nothing in the job's folder names
+ * them (decision 068).
+ */
+function withoutTransfer(job: Job): Job {
+  return job.organizations === undefined ? job : { ...job, organizations: trainOrganizations(job) };
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -86,6 +99,33 @@ async function readJobFile(file: string): Promise<Job> {
     });
   }
   return parsed.data;
+}
+
+/**
+ * The files of each organization the job never trains on, read from `orgs/<id>/data/` next to
+ * the job file, for the vault. None for a job without such organizations.
+ */
+async function readTransfer(job: Job, source: string): Promise<TransferOrganization[]> {
+  const transfer = (job.organizations ?? []).filter((org) => org.role === 'transfer');
+  return Promise.all(
+    transfer.map(async (org) => ({
+      org,
+      files: await Promise.all(
+        job.data.files.map(async (file) => {
+          const path = join(orgDataDir(source, org.id), file.name);
+          try {
+            return { name: file.name, content: await readFile(path) };
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+            throw new Error(
+              `The data file "${file.name}" of ${org.name} is missing; it belongs in orgs/${org.id}/data next to the job file.`,
+              { cause: error },
+            );
+          }
+        }),
+      ),
+    })),
+  );
 }
 
 /** The tasks of a `tasks.jsonl`, with the line named when one isn't a task. None for no file. */
@@ -258,14 +298,26 @@ export class JobLibrary {
     const job: Job = { ...parsed, id: await this.freshId(parsed.id) };
     const tasks = await readTasks(join(source, 'tasks.jsonl'));
     checkTasks(job, tasks);
+    const transfer = await readTransfer(job, source);
+    const kept = withoutTransfer(job);
 
-    return this.finalize(job, async () => {
+    return this.finalize(kept, async () => {
+      const orgs = trainOrganizations(job);
       for (const data of job.data.files) {
-        await copyInto(
-          join(source, 'data', data.name),
-          join(this.paths.dataDir(job.id), data.name),
-          `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
-        );
+        if (orgs.length === 0) {
+          await copyInto(
+            join(source, 'data', data.name),
+            join(this.paths.dataDir(job.id), data.name),
+            `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
+          );
+        }
+        for (const org of orgs) {
+          await copyInto(
+            join(orgDataDir(source, org.id), data.name),
+            join(orgDataDir(this.paths.jobDir(job.id), org.id), data.name),
+            `The data file "${data.name}" of ${org.name} is missing; it belongs in orgs/${org.id}/data next to the job file.`,
+          );
+        }
       }
       if (job.checker.kind === 'module') {
         const checker = insidePath(job.checker.path);
@@ -285,11 +337,11 @@ export class JobLibrary {
         }
         await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
       }
-      if (tasks.length > 0) await this.installTasks(job, tasks);
+      if (tasks.length > 0) await this.installTasks(kept, tasks, transfer);
 
-      await writeJsonFile(this.paths.jobFile(job.id), job);
-      this.record(job, tasks.length);
-      return job;
+      await writeJsonFile(this.paths.jobFile(job.id), kept);
+      this.record(kept, tasks.length);
+      return kept;
     });
   }
 
@@ -393,6 +445,12 @@ export class JobLibrary {
   async create(input: NewJob): Promise<Job> {
     const job: Job = { ...input.job, id: await this.freshId(input.job.id) };
     const tasks = [...input.tasks];
+    if (job.organizations !== undefined) {
+      throw new CodedError(
+        'not_a_job',
+        "A job with organizations is imported from its folder, with each one's files in orgs/<id>/data.",
+      );
+    }
     checkTasks(job, tasks);
     this.deps.runtime.splitTasks(tasks, job.splits);
     return this.finalize(job, async () => {
@@ -403,7 +461,7 @@ export class JobLibrary {
       }
       await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(input.drafting));
       await writeJsonFile(this.paths.jobFile(job.id), job);
-      await this.installTasks(job, tasks);
+      await this.installTasks(job, tasks, []);
       this.record(job, tasks.length);
       return job;
     });
@@ -609,20 +667,40 @@ export class JobLibrary {
     return tasks;
   }
 
-  private async installTasks(job: Job, tasks: Task[]): Promise<void> {
-    const splits = this.deps.runtime.splitTasks(tasks, job.splits);
+  /**
+   * Splits the tasks of the organizations the job trains on and seals the test split in the
+   * vault, with every task and file of the organizations it never trains on. Those are taken out
+   * before splitting, so no ordinary split ever holds one.
+   */
+  private async installTasks(
+    job: Job,
+    tasks: Task[],
+    transfer: TransferOrganization[],
+  ): Promise<void> {
+    const sealedOrgs = new Set(transfer.map(({ org }) => org.id));
+    const sealed = tasks.filter((task) => task.org !== undefined && sealedOrgs.has(task.org));
+    const trained = tasks.filter((task) => task.org === undefined || !sealedOrgs.has(task.org));
+    const splits = this.deps.runtime.splitTasks(trained, job.splits);
     await writeJsonLines(this.paths.tasksFile(job.id, 'calibration'), splits.calibration);
     await writeJsonLines(this.paths.tasksFile(job.id, 'train'), splits.train);
     await writeJsonLines(this.paths.tasksFile(job.id, 'dev'), splits.dev);
     const testIds = new Set(splits.test.map((task) => task.id));
+    const orgs = trainOrganizations(job);
+    const folders =
+      orgs.length === 0
+        ? [this.paths.dataDir(job.id)]
+        : orgs.map((org) => orgDataDir(this.paths.jobDir(job.id), org.id));
     const data = await Promise.all(
-      job.data.files.map((file) => readFile(join(this.paths.dataDir(job.id), file.name), 'utf8')),
+      folders.flatMap((folder) =>
+        job.data.files.map((file) => readFile(join(folder, file.name), 'utf8')),
+      ),
     );
     await this.deps.vault.seal(
       job.id,
-      splits.test,
-      tasks.filter((task) => !testIds.has(task.id)),
+      [...splits.test, ...sealed],
+      trained.filter((task) => !testIds.has(task.id)),
       data,
+      transfer,
     );
   }
 

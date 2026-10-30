@@ -33,6 +33,12 @@ export const ExpectedSchema = z.discriminatedUnion('kind', [
     /** Name of a validator exported by the job's checker module. */
     validator: z.string().min(1),
     params: z.record(z.string(), JsonValueSchema),
+    /**
+     * The files the task may change: a data file by its name, an output file by its path
+     * (`output/report.md`). When listed, an attempt that changed or made any other file fails
+     * whatever the validator says. Absent: the validator alone judges the end state.
+     */
+    writes: z.array(z.string().min(1)).optional(),
   }),
 ]);
 export type Expected = z.infer<typeof ExpectedSchema>;
@@ -43,6 +49,11 @@ export const TaskSchema = z.object({
   type: z.string().min(1),
   /** Tasks with the same family are near-duplicates and always land in the same split. */
   family: z.string().min(1),
+  /**
+   * The organization the task belongs to, by id; required when the job lists organizations. Its
+   * `data/` is that organization's files, for the student and the checker alike.
+   */
+  org: z.string().min(1).optional(),
   /** The request as the agent sees it. */
   prompt: z.string().min(1),
   expected: ExpectedSchema,

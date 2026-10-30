@@ -37,7 +37,7 @@ import { HARNESS_VALIDATION_ERROR } from './deps';
 import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
 import { interventionRecord, resolveFindings } from './intervene';
-import { answerTableProblem } from './lookup';
+import { answerTableProblem, orgFactsProblem } from './lookup';
 import { changeSetRefusal, impliedKind, interventionRefusal, menuOf, roundMenu } from './menu';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
@@ -415,6 +415,8 @@ async function candidateOf(
       (await state.resources.dataFiles()).map((file) => JSON.stringify(file)),
     );
     if (table !== null) return { reason: table };
+    const facts = orgFactsProblem(hypothesis.edits, await state.resources.organizationTexts());
+    if (facts !== null) return { reason: facts };
   }
   return { harness: candidate };
 }

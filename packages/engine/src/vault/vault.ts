@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { GuardError, TaskSchema, type Task } from '@architect/shared';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { GuardError, TaskSchema, type Organization, type Task } from '@architect/shared';
 import { writeFileAtomic } from '../data/atomic-write';
 import {
   createLeakDetector,
@@ -16,6 +16,23 @@ const TEST_FILE = 'test.jsonl';
 /** Written last, so its presence is what makes a job's vault sealed. */
 const FINGERPRINT_FILE = 'fingerprint.json';
 const JOB_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+/** Where the organizations a job never trains on keep their files, inside the job's vault. */
+const TRANSFER_DIR = 'transfer';
+
+/**
+ * An organization the job never trains on, with its files, sealed beside the test split
+ * (decision 068). Its tasks are among the test tasks sealed with it.
+ */
+export interface TransferOrganization {
+  org: Organization;
+  files: readonly { name: string; content: string | Uint8Array }[];
+}
+
+/** The sealed organizations, opened for the locked test: each one's folder, by its id. */
+export interface OpenedTransfer {
+  organizations: Organization[];
+  dataDirs: Record<string, string>;
+}
 
 /**
  * Holds each job's locked test split under `<root>/vault/<jobId>/`. This is the only code that
@@ -28,13 +45,16 @@ export class Vault {
   /**
    * Seals a job's test tasks. `otherTasks` are every task outside the test split and `data` the
    * text of the job's data files: wording and values they share with test tasks (templates,
-   * records every attempt reads) are left out of the fingerprint.
+   * records every attempt reads) are left out of the fingerprint. `transfer` are organizations
+   * the job never trains on: their files are kept here, hashed, and each one's name and id count
+   * as test content in the fingerprint of its tasks.
    */
   seal(
     jobId: string,
     testTasks: readonly Task[],
     otherTasks: readonly Task[],
     data: readonly string[],
+    transfer: readonly TransferOrganization[] = [],
   ): void {
     const dir = this.dir(jobId);
     if (this.isSealed(jobId)) {
@@ -53,10 +73,34 @@ export class Vault {
     }
 
     const content = `${tests.map((task) => JSON.stringify(task)).join('\n')}\n`;
-    const fingerprint = fingerprintTests(jobId, tests, otherTasks, data, sha256(content));
+    const sealedOrgs = new Map(transfer.map(({ org }) => [org.id, org]));
+    const fingerprint = fingerprintTests(
+      jobId,
+      tests,
+      otherTasks,
+      data,
+      sha256(content),
+      (task) => {
+        const org = task.org === undefined ? undefined : sealedOrgs.get(task.org);
+        return org === undefined ? [] : [org.id, org.name];
+      },
+    );
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(join(dir, TEST_FILE), content);
-    writeFileAtomic(join(dir, FINGERPRINT_FILE), `${JSON.stringify(fingerprint)}\n`);
+    const kept = transfer.map(({ org, files }) => {
+      const folder = this.transferDir(jobId, org.id);
+      return {
+        org,
+        files: files.map((file) => {
+          const target = join(folder, file.name);
+          mkdirSync(dirname(target), { recursive: true });
+          writeFileSync(target, file.content);
+          return { name: file.name, sha256: sha256(file.content) };
+        }),
+      };
+    });
+    const sealed = kept.length === 0 ? fingerprint : { ...fingerprint, transfer: kept };
+    writeFileAtomic(join(dir, FINGERPRINT_FILE), `${JSON.stringify(sealed)}\n`);
   }
 
   isSealed(jobId: string): boolean {
@@ -117,6 +161,39 @@ export class Vault {
       .map((line) => TaskSchema.parse(JSON.parse(line)));
   }
 
+  /**
+   * The organizations the job never trains on, with the folder of each one's files, for the one
+   * run that happens after the mentor is released. A file that changed since it was sealed is
+   * refused like a changed test split.
+   */
+  openTransfer(jobId: string, proof: MentorReleased): OpenedTransfer {
+    if (!isMentorReleased(proof)) {
+      throw new GuardError(
+        'split',
+        'The sealed organizations open only after the mentor has been released.',
+      );
+    }
+    const transfer = this.fingerprint(jobId).transfer ?? [];
+    const dataDirs: Record<string, string> = {};
+    for (const { org, files } of transfer) {
+      const folder = this.transferDir(jobId, org.id);
+      for (const file of files) {
+        if (sha256(readFileSync(join(folder, file.name))) !== file.sha256) {
+          throw new GuardError(
+            'split',
+            `A sealed organization's file of job ${jobId} changed after it was sealed.`,
+          );
+        }
+      }
+      dataDirs[org.id] = folder;
+    }
+    return { organizations: transfer.map(({ org }) => org), dataDirs };
+  }
+
+  private transferDir(jobId: string, orgId: string): string {
+    return join(this.dir(jobId), TRANSFER_DIR, orgId, 'data');
+  }
+
   private dir(jobId: string): string {
     if (!JOB_ID.test(jobId)) throw new Error(`"${jobId}" is not a valid job id.`);
     return join(this.rootDir, 'vault', jobId);
@@ -131,6 +208,6 @@ export class Vault {
   }
 }
 
-function sha256(content: string): string {
+function sha256(content: string | Uint8Array): string {
   return createHash('sha256').update(content).digest('hex');
 }

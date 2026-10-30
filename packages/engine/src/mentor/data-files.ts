@@ -1,8 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { JsonValueSchema, type DataFile, type MentorView } from '@architect/shared';
+import {
+  JsonValueSchema,
+  trainOrganizations,
+  type DataFile,
+  type Job,
+  type MentorView,
+} from '@architect/shared';
 import Papa from 'papaparse';
 import { z } from 'zod';
+import { orgDataDir } from '../loop/organizations';
 import { clip } from './trace';
 
 export type MentorDataFile = MentorView['job']['dataFiles'][number];
@@ -40,5 +47,51 @@ export async function describeDataFiles(
           .map((row) => JsonRowSchema.parse(JSON.parse(JSON.stringify(row)))),
       };
     }),
+  );
+}
+
+/**
+ * What the mentor sees of a job's data: its `data/`, or each organization's files that the job
+ * trains on, each marked with its organization. A sealed organization's files are not in the job
+ * folder, so they can't be shown.
+ */
+export async function describeJobData(
+  job: Job,
+  jobDir: string,
+  dataDir: string,
+): Promise<MentorDataFile[]> {
+  const orgs = trainOrganizations(job);
+  if (orgs.length === 0) return describeDataFiles(job.data.files, dataDir);
+  const each = await Promise.all(
+    orgs.map(async (org) =>
+      (await describeDataFiles(job.data.files, orgDataDir(jobDir, org.id))).map((file) => ({
+        ...file,
+        org: org.id,
+      })),
+    ),
+  );
+  return each.flat();
+}
+
+/**
+ * The whole text of each data file of every organization the job trains on, by organization,
+ * for the runner's check that a change set holds no one organization's facts. None for a job
+ * without organizations.
+ */
+export async function organizationTexts(
+  job: Job,
+  jobDir: string,
+): Promise<{ org: string; text: string }[]> {
+  return Promise.all(
+    trainOrganizations(job).map(async (org) => ({
+      org: org.id,
+      text: (
+        await Promise.all(
+          job.data.files.map((file) =>
+            readFile(join(orgDataDir(jobDir, org.id), file.name), 'utf8'),
+          ),
+        )
+      ).join('\n'),
+    })),
   );
 }
