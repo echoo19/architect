@@ -80,6 +80,11 @@ export interface CheckedFiles {
   tables(): Record<string, TableSnapshot>;
   /** Every table as it was when the files were opened. */
   originalTables(): Record<string, TableSnapshot>;
+  /**
+   * The text files the attempt changed or made, a data file by its name and an output file by
+   * its path (`output/report.md`). Tables are compared by their rows instead.
+   */
+  changedTexts(): string[];
 }
 
 /**
@@ -415,6 +420,13 @@ class FolderFiles implements AgentFiles {
         .filter((state) => state.kind === 'table')
         .map((state) => [state.name ?? state.path, this.table(state.path, state.text)]),
     );
+  }
+
+  changedTexts(): string[] {
+    return [...this.files.values()]
+      .filter((state) => state.kind === 'text' && state.text !== state.initial)
+      .map((state) => state.name ?? state.path)
+      .sort(compare);
   }
 
   originalTables(): Record<string, TableSnapshot> {

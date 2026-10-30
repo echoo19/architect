@@ -39,7 +39,8 @@ type EndState = Extract<Expected, { kind: 'end_state' }>;
  * Grades attempts deterministically: answers with the built-in comparator, facts by path, and
  * end states with the job's checker module, run in the sandbox without a clock or randomness.
  * A task that asks only for an answer or facts fails when the attempt changed any table, and one
- * that lists the files it may change fails when another table changed, whatever its validator says.
+ * that lists the files it may change fails when another file changed or appeared, whatever its
+ * validator says.
  */
 export function createChecker(options: CheckerOptions): Checker {
   let source: Promise<string> | undefined;
@@ -57,9 +58,10 @@ export function createChecker(options: CheckerOptions): Checker {
         }
       } else if (expected.writes !== undefined) {
         const allowed = new Set(expected.writes);
-        const stray = changedTables(files.originalTables(), files.tables()).find(
-          (name) => !allowed.has(name),
-        );
+        const stray = [
+          ...changedTables(files.originalTables(), files.tables()),
+          ...files.changedTexts(),
+        ].find((name) => !allowed.has(name));
         if (stray !== undefined)
           return fail(`${stray} changed, but the task doesn't ask for that.`);
       }

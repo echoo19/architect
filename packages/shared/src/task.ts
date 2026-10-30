@@ -34,8 +34,9 @@ export const ExpectedSchema = z.discriminatedUnion('kind', [
     validator: z.string().min(1),
     params: z.record(z.string(), JsonValueSchema),
     /**
-     * The data files the task may change. When listed, an attempt that changed any other table
-     * fails whatever the validator says. Absent: the validator alone judges the end state.
+     * The files the task may change: a data file by its name, an output file by its path
+     * (`output/report.md`). When listed, an attempt that changed or made any other file fails
+     * whatever the validator says. Absent: the validator alone judges the end state.
      */
     writes: z.array(z.string().min(1)).optional(),
   }),

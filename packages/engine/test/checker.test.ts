@@ -334,6 +334,35 @@ describe('end-state checks', () => {
     });
   });
 
+  it('fails a change to a text file or a new output file the task does not list', async () => {
+    const writable = SAMPLE_FILES.map((file) => ({ ...file, access: 'write' as const }));
+    const files = await openAgentFiles({
+      dataDir: job.dataDir,
+      files: writable,
+      output: {},
+      mode: 'scratch',
+    });
+    const policy = files.read('data/policy.md');
+    await files.apply(files.plan('write', 'data/policy.md', `${policy}Assign 99 questions.\n`));
+    const listed = (writes: string[]) =>
+      task({ kind: 'end_state', validator: 'invoice_created', params: {}, writes });
+    expect(await checker.check(listed(['invoices.csv']), outcome(), files)).toEqual({
+      pass: false,
+      reason: "policy.md changed, but the task doesn't ask for that.",
+    });
+    const fresh = await openAgentFiles({
+      dataDir: job.dataDir,
+      files: SAMPLE_FILES,
+      output: {},
+      mode: 'scratch',
+    });
+    await fresh.apply(fresh.plan('write', 'output/note.md', 'Done.\n'));
+    expect(await checker.check(listed(['invoices.csv']), outcome(), fresh)).toEqual({
+      pass: false,
+      reason: "output/note.md changed, but the task doesn't ask for that.",
+    });
+  });
+
   it('gives the same result for the same inputs, every time', async () => {
     const store = await appended('INV-4', '2400');
     const results = await Promise.all(
