@@ -30,7 +30,7 @@ export function scoreTask(attempts: readonly StoredAttempt[], seeds: readonly nu
     : { votes: best.votes, correct: best.chosen.check.pass };
 }
 
-function byTask(attempts: readonly StoredAttempt[]): Map<string, StoredAttempt[]> {
+export function byTask(attempts: readonly StoredAttempt[]): Map<string, StoredAttempt[]> {
   const grouped = new Map<string, StoredAttempt[]>();
   for (const attempt of attempts) {
     grouped.set(attempt.taskId, [...(grouped.get(attempt.taskId) ?? []), attempt]);
@@ -41,6 +41,54 @@ function byTask(attempts: readonly StoredAttempt[]): Map<string, StoredAttempt[]
 function pointOf(point: CurvePoint): CertificatePoint {
   const { votes, answered, errors, coverage, bound } = point;
   return { votes, answered, errors, coverage, bound };
+}
+
+/** Where a certified threshold is checked: a place and its tasks' scores. */
+export interface CheckGroup {
+  /** The organization's id; absent for the taught organizations' locked test together. */
+  org?: string;
+  orgName?: string;
+  seen: boolean;
+  synthetic: boolean;
+  scored: readonly Scored[];
+}
+
+/**
+ * The certificate from the calibration tasks' scores, with its threshold run on each group of
+ * tasks it wasn't calibrated on: held when the observed selective error there is at most the
+ * certified bound.
+ */
+export function certificateOf(
+  settings: Required<Pick<CertifySettings, 'k' | 'epsilon' | 'delta'>>,
+  calibration: readonly Scored[],
+  groups: readonly CheckGroup[],
+): Certificate {
+  const { k, epsilon, delta } = settings;
+  const choice = chooseThreshold(calibration, { k, epsilon, delta });
+  const base = {
+    n: calibration.length,
+    k,
+    delta,
+    epsilon,
+    curve: choice.curve.map(pointOf),
+    assumption: CERTIFICATE_ASSUMPTION,
+  };
+  if (!choice.certified) {
+    return { ...base, issued: false, reason: choice.reason, needed: choice.needed };
+  }
+  const threshold = pointOf(choice.point);
+  const checks: CertificateCheck[] = groups.map(({ scored, ...place }) => {
+    const answered = scored.filter((item) => item.votes >= threshold.votes);
+    const errors = answered.filter((item) => !item.correct).length;
+    return {
+      ...place,
+      tasks: scored.length,
+      answered: answered.length,
+      errors,
+      held: answered.length === 0 || errors / answered.length <= threshold.bound,
+    };
+  });
+  return { ...base, issued: true, threshold, checks };
 }
 
 /**
@@ -57,42 +105,18 @@ export function buildCertificate(input: {
   /** True when every organization it trained on was generated. */
   taughtSynthetic: boolean;
 }): Certificate {
-  const { k, epsilon, delta } = input.settings;
-  const choice = chooseThreshold(input.calibration, { k, epsilon, delta });
-  const base = {
-    n: input.calibration.length,
-    k,
-    delta,
-    epsilon,
-    curve: choice.curve.map(pointOf),
-    assumption: CERTIFICATE_ASSUMPTION,
-  };
-  if (!choice.certified) {
-    return { ...base, issued: false, reason: choice.reason, needed: choice.needed };
-  }
-  const threshold = pointOf(choice.point);
-  const check = (scored: readonly Scored[]) => {
-    const answered = scored.filter((item) => item.votes >= threshold.votes);
-    const errors = answered.filter((item) => !item.correct).length;
-    return {
-      tasks: scored.length,
-      answered: answered.length,
-      errors,
-      held: answered.length === 0 || errors / answered.length <= threshold.bound,
-    };
-  };
   const unseenIds = new Set(input.unseen.map((org) => org.id));
   const taught = input.test.filter(
     ({ task }) => task.org === undefined || !unseenIds.has(task.org),
   );
-  const checks: CertificateCheck[] = [
+  return certificateOf(input.settings, input.calibration, [
     ...(taught.length === 0
       ? []
       : [
           {
             seen: true,
             synthetic: input.taughtSynthetic,
-            ...check(taught.map(({ scored }) => scored)),
+            scored: taught.map(({ scored }) => scored),
           },
         ]),
     ...input.unseen.map((org) => ({
@@ -100,10 +124,9 @@ export function buildCertificate(input: {
       orgName: org.name,
       seen: false,
       synthetic: org.synthetic,
-      ...check(input.test.filter(({ task }) => task.org === org.id).map(({ scored }) => scored)),
+      scored: input.test.filter(({ task }) => task.org === org.id).map(({ scored }) => scored),
     })),
-  ];
-  return { ...base, issued: true, threshold, checks };
+  ]);
 }
 
 /**

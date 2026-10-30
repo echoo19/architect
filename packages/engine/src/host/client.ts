@@ -190,6 +190,13 @@ export function connectEngine(
       history: (graduateId) => request('graduates.history', [graduateId]),
       report: (graduateId, version) => request('graduates.report', [graduateId, version ?? null]),
       harnessDiff: (from, to) => request('graduates.harnessDiff', [from, to]),
+      planCertification: (certify) => request('graduates.planCertification', [certify]),
+      startCertification: (certificationId) =>
+        request('graduates.startCertification', [certificationId]),
+      discardCertification: (certificationId) =>
+        request('graduates.discardCertification', [certificationId]),
+      certifications: (graduateId, version) =>
+        request('graduates.certifications', [graduateId, version]),
       acceptVersion: (graduateId, version) =>
         request('graduates.acceptVersion', [graduateId, version]),
       rejectVersion: (graduateId, version) =>

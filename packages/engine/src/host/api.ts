@@ -28,6 +28,7 @@ import { prepareSampleAgent, sampleAgentAvailable } from '../graduates/sample';
 import type { HubClient } from '../hub';
 import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
+import { certificationView, discardCertification, planCertification } from '../loop/posthoc';
 import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
@@ -107,6 +108,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     return graduates.summary(graduateId);
   };
   const teachThis = new TeachThis({ store, jobs, deps, clock: ctx.clock });
+  const certifying = { store, paths, jobs, deps, clock: ctx.clock };
 
   /** The final tests the run has been put through again, local first. */
   function retestsOf(runId: string): Retest[] {
@@ -401,6 +403,20 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       report: (graduateId, version) => graduates.report(graduateId, version),
       harnessDiff: async (from, to) =>
         deps.harness.diffHarness(await packagedHarness(from), await packagedHarness(to)),
+      planCertification: async (request) =>
+        certificationView(store, await planCertification(certifying, request)),
+      startCertification: async (certificationId) => {
+        controller.certify(certificationId);
+        return certificationView(
+          store,
+          found(store.certifications.get(certificationId), 'There is no such certification.'),
+        );
+      },
+      discardCertification: (certificationId) => discardCertification(certifying, certificationId),
+      certifications: async (graduateId, version) =>
+        store.certifications
+          .list(graduateId, version)
+          .map((item) => certificationView(store, item)),
       acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
       rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
       promote: async (graduateId, version) => checked(graduates.promote(graduateId, version).id),

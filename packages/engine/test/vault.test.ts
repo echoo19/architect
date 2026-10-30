@@ -291,3 +291,38 @@ describe('the calibration split of a certified job (decision 077)', () => {
     );
   });
 });
+
+describe("a version's certification after the fact (decision 079)", () => {
+  const sets = { calibration: [others[0] as Task], checks: { north: [others[1] as Task] } };
+  const file = () => join(root, 'vault', 'job_sample', 'certifications', 'crt_1.json');
+
+  it('seals once beside the test, and opens only on the release proof', async () => {
+    const sha256 = vault.sealCertification('job_sample', 'crt_1', sets);
+    expect(() => vault.sealCertification('job_sample', 'crt_1', sets)).toThrow(GuardError);
+    expect(() =>
+      vault.openCertification('job_sample', 'crt_1', sha256, {} as MentorReleased),
+    ).toThrow("A certification's tasks open only after the mentor has been released.");
+    const proof = await releaseMentor(session());
+    expect(vault.openCertification('job_sample', 'crt_1', sha256, proof)).toEqual(sets);
+  });
+
+  it('refuses tasks that changed after sealing, and takes back what never started', async () => {
+    const sha256 = vault.sealCertification('job_sample', 'crt_1', sets);
+    writeFileSync(file(), readFileSync(file(), 'utf8').replace('W-1001', 'W-1009'));
+    const proof = await releaseMentor(session());
+    expect(() => vault.openCertification('job_sample', 'crt_1', sha256, proof)).toThrow(
+      'The tasks of certification crt_1 changed after they were sealed.',
+    );
+    vault.discardCertification('job_sample', 'crt_1');
+    expect(() => readFileSync(file())).toThrow();
+    expect(vault.isSealed('job_sample')).toBe(true);
+  });
+
+  it('keeps them out of the locked test and its counts, under an id that names no other path', () => {
+    vault.sealCertification('job_sample', 'crt_1', sets);
+    expect(vault.count('job_sample')).toBe(tests.length);
+    expect(() => vault.sealCertification('job_sample', '..', sets)).toThrow(
+      'is not a valid certification id',
+    );
+  });
+});

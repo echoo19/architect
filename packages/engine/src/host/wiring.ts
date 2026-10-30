@@ -199,6 +199,10 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
       openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),
+      sealCertification: (jobId, id, sets) => vault.sealCertification(jobId, id, sets),
+      openCertification: (jobId, id, sha256, proof) =>
+        vault.openCertification(jobId, id, sha256, proof as MentorReleased),
+      discardCertification: (jobId, id) => vault.discardCertification(jobId, id),
       openCalibration: (jobId, proof) => vault.openCalibration(jobId, proof as MentorReleased),
     },
     harness: {

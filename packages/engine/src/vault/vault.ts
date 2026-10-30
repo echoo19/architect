@@ -26,6 +26,14 @@ const FINGERPRINT_FILE = 'fingerprint.json';
 const JOB_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 /** Where the organizations a job never trains on keep their files, inside the job's vault. */
 const TRANSFER_DIR = 'transfer';
+/** Where the tasks of versions certified after the fact are sealed (decision 079). */
+const CERTIFICATIONS_DIR = 'certifications';
+
+/** The tasks a version is certified on after the fact: calibration, and each check by organization. */
+export interface CertificationSets {
+  calibration: Task[];
+  checks: Record<string, Task[]>;
+}
 
 /**
  * An organization the job never trains on, with its files, sealed beside the test split
@@ -301,6 +309,79 @@ export class Vault {
       dataDirs[org.id] = folder;
     }
     return { organizations: transfer.map(({ org }) => org), dataDirs };
+  }
+
+  /**
+   * Seals the tasks a frozen version is certified on after the fact (decision 079), in this
+   * job's vault beside its test. A sealed set is never replaced. Returns the file's sha256, which
+   * opening it again must match.
+   */
+  sealCertification(jobId: string, certificationId: string, sets: CertificationSets): string {
+    const file = this.certificationFile(jobId, certificationId);
+    if (existsSync(file)) {
+      throw new GuardError('split', `The tasks of certification ${certificationId} are sealed.`);
+    }
+    const parsed = {
+      calibration: sets.calibration.map((task) => TaskSchema.parse(task)),
+      checks: Object.fromEntries(
+        Object.entries(sets.checks).map(([org, tasks]) => [
+          org,
+          tasks.map((task) => TaskSchema.parse(task)),
+        ]),
+      ),
+    };
+    const content = `${JSON.stringify(parsed)}
+`;
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileAtomic(file, content);
+    return sha256(content);
+  }
+
+  /** A certification's sealed tasks, after the mentor is released, as long as they are unchanged. */
+  openCertification(
+    jobId: string,
+    certificationId: string,
+    expectedSha256: string,
+    proof: MentorReleased,
+  ): CertificationSets {
+    if (!isMentorReleased(proof)) {
+      throw new GuardError(
+        'split',
+        "A certification's tasks open only after the mentor has been released.",
+      );
+    }
+    const content = readFileSync(this.certificationFile(jobId, certificationId), 'utf8');
+    if (sha256(content) !== expectedSha256) {
+      throw new GuardError(
+        'split',
+        `The tasks of certification ${certificationId} changed after they were sealed.`,
+      );
+    }
+    const raw = JSON.parse(content) as {
+      calibration: unknown[];
+      checks: Record<string, unknown[]>;
+    };
+    return {
+      calibration: raw.calibration.map((task) => TaskSchema.parse(task)),
+      checks: Object.fromEntries(
+        Object.entries(raw.checks).map(([org, tasks]) => [
+          org,
+          tasks.map((task) => TaskSchema.parse(task)),
+        ]),
+      ),
+    };
+  }
+
+  /** Takes back the sealed tasks of a certification that never started. */
+  discardCertification(jobId: string, certificationId: string): void {
+    rmSync(this.certificationFile(jobId, certificationId), { force: true });
+  }
+
+  private certificationFile(jobId: string, certificationId: string): string {
+    if (!JOB_ID.test(certificationId)) {
+      throw new Error(`"${certificationId}" is not a valid certification id.`);
+    }
+    return join(this.dir(jobId), CERTIFICATIONS_DIR, `${certificationId}.json`);
   }
 
   private transferDir(jobId: string, orgId: string): string {

@@ -37,6 +37,7 @@ import {
   JobRecordSchema,
   LineageIndexSchema,
   StoredAttemptSchema,
+  StoredCertificationSchema,
   StoredChecksSchema,
   StoredContractSchema,
   StoredInstallationSchema,
@@ -53,6 +54,7 @@ import {
   type LineageIndex,
   type RetestStatus,
   type StoredAttempt,
+  type StoredCertification,
   type StoredChecks,
   type StoredContract,
   type StoredInstallation,
@@ -268,6 +270,21 @@ export interface EngineStore {
     list(runId: string): ReferenceRecord[];
     /** Oldest first, so interrupted references resume in the order they started. */
     withStatus(status: ReferenceRecord['status']): ReferenceRecord[];
+  };
+  /** Versions certified after the fact (decision 079). */
+  certifications: {
+    insert(record: StoredCertification): void;
+    /** Refuses to change a finished one, which never changes. */
+    update(record: StoredCertification): void;
+    /** Only a planned one, which never started, can be taken back. */
+    remove(id: string): void;
+    get(id: string): StoredCertification | null;
+    /** A version's, newest first. */
+    list(graduateId: string, version: number): StoredCertification[];
+    /** A run's, oldest first. */
+    ofRun(runId: string): StoredCertification[];
+    /** Oldest first, so interrupted ones resume in the order they started. */
+    withStatus(status: StoredCertification['status']): StoredCertification[];
   };
   /** Teach this: corrections of workspace replies, by agent, oldest first. */
   corrections: {
@@ -878,6 +895,19 @@ function lessonParams(lesson: Lesson): Params {
 }
 
 /** A row's JSON body, checked against its record's schema. */
+function certificationParams(record: StoredCertification): Params {
+  return {
+    id: record.id,
+    run_id: record.runId,
+    graduate_id: record.graduateId,
+    version: record.version,
+    seq: record.seq,
+    status: record.status,
+    body: json(record),
+    created_at: record.createdAt,
+  };
+}
+
 function bodyOf<T>(schema: { parse(value: unknown): T }, row: Row): T {
   return schema.parse(fromJson(row.body));
 }
@@ -1429,6 +1459,54 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             { status },
           )
           .map((row) => bodyOf(ReferenceRecordSchema, row)),
+    },
+
+    certifications: {
+      insert: (record) => {
+        const parsed = StoredCertificationSchema.parse(record);
+        sql.insert('certifications', certificationParams(parsed));
+      },
+      update: (record) => {
+        const parsed = StoredCertificationSchema.parse(record);
+        const row = sql.one('SELECT status FROM certifications WHERE id = :id', { id: parsed.id });
+        if (!row) throw new Error(`There is no certification "${parsed.id}".`);
+        if (row.status === 'finished') {
+          throw new Error('A finished certification is evidence, and evidence never changes.');
+        }
+        sql.insert('certifications', certificationParams(parsed), 'replace');
+      },
+      remove: (id) => {
+        const row = sql.one('SELECT status FROM certifications WHERE id = :id', { id });
+        if (row && row.status !== 'planned') {
+          throw new Error('Only a certification that never started can be taken back.');
+        }
+        sql.run('DELETE FROM certifications WHERE id = :id', { id });
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM certifications WHERE id = :id', { id });
+        return row ? bodyOf(StoredCertificationSchema, row) : null;
+      },
+      list: (graduateId, version) =>
+        sql
+          .all(
+            `SELECT body FROM certifications WHERE graduate_id = :graduate_id AND version = :version
+             ORDER BY created_at DESC, rowid DESC`,
+            { graduate_id: graduateId, version },
+          )
+          .map((row) => bodyOf(StoredCertificationSchema, row)),
+      ofRun: (runId) =>
+        sql
+          .all('SELECT body FROM certifications WHERE run_id = :run_id ORDER BY seq', {
+            run_id: runId,
+          })
+          .map((row) => bodyOf(StoredCertificationSchema, row)),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT body FROM certifications WHERE status = :status ORDER BY created_at, rowid',
+            { status },
+          )
+          .map((row) => bodyOf(StoredCertificationSchema, row)),
     },
 
     corrections: {

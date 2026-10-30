@@ -27,7 +27,7 @@ import type {
 import type { CounterexampleSearch, FoundCounterexample } from '../counterexamples/find';
 import type { SuiteCase, SuiteContext } from '../counterexamples/suite';
 import type { LeakDetector } from '../mentor/gate';
-import type { OpenedTransfer, TransferOrganization } from '../vault/vault';
+import type { CertificationSets, OpenedTransfer, TransferOrganization } from '../vault/vault';
 import type {
   CorrectionContext,
   CorrectionOptions,
@@ -200,6 +200,21 @@ export interface VaultDeps {
   openTransfer(jobId: string, proof: MentorReleased): Awaitable<OpenedTransfer>;
   /** A certified job's calibration split, on the same proof; none for a job without one. */
   openCalibration(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
+  /** Seals a version's after-the-fact certification tasks in the job's vault; returns their sha256. */
+  sealCertification(
+    jobId: string,
+    certificationId: string,
+    sets: CertificationSets,
+  ): Awaitable<string>;
+  /** Those tasks, on the same proof, as long as they still have the sha256 they were sealed with. */
+  openCertification(
+    jobId: string,
+    certificationId: string,
+    sha256: string,
+    proof: MentorReleased,
+  ): Awaitable<CertificationSets>;
+  /** Takes back the sealed tasks of a certification that never started. */
+  discardCertification(jobId: string, certificationId: string): Awaitable<void>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */
