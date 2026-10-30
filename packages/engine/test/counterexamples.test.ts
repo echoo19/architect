@@ -14,7 +14,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createChecker } from '../src/checker/checker';
 import { findCounterexamples } from '../src/counterexamples/find';
-import { failureHolds } from '../src/counterexamples/predicate';
+import { failureHolds, regressionFailure } from '../src/counterexamples/predicate';
 import { reduceCase, type CaseData } from '../src/counterexamples/reduce';
 import { runSuite } from '../src/counterexamples/suite';
 import { runTaskAttempt } from '../src/eval/evaluate';
@@ -199,6 +199,21 @@ describe('counterexamples from a failing helper', () => {
       expect.objectContaining({ case: 'reduced', passed: true }),
       expect.objectContaining({ case: 'original', passed: true }),
     ]);
+
+    // As an earlier case, with no original to replay: a crash turned into another crash fails.
+    const otherCrash = LOOKUP.replace("'test position not found'", "'no such position'");
+    const regression = await runSuite(
+      { job, jobDir: ACADEMY, sandbox, today: TODAY },
+      helper('question_lookup', otherCrash),
+      [{ counterexample }],
+    );
+    expect(regression).toEqual([
+      expect.objectContaining({
+        case: 'reduced',
+        passed: false,
+        detail: expect.stringContaining('no such position'),
+      }),
+    ]);
   });
 
   it('keeps every row a wrong count may rest on when the answer is written another way', async () => {
@@ -326,6 +341,24 @@ describe('reducing a case', () => {
     expect(failureHolds(predicate, { ok: false, failure: { kind: 'error', message: 'x' } })).toBe(
       false,
     );
+  });
+
+  it('passes a regression case only on a clean run that gives the expected value', () => {
+    const wrong = { kind: 'contradicts' as const, field: 'correct', expected: 5, got: 4 };
+    const crashed = {
+      ok: false as const,
+      failure: { kind: 'error' as const, message: 'Error: y' },
+    };
+    expect(regressionFailure(wrong, { ok: true, value: { correct: '5' } })).toBeNull();
+    expect(regressionFailure(wrong, { ok: true, value: { topic: 'x' } })).toBeNull();
+    expect(regressionFailure(wrong, { ok: true, value: { correct: 3 } })).toEqual({
+      ...wrong,
+      got: 3,
+    });
+    expect(regressionFailure(wrong, crashed)).toEqual({ kind: 'threw', message: 'Error: y' });
+    const threw = { kind: 'threw' as const, message: 'Error: not found' };
+    expect(regressionFailure(threw, crashed)).toEqual({ kind: 'threw', message: 'Error: y' });
+    expect(regressionFailure(threw, { ok: true, value: null })).toBeNull();
   });
 
   it('judges a crash by its message wherever in the code it was thrown', () => {
