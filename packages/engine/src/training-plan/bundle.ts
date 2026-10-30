@@ -1,8 +1,17 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import {
   CLUSTER_TEMPLATE_WORDING,
+  FieldExportManifestSchema,
+  type FieldExportManifest,
   TRAIN_BUNDLE_FORMAT,
   TrainBundleSchema,
   type ClusterTarget,
@@ -55,24 +64,27 @@ export interface WrittenBundle {
 
 const sha256 = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 
+/**
+ * Reads a field export and checks it is one: `MANIFEST.json` present and valid, every
+ * `sft/*.jsonl` listed in it with the hash it names, and nothing unlisted in `sft/`. Anything
+ * else could be an arbitrary folder, so it is refused before a byte is copied.
+ */
 function readExport(exportDir: string): {
-  manifestSha256: string | null;
-  declaredHash: string | null;
+  manifestSha256: string;
+  declaredHash: string;
   data: { name: string; bytes: Buffer }[];
 } {
   const manifestPath = join(exportDir, 'MANIFEST.json');
-  let manifestSha256: string | null = null;
-  let declaredHash: string | null = null;
-  if (existsSync(manifestPath)) {
-    const bytes = readFileSync(manifestPath);
-    manifestSha256 = sha256(bytes);
-    try {
-      const manifest = JSON.parse(bytes.toString('utf8')) as Record<string, unknown>;
-      const declared = manifest['hash'] ?? manifest['sha256'] ?? manifest['export_sha256'];
-      declaredHash = typeof declared === 'string' ? declared : null;
-    } catch {
-      throw new BundleError(`${manifestPath} isn't JSON.`);
-    }
+  const howTo = 'Point --export at a folder written by `architect field export`.';
+  if (!existsSync(manifestPath)) {
+    throw new BundleError(`${exportDir} has no MANIFEST.json. ${howTo}`);
+  }
+  const manifestBytes = readFileSync(manifestPath);
+  let manifest: FieldExportManifest;
+  try {
+    manifest = FieldExportManifestSchema.parse(JSON.parse(manifestBytes.toString('utf8')));
+  } catch {
+    throw new BundleError(`${manifestPath} isn't a field export manifest. ${howTo}`);
   }
   const sft = join(exportDir, 'sft');
   const names = existsSync(sft)
@@ -81,15 +93,28 @@ function readExport(exportDir: string): {
         .sort()
     : [];
   if (names.length === 0) {
-    throw new BundleError(
-      `${exportDir} has no sft/*.jsonl. Point --export at a folder written by \`architect field export\`.`,
-    );
+    throw new BundleError(`${exportDir} has no sft/*.jsonl. ${howTo}`);
   }
-  return {
-    manifestSha256,
-    declaredHash,
-    data: names.map((name) => ({ name, bytes: readFileSync(join(sft, name)) })),
-  };
+  const data = names.map((name) => {
+    const path = join(sft, name);
+    if (!lstatSync(path).isFile()) {
+      throw new BundleError(`sft/${name} in ${exportDir} isn't a plain file.`);
+    }
+    const bytes = readFileSync(path);
+    const listed = manifest.files[`sft/${name}`];
+    if (listed === undefined) {
+      throw new BundleError(
+        `sft/${name} isn't listed in ${manifestPath}, so it isn't part of the export.`,
+      );
+    }
+    if (listed !== sha256(bytes)) {
+      throw new BundleError(
+        `sft/${name} doesn't match the hash in ${manifestPath}; it changed after the export.`,
+      );
+    }
+    return { name, bytes };
+  });
+  return { manifestSha256: sha256(manifestBytes), declaredHash: manifest.job.sha256, data };
 }
 
 function sbatchScript(nodes: number, perNode: number, bundle: TrainBundle): string {

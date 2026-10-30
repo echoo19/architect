@@ -1,7 +1,21 @@
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ModelConfig, TrainingPlanRequest } from '@architect/shared';
+import {
+  FIELD_EXPORT_FORMAT,
+  type FieldExportManifest,
+  type ModelConfig,
+  type TrainingPlanRequest,
+} from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { HubClient } from '../src/hub';
 import {
@@ -48,10 +62,39 @@ function request(config: ModelConfig, repo: string | null, revision: string | nu
 
 function fieldExport(): string {
   const dir = temp();
+  const demonstrations = '{"messages":[]}\n';
+  const sha = (text: string) => createHash('sha256').update(text).digest('hex');
+  const stamp = '2026-10-30T00:00:00.000Z';
   mkdirSync(join(dir, 'sft'));
-  writeFileSync(join(dir, 'MANIFEST.json'), '{"counts":{}}');
-  writeFileSync(join(dir, 'sft', 'demonstrations.jsonl'), '{"messages":[]}\n');
+  writeFileSync(join(dir, 'sft', 'demonstrations.jsonl'), demonstrations);
+  const manifest: FieldExportManifest = {
+    format: FIELD_EXPORT_FORMAT,
+    created_at: stamp,
+    job: { id: 'job', name: 'Job', format: 1, created_at: stamp, sha256: sha('job') },
+    counts: {
+      demonstrations: 1,
+      trained_turns: 1,
+      train_tasks: 1,
+      train_organizations: 1,
+      sealed_organizations: 1,
+      locked_test_tasks: 1,
+    },
+    files: { 'sft/demonstrations.jsonl': sha(demonstrations) },
+    permitted_uses: { sft: [], env: [], eval: [] },
+    left_out: [],
+  };
+  writeFileSync(join(dir, 'MANIFEST.json'), JSON.stringify(manifest));
   return dir;
+}
+
+/** Makes a link to a folder: a symlink, or on Windows a junction, which needs no privilege. */
+function linkFolder(target: string, path: string): boolean {
+  try {
+    symlinkSync(target, path, 'junction');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 describe('the Compute requests', () => {
@@ -103,6 +146,20 @@ describe('the Compute requests', () => {
     expect(second.dir).toBe(join(parent, 'moe-235b-slurm-2'));
     expect(first.bundle.submit).toBe('sbatch submit.sbatch');
     expect(readdirSync(parent).sort()).toEqual(['moe-235b-slurm', 'moe-235b-slurm-2']);
+  });
+
+  it('refuses an output folder that is a link, so nothing is written where it points', (context) => {
+    const parent = temp();
+    const outside = temp();
+    if (!linkFolder(outside, join(parent, 'moe-235b-slurm'))) context.skip();
+    const ask = {
+      plan: request(fixture('moe-235b'), 'lab/moe-235b', 'a'.repeat(40)),
+      target: 'slurm',
+      exportDir: fieldExport(),
+      parentDir: parent,
+    } as const;
+    expect(() => bundleFromRequest(ask, TRAINER)).toThrow(/is a link/);
+    expect(readdirSync(outside)).toEqual([]);
   });
 
   it('refuses a bundle for a model read from a file, and writes nothing', () => {
