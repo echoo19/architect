@@ -56,9 +56,14 @@ export function Organizations({ view }: { view: FieldView }) {
             }
             title={org.name}
             detail={[kindWord(org.synthetic), plural(org.files, 'file')].join(' · ')}
-            end="Sealed"
+            end="Never seen"
           />
         ))}
+        {view.sealed.length > 0 && (
+          <Quiet className="border-t border-line pb-4 pt-3 text-small">
+            Never seen: sealed in the vault, away from teaching, and opened once for the final test.
+          </Quiet>
+        )}
       </Card>
       {open && (
         <Card title={name(open)} flush>

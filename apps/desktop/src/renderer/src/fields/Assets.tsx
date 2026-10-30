@@ -11,7 +11,7 @@ import { count, plural, Quiet, Tile } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
 const WORDING =
-  'Architect develops and evaluates field-specific agent harnesses and exports checker-verified training examples. GPU execution, large-model compatibility and training gains remain unverified.';
+  'Checker-verified training examples from this field. No model has been trained on them here: GPU execution, large models and training gains are unverified.';
 
 function Figure({ children }: { children: ReactNode }) {
   return <span className="font-display text-h2 font-semibold tabular-nums">{children}</span>;
@@ -99,8 +99,8 @@ function AssetsView({ jobId, manifest }: { jobId: string; manifest: FieldExportM
                 <Lock strokeWidth={1.8} aria-hidden />
               </Tile>
             }
-            title="Sealed evaluation"
-            detail={`Final-test tasks and ${plural(counts.sealed_organizations, 'sealed organization')}, by hash only`}
+            title="Never-seen evaluation"
+            detail={`Final-test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
             end={<Figure>{count(counts.locked_test_tasks)}</Figure>}
           />
         </Card>

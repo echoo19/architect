@@ -137,10 +137,8 @@ test('shows each skill at each organization, trained-with, never-seen and real a
 
   const grid = page.getByRole('table', { name: 'Final test by organization' });
   await expect(grid).toBeVisible();
-  const groups = grid
-    .getByRole('columnheader')
-    .filter({ hasText: /^(Trained with|Never seen.*)$/ });
-  await expect(groups).toHaveText(['Trained with', 'Never seen', 'Never seen, real']);
+  const groups = grid.getByRole('columnheader').filter({ hasText: /^(Taught on|Never seen.*)$/ });
+  await expect(groups).toHaveText(['Taught on', 'Never seen', 'Never seen, real']);
   for (const name of [
     'Northside Prep',
     'Lakeview Academy',

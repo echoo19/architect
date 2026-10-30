@@ -2,6 +2,7 @@ import { METHOD_LABELS } from '@architect/shared';
 import { Badge, Button, DataTable } from '@architect/ui';
 import { useGraduates } from '../api/hooks';
 import { shortDate } from '../flow/format';
+import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { bestCandidate, rateOf, type FieldSummary } from './model';
 import { scoreCell } from './parts';
@@ -51,8 +52,8 @@ export function Candidates({ field }: { field: FieldSummary }) {
           },
           {
             key: 'student',
-            header: 'Student',
-            cell: (candidate) => candidate.report.student.label,
+            header: 'Model',
+            cell: (candidate) => shortModelName(candidate.report.student.label),
             sortValue: (candidate) => candidate.report.student.label,
           },
           {
@@ -64,14 +65,14 @@ export function Candidates({ field }: { field: FieldSummary }) {
           },
           {
             key: 'seen',
-            header: 'Seen',
+            header: 'Taught on',
             align: 'end',
             cell: (candidate) => scoreCell(candidate.scores.seen),
             sortValue: (candidate) => rateOf(candidate.scores.seen),
           },
           {
             key: 'unseen',
-            header: 'Unseen',
+            header: 'Never seen',
             align: 'end',
             cell: (candidate) => scoreCell(candidate.scores.unseen),
             sortValue: (candidate) => rateOf(candidate.scores.unseen),

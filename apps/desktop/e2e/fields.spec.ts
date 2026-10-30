@@ -61,7 +61,8 @@ test('lists each field with its organizations, best candidate and last activity'
   await openAt('/fields');
   await expect(page.getByRole('heading', { name: 'Fields', level: 1 })).toBeVisible();
   const table = page.getByRole('table', { name: 'Fields' });
-  await expect(table.getByRole('row')).toHaveCount(6);
+  // Five fields under a header of two rows: the organizations, then the best final test.
+  await expect(table.getByRole('row')).toHaveCount(7);
 
   // Phil: taught on three academies, sealed from two, one of them real; its best candidate's
   // final test on each kind.
@@ -134,7 +135,7 @@ test('lists the organizations taught on with their files, and the sealed ones by
     await expect(orgs.getByRole('button', { name: new RegExp(name) })).toHaveCount(0);
   }
   await expect(orgs).toContainText('Real · 7 files');
-  await expect(orgs.getByText('Sealed')).toHaveCount(2);
+  await expect(orgs.getByText('Never seen', { exact: true })).toHaveCount(2);
 
   const files = card('Northside Prep');
   await expect(files.getByText('attempts.csv')).toBeVisible();
@@ -168,15 +169,14 @@ test("counts the field's assets and exports them to a folder the person picks", 
   await expect(assets.getByText('Verified demonstrations')).toBeVisible();
   await expect(assets).toContainText('41');
   await expect(assets).toContainText('Train tasks at 3 organizations');
-  await expect(assets).toContainText('Final-test tasks and 2 sealed organizations, by hash only');
+  await expect(assets).toContainText(
+    'Final-test tasks and 2 never-seen organizations, by hash only',
+  );
   await expect(card('Left out')).toContainText('the calibration and dev tasks');
   await expect(
-    page.getByText(
-      'GPU execution, large-model compatibility and training gains remain unverified',
-      {
-        exact: false,
-      },
-    ),
+    page.getByText('GPU execution, large models and training gains are unverified', {
+      exact: false,
+    }),
   ).toBeVisible();
   await capture('field-assets-dark.png');
 
