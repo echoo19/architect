@@ -30,15 +30,15 @@ export function Checkbox({
       disabled={disabled}
       {...aria}
       className={cn(
-        'inline-flex size-[18px] shrink-0 items-center justify-center rounded-xs border',
-        'border-line-control bg-well text-on-primary transition-colors duration-150',
-        'hover:border-line-strong data-[state=checked]:border-primary data-[state=checked]:bg-primary',
+        'inline-flex size-5 shrink-0 items-center justify-center rounded-mark',
+        'bg-field text-on-primary shadow-edge-strong transition-colors duration-150',
+        'data-[state=checked]:bg-primary data-[state=checked]:shadow-none',
         'disabled:opacity-40',
         !label && className,
       )}
     >
       <RadixCheckbox.Indicator>
-        <Check size={12} strokeWidth={2.6} aria-hidden />
+        <Check size={13} strokeWidth={2.6} aria-hidden />
       </RadixCheckbox.Indicator>
     </RadixCheckbox.Root>
   );

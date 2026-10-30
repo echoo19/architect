@@ -12,11 +12,11 @@ export interface TableCardProps extends ComponentProps<'table'> {
  */
 export function TableCard({ footer, className, children, ...props }: TableCardProps) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-xl border border-line-card">
+    <div className="min-w-0 overflow-hidden rounded-control shadow-edge">
       <div className="overflow-x-auto">
         <table
           data-variant="card"
-          className={cn('group/table w-full border-collapse text-base tabular-nums', className)}
+          className={cn('group/table w-full border-collapse text-ui tabular-nums', className)}
           {...props}
         >
           {children}

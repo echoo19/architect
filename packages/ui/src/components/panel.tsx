@@ -6,13 +6,13 @@ export interface PanelProps extends ComponentProps<'section'> {
   padded?: boolean;
 }
 
-/** A rounded section on the flow screens, such as "Current round" or "Rounds". */
+/** A card on the flow screens, such as "Current round" or "Rounds". */
 export function Panel({ padded = false, className, children, ...props }: PanelProps) {
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col overflow-hidden rounded-6xl border border-line-card bg-panel',
-        padded && 'gap-[22px] p-7',
+        'flex min-w-0 flex-col overflow-hidden rounded-card bg-card shadow-edge',
+        padded && 'gap-6 p-6',
         className,
       )}
       {...props}
@@ -30,8 +30,8 @@ export interface PanelHeaderProps {
 
 export function PanelHeader({ title, actions, className }: PanelHeaderProps) {
   return (
-    <div className={cn('flex min-h-[60px] items-center justify-between gap-3 px-7', className)}>
-      <h2 className="text-md font-medium">{title}</h2>
+    <div className={cn('flex min-h-16 items-center justify-between gap-3 px-6', className)}>
+      <h2 className="font-display text-h2 font-semibold">{title}</h2>
       {actions}
     </div>
   );
@@ -41,10 +41,7 @@ export function PanelHeader({ title, actions, className }: PanelHeaderProps) {
 export function PanelRow({ className, children, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn(
-        'grid min-h-[54px] items-center gap-3.5 border-t border-line-row px-7',
-        className,
-      )}
+      className={cn('grid min-h-12 items-center gap-3.5 border-t border-line px-6', className)}
       {...props}
     >
       {children}
@@ -52,14 +49,11 @@ export function PanelRow({ className, children, ...props }: ComponentProps<'div'
   );
 }
 
-/** The darker strip along a panel's bottom edge. */
+/** The strip along a panel's bottom edge, set off by a hairline. */
 export function PanelFooter({ className, children, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn(
-        'flex min-h-14 items-center gap-3.5 border-t border-line-row-strong bg-aside px-7',
-        className,
-      )}
+      className={cn('flex min-h-14 items-center gap-3.5 border-t border-line px-6', className)}
       {...props}
     >
       {children}
@@ -70,12 +64,12 @@ export function PanelFooter({ className, children, ...props }: ComponentProps<'d
 export type HeadingSize = 'hero' | 'display-lg' | 'display' | 'display-sm' | 'title' | 'section';
 
 const headingSize: Record<HeadingSize, string> = {
-  hero: 'text-hero-lg tracking-tightest',
-  'display-lg': 'text-display-lg tracking-tightest',
-  display: 'text-display tracking-tighter',
-  'display-sm': 'text-display-sm tracking-tighter',
-  title: 'text-xl tracking-tight',
-  section: 'text-md',
+  hero: 'text-hero',
+  'display-lg': 'text-title',
+  display: 'text-title',
+  'display-sm': 'text-h1',
+  title: 'text-h2',
+  section: 'text-body',
 };
 
 export interface HeadingProps extends ComponentProps<'h1'> {
@@ -85,6 +79,9 @@ export interface HeadingProps extends ComponentProps<'h1'> {
 
 export function Heading({ as: Tag = 'h2', size = 'section', className, ...props }: HeadingProps) {
   return (
-    <Tag className={cn('m-0 font-medium text-balance', headingSize[size], className)} {...props} />
+    <Tag
+      className={cn('m-0 font-display font-semibold text-balance', headingSize[size], className)}
+      {...props}
+    />
   );
 }

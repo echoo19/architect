@@ -1,6 +1,8 @@
+import { motion } from 'motion/react';
 import { Lock } from 'lucide-react';
 import { Switch as RadixSwitch } from 'radix-ui';
 import { cn } from '../lib/cn';
+import { springs } from '../motion/springs';
 
 export interface SwitchProps {
   checked: boolean;
@@ -15,6 +17,9 @@ export interface SwitchProps {
   id?: string;
   className?: string;
 }
+
+/** How far the knob travels: the track's width less the knob and the gap on both sides. */
+const KNOB_TRAVEL = 18;
 
 export function Switch({
   checked,
@@ -32,22 +37,26 @@ export function Switch({
       disabled={disabled}
       {...aria}
       className={cn(
-        'relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full bg-switch-off',
+        'relative inline-flex h-6 w-[42px] shrink-0 items-center rounded-full bg-line-strong',
         'transition-colors duration-150 data-[state=checked]:bg-primary',
         'disabled:cursor-default disabled:opacity-40 disabled:data-[state=checked]:opacity-100',
         className,
       )}
     >
-      <RadixSwitch.Thumb
-        className={cn(
-          'flex size-4 translate-x-[3px] items-center justify-center rounded-full bg-switch-knob-off',
-          'transition-[translate,background-color] duration-[180ms] ease-out-soft',
-          'data-[state=checked]:translate-x-[19px] data-[state=checked]:bg-on-primary',
-        )}
-      >
-        {checked && disabled && (
-          <Lock size={9} strokeWidth={2.6} aria-hidden className="text-primary" />
-        )}
+      <RadixSwitch.Thumb asChild>
+        <motion.span
+          initial={false}
+          animate={{ x: checked ? KNOB_TRAVEL : 0 }}
+          transition={springs.snappy}
+          className={cn(
+            'ml-[3px] flex size-[18px] items-center justify-center rounded-full bg-fg',
+            'transition-colors duration-150 data-[state=checked]:bg-on-primary',
+          )}
+        >
+          {checked && disabled && (
+            <Lock size={10} strokeWidth={2.6} aria-hidden className="text-primary" />
+          )}
+        </motion.span>
       </RadixSwitch.Thumb>
     </RadixSwitch.Root>
   );

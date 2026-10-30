@@ -1,12 +1,14 @@
 import type { ComponentProps, ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/cn';
+import { springs } from '../motion/springs';
 
 export type StatSize = 'md' | 'lg' | 'xl';
 
 const statValue: Record<StatSize, string> = {
-  md: 'text-stat tracking-tighter',
-  lg: 'text-display-lg tracking-tightest',
-  xl: 'text-hero tracking-tightest',
+  md: 'text-h1',
+  lg: 'text-title',
+  xl: 'text-hero',
 };
 
 export interface StatProps {
@@ -21,7 +23,7 @@ export interface StatProps {
   className?: string;
 }
 
-const noteTones = { muted: 'text-fg-muted', mentor: 'text-mentor', student: 'text-student' };
+const noteTones = { muted: '', mentor: 'text-mentor', student: 'text-student' };
 
 /** A big number with a label: "91% Task success". */
 export function Stat({
@@ -35,12 +37,14 @@ export function Stat({
 }: StatProps) {
   return (
     <div className={cn('flex flex-col', size === 'md' ? 'gap-1.5' : 'gap-1', className)}>
-      <span className={cn('font-medium tabular-nums', statValue[size])}>{value}</span>
-      {label && <span className="text-fg-secondary">{label}</span>}
+      <span className={cn('font-display font-semibold tabular-nums', statValue[size])}>
+        {value}
+      </span>
+      {label && <span>{label}</span>}
       {note && (
         <span
           className={cn(
-            'text-sm',
+            'text-small',
             noteFont === 'code' ? 'font-mono' : 'text-pretty',
             noteTones[noteTone],
           )}
@@ -88,22 +92,21 @@ export function Meter({
       aria-valuenow={Math.round(fill * 100)}
       aria-valuetext={valueText}
       className={cn(
-        'relative w-full rounded-full bg-line-card',
+        'relative w-full rounded-full bg-line-strong',
         thickness === 3 ? 'h-[3px]' : 'h-1',
         className,
       )}
     >
-      <div
-        className={cn(
-          'h-full rounded-full transition-[width] duration-200',
-          tone === 'fg' ? 'bg-fg' : 'bg-student',
-        )}
-        style={{ width: `${fill * 100}%` }}
+      <motion.div
+        initial={false}
+        animate={{ width: `${fill * 100}%` }}
+        transition={springs.smooth}
+        className={cn('h-full rounded-full', tone === 'fg' ? 'bg-fg' : 'bg-student')}
       />
       {marker !== undefined && (
         <div
           aria-hidden
-          className="absolute -top-1 h-3 w-0.5 rounded-sm bg-mentor"
+          className="absolute -top-1 h-3 w-0.5 rounded-mark bg-mentor"
           style={{ left: `clamp(0px, calc(${clamp(marker) * 100}% - 1px), calc(100% - 2px))` }}
         />
       )}
@@ -122,7 +125,7 @@ export function Table({ variant = 'card', className, children, ...props }: Table
       data-variant={variant}
       className={cn(
         'group/table w-full border-collapse tabular-nums',
-        variant === 'card' ? 'text-base' : 'font-mono text-sm',
+        variant === 'card' ? 'text-ui' : 'font-mono text-small',
         className,
       )}
       {...props}
@@ -131,7 +134,7 @@ export function Table({ variant = 'card', className, children, ...props }: Table
     </table>
   );
   if (variant === 'plain') return table;
-  return <div className="overflow-hidden rounded-xl border border-line-card">{table}</div>;
+  return <div className="overflow-hidden rounded-control shadow-edge">{table}</div>;
 }
 
 export function TableHeader(props: ComponentProps<'thead'>) {
@@ -143,24 +146,16 @@ export function TableBody(props: ComponentProps<'tbody'>) {
 }
 
 export function TableRow({ className, ...props }: ComponentProps<'tr'>) {
-  return (
-    <tr
-      className={cn(
-        '[tbody_&]:border-t group-data-[variant=card]/table:border-line-card group-data-[variant=plain]/table:border-line-row-strong',
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <tr className={cn('[tbody_&]:border-t [tbody_&]:border-line', className)} {...props} />;
 }
 
 export function TableHead({ className, ...props }: ComponentProps<'th'>) {
   return (
     <th
       className={cn(
-        'text-left font-normal',
-        'group-data-[variant=card]/table:px-4 group-data-[variant=card]/table:py-2.5 group-data-[variant=card]/table:text-fg-secondary',
-        'group-data-[variant=plain]/table:py-2 group-data-[variant=plain]/table:pr-3 group-data-[variant=plain]/table:text-fg-muted',
+        'text-left font-medium',
+        'group-data-[variant=card]/table:px-4 group-data-[variant=card]/table:py-2.5',
+        'group-data-[variant=plain]/table:py-2 group-data-[variant=plain]/table:pr-3',
         className,
       )}
       {...props}
@@ -168,12 +163,12 @@ export function TableHead({ className, ...props }: ComponentProps<'th'>) {
   );
 }
 
-/** The first cell of a row reads as the row's name; the rest are secondary. */
+/** The first cell of a row reads as the row's name, set a little heavier than the rest. */
 export function TableCell({ className, ...props }: ComponentProps<'td'>) {
   return (
     <td
       className={cn(
-        'text-fg-secondary first:text-fg',
+        'first:font-medium',
         'group-data-[variant=card]/table:px-4 group-data-[variant=card]/table:py-2.5',
         'group-data-[variant=plain]/table:py-[9px] group-data-[variant=plain]/table:pr-3',
         className,

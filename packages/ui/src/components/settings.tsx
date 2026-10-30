@@ -1,7 +1,9 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useId, type ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { CircleAlert, X } from 'lucide-react';
 import { Dialog as RadixDialog, Tabs } from 'radix-ui';
 import { cn } from '../lib/cn';
+import { springs } from '../motion/springs';
 import { Dialog, DialogContent } from './dialog';
 import { IconButton } from './icon-button';
 
@@ -41,6 +43,8 @@ export function SettingsDialog<T extends string>({
   children,
 }: SettingsDialogProps<T>) {
   const active = tabs.find((t) => t.value === tab) ?? tabs[0];
+  // The selected tab's fill travels from one tab to the next.
+  const indicator = useId();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent title={title} hideTitle size="lg">
@@ -53,8 +57,8 @@ export function SettingsDialog<T extends string>({
           }}
           className="flex h-full flex-wrap"
         >
-          <div className="flex max-h-full flex-[1_1_200px] flex-col gap-0.5 overflow-y-auto border-r border-line-card bg-modal-rail px-2.5 py-[18px]">
-            <div className="mb-2.5 flex h-9 items-center gap-2.5 px-2.5 text-md font-medium">
+          <div className="flex max-h-full flex-[1_1_200px] flex-col gap-0.5 overflow-y-auto border-r border-line bg-card px-3 py-5">
+            <div className="mb-2.5 flex h-10 items-center gap-2.5 px-2.5 font-display text-body font-semibold">
               {icon}
               <span className="truncate">{title}</span>
             </div>
@@ -63,27 +67,31 @@ export function SettingsDialog<T extends string>({
                 <Fragment key={t.value}>
                   {t.group && t.group !== tabs[index - 1]?.group && (
                     // The tabs keep their own names for assistive tech; the heading groups them by eye.
-                    <span aria-hidden className="px-2.5 pb-1 pt-4 text-sm text-fg-muted">
+                    <span aria-hidden className="px-2.5 pb-1 pt-4 text-small font-medium">
                       {t.group}
                     </span>
                   )}
                   <Tabs.Trigger
                     value={t.value}
-                    className={cn(
-                      'flex h-9 items-center rounded-[9px] px-2.5 text-left text-fg-secondary',
-                      'transition-colors duration-150 hover:text-fg',
-                      'data-[state=active]:bg-tab-active data-[state=active]:text-fg',
-                    )}
+                    className="relative flex h-10 items-center rounded-control px-2.5 text-left text-ui transition-colors duration-150 hover:bg-hover data-[state=active]:font-medium"
                   >
-                    {t.label}
+                    {t.value === tab && (
+                      <motion.span
+                        layoutId={indicator}
+                        transition={springs.snappy}
+                        aria-hidden
+                        className="absolute inset-0 rounded-control bg-selected"
+                      />
+                    )}
+                    <span className="relative">{t.label}</span>
                   </Tabs.Trigger>
                 </Fragment>
               ))}
             </Tabs.List>
           </div>
           <div className="flex max-h-full min-w-0 flex-[999_1_420px] flex-col">
-            <div className="flex min-h-16 items-center justify-between gap-3 py-2.5 pl-7 pr-3">
-              <h2 className="text-xl font-medium tracking-tight">{active?.label}</h2>
+            <div className="flex min-h-16 items-center justify-between gap-3 py-3 pl-6 pr-3">
+              <h2 className="font-display text-h2 font-semibold">{active?.label}</h2>
               <RadixDialog.Close asChild>
                 <IconButton label="Close">
                   <X size={16} strokeWidth={1.8} aria-hidden />
@@ -92,16 +100,12 @@ export function SettingsDialog<T extends string>({
             </div>
             <Tabs.Content
               value={tab}
-              className={cn(
-                'min-h-0 flex-1 overflow-y-auto px-7 pb-6 focus-visible:outline-none',
-                // The last lines fade out at the edge, so no row is cut off mid-text.
-                '[mask-image:linear-gradient(to_bottom,black_calc(100%-24px),transparent)]',
-              )}
+              className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 focus-visible:outline-none"
             >
               {children}
             </Tabs.Content>
             {footer && (
-              <div className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 border-t border-line-card py-3 pl-7 pr-4">
+              <div className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 border-t border-line py-3 pl-6 pr-4">
                 {footer}
               </div>
             )}
@@ -143,23 +147,23 @@ export function SettingsRow({
     <div
       className={cn(
         'flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 border-t border-line',
-        density === 'compact' ? 'min-h-11 py-2' : 'min-h-[60px] py-2.5',
+        density === 'compact' ? 'min-h-10 py-2' : 'min-h-14 py-3',
       )}
     >
       {icon && <div className="-mr-2 flex shrink-0 items-center">{icon}</div>}
       <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
-        <span className={tone === 'danger' ? 'text-danger' : 'text-fg'}>{label}</span>
+        <span className={cn('text-ui', tone === 'danger' && 'text-danger')}>{label}</span>
         {error ? (
-          <span role="alert" className="flex items-start gap-1.5 text-sm text-fg-muted">
-            <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger" aria-hidden />
+          <span role="alert" className="flex items-start gap-1.5 text-small">
+            <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
             {error}
           </span>
         ) : (
           meta && (
             <span
               className={cn(
-                'text-fg-muted',
-                metaFont === 'code' ? 'break-all font-mono text-xs' : 'text-sm text-pretty',
+                'text-small',
+                metaFont === 'code' ? 'break-all font-mono' : 'text-pretty',
               )}
             >
               {meta}
@@ -174,7 +178,7 @@ export function SettingsRow({
 
 /** A read-only value on the right of a settings row. */
 export function SettingsValue({ children }: { children: ReactNode }) {
-  return <span className="text-fg-secondary">{children}</span>;
+  return <span className="text-ui">{children}</span>;
 }
 
 export interface SettingsSectionProps {
@@ -186,12 +190,12 @@ export interface SettingsSectionProps {
   className?: string;
 }
 
-/** Rows grouped under a quiet title, for a tab that holds more than one list. */
+/** Rows grouped under a title, for a tab that holds more than one list. */
 export function SettingsSection({ title, actions, children, className }: SettingsSectionProps) {
   return (
     <section aria-label={title} className={cn('flex flex-col pt-6 first:pt-1', className)}>
       <div className="flex min-h-8 items-center justify-between gap-3 pb-2">
-        <h3 className="m-0 text-sm font-normal text-fg-muted">{title}</h3>
+        <h3 className="m-0 text-small font-medium">{title}</h3>
         {actions}
       </div>
       {children}

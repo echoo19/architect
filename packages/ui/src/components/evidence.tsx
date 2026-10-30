@@ -1,6 +1,8 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { Eye, EyeOff, Lock, MonitorCheck, type LucideIcon } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { springs } from '../motion/springs';
 
 /**
  * The four kinds of result Architect keeps apart wherever they show: practice on training tasks
@@ -11,10 +13,10 @@ import { cn } from '../lib/cn';
 export type EvidenceKind = 'practice' | 'check' | 'final' | 'install';
 
 const EVIDENCE: Record<EvidenceKind, { label: string; icon: LucideIcon; tone: string }> = {
-  practice: { label: 'Practice tasks', icon: Eye, tone: 'text-fg-muted' },
-  check: { label: 'Check tasks', icon: EyeOff, tone: 'text-fg-secondary' },
+  practice: { label: 'Practice tasks', icon: Eye, tone: '' },
+  check: { label: 'Check tasks', icon: EyeOff, tone: '' },
   final: { label: 'Final test', icon: Lock, tone: 'text-student' },
-  install: { label: 'Works on this computer', icon: MonitorCheck, tone: 'text-fg-muted' },
+  install: { label: 'Works on this computer', icon: MonitorCheck, tone: '' },
 };
 
 /** A kind's own label, for screens that name it in a sentence or a heading. */
@@ -37,7 +39,7 @@ export function EvidenceMark({ kind, children, iconOnly = false, className }: Ev
   if (iconOnly) {
     return (
       <Icon
-        size={13}
+        size={14}
         strokeWidth={1.8}
         role="img"
         aria-label={typeof children === 'string' ? children : label}
@@ -47,26 +49,24 @@ export function EvidenceMark({ kind, children, iconOnly = false, className }: Ev
   }
   return (
     <span
-      className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-sm', tone, className)}
+      className={cn(
+        'inline-flex items-center gap-1.5 whitespace-nowrap text-small',
+        tone,
+        className,
+      )}
     >
-      <Icon size={13} strokeWidth={1.8} aria-hidden className="shrink-0" />
+      <Icon size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />
       {children ?? label}
     </span>
   );
 }
 
-/** Practice is hatched, a check is outlined, the final test is solid, an install check is grey. */
-const FILL: Record<EvidenceKind, { className: string; style?: CSSProperties }> = {
-  practice: {
-    className: '',
-    style: {
-      backgroundImage:
-        'repeating-linear-gradient(-45deg, var(--ui-fg-faint) 0 1.5px, transparent 1.5px 4px)',
-    },
-  },
-  check: { className: 'bg-student-dim shadow-[inset_0_0_0_1px_var(--ui-student)]' },
-  final: { className: 'bg-student' },
-  install: { className: 'bg-fg-faint' },
+/** Practice is a light fill, a check is outlined, the final test is solid, an install check is faint. */
+const FILL: Record<EvidenceKind, string> = {
+  practice: 'bg-fg/60',
+  check: 'bg-student-soft inset-ring-1 inset-ring-student',
+  final: 'bg-student',
+  install: 'bg-fg/30',
 };
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
@@ -96,7 +96,6 @@ export function EvidenceMeter({
   marker,
   className,
 }: EvidenceMeterProps) {
-  const fill = FILL[kind];
   return (
     <div
       role="meter"
@@ -106,11 +105,13 @@ export function EvidenceMeter({
       aria-valuenow={Math.round(clamp(value) * 100)}
       aria-valuetext={valueText}
       data-kind={kind}
-      className={cn('relative h-1.5 w-full rounded-full bg-line-card', className)}
+      className={cn('relative h-1.5 w-full rounded-full bg-line-strong', className)}
     >
-      <div
-        className={cn('h-full rounded-full', fill.className)}
-        style={{ ...fill.style, width: `${clamp(value) * 100}%` }}
+      <motion.div
+        initial={false}
+        animate={{ width: `${clamp(value) * 100}%` }}
+        transition={springs.smooth}
+        className={cn('h-full rounded-full', FILL[kind])}
       />
       {marker !== undefined && (
         <div

@@ -43,12 +43,12 @@ export function Slider({
         className,
       )}
     >
-      <RadixSlider.Track className="relative h-[3px] grow overflow-hidden rounded-full bg-line-card">
+      <RadixSlider.Track className="relative h-1 grow overflow-hidden rounded-full bg-line-strong">
         <RadixSlider.Range className="absolute h-full rounded-full bg-fg" />
       </RadixSlider.Track>
       <RadixSlider.Thumb
         {...aria}
-        className="block size-4 rounded-full bg-fg shadow-[0_0_0_3px_var(--color-ground)] transition-transform duration-150 hover:scale-110"
+        className="block size-4 rounded-full bg-fg transition-transform duration-150 hover:scale-110"
       />
     </RadixSlider.Root>
   );

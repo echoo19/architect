@@ -62,31 +62,31 @@ export function RadioCard({
       value={value}
       disabled={disabled || unavailable}
       className={cn(
-        'group flex flex-col items-start gap-1.5 rounded-2xl border border-line-control bg-card',
-        'px-[22px] py-5 text-left transition-colors duration-150 hover:border-fg-ghost',
-        'data-[state=checked]:border-fg data-[state=checked]:bg-field',
+        'group flex flex-col items-start gap-1.5 rounded-card bg-card shadow-edge-strong',
+        'px-6 py-5 text-left transition-[background-color,box-shadow] duration-150 hover:bg-hover',
+        'data-[state=checked]:inset-ring-1 data-[state=checked]:inset-ring-fg',
         'disabled:pointer-events-none',
-        unavailable ? 'disabled:border-line-card' : 'disabled:opacity-40',
+        !unavailable && 'disabled:opacity-40',
         className,
       )}
     >
       <span
         className={cn(
-          'flex w-full items-center justify-between gap-3 text-lg font-medium',
-          unavailable && 'group-data-[state=unchecked]:text-fg-muted',
+          'flex w-full items-center justify-between gap-3 text-body font-medium',
+          unavailable && 'group-data-[state=unchecked]:text-fg-dim',
         )}
       >
         {title}
         <span
           aria-hidden
           className={cn(
-            'size-[18px] shrink-0 rounded-full border-[1.5px] border-fg-ghost transition-[border] duration-150',
-            'group-data-[state=checked]:border-[5px] group-data-[state=checked]:border-fg',
+            'size-5 shrink-0 rounded-full border-[1.5px] border-line-strong transition-[border] duration-150',
+            'group-data-[state=checked]:border-[6px] group-data-[state=checked]:border-fg',
             unavailable && 'group-data-[state=unchecked]:invisible',
           )}
         />
       </span>
-      {children && <span className="flex flex-col gap-1.5 text-fg-secondary">{children}</span>}
+      {children && <span className="flex flex-col gap-1.5 text-ui">{children}</span>}
     </RadioGroup.Item>
   );
 }

@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { CircleAlert, X } from 'lucide-react';
 import { Toast as RadixToast } from 'radix-ui';
-import { cn } from '../lib/cn';
+import { FLOAT_SCALE, springs } from '../motion/springs';
 import { Button } from './button';
 import { IconButton } from './icon-button';
 
@@ -14,11 +15,7 @@ export interface ToastOptions {
 
 interface ToastEntry extends ToastOptions {
   id: number;
-  open: boolean;
 }
-
-/** Exit animation length; the entry is dropped once it has played. */
-const EXIT_MS = 200;
 
 let entries: ToastEntry[] = [];
 let nextId = 1;
@@ -36,56 +33,61 @@ function subscribe(listener: () => void) {
 
 /** Shows a toast from anywhere. Needs a `<Toaster />` mounted once. */
 export function toast(options: ToastOptions): void {
-  publish([...entries, { ...options, id: nextId++, open: true }]);
+  publish([...entries, { ...options, id: nextId++ }]);
 }
 
 function dismiss(id: number) {
-  publish(entries.map((entry) => (entry.id === id ? { ...entry, open: false } : entry)));
-  setTimeout(() => publish(entries.filter((entry) => entry.id !== id)), EXIT_MS);
+  publish(entries.filter((entry) => entry.id !== id));
 }
 
 export function Toaster() {
   const list = useSyncExternalStore(subscribe, () => entries);
   return (
     <RadixToast.Provider swipeDirection="right" duration={6000}>
-      {list.map((entry) => (
-        <RadixToast.Root
-          key={entry.id}
-          open={entry.open}
-          onOpenChange={(open) => {
-            if (!open) dismiss(entry.id);
-          }}
-          className={cn(
-            'flex items-start gap-3 rounded-2xl border border-line-control bg-card-raised py-3.5 pl-4 pr-2.5',
-            'shadow-composer-sm data-[state=closed]:animate-fade-out data-[state=open]:animate-rise',
-            'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]',
-          )}
-        >
-          {entry.tone === 'danger' && (
-            <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <RadixToast.Title className="font-medium">{entry.title}</RadixToast.Title>
-            {entry.description && (
-              <RadixToast.Description className="text-sm text-fg-secondary text-pretty">
-                {entry.description}
-              </RadixToast.Description>
-            )}
-          </div>
-          {entry.action && (
-            <RadixToast.Action altText={entry.action.label} asChild>
-              <Button size="sm" onClick={entry.action.onClick}>
-                {entry.action.label}
-              </Button>
-            </RadixToast.Action>
-          )}
-          <RadixToast.Close asChild>
-            <IconButton label="Dismiss" size="xs" className="-my-1">
-              <X size={14} strokeWidth={1.8} aria-hidden />
-            </IconButton>
-          </RadixToast.Close>
-        </RadixToast.Root>
-      ))}
+      <AnimatePresence>
+        {list.map((entry) => (
+          <RadixToast.Root
+            key={entry.id}
+            forceMount
+            asChild
+            onOpenChange={(open) => {
+              if (!open) dismiss(entry.id);
+            }}
+          >
+            <motion.li
+              layout
+              initial={{ opacity: 0, scale: FLOAT_SCALE, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: springs.smooth }}
+              exit={{ opacity: 0, scale: FLOAT_SCALE, transition: springs.exit }}
+              className="flex items-start gap-3 rounded-card bg-raised py-4 pl-5 pr-3 shadow-float data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
+            >
+              {entry.tone === 'danger' && (
+                <CircleAlert size={16} className="mt-1 shrink-0 text-danger" aria-hidden />
+              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <RadixToast.Title className="text-ui font-medium">{entry.title}</RadixToast.Title>
+                {entry.description && (
+                  <RadixToast.Description className="text-small text-pretty">
+                    {entry.description}
+                  </RadixToast.Description>
+                )}
+              </div>
+              {entry.action && (
+                <RadixToast.Action altText={entry.action.label} asChild>
+                  <Button size="sm" onClick={entry.action.onClick}>
+                    {entry.action.label}
+                  </Button>
+                </RadixToast.Action>
+              )}
+              <RadixToast.Close asChild>
+                <IconButton label="Dismiss" size="xs" className="-my-0.5">
+                  <X size={14} strokeWidth={1.8} aria-hidden />
+                </IconButton>
+              </RadixToast.Close>
+            </motion.li>
+          </RadixToast.Root>
+        ))}
+      </AnimatePresence>
       <RadixToast.Viewport className="fixed bottom-4 right-4 z-[60] flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none" />
     </RadixToast.Provider>
   );

@@ -41,8 +41,8 @@ export function ReplyComposer({
     <form
       onSubmit={submit}
       className={cn(
-        'flex w-full max-w-[720px] items-center gap-2 rounded-3xl border border-line-control bg-field p-2',
-        'transition-colors duration-150 focus-within:border-fg-faint',
+        'flex w-full max-w-[720px] items-center gap-2 rounded-card bg-raised p-2 shadow-edge-strong',
+        'transition-shadow duration-150 focus-within:inset-ring-1 focus-within:inset-ring-ring',
         className,
       )}
     >
@@ -59,7 +59,7 @@ export function ReplyComposer({
         disabled={disabled}
         autoComplete="off"
         className={cn(
-          'h-10 min-w-0 flex-1 border-0 bg-transparent text-md text-fg focus-visible:outline-none',
+          'h-10 min-w-0 flex-1 border-0 bg-transparent text-body text-fg focus-visible:outline-none',
           !leading && 'pl-2.5',
           'disabled:opacity-60',
         )}

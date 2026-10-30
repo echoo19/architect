@@ -1,4 +1,6 @@
+import { motion } from 'motion/react';
 import { cn } from '../lib/cn';
+import { springs } from '../motion/springs';
 
 export interface ProgressProps {
   /** Done so far, from 0 to 1. Leave it out while the total isn't known yet. */
@@ -21,14 +23,16 @@ export function Progress({ value, label, valueText, className }: ProgressProps) 
       aria-valuemax={100}
       aria-valuenow={fill === undefined ? undefined : Math.round(fill * 100)}
       aria-valuetext={valueText}
-      className={cn('h-1 w-full overflow-hidden rounded-full bg-line-card', className)}
+      className={cn('h-1 w-full overflow-hidden rounded-full bg-line-strong', className)}
     >
       {fill === undefined ? (
-        <div className="h-full w-full animate-skeleton rounded-full bg-student-dim" />
+        <div className="h-full w-full animate-skeleton rounded-full bg-student-soft" />
       ) : (
-        <div
-          className="h-full rounded-full bg-student transition-[width] duration-200"
-          style={{ width: `${fill * 100}%` }}
+        <motion.div
+          initial={false}
+          animate={{ width: `${fill * 100}%` }}
+          transition={springs.smooth}
+          className="h-full rounded-full bg-student"
         />
       )}
     </div>

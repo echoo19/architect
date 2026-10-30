@@ -43,11 +43,9 @@ export function ToggleChip({
       disabled={disabled}
       onClick={() => onPressedChange(!pressed)}
       className={cn(
-        'inline-flex h-8 max-w-full items-center gap-2 rounded-md border px-3 text-sm',
+        'inline-flex h-8 max-w-full items-center gap-2 rounded-full px-3.5 text-small shadow-edge-strong',
         'transition-colors duration-150 disabled:opacity-40 [&_svg]:shrink-0',
-        pressed
-          ? 'border-fg-secondary bg-selected text-fg'
-          : 'border-line-control text-fg-secondary hover:border-line-strong hover:text-fg',
+        pressed ? 'bg-selected font-medium' : 'hover:bg-hover',
         className,
       )}
     >
@@ -66,9 +64,8 @@ export function FileChip({ name, icon, kind, onRemove, className }: FileChipProp
   return (
     <span
       className={cn(
-        'inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-line-control bg-card',
-        'pl-3 text-sm text-fg-secondary',
-        onRemove ? 'pr-1' : 'pr-3',
+        'inline-flex h-8 max-w-full items-center gap-2 rounded-full bg-hover pl-3.5 text-small',
+        onRemove ? 'pr-1' : 'pr-3.5',
         className,
       )}
     >
@@ -84,7 +81,7 @@ export function FileChip({ name, icon, kind, onRemove, className }: FileChipProp
           type="button"
           aria-label={`Remove ${name}`}
           onClick={onRemove}
-          className="inline-flex size-6 shrink-0 items-center justify-center rounded-xs text-fg-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+          className="inline-flex size-6 shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:bg-selected"
         >
           <X size={13} strokeWidth={1.8} aria-hidden />
         </button>

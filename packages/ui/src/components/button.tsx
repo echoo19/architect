@@ -1,6 +1,8 @@
 import type { ComponentProps } from 'react';
+import { motion } from 'motion/react';
 import { Slot } from 'radix-ui';
 import { cn } from '../lib/cn';
+import { PRESS_SCALE, springs } from '../motion/springs';
 import { Spinner } from './spinner';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -8,32 +10,27 @@ export type ButtonSize = 'lg' | 'md' | 'sm' | 'xs';
 
 const base =
   'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap ' +
-  'transition-[background-color,border-color,color,opacity] duration-150 ' +
+  'rounded-control font-medium transition-[background-color,box-shadow,color,opacity] duration-150 ' +
   'disabled:pointer-events-none disabled:opacity-40 [&_svg]:shrink-0';
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-primary font-medium text-on-primary hover:bg-primary-hover',
-  secondary: 'border border-line-control text-fg hover:bg-hover',
-  ghost: 'text-fg-secondary hover:bg-hover hover:text-fg',
-  danger: 'border border-danger-line text-danger hover:bg-danger-tint',
+  primary: 'bg-primary text-on-primary hover:bg-primary/90',
+  secondary: 'text-fg shadow-edge-strong hover:bg-hover',
+  ghost: 'text-fg hover:bg-hover',
+  danger: 'text-danger inset-ring-1 inset-ring-danger/40 hover:bg-danger-soft',
 };
 
 const sizes: Record<ButtonSize, string> = {
-  lg: 'h-11 rounded-lg px-[18px] text-base',
-  md: 'h-10 rounded-md px-3.5 text-base',
-  sm: 'h-9 rounded-md px-3 text-sm',
-  xs: 'h-[34px] rounded-md px-3.5 text-sm',
+  lg: 'h-11 px-5 text-ui',
+  md: 'h-10 px-4 text-ui',
+  sm: 'h-9 px-3.5 text-small',
+  xs: 'h-8 px-3 text-small',
 };
 
-/** Primary buttons sit a little wider than outlined ones, as in the design. */
-const primaryPadding: Record<ButtonSize, string> = {
-  lg: 'px-5',
-  md: 'px-4',
-  sm: 'px-3.5',
-  xs: 'px-3.5',
-};
+/** The events React and Motion both name, with different arguments: Motion's own are not used. */
+type Conflicting = 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart';
 
-export interface ButtonProps extends ComponentProps<'button'> {
+export interface ButtonProps extends Omit<ComponentProps<'button'>, Conflicting> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   /** Render the child element (for example a link) with button styles. */
@@ -41,6 +38,9 @@ export interface ButtonProps extends ComponentProps<'button'> {
   /** Shows a spinner in place of the leading icon and disables the button. */
   loading?: boolean;
 }
+
+const press = { whileTap: { scale: PRESS_SCALE }, transition: springs.snappy } as const;
+const MotionSlot = motion.create(Slot.Root);
 
 export function Button({
   variant = 'secondary',
@@ -53,30 +53,25 @@ export function Button({
   type,
   ...props
 }: ButtonProps) {
-  const classes = cn(
-    base,
-    sizes[size],
-    variants[variant],
-    variant === 'primary' && primaryPadding[size],
-    className,
-  );
+  const classes = cn(base, sizes[size], variants[variant], className);
   if (asChild) {
     return (
-      <Slot.Root className={classes} {...props}>
+      <MotionSlot className={classes} {...press} {...props}>
         {children}
-      </Slot.Root>
+      </MotionSlot>
     );
   }
   return (
-    <button
+    <motion.button
       type={type ?? 'button'}
       className={classes}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      {...press}
       {...props}
     >
       {loading && <Spinner size={14} />}
       {children}
-    </button>
+    </motion.button>
   );
 }
