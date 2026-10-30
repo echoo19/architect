@@ -1,8 +1,9 @@
-import type { PublishProgress, RunEvent } from '@architect/shared';
+import type { ExperimentEvent, PublishProgress, RunEvent } from '@architect/shared';
 import type { EnginePort } from './port';
 import {
   ENGINE_ROUTES,
   EventMessageSchema,
+  ExperimentEventMessageSchema,
   fromErrorPayload,
   PublishProgressMessageSchema,
   ResponseMessageSchema,
@@ -34,6 +35,7 @@ export function connectEngine(
   const pending = new Map<number, Pending>();
   const listeners = new Set<(event: RunEvent) => void>();
   const publishListeners = new Set<(progress: PublishProgress) => void>();
+  const experimentListeners = new Set<(event: ExperimentEvent) => void>();
   let nextId = 1;
   let closed = false;
 
@@ -44,6 +46,11 @@ export function connectEngine(
       for (const listener of listeners) listener(event.data.event);
       return;
     }
+    const experiment = ExperimentEventMessageSchema.safeParse(message);
+    if (experiment.success) {
+      for (const listener of experimentListeners) listener(experiment.data.event);
+      return;
+    }
     const progress = PublishProgressMessageSchema.safeParse(message);
     if (progress.success) {
       for (const listener of publishListeners) listener(progress.data.progress);
@@ -52,7 +59,9 @@ export function connectEngine(
     const response = ResponseMessageSchema.safeParse(message);
     if (!response.success) {
       onError(
-        new Error(`The engine sent a message that isn't a response, a run event or progress.`),
+        new Error(
+          "The engine sent a message that isn't a response, a run or experiment event, or progress.",
+        ),
       );
       return;
     }
@@ -141,6 +150,24 @@ export function connectEngine(
       shareCorrections: (graduateId, allowed) =>
         request('teach.shareCorrections', [graduateId, allowed]),
     },
+    experiments: {
+      plan: (input) => request('experiments.plan', [input]),
+      revise: (experimentId, input) => request('experiments.revise', [experimentId, input]),
+      calibrate: (experimentId) => request('experiments.calibrate', [experimentId]),
+      preregister: (experimentId) => request('experiments.preregister', [experimentId]),
+      start: (experimentId, options) => request('experiments.start', [experimentId, options]),
+      pause: (experimentId) => request('experiments.pause', [experimentId]),
+      resume: (experimentId, options) => request('experiments.resume', [experimentId, options]),
+      stop: (experimentId) => request('experiments.stop', [experimentId]),
+      list: () => request('experiments.list', []),
+      get: (experimentId) => request('experiments.get', [experimentId]),
+      onEvent(listener) {
+        experimentListeners.add(listener);
+        return () => {
+          experimentListeners.delete(listener);
+        };
+      },
+    },
     reports: {
       get: (runId, target) => request('reports.get', [runId, target ?? null]),
       list: (runId) => request('reports.list', [runId]),
@@ -204,6 +231,7 @@ export function connectEngine(
       pending.clear();
       listeners.clear();
       publishListeners.clear();
+      experimentListeners.clear();
     },
   };
 }

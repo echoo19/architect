@@ -10,6 +10,17 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Next**
 - The Scale page (`scale/ui`) on top of `@architect/engine/training-plan`. A real export from `scale/export` should be tried against `--export` once that lane lands (the bundle reads only `MANIFEST.json` and `sft/*.jsonl`).
 
+## 2026-10-30 (Fri, night), platform lane "Experiments engine" (branch `platform/experiments-api`)
+
+**Where things stand**
+- The app can plan, calibrate, preregister, start, pause, resume, stop, list and read experiments through the engine host (`experiments.*`, decision 074). Each one runs the existing comparisons runner on a folder of its own under `<data>/experiments/<id>/`, so its caps, study step and release barrier are the runner's. The runner gained only an abort signal and a live view of its records.
+- Results come from the runner's report; before the release `get` shows no locked result and no sentence naming a sealed organization. Events reach the renderer as `experiments:onEvent`.
+- The stand-in for screens is `apps/desktop/e2e/fixtures-experiments.ts` (`installExperimentsFake`, `finishExperiments`). Engine `experiments.test.ts` and hidden e2e `experiments.spec.ts` pass on fakes; no model was called and nothing was spent.
+
+**Next**
+- The experiments screens lane builds list, design, live status and results against the stand-in, and a renderer client for the new channels.
+- Not offered from the app yet: the regression job, local re-tests, a per-arm wall cap. A pause during calibration waits for it to finish.
+
 ## 2026-10-30 (Fri, evening), field specialists on main, Phil 2 waiting on budget (start the next session here)
 
 **Where things stand**

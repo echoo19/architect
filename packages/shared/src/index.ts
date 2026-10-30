@@ -11,6 +11,7 @@ export * from './drafting';
 export * from './errors';
 export * from './field-export';
 export * from './events';
+export * from './experiments';
 export * from './graduate';
 export * from './harness';
 export * from './ids';

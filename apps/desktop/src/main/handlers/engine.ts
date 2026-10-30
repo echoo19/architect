@@ -120,6 +120,25 @@ export function registerEngineHandlers(
       call((api) => api.teach.shareCorrections(graduateId, allowed)),
   });
 
+  // An experiment runs on a job folder the person chose in a file dialog.
+  const chosenJob = <T extends { jobDir: string }>(input: T): T => ({
+    ...input,
+    jobDir: picked.check(input.jobDir),
+  });
+  router.registerHandlers('experiments', {
+    plan: (input) => call((api) => api.experiments.plan(chosenJob(input))),
+    revise: (experimentId, input) =>
+      call((api) => api.experiments.revise(experimentId, chosenJob(input))),
+    calibrate: (experimentId) => call((api) => api.experiments.calibrate(experimentId)),
+    preregister: (experimentId) => call((api) => api.experiments.preregister(experimentId)),
+    start: (experimentId, options) => call((api) => api.experiments.start(experimentId, options)),
+    pause: (experimentId) => call((api) => api.experiments.pause(experimentId)),
+    resume: (experimentId, options) => call((api) => api.experiments.resume(experimentId, options)),
+    stop: (experimentId) => call((api) => api.experiments.stop(experimentId)),
+    list: () => call((api) => api.experiments.list()),
+    get: (experimentId) => call((api) => api.experiments.get(experimentId)),
+  });
+
   router.registerHandlers('reports', {
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),

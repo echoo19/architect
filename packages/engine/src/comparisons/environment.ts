@@ -107,6 +107,10 @@ export interface RealEnvironmentOptions {
   parallel: number;
   commit: string | null;
   log(line: string): void;
+  /** Where keys come from: the app's saved keys; the environment's variables when absent. */
+  getSecret?(ref: string): Promise<string | undefined>;
+  /** The Hugging Face token for training compute; Hugging Face's own lookup when absent. */
+  huggingFaceToken?: () => Promise<string | undefined>;
 }
 
 /** A GGUF's chat template, by the sha256 of its text, read from the header alone. */
@@ -227,14 +231,16 @@ export function realEnvironment(options: RealEnvironmentOptions): {
     gpu,
     purpose: COMPARISON_PURPOSE,
   });
-  const token = hubTokenResolver();
+  const token = options.huggingFaceToken ?? hubTokenResolver();
   const deps = studentsHolding(
     createEngineDeps({
       dataDir: options.dataDir,
-      getSecret: async (ref) => {
-        const name = SECRET_ENV[ref];
-        return name === undefined ? undefined : process.env[name] || undefined;
-      },
+      getSecret:
+        options.getSecret ??
+        (async (ref) => {
+          const name = SECRET_ENV[ref];
+          return name === undefined ? undefined : process.env[name] || undefined;
+        }),
       trainerDir: options.trainerDir,
       huggingFaceToken: token,
       adapterRuntime,
