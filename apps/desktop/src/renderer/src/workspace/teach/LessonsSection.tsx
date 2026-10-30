@@ -334,7 +334,8 @@ function ImproveDialog({
             Teaches {lessonCount(queued)} to a copy of version {from}.
           </Change>
           <Change icon={<Layers size={15} strokeWidth={1.8} aria-hidden />}>
-            Saves version {next ?? from + 1} only if it scores better on the check tasks.
+            Saves version {next ?? from + 1} only if it learns a lesson and does no worse on the
+            check tasks.
           </Change>
           <Change icon={<MessageSquare size={15} strokeWidth={1.8} aria-hidden />}>
             Version {from} keeps answering meanwhile.
