@@ -8,7 +8,6 @@ import { ProblemState } from '../components/ProblemState';
 import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import { mentorName, studentName } from '../lib/names';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { latestChat } from '../workspace/store';
@@ -92,13 +91,12 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
 
 function NoAgentsYet() {
   const settings = useSettings();
-  const device = deviceInSentence(currentPlatform());
   const pitch =
     settings.status === 'success'
       ? `Describe a job, and ${mentorName(settings.data.defaultMentor)} teaches ${studentName(
           settings.data.defaultStudent,
-        )} to do it. The agent runs on ${device}.`
-      : `Describe a job and Architect trains an agent that runs on ${device}.`;
+        )} to do it.`
+      : 'Describe a job and Architect trains an agent to do it.';
 
   return (
     <EmptyState

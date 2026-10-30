@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { CellValue, RowDiff } from '@architect/shared';
-import { IconButton } from '@architect/ui';
+import { IconButton, Reveal, StepTransition } from '@architect/ui';
 import { X } from 'lucide-react';
 import { PatchLines } from '../components/PatchLines';
 import { DataTable, RowDiffTable } from './tables';
@@ -34,35 +34,38 @@ export function SidePanel({ content, onClose }: SidePanelProps) {
   const label =
     content.kind === 'table' ? content.title : `${CHANGE_TITLE[content.kind]} ${content.file}`;
   return (
-    <aside
-      ref={panel}
-      tabIndex={-1}
-      aria-label={label}
-      className="mb-3 mr-3 flex min-w-0 max-w-[50%] shrink basis-[460px] animate-fade flex-col overflow-hidden rounded-card bg-card outline-none shadow-edge"
-    >
-      <div className="flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-b border-line py-1.5 pl-5 pr-2">
-        <span className="truncate text-body font-medium">
-          {content.kind === 'table' ? (
-            content.title
-          ) : (
-            <>
-              {CHANGE_TITLE[content.kind]} <span className="font-mono text-ui">{content.file}</span>
-            </>
+    <Reveal className="mb-3 mr-3 flex min-w-0 max-w-[50%] shrink basis-[460px]">
+      <aside
+        ref={panel}
+        tabIndex={-1}
+        aria-label={label}
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-card bg-card outline-none shadow-edge"
+      >
+        <div className="flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-b border-line py-1.5 pl-5 pr-2">
+          <span className="truncate text-body font-medium">
+            {content.kind === 'table' ? (
+              content.title
+            ) : (
+              <>
+                {CHANGE_TITLE[content.kind]}{' '}
+                <span className="font-mono text-ui">{content.file}</span>
+              </>
+            )}
+          </span>
+          <IconButton label="Close preview" onClick={onClose}>
+            <X size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </div>
+        <StepTransition transitionKey={label} className="min-h-0 flex-1 overflow-auto p-5">
+          {content.kind === 'table' && (
+            <DataTable label={label} columns={content.columns} rows={content.rows} />
           )}
-        </span>
-        <IconButton label="Close preview" onClick={onClose}>
-          <X size={16} strokeWidth={1.8} aria-hidden />
-        </IconButton>
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto p-5">
-        {content.kind === 'table' && (
-          <DataTable label={label} columns={content.columns} rows={content.rows} />
-        )}
-        {content.kind === 'diff' && <RowDiffTable diff={content.diff} />}
-        {content.kind === 'patch' && (
-          <PatchLines patch={content.patch} label="Lines this change writes" />
-        )}
-      </div>
-    </aside>
+          {content.kind === 'diff' && <RowDiffTable diff={content.diff} />}
+          {content.kind === 'patch' && (
+            <PatchLines patch={content.patch} label="Lines this change writes" />
+          )}
+        </StepTransition>
+      </aside>
+    </Reveal>
   );
 }

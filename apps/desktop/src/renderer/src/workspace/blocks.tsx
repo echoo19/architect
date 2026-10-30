@@ -3,6 +3,8 @@ import type { AgentBlock, GraduateSummary } from '@architect/shared';
 import {
   Button,
   cn,
+  Collapse,
+  Reveal,
   TableBody,
   TableCard,
   TableCell,
@@ -70,7 +72,7 @@ export function TableBlock({
     .join(', ');
   const align = (column: number) => isFigureColumn(block.rows, column) && 'text-right';
   return (
-    <div className="animate-rise">
+    <Reveal>
       <TableCard
         aria-label={title}
         footer={
@@ -124,7 +126,7 @@ export function TableBlock({
           )}
         </TableBody>
       </TableCard>
-    </div>
+    </Reveal>
   );
 }
 
@@ -197,9 +199,13 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
     outcome = <Outcome icon={<CircleMinus size={14} aria-hidden />}>Not applied</Outcome>;
   }
 
-  const choice = (decision: Decision, label: string, primary = false) => (
+  const choice = (
+    decision: Decision,
+    label: string,
+    variant: 'primary' | 'secondary' | 'ghost',
+  ) => (
     <Button
-      variant={primary ? 'primary' : 'secondary'}
+      variant={variant}
       size="md"
       className="h-[38px]"
       loading={sending === decision}
@@ -211,96 +217,98 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
   );
 
   return (
-    <div
-      role="group"
-      aria-label={`Write to ${block.file}`}
-      className="flex animate-rise flex-col overflow-hidden rounded-card bg-raised leading-[1.4] shadow-edge-strong"
-    >
-      <div className="flex flex-wrap items-center gap-3.5 py-3.5 pl-4 pr-3.5">
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={previewId}
-          onClick={() => setExpanded(!expanded)}
-          className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-control text-left"
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
-            <FileIcon size={17} strokeWidth={1.6} aria-hidden />
-          </span>
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0">{changeVerb(block)}</span>
-              <span className="truncate font-mono text-ui">{block.file}</span>
-              <ChevronRight
-                size={14}
-                strokeWidth={1.8}
-                aria-hidden
-                className={cn(
-                  'shrink-0 text-fg transition-transform duration-200',
-                  expanded && 'rotate-90',
-                )}
-              />
+    <Reveal>
+      <div
+        role="group"
+        aria-label={`Write to ${block.file}`}
+        className="flex flex-col overflow-hidden rounded-card bg-raised leading-[1.4] shadow-edge-strong"
+      >
+        <div className="flex flex-wrap items-center gap-3.5 py-3.5 pl-4 pr-3.5">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={previewId}
+            onClick={() => setExpanded(!expanded)}
+            className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-control text-left"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
+              <FileIcon size={17} strokeWidth={1.6} aria-hidden />
             </span>
-            <span className="text-small text-fg">{changeCounts(block) || block.summary}</span>
-          </span>
-        </button>
-        {outcome ??
-          (retrying ? (
-            <div className="flex gap-1.5">
-              {choice('deny', "Don't save")}
-              {choice('approve', 'Try again', true)}
-            </div>
-          ) : (
-            <div className="flex gap-1.5">
-              {choice('deny', 'Deny')}
-              <Tooltip
-                content={`${agent.name} will save changes to any of its files without asking. You can change this next to the message box, under Saving files.`}
-                side="top"
-              >
-                {choice('always', 'Allow saving from now on')}
-              </Tooltip>
-              {choice('approve', 'Allow once', true)}
-            </div>
-          ))}
-      </div>
-      {unsaved && (
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 border-t border-line px-4 py-3 text-small text-fg"
-        >
-          <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
-          <span className="min-w-0 text-pretty">{block.error}</span>
-        </div>
-      )}
-      {expanded && (
-        <div id={previewId} className="border-t border-line">
-          {block.diff ? (
-            <div className="overflow-x-auto px-4 pb-2.5 pt-1">
-              <RowDiffTable diff={block.diff} limit={DIFF_PREVIEW_LINES} />
-            </div>
-          ) : (
-            block.patch !== undefined && (
-              <div className="overflow-x-auto py-2">
-                <PatchLines
-                  patch={block.patch}
-                  limit={DIFF_PREVIEW_LINES}
-                  label="Lines this change writes"
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="shrink-0">{changeVerb(block)}</span>
+                <span className="truncate font-mono text-ui">{block.file}</span>
+                <ChevronRight
+                  size={14}
+                  strokeWidth={1.8}
+                  aria-hidden
+                  className={cn(
+                    'shrink-0 text-fg transition-transform duration-200',
+                    expanded && 'rotate-90',
+                  )}
                 />
+              </span>
+              <span className="text-small text-fg">{changeCounts(block) || block.summary}</span>
+            </span>
+          </button>
+          {outcome ??
+            (retrying ? (
+              <div className="flex gap-1.5">
+                {choice('deny', "Don't save", 'secondary')}
+                {choice('approve', 'Try again', 'primary')}
               </div>
-            )
-          )}
-          {size.count > DIFF_PREVIEW_LINES && (
-            <button
-              type="button"
-              className={footerButton}
-              onClick={() => onOpenPanel(panelOf(block))}
-            >
-              Show all {size.count} {size.unit}
-            </button>
-          )}
+            ) : (
+              <div className="flex gap-1.5">
+                {choice('deny', 'Deny', 'secondary')}
+                <Tooltip
+                  content={`${agent.name} will save changes to any of its files without asking. You can change this with the lock next to the message box.`}
+                  side="top"
+                >
+                  {choice('always', 'Allow saving from now on', 'ghost')}
+                </Tooltip>
+                {choice('approve', 'Allow once', 'primary')}
+              </div>
+            ))}
         </div>
-      )}
-    </div>
+        {unsaved && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 border-t border-line px-4 py-3 text-small text-fg"
+          >
+            <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
+            <span className="min-w-0 text-pretty">{block.error}</span>
+          </div>
+        )}
+        <Collapse open={expanded} id={previewId}>
+          <div className="border-t border-line">
+            {block.diff ? (
+              <div className="overflow-x-auto px-4 pb-2.5 pt-1">
+                <RowDiffTable diff={block.diff} limit={DIFF_PREVIEW_LINES} />
+              </div>
+            ) : (
+              block.patch !== undefined && (
+                <div className="overflow-x-auto py-2">
+                  <PatchLines
+                    patch={block.patch}
+                    limit={DIFF_PREVIEW_LINES}
+                    label="Lines this change writes"
+                  />
+                </div>
+              )
+            )}
+            {size.count > DIFF_PREVIEW_LINES && (
+              <button
+                type="button"
+                className={footerButton}
+                onClick={() => onOpenPanel(panelOf(block))}
+              >
+                Show all {size.count} {size.unit}
+              </button>
+            )}
+          </div>
+        </Collapse>
+      </div>
+    </Reveal>
   );
 }
 
@@ -318,28 +326,34 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
     .filter((type) => !type.refused)
     .map((type) => type.label);
   return (
-    <div
-      role="note"
-      className="flex animate-rise items-start gap-3.5 rounded-card bg-raised py-3.5 pl-4 pr-5 leading-[1.4] shadow-edge-strong"
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
-        <Ban size={17} strokeWidth={1.6} aria-hidden />
-      </span>
-      <span className="flex min-w-0 flex-col gap-1 pt-px">
-        <span>
-          {agent.name} doesn&apos;t handle {inSentence(label)}
+    <Reveal>
+      <div
+        role="note"
+        className="flex items-start gap-3.5 rounded-card bg-raised py-3.5 pl-4 pr-5 leading-[1.4] shadow-edge-strong"
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
+          <Ban size={17} strokeWidth={1.6} aria-hidden />
         </span>
-        <span className="text-small text-fg text-pretty">{block.reason}</span>
-        {handled.length > 0 && (
-          <span className="text-small text-fg text-pretty">
-            It can help with {listInSentence(handled)}.
+        <span className="flex min-w-0 flex-col gap-1 pt-px">
+          <span>
+            {agent.name} doesn&apos;t handle {inSentence(label)}
           </span>
-        )}
-      </span>
-    </div>
+          <span className="text-small text-fg text-pretty">{block.reason}</span>
+          {handled.length > 0 && (
+            <span className="text-small text-fg text-pretty">
+              It can help with {listInSentence(handled)}.
+            </span>
+          )}
+        </span>
+      </div>
+    </Reveal>
   );
 }
 
 export function NoteBlock({ text }: { text: string }) {
-  return <p className="m-0 animate-rise text-small text-fg">{text}</p>;
+  return (
+    <Reveal as="p" className="m-0 text-small text-fg">
+      {text}
+    </Reveal>
+  );
 }

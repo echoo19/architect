@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { StepTransition } from '@architect/ui';
 import type { Route } from '../lib/router';
 import { AgentSettingsModal } from '../workspace/settings/AgentSettingsModal';
 import { useWorkspaceEvents } from '../workspace/store';
@@ -10,7 +11,14 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
   return (
     <div className="flex h-full bg-ground">
       <Sidebar route={route} />
-      <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+      <main className="flex min-w-0 flex-1 flex-col">
+        <StepTransition
+          transitionKey={route.name === 'chat' ? route.chatId : route.name}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {children}
+        </StepTransition>
+      </main>
       <AgentSettingsModal route={route} />
     </div>
   );
@@ -18,7 +26,7 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
 
 export interface WorkspaceHeaderProps {
   title?: ReactNode;
-  /** Right side, such as the Offline badge. */
+  /** Right side, such as a status badge or an icon button. */
   actions?: ReactNode;
 }
 

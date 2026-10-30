@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
 import type { GraduateSummary, ReportCard } from '@architect/shared';
-import { Heading, Meter, Skeleton, Stat } from '@architect/ui';
+import { Heading, Meter, SettingsRow, Skeleton } from '@architect/ui';
 import { useVersionReport, useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../../flow/format';
@@ -44,10 +45,21 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
   return <ReportSummary report={report.data} imported={imported} />;
 }
 
+/** One result as a row: its figure in the display face, and what it is out of beside it. */
+function Figure({ label, value, children }: { label: string; value: string; children: ReactNode }) {
+  return (
+    <SettingsRow label={label}>
+      <span className="flex items-baseline gap-3">
+        <span className="font-display text-h2 font-semibold tabular-nums">{value}</span>
+        <span className="text-small tabular-nums">{children}</span>
+      </span>
+    </SettingsRow>
+  );
+}
+
 function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
-  const cell = 'bg-raised p-[18px]';
   const place = imported
     ? "on the author's computer"
     : test.ranOffline
@@ -57,36 +69,22 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
   return (
     <div className="flex flex-col gap-8 pt-1">
       {imported && <span className="-mb-5 text-small text-fg">{AUTHOR_RESULT_TITLE}</span>}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card bg-line-strong shadow-edge">
-        <Stat
-          className={cell}
-          value={formatPercent(test.score)}
-          label="of new tasks right"
-          note={`${test.score.pass} of ${test.score.total}, target ${Math.round(
-            requirements.passRate.target * 100,
-          )}%`}
-          noteFont="text"
-        />
-        <Stat
-          className={cell}
-          value={formatAnswerTime(test.latencyMs.p50)}
-          label={`Typical answer, ${place}`}
-          note={`95% of answers within ${formatAnswerTime(test.latencyMs.p95)}`}
-          noteFont="text"
-        />
-        <Stat
-          className={`${cell} col-span-2`}
-          value={formatUsd(Math.round((cost.mentorUsd + (cost.studentUsd ?? 0)) * 100) / 100)}
+      <div>
+        <Figure label="Of new tasks right" value={formatPercent(test.score)}>
+          {test.score.pass} of {test.score.total} · target{' '}
+          {Math.round(requirements.passRate.target * 100)}%
+        </Figure>
+        <Figure label={`Typical answer, ${place}`} value={formatAnswerTime(test.latencyMs.p50)}>
+          95% within {formatAnswerTime(test.latencyMs.p95)}
+        </Figure>
+        <Figure
           label={
             cost.studentUsd ? 'Training cost' : `${shortModelName(report.mentor.label)} mentoring`
           }
-          note={
-            cost.studentUsd
-              ? `${shortModelName(report.mentor.label)} ${formatUsd(Math.round(cost.mentorUsd * 100) / 100)}, online copy ${formatUsd(Math.round(cost.studentUsd * 100) / 100)}; ${cost.rounds} rounds, paid once`
-              : `${cost.rounds} rounds, paid once`
-          }
-          noteFont="text"
-        />
+          value={formatUsd(Math.round((cost.mentorUsd + (cost.studentUsd ?? 0)) * 100) / 100)}
+        >
+          {cost.rounds} rounds
+        </Figure>
       </div>
 
       {!imported && report.testedOn === 'hosted' && <LocalTest report={report} />}
@@ -117,10 +115,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <Heading>Doesn&apos;t handle</Heading>
-          <p className="m-0 text-small text-fg">Requests it turns down and leaves to you.</p>
-        </div>
+        <Heading>Doesn&apos;t handle</Heading>
         {report.refusedTypes.length === 0 ? (
           <p className="m-0 text-fg">Nothing. It takes on every task type it trained on.</p>
         ) : (

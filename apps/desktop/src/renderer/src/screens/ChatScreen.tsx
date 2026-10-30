@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { GraduateSummary, InstallStatus, WorkspaceMessage } from '@architect/shared';
-import { Badge, Button, Drawer, EmptyState, Skeleton } from '@architect/ui';
-import { Bot, CircleX, Laptop, Plus } from 'lucide-react';
+import type { GraduateSummary, WorkspaceMessage } from '@architect/shared';
+import { Badge, Button, Drawer, EmptyState, IconButton, Skeleton, Tooltip } from '@architect/ui';
+import { Bot, CircleX, Info, Plus } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
+import { activeVersionName, agentModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
@@ -13,6 +14,7 @@ import { ChatComposer } from '../workspace/ChatComposer';
 import { draftFor, keepDraft } from '../workspace/drafts';
 import { EmptyChat } from '../workspace/EmptyChat';
 import { AgentMessage, Thinking, UserMessage } from '../workspace/messages';
+import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { SidePanel, type PanelContent } from '../workspace/SidePanel';
 import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
 import { TeachSheet } from '../workspace/teach/TeachSheet';
@@ -30,17 +32,33 @@ function requestOf(messages: readonly WorkspaceMessage[], reply: WorkspaceMessag
 }
 
 /**
- * The header's status pill: the agent makes no network calls beyond its local model. When this
- * computer's install checks say it can't run here, the pill says that instead.
+ * The header's right side. An agent that can't run on this computer says so; otherwise a quiet
+ * icon holds what the footer under the message box used to say (the version and model that
+ * answer, and that they run here), and opens the agent's settings.
  */
-function hereBadge(status?: InstallStatus) {
+function AgentDetails({ agent }: { agent: GraduateSummary }) {
+  const showSettings = useAgentSettingsUi((state) => state.show);
   const device = deviceInSentence(currentPlatform());
-  return status === 'blocked' ? (
-    <Badge tone="danger" icon={<CircleX size={14} strokeWidth={1.6} aria-hidden />}>
-      Can&apos;t run on {device}
-    </Badge>
-  ) : (
-    <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>Running on {device}</Badge>
+  const { adapter } = agent.manifest.student;
+  const facts = [
+    activeVersionName(agent),
+    agentModelName(agent.manifest.student),
+    adapter && (adapter.standIn ? 'Stand-in trained weights' : 'Trained weights'),
+    `Runs on ${device}`,
+  ].filter(Boolean);
+  return (
+    <div className="flex items-center gap-1">
+      {agent.status === 'blocked' && (
+        <Badge tone="danger" icon={<CircleX size={14} strokeWidth={1.6} aria-hidden />}>
+          Can&apos;t run on {device}
+        </Badge>
+      )}
+      <Tooltip content={facts.join(' · ')} side="bottom">
+        <IconButton label={`About ${agent.name}`} size="sm" onClick={() => showSettings(agent.id)}>
+          <Info size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+      </Tooltip>
+    </div>
   );
 }
 
@@ -52,7 +70,7 @@ export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId:
   if (agent) return <Chat agent={agent} chatId={chatId} />;
   return (
     <>
-      <WorkspaceHeader actions={hereBadge()} />
+      <WorkspaceHeader />
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-8 pb-14">
         {graduates.status === 'error' ? (
           <ProblemState
@@ -235,7 +253,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
           chat?.title ??
           (chats.entry.status === 'loading' ? <Skeleton className="h-3.5 w-44" /> : 'Chat')
         }
-        actions={hereBadge(agent.status)}
+        actions={<AgentDetails agent={agent} />}
       />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">

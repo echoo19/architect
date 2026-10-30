@@ -210,7 +210,7 @@ function ImproveRow({
     navigate(path);
   };
 
-  let meta: string;
+  let meta: string | undefined;
   let action: ReactNode = null;
   if (running) {
     meta = RUNNING_LABELS[running.status] ?? `Improving from version ${running.fromVersion}`;
@@ -234,7 +234,7 @@ function ImproveRow({
       </Button>
     );
   } else if (queued === 0) {
-    meta = 'Flag an answer to teach it first';
+    // Nothing to improve from yet: the flagged answers row above says so.
   } else if (overview.improve) {
     const waits = overview.improve.waits ? ' · waits for the run using it' : '';
     meta = `${lessonCount(queued)} saved · ${budgetLine(overview.improve.budget)}${waits}`;

@@ -11,14 +11,13 @@ import {
   Skeleton,
   Tooltip,
 } from '@architect/ui';
-import { ArrowDown, Check, ChevronDown, Lock, LockOpen, PenOff, RotateCw } from 'lucide-react';
+import { ArrowDown, Check, Lock, LockOpen, PenOff, RotateCw } from 'lucide-react';
 import { attempt } from '../lib/notify';
 import { updateGraduateSettings, useGraduateSettings } from './graduateSettings';
 import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from './labels';
-import { StatusBar } from './StatusBar';
 
 const modeButton =
-  'flex h-8 items-center gap-1.5 rounded-full px-3 text-small text-fg transition-colors duration-150 hover:bg-hover disabled:opacity-60 [&_svg]:shrink-0 shadow-edge-strong';
+  'flex h-8 items-center gap-1.5 rounded-full px-2.5 text-small text-fg transition-colors duration-150 hover:bg-hover disabled:opacity-60 [&_svg]:shrink-0';
 
 const MODE_ICONS: Record<PermissionMode, typeof Lock> = {
   ask: Lock,
@@ -26,7 +25,11 @@ const MODE_ICONS: Record<PermissionMode, typeof Lock> = {
   never: PenOff,
 };
 
-/** Chooses whether this agent asks before writing, writes freely, or only reads. */
+/**
+ * Chooses whether this agent asks before writing, writes freely, or only reads. The usual answer,
+ * asking first, is just its icon; any other answer is named beside it, since it changes what the
+ * agent does without asking.
+ */
 function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
   const settings = useGraduateSettings(agent.id);
   const [saving, setSaving] = useState(false);
@@ -41,7 +44,7 @@ function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
       </Tooltip>
     );
   }
-  if (!settings.data) return <Skeleton shape="pill" className="ml-2.5 h-4 w-32" />;
+  if (!settings.data) return <Skeleton shape="pill" className="ml-2.5 h-4 w-8" />;
 
   const mode = settings.data.writeMode;
   const choose = async (next: PermissionMode) => {
@@ -55,13 +58,19 @@ function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
   const Icon = MODE_ICONS[mode];
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className={modeButton} disabled={saving}>
-          <Icon size={14} strokeWidth={1.8} aria-hidden />
-          {WRITE_SETTING}: {WRITE_MODE_LABELS[mode]}
-          <ChevronDown size={13} strokeWidth={1.8} aria-hidden />
-        </button>
-      </DropdownMenuTrigger>
+      <Tooltip content={`${WRITE_SETTING}: ${WRITE_MODE_LABELS[mode]}`} side="top">
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={modeButton}
+            disabled={saving}
+            aria-label={`${WRITE_SETTING}: ${WRITE_MODE_LABELS[mode]}`}
+          >
+            <Icon size={15} strokeWidth={1.8} aria-hidden />
+            {mode !== 'ask' && WRITE_MODE_LABELS[mode]}
+          </button>
+        </DropdownMenuTrigger>
+      </Tooltip>
       <DropdownMenuContent side="top" className="w-80">
         <DropdownMenuLabel>{WRITE_SETTING}</DropdownMenuLabel>
         {WRITE_MODES.map((option) => {
@@ -112,7 +121,7 @@ export function ChatComposer({
   fieldRef,
 }: ChatComposerProps) {
   return (
-    <div className="relative shrink-0 px-8 pb-2.5">
+    <div className="relative shrink-0 px-8 pb-5">
       {!pinned && (
         <IconButton
           label="Jump to the latest message"
@@ -140,7 +149,6 @@ export function ChatComposer({
           leading={<WriteModeMenu agent={agent} />}
         />
       </div>
-      <StatusBar agent={agent} />
     </div>
   );
 }

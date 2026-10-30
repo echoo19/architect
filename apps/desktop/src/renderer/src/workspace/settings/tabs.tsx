@@ -41,7 +41,6 @@ import {
 import { formatPercent, shortPath } from '../../lib/format';
 import { activeVersionName, shortModelName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
-import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths, type Route } from '../../lib/router';
 import { updateGraduateSettings, useGraduateSettings } from '../graduateSettings';
 import { WRITE_MODE_LABELS, WRITE_MODE_MEANINGS, WRITE_MODES, WRITE_SETTING } from '../labels';
@@ -87,25 +86,12 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       <SettingsRow label="Setup">
         <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
-      <SettingsRow
-        label="Final test"
-        meta={
-          evaluatedHere
-            ? testedOn === 'hosted'
-              ? 'Tasks it had never seen, on the online copy'
-              : 'Tasks it had never seen'
-            : AUTHOR_RESULT_TITLE
-        }
-      >
+      <SettingsRow label="Final test" meta={evaluatedHere ? undefined : AUTHOR_RESULT_TITLE}>
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>
       <AgentModelRow agent={agent} active={active} />
       <InstallRow agent={agent} active={active} />
-      <SettingsRow
-        label="Delete agent"
-        tone="danger"
-        meta="Its chats are deleted too. The local model stays."
-      >
+      <SettingsRow label="Delete agent" tone="danger">
         <Button variant="danger" size="xs" onClick={() => setConfirming(true)}>
           Delete
         </Button>
@@ -306,7 +292,6 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
   const contract = active?.manifest.contract;
   const files = contract?.inputs.files ?? [];
   const writable = files.filter((file) => file.access === 'write').map((file) => file.name);
-  const device = deviceInSentence(currentPlatform());
   const savingNever = settings.data?.writeMode === 'never';
   const unavailable =
     versions.status === 'error' ? <RetryButton onClick={versions.reload} /> : pending;
@@ -338,17 +323,10 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
           pending
         )}
       </SettingsRow>
-      <SettingsRow
-        label="Internet access"
-        meta={`Agents made in Architect only talk to the model on ${device}.`}
-      >
+      <SettingsRow label="Internet access">
         <SettingsValue>Never, by design</SettingsValue>
       </SettingsRow>
-      <SettingsRow
-        label="Files it can read"
-        meta="The files its job lists"
-        error={errorOf(versions)}
-      >
+      <SettingsRow label="Files it can read" error={errorOf(versions)}>
         {contract ? (
           <span className="max-w-[340px] text-right font-mono text-small text-fg text-pretty">
             {files.map((file) => file.name).join(', ')}
@@ -359,11 +337,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       </SettingsRow>
       <SettingsRow
         label="Files it can change"
-        meta={
-          savingNever
-            ? `Set by its job. ${WRITE_SETTING} is set to Never, so it changes none of them now.`
-            : `Set by its job, and only as ${WRITE_SETTING} allows`
-        }
+        meta={savingNever ? `${WRITE_SETTING} is set to Never, so it changes none now.` : undefined}
         error={errorOf(versions)}
       >
         {contract ? (

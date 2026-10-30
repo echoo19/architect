@@ -445,12 +445,13 @@ test('imports a package with an adapter, opens it, and answers through llama.cpp
   expect(gpuOllama.loadedAsked()).toBeGreaterThanOrEqual(2);
   expect(gpuOllama.chats).toEqual([]);
 
-  // The workspace's status line says the agent runs with its adapter. The page read its agents
+  // The header's details say the agent runs with its adapter. The page read its agents
   // before this import, which went straight to the API, so it reads them again.
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, `/agents/${imported.graduate.id}/chats/${chat.id}`);
-  await expect(page.getByText('Stand-in trained weights')).toBeVisible();
+  await page.getByRole('button', { name: /^About / }).hover();
+  await expect(page.getByRole('tooltip')).toContainText('Stand-in trained weights');
 
   // The engine checks the agent again with its model loaded while the workspace's llama-server
   // sits idle: the workspace gives the GPU up first, so no two servers ever ran at once.
