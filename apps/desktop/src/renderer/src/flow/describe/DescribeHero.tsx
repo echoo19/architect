@@ -1,6 +1,14 @@
 import { DRAFTING_LIMITS } from '@architect/shared';
-import { Composer, Heading, IconButton, Tooltip } from '@architect/ui';
-import { Cloud, FileText, Laptop, Paperclip } from 'lucide-react';
+import {
+  Collapse,
+  Composer,
+  Heading,
+  IconButton,
+  Stagger,
+  StaggerItem,
+  Tooltip,
+} from '@architect/ui';
+import { Cloud, Laptop, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
 import { useSettings } from '../../api/hooks';
@@ -12,8 +20,11 @@ import { sendToMentor, useDraftStore } from './draft-store';
 import { ImportJobButton } from './ImportJobButton';
 import { SampleJobButton } from './SampleJobButton';
 
-/** What drafting reads and the least it needs, said before anything is attached (decision 061). */
-const FILES_NEEDED = `CSV, text and Markdown files, with at least ${DRAFTING_LIMITS.minTasks} rows of records in all`;
+/**
+ * What the paperclip says when asked: what drafting reads and the least it needs, before anything
+ * is attached (decision 061).
+ */
+const FILES_NEEDED = `CSV, text or Markdown files with at least ${DRAFTING_LIMITS.minTasks} rows of records in all (a text file is read whole, up to ${DRAFTING_LIMITS.maxTextChars.toLocaleString('en-US')} characters). Example tasks with their answers go in a .jsonl file.`;
 
 /** Data the agent works with, and example tasks with their answers. */
 const ATTACHABLE = [
@@ -52,80 +63,81 @@ export function DescribeHero() {
     if (picked) setFiles([...new Set([...files, ...picked])]);
   };
 
-  const send = (description: string) => {
-    sendToMentor(description, files);
-    setText('');
-    setFiles([]);
-  };
+  // The box and the files stay as they are when the description is sent: the page leaves with them,
+  // and a conversation that is started over puts them back itself.
+  const send = (description: string) => sendToMentor(description, files);
 
   const empty = !text.trim() && files.length === 0;
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-8 px-6 pb-[120px] pt-12">
-      <Heading as="h1" size="display-sm" className="text-center">
-        What should your agent do?
-      </Heading>
-      <div className="flex w-full max-w-[680px] flex-col gap-3">
-        <Composer
-          size="hero"
-          label="Describe the job"
-          placeholder="Describe the job in your own words"
-          value={text}
-          onValueChange={setText}
-          onSubmit={send}
-          autoFocus
-          leading={
-            <Tooltip
-              content={`Add the job's files as CSV, text or Markdown (a text is read whole, up to ${DRAFTING_LIMITS.maxTextChars.toLocaleString('en-US')} characters), and example tasks with their answers as a .jsonl file`}
-              side="bottom"
-            >
-              <IconButton label="Attach files" onClick={() => void attach()}>
-                <Paperclip size={18} strokeWidth={1.6} aria-hidden />
-              </IconButton>
-            </Tooltip>
-          }
-          trailing={
-            mentor && (
-              <span className="flex items-center gap-1.5 text-small text-fg">
-                {mentor.local ? (
-                  <Laptop size={14} strokeWidth={1.6} aria-hidden />
-                ) : (
-                  <Cloud size={14} strokeWidth={1.6} aria-hidden />
-                )}
-                Teacher: {mentor.name}
-                <span className="sr-only">
-                  {mentor.local
-                    ? ', on this computer, reads what you send'
-                    : ', in the cloud, reads what you send'}
-                </span>
-              </span>
-            )
-          }
-        />
-        {files.length > 0 ? (
-          <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0">
-            {files.map((path) => (
-              <li key={path} className="min-w-0">
-                <AttachedFile
-                  path={path}
-                  onRemove={() => setFiles(files.filter((file) => file !== path))}
-                />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="m-0 flex items-center justify-center gap-2 text-small text-fg">
-            <FileText size={14} strokeWidth={1.6} aria-hidden />
-            {FILES_NEEDED}
-          </p>
-        )}
-      </div>
-      {empty && (
-        <div className="-mt-3 flex flex-wrap items-center justify-center gap-2">
-          <SampleJobButton size="md" />
-          <ReadyMadeAgentButton size="md" />
-          <ImportJobButton size="md" />
-        </div>
-      )}
+    <div className="flex min-h-full flex-col items-center justify-center px-6 pb-[120px] pt-12">
+      <Stagger className="flex w-full max-w-[680px] flex-col gap-6">
+        <StaggerItem>
+          <Heading as="h1" size="display-sm">
+            What should your agent do?
+          </Heading>
+        </StaggerItem>
+        <StaggerItem>
+          <Composer
+            size="hero"
+            label="Describe the job"
+            placeholder="Describe the job in your own words"
+            value={text}
+            onValueChange={setText}
+            onSubmit={send}
+            autoFocus
+            leading={
+              <Tooltip content={FILES_NEEDED} side="bottom">
+                <IconButton label="Attach files" onClick={() => void attach()}>
+                  <Paperclip size={18} strokeWidth={1.6} aria-hidden />
+                </IconButton>
+              </Tooltip>
+            }
+            trailing={mentor && <TeacherMark name={mentor.name} local={mentor.local} />}
+          />
+          <Collapse open={files.length > 0}>
+            <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0 pt-3">
+              {files.map((path) => (
+                <li key={path} className="min-w-0">
+                  <AttachedFile
+                    path={path}
+                    onRemove={() => setFiles(files.filter((file) => file !== path))}
+                  />
+                </li>
+              ))}
+            </ul>
+          </Collapse>
+        </StaggerItem>
+        <StaggerItem>
+          <Collapse open={empty}>
+            <div className="flex flex-wrap items-center gap-2">
+              <SampleJobButton size="sm" />
+              <ReadyMadeAgentButton size="sm" />
+              <ImportJobButton size="sm" />
+            </div>
+          </Collapse>
+        </StaggerItem>
+      </Stagger>
     </div>
+  );
+}
+
+/**
+ * Who reads what is sent, as a mark by the send button: a cloud for a teacher that works online, a
+ * laptop for one on this computer. The name and what it reads are in its tooltip and its label.
+ */
+function TeacherMark({ name, local }: { name: string; local: boolean }) {
+  const says = `Teacher: ${name}. Reads what you send, ${local ? 'on this computer' : 'in the cloud'}.`;
+  const Icon = local ? Laptop : Cloud;
+  return (
+    <Tooltip content={says} side="top">
+      <span
+        role="img"
+        aria-label={says}
+        tabIndex={0}
+        className="flex size-8 items-center justify-center rounded-mark"
+      >
+        <Icon size={16} strokeWidth={1.6} aria-hidden />
+      </span>
+    </Tooltip>
   );
 }
