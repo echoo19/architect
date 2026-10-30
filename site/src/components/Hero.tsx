@@ -8,7 +8,7 @@ export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="pb-14 sm:pb-16 lg:pb-20">
       <div className="page pt-10 sm:pt-12 lg:pt-12">
-        <h1 id="hero-title" className="t-hero max-w-[13em]">
+        <h1 id="hero-title" className="t-hero max-w-[15em]">
           {HERO.title}
         </h1>
         <div className="mt-5 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between xl:gap-12">
