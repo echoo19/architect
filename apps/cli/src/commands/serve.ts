@@ -107,8 +107,14 @@ function send(res: ServerResponse, response: Response, headers: OutgoingHttpHead
   res.end(text);
 }
 
-function failed(code: string, message: string, outcome: 'invalid_input' | 'not_permitted') {
-  return errorResponse({ outcome, code, message });
+/** A request refused before the agent runs, with its own status. */
+function refused(
+  status: number,
+  outcome: 'invalid_input' | 'not_permitted',
+  code: string,
+  message: string,
+): Response {
+  return { ...errorResponse({ outcome, code, message }), status };
 }
 
 function listen(server: Server, port: number): Promise<number> {
@@ -188,14 +194,12 @@ class Endpoint {
     if (!authorized(req.headers.authorization, this.token)) {
       send(
         res,
-        {
-          status: 401,
-          body: failed(
-            'unauthorized',
-            'Send the token as "Authorization: Bearer <token>".',
-            'not_permitted',
-          ).body,
-        },
+        refused(
+          401,
+          'not_permitted',
+          'unauthorized',
+          'Send the token as "Authorization: Bearer <token>".',
+        ),
         { 'www-authenticate': 'Bearer' },
       );
       return;
@@ -207,20 +211,13 @@ class Endpoint {
     };
     const route = routes[path];
     if (route === undefined) {
-      send(res, {
-        status: 404,
-        body: failed('not_found', `There is nothing at ${path}.`, 'invalid_input').body,
-      });
+      send(res, refused(404, 'invalid_input', 'not_found', `There is nothing at ${path}.`));
       return;
     }
     if (req.method !== route.method) {
       send(
         res,
-        {
-          status: 405,
-          body: failed('method_not_allowed', `${path} takes ${route.method}.`, 'invalid_input')
-            .body,
-        },
+        refused(405, 'invalid_input', 'method_not_allowed', `${path} takes ${route.method}.`),
         { allow: route.method },
       );
       return;
@@ -242,31 +239,31 @@ class Endpoint {
   private async complete(req: IncomingMessage, res: ServerResponse): Promise<Response> {
     const parsed = ChatCompletionRequestSchema.safeParse(await readJson(req));
     if (!parsed.success) {
-      return failed(
+      return refused(
+        400,
+        'invalid_input',
         'invalid_request',
         `The request isn't a chat completion request: ${parsed.error.issues
           .map((issue) => `${issue.path.join('.') || 'it'} ${issue.message}`)
           .join('; ')}.`,
-        'invalid_input',
       );
     }
     const request = parsed.data;
     if (request.stream === true) {
-      return failed(
+      return refused(
+        400,
+        'invalid_input',
         'stream_unsupported',
         'Streaming isn’t served yet; leave out "stream".',
-        'invalid_input',
       );
     }
     if (request.model !== this.model && request.model !== this.session.agent.id) {
-      return {
-        status: 404,
-        body: failed(
-          'model_not_found',
-          `This server serves "${this.model}", not "${request.model}".`,
-          'invalid_input',
-        ).body,
-      };
+      return refused(
+        404,
+        'invalid_input',
+        'model_not_found',
+        `This server serves "${this.model}", not "${request.model}".`,
+      );
     }
     const conversation = conversationOf(request);
     // A client that goes away stops its reply, wherever it is.
@@ -294,14 +291,12 @@ class Endpoint {
     if (this.pinned !== undefined) {
       const active = library.versions(agent.id).find((version) => version.active);
       if (active?.version !== this.pinned) {
-        return {
-          status: 409,
-          body: failed(
-            'version_mismatch',
-            `${agent.name}'s active version is now ${active?.version ?? 'none'}, and this server serves version ${this.pinned} only.`,
-            'not_permitted',
-          ).body,
-        };
+        return refused(
+          409,
+          'not_permitted',
+          'version_mismatch',
+          `${agent.name}'s active version is now ${active?.version ?? 'none'}, and this server serves version ${this.pinned} only.`,
+        );
       }
     }
     const chat = await host.createChat(agent.id);
