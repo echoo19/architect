@@ -14,8 +14,8 @@
   --site-ground: var(--ui-ground);
   --site-band: var(--ui-card);
   --site-gutter: 16px;
-  --site-page: 1200px;
-  --mock-zoom: 1.08;
+  --site-page: 1280px;
+  --mock-zoom: 0.92;
   --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -27,14 +27,14 @@
 
 @media (min-width: 1024px) {
   :root {
-    --site-gutter: 40px;
+    --site-gutter: 32px;
   }
 }
 
 @media (min-width: 1600px) {
   :root {
     --site-page: 1360px;
-    --mock-zoom: 1.2;
+    --mock-zoom: 1;
   }
 }
 
@@ -55,7 +55,7 @@ body {
   overflow-x: clip;
   min-height: 100vh;
   background: var(--site-ground);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.55;
 }
 
@@ -116,54 +116,70 @@ body {
 
 /* The marketing layer: text, buttons and the page's own bands. Utilities may still override it. */
 @layer components {
-  .display-xl,
-  .display-lg,
-  .display-xxl {
+  /*
+   * The page's type, one size to a step. The steps are DESIGN.md's, scaled for a page: hero, title,
+   * h1, body, small. Headings are Inter Tight, everything else Inter.
+   */
+  .t-hero,
+  .t-title,
+  .t-h1 {
     margin: 0;
+    font-family: var(--font-display);
     font-weight: 600;
     color: var(--ui-fg);
     text-wrap: balance;
     font-kerning: normal;
   }
 
-  .display-xl {
-    font-size: clamp(2.5rem, 1.2rem + 4.6vw, 5rem);
-    line-height: 0.98;
+  .t-hero {
+    font-size: clamp(2.25rem, 1.1rem + 3.8vw, 4rem);
+    line-height: 1;
     letter-spacing: -0.03em;
     word-spacing: 0.03em;
   }
 
-  .display-lg {
-    font-size: clamp(2rem, 1.15rem + 2.7vw, 3.5rem);
-    line-height: 1.04;
-    letter-spacing: -0.026em;
+  .t-title {
+    font-size: clamp(1.75rem, 1rem + 2.2vw, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.024em;
     word-spacing: 0.03em;
   }
 
-  .display-xxl {
-    font-size: clamp(3rem, 1rem + 8vw, 8rem);
-    line-height: 0.95;
-    letter-spacing: -0.032em;
-    word-spacing: 0.04em;
+  .t-h1 {
+    font-size: 1.625rem;
+    line-height: 1.15;
+    letter-spacing: -0.018em;
   }
 
-  .lead {
+  .t-lead {
     margin: 0;
-    font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+    font-size: 1.125rem;
     line-height: 1.45;
     color: var(--ui-fg);
     text-wrap: pretty;
   }
 
+  .t-body {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .t-small {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+  }
+
   .btn {
     display: inline-flex;
-    height: 48px;
+    height: 44px;
     align-items: center;
     justify-content: center;
     gap: 10px;
     border-radius: 12px;
     padding: 0 20px;
-    font-size: 15.5px;
+    font-size: 15px;
     font-weight: 500;
     white-space: nowrap;
     color: var(--ui-fg);
@@ -201,9 +217,9 @@ body {
   }
 
   .btn-sm {
-    height: 38px;
+    height: 36px;
     padding: 0 14px;
-    font-size: 14.5px;
+    font-size: 15px;
   }
 
   .link-quiet {

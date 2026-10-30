@@ -1,6 +1,5 @@
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { cn } from '@architect/ui';
-import { REPORTS } from '../content';
 import { RESULTS } from '../results';
 import { Actors } from './Actors';
 import { Reveal } from './Reveal';
@@ -12,21 +11,18 @@ import { Reveal } from './Reveal';
  */
 export function MeasuredResults() {
   return (
-    <section aria-labelledby="measured-title" className="mt-24 sm:mt-28">
+    <section aria-labelledby="measured-title" className="mt-16 sm:mt-20">
       <div className="grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-x-20">
         <Reveal className="flex flex-col items-start gap-5">
-          <h3
-            id="measured-title"
-            className="m-0 font-display text-[28px] font-semibold leading-tight tracking-[-0.018em]"
-          >
+          <h3 id="measured-title" className="t-h1">
             {RESULTS.title}
           </h3>
           <p className="m-0 max-w-[46ch] text-pretty">
             <Actors text={RESULTS.scope} />
           </p>
-          <a className="link-quiet inline-flex items-center gap-1.5" href={REPORTS}>
+          <a className="link-quiet inline-flex items-center gap-1.5" href="./results/">
             {RESULTS.reports}
-            <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
+            <ArrowRight size={16} strokeWidth={1.8} aria-hidden />
           </a>
         </Reveal>
         <Reveal delay={120}>
@@ -37,12 +33,9 @@ export function MeasuredResults() {
                   <span>
                     <Actors text={row.label} />
                   </span>
-                  <span className="shrink-0 font-display text-[28px] font-semibold leading-none tracking-[-0.018em] tabular-nums">
+                  <span className="t-h1 shrink-0 leading-none tabular-nums">
                     {row.passed}
-                    <span className="ml-1.5 text-[17px] font-normal tracking-normal">
-                      {' '}
-                      of {row.total}
-                    </span>
+                    <span className="t-body ml-1.5"> of {row.total}</span>
                   </span>
                 </div>
                 <div
@@ -72,13 +65,11 @@ export function MeasuredResults() {
           </ul>
         </Reveal>
       </div>
-      <ul className="m-0 mt-16 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="m-0 mt-12 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2 lg:grid-cols-3">
         {RESULTS.findings.map((finding) => (
           <li key={finding.figure} className="flex flex-col gap-3 border-t border-line pb-9 pt-5">
-            <span className="font-display text-[28px] font-semibold leading-none tracking-[-0.018em] tabular-nums">
-              {finding.figure}
-            </span>
-            <span className="max-w-[40ch] text-[16px] leading-snug text-pretty">
+            <span className="t-h1 leading-none tabular-nums">{finding.figure}</span>
+            <span className="max-w-[40ch] leading-snug text-pretty">
               <Actors text={finding.text} />
             </span>
           </li>

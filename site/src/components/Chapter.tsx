@@ -8,19 +8,22 @@ import { Reveal } from './Reveal';
  * share a row where the page is wide, with the line on the claim's baseline, and stack where it
  * is not.
  */
-export function Chapter({ copy, children }: { copy: ChapterCopy; children: ReactNode }) {
+/** What a section needs to say: where it is, its claim, and the line under it. */
+export type SectionCopy = Pick<ChapterCopy, 'title' | 'body'> & { id: string };
+
+export function Chapter({ copy, children }: { copy: SectionCopy; children: ReactNode }) {
   return (
     <section
       id={copy.id}
       aria-labelledby={`${copy.id}-title`}
-      className="scroll-mt-16 border-t border-line py-20 sm:py-24 lg:py-32"
+      className="scroll-mt-16 border-t border-line py-14 sm:py-16 lg:py-20"
     >
       <div className="page">
-        <Reveal className="mb-10 grid gap-5 sm:mb-14 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:items-end lg:gap-x-16">
-          <h2 id={`${copy.id}-title`} className="display-lg max-w-[18ch]">
+        <Reveal className="mb-8 grid gap-4 sm:mb-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:items-end lg:gap-x-16">
+          <h2 id={`${copy.id}-title`} className="t-title max-w-[18ch]">
             {copy.title}
           </h2>
-          <p className="lead max-w-[40ch] lg:pb-1.5">
+          <p className="t-lead max-w-[40ch] lg:pb-1">
             <Actors text={copy.body} />
           </p>
         </Reveal>
