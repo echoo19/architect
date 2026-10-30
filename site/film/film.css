@@ -1,0 +1,66 @@
+@import '../src/styles.css';
+
+@source './';
+
+/*
+ * The film's page is one 1920 by 1080 frame on the product's flat ground. The mocks are laid out
+ * at product size (no zoom of their own) and the camera scales them as a whole, so their text
+ * stays sharp.
+ */
+
+:root {
+  --mock-zoom: 1;
+}
+
+html,
+body {
+  width: 1920px;
+  height: 1080px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ui-ground);
+}
+
+body {
+  font-size: 16px;
+}
+
+#root {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+}
+
+.film-layer {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* Everything the camera moves: centered in the frame, and scaled about the part being shown. */
+.film-cam {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+.film-cam-full {
+  inset: 0;
+  left: 0;
+  top: 0;
+  translate: none;
+  width: 1920px;
+  height: 1080px;
+}
+
+.film-cam-full .film-view {
+  width: 100%;
+  height: 100%;
+}
+
+.film-white {
+  filter: brightness(0) invert(0.96);
+}

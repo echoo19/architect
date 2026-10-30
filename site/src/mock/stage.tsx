@@ -82,6 +82,8 @@ export function useStagePlayback<T extends HTMLElement>(threshold = 0.3) {
   useEffect(() => {
     const node = ref.current;
     if (!node || typeof IntersectionObserver === 'undefined') return;
+    // The film page plays a stage by seeking its animations, and sets the stage's state itself.
+    if (document.documentElement.hasAttribute('data-film')) return;
     const watcher = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
