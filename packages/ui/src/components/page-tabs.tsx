@@ -51,6 +51,13 @@ export function PageTabs<T extends string>({
           <Tabs.Trigger
             key={tab.value}
             value={tab.value}
+            // Radix focuses a clicked tab from script, which draws the keyboard ring for a mouse
+            // click; a click opens the tab without moving focus, and the keyboard is unchanged.
+            onMouseDown={(event) => {
+              if (event.button !== 0 || event.ctrlKey) return;
+              event.preventDefault();
+              onValueChange(tab.value);
+            }}
             className={cn(
               'relative flex h-9 items-center gap-2 rounded-full px-4 text-ui font-medium',
               'transition-colors duration-150 hover:bg-hover',

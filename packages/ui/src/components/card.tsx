@@ -54,11 +54,22 @@ export interface CardRowProps {
   onClick?: () => void;
   /** Accessible name for a clickable row whose visible text is not enough on its own. */
   label?: string;
+  /** The row is the one chosen among its card's rows, such as the one whose detail shows beside. */
+  selected?: boolean;
   className?: string;
 }
 
 /** A row inside a flush card, split from the one above by a hairline. */
-export function CardRow({ icon, title, detail, end, onClick, label, className }: CardRowProps) {
+export function CardRow({
+  icon,
+  title,
+  detail,
+  end,
+  onClick,
+  label,
+  selected,
+  className,
+}: CardRowProps) {
   const body = (
     <>
       {icon && <span className="flex shrink-0 items-center">{icon}</span>}
@@ -71,6 +82,7 @@ export function CardRow({ icon, title, detail, end, onClick, label, className }:
   );
   const classes = cn(
     'flex min-h-14 w-full items-center gap-3 border-t border-line px-6 py-2.5 text-left text-ui',
+    selected && 'bg-selected',
     className,
   );
   if (!onClick) return <div className={classes}>{body}</div>;
@@ -78,6 +90,7 @@ export function CardRow({ icon, title, detail, end, onClick, label, className }:
     <button
       type="button"
       aria-label={label}
+      aria-pressed={selected}
       onClick={onClick}
       className={cn(
         classes,
