@@ -86,7 +86,8 @@ Nothing below 13px except keyboard hints.
 The sidebar leads with Architect's places, an icon and a word each: Lab, Fields, Experiments,
 Models, Compute (decision 073). The agents and their chats follow under a hairline. A place's page
 has a 40px title and nothing under it; its one primary action, if it has one, sits at the title's
-right.
+right. In the personal edition (decision 076) there are no places: New agent and the agents lead,
+and the wordmark reads "Architect" instead of "Architect Lab".
 
 - **Card and CardGrid.** A card is the flat card surface with a title row: the title at 15px Inter
   Tight, an optional 16px icon before it and one optional control after it. Rows inside a card
