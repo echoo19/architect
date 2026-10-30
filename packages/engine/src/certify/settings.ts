@@ -18,3 +18,13 @@ export function calibrationSize(job: Job, trained: number): number {
   const spare = trained - (calibration + train + dev + test);
   return Math.max(0, Math.min(spare, Math.max(Math.ceil(DEFAULT_SHARE * trained), DEFAULT_LEAST)));
 }
+
+/**
+ * The attempts a certified locked test makes beyond its first seed's: k - 1 more at each of its
+ * `lockedTests` tasks and k at each of `calibration` tasks. None without a certificate.
+ */
+export function certifyAttempts(job: Job, lockedTests: number, calibration: number): number {
+  const k = job.evaluation.certify?.k;
+  if (k === undefined || calibration === 0) return 0;
+  return (k - 1) * lockedTests + k * calibration;
+}

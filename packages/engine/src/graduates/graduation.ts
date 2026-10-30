@@ -73,23 +73,34 @@ export function adapterFile(paths: DataPaths, freeze: GraduateFreeze): AdapterFi
  * computer. The card in the app's own records keeps the name.
  */
 export function packagedReport(report: ReportCard): ReportCard {
-  const perOrg = report.test.perOrg;
-  if (perOrg === undefined) return report;
-  const real = [...new Set(perOrg.filter((row) => !row.synthetic).map((row) => row.org))];
+  const perOrg = report.test.perOrg ?? [];
+  const { certificate } = report;
+  const checks = certificate?.issued === true ? certificate.checks : [];
+  const real = [
+    ...new Set(
+      [...perOrg, ...checks].flatMap((row) =>
+        row.synthetic || row.org === undefined ? [] : [row.org],
+      ),
+    ),
+  ];
+  if (real.length === 0) return report;
   const label = (org: string) => {
     const n = real.indexOf(org) + 1;
     return n === 1 ? 'Real organization' : `Real organization ${n}`;
   };
+  const anonymous = <T extends { org?: string; orgName?: string; synthetic: boolean }>(row: T) =>
+    row.synthetic || row.org === undefined
+      ? row
+      : { ...row, org: `real-${real.indexOf(row.org) + 1}`, orgName: label(row.org) };
   return {
     ...report,
     test: {
       ...report.test,
-      perOrg: perOrg.map((row) =>
-        row.synthetic
-          ? row
-          : { ...row, org: `real-${real.indexOf(row.org) + 1}`, orgName: label(row.org) },
-      ),
+      ...(report.test.perOrg === undefined ? {} : { perOrg: report.test.perOrg.map(anonymous) }),
     },
+    ...(certificate?.issued === true
+      ? { certificate: { ...certificate, checks: certificate.checks.map(anonymous) } }
+      : {}),
   };
 }
 

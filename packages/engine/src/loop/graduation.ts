@@ -1,5 +1,6 @@
 import {
   newId,
+  type Certificate,
   type Harness,
   type Job,
   type ReportCard,
@@ -30,6 +31,7 @@ import {
   STUDENT_CONFIG,
   type AttemptConfig,
 } from './configuration';
+import { certify } from './certify';
 import { must } from './errors';
 import { evaluate, type EvaluationPurpose } from './evaluation';
 import { settleExperimentCompute } from './experiments';
@@ -356,6 +358,7 @@ export async function lockedTestReport(
   run: Run,
   test: LockedTest,
   attempts: readonly StoredAttempt[],
+  certificate: Certificate | null = null,
 ): Promise<ReportCard> {
   const rounds = state.rounds();
   const tester = await state.resources.student(test.target);
@@ -391,16 +394,22 @@ export async function lockedTestReport(
           },
         }),
   });
+  const certified = certificate === null ? card : { ...card, certificate };
   return seeds.length < 2
-    ? card
-    : { ...card, test: { ...card.test, repeats: repeatsOf(seeds, attempts) } };
+    ? certified
+    : { ...certified, test: { ...certified.test, repeats: repeatsOf(seeds, attempts) } };
 }
 
 /**
  * Writes the graduate's version 1 and prepares its installation on this computer, then files the
  * report card, records the version and finishes the run in one transaction.
  */
-async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreeze): Promise<void> {
+async function graduate(
+  state: RunState,
+  test: LockedTest,
+  frozen: GraduateFreeze,
+  certificate: Certificate | null,
+): Promise<void> {
   const { paths, store, deps, runId } = state.ctx;
   const { job } = state;
   const attempts = lockedTestAttempts(state, frozen, test.target);
@@ -414,7 +423,7 @@ async function graduate(state: RunState, test: LockedTest, frozen: GraduateFreez
     ...state.run,
     totals: { ...state.run.totals, wallMs: Math.round(state.budget.wallMs()) },
   };
-  const report = await lockedTestReport(state, run, test, attempts);
+  const report = await lockedTestReport(state, run, test, attempts, certificate);
   const { createdAt } = report;
   const contract = new ContractBook(store, state.ctx.clock).ensure(job);
   const graduation = {
@@ -468,5 +477,11 @@ export async function lockedTest(state: RunState): Promise<void> {
     const seeds = firstSeedsOf(state, frozen);
     if (!(await runLockedTest(state, frozen, test, 'locked_test', seeds, without))) return;
   }
-  await graduate(state, test, frozen);
+  const certificate = await certify(state, frozen, {
+    ...test,
+    config: frozenConfig(frozen),
+    firstSeed: must(testSeedsOf(state, frozen)[0], 'The first locked-test seed'),
+  });
+  if (certificate === false) return;
+  await graduate(state, test, frozen, certificate);
 }

@@ -70,6 +70,8 @@ export interface ComparisonConfig {
    * test split when the job has organizations it never trains on (`fieldOf`).
    */
   lockedTests?: number;
+  /** The attempts a certified job's locked test adds (decision 077), set like `lockedTests`. */
+  certifyAttempts?: number;
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
@@ -297,7 +299,8 @@ interface Need {
 
 function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: ReadonlySet<ArmId>): Need {
   const dev = job.splits.dev * job.evaluation.devRepeats;
-  const test = lockedTestsOf(job, config);
+  // A certified locked test attempts each calibration and test task k times (decision 077).
+  const test = lockedTestsOf(job, config) + (config.certifyAttempts ?? 0);
   const trainBatch = job.evaluation.trainBatch;
   // A refinement round at its most: the train batch, then both versions twice for a confirmation.
   const round = trainBatch + 4 * dev;

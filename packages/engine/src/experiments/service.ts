@@ -475,7 +475,12 @@ export class ExperimentService {
     const { input } = record;
     const files = new ComparisonFiles(this.out(record.id));
     const source = readJob(input.jobDir);
-    const config = { ...configOf(input), lockedTests: fieldOf(input.jobDir, source).lockedTests };
+    const field = fieldOf(input.jobDir, source);
+    const config = {
+      ...configOf(input),
+      lockedTests: field.lockedTests,
+      certifyAttempts: field.certifyAttempts,
+    };
     const base = comparisonJob(source, config, DEFAULT_MODELS);
     const plan = files.readPlan();
     const calibration = files.readSweep('calibration');
