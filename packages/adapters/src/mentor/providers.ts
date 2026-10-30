@@ -29,6 +29,11 @@ export interface ChatTraits {
   service: string;
   /** Where Chat Completions answers. */
   baseUrl: string;
+  /**
+   * Asked for whole replies, not streams: Meta's stream ends without its usage chunk about one
+   * time in three, and a call whose usage is unknown can't be priced; a whole reply carries it.
+   */
+  unstreamed: boolean;
   /** OpenAI and Meta rank `developer` above `system`; the others only know `system`. */
   systemRole: SystemRole;
   /** The field that caps output. Reasoning tokens count against it. */
@@ -48,6 +53,7 @@ export interface ChatTraits {
 }
 
 const PLAIN: Omit<ChatTraits, 'service' | 'baseUrl'> = {
+  unstreamed: false,
   systemRole: 'system',
   tokenLimitField: 'max_tokens',
   json: 'prompt',
@@ -78,6 +84,7 @@ export function chatTraits(config: ModelMentorConfig): ChatTraits {
         ...PLAIN,
         service: 'Meta',
         baseUrl,
+        unstreamed: true,
         systemRole: 'developer',
         tokenLimitField: 'max_completion_tokens',
         json: 'schema',

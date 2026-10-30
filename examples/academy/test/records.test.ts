@@ -6,10 +6,11 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { buildAcademy, buildRecordTasks, readAcademyFolder } from '../src';
 import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
+import { readPolicy, topicHistory } from '../src/reference/rules';
 import { assign, diagnoseRecord, history } from '../src/reference/solver';
 import { AgentTools, JobFiles } from '../src/reference/tools';
 import type { AssignRequest, HistoryRequest, WrongAnswer } from '../src/tasks/records';
-import { job, paramsOf } from './helpers';
+import { job, paramsOf, todayOf } from './helpers';
 import type { CheckerContext } from './helpers';
 
 /**
@@ -83,21 +84,72 @@ describe('tasks from an academy folder without question text', () => {
   });
 
   it('are passed by the reference and failed by a wrong answer, with no staff notes file', () => {
-    for (const task of tasks) {
-      const { tools, answer } = solve(task);
-      if (task.expected.kind === 'facts') {
-        for (const fact of task.expected.facts) {
-          expect((answer as Record<string, unknown>)[fact.path], task.id).toEqual(fact.value);
-        }
-        continue;
-      }
-      const rows = [...tools.appendedTo('assignments.csv')];
-      expect(job.check(task, context(rows, answer)), task.id).toMatchObject({ pass: true });
-      if (task.type === 'diagnose') {
-        const wrong = { ...(answer as Record<string, JsonValue>), correct: 'Z' };
-        expect(job.check(task, context(rows, wrong)).reason).toMatch(/^correct is/);
-      }
+    passedByTheReference(tasks, files);
+  });
+
+  it('come up to the count asked for of each skill', () => {
+    const few = buildRecordTasks(files, { ...options, perSkill: 2 });
+    for (const skill of ['diagnose', 'history', 'assign']) {
+      expect(
+        few.filter((t) => t.type === skill),
+        skill,
+      ).toHaveLength(2);
     }
+    // More than the eight a skill had at most, from an academy with records enough for them.
+    const academy = readAcademyFolder(job.dataDir('bramble'));
+    const many = buildRecordTasks(academy, {
+      org: 'bramble',
+      seed: 7,
+      asOf: todayOf(job.allTasks().find((t) => t.org === 'bramble')!),
+      perSkill: 12,
+    });
+    for (const skill of ['diagnose', 'history', 'assign']) {
+      expect(
+        many.filter((t) => t.type === skill),
+        skill,
+      ).toHaveLength(12);
+    }
+  });
+
+  it('name no module when the records leave it blank', () => {
+    const blank = new Map([
+      ...files,
+      ['attempts.csv', blankColumn(files.get('attempts.csv')!, 'module')],
+      ['tests.csv', blankColumn(files.get('tests.csv')!, 'module')],
+    ]);
+    const built = buildRecordTasks(blank, options);
+    const diagnoses = built.filter((t) => t.type === 'diagnose');
+    expect(diagnoses.length).toBeGreaterThan(0);
+    for (const task of diagnoses) {
+      expect(task.prompt, task.id).not.toMatch(/module/);
+      expect(task.prompt, task.id).toMatch(/question \d+ of (Math|Reading and Writing) on /);
+    }
+    passedByTheReference(built, blank);
+  });
+
+  it('work from a policy without the escalation days or the first hint', () => {
+    const policy = files
+      .get('policy.md')!
+      .split('\n')
+      .filter((line) => !/^\| (Days those wrong answers|First hint) /.test(line))
+      .join('\n');
+    const shorter = new Map([...files, ['policy.md', policy]]);
+    const built = buildRecordTasks(shorter, options);
+    expect(new Set(built.map((t) => t.type))).toEqual(new Set(['diagnose', 'history', 'assign']));
+    passedByTheReference(built, shorter);
+    // Without the days, the wrong answers that call for a note are counted over the window:
+    // two wrong answers a month back call for one, where a 14-day count would not.
+    const policyRead = readPolicy(policy);
+    expect(policyRead).toMatchObject({ escalateDays: null, hintRule: null, window: 3 });
+    const rows = ['2026-09-20', '2026-09-21', '2026-09-22'].map((taken_on, i) => ({
+      taken_on,
+      module: '1',
+      number: String(i + 1),
+      question_id: `Q${i}`,
+      result: i === 1 ? 'right' : 'wrong',
+    }));
+    expect(topicHistory(rows, policyRead, AS_OF).escalate).toBe(true);
+    expect(topicHistory(rows, readPolicy(files.get('policy.md')!), AS_OF).escalate).toBe(false);
   });
 });
 
@@ -126,28 +178,53 @@ describe('tasks from an export with full tests, labels written several ways and 
   });
 
   it('are passed by the reference', () => {
-    for (const task of exported) {
-      const { tools, answer } = solve(task, records, asOf);
-      if (task.expected.kind === 'facts') {
-        for (const fact of task.expected.facts) {
-          expect((answer as Record<string, unknown>)[fact.path], task.id).toEqual(fact.value);
-        }
-        continue;
-      }
-      const rows = [...tools.appendedTo('assignments.csv')];
-      expect(job.check(task, context(rows, answer, records)), task.id).toMatchObject({
-        pass: true,
-      });
-    }
+    passedByTheReference(exported, records, asOf);
   });
 });
+/** Every task is passed by the reference, and a diagnosis with the wrong choice is failed. */
+function passedByTheReference(
+  built: readonly Task[],
+  folder: ReadonlyMap<string, string>,
+  asOf = AS_OF,
+) {
+  for (const task of built) {
+    const { tools, answer } = solve(task, folder, asOf);
+    if (task.expected.kind === 'facts') {
+      for (const fact of task.expected.facts) {
+        expect((answer as Record<string, unknown>)[fact.path], task.id).toEqual(fact.value);
+      }
+      continue;
+    }
+    const rows = [...tools.appendedTo('assignments.csv')];
+    expect(job.check(task, context(rows, answer, folder)), task.id).toMatchObject({ pass: true });
+    if (task.type === 'diagnose') {
+      const wrong = { ...(answer as Record<string, JsonValue>), correct: 'Z' };
+      expect(job.check(task, context(rows, wrong, folder)).reason).toMatch(/^correct is/);
+    }
+  }
+}
+
+/** A CSV with one column's cells left blank, as an export that doesn't record it. */
+function blankColumn(text: string, column: string): string {
+  const [header = '', ...rows] = text.trimEnd().split('\n');
+  const at = header.split(',').indexOf(column);
+  return `${[
+    header,
+    ...rows.map((row) =>
+      row
+        .split(',')
+        .map((cell, i) => (i === at ? '' : cell))
+        .join(','),
+    ),
+  ].join('\n')}\n`;
+}
 
 describe("tasks from an academy folder through the runner's tools", () => {
   const sandbox = createSandbox();
-  // The job's files, less the ones this folder doesn't have.
-  const declared = job.job().data.files.filter((file) => files.has(file.name));
+  // Every file the job declares: the optional ones this folder lacks are simply not there.
+  const declared = job.job().data.files;
   const checker = createChecker({
-    job: { ...job.job(), data: { files: declared } },
+    job: job.job(),
     jobDir: job.dir,
     sandbox,
   });

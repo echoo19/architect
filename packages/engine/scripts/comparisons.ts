@@ -10,10 +10,12 @@
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
  *     [--adapter-protocol four-cell|reduced] [--smoke-tasks N]
  *     [--providers DeepInfra|any] [--local-model <name>] [--headroom N] [--parallel N]
- *     [--concurrency N] [--confirm] [--tasks N]
+ *     [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N]
  *
  * Commands:
- *   plan    prices an attempt on the calibration tasks (the only spending) and projects every arm
+ *   plan    prices an attempt on the calibration tasks (the only spending) and projects every arm;
+ *           for a job with organizations Spark also studies them once, at most $1, and writes its
+ *           brief to study.json, which --confirm-study with the brief's token confirms for every arm
  *   run     plans, then runs the funded arms; stops for --confirm when the caps cut the plan down
  *   probe   times this computer's build on --tasks calibration tasks: uses the GPU, owner only
  *   report  rebuilds report.md and report.json from the output folder's records
@@ -56,7 +58,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--tasks N]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N]';
 
 class UsageError extends Error {}
 
@@ -142,6 +144,7 @@ function parse(args: readonly string[]): Parsed {
   };
   const regression = values.get('--regression');
   const localModel = values.get('--local-model');
+  const studyToken = values.get('--confirm-study');
   return {
     command: command as Command,
     request: {
@@ -160,6 +163,7 @@ function parse(args: readonly string[]): Parsed {
       },
       confirm: flags.has('--confirm'),
       planOnly: command === 'plan',
+      ...(studyToken === undefined ? {} : { studyToken }),
     },
     parallel: Math.max(1, Math.floor(number('--parallel', 2))),
     meter: flags.has('--meter'),
@@ -244,7 +248,7 @@ async function main(): Promise<number> {
         log(`Report written to ${request.out}: ${outcome}.`);
         if (outcome === 'needs_confirmation') {
           log(
-            'The caps cut the plan down. Run it again with --confirm to go ahead with what fits.',
+            "The plan waits for you: when the caps cut it down, run it again with --confirm to go ahead with what fits; for a job with organizations, confirm Spark's brief with --confirm-study and its token.",
           );
           return 3;
         }

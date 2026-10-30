@@ -13,6 +13,7 @@ import {
   type ComparisonReport,
   type CreditSummary,
   type Job,
+  type OrgTypeResult,
   type Paired,
   type PassTarget,
   type RepeatRow,
@@ -20,6 +21,7 @@ import {
   type RunStopReason,
   type RuntimeIdentity,
   type Spend,
+  type StudyRecord,
   type TaskSweep,
 } from '@architect/shared';
 import { configurationKey } from '../loop/configuration';
@@ -33,6 +35,7 @@ import type { EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRun } from '../store/records';
 import { computeSoFar } from '../training/budget';
 import type { ComparisonEngine } from './engine';
+import { lockedTestsOf, type Field } from './field';
 import { plainStrings } from './plain';
 import { ARM_ORDER, billingOf, type ComparisonConfig } from './projection';
 import type { PlanRecord, SweepAttempt } from './records';
@@ -44,6 +47,10 @@ export interface ReportInput {
   config: ComparisonConfig;
   plan: PlanRecord | null;
   base: Job;
+  /** The job's organizations as its folder lists them; none for a one-organization job. */
+  field: Field;
+  /** Spark's study of a field job's organizations, which every arm shared; null for any other. */
+  study: StudyRecord | null;
   calibration: readonly SweepAttempt[];
   regression: { job: Job; attempts: readonly SweepAttempt[] } | null;
   /** The request journal's account of the student's credit; null when nothing read it. */
@@ -163,6 +170,40 @@ function attemptsOf(store: EngineStore, slice: Slice): StoredAttempt[] {
     .filter((attempt) => attempt.seed === slice.seed);
 }
 
+/** Whether a task is of an organization the job never trains on. */
+function unseen(input: ReportInput, taskId: string): boolean {
+  const org = input.field.orgOf.get(taskId);
+  return input.field.organizations.some((item) => item.id === org && item.role === 'transfer');
+}
+
+/**
+ * Each task type at each organization, in the job's type order and the organizations' order:
+ * seen when the job trains on it. Empty for a one-organization job.
+ */
+function perOrgOf(input: ReportInput, attempts: readonly StoredAttempt[]): OrgTypeResult[] {
+  return input.base.taskTypes.flatMap((type) =>
+    input.field.organizations.flatMap((org) => {
+      const here = attempts.filter(
+        (attempt) =>
+          attempt.taskType === type.id && input.field.orgOf.get(attempt.taskId) === org.id,
+      );
+      if (here.length === 0) return [];
+      return [
+        {
+          type: type.id,
+          label: type.label,
+          org: org.id,
+          orgName: org.name,
+          seen: org.role === 'train',
+          synthetic: org.synthetic,
+          pass: here.filter((attempt) => attempt.check.pass).length,
+          total: here.length,
+        },
+      ];
+    }),
+  );
+}
+
 /** The job's target as observed counts: met only by a whole test with enough passes. */
 function passTargetOf(input: ReportInput, pass: number, total: number): PassTarget {
   const passRate = input.base.requirements.passRate;
@@ -190,6 +231,9 @@ function rowOf(input: ReportInput, slice: Slice): ArmRow | null {
   const applied = frozen !== null && slice.config === configurationKey(frozenConfig(frozen));
   const adapter = frozen?.configuration?.adapter ?? null;
   const pass = attempts.filter((attempt) => attempt.check.pass).length;
+  // The target is judged on the organizations it trained on; one it never saw is reported apart.
+  const judged = attempts.filter((attempt) => !unseen(input, attempt.taskId));
+  const perOrg = perOrgOf(input, attempts);
   return {
     arm: slice.arm,
     label: labelOf(slice),
@@ -197,11 +241,16 @@ function rowOf(input: ReportInput, slice: Slice): ArmRow | null {
     configuration: slice.configuration,
     seed: slice.seed,
     scenarios: counted(pass, attempts.length),
-    passTarget: passTargetOf(input, pass, attempts.length),
+    passTarget: passTargetOf(
+      input,
+      judged.filter((attempt) => attempt.check.pass).length,
+      judged.length,
+    ),
     perType: perTypeOf(
       input.base,
       attempts.map((attempt) => ({ type: attempt.taskType, pass: attempt.check.pass })),
     ),
+    ...(perOrg.length === 0 ? {} : { perOrg }),
     refusals: attempts.filter((attempt) => attempt.stopReason === 'refused').length,
     latencyMs: latencyOf(attempts.map((attempt) => attempt.latencyMs)),
     coldStartMs: measured.find((item) => item.coldStartMs !== null)?.coldStartMs ?? null,
@@ -215,7 +264,7 @@ function rowOf(input: ReportInput, slice: Slice): ArmRow | null {
     harnessHash: frozen?.harnessHash ?? null,
     adapterSha256: applied ? (adapter?.sha256 ?? null) : null,
     sampling: frozen?.configuration?.decoding ?? null,
-    complete: attempts.length >= input.base.splits.test,
+    complete: attempts.length >= lockedTestsOf(input.base, input.config),
   };
 }
 
@@ -323,7 +372,7 @@ function repeatRow(input: ReportInput, slices: readonly Slice[]): RepeatRow | nu
     }),
     everySeed: counted(every, tasks.length),
     flipped,
-    complete: maps.every((map) => map.size >= input.base.splits.test),
+    complete: maps.every((map) => map.size >= lockedTestsOf(input.base, input.config)),
   };
 }
 
@@ -1012,6 +1061,31 @@ function seedsDisclosure(plan: ComparisonReport['plan']): string {
   return sentences.join(' ');
 }
 
+/**
+ * For a job with organizations: what the locked test holds, how the target is judged, and the
+ * study every arm shared. Nothing for a one-organization job.
+ */
+function fieldDisclosures(input: ReportInput): string[] {
+  const { organizations } = input.field;
+  const sealed = organizations.filter((org) => org.role === 'transfer');
+  if (organizations.length === 0) return [];
+  const lines: string[] = [];
+  if (sealed.length > 0) {
+    const named = sealed
+      .map((org) => `${org.name} (${org.synthetic ? 'synthetic' : 'real'})`)
+      .join(', ');
+    lines.push(
+      `Each locked test holds ${lockedTestsOf(input.base, input.config)} tasks: the test split of the organizations the arms trained on (${input.base.splits.test}), and every task of the organizations no arm ever saw: ${named}. The target is judged on the trained organizations alone; each organization never seen is reported on its own, by skill, and never averaged in.`,
+    );
+  }
+  if (input.study !== null) {
+    lines.push(
+      `Spark studied the trained organizations' files once for the whole comparison (${money(input.study.cost.usd)}, ${input.study.cost.calls} call${input.study.cost.calls === 1 ? '' : 's'}${input.study.confirmedAt === undefined ? '' : `, confirmed ${input.study.confirmedAt}`}); every arm started from that same brief, the bare arm without its procedure. The totals count it once.`,
+    );
+  }
+  return lines;
+}
+
 /** What a reader needs before trusting a number, made from the same records as the tables. */
 function disclosures(
   input: ReportInput,
@@ -1030,6 +1104,7 @@ function disclosures(
     'Claims rest on the locked test alone. Dev gains were picked by the keep rule, so they lean upward and are not claimed.',
   );
   lines.push(seedsDisclosure(plan));
+  lines.push(...fieldDisclosures(input));
   if (backends.some((table) => table.paired.length > 0)) {
     lines.push(
       "A pair's difference in pass rate is the first arm's less the second's, with a 95% interval for paired proportions: Newcombe's hybrid score method, his method 10 (Statistics in Medicine, 1998), made from the wins, losses, both and neither counts. When the interval includes zero, no difference was shown, which is not the same as showing there is none.",
@@ -1146,7 +1221,8 @@ function totalsOf(input: ReportInput, arms: readonly ArmReport[]): ComparisonRep
     regressionUsd: addKnown((input.regression?.attempts ?? []).map((attempt) => attempt.usd)),
   };
   return {
-    sparkUsd: arms.reduce((sum, arm) => sum + arm.spent.sparkUsd, 0),
+    // Spark's study of the organizations is shared by every arm, so it is counted here once.
+    sparkUsd: arms.reduce((sum, arm) => sum + arm.spent.sparkUsd, 0) + (input.study?.cost.usd ?? 0),
     studentUsd: addKnown(Object.values(studentParts)),
     studentParts,
     computeUsd: arms.reduce((sum, arm) => sum + arm.spent.computeUsd, 0),

@@ -33,9 +33,14 @@ export interface Policy {
   bandHigh: number;
   window: number;
   escalateWrong: number;
-  escalateDays: number;
+  /**
+   * Null when the policy gives no number of days, as a real academy's may not: the wrong answers
+   * that call for a staff note are then counted over the history window.
+   */
+  escalateDays: number | null;
   counts: 'first' | 'every';
-  hintRule: 'targeted' | 'general';
+  /** Null when the policy has no first-hint row, as an academy without a hint catalog. */
+  hintRule: 'targeted' | 'general' | null;
 }
 
 /**
@@ -94,21 +99,27 @@ function readPolicyText(text: string): Policy {
 }
 
 function readPolicyTable(text: string): Policy {
-  const value = (setting: string): string => {
+  const optional = (setting: string): string | null => {
     const line = text.split('\n').find((row) => row.startsWith(`| ${setting} |`));
-    if (!line) throw new Error(`policy.md has no row "${setting}"`);
-    return line.split('|')[2]!.trim();
+    return line === undefined ? null : line.split('|')[2]!.trim();
+  };
+  const value = (setting: string): string => {
+    const found = optional(setting);
+    if (found === null) throw new Error(`policy.md has no row "${setting}"`);
+    return found;
   };
   const number = (setting: string) => Number(value(setting));
+  const days = optional(POLICY_SETTINGS.escalateDays);
+  const hint = optional(POLICY_SETTINGS.hintRule);
   return {
     practiceCount: number(POLICY_SETTINGS.practiceCount),
     bandLow: number(POLICY_SETTINGS.bandLow),
     bandHigh: number(POLICY_SETTINGS.bandHigh),
     window: number(POLICY_SETTINGS.window),
     escalateWrong: number(POLICY_SETTINGS.escalateWrong),
-    escalateDays: number(POLICY_SETTINGS.escalateDays),
+    escalateDays: days === null ? null : Number(days),
     counts: value(POLICY_SETTINGS.counts).startsWith('first') ? 'first' : 'every',
-    hintRule: value(POLICY_SETTINGS.hintRule).includes('error') ? 'targeted' : 'general',
+    hintRule: hint === null ? null : hint.includes('error') ? 'targeted' : 'general',
   };
 }
 
@@ -123,10 +134,12 @@ export interface History {
 export function topicHistory(rows: readonly CodeRow[], policy: Policy, asOf: string): History {
   const { latest, counted } = historyWindow(rows, policy, asOf);
   const correct = latest.filter((row) => row.result === 'right').length;
-  const since = addDays(asOf, 1 - policy.escalateDays);
-  const recentWrong = counted.filter(
-    (row) => row.taken_on! >= since && row.result === 'wrong',
-  ).length;
+  const { escalateDays } = policy;
+  const recent =
+    escalateDays === null
+      ? latest
+      : counted.filter((row) => row.taken_on! >= addDays(asOf, 1 - escalateDays));
+  const recentWrong = recent.filter((row) => row.result === 'wrong').length;
   return {
     attempts: latest.length,
     correct,
@@ -200,6 +213,7 @@ export function firstHints(
   errorIds: readonly string[],
   policy: Policy,
 ): string[] {
+  if (policy.hintRule === null) throw new Error('policy.md has no row "First hint"');
   const general = topicHints.filter((row) => row.error_id === '').map((row) => row.hint_id!);
   if (policy.hintRule === 'general') return general;
   const targeted = topicHints

@@ -42,6 +42,36 @@ export const ChatChunkWire = z.object({
 });
 export type ChatChunkWire = z.output<typeof ChatChunkWire>;
 
+/** A reply asked for unstreamed: the whole message at once, with its usage. */
+export const ChatCompletionWire = z.object({
+  choices: z
+    .array(
+      z.object({
+        message: z
+          .object({
+            content: z.string().nullish(),
+            reasoning: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string().nullish(),
+                  function: z
+                    .object({ name: z.string().nullish(), arguments: z.string().nullish() })
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          })
+          .nullish(),
+        finish_reason: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+  usage: UsageWire.nullish(),
+});
+export type ChatCompletionWire = z.output<typeof ChatCompletionWire>;
+
 const ModelEntry = z.object({ id: z.string() });
 
 /** `GET /models`: the standard `{ data: [...] }`, or a bare array as some hosts send. */

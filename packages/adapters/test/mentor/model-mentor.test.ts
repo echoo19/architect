@@ -8,7 +8,7 @@ import {
 import { afterEach, describe, expect, it } from 'vitest';
 import { createModelMentor, MentorReplyError } from '../../src/mentor/model-mentor';
 import { mentorConfig } from '../helpers/configs';
-import { textReply, type UsageBody } from '../helpers/chat';
+import { answer, textReply, type UsageBody } from '../helpers/chat';
 import {
   openEventStream,
   routeTo,
@@ -65,8 +65,8 @@ async function mentorOn(
 /** Answers every request with the next reply in the list (the last one repeats). */
 function replies(...streams: unknown[][]): Handler {
   let served = 0;
-  return (_request, res) => {
-    sendEventStream(res, streams[Math.min(served++, streams.length - 1)] ?? []);
+  return (request, res) => {
+    answer(request, res, streams[Math.min(served++, streams.length - 1)] ?? []);
   };
 }
 
@@ -83,7 +83,7 @@ async function failure(promise: Promise<unknown>): Promise<AdapterError> {
 }
 
 describe('the Meta request', () => {
-  it('is a streamed chat completion with a developer message and Meta’s token field', async () => {
+  it('is a whole (unstreamed) chat completion with a developer message and Meta’s token field', async () => {
     const { mentor, server } = await mentorOn(replies(reply('ok')));
     await mentor.complete(REQUEST);
 
@@ -91,19 +91,39 @@ describe('the Meta request', () => {
     expect(request?.method).toBe('POST');
     expect(request?.path).toBe('/v1/chat/completions');
     expect(request?.headers.authorization).toBe(`Bearer ${API_KEY}`);
-    expect(request?.headers.accept).toBe('text/event-stream');
+    expect(request?.headers.accept).toBe('application/json');
     expect(body(request)).toMatchObject({
       model: mentorPreset('meta-spark').model,
       messages: [
         { role: 'developer', content: 'You are the mentor.' },
         { role: 'user', content: 'Diagnose.' },
       ],
-      stream: true,
-      stream_options: { include_usage: true },
+      stream: false,
       reasoning_effort: 'medium',
       max_completion_tokens: 4096,
     });
     expect(body(request)).not.toHaveProperty('max_tokens');
+    expect(body(request)).not.toHaveProperty('stream_options');
+  });
+
+  it('reads the usage from the whole reply, which Meta’s stream sometimes leaves out', async () => {
+    const { mentor } = await mentorOn(
+      replies(reply('{"title":"x"}', { prompt_tokens: 120, completion_tokens: 30 })),
+    );
+    const completion = await mentor.complete(JSON_REQUEST);
+    expect(completion.json).toEqual({ title: 'x' });
+    expect(completion.usage).toEqual({ inputTokens: 120, outputTokens: 30 });
+    expect(completion.costUsd).toBeCloseTo((120 * 1.25 + 30 * 4.25) / 1e6, 10);
+  });
+
+  it('streams for the providers whose streams carry their usage', async () => {
+    const { mentor, server } = await mentorOn(replies(reply('ok')), 'openai-gpt-6-1-sol');
+    await mentor.complete(REQUEST);
+    expect(server.requests[0]?.headers.accept).toBe('text/event-stream');
+    expect(body(server.requests[0])).toMatchObject({
+      stream: true,
+      stream_options: { include_usage: true },
+    });
   });
 
   it('never sends the parameters Meta rejects or that it ignores', async () => {
@@ -320,12 +340,25 @@ describe('results', () => {
     });
   });
 
-  it('refuses a reply that comes without token usage, since its cost could not be counted', async () => {
-    const { mentor, server } = await mentorOn(replies(reply('ok', null)));
-    const error = await failure(mentor.complete(REQUEST));
-    expect(error.code).toBe('bad_response');
-    expect(error.message).toContain('token usage');
-    expect(server.requests).toHaveLength(1);
+  it('refuses a reply that comes without token usage and marks the call uncounted', async () => {
+    for (const key of ['meta-spark', 'openai-gpt-6-1-sol'] as const) {
+      const { mentor, server } = await mentorOn(replies(reply('ok', null)), key);
+      const error = await failure(mentor.complete(REQUEST));
+      expect(error).toBeInstanceOf(MentorReplyError);
+      expect(error.code).toBe('bad_response');
+      expect(error.message).toContain('token usage');
+      expect((error as MentorReplyError).uncounted).toBe(true);
+      expect((error as MentorReplyError).costUsd).toBeNull();
+      expect(server.requests).toHaveLength(1);
+    }
+  });
+
+  it('keeps the first call’s usage when a repair call comes back without its own', async () => {
+    const first = reply('not json', { prompt_tokens: 100, completion_tokens: 30 });
+    const { mentor } = await mentorOn(replies(first, reply('{"title":"x"}', null)));
+    const error = (await failure(mentor.complete(JSON_REQUEST))) as MentorReplyError;
+    expect(error.uncounted).toBe(true);
+    expect(error.usage).toMatchObject({ inputTokens: 100, outputTokens: 30 });
   });
 });
 
@@ -435,14 +468,14 @@ describe('plain replies', () => {
 describe('retries and failures', () => {
   it('retries a 429 that asks for a wait, then a 503, then succeeds', async () => {
     let served = 0;
-    const { mentor, server } = await mentorOn((_request, res) => {
+    const { mentor, server } = await mentorOn((request, res) => {
       served += 1;
       if (served === 1) {
         sendJson(res, 429, { error: { message: 'slow down' } }, { 'retry-after': '3' });
       } else if (served === 2) {
         sendJson(res, 503, { error: { message: 'overloaded' } });
       } else {
-        sendEventStream(res, reply('finally'));
+        answer(request, res, reply('finally'));
       }
     });
 
@@ -491,7 +524,7 @@ describe('retries and failures', () => {
       } else {
         sendEventStream(res, reply('whole'));
       }
-    });
+    }, 'openai-gpt-6-1-sol');
     const completion = await mentor.complete(REQUEST);
     expect(completion.text).toBe('whole');
     expect(server.requests).toHaveLength(2);
@@ -501,7 +534,7 @@ describe('retries and failures', () => {
     const { mentor } = await mentorOn((_request, res) => {
       openEventStream(res);
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: 'thinking' } }] })}\n\n`);
-    });
+    }, 'openai-gpt-6-1-sol');
     const controller = new AbortController();
     const pending = mentor.complete(REQUEST, controller.signal);
     setTimeout(() => controller.abort(), 60);

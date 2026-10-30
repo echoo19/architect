@@ -7,6 +7,7 @@ import {
   JobSchema,
   studentPricing,
   type ArmId,
+  type StudyRecord,
   type BackendId,
   type ComparisonReport,
   type Harness,
@@ -15,6 +16,8 @@ import {
   type RuntimeIdentity,
   type StudentAdapter,
 } from '@architect/shared';
+import { isStudied } from '../drafting/study';
+import { JobStudy, STUDY_CAP_USD } from '../drafting/studying';
 import type { Clock, LoopDeps, MeterReading, RuntimeMeter } from '../loop/deps';
 import { errorMessage } from '../loop/errors';
 import { isTerminal } from '../loop/plan';
@@ -26,6 +29,7 @@ import type { StoredRun } from '../store/records';
 import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
 import { openComparisonEngine, type ComparisonEngine } from './engine';
+import { fieldOf, lockedTestsOf, type Field } from './field';
 import { GpuWindow } from './gpu';
 import { guardAllows, guardedDeps, isGuardRefusal, type Guards } from './guards';
 import { inputsChanged, pinInputs } from './inputs';
@@ -87,6 +91,11 @@ export interface ComparisonRequest {
   confirm: boolean;
   /** Stop once calibration has priced an attempt and the plan is projected. */
   planOnly: boolean;
+  /**
+   * For a job with organizations: the token of Spark's brief the person read in the output
+   * folder's `study.json`, which confirms that brief for every arm (decision 069).
+   */
+  studyToken?: string;
 }
 
 export type ComparisonOutcome = 'planned' | 'needs_confirmation' | 'finished' | 'incomplete';
@@ -390,16 +399,19 @@ function asksForGpu(config: ComparisonConfig): boolean {
  * made again, and their requests count as spent at their worst.
  */
 export async function runComparison(
-  request: ComparisonRequest,
+  asked: ComparisonRequest,
   env: ComparisonEnvironment,
 ): Promise<{ outcome: ComparisonOutcome; report: ComparisonReport }> {
-  const { config } = request;
-  const unlock = lockFolder(request.out);
-  const files = new ComparisonFiles(request.out);
+  const unlock = lockFolder(asked.out);
+  const files = new ComparisonFiles(asked.out);
   const now = () => new Date(env.clock.now()).toISOString();
   let opened: ComparisonEngine | null = null;
   try {
-    const source = readJob(request.jobDir);
+    const source = readJob(asked.jobDir);
+    const field = fieldOf(asked.jobDir, source);
+    // The locked test holds the organizations the job never trains on as well as its test split.
+    const request = withLockedTests(asked, field);
+    const { config } = request;
     const regressionDir = request.regressionJobDir;
     const inputs: PlanRecord['inputs'] = {
       job: pinJob(files, request.jobDir, source),
@@ -462,6 +474,7 @@ export async function runComparison(
       attempts: files.readSweep('probe'),
       reading: files.readProbe(),
     });
+    const study = await studyOnce(request, env, engine, deps, files, base);
 
     if (plan === null || plan.confirmedAt === null) {
       // Calibration is paid, and the regression check will be: both come off the credit first.
@@ -471,11 +484,13 @@ export async function runComparison(
         (request.regressionJobDir === undefined || regressionDone
           ? 0
           : REGRESSION_PER_TYPE * source.taskTypes.length * model.studentUsd.value);
-      const projection = project(base, config, model, committed);
+      const projection = project(base, config, model, committed, study.record?.cost.usd ?? 0);
       const fits = !needsConfirmation(projection);
       plan = {
         format: PLAN_FORMAT,
-        confirmedAt: !request.planOnly && (fits || request.confirm) ? now() : null,
+        // A field job's arms wait for the person to confirm Spark's brief as well.
+        confirmedAt:
+          !request.planOnly && study.confirmed && (fits || request.confirm) ? now() : null,
         arms: [...config.arms],
         funded: projection.arms.filter((arm) => arm.funded).map((arm) => arm.arm),
         caps: config.caps,
@@ -511,7 +526,7 @@ export async function runComparison(
         report: await report(request, env, engine, files, base, guards),
       };
     }
-    const localMinutes = (2 * base.splits.test * model.localSeconds.value) / 60;
+    const localMinutes = (2 * lockedTestsOf(base, config) * model.localSeconds.value) / 60;
     const problem = resumeProblem(plan, request, localMinutes);
     if (problem !== null) throw new Error(problem);
     // The plan is confirmed and this request matches it: its cap holds the credit from here.
@@ -548,7 +563,7 @@ export async function runComparison(
     };
 
     const credit = new Credit(engine, guards.credit, model.studentUsd.value);
-    const stopWatching = watchRounds(engine, confirmed, credit, base, env, decide);
+    const stopWatching = watchRounds(engine, confirmed, credit, base, config, env, decide);
     try {
       await holdBackAfterRelease(engine, files, decide);
       engine.recover();
@@ -570,7 +585,21 @@ export async function runComparison(
               decide({ arm, kind: 'dropped', reason: short });
               continue;
             }
-            await startArm(arm, request, env, engine, deps, files, base, confirmed, decide);
+            // The library's copy of the job drops the organizations it never trains on; each
+            // arm's copy is imported beside every task again, so it lists them as the source does.
+            const armBase = { ...base, organizations: source.organizations };
+            await startArm(
+              arm,
+              request,
+              env,
+              engine,
+              deps,
+              files,
+              armBase,
+              confirmed,
+              decide,
+              study,
+            );
           }
           await settle(engine, env, guards, arms);
         }
@@ -629,6 +658,76 @@ export async function runComparison(
   }
 }
 
+/** The request with the locked test's size the job's folder sets. */
+function withLockedTests(request: ComparisonRequest, field: Field): ComparisonRequest {
+  return { ...request, config: { ...request.config, lockedTests: field.lockedTests } };
+}
+
+/** Spark's study of a field job for the whole comparison, and whether the person confirmed it. */
+interface Study {
+  /** The brief, which every arm starts from once confirmed; null for a job with nothing to study. */
+  record: StudyRecord | null;
+  confirmed: boolean;
+}
+
+/**
+ * Spark's study of a field job's organizations, once for the whole comparison (decision 069): it
+ * reads the train organizations' files and writes its brief, which the person reads in the
+ * output folder's `study.json` and confirms by passing its token. A study already made is kept,
+ * so a later command makes no call; one the material changed since is made again. Every arm
+ * starts from the same confirmed brief. A job without organizations has nothing to study.
+ */
+async function studyOnce(
+  request: ComparisonRequest,
+  env: ComparisonEnvironment,
+  engine: ComparisonEngine,
+  deps: LoopDeps,
+  files: ComparisonFiles,
+  base: Job,
+): Promise<Study> {
+  if (!isStudied(base)) return { record: null, confirmed: true };
+  let state = await engine.jobs.studyState(base.id);
+  if (state === null || state.state === 'unstudied' || state.state === 'changed') {
+    env.log("Study: Spark reads the train organizations' files and writes its brief.");
+    state = await new JobStudy({
+      jobs: engine.jobs,
+      paths: engine.paths,
+      deps,
+      clock: env.clock,
+      // Its own cap, and never more than Spark's budget for the whole comparison.
+      capUsd: Math.min(STUDY_CAP_USD, request.config.caps.sparkUsd),
+    }).study(base.id);
+  }
+  if (state.state === 'needed' && request.studyToken !== undefined) {
+    state = await engine.jobs.confirmStudy(base.id, request.studyToken);
+  }
+  const record = await engine.jobs.studyRecord(base.id);
+  if (record === null) throw new Error("Spark's study left no brief.");
+  files.writeStudy(record);
+  const confirmed = state.state === 'confirmed';
+  if (!confirmed) {
+    env.log(
+      `Spark's brief is in ${files.study}. Read it, and to confirm it for every arm run again with: --confirm-study ${state.token}`,
+    );
+  }
+  return { record, confirmed };
+}
+
+/**
+ * Puts the comparison's confirmed brief beside an arm's job copy, which holds the same train
+ * organizations' files, so the arm starts from it; a copy whose files don't match is refused.
+ */
+async function shareStudy(engine: ComparisonEngine, job: Job, record: StudyRecord): Promise<void> {
+  if ((await engine.jobs.studyState(job.id))?.state === 'confirmed') return;
+  await engine.jobs.writeStudy(job.id, record);
+  const state = await engine.jobs.studyState(job.id);
+  if (state?.state !== 'confirmed') {
+    throw new Error(
+      `The confirmed brief doesn't match the organizations' files in ${job.id}, so it isn't shared with that arm.`,
+    );
+  }
+}
+
 /**
  * The test-release barrier: written once, just before the first locked result is released. From
  * then on no arm starts and none goes on developing (decision 051).
@@ -665,14 +764,19 @@ async function holdBackAfterRelease(
 }
 
 /** Locked-test attempts a released run still has to make under its first seed. */
-function testsLeft(engine: ComparisonEngine, run: StoredRun, base: Job): number {
+function testsLeft(
+  engine: ComparisonEngine,
+  run: StoredRun,
+  base: Job,
+  config: ComparisonConfig,
+): number {
   const first = run.freeze?.testSeeds?.[0];
   const done = engine.store.attempts
     .list({ runId: run.run.id, split: 'test' })
     .filter(
       (attempt) => attempt.seed === first && attempt.config?.startsWith('reference/') !== true,
     );
-  return Math.max(0, base.splits.test - done.length);
+  return Math.max(0, lockedTestsOf(base, config) - done.length);
 }
 
 /** What each backend the plan uses is, read without loading a model. */
@@ -730,7 +834,7 @@ function fundingProblem(
   }
   if (plan.funded.includes('repeat') && ARM_PRIORITY[arm] > ARM_PRIORITY.repeat) {
     const repeated = REPEATED.filter((other) => plan.funded.includes(other)).length;
-    held += repeated * base.splits.test * price * config.headroom;
+    held += repeated * lockedTestsOf(base, config) * price * config.headroom;
   }
   const left = plan.caps.studentUsd - credit.paid() - held;
   if (floor <= left + 1e-9) return null;
@@ -749,6 +853,7 @@ function watchRounds(
   plan: PlanRecord,
   credit: Credit,
   base: Job,
+  config: ComparisonConfig,
   env: ComparisonEnvironment,
   decide: Decide,
 ): () => void {
@@ -775,7 +880,7 @@ function watchRounds(
           ? base.evaluation.trainBatch
           : 0
         : base.evaluation.trainBatch + 4 * dev;
-    const test = record.lockedTestOn === 'hosted' ? base.splits.test : 0;
+    const test = record.lockedTestOn === 'hosted' ? lockedTestsOf(base, config) : 0;
     const spent = credit.development(record.run.id);
     const ahead = (hostedRound + test) * price;
     if (spent + ahead <= cap + 1e-9) return;
@@ -814,7 +919,7 @@ function release(
     if (decisions.some((item) => item.arm === arm && item.kind === 'held')) continue;
     const cost =
       run.lockedTestOn === 'hosted'
-        ? testsLeft(engine, run, base) * credit.priceOf(run.run.id) * config.headroom
+        ? testsLeft(engine, run, base, config) * credit.priceOf(run.run.id) * config.headroom
         : 0;
     if (run.protocol?.released === true) {
       // Released by an earlier run of the plan: what its test has left is held for it first.
@@ -848,6 +953,7 @@ async function startArm(
   base: Job,
   plan: PlanRecord,
   decide: Decide,
+  study: Study,
 ): Promise<void> {
   const needs: ArmId | null =
     arm === 'targeted' || arm === 'fixed'
@@ -893,6 +999,7 @@ async function startArm(
     env.writeHarness,
     start.startingHarness,
   );
+  if (study.record !== null) await shareStudy(engine, job, study.record);
   const run = await engine.controller.start(job.id, start.method, request.config.mentoringSeed, {
     lockedTestOn: start.lockedTestOn,
     protocol: start.protocol,
@@ -1041,7 +1148,9 @@ async function measureAfterRelease(
           if (stoppedBefore) continue;
           const cost =
             run.lockedTestOn === 'hosted'
-              ? base.splits.test * credit.testPriceOf(run.run.id) * request.config.headroom
+              ? lockedTestsOf(base, request.config) *
+                credit.testPriceOf(run.run.id) *
+                request.config.headroom
               : 0;
           if (cost > left + 1e-9) {
             skipped.push(ARM_LABELS[arm].toLowerCase());
@@ -1133,10 +1242,14 @@ async function report(
     if (attempts.length > 0) regression = { job: source, attempts };
   }
   const plan = files.readPlan();
+  const source = readJob(request.jobDir);
+  const field = fieldOf(request.jobDir, source);
   const built = await buildReport({
     engine,
     deps: env.deps,
-    config: request.config,
+    config: withLockedTests(request, field).config,
+    field,
+    study: isStudied(base) ? await engine.jobs.studyRecord(base.id) : null,
     // The plan as stored: decisions made since it was confirmed are in the file.
     plan,
     base,
