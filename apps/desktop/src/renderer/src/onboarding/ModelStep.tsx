@@ -82,7 +82,7 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
 
   return (
     <>
-      <StepIntro title="Welcome to Architect">
+      <StepIntro title="Your agent's model">
         Architect trains an agent for any job you describe. {names.mentor}, a large AI, teaches{' '}
         {names.student}, a small one that runs on {device}, so your agent works offline.
       </StepIntro>

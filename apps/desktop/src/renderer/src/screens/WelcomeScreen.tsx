@@ -4,14 +4,14 @@ import { ProblemState } from '../components/ProblemState';
 import { Setup } from '../onboarding/Setup';
 import { SetupShell } from '../onboarding/SetupShell';
 
-/** First run: get the local model, connect a teacher, then open the workspace. */
+/** First run: the edition, the local model, a teacher, then the workspace. */
 export function WelcomeScreen() {
   const settings = useSettings();
   if (settings.status === 'success') {
     return <Setup settings={settings.data} update={settings.update} />;
   }
   return (
-    <SetupShell step="Model">
+    <SetupShell step="Edition">
       {settings.status === 'error' ? (
         <ProblemState
           error={settings.error}

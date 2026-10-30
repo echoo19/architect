@@ -18,6 +18,7 @@ import { navigate, paths } from '../lib/router';
 import { useConnections } from '../settings/models/hooks';
 import { isInstalled } from '../settings/models/StudentRows';
 import { DoneStep } from './DoneStep';
+import { EditionStep } from './EditionStep';
 import { HostedStep } from './HostedStep';
 import { routeOf, type MentorRoute } from './mentor';
 import { MentorStep } from './MentorStep';
@@ -31,9 +32,12 @@ export interface SetupProps {
   update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
 }
 
-/** First run: the agent's model, a teacher, optionally an online copy, then the workspace. */
+/**
+ * First run: which app it is (decision 076), the agent's model, a teacher, optionally an online
+ * copy, then the workspace.
+ */
 export function Setup({ settings, update }: SetupProps) {
-  const [step, setStep] = useState<SetupStep>('Model');
+  const [step, setStep] = useState<SetupStep>('Edition');
   const [connection, setConnection] = useState<ConnectionTest | null>(null);
   const [route, setRoute] = useState<MentorRoute>(() => routeOf(settings.defaultMentor));
   const [finishing, setFinishing] = useState(false);
@@ -91,12 +95,36 @@ export function Setup({ settings, update }: SetupProps) {
   const spacer = <div className="flex-1" />;
   const hostedConnected = connections.some((connection) => connection.provider === 'openrouter');
 
+  if (step === 'Edition') {
+    return (
+      <SetupShell
+        step={step}
+        footer={
+          <>
+            {spacer}
+            <Button variant="primary" onClick={() => setStep('Model')}>
+              Continue
+            </Button>
+          </>
+        }
+      >
+        <EditionStep
+          edition={settings.edition}
+          onChoose={(edition) =>
+            void attempt("Couldn't save that choice", () => update({ edition }))
+          }
+        />
+      </SetupShell>
+    );
+  }
+
   if (step === 'Model') {
     return (
       <SetupShell
         step={step}
         footer={
           <>
+            <Button onClick={() => setStep('Edition')}>Back</Button>
             {spacer}
             {modelReady || downloading ? (
               <Button variant="primary" onClick={() => setStep('Teacher')}>

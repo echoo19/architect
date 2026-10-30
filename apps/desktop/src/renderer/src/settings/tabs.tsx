@@ -5,11 +5,17 @@ import { errorOf, QueryValue, RetryButton } from '../components/QueryValue';
 import { formatBytes } from '../lib/format';
 import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
+import { EDITIONS } from '../shell/edition';
 import type { TabProps } from './SettingsModal';
 
 const STEPS = [
   { value: 'collapsed', label: 'Collapsed' },
   { value: 'expanded', label: 'Expanded' },
+] as const;
+
+const EDITION_OPTIONS = [
+  { value: 'personal', label: EDITIONS.personal.name },
+  { value: 'lab', label: EDITIONS.lab.name },
 ] as const;
 
 const EFFORTS = [
@@ -21,6 +27,17 @@ const EFFORTS = [
 export function GeneralTab({ settings, update }: TabProps) {
   return (
     <>
+      <SettingsRow
+        label="Edition"
+        meta="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and runs stay in both."
+      >
+        <Segmented
+          aria-label="Edition"
+          options={EDITION_OPTIONS}
+          value={settings.edition}
+          onValueChange={(edition) => update({ edition })}
+        />
+      </SettingsRow>
       <SettingsRow
         label="Tool steps"
         meta="Whether the tools and skills a reply used start open or folded in a chat"
