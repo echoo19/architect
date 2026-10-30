@@ -30,6 +30,68 @@ export const OrgTypeResultSchema = z.object({
 });
 export type OrgTypeResult = z.infer<typeof OrgTypeResultSchema>;
 
+/** The graduate's behavior on the calibration split at one agreement threshold. */
+export const CertificatePointSchema = z.object({
+  /** Answer when at least this many of the k attempts agree. */
+  votes: z.number().int().positive(),
+  answered: z.number().int().nonnegative(),
+  errors: z.number().int().nonnegative(),
+  coverage: z.number().min(0).max(1),
+  /** One-sided Clopper-Pearson upper bound on the selective error at δ. */
+  bound: z.number().min(0).max(1),
+});
+export type CertificatePoint = z.infer<typeof CertificatePointSchema>;
+
+/**
+ * The certified threshold run where it wasn't calibrated: on the locked test of the organizations
+ * the agent trained on, or on one it never saw. `held`: the observed selective error there is at
+ * most the certified bound.
+ */
+export const CertificateCheckSchema = z.object({
+  /** The organization's id; absent for the taught organizations' locked test together. */
+  org: z.string().optional(),
+  orgName: z.string().optional(),
+  seen: z.boolean(),
+  synthetic: z.boolean(),
+  tasks: z.number().int().nonnegative(),
+  answered: z.number().int().nonnegative(),
+  errors: z.number().int().nonnegative(),
+  held: z.boolean(),
+});
+export type CertificateCheck = z.infer<typeof CertificateCheckSchema>;
+
+const CertificateBaseSchema = z.object({
+  /** Calibration tasks, sealed from the mentor and opened once after the graduate was frozen. */
+  n: z.number().int().nonnegative(),
+  k: z.number().int().positive(),
+  delta: z.number().gt(0).lt(1),
+  epsilon: z.number().gt(0).lt(1),
+  /** Every threshold from strictest (all k agree) to loosest (always answer). */
+  curve: z.array(CertificatePointSchema),
+  /** What the guarantee assumes, in plain words. */
+  assumption: z.string(),
+});
+
+/**
+ * Certified answers (decision 077). Issued: when the graduate answers (at least `votes` of k
+ * attempts agree), it is wrong on at most `bound` of requests like the calibration ones, with
+ * confidence 1 - δ; it hands the rest to a person. Not issued: why, and how many calibration
+ * tasks would likely be enough.
+ */
+export const CertificateSchema = z.discriminatedUnion('issued', [
+  CertificateBaseSchema.extend({
+    issued: z.literal(true),
+    threshold: CertificatePointSchema,
+    checks: z.array(CertificateCheckSchema),
+  }),
+  CertificateBaseSchema.extend({
+    issued: z.literal(false),
+    reason: z.enum(['none_answered', 'error_rate', 'too_few']),
+    needed: z.number().int().positive().nullable(),
+  }),
+]);
+export type Certificate = z.infer<typeof CertificateSchema>;
+
 export const ReportCardSchema = z.object({
   jobId: z.string(),
   runId: z.string(),
@@ -131,5 +193,7 @@ export const ReportCardSchema = z.object({
       rules: z.array(RuleReportSchema).min(1).optional(),
     })
     .optional(),
+  /** For a job that asked for one, the graduate's certificate (decision 077). */
+  certificate: CertificateSchema.optional(),
 });
 export type ReportCard = z.infer<typeof ReportCardSchema>;

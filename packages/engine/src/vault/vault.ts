@@ -19,6 +19,8 @@ import {
 import { isMentorReleased, type MentorReleased } from './gate';
 
 const TEST_FILE = 'test.jsonl';
+/** The sealed calibration split of a certified job (decision 077). */
+const CERTIFY_FILE = 'certify.jsonl';
 /** Written last, so its presence is what makes a job's vault sealed. */
 const FINGERPRINT_FILE = 'fingerprint.json';
 const JOB_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -53,7 +55,8 @@ export class Vault {
    * text of the job's data files: wording and values they share with test tasks (templates,
    * records every attempt reads) are left out of the fingerprint. `transfer` are organizations
    * the job never trains on: their files are kept here, hashed, and each one's name and id count
-   * as test content in the fingerprint of its tasks.
+   * as test content in the fingerprint of its tasks. `certify` is a certified job's calibration
+   * split (decision 077), sealed beside the test and held to the same leak detector.
    */
   seal(
     jobId: string,
@@ -61,6 +64,7 @@ export class Vault {
     otherTasks: readonly Task[],
     data: readonly string[],
     transfer: readonly TransferOrganization[] = [],
+    certify: readonly Task[] = [],
   ): void {
     const dir = this.dir(jobId);
     if (this.isSealed(jobId)) {
@@ -76,6 +80,15 @@ export class Vault {
     const shared = otherTasks.find((task) => ids.has(task.id));
     if (shared) {
       throw new GuardError('split', `Task ${shared.id} is in the test split and in another split.`);
+    }
+    const calibration = certify.map((task) => TaskSchema.parse(task));
+    const calibrationIds = new Set(calibration.map((task) => task.id));
+    const crossed = [...tests, ...otherTasks].find((task) => calibrationIds.has(task.id));
+    if (crossed || calibrationIds.size !== calibration.length) {
+      throw new GuardError(
+        'split',
+        `Task ${crossed?.id ?? 'of the calibration split'} is in the calibration split and in another split.`,
+      );
     }
 
     const content = `${tests.map((task) => JSON.stringify(task)).join('\n')}\n`;
@@ -93,6 +106,14 @@ export class Vault {
     );
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(join(dir, TEST_FILE), content);
+    let certified: Fingerprint['certify'];
+    if (calibration.length > 0) {
+      const lines = `${calibration.map((task) => JSON.stringify(task)).join('\n')}\n`;
+      // Its prints leave out only what the splits the mentor sees hold, as the test's do.
+      const prints = fingerprintTests(jobId, calibration, otherTasks, data, sha256(lines));
+      writeFileAtomic(join(dir, CERTIFY_FILE), lines);
+      certified = { fileSha256: sha256(lines), tasks: prints.tasks };
+    }
     const kept = transfer.map(({ org, files }) => {
       const folder = this.transferDir(jobId, org.id);
       return {
@@ -105,7 +126,11 @@ export class Vault {
         }),
       };
     });
-    const sealed = kept.length === 0 ? fingerprint : { ...fingerprint, transfer: kept };
+    const sealed = {
+      ...fingerprint,
+      ...(kept.length === 0 ? {} : { transfer: kept }),
+      ...(certified === undefined ? {} : { certify: certified }),
+    };
     writeFileAtomic(join(dir, FINGERPRINT_FILE), `${JSON.stringify(sealed)}\n`);
   }
 
@@ -136,6 +161,11 @@ export class Vault {
       counts[type] = (counts[type] ?? 0) + 1;
     }
     return counts;
+  }
+
+  /** How many calibration tasks are sealed for a certificate; 0 for a job without them. */
+  calibrationCount(jobId: string): number {
+    return this.isSealed(jobId) ? (this.fingerprint(jobId).certify?.tasks.length ?? 0) : 0;
   }
 
   /** Removes a job's sealed split so a new one can be sealed. */
@@ -210,6 +240,33 @@ export class Vault {
     const content = readFileSync(join(this.dir(jobId), TEST_FILE), 'utf8');
     if (sha256(content) !== fingerprint.testFileSha256) {
       throw new GuardError('split', `The locked test of job ${jobId} changed after it was sealed.`);
+    }
+    return content
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => TaskSchema.parse(JSON.parse(line)));
+  }
+
+  /**
+   * The calibration tasks of a certified job, for the run that certifies the frozen graduate
+   * after the mentor is released (decision 077). None for a job without them. A file that changed
+   * since it was sealed is refused like a changed test split.
+   */
+  openCalibration(jobId: string, proof: MentorReleased): Task[] {
+    if (!isMentorReleased(proof)) {
+      throw new GuardError(
+        'split',
+        'The calibration split opens only after the mentor has been released.',
+      );
+    }
+    const sealed = this.fingerprint(jobId).certify;
+    if (sealed === undefined) return [];
+    const content = readFileSync(join(this.dir(jobId), CERTIFY_FILE), 'utf8');
+    if (sha256(content) !== sealed.fileSha256) {
+      throw new GuardError(
+        'split',
+        `The calibration split of job ${jobId} changed after it was sealed.`,
+      );
     }
     return content
       .split('\n')

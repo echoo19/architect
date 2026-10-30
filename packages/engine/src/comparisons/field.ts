@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TaskSchema, type Job, type Organization } from '@architect/shared';
+import { calibrationSize, certifyAttempts } from '../certify/settings';
 
 /**
  * A job's organizations as its own folder lists them (decision 068), read by the runner only:
@@ -17,6 +18,8 @@ export interface Field {
    * task of each organization it never trains on.
    */
   lockedTests: number;
+  /** What a certified job's locked test adds: its k attempts at each calibration and test task. */
+  certifyAttempts: number;
 }
 
 /** Reads a job folder's organizations and its tasks' organizations. */
@@ -30,12 +33,18 @@ export function fieldOf(jobDir: string, job: Job): Field {
     organizations.filter((org) => org.role === 'transfer').map((org) => org.id),
   );
   const transferTasks = tasks.filter((task) => task.org !== undefined && sealed.has(task.org));
+  const lockedTests = job.splits.test + transferTasks.length;
   return {
     organizations,
     orgOf: new Map(
       tasks.flatMap((task) => (task.org === undefined ? [] : [[task.id, task.org] as const])),
     ),
-    lockedTests: job.splits.test + transferTasks.length,
+    lockedTests,
+    certifyAttempts: certifyAttempts(
+      job,
+      lockedTests,
+      calibrationSize(job, tasks.length - transferTasks.length),
+    ),
   };
 }
 

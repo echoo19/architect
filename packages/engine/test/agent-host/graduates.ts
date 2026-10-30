@@ -44,6 +44,8 @@ export interface GraduateOptions {
    * names one no runtime has, so no check of it can ever load a model.
    */
   baseModel?: string;
+  /** The certificate on the version's report card (decision 077). */
+  certificate?: ReportCard['certificate'];
 }
 
 const CREATED_AT = '2026-11-05T18:00:00.000Z';
@@ -108,6 +110,9 @@ export async function addGraduate(
 
   const harness = fixtureHarness(job.name, options.harness);
   const facts = fixtureFacts(options.id, job, harness);
+  if (options.certificate !== undefined) {
+    facts.report = { ...reportFor(job), certificate: options.certificate };
+  }
   const baseModel = options.baseModel ?? facts.base.name;
   facts.base = { ...facts.base, name: baseModel };
   if (options.adapter) {

@@ -4,7 +4,9 @@ import {
   isLoopbackUrl,
   type Following,
 } from '@architect/adapters';
-import { skillFiles } from '@architect/harness';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { parseReportJson, skillFiles } from '@architect/harness';
 import {
   GuardError,
   PackageError,
@@ -13,7 +15,12 @@ import {
   type StudentAdapter,
 } from '@architect/shared';
 import type { AgentJob } from '../agent/loop';
-import { openAgentFiles, type AgentFiles, type OutputFolder } from '../files/agent-files';
+import {
+  openAgentFiles,
+  type AgentFiles,
+  type AgentFilesOptions,
+  type OutputFolder,
+} from '../files/agent-files';
 import { grantedFiles } from '../graduates/bindings';
 import { readPackageHarness } from '../graduates/harness';
 import type { ActiveVersion } from '../graduates/open';
@@ -56,6 +63,43 @@ export interface GraduateSession {
   readonly adapter: ServeRequest | null;
   /** The student's context window, which bounds how much of a chat it is shown. */
   readonly contextLength: number;
+  /**
+   * The version's certificate as a reply follows it (decision 077): k attempts at each request,
+   * answering when at least `votes` agree. Null for a version without one.
+   */
+  readonly agreement: Agreement | null;
+  /**
+   * A private copy of the agent's folder as it is now, in memory: one attempt of a certified
+   * reply works on it, and nothing it changes reaches a file.
+   */
+  scratchFiles(): Promise<AgentFiles>;
+}
+
+/** How a certified version answers: k attempts, and the answer when at least `votes` agree. */
+export interface Agreement {
+  k: number;
+  votes: number;
+  /** The certified bound and its confidence, as the reply can say them. */
+  bound: number;
+  delta: number;
+}
+
+/**
+ * The certificate on the version's own report card, when it was issued with more than one
+ * attempt. The package's files were held to their checksums when the version was opened.
+ */
+async function agreementOf(active: ActiveVersion): Promise<Agreement | null> {
+  const file = active.version.manifest.evidence.files?.report;
+  if (file === undefined) return null;
+  const report = parseReportJson(await readFile(join(active.dir, ...file.split('/')), 'utf8'));
+  const certificate = report.certificate;
+  if (certificate?.issued !== true || certificate.k < 2) return null;
+  return {
+    k: certificate.k,
+    votes: certificate.threshold.votes,
+    bound: certificate.threshold.bound,
+    delta: certificate.delta,
+  };
 }
 
 /**
@@ -211,6 +255,13 @@ export async function openGraduateSession(
   const dataFolder = active.bindings['data'];
   const files = dataFolder === undefined ? [] : grantedFiles(manifest.contract, active.grants);
   const output = outputFolder(active);
+  const folder: AgentFilesOptions = {
+    dataDir: dataFolder ?? active.dir,
+    files,
+    ...(output === undefined ? {} : { output }),
+    skills: skillFiles(harness),
+    mode: 'live',
+  };
   return {
     id: active.graduateId,
     name: active.name,
@@ -220,15 +271,11 @@ export async function openGraduateSession(
     job: agentJob(active, output),
     student,
     gpu: gpuUseOf(active),
-    files: await openAgentFiles({
-      dataDir: dataFolder ?? active.dir,
-      files,
-      ...(output === undefined ? {} : { output }),
-      skills: skillFiles(harness),
-      mode: 'live',
-    }),
+    files: await openAgentFiles(folder),
     grants: active.grants,
     adapter: active.adapter,
     contextLength,
+    agreement: await agreementOf(active),
+    scratchFiles: () => openAgentFiles({ ...folder, mode: 'scratch' }),
   };
 }

@@ -22,9 +22,11 @@ export const AgentStepSchema = z.object({
   id: z.string(),
   /**
    * `wait`: the reply waits its turn for the GPU while another of Architect's processes has it;
-   * `detail` says for whom, and the step goes once the reply has the GPU.
+   * `detail` says for whom, and the step goes once the reply has the GPU. `attempt`: one of a
+   * certified version's k attempts at the request (decision 077); `detail` is its answer and
+   * `meta` whether it agrees with the most common one.
    */
-  kind: z.enum(['skill', 'tool', 'wait']),
+  kind: z.enum(['skill', 'tool', 'wait', 'attempt']),
   /** Tool or skill name, e.g. `read`. */
   name: z.string(),
   /** What it acted on, e.g. `data/invoices.csv`. */

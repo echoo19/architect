@@ -3,6 +3,7 @@ import type { Score } from '@architect/shared';
 import { AgentAvatar, DataTable, Tooltip, type DataColumn } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { shortDate } from '../flow/format';
+import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
 import { formatPercent } from '../lib/format';
 import {
   baseModelOf,
@@ -100,6 +101,30 @@ const SCORES = [
   scoreColumn('check', 'Check tasks', undefined, CHECK_HINT),
 ];
 
+/**
+ * The certified bound on its error when it answers (decision 077), lower first; absent for a
+ * version without a certificate.
+ */
+const CERTIFIED: DataColumn<ModelRow> = {
+  key: 'certified',
+  header: 'Certified',
+  align: 'end',
+  hint: 'The most it is wrong when it answers, certified on calibration tasks',
+  sortValue: (row) =>
+    row.report?.certificate?.issued === true ? row.report.certificate.threshold.bound : null,
+  cell: (row) => {
+    const certificate = row.report?.certificate;
+    const figure = certificateFigure(certificate);
+    return certificate === undefined || figure === null ? null : (
+      <Tooltip content={certificateHint(certificate)} side="top">
+        <span tabIndex={0} className="tabular-nums" aria-label={certificateHint(certificate)}>
+          {figure}
+        </span>
+      </Tooltip>
+    );
+  },
+};
+
 const COLUMNS: DataColumn<ModelRow>[] = [
   NAME,
   {
@@ -144,6 +169,13 @@ const COLUMNS: DataColumn<ModelRow>[] = [
   },
 ];
 
+/** The columns, with Certified beside the scores once any version has a certificate. */
+function withCertificates(rows: readonly ModelRow[]): DataColumn<ModelRow>[] {
+  if (!rows.some((row) => row.report?.certificate !== undefined)) return COLUMNS;
+  const status = COLUMNS.indexOf(STATUS);
+  return [...COLUMNS.slice(0, status), CERTIFIED, ...COLUMNS.slice(status)];
+}
+
 /** Beside an open panel, which shows the rest: the agent, its scores and its status. */
 const NARROW: DataColumn<ModelRow>[] = [NAME, ...SCORES, STATUS];
 
@@ -164,7 +196,7 @@ export function RegistryTable({
       aria-label="Models"
       rows={rows}
       rowKey={(row) => row.key}
-      columns={openKey === null ? COLUMNS : NARROW}
+      columns={openKey === null ? withCertificates(rows) : NARROW}
       onRowClick={onOpen}
       initialSort={{ key: 'name', direction: 'ascending' }}
       empty={empty}

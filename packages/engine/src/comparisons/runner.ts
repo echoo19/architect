@@ -697,7 +697,14 @@ export async function runComparison(
 
 /** The request with the locked test's size the job's folder sets. */
 function withLockedTests(request: ComparisonRequest, field: Field): ComparisonRequest {
-  return { ...request, config: { ...request.config, lockedTests: field.lockedTests } };
+  return {
+    ...request,
+    config: {
+      ...request.config,
+      lockedTests: field.lockedTests,
+      certifyAttempts: field.certifyAttempts,
+    },
+  };
 }
 
 /** Spark's study of a field job for the whole comparison, and whether the person confirmed it. */

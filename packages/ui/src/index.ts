@@ -96,6 +96,12 @@ export {
   type IntervalTone,
 } from './components/interval-plot';
 export {
+  RiskCoveragePlot,
+  riskTop,
+  type RiskCoveragePlotProps,
+  type RiskCoveragePoint,
+} from './components/risk-coverage';
+export {
   CapMeter,
   Meter,
   Stat,

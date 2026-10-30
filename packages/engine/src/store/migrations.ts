@@ -423,4 +423,13 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX runtime_measurements_by_run ON runtime_measurements (run_id, started_at);
     `,
   },
+  {
+    version: 17,
+    name: 'answer keys for certified answers',
+    sql: `
+      -- A hash of a sealed attempt's answer and file changes, salted by its run, so attempts at
+      -- one task can be compared for agreement without keeping what they answered.
+      ALTER TABLE attempts ADD COLUMN answer_key TEXT;
+    `,
+  },
 ];

@@ -24,6 +24,7 @@ import {
   type TaskPlan,
 } from '@architect/shared';
 import { z } from 'zod';
+import { calibrationSize } from '../certify/settings';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
@@ -471,7 +472,10 @@ export class JobLibrary {
       );
     }
     checkTasks(job, tasks);
-    this.deps.runtime.splitTasks(tasks, job.splits);
+    this.deps.runtime.splitTasks(tasks, {
+      ...job.splits,
+      certify: calibrationSize(job, tasks.length),
+    });
     return this.finalize(job, async () => {
       for (const file of input.files) {
         const target = join(this.paths.dataDir(job.id), file.name);
@@ -760,7 +764,8 @@ export class JobLibrary {
   /**
    * Splits the tasks of the organizations the job trains on and seals the test split in the
    * vault, with every task and file of the organizations it never trains on. Those are taken out
-   * before splitting, so no ordinary split ever holds one.
+   * before splitting, so no ordinary split ever holds one. A certified job's calibration split
+   * (decision 077) is drawn from the same tasks and sealed beside the test.
    */
   private async installTasks(
     job: Job,
@@ -770,11 +775,15 @@ export class JobLibrary {
     const sealedOrgs = new Set(transfer.map(({ org }) => org.id));
     const sealed = tasks.filter((task) => task.org !== undefined && sealedOrgs.has(task.org));
     const trained = tasks.filter((task) => task.org === undefined || !sealedOrgs.has(task.org));
-    const splits = this.deps.runtime.splitTasks(trained, job.splits);
+    const splits = this.deps.runtime.splitTasks(trained, {
+      ...job.splits,
+      certify: calibrationSize(job, trained.length),
+    });
+    const certify = splits.certify ?? [];
+    const sealedIds = new Set([...splits.test, ...certify].map((task) => task.id));
     await writeJsonLines(this.paths.tasksFile(job.id, 'calibration'), splits.calibration);
     await writeJsonLines(this.paths.tasksFile(job.id, 'train'), splits.train);
     await writeJsonLines(this.paths.tasksFile(job.id, 'dev'), splits.dev);
-    const testIds = new Set(splits.test.map((task) => task.id));
     const orgs = trainOrganizations(job);
     const folders =
       orgs.length === 0
@@ -788,9 +797,10 @@ export class JobLibrary {
     await this.deps.vault.seal(
       job.id,
       [...splits.test, ...sealed],
-      trained.filter((task) => !testIds.has(task.id)),
+      trained.filter((task) => !sealedIds.has(task.id)),
       data,
       transfer,
+      certify,
     );
   }
 

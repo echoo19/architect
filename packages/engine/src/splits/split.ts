@@ -1,11 +1,19 @@
 import type { SplitConfig, SplitName, Task } from '@architect/shared';
 import { seededRandom, shuffle } from './random';
 
+/**
+ * The split sizes, and the size of the sealed calibration split a certificate is computed on
+ * (decision 077): none unless asked for.
+ */
+export type SplitRequest = SplitConfig & { certify?: number };
+
 export interface TaskSplits {
   calibration: Task[];
   train: Task[];
   dev: Task[];
   test: Task[];
+  /** The sealed calibration split of a certified job; empty otherwise. */
+  certify: Task[];
   /** Tasks beyond the requested counts, left out of every split. */
   unused: Task[];
 }
@@ -19,7 +27,7 @@ export class SplitError extends Error {
 }
 
 /** Held-out splits are filled first, so their type proportions are the most exact. */
-const BUCKETS = ['test', 'dev', 'train', 'calibration', 'unused'] as const;
+const BUCKETS = ['test', 'certify', 'dev', 'train', 'calibration', 'unused'] as const;
 type Bucket = (typeof BUCKETS)[number];
 /** Search steps allowed per tolerance level before trying a looser one. */
 const SEARCH_LIMIT = 200_000;
@@ -33,12 +41,12 @@ interface Family {
 }
 
 /**
- * Splits tasks into calibration, train, dev and test. The result depends only on the task set and
+ * Splits tasks into calibration, train, dev and test, and the sealed calibration split when asked. The result depends only on the task set and
  * the seed, never on input order or platform. Families never cross splits, each split gets
  * exactly the requested count, and task types (at each organization, for a job with them) are
  * spread in proportion as closely as the family sizes allow.
  */
-export function splitTasks(tasks: readonly Task[], config: SplitConfig): TaskSplits {
+export function splitTasks(tasks: readonly Task[], config: SplitRequest): TaskSplits {
   const ids = tasks.map((task) => task.id);
   const repeated = ids.find((id, index) => ids.indexOf(id) !== index);
   if (repeated !== undefined) {
@@ -46,7 +54,8 @@ export function splitTasks(tasks: readonly Task[], config: SplitConfig): TaskSpl
       `Task id "${repeated}" appears more than once; every task needs its own id.`,
     );
   }
-  const requested = config.calibration + config.train + config.dev + config.test;
+  const certify = config.certify ?? 0;
+  const requested = config.calibration + config.train + config.dev + config.test + certify;
   if (requested > tasks.length) {
     throw new SplitError(
       `The splits ask for ${requested} tasks (${describeCounts(config)}), but there are only ${tasks.length}.`,
@@ -60,6 +69,7 @@ export function splitTasks(tasks: readonly Task[], config: SplitConfig): TaskSpl
     dev: config.dev,
     train: config.train,
     calibration: config.calibration,
+    certify,
     unused: tasks.length - requested,
   };
   const targets = typeTargets(families, types.length, totals);
@@ -198,7 +208,14 @@ function search(
 }
 
 function collect(families: readonly Family[], assignment: readonly number[]): TaskSplits {
-  const splits: TaskSplits = { calibration: [], train: [], dev: [], test: [], unused: [] };
+  const splits: TaskSplits = {
+    calibration: [],
+    train: [],
+    dev: [],
+    test: [],
+    certify: [],
+    unused: [],
+  };
   families.forEach((family, index) => {
     const bucket = BUCKETS[assignment[index] ?? -1] as Bucket;
     splits[bucket].push(...family.tasks);
@@ -207,9 +224,10 @@ function collect(families: readonly Family[], assignment: readonly number[]): Ta
   return splits;
 }
 
-function describeCounts(config: SplitConfig): string {
-  const names: SplitName[] = ['calibration', 'train', 'dev', 'test'];
-  return names.map((name) => `${name} ${config[name]}`).join(', ');
+function describeCounts(config: SplitRequest): string {
+  const names = ['calibration', 'train', 'dev', 'test'] as const satisfies SplitName[];
+  const counts = names.map((name) => `${name} ${config[name]}`);
+  return [...counts, ...(config.certify ? [`certification ${config.certify}`] : [])].join(', ');
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   type StudentTarget,
   type Task,
 } from '@architect/shared';
+import { answerKey } from '../certify/agreement';
 import { SERVER_TURN } from '../graduates/library';
 import type { StoredAttempt } from '../store/records';
 import { answerSummary, expectedSummary, lockedCheck, studentPrice } from './attempts';
@@ -110,7 +111,9 @@ async function recordAttempt(
   const { store, paths, runId } = state.ctx;
   const { trace, outcome, check } = item.result;
   const id = newId('att');
-  const locked = spec.split === 'test';
+  // The calibration split of a certified job is sealed like the test (decision 077).
+  const locked = spec.split === 'test' || spec.split === 'certify';
+  const keyed = locked && state.job.evaluation.certify !== undefined;
   const traceFile = locked ? null : paths.traceFile(state.run.jobId, runId, id);
   if (traceFile) await writeJsonFile(traceFile, trace);
   const config = configurationKey(spec.config ?? STUDENT_CONFIG);
@@ -130,6 +133,7 @@ async function recordAttempt(
     target: spec.target,
     ...(config === DEFAULT_CONFIG_KEY ? {} : { config }),
     seed,
+    ...(keyed ? { answerKey: answerKey(runId, outcome, trace.changes) } : {}),
     stopReason: outcome.stopReason,
     tracePath: traceFile && paths.toStored(traceFile),
     createdAt: state.now(),
@@ -322,7 +326,7 @@ async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boole
     const meter = await startMeter(state, spec, student);
     try {
       await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {
-        if (spec.split !== 'test') {
+        if (spec.split !== 'test' && spec.split !== 'certify') {
           state.emit({
             type: 'attempt.started',
             taskId: task.id,

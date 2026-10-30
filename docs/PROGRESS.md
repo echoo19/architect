@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), certify lane "Certified answers" (branch `certify/answers`)
+
+**Done** (no model was called, no GPU, no spend; decision 077)
+- `certify/stats.ts`: exact one-sided Clopper-Pearson bound, fixed-sequence threshold choice, the risk-coverage curve, the tasks needed; tested on closed forms and the binomial identity.
+- A sealed calibration split (`certify`) drawn from the taught organizations, opened only on the release proof; k-attempt agreement on calibration and locked-test tasks with hashed answer keys; the certificate on the report card with Held / Not held per never-seen organization.
+- The graduate answers by agreement or hands the request to a person, attempts as steps, only the chosen writes proposed.
+- Report section with `RiskCoveragePlot`, Models column, Lab figure, new-chat sentence, inspector settings with the cost. Hidden e2e `certify.spec.ts`; screenshots `report-certificate-dark.png`, `chat-handoff-dark.png`.
+
+**Next**
+- The academy sample has no spare tasks for a calibration split: generate more per academy before certifying Phil in a real run.
+
 ## 2026-10-30 (Fri, night), platform lane "Editions" (branch `platform/editions`)
 
 **Done** (no model was called, no GPU, no spend)

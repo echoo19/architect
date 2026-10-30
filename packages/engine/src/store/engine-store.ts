@@ -455,6 +455,7 @@ function attemptParams(attempt: StoredAttempt): Params {
     cached_input_tokens: attempt.usage.cachedInputTokens ?? null,
     answer_summary: attempt.answerSummary ?? null,
     expected_summary: attempt.expectedSummary ?? null,
+    answer_key: attempt.answerKey ?? null,
     trace_path: attempt.tracePath,
     created_at: attempt.createdAt,
   };
@@ -483,6 +484,7 @@ function attemptFromRow(row: Row): StoredAttempt {
     },
     answerSummary: orUndefined(row.answer_summary),
     expectedSummary: orUndefined(row.expected_summary),
+    answerKey: orUndefined(row.answer_key),
     target: row.target,
     ...(row.config === DEFAULT_CONFIG_KEY ? {} : { config: row.config }),
     seed: row.seed,

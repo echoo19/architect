@@ -167,7 +167,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       `There is no attempt "${attemptId}".`,
       'record_not_found',
     );
-    if (stored.split === 'test') {
+    if (stored.split === 'test' || stored.split === 'certify') {
       throw new Error("A final-test attempt isn't shown on its own; the report card counts it.");
     }
     const record = run(stored.runId);
