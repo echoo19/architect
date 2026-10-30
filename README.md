@@ -13,6 +13,35 @@ The main example is Phil, a tutor for test-prep academies. A student misses a pr
 
 The result is a specialist that works on an organization's files, asks before it changes one, and talks to nothing but the model on your machine. The same steps work on a single job, like the returns desk below.
 
+## Certified answers
+
+A specialist should know when not to answer. After qualification, Architect can state a certificate that a buyer can read:
+
+> When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
+
+The 8% and 22% show the form of the sentence. They are not a measurement of Phil.
+
+How it is computed:
+
+1. **A sealed calibration set.** It is drawn from the taught organizations, kept apart from every other split, and the teacher never sees it. It opens once, after the specialist is frozen.
+2. **Agreement.** Phil attempts each calibration request k times (five by default). The share of attempts that agree with the most common answer is its agreement. When agreement reaches a threshold, Phil answers. Below it, Phil says it isn't sure and hands the request to a person.
+3. **A bound.** For each threshold, the error rate among the requests Phil answered gets an exact one-sided Clopper-Pearson upper bound. Thresholds are tried from strictest to loosest, and the loosest one whose bound stays under the target is chosen. If none qualifies, no certificate is issued, and the report says why.
+4. **A check on organizations it never saw.** The same frozen threshold runs on the sealed test and on each unseen organization, and the report shows whether the bound held there. The guarantee assumes requests like the calibration ones, so an unseen organization tests that assumption.
+
+A small calibration set gives a wide bound, and the report shows it wide.
+
+<img alt="The report's Certified answers section on stand-in data: the certificate sentence, the risk-coverage curve, and for each organization the models never saw whether the bound held" src="docs/screenshots/report-certificate-dark.png">
+
+## Counterexample-guided repair
+
+When a helper that Spark wrote gives a wrong result on practice data, Architect shrinks the failing case until little is left. On a generated academy's practice data, a question lookup that crashed on tests laid out as "Full" went from 2,312 rows to 4. Spark repairs the helper against that small case, the repair must also pass the original case and every earlier one, and the case stays in the field's regression suite so a later change can't break the helper again.
+
+<img alt="A counterexample in the round's drawer, on stand-in data: the failing helper's input reduced from 1,212 rows to 1 row, the failure in plain words, and the repair" src="docs/screenshots/counterexample-dark.png">
+
+What this shows is a reproducible defect in a helper, not why the model reasoned as it did.
+
+Both are built and tested, with stand-in models and on the academy's practice data. The screenshots above use stand-in data too. A certificate for Phil from a live run has not been measured yet, because it needs five attempts per task. Neither idea is new. We build on conformal risk control ([arXiv 2208.02814](https://arxiv.org/abs/2208.02814)), Learn-then-Test ([arXiv 2110.01052](https://arxiv.org/abs/2110.01052)), conformal abstention ([arXiv 2405.01563](https://arxiv.org/abs/2405.01563)) and delta debugging (Zeller and Hildebrandt, 2002). What is new here is the pipeline in a product: a deterministic checker, sealed sets the teacher never saw, and a check on organizations it never saw. The plan is [docs/CERTIFY.md](docs/CERTIFY.md).
+
 ## Two editions
 
 Architect is one app in two editions. You choose one on the first screen and can switch in Settings. One download includes both.

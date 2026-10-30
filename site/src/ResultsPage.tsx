@@ -51,13 +51,17 @@ const dollars = (value: number) => `$${value.toFixed(2)}`;
 const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 
 /** The documents cited, in the order the page first cites them, with what each one is. */
-type RefKey = SourceKey | 'gepa' | 'ace' | 'taubench';
+type RefKey = SourceKey | 'gepa' | 'ace' | 'taubench' | 'crc' | 'ltt' | 'abstention' | 'zeller';
 
 /** Published papers cited, by their arXiv number; the page links to no address but the repository. */
 const PAPERS: Partial<Record<RefKey, string>> = {
   gepa: 'arXiv 2507.19457',
   ace: 'arXiv 2510.04618',
   taubench: 'arXiv 2406.12045',
+  crc: 'arXiv 2208.02814',
+  ltt: 'arXiv 2110.01052',
+  abstention: 'arXiv 2405.01563',
+  zeller: 'Zeller and Hildebrandt, 2002',
 };
 
 const REFERENCES: readonly { key: RefKey; what: string }[] = [
@@ -72,6 +76,20 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'gepa', what: 'GEPA: improving prompts from failures by reflection.' },
   { key: 'ace', what: 'ACE: agents that grow their own context from experience.' },
   { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
+  { key: 'certify', what: 'The plan for certified answers and counterexample-guided repair.' },
+  {
+    key: 'crc',
+    what: 'Conformal risk control: keeping the expected error of a prediction under a chosen level.',
+  },
+  {
+    key: 'ltt',
+    what: 'Learn-then-Test: choosing a setting so that a risk is controlled with stated confidence.',
+  },
+  {
+    key: 'abstention',
+    what: 'Conformal abstention: when a language model should decline to answer.',
+  },
+  { key: 'zeller', what: 'Simplifying and isolating failure-inducing input (delta debugging).' },
 ];
 
 /** Numbered citations, each a link to its entry in the references. */
@@ -575,6 +593,11 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'second',
   },
   {
+    title: 'No certificate has been measured.',
+    text: 'Certified answers and counterexample repair are built and tested on stand-ins and on the generated academy practice data. A certificate for Phil needs five attempts per task on a sealed calibration set, and that run has not been made.',
+    from: 'certify',
+  },
+  {
     title: 'The repair shop ran once.',
     text: 'It was a single run, not a planned comparison, and a rule graded it.',
     from: 'hackathon',
@@ -1005,7 +1028,30 @@ export function ResultsPage() {
           </Exhibit>
         </Section>
 
-        <Section id="limits" number={7} title="Limitations">
+        <Section id="certified" number={7} title="Certified answers and counterexamples">
+          <Text>
+            <Actors text="A specialist should know when not to answer. Architect can state a certificate for a finished one, in a sentence of this form: when Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence, and it handed 22% to a person. Those two numbers show the form. They are not a measurement of Phil" />
+            <Cite to={['certify']} />.
+          </Text>
+          <Text>
+            <Actors text="Phil attempts each request in a sealed calibration set five times, and the share of attempts that agree decides whether it answers or hands the request to a person. The calibration set comes from the taught organizations, is kept apart from every other set, and Spark never sees it. For each agreement threshold, the error among the answered requests gets an exact one-sided Clopper-Pearson upper bound, and the loosest threshold whose bound stays under the target is chosen by testing from the strictest down. The method follows conformal risk control, Learn-then-Test and conformal abstention" />
+            <Cite to={['crc', 'ltt', 'abstention']} />
+            <Actors text=". The same frozen threshold then runs on the sealed test and on each organization the models never saw, and the report says whether the bound held there. A small calibration set gives a wide bound, and the report shows it wide. If no threshold qualifies, no certificate is issued" />
+            <Cite to={['certify']} />.
+          </Text>
+          <Text>
+            <Actors text="The second piece is for the small tools Spark writes. When a tool gives a wrong result on practice data, Architect shrinks the failing case by delta debugging" />
+            <Cite to={['zeller']} />
+            <Actors text=" and hands Spark the smaller case. The repair has to pass it and every earlier one, and each case stays as a regression test. On a generated academy's practice data, a question lookup that failed on tests laid out as Full shrank from 2,312 rows to 4. This shows a reproducible defect in a tool, not why the model reasoned as it did" />
+            <Cite to={['certify']} />.
+          </Text>
+          <Text>
+            <Actors text="Both are built and tested, the certificate with stand-in models from calibration to chat and the reduction in the real sandbox on the academy's practice data. No certificate for Phil from a live run has been measured, since it needs five attempts per task. Neither idea is new. What the work adds is the pipeline in a product: a checker that is the same every time, sets the teacher never saw, and a check on organizations it never saw" />
+            <Cite to={['certify']} />.
+          </Text>
+        </Section>
+
+        <Section id="limits" number={8} title="Limitations">
           <Text>
             <Actors text="Glimmer served online and one seed throughout, a small real sample, and made-up businesses elsewhere." />
           </Text>
