@@ -24,6 +24,14 @@ export const HERO = {
   ],
 } as const;
 
+/** The walkthrough film under the first screen's words. Its files are in public/. */
+export const FILM = {
+  src: './architect-film.mp4',
+  poster: './film-poster.jpg',
+  label: 'A walkthrough of Architect, with narration: 2 minutes 50 seconds.',
+  play: 'Play the walkthrough, 2 minutes 50 seconds, with sound',
+} as const;
+
 export type ChapterId = 'describe' | 'ask' | 'rule' | 'train' | 'test' | 'use' | 'teach' | 'share';
 
 export interface ChapterCopy {

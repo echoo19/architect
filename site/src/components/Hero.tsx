@@ -1,15 +1,12 @@
 import { HERO } from '../content';
-import { HeroWindow } from '../mock/hero-window';
 import { Actors } from './Actors';
 import { Downloads } from './Downloads';
+import { HeroFilm } from './HeroFilm';
 
-/**
- * One claim, one line and the downloads, then the window. The section has no padding under it:
- * the window is its last thing, cropped by the band's edge, not shrunk to fit inside it.
- */
+/** One claim, one line and the downloads, then the walkthrough film. */
 export function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="overflow-hidden">
+    <section aria-labelledby="hero-title" className="pb-14 sm:pb-16 lg:pb-20">
       <div className="page pt-10 sm:pt-12 lg:pt-12">
         <h1 id="hero-title" className="t-hero max-w-[13em]">
           {HERO.title}
@@ -26,7 +23,7 @@ export function Hero() {
         </div>
       </div>
       <div className="page mt-9 sm:mt-10">
-        <HeroWindow />
+        <HeroFilm />
       </div>
     </section>
   );
