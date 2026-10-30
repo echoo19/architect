@@ -14,7 +14,7 @@ export function Hero() {
         <h1 id="hero-title" className="display-xl max-w-[12.5em]">
           {HERO.title}
         </h1>
-        <div className="mt-6 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+        <div className="mt-6 flex flex-col gap-7 xl:flex-row xl:items-end xl:justify-between xl:gap-12">
           <p className="lead max-w-[66ch]">
             {HERO.line.map((sentence) => (
               <span key={sentence} className="sm:block">

@@ -58,7 +58,7 @@ export const RESULTS: Results = {
     },
     {
       figure: '3.5 s',
-      text: 'On the online copy, a typical answer took 3.5 s after teaching, against 17.7 s before.',
+      text: 'On the online copy, a typical answer took 3.5 s after teaching, against 17.7 s before.',
     },
     {
       figure: '42 cents',

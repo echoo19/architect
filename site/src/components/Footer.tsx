@@ -8,8 +8,8 @@ export function Footer() {
         {FOOTER.note}
       </p>
       <div className="page flex flex-col gap-6 text-[15px] sm:flex-row sm:items-center sm:justify-between">
-        <p className="m-0 flex items-center gap-3">
-          <LogoMark size={18} />
+        <p className="m-0 flex items-start gap-3">
+          <LogoMark size={18} className="mt-[3px]" />
           <span>
             {FOOTER.licence} {FOOTER.author}
           </span>

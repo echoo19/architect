@@ -108,7 +108,7 @@ function NotKept({ round, start }: { round: 2 | 3; start: number }) {
           strokeWidth={1.5}
           strokeDasharray="3 4"
           vectorEffect="non-scaling-stroke"
-          className="stroke-fg/50"
+          className="stroke-fg"
         />
       </svg>
       <span

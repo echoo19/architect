@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Button, cn } from '@architect/ui';
+import { Button } from '@architect/ui';
 import { ArrowRight, Check, EyeOff, Pause, Square, Undo2 } from 'lucide-react';
 import { FlowBar } from './flow-bar';
 import { AppWindow } from './frame';
@@ -141,7 +141,7 @@ export function TrainMock() {
   return (
     <ChapterStage
       id="train"
-      label="The Architect Train screen for the Returns desk. A chart of the score on check tasks, which Spark never sees, climbs from 69 percent, 31 of 45, to 98 percent, 44 of 45, over four rounds against a target of 95 percent. Round 1 gained 11 tasks and was kept. Rounds 2 and 3 gained 1 and 0 and were reverted. In round 4 Spark found that Glimmer's helpers misread money written as $74.95 or 74.95 USD, expected 2 to 4 more tasks, and gained 2, so the change was kept. The run took 28 minutes and 4 of 7 rounds, and cost Spark 34 cents of 4 dollars 92."
+      label="The Architect Train screen for the Returns desk. A chart of the score on check tasks, which Spark never sees, climbs from 69 percent, 31 of 45, to 98 percent, 44 of 45, over four rounds against a target of 95 percent. Round 1 gained 11 tasks and was kept. Rounds 2 and 3 gained 1 and 0 and were reverted. In round 4 Spark found that Glimmer's helpers return null on dirty money like $74.95 and 74.95 USD, expected 2 to 4 more tasks, and gained 2, so the change was kept. The run took 28 minutes and 4 of 7 rounds, and cost Spark 34 cents of 4 dollars 92."
       heightWide={610}
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
@@ -233,11 +233,11 @@ export function TrainMock() {
                       <Model name="Spark" />
                     </span>
                     <p className="a a-wipe m-0 text-pretty" style={at(DIAGNOSIS, { dur: 1300 })}>
-                      Glimmer&apos;s helpers misread money written as &quot;$74.95&quot; or
-                      &quot;74.95 USD&quot;.
+                      Helpers return null/NaN on dirty money like &quot;$74.95&quot; and &quot;74.95
+                      USD&quot;.
                     </p>
                     <p
-                      className={cn('a a-up m-0 flex justify-between gap-4 tabular-nums')}
+                      className="a a-up m-0 flex justify-between gap-4 tabular-nums"
                       style={at(EXPECTED, { dy: 8 })}
                     >
                       <span>Spark expected</span>
