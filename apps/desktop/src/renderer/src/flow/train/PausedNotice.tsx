@@ -57,13 +57,13 @@ export function PausedNotice({ live }: { live: LiveRun }) {
     <div
       role="status"
       aria-label={`${what} is paused`}
-      className="flex items-start gap-3 rounded-2xl border border-line-card bg-well px-5 py-4"
+      className="flex items-start gap-3 rounded-card bg-field px-5 py-4 shadow-edge"
     >
       <CirclePause size={16} className="mt-0.5 shrink-0 text-mentor" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <span className="font-medium">{what} is paused</span>
-          {problems.length === 0 && <span className="text-fg-secondary text-pretty">{reason}</span>}
+          {problems.length === 0 && <span className="text-fg text-pretty">{reason}</span>}
         </div>
         {problems.length > 0 && (
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -71,7 +71,7 @@ export function PausedNotice({ live }: { live: LiveRun }) {
               const Icon = ICONS[problem.kind];
               return (
                 <li key={problem.text} className="flex items-center justify-between gap-4">
-                  <span className="flex min-w-0 items-center gap-2.5 text-fg-secondary">
+                  <span className="flex min-w-0 items-center gap-2.5 text-fg">
                     <Icon size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />
                     <span className="text-pretty">{problem.text}</span>
                   </span>
@@ -81,14 +81,14 @@ export function PausedNotice({ live }: { live: LiveRun }) {
             })}
           </ul>
         )}
-        <p className="m-0 text-sm text-fg-muted text-pretty">
+        <p className="m-0 text-small text-fg text-pretty">
           {problems.length > 0
             ? `When that is put right, press Resume. ${what} carries on from where it stopped.`
             : `Press Resume to try again. ${what} carries on from where it stopped.`}
         </p>
         {problems.length > 0 && (
           <Disclosure label="Details">
-            <p className="m-0 text-sm text-fg-secondary text-pretty">{reason}</p>
+            <p className="m-0 text-small text-fg text-pretty">{reason}</p>
           </Disclosure>
         )}
       </div>

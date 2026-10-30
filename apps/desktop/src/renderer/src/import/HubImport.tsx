@@ -234,9 +234,7 @@ export function HubImportFlow() {
       body = (
         <div role="status" className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
           <Spinner size={20} tone="student" />
-          <span className="text-fg-secondary">
-            Downloading {repository} and checking every file
-          </span>
+          <span className="text-fg">Downloading {repository} and checking every file</span>
         </div>
       );
     } else if (downloadError) {
@@ -474,7 +472,7 @@ function SourceForm({
             autoComplete="off"
             spellCheck={false}
             autoFocus
-            className="w-[400px] font-mono text-sm"
+            className="w-[400px] font-mono text-small"
           />
         </SettingsRow>
       </div>
@@ -488,7 +486,7 @@ function SourceForm({
               onChange={(event) => onCommit(event.target.value)}
               autoComplete="off"
               spellCheck={false}
-              className="w-[400px] font-mono text-sm"
+              className="w-[400px] font-mono text-small"
             />
           </SettingsRow>
           <SettingsRow label="Token">

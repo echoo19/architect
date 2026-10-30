@@ -84,7 +84,7 @@ export function Playback({
   if (steps.length === 0) {
     return (
       <DrawerSection title={title}>
-        <p className="m-0 text-fg-secondary">No steps were recorded.</p>
+        <p className="m-0 text-fg">No steps were recorded.</p>
       </DrawerSection>
     );
   }
@@ -136,8 +136,8 @@ function StepNumber({ shown }: { shown: ShownStep }) {
   return (
     <span
       className={cn(
-        'w-6 shrink-0 pt-px text-right font-mono text-sm tabular-nums',
-        shown.actor === 'mentor' ? 'text-mentor' : 'text-fg-muted',
+        'w-6 shrink-0 pt-px text-right font-mono text-small tabular-nums',
+        shown.actor === 'mentor' ? 'text-mentor' : 'text-fg',
       )}
     >
       {shown.step.number}
@@ -153,17 +153,17 @@ function Divider({ tone = 'muted', children }: { tone?: 'muted' | 'mentor'; chil
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-3 py-2 text-sm',
-        tone === 'mentor' ? 'text-mentor' : 'text-fg-muted',
+        'flex items-center gap-3 px-3 py-2 text-small',
+        tone === 'mentor' ? 'text-mentor' : 'text-fg',
       )}
     >
       <span
-        className={cn('h-px flex-1', tone === 'mentor' ? 'bg-mentor/40' : 'bg-line-row-strong')}
+        className={cn('h-px flex-1', tone === 'mentor' ? 'bg-mentor/40' : 'bg-line')}
         aria-hidden
       />
       <span className="shrink-0">{children}</span>
       <span
-        className={cn('h-px flex-1', tone === 'mentor' ? 'bg-mentor/40' : 'bg-line-row-strong')}
+        className={cn('h-px flex-1', tone === 'mentor' ? 'bg-mentor/40' : 'bg-line')}
         aria-hidden
       />
     </div>
@@ -206,10 +206,10 @@ function StepLine({
         {step.answer ? (
           <span className="flex min-w-0 items-baseline gap-2">
             <span className="shrink-0">Answered</span>{' '}
-            <span className="truncate font-mono text-fg-secondary">{firstLine(step.text)}</span>
+            <span className="truncate font-mono text-fg">{firstLine(step.text)}</span>
           </span>
         ) : (
-          <span className="truncate text-fg-soft">{firstLine(step.text) || 'No words'}</span>
+          <span className="truncate text-fg">{firstLine(step.text) || 'No words'}</span>
         )}
       </LineRow>
     );
@@ -233,15 +233,13 @@ function StepLine({
               {line.target !== '' && (
                 <>
                   {' '}
-                  <span className="min-w-0 truncate font-mono text-fg-secondary">
-                    {line.target}
-                  </span>
+                  <span className="min-w-0 truncate font-mono text-fg">{line.target}</span>
                 </>
               )}
               {meta !== '' && (
                 <>
                   {' '}
-                  <span className="text-fg-muted">{meta}</span>
+                  <span className="text-fg">{meta}</span>
                 </>
               )}
             </span>
@@ -269,7 +267,7 @@ function LineRow({
         size={14}
         strokeWidth={1.7}
         aria-hidden
-        className={cn('mt-[3px] shrink-0', failed ? 'text-danger' : 'text-fg-muted')}
+        className={cn('mt-[3px] shrink-0', failed ? 'text-danger' : 'text-fg')}
       />
       <span className="flex min-w-0 flex-1">{children}</span>
       {flag}
@@ -294,7 +292,7 @@ function StepDetail({
     <>
       {notes.length > 0 && (
         // One flag for the step: what Spark suspects of it first, then its evidence.
-        <div className="flex items-start gap-2 text-sm text-mentor">
+        <div className="flex items-start gap-2 text-small text-mentor">
           <Flag size={13} strokeWidth={2} aria-hidden className="mt-[3px] shrink-0" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="font-medium">
@@ -311,23 +309,21 @@ function StepDetail({
         </div>
       )}
       {step.skills.map((skill) => (
-        <p key={skill} className="m-0 flex items-center gap-2 text-sm text-fg-secondary">
+        <p key={skill} className="m-0 flex items-center gap-2 text-small text-fg">
           <BookOpen size={13} strokeWidth={1.7} aria-hidden className="shrink-0" />
           <span>
             Loaded the skill <span className="font-mono">{skill}</span>, which matches the request
           </span>
         </p>
       ))}
-      {step.refusal && (
-        <p className="m-0 text-sm text-fg-secondary text-pretty">{step.refusal.reason}</p>
-      )}
+      {step.refusal && <p className="m-0 text-small text-fg text-pretty">{step.refusal.reason}</p>}
       {step.text.trim() !== '' && (
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-fg-muted">{who}</span>
+          <span className="text-small text-fg">{who}</span>
           <pre
             className={cn(
-              'm-0 whitespace-pre-wrap break-words text-sm text-fg-soft',
-              step.answer ? 'rounded-md bg-well px-3 py-2 font-mono' : 'font-sans',
+              'm-0 whitespace-pre-wrap break-words text-small text-fg',
+              step.answer ? 'rounded-control bg-field px-3 py-2 font-mono' : 'font-sans',
             )}
           >
             {step.text}
@@ -337,7 +333,7 @@ function StepDetail({
       {step.calls.map((call) => (
         <CallEvidence key={call.step.callId} step={call.step} />
       ))}
-      <span className="text-xs text-fg-muted">
+      <span className="text-small text-fg">
         {who} took{' '}
         <span className="font-mono">
           {formatAnswerTime(

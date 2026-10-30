@@ -28,20 +28,17 @@ interface WontTeachProps {
  */
 export function WontTeach({ title, body, allow, onRaiseLimit, alternative }: WontTeachProps) {
   return (
-    <div
-      role="status"
-      className="flex items-start gap-3.5 rounded-2xl border border-danger-line bg-danger-tint px-5 py-4"
-    >
+    <div role="status" className="flex items-start gap-3.5 rounded-card bg-danger-soft px-5 py-4">
       <CircleAlert size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-3.5">
         <div className="flex flex-col gap-1">
           <span className="font-medium">{title}</span>
-          <span className="max-w-[640px] text-fg-secondary text-pretty">{body}</span>
+          <span className="max-w-[640px] text-fg text-pretty">{body}</span>
           {allow !== null && (
-            <span className="max-w-[640px] text-fg-secondary text-pretty">{allow.gives}</span>
+            <span className="max-w-[640px] text-fg text-pretty">{allow.gives}</span>
           )}
           {alternative?.kind === 'missing' && (
-            <span className="max-w-[640px] text-fg-secondary text-pretty">{alternative.text}</span>
+            <span className="max-w-[640px] text-fg text-pretty">{alternative.text}</span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">

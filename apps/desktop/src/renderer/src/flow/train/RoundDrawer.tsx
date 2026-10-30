@@ -189,7 +189,7 @@ export function RoundDrawerContent({
         )}
 
         {question === undefined && (
-          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card">
+          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-control bg-line-strong shadow-edge">
             <Effect
               label={`${names.mentor} expected`}
               note={
@@ -214,7 +214,7 @@ export function RoundDrawerContent({
               note={rateChange(first ?? round)}
             >
               {unmeasured ? (
-                <span className="font-sans text-md text-fg-muted">Not measured</span>
+                <span className="font-sans text-body text-fg">Not measured</span>
               ) : (
                 <TaskCount delta={firstMeasured} />
               )}
@@ -233,7 +233,7 @@ export function RoundDrawerContent({
             tone="mentor"
           >
             {round.diagnosis && (
-              <p className="m-0 whitespace-pre-wrap text-md text-fg-soft text-pretty">
+              <p className="m-0 whitespace-pre-wrap text-body text-fg text-pretty">
                 {round.diagnosis}
               </p>
             )}
@@ -314,10 +314,10 @@ function ByTaskType({ lineage, job, twice }: { lineage: LineageEntry; job: Job; 
         {lineage.measured.perType.map((type) => (
           <li
             key={type.type}
-            className="flex items-baseline justify-between border-t border-line-row py-2 first:border-t-0"
+            className="flex items-baseline justify-between border-t border-line py-2 first:border-t-0"
           >
             <span>{typeLabel(job, type.type)}</span>
-            <span className="text-sm text-fg-secondary">
+            <span className="text-small text-fg">
               <span className="font-mono tabular-nums text-fg">
                 {signed(type.after - type.before)}
               </span>{' '}
@@ -334,9 +334,9 @@ function ByTaskType({ lineage, job, twice }: { lineage: LineageEntry; job: Job; 
 function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
   if (!round.decision) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-line-card bg-well px-4 py-3.5">
+      <div className="flex items-center gap-3 rounded-control bg-field px-4 py-3.5 shadow-edge">
         {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
-        <span className="text-xl font-medium">
+        <span className="font-display text-h2 font-semibold">
           {round.status === 'evaluating'
             ? 'Scoring the first draft on the check tasks'
             : 'Writing the first draft'}
@@ -345,12 +345,12 @@ function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
     );
   }
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-student-tile-line bg-student-tile px-4 py-3.5">
-      <span className="flex items-center gap-2.5 text-2xl font-medium text-student">
+    <div className="flex flex-col gap-1.5 rounded-control bg-student-soft px-4 py-3.5">
+      <span className="flex items-center gap-2.5 font-display text-h2 font-semibold text-student">
         <FilePen size={20} strokeWidth={2} aria-hidden />
         First draft
       </span>
-      <p className="m-0 text-md text-fg-soft text-pretty">
+      <p className="m-0 text-body text-fg text-pretty">
         {names.mentor} wrote it from the job and its example tasks, before watching {names.student}{' '}
         work. It is the starting point; later rounds keep only measured gains.
       </p>
@@ -377,17 +377,17 @@ function QuestionDecision({
   const { answer } = question;
   const waiting = round.status === 'clarifying' && !runEnded;
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-line-card bg-well px-4 py-3.5">
-      <span className="flex items-center gap-2.5 text-2xl font-medium text-fg-secondary">
+    <div className="flex flex-col gap-1.5 rounded-control bg-field px-4 py-3.5 shadow-edge">
+      <span className="flex items-center gap-2.5 font-display text-h2 font-semibold text-fg">
         <Icon size={20} strokeWidth={2} aria-hidden />
         {answer ? 'Answered' : waiting ? 'Waiting for your answer' : 'Not answered'}
       </span>
       {answer ? (
-        <p className="m-0 text-md text-fg-soft text-pretty">
+        <p className="m-0 text-body text-fg text-pretty">
           You answered: {answer.text} {answerEffect(question, names)}
         </p>
       ) : (
-        <p className="m-0 text-md text-fg-soft text-pretty">
+        <p className="m-0 text-body text-fg text-pretty">
           {names.mentor} asked: {question.question}{' '}
           {waiting
             ? 'Close this and answer it in the current round.'
@@ -455,9 +455,9 @@ function Decision({
   const reason = dispositionReason(experiment, intervention, round, lineage, job);
   if (!disposition || !reason) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-line-card bg-well px-4 py-3.5">
+      <div className="flex items-center gap-3 rounded-control bg-field px-4 py-3.5 shadow-edge">
         {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
-        <span className="text-xl font-medium">{STATUS_TEXT[round.status]}</span>
+        <span className="font-display text-h2 font-semibold">{STATUS_TEXT[round.status]}</span>
       </div>
     );
   }
@@ -465,30 +465,30 @@ function Decision({
   return (
     <div
       className={cn(
-        'flex flex-col gap-1.5 rounded-xl border px-4 py-3.5',
+        'flex flex-col gap-1.5 rounded-control px-4 py-3.5',
         disposition === 'kept'
-          ? 'border-student-tile-line bg-student-tile'
+          ? 'bg-student-soft'
           : disposition === 'rejected'
-            ? 'border-danger-line bg-danger-tint'
-            : 'border-line-card bg-well',
+            ? 'bg-danger-soft'
+            : 'bg-field',
       )}
     >
       <span
         className={cn(
-          'flex items-center gap-2.5 text-2xl font-medium',
-          disposition === 'kept' || disposition === 'rejected' ? tone : 'text-fg-secondary',
+          'flex items-center gap-2.5 font-display text-h2 font-semibold',
+          disposition === 'kept' || disposition === 'rejected' ? tone : 'text-fg',
         )}
       >
         <Icon size={20} strokeWidth={2} aria-hidden />
         {headline}
       </span>
-      <p className="m-0 text-md text-fg-soft text-pretty">{reason}</p>
+      <p className="m-0 text-body text-fg text-pretty">{reason}</p>
     </div>
   );
 }
 
 function Unit({ children }: { children: ReactNode }) {
-  return <span className="ml-2 font-sans text-md text-fg-secondary">{children}</span>;
+  return <span className="ml-2 font-sans text-body text-fg">{children}</span>;
 }
 
 /** The second measurement alone: both measurements added up, less the first. */
@@ -537,10 +537,10 @@ function Effect({
   children: ReactNode;
 }) {
   return (
-    <div className={cn('flex flex-col gap-1 bg-modal px-4 py-3.5', wide && 'col-span-2')}>
-      <dt className="text-fg-secondary">{label}</dt>
-      <dd className="m-0 font-mono text-2xl tabular-nums">{children}</dd>
-      {note && <dd className="m-0 text-sm text-fg-muted">{note}</dd>}
+    <div className={cn('flex flex-col gap-1 bg-raised px-4 py-3.5', wide && 'col-span-2')}>
+      <dt className="text-fg">{label}</dt>
+      <dd className="m-0 font-display text-h2 font-semibold tabular-nums">{children}</dd>
+      {note && <dd className="m-0 text-small text-fg">{note}</dd>}
     </div>
   );
 }
@@ -592,7 +592,7 @@ function RoundFiles({
   }
   if (diff.data.length === 0) {
     return (
-      <p className="m-0 text-fg-secondary">
+      <p className="m-0 text-fg">
         {(disposition && NO_FILES[disposition]) ?? 'Nothing changed in this round.'}
       </p>
     );
@@ -600,7 +600,7 @@ function RoundFiles({
   // The patches are for whoever wants every line; the summary says what was touched.
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-md text-fg-soft text-pretty">{sentence(changeSummary(diff.data))}</p>
+      <p className="m-0 text-body text-fg text-pretty">{sentence(changeSummary(diff.data))}</p>
       <Disclosure label="Details">
         <div className="flex flex-col gap-3">
           {diff.data.map((file) => (
@@ -618,12 +618,12 @@ function FilePatch({ file }: { file: FileDiff }) {
   return (
     <article
       aria-label={`${file.path}, ${FILE_STATUS[file.status]}`}
-      className="overflow-hidden rounded-xl border border-line-card"
+      className="overflow-hidden rounded-control shadow-edge"
     >
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-line-card bg-well px-3.5 py-2.5">
-        <span className="min-w-0 break-all font-mono text-sm">{file.path}</span>
-        <span className="text-sm text-fg-secondary">{FILE_STATUS[file.status]}</span>
-        <span className="ml-auto text-sm text-fg-muted">
+      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-line bg-field px-3.5 py-2.5">
+        <span className="min-w-0 break-all font-mono text-small">{file.path}</span>
+        <span className="text-small text-fg">{FILE_STATUS[file.status]}</span>
+        <span className="ml-auto text-small text-fg">
           <span className="text-student">{lines(added)} added</span>,{' '}
           <span className="text-danger">{removed} removed</span>
         </span>

@@ -44,7 +44,7 @@ import {
 } from './training-rows';
 
 const navRow =
-  'flex h-10 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-fg-secondary ' +
+  'flex h-10 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-fg ' +
   'transition-colors duration-150 hover:bg-hover hover:text-fg';
 
 /**
@@ -67,7 +67,7 @@ export function Sidebar({ route }: { route: Route }) {
   return (
     <nav
       aria-label="Agents"
-      className="flex h-full w-60 shrink-0 flex-col gap-5 border-r border-line bg-sidebar px-3 pb-3.5"
+      className="flex h-full w-60 shrink-0 flex-col gap-5 border-r border-line bg-ground px-3 pb-3.5"
     >
       {/* The top strip drags the window; on macOS the traffic lights sit at its left. */}
       <div
@@ -77,7 +77,7 @@ export function Sidebar({ route }: { route: Route }) {
         )}
       >
         <LogoMark size={20} />
-        <span className="text-md font-semibold tracking-tight">Architect</span>
+        <span className="text-body font-semibold">Architect</span>
       </div>
 
       <div className="flex items-center gap-0.5">
@@ -167,7 +167,7 @@ function AgentListSkeleton() {
       {[0, 1].map((group) => (
         <div key={group} className="flex flex-col gap-2.5">
           <div className="flex h-9 items-center gap-2.5">
-            <Skeleton className="size-[18px] rounded-[5px]" />
+            <Skeleton className="size-6 rounded-mark" />
             <Skeleton className="h-3 w-24" />
           </div>
           <Skeleton className="ml-7 h-3 w-32" />
@@ -254,19 +254,17 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
             onClick={() => navigate(paths.chat(graduate.id, chat.id))}
             aria-current={current ? 'page' : undefined}
             className={cn(
-              'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-md pl-[38px] pr-2.5 text-left',
-              'transition-colors duration-150 hover:bg-row-hover',
-              current
-                ? 'bg-hover text-fg hover:bg-hover'
-                : chat.running || chat.waiting
-                  ? 'text-fg-soft'
-                  : 'text-fg-secondary',
+              'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-control pl-[38px] pr-2.5 text-left',
+              'transition-colors duration-150 hover:bg-hover',
+              current && 'bg-hover hover:bg-hover',
             )}
           >
             <span className="truncate">{chat.title}</span>
             {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
             {chat.waiting ? (
-              !current && <span className="shrink-0 text-xs font-medium text-student">Approve</span>
+              !current && (
+                <span className="shrink-0 text-small font-medium text-student">Approve</span>
+              )
             ) : chat.running ? (
               <Spinner tone="student" label="Working" />
             ) : null}
@@ -291,7 +289,7 @@ function RowIcon({ kind }: { kind: TrainingRowKind }) {
     case 'results':
       return <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />;
     case 'stopped':
-      return <Square size={16} strokeWidth={1.8} className="text-fg-muted" aria-hidden />;
+      return <Square size={16} strokeWidth={1.8} className="text-fg" aria-hidden />;
     case 'failed':
       return <CircleAlert size={16} strokeWidth={1.8} className="text-danger" aria-hidden />;
   }
@@ -313,7 +311,7 @@ function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
     >
       <RowIcon kind={row.kind} />
       <span className="flex-1 truncate">{row.jobName}</span>
-      <span className={cn('shrink-0 text-xs', ROW_TONE[row.kind] ?? 'text-fg-muted')}>
+      <span className={cn('shrink-0 text-small', ROW_TONE[row.kind] ?? 'text-fg')}>
         {TRAINING_ROW_WORDS[row.kind]}
       </span>
     </button>

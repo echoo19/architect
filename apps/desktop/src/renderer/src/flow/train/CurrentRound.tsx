@@ -143,7 +143,7 @@ export function CurrentRound({
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-student">{names.student}</span>
-        <p className="m-0 text-md text-fg-soft text-pretty">
+        <p className="m-0 text-body text-fg text-pretty">
           {studentLine(live, round, failure, draft)}
         </p>
       </div>
@@ -154,31 +154,29 @@ export function CurrentRound({
           <span className="text-mentor">{names.mentor}</span>
           {answered?.answer ? (
             <>
-              <p className="m-0 text-md text-fg-soft text-pretty">
+              <p className="m-0 text-body text-fg text-pretty">
                 You answered: {answered.answer.text}
               </p>
-              <p className="m-0 text-md text-fg-soft text-pretty">
-                {answerEffect(answered, names)}
-              </p>
+              <p className="m-0 text-body text-fg text-pretty">{answerEffect(answered, names)}</p>
             </>
           ) : unanswered ? (
             <>
-              <p className="m-0 text-md text-fg-soft text-pretty">
+              <p className="m-0 text-body text-fg text-pretty">
                 {names.mentor} asked: {unanswered.question}
               </p>
-              <p className="m-0 text-md text-fg-soft text-pretty">
+              <p className="m-0 text-body text-fg text-pretty">
                 Training ended before you answered.
               </p>
             </>
           ) : (
-            <p className="m-0 text-md text-fg-soft text-pretty">
+            <p className="m-0 text-body text-fg text-pretty">
               {mentorLine(live, round, names, draft)}
             </p>
           )}
         </div>
       )}
       {live.notice && !pausedOnError && (
-        <p role="status" className="m-0 flex items-start gap-2 text-sm text-fg-muted">
+        <p role="status" className="m-0 flex items-start gap-2 text-small text-fg">
           <CircleAlert
             size={13}
             className={
@@ -190,9 +188,9 @@ export function CurrentRound({
         </p>
       )}
       {question === null && (
-        <div className="mt-auto flex flex-col gap-3 border-t border-line-row-strong pt-[18px]">
+        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-[18px]">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-fg-secondary">
+            <span className="text-fg">
               {names.mentor} {ended || over ? 'expected' : 'expects'}
             </span>
             {predicted ? (
@@ -200,10 +198,10 @@ export function CurrentRound({
                 <span className="font-mono tabular-nums">
                   {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)}
                 </span>{' '}
-                <span className="text-fg-secondary">check tasks</span>
+                <span className="text-fg">check tasks</span>
               </span>
             ) : (
-              <span className="text-fg-muted">–</span>
+              <span className="text-fg">–</span>
             )}
           </div>
           {ended ? (
@@ -213,8 +211,8 @@ export function CurrentRound({
             !draft &&
             recordsFailed && (
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-fg-secondary">Result</span>
-                <span className="text-fg-muted">–</span>
+                <span className="text-fg">Result</span>
+                <span className="text-fg">–</span>
               </div>
             )
           )}
@@ -230,11 +228,11 @@ function Outcome({ experiment, live }: { experiment: Experiment; live: LiveRun }
   const note = outcomeNote(experiment, live.job);
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-fg-secondary">Result</span>
+      <span className="text-fg">Result</span>
       <span className="flex min-w-0 items-center gap-2">
         <Icon size={14} strokeWidth={2} aria-hidden className={cn('shrink-0', tone)} />
         <span className={tone}>{label}</span>
-        {note && <span className="truncate text-fg-secondary">· {note}</span>}
+        {note && <span className="truncate text-fg">· {note}</span>}
       </span>
     </div>
   );

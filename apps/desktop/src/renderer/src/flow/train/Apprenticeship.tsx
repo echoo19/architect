@@ -85,18 +85,18 @@ export function Apprenticeship({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 px-6 text-center">
-          <span role="status" className="text-xl text-fg text-balance">
+          <span role="status" className="font-display text-h2 font-semibold text-balance">
             {view.text}
           </span>
           {progress && (
-            <span className="font-mono text-sm tabular-nums text-fg-muted">
+            <span className="font-mono text-small tabular-nums text-fg">
               {progress.done} of {progress.total} done
             </span>
           )}
         </div>
 
         <div className="flex flex-none flex-col items-center gap-4">
-          <div className="flex size-[150px] items-center justify-center rounded-[32px] border border-student-tile-line bg-student-tile">
+          <div className="flex size-[150px] items-center justify-center rounded-card bg-field shadow-edge">
             <div className="grid grid-cols-[repeat(9,7px)] gap-2" aria-hidden>
               {cells.map((style, index) => (
                 <span key={index} className="arch-cell" style={style} />
@@ -111,13 +111,16 @@ export function Apprenticeship({
         </div>
       </div>
 
-      <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-t border-line-row-strong bg-aside px-7 py-2">
+      <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-t border-line bg-card px-7 py-2">
         {/* Named on screen too, so the steps read as a cycle rather than a path already taken. */}
-        <span aria-hidden className="flex items-center gap-4 text-sm text-fg-faint">
+        <span aria-hidden className="flex items-center gap-4 text-small text-fg">
           {stepsLabel}
-          <span className="h-4 w-px bg-line-row-strong" />
+          <span className="h-4 w-px bg-line" />
         </span>
-        <ol aria-label={stepsLabel} className="m-0 flex list-none items-center gap-2 p-0 text-sm">
+        <ol
+          aria-label={stepsLabel}
+          className="m-0 flex list-none items-center gap-2 p-0 text-small"
+        >
           {stages.map((stage, index) => (
             <li
               key={stage}
@@ -125,14 +128,14 @@ export function Apprenticeship({
               className="flex items-center gap-2"
             >
               {index > 0 && (
-                <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="text-fg-ghost" />
+                <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="text-fg" />
               )}
               <span
                 className={cn(
                   'border-b-2 pb-0.5',
                   stage === view.stage
                     ? 'border-fg font-medium text-fg'
-                    : 'border-transparent text-fg-muted',
+                    : 'border-transparent text-fg',
                 )}
               >
                 {drafting && stage === 'diagnosing' ? 'Write first draft' : STAGE_LABELS[stage]}
@@ -162,7 +165,7 @@ function ModelName({ name, tone, role }: { name: string; tone: string; role: str
   return (
     <div className="flex max-w-[180px] flex-col items-center gap-0.5 text-center">
       <span className={cn('font-medium', tone)}>{name}</span>
-      {role && <span className="text-sm text-fg-muted text-balance">{role}</span>}
+      {role && <span className="text-small text-fg text-balance">{role}</span>}
     </div>
   );
 }

@@ -92,13 +92,13 @@ function ChatSkeleton() {
       aria-label="Loading messages"
       className="flex w-full max-w-[720px] flex-col gap-10 self-start"
     >
-      <Skeleton className="h-11 w-2/3 self-end rounded-[22px]" />
+      <Skeleton className="h-11 w-2/3 self-end rounded-card" />
       <div className="flex flex-col gap-3">
         <Skeleton className="h-3.5 w-28" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-5/6" />
       </div>
-      <Skeleton className="h-36 w-full rounded-xl" />
+      <Skeleton className="h-36 w-full rounded-control" />
     </div>
   );
 }
@@ -240,7 +240,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
           <div ref={viewport} className="min-h-0 flex-1 overflow-y-auto px-8 pb-[72px] pt-8">
-            <div ref={content} className="mx-auto flex max-w-[720px] flex-col gap-10 text-chat">
+            <div ref={content} className="mx-auto flex max-w-[720px] flex-col gap-10 text-body">
               {body}
             </div>
           </div>

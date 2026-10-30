@@ -128,9 +128,7 @@ describe('a place that cannot fit a round', () => {
 
   it('is loud: a tinted box with an alert mark, not a pale line', () => {
     const html = render(jobOf('local'));
-    expect(html).toMatch(
-      /border-danger-line bg-danger-tint[^"]*"[^>]*>\s*<svg[^>]*lucide-circle-alert/,
-    );
+    expect(html).toMatch(/bg-danger-soft[^"]*"[^>]*>\s*<svg[^>]*lucide-circle-alert/);
   });
 
   it('offers training online only when it is possible, and says what it needs when not', () => {
@@ -223,8 +221,8 @@ describe('the card of the place that is chosen', () => {
     const chosen = card(html, 'Train on this computer');
     expect(chosen).toContain('data-state="checked"');
     // The quiet title is for a card that is not chosen; a chosen one keeps the color of its text.
-    expect(chosen).toContain('group-data-[state=unchecked]:text-fg-muted');
-    expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-muted/);
+    expect(chosen).toContain('group-data-[state=unchecked]:text-fg-dim');
+    expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-dim/);
   });
 });
 

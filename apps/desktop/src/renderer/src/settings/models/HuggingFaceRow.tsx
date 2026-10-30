@@ -100,7 +100,7 @@ export function WhereToGetOne({ onOpen = openTokensPage }: { onOpen?: () => void
       <button
         type="button"
         onClick={onOpen}
-        className="rounded-xs text-fg-secondary underline underline-offset-4 transition-colors duration-150 hover:text-fg"
+        className="rounded-mark text-fg underline underline-offset-4 transition-colors duration-150"
       >
         huggingface.co/settings/tokens
       </button>
@@ -176,7 +176,7 @@ function HubTokenDialog({
               spellCheck={false}
             />
             {error && (
-              <p role="alert" className="m-0 text-sm text-danger text-pretty">
+              <p role="alert" className="m-0 text-small text-danger text-pretty">
                 {error}
               </p>
             )}

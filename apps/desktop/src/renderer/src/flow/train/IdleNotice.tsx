@@ -66,15 +66,15 @@ export function IdleNoticeView({
     <div
       role="status"
       aria-label={view.title}
-      className="flex items-start gap-3 rounded-2xl border border-line-card bg-well px-5 py-4"
+      className="flex items-start gap-3 rounded-card bg-field px-5 py-4 shadow-edge"
     >
       <ToggleLeft size={16} className="mt-0.5 shrink-0 text-mentor" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <span className="font-medium">{view.title}</span>
-          <span className="max-w-[760px] text-fg-secondary text-pretty">{view.body}</span>
+          <span className="max-w-[760px] text-fg text-pretty">{view.body}</span>
           {view.next !== null && (
-            <span className="max-w-[760px] text-fg-secondary text-pretty">{view.next}</span>
+            <span className="max-w-[760px] text-fg text-pretty">{view.next}</span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -97,7 +97,7 @@ export function IdleNoticeView({
         </div>
         {reason !== undefined && (
           <Disclosure label="Details">
-            <p className="m-0 text-sm text-fg-secondary text-pretty">{reason}</p>
+            <p className="m-0 text-small text-fg text-pretty">{reason}</p>
           </Disclosure>
         )}
       </div>

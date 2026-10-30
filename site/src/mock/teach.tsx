@@ -72,15 +72,14 @@ function Field({
     <div className="a a-up flex flex-col gap-2" style={style}>
       <span className="flex items-baseline gap-2 text-fg">
         {label}
-        {hint && <span className="text-sm text-fg-muted">{hint}</span>}
+        {hint && <span className="text-small text-fg">{hint}</span>}
       </span>
       {children}
     </div>
   );
 }
 
-const box =
-  'w-full rounded-md border border-line-control bg-well px-3 py-2.5 text-base leading-normal';
+const box = 'w-full rounded-control bg-field px-3 py-2.5 text-ui leading-normal shadow-edge-strong';
 
 /** What the person writes under a flagged reply, the first thing the drawer shows. */
 function WriteLayer() {
@@ -90,7 +89,7 @@ function WriteLayer() {
       style={at(SEND + 350, { dur: 360, dx: 36 })}
     >
       <blockquote
-        className="a a-up m-0 border-l-2 border-line-control pl-4 text-fg-secondary"
+        className="a a-up m-0 border-l-2 border-line-strong pl-4 text-fg"
         style={at(WRITE, { dy: 10 })}
       >
         {REPLY}
@@ -168,8 +167,8 @@ function Fact({
       className="a a-up grid grid-cols-[112px_minmax(0,1fr)] gap-4 border-t border-line py-3.5 narrow:grid-cols-[72px_minmax(0,1fr)] narrow:gap-2.5"
       style={style}
     >
-      <dt className="text-fg-muted">{label}</dt>
-      <dd className="m-0 flex flex-col gap-2 text-fg-soft text-pretty">{children}</dd>
+      <dt className="text-fg">{label}</dt>
+      <dd className="m-0 flex flex-col gap-2 text-fg text-pretty">{children}</dd>
     </div>
   );
 }
@@ -183,14 +182,14 @@ function LessonLayer() {
     >
       <div className="flex flex-col gap-3">
         <span
-          className="a a-up flex items-center gap-2 text-sm text-fg-secondary"
+          className="a a-up flex items-center gap-2 text-small text-fg"
           style={at(LESSON + 150, { dy: 10 })}
         >
           <ListChecks size={15} strokeWidth={1.7} aria-hidden />
           Rule
         </span>
         <p
-          className="a a-wipe m-0 text-2xl text-fg text-pretty"
+          className="a a-wipe m-0 text-h2 text-fg text-pretty"
           style={at(LESSON + 350, { dur: 1100 })}
         >
           {LESSON_TEXT}
@@ -202,7 +201,7 @@ function LessonLayer() {
         </Fact>
         <Fact label="Change" style={at(LESSON + 1300, { dy: 10 })}>
           <span className="text-fg">Adds to its instructions</span>
-          <span className="border-l-2 border-line-control pl-3 text-fg-secondary">
+          <span className="border-l-2 border-line-strong pl-3 text-fg">
             A pickup date must be a day the carrier collects. policy.md lists the days none do.
           </span>
         </Fact>
@@ -226,7 +225,7 @@ function SavedLayer() {
           <Heading as="h3" size="title" className="a a-up" style={at(SAVED + 250, { dy: 12 })}>
             Saved as version 2
           </Heading>
-          <p className="m-0 flex flex-col text-fg-secondary">
+          <p className="m-0 flex flex-col text-fg">
             <span className="a a-up narrow:hidden" style={at(SAVED + 450, { dy: 10 })}>
               It hasn&apos;t taken a final test.
             </span>
@@ -261,7 +260,7 @@ function SavedLayer() {
           <SettingsRow icon={<VersionTag version={1} active />} label="In use">
             <span className="flex flex-col items-end tabular-nums narrow:hidden">
               <span className="font-mono">97%</span>
-              <span className="text-sm text-fg-muted">58 of 60 passed</span>
+              <span className="text-small text-fg">58 of 60 passed</span>
             </span>
           </SettingsRow>
         </li>
@@ -273,12 +272,12 @@ function SavedLayer() {
 /** The drawer's footer: three states in one place, each leaving as the next arrives. */
 function Footers() {
   return (
-    <div className="grid min-h-16 shrink-0 border-t border-line-card px-6 py-3.5 [&>*]:[grid-area:1/1]">
+    <div className="grid min-h-16 shrink-0 border-t border-line px-6 py-3.5 [&>*]:[grid-area:1/1]">
       <div
         className="a a-exit-up motion-only flex flex-wrap items-center justify-end gap-x-4 gap-y-3"
         style={at(SEND + 350, { dur: 260, dy: 0 })}
       >
-        <p className="m-0 mr-auto max-w-[260px] text-sm text-fg-secondary text-pretty narrow:hidden">
+        <p className="m-0 mr-auto max-w-[260px] text-small text-fg text-pretty narrow:hidden">
           Only this exchange, its steps and your notes go to Spark, for up to $0.25.
         </p>
         <span className="a a-press inline-flex" style={at(SEND - 100, { dur: 300 })}>
@@ -330,15 +329,15 @@ function Drawer() {
     <div
       className={cn(
         'a a-slide-in absolute bottom-3 right-3 top-3 flex w-[520px] flex-col overflow-hidden',
-        'rounded-3xl border border-line-control bg-modal shadow-modal',
+        'rounded-card bg-raised shadow-float',
         'narrow:inset-x-3 narrow:w-auto',
       )}
       style={at(DRAWER, { dur: 640 })}
     >
-      <div className="flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line-card py-2.5 pl-6 pr-3">
+      <div className="flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line py-2.5 pl-6 pr-3">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
-          <h3 className="m-0 text-md font-medium">Teach this</h3>
-          <span className="truncate text-sm text-fg-muted narrow:hidden">
+          <h3 className="m-0 text-body font-medium">Teach this</h3>
+          <span className="truncate text-small text-fg narrow:hidden">
             Reply to &quot;{PICKUP_ASK}&quot;
           </span>
         </div>
@@ -375,7 +374,7 @@ export function TeachMock() {
           <div className="flex min-w-0 flex-1 flex-col">
             <ChatHeader title={PICKUP_TITLE} />
             <div className="min-h-0 flex-1 overflow-hidden px-8 pt-5">
-              <div className="ml-0 flex w-[212px] flex-col gap-6 text-chat">
+              <div className="ml-0 flex w-[212px] flex-col gap-6 text-body">
                 <UserBubble articleClassName="max-w-full">
                   <KeepIds text={PICKUP_ASK} />
                 </UserBubble>

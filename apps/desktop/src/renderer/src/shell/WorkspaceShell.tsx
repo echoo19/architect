@@ -26,7 +26,7 @@ export interface WorkspaceHeaderProps {
 export function WorkspaceHeader({ title, actions }: WorkspaceHeaderProps) {
   return (
     <header className="app-drag flex min-h-14 shrink-0 items-center justify-between gap-3 py-2 pl-7 pr-window-controls [--window-controls-gap:20px]">
-      <h1 className="m-0 min-w-0 truncate text-md font-medium">{title}</h1>
+      <h1 className="m-0 min-w-0 truncate text-body font-medium">{title}</h1>
       {actions}
     </header>
   );

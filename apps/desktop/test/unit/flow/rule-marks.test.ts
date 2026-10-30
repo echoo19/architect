@@ -105,12 +105,12 @@ describe('a mark that counts as zero, as Define puts it in front of the person',
       `${EMPTY_QUESTION} Count it as zero your answer`,
       `${NA_QUESTION} Count it as zero your answer`,
     ]);
-    // The question is set in the secondary color and the answer in the text's own, as any answer is.
+    // The question is set in a heavier weight and the answer in the text's own, as any answer is.
     const [, , mark] = [...policy.matchAll(/<li[\s\S]*?<\/li>/g)].map((item) => item[0]);
-    expect(mark).toMatch(/<span class="text-fg-secondary">In tickets\.csv, parts_cost/);
+    expect(mark).toMatch(/<span class="font-medium">In tickets\.csv, parts_cost/);
   });
 
-  it('says in the step that adds the column what counts as zero in it, quietly after the step', () => {
+  it('says in the step that adds the column what counts as zero in it, as a sentence after the step', () => {
     const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
     const steps = [...rule.matchAll(/<li[\s\S]*?<\/li>/g)].map((item) => text(item[0]).trim());
     expect(steps).toEqual([
@@ -120,7 +120,7 @@ describe('a mark that counts as zero, as Define puts it in front of the person',
       '4. Round the result to the nearest cent; half a cent rounds up.',
     ]);
     expect(rule).toMatch(
-      /<span class="text-fg-muted"> An empty parts cost or &quot;N\/A&quot; counts as 0, as you said\.<\/span>/,
+      /<span> An empty parts cost or &quot;N\/A&quot; counts as 0, as you said\.<\/span>/,
     );
   });
 

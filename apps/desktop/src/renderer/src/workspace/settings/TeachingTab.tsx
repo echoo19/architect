@@ -38,7 +38,7 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
         title="Versions"
         actions={
           // Names the score column: it ends where the scores do, left of the buttons' slot.
-          scored && <span className="mr-[184px] text-sm text-fg-muted">Final test</span>
+          scored && <span className="mr-[184px] text-small text-fg">Final test</span>
         }
       >
         {list ? (
@@ -83,7 +83,7 @@ function VersionSkeleton() {
     <div aria-busy="true" aria-label="Loading the versions" className="flex flex-col">
       {[0, 1].map((row) => (
         <div key={row} className="flex min-h-[60px] items-center gap-3 border-t border-line py-2.5">
-          <Skeleton className="h-7 w-9 rounded-md" />
+          <Skeleton className="h-7 w-9 rounded-control" />
           <div className="flex flex-col gap-2">
             <Skeleton className="h-3.5 w-24" />
             <Skeleton className="h-3 w-40" />
@@ -128,7 +128,7 @@ function VersionRow({
           {score && (
             <span className="flex flex-col items-end tabular-nums">
               <span className="font-mono">{formatPercent(score)}</span>
-              <span className="text-xs text-fg-muted">
+              <span className="text-small text-fg">
                 {score.pass} of {score.total} passed
               </span>
             </span>

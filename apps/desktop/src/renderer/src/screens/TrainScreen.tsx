@@ -360,16 +360,13 @@ function TrainBoard({
     <>
       {improves && <TaughtLessons improves={improves} />}
       {run.status === 'failed' && (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-danger-line bg-danger-tint px-5 py-4"
-        >
+        <div role="alert" className="flex items-start gap-3 rounded-card bg-danger-soft px-5 py-4">
           <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
           <div className="flex flex-col gap-0.5">
             <span className="font-medium">
               {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
             </span>
-            <span className="text-fg-secondary text-pretty">
+            <span className="text-fg text-pretty">
               {run.error ?? 'It stopped without saying why.'}
             </span>
           </div>
@@ -440,8 +437,8 @@ function TrainSkeleton() {
     <div aria-busy="true" aria-label="Loading the run" className="flex flex-col gap-5">
       {['h-[378px]', 'h-[368px]', 'h-[330px]'].map((height) => (
         <div key={height} className="flex flex-wrap gap-5">
-          <Skeleton className={cn('min-w-0 flex-[7_1_560px] rounded-6xl', height)} />
-          <Skeleton className={cn('min-w-0 flex-[5_1_360px] rounded-6xl', height)} />
+          <Skeleton className={cn('min-w-0 flex-[7_1_560px] rounded-card', height)} />
+          <Skeleton className={cn('min-w-0 flex-[5_1_360px] rounded-card', height)} />
         </div>
       ))}
     </div>

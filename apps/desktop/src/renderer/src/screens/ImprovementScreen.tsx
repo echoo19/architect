@@ -194,7 +194,7 @@ function ImprovementSkeleton() {
         <Skeleton className="h-10 w-96" />
         <Skeleton className="h-4 w-80" />
       </div>
-      <Skeleton className="h-[136px] w-full rounded-2xl" />
+      <Skeleton className="h-[136px] w-full rounded-card" />
       <div className="grid grid-cols-2 gap-14">
         <Skeleton className="h-36 w-full" />
         <Skeleton className="h-36 w-full" />

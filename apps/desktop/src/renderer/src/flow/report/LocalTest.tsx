@@ -30,7 +30,7 @@ function say(view: RetestView, local: ReportCard | null, report: ReportCard, dev
   switch (view.phase) {
     case 'idle':
       return {
-        mark: <Laptop size={18} strokeWidth={1.6} className="text-fg-muted" aria-hidden />,
+        mark: <Laptop size={18} strokeWidth={1.6} className="text-fg" aria-hidden />,
         title: `Test it on ${device}`,
         lines: `Run its final test here to see how the agent does on its own. It takes ${lowerFirst(localTestTime(report.test.score.total))} and uses the graphics card.`,
       };
@@ -92,19 +92,19 @@ export function LocalTest({ report }: { report: ReportCard }) {
       />
     );
   }
-  if (detail.data === undefined) return <Skeleton className="h-[92px] w-full rounded-2xl" />;
+  if (detail.data === undefined) return <Skeleton className="h-[92px] w-full rounded-card" />;
 
   const { mark, title, lines } = say(view, local.data ?? null, report, device);
   return (
     <section
       aria-label={`Test on ${device}`}
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-2xl border border-line-card bg-card px-[22px] py-5"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card px-[22px] py-5 shadow-edge"
     >
       <div className="flex min-w-0 flex-[1_1_360px] items-start gap-3.5">
         <span className="mt-0.5 flex shrink-0">{mark}</span>
         <div className="flex min-w-0 flex-col gap-1">
           <Heading as="h2">{title}</Heading>
-          <p className="m-0 text-fg-secondary text-pretty">{lines}</p>
+          <p className="m-0 text-fg text-pretty">{lines}</p>
         </div>
       </div>
       {(view.phase === 'idle' || view.phase === 'paused') && (

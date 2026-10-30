@@ -43,7 +43,7 @@ export function HomeScreen() {
 function HomeSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading agents" className="flex flex-col items-center gap-5">
-      <Skeleton className="size-12 rounded-xl" />
+      <Skeleton className="size-12 rounded-control" />
       <Skeleton className="h-5 w-48" />
       <Skeleton className="h-3.5 w-72" />
     </div>

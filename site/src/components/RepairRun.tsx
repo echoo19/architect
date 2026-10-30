@@ -8,7 +8,7 @@ import { Actors } from './Actors';
  */
 export function RepairRun() {
   return (
-    <p className="mb-0 mt-6 max-w-[62ch] text-[17px] leading-relaxed text-fg-secondary text-pretty sm:mt-8">
+    <p className="mb-0 mt-6 max-w-[62ch] text-[17px] leading-relaxed text-fg text-pretty sm:mt-8">
       <Actors text={REPAIR_RUN} />
     </p>
   );

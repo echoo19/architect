@@ -35,7 +35,7 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
   if (report.status === 'loading') {
     return (
       <div aria-busy="true" aria-label="Loading the results" className="flex flex-col gap-7">
-        <Skeleton className="h-[116px] w-full rounded-2xl" />
+        <Skeleton className="h-[116px] w-full rounded-card" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-4/5" />
       </div>
@@ -47,7 +47,7 @@ export function ReportTab({ agent }: { agent: GraduateSummary }) {
 function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
-  const cell = 'bg-modal p-[18px]';
+  const cell = 'bg-raised p-[18px]';
   const place = imported
     ? "on the author's computer"
     : test.ranOffline
@@ -56,8 +56,8 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
 
   return (
     <div className="flex flex-col gap-8 pt-1">
-      {imported && <span className="-mb-5 text-sm text-fg-muted">{AUTHOR_RESULT_TITLE}</span>}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
+      {imported && <span className="-mb-5 text-small text-fg">{AUTHOR_RESULT_TITLE}</span>}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card bg-line-strong shadow-edge">
         <Stat
           className={cell}
           value={formatPercent(test.score)}
@@ -97,9 +97,9 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
           <div key={type.type} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
               <span>{type.label}</span>
-              <span className="font-mono text-fg-secondary">
+              <span className="font-mono text-fg">
                 {formatPercent(type)}
-                <span className="text-fg-muted">
+                <span className="text-fg">
                   {' '}
                   · {type.pass} of {type.total}
                 </span>
@@ -107,7 +107,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
             </div>
             <Meter label={type.label} value={percentOf(type) / 100} tone="student" thickness={4} />
             {percentOf(type) < Math.round(requirements.passRate.target * 100) && (
-              <span className="text-sm text-fg-muted">
+              <span className="text-small text-fg">
                 Below the {Math.round(requirements.passRate.target * 100)}% target on its own: check
                 these answers before relying on them
               </span>
@@ -119,12 +119,10 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <Heading>Doesn&apos;t handle</Heading>
-          <p className="m-0 text-sm text-fg-muted">Requests it turns down and leaves to you.</p>
+          <p className="m-0 text-small text-fg">Requests it turns down and leaves to you.</p>
         </div>
         {report.refusedTypes.length === 0 ? (
-          <p className="m-0 text-fg-secondary">
-            Nothing. It takes on every task type it trained on.
-          </p>
+          <p className="m-0 text-fg">Nothing. It takes on every task type it trained on.</p>
         ) : (
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
             {report.refusedTypes.map((type) => {
@@ -132,15 +130,15 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
               const result = test.perType.find((item) => item.type === type.type);
               return (
                 <li key={type.type} className="flex flex-col gap-0.5">
-                  <span className="flex items-baseline justify-between gap-3 text-fg-secondary">
+                  <span className="flex items-baseline justify-between gap-3 text-fg">
                     {type.label}
                     {result && (
-                      <span className="font-mono text-fg-muted">
+                      <span className="font-mono text-fg">
                         {result.pass} of {result.total}
                       </span>
                     )}
                   </span>
-                  <span className="text-sm text-fg-muted text-pretty">{type.reason}</span>
+                  <span className="text-small text-fg text-pretty">{type.reason}</span>
                 </li>
               );
             })}

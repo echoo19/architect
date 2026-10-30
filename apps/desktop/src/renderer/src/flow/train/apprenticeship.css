@@ -4,12 +4,7 @@
  */
 
 .arch-stage {
-  --arch-glow: color-mix(in srgb, var(--ui-student) 35%, transparent);
   --arch-ping: color-mix(in srgb, var(--ui-student) 35%, white);
-}
-
-[data-theme='light'] .arch-stage {
-  --arch-ping: var(--ui-student);
 }
 
 /* The mentor: three dotted rings turning at different speeds around a solid core. */
@@ -88,11 +83,9 @@
   18%,
   100% {
     background-color: var(--arch-cell);
-    box-shadow: 0 0 0 0 transparent;
   }
   6% {
     background-color: var(--arch-ping);
-    box-shadow: 0 0 8px 1px var(--arch-glow);
   }
 }
 

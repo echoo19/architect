@@ -39,12 +39,12 @@ function armLabel(key: ArmKey, { mentor, student }: ModelNames, blankStart: bool
  * over more than one run of the check tasks says how many.
  */
 function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | undefined }) {
-  if (score === null) return <span className="text-fg-faint">Not run</span>;
+  if (score === null) return <span className="text-fg">Not run</span>;
   const runs = perRun && score.total > perRun ? Math.round(score.total / perRun) : 1;
   return (
     <span className="flex flex-col items-end">
       <span className="font-mono tabular-nums text-fg">{formatRate(score)}</span>
-      <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
+      <span className="whitespace-nowrap text-small tabular-nums text-fg">
         {score.pass} of {score.total}
         {runs > 1 && `, ${runs} runs`}
       </span>
@@ -86,7 +86,7 @@ export function Comparisons({
   return (
     <section aria-labelledby="comparisons" className="flex flex-col gap-[18px]">
       <Heading id="comparisons">Comparisons</Heading>
-      <div className="rounded-xl bg-panel">
+      <div className="rounded-control bg-card">
         <Table aria-label="Comparisons">
           <TableHeader>
             <TableRow>
@@ -111,9 +111,7 @@ export function Comparisons({
                   <span className={arm.current ? 'font-medium' : undefined}>
                     {armLabel(arm.key, names, blankStart)}
                   </span>
-                  {arm.current && (
-                    <span className="whitespace-nowrap text-fg-muted"> · this agent</span>
-                  )}
+                  {arm.current && <span className="whitespace-nowrap text-fg"> · this agent</span>}
                 </TableCell>
                 <TableCell className="text-right align-top">
                   <ScoreCell score={arm.check} perRun={checkTasks} />
@@ -131,7 +129,7 @@ export function Comparisons({
       </div>
       {(unmeasured.length > 0 || metered.length > 0) && (
         <Disclosure label="Details">
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
             {metered.map((arm) => (
               <li key={arm.key} className="text-pretty">
                 {armLabel(arm.key, names, blankStart)} used at most{' '}
@@ -140,7 +138,7 @@ export function Comparisons({
               </li>
             ))}
             {unmeasured.map((arm) => (
-              <li key={arm.key} className="text-pretty text-fg-muted">
+              <li key={arm.key} className="text-pretty text-fg">
                 {armLabel(arm.key, names, blankStart)} wasn&apos;t measured
                 {notRunReason(arm.key, names.mentor) && `: ${notRunReason(arm.key, names.mentor)}`}.
               </li>

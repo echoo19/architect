@@ -75,7 +75,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
     <>
       <SettingsRow label="Job" error={errorOf(versions)}>
         {contract ? (
-          <span className="max-w-[340px] text-right text-fg-secondary text-pretty">
+          <span className="max-w-[340px] text-right text-fg text-pretty">
             {contract.summary ?? contract.description}
           </span>
         ) : versions.status === 'error' ? (
@@ -176,7 +176,7 @@ function InstallRow({
             <Disclosure label="Details">
               <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                 {problem.details.map((line) => (
-                  <li key={line} className="break-words text-xs leading-5 text-fg-muted">
+                  <li key={line} className="break-words text-small leading-5 text-fg">
                     {line}
                   </li>
                 ))}
@@ -350,7 +350,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
         error={errorOf(versions)}
       >
         {contract ? (
-          <span className="max-w-[340px] text-right font-mono text-sm text-fg-secondary text-pretty">
+          <span className="max-w-[340px] text-right font-mono text-small text-fg text-pretty">
             {files.map((file) => file.name).join(', ')}
           </span>
         ) : (
@@ -368,7 +368,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       >
         {contract ? (
           writable.length > 0 ? (
-            <span className="font-mono text-sm text-fg-secondary">{writable.join(', ')}</span>
+            <span className="font-mono text-small text-fg">{writable.join(', ')}</span>
           ) : (
             <SettingsValue>None</SettingsValue>
           )

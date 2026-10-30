@@ -17,7 +17,7 @@ export function StatusBar({ agent }: { agent: GraduateSummary }) {
   const { adapter } = manifest.student;
 
   return (
-    <p className="mx-auto mb-0 mt-2.5 flex max-w-[720px] flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-fg-muted">
+    <p className="mx-auto mb-0 mt-2.5 flex max-w-[720px] flex-wrap items-center justify-center gap-x-4 gap-y-1 text-small text-fg">
       <Item>
         <Layers size={12} strokeWidth={1.8} aria-hidden />
         {activeVersionName(agent)}

@@ -220,7 +220,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     // What leaves this computer, beside the one button that sends it.
     footer = (
       <>
-        <p className="m-0 mr-auto max-w-[260px] text-sm text-fg-secondary text-pretty">
+        <p className="m-0 mr-auto max-w-[260px] text-small text-fg text-pretty">
           Only this exchange, its steps and your notes go to {mentor}, for up to{' '}
           {formatUsd(ready.correctionCapUsd)}.
         </p>
@@ -261,7 +261,7 @@ function Settled({ title, children }: { title: string; children: ReactNode }) {
         <Heading as="h3" size="title">
           {title}
         </Heading>
-        <p className="m-0 flex flex-col text-fg-secondary">{children}</p>
+        <p className="m-0 flex flex-col text-fg">{children}</p>
       </div>
     </div>
   );
@@ -302,7 +302,7 @@ function CorrectionForm({
   return (
     <div className="flex flex-col gap-6">
       {reply.trim() !== '' && (
-        <blockquote className="m-0 line-clamp-3 border-l-2 border-line-control pl-4 text-fg-secondary">
+        <blockquote className="m-0 line-clamp-3 border-l-2 border-line-strong pl-4 text-fg">
           {reply}
         </blockquote>
       )}
@@ -354,7 +354,7 @@ function CorrectionForm({
           rows={3}
           disabled={disabled}
           placeholder="Or paste the rows it should have used"
-          className="font-mono text-sm"
+          className="font-mono text-small"
           onChange={(event) => onRows(event.target.value)}
         />
       </Field>
@@ -377,7 +377,7 @@ function SheetSkeleton() {
       {[0, 1].map((field) => (
         <div key={field} className="flex flex-col gap-2">
           <Skeleton className="h-3.5 w-36" />
-          <Skeleton className="h-24 w-full rounded-md" />
+          <Skeleton className="h-24 w-full rounded-control" />
         </div>
       ))}
     </div>

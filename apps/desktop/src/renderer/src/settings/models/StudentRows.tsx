@@ -39,7 +39,7 @@ export function PullControl({ state, onStart, label = 'Download' }: PullControlP
   if (state.phase === 'starting' || state.phase === 'pulling') {
     const percent = pullPercent(state);
     return (
-      <span role="status" className="flex items-center gap-2 font-mono text-fg-secondary">
+      <span role="status" className="flex items-center gap-2 font-mono text-fg">
         <Spinner tone="student" size={13} />
         {percent === null ? pullStage(state) : `${percent}%`}
       </span>
@@ -48,7 +48,7 @@ export function PullControl({ state, onStart, label = 'Download' }: PullControlP
   return (
     <span className="flex items-center gap-3">
       {state.phase === 'failed' && (
-        <span role="alert" className="max-w-64 text-sm text-danger text-pretty">
+        <span role="alert" className="max-w-64 text-small text-danger text-pretty">
           {state.error}
         </span>
       )}

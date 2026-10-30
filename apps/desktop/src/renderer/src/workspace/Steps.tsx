@@ -15,11 +15,8 @@ import { CodeView } from '../components/CodeView';
 import { cellText, currentStep, isFigureColumn, stepCount, stepWords, workedLabel } from './labels';
 import type { PanelContent } from './SidePanel';
 
-const NAME_TONE: Record<AgentStep['status'], string> = {
-  done: 'text-fg',
-  running: 'text-fg-secondary',
-  error: 'text-danger',
-};
+/** A step reads in the ink of the text around it, unless it failed. */
+const NAME_TONE: Partial<Record<AgentStep['status'], string>> = { error: 'text-danger' };
 
 /** Rows a table read shows under its step before "Show all". */
 const STEP_TABLE_ROWS = 4;
@@ -67,7 +64,7 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setChoice(!open)}
-        className="flex h-7 max-w-full items-center gap-2 self-start rounded-xs text-base text-fg-secondary transition-colors duration-150 hover:text-fg"
+        className="flex h-7 max-w-full items-center gap-2 self-start rounded-mark text-ui text-fg transition-colors duration-150"
       >
         {working && !waiting && <Spinner size={13} />}
         <span className="truncate">{header}</span>
@@ -82,7 +79,7 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
         <ol
           id={listId}
           aria-label="Steps"
-          className="m-0 ml-1.5 flex min-w-0 list-none flex-col border-l border-line-control py-0 pl-4 pr-0 text-sm leading-normal"
+          className="m-0 ml-1.5 flex min-w-0 list-none flex-col border-l border-line-strong py-0 pl-4 pr-0 text-small leading-normal"
         >
           {message.steps.map((item) => {
             const { action, target } = stepWords(item);
@@ -92,12 +89,10 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
               <li key={item.id} className="flex min-w-0 animate-rise flex-col gap-2 py-[5px]">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className={NAME_TONE[item.status]}>{action}</span>
-                  {target !== '' && <span className="font-mono text-fg-secondary">{target}</span>}
+                  {target !== '' && <span className="font-mono text-fg">{target}</span>}
                   {meta && (
                     <span
-                      className={
-                        item.status === 'error' ? 'ml-1.5 text-danger' : 'ml-1.5 text-fg-muted'
-                      }
+                      className={item.status === 'error' ? 'ml-1.5 text-danger' : 'ml-1.5 text-fg'}
                     >
                       {meta}
                     </span>
@@ -115,7 +110,7 @@ export function Steps({ message, startOpen, waiting, onOpenPanel }: StepsProps) 
             );
           })}
           {message.graduateVersion !== undefined && (
-            <li className="flex items-center gap-2 py-[5px] text-fg-muted">
+            <li className="flex items-center gap-2 py-[5px] text-fg">
               <Layers size={13} strokeWidth={1.8} aria-hidden className="shrink-0" />
               Answered by version {message.graduateVersion}
             </li>
@@ -156,9 +151,9 @@ function StepTable({
   const shown = view.rows.slice(0, STEP_TABLE_ROWS);
   const align = (column: number) => isFigureColumn(view.rows, column) && 'text-right';
   return (
-    <div className="min-w-0 overflow-hidden rounded-lg bg-well">
+    <div className="min-w-0 overflow-hidden rounded-control bg-field">
       <div className="overflow-x-auto px-3">
-        <Table variant="plain" aria-label={title} className="text-xs">
+        <Table variant="plain" aria-label={title} className="text-small">
           <TableHeader>
             <TableRow>
               {view.columns.map((column, index) => (
@@ -184,7 +179,7 @@ function StepTable({
       {view.rows.length > STEP_TABLE_ROWS && (
         <button
           type="button"
-          className="h-8 w-full border-t border-line-card text-sm text-fg-secondary transition-colors duration-150 hover:bg-row-hover hover:text-fg"
+          className="h-8 w-full border-t border-line text-small text-fg transition-colors duration-150 hover:bg-hover"
           onClick={() =>
             onOpenPanel({ kind: 'table', title, columns: view.columns, rows: view.rows })
           }

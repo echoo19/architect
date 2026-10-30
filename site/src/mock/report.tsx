@@ -28,7 +28,7 @@ const ROW_STEP = 520;
 
 function Lines({ lines }: { lines: readonly string[] }) {
   return (
-    <span className="flex flex-col gap-1.5 text-sm text-fg-muted">
+    <span className="flex flex-col gap-1.5 text-small text-fg">
       {lines.map((line) => (
         <span key={line}>{line}</span>
       ))}
@@ -52,7 +52,7 @@ export function ReportMock() {
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title="Returns desk" current={3} />
-        <div className="min-h-0 flex-1 overflow-hidden bg-ground-flow bg-dot-grid">
+        <div className="min-h-0 flex-1 overflow-hidden bg-ground">
           <div className="mx-auto flex w-full max-w-[860px] flex-col gap-6 px-8 pt-7 narrow:gap-5 narrow:px-4 narrow:pt-5">
             <div className="flex flex-col gap-2.5">
               <div className="a a-pop self-start" style={at(250, { dur: 420 })}>
@@ -67,20 +67,20 @@ export function ReportMock() {
               <Heading
                 as="h3"
                 size="display"
-                className="a a-wipe narrow:text-display-sm"
+                className="a a-wipe narrow:text-h1"
                 style={at(450, { dur: 800 })}
               >
                 Returns desk finished training
               </Heading>
               <p
-                className="a a-up m-0 max-w-[660px] text-lg text-fg-secondary text-pretty narrow:text-md"
+                className="a a-up m-0 max-w-[660px] text-body text-fg text-pretty narrow:text-body"
                 style={at(SAYS_AT, { dy: 12 })}
               >
                 Tested on 60 tasks it had never seen, on an online copy of Glimmer, with Spark
                 disconnected.
               </p>
               <p
-                className="a a-up m-0 max-w-[620px] text-fg-secondary text-pretty"
+                className="a a-up m-0 max-w-[620px] text-fg text-pretty"
                 style={at(SAYS_AT + 300, { dy: 12 })}
               >
                 It got 58 of 60 there, and is marked ready once it passes on this computer too.
@@ -89,16 +89,16 @@ export function ReportMock() {
 
             <section
               aria-label="Test on this computer"
-              className="a a-up flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-2xl border border-line-card bg-card px-[22px] py-5"
+              className="a a-up flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card px-[22px] py-5 shadow-edge"
               style={at(OFFER_AT, { dy: 14, dur: 600 })}
             >
               <div className="flex min-w-0 flex-[1_1_360px] items-start gap-3.5">
                 <span className="mt-0.5 flex shrink-0">
-                  <Laptop size={18} strokeWidth={1.6} className="text-fg-muted" aria-hidden />
+                  <Laptop size={18} strokeWidth={1.6} className="text-fg" aria-hidden />
                 </span>
                 <div className="flex min-w-0 flex-col gap-1">
                   <Heading as="h3">Test it on this computer</Heading>
-                  <p className="m-0 text-fg-secondary text-pretty">
+                  <p className="m-0 text-fg text-pretty">
                     Run its final test here to see how the agent does on its own. It takes about 2.5
                     hours for 60 tasks and uses the graphics card.
                   </p>
@@ -110,11 +110,11 @@ export function ReportMock() {
             </section>
 
             <div
-              className="a a-up grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card narrow:grid-cols-1"
+              className="a a-up grid grid-cols-2 gap-px overflow-hidden rounded-card bg-line-strong narrow:grid-cols-1 shadow-edge"
               style={at(FIGURES_AT, { dy: 18, dur: 700 })}
             >
               <Stat
-                className="bg-panel p-5 narrow:p-4"
+                className="bg-card p-5 narrow:p-4"
                 size="md"
                 value="97%"
                 label="of new tasks right"
@@ -122,7 +122,7 @@ export function ReportMock() {
                 noteFont="text"
               />
               <Stat
-                className="bg-panel p-5 narrow:hidden"
+                className="bg-card p-5 narrow:hidden"
                 size="md"
                 value="3.5 s"
                 label="Typical answer time"
@@ -143,7 +143,7 @@ export function ReportMock() {
                   <span className="narrow:hidden" />
                   <span className="flex flex-col gap-0.5">
                     <EvidenceMark kind="final">Final test</EvidenceMark>
-                    <span className="text-sm text-fg-muted">Opened once, at the end</span>
+                    <span className="text-small text-fg">Opened once, at the end</span>
                   </span>
                 </div>
                 {TASK_TYPES.map((type, index) => {
@@ -151,14 +151,14 @@ export function ReportMock() {
                   return (
                     <div
                       key={type.label}
-                      className="grid grid-cols-[28%_1fr] items-start gap-x-6 gap-y-2 border-t border-line-card py-3 narrow:grid-cols-1"
+                      className="grid grid-cols-[28%_1fr] items-start gap-x-6 gap-y-2 border-t border-line py-3 narrow:grid-cols-1"
                     >
                       <span className="a a-up" style={at(start - 150, { dy: 10 })}>
                         {type.label}
                       </span>
                       <span className="flex flex-col gap-2">
                         <span
-                          className="a a-up font-mono text-sm tabular-nums text-fg-secondary"
+                          className="a a-up font-mono text-small tabular-nums text-fg"
                           style={at(start, { dy: 8 })}
                         >
                           <span className="text-fg">{type.pass}</span> of {type.total}

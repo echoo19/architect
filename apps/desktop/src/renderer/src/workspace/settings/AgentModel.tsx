@@ -86,7 +86,7 @@ export function AgentModelRow({
         binding && (
           <>
             {details && `${details} · `}
-            <span className="font-mono text-xs">{binding.model}</span>
+            <span className="font-mono text-small">{binding.model}</span>
           </>
         )
       }

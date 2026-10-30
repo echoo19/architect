@@ -49,7 +49,7 @@ import { StopImprovementDialog } from './StopImprovement';
 /** An icon in a small tile, at the start of a row. */
 function Tile({ children }: { children: ReactNode }) {
   return (
-    <span className="flex size-7 items-center justify-center rounded-md bg-hover text-fg-secondary">
+    <span className="flex size-7 items-center justify-center rounded-control bg-hover text-fg">
       {children}
     </span>
   );
@@ -366,7 +366,7 @@ function RowsSkeleton() {
     <div aria-busy="true" aria-label="Loading what it is being taught" className="flex flex-col">
       {[0, 1, 2].map((row) => (
         <div key={row} className="flex min-h-[60px] items-center gap-3 border-t border-line py-2.5">
-          <Skeleton className="size-7 rounded-md" />
+          <Skeleton className="size-7 rounded-control" />
           <div className="flex flex-col gap-2">
             <Skeleton className="h-3.5 w-32" />
             <Skeleton className="h-3 w-48" />

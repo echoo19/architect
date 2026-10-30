@@ -86,7 +86,7 @@ function Rows({
   label: string;
 }) {
   return (
-    <div className="rounded-xl bg-panel">
+    <div className="rounded-control bg-card">
       <Table aria-label={label}>
         <TableHeader>
           <TableRow>
@@ -109,11 +109,11 @@ function Rows({
                     <span>
                       <span className={arm.current ? 'font-medium' : undefined}>{arm.label}</span>
                       {arm.current && (
-                        <span className="whitespace-nowrap text-fg-muted"> · this agent</span>
+                        <span className="whitespace-nowrap text-fg"> · this agent</span>
                       )}
                     </span>
                     {arm.status !== 'complete' && arm.status !== 'not_run' && (
-                      <span className="text-xs text-fg-muted text-pretty">
+                      <span className="text-small text-fg text-pretty">
                         {arm.status === 'stopped' ? 'Stopped' : 'Not finished'}
                         {arm.reason && `: ${arm.reason}`}
                       </span>
@@ -121,20 +121,20 @@ function Rows({
                   </span>
                 </TableCell>
                 {arm.status === 'not_run' ? (
-                  <TableCell colSpan={2} className="align-top text-fg-faint text-pretty">
+                  <TableCell colSpan={2} className="align-top text-fg text-pretty">
                     Not run{arm.reason && `: ${arm.reason}`}
                   </TableCell>
                 ) : (
                   <>
                     <TableCell className="text-right align-top">
                       {shown === null ? (
-                        <span className="text-fg-faint">Not run</span>
+                        <span className="text-fg">Not run</span>
                       ) : (
                         <span className="flex flex-col items-end">
                           <span className="font-mono tabular-nums text-fg">
                             {formatRate(shown.score)}
                           </span>
-                          <span className="whitespace-nowrap text-xs tabular-nums text-fg-muted">
+                          <span className="whitespace-nowrap text-small tabular-nums text-fg">
                             {counts(shown.score)}
                             {shown.where && `, ${shown.where}`}
                           </span>
@@ -196,14 +196,14 @@ export function ComparisonArms({
       )}
       {(notes.length > 0 || report.disclosures.length > 0) && (
         <Disclosure label="Details">
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
             {notes.map(({ arm, facts }) => (
               <li key={arm.arm} className="text-pretty">
                 {arm.label}: {facts.join(', ')}.
               </li>
             ))}
             {report.disclosures.map((line) => (
-              <li key={line} className="text-pretty text-fg-muted">
+              <li key={line} className="text-pretty text-fg">
                 {line}
               </li>
             ))}

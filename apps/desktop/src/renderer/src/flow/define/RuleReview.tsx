@@ -79,14 +79,14 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
         )}
       </div>
       {confirmation.state === 'needed' && (
-        <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
+        <p className="m-0 max-w-[620px] text-fg text-pretty">
           {reviewIntro(mentor, student, rules.length)}
         </p>
       )}
       {changed && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-danger-line px-6 py-5"
+          className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
         >
           <p className="m-0 max-w-[560px] text-pretty">{confirmation.problem}</p>
           <Button onClick={describeAgain}>Describe the job again</Button>
@@ -110,8 +110,8 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
         </Disclosure>
       )}
       {confirmation.state === 'needed' && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-list px-6 py-5">
-          <p className="m-0 max-w-[520px] text-fg-secondary text-pretty">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-field px-6 py-5">
+          <p className="m-0 max-w-[520px] text-fg text-pretty">
             {confirmLine(mentor, rules.length)}
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -142,27 +142,27 @@ function RuleCard({
   return (
     <article
       aria-label={label}
-      className="flex flex-col gap-6 rounded-3xl border border-line-card bg-card px-7 py-[26px]"
+      className="flex flex-col gap-6 rounded-card bg-card px-7 py-[26px] shadow-edge"
     >
       <header>
-        <h3 className="m-0 flex items-center gap-2.5 text-lg font-medium">
-          <ScrollText size={18} strokeWidth={1.7} className="shrink-0 text-fg-muted" aria-hidden />
+        <h3 className="m-0 flex items-center gap-2.5 text-body font-medium">
+          <ScrollText size={18} strokeWidth={1.7} className="shrink-0 text-fg" aria-hidden />
           {label}
         </h3>
       </header>
 
       <div className="flex flex-col gap-3">
-        <h4 className="m-0 text-sm font-normal text-fg-muted">From your policy</h4>
+        <h4 className="m-0 text-small font-normal text-fg">From your policy</h4>
         <PassageList passages={details.passages} />
       </div>
 
       <div className="flex flex-col gap-3">
-        <h4 className="m-0 text-sm font-normal text-fg-muted">The rule, in words</h4>
+        <h4 className="m-0 text-small font-normal text-fg">The rule, in words</h4>
         <RuleSteps steps={details.steps} statement={details.statement} />
       </div>
 
       <div className="flex flex-col gap-3.5">
-        <h4 className="m-0 text-sm font-normal text-fg-muted">Examples</h4>
+        <h4 className="m-0 text-small font-normal text-fg">Examples</h4>
         <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
           {details.examples.map((example) => (
             <Example key={`${example.taskId ?? 'made'}:${example.request}`} example={example} />
@@ -171,7 +171,7 @@ function RuleCard({
       </div>
 
       {notes.length > 0 && (
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-muted">
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
           {notes.map((note) => (
             <li key={note} className="flex items-start gap-2">
               <CircleAlert size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden />
@@ -184,7 +184,7 @@ function RuleCard({
       <div className="flex flex-col gap-1">
         {details.excluded.length > 0 && (
           <Disclosure label={leftOut ?? 'Rows left out of the tasks'}>
-            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
               {details.excluded.map((item) => (
                 <li key={item.reason} className="text-pretty">
                   {item.count} {item.count === 1 ? 'row' : 'rows'}: {item.reason}
@@ -197,10 +197,10 @@ function RuleCard({
         <Disclosure label="Details">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <h5 className="m-0 text-sm font-normal text-fg-muted">
+              <h5 className="m-0 text-small font-normal text-fg">
                 How numbers and rounding are read
               </h5>
-              <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+              <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
                 {details.conventions.map((line) => (
                   <li key={line} className="text-pretty">
                     {line}
@@ -224,10 +224,10 @@ function RuleCard({
  */
 function Example({ example }: { example: RuleExample }) {
   return (
-    <li className="flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel px-5 py-[18px]">
+    <li className="flex flex-col gap-3.5 rounded-card bg-card px-5 py-[18px] shadow-edge">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="min-w-0 text-md text-pretty">{example.request}</span>
-        <span className="text-xl font-medium tabular-nums">{example.answer}</span>
+        <span className="min-w-0 text-body text-pretty">{example.request}</span>
+        <span className="font-display text-h2 font-semibold tabular-nums">{example.answer}</span>
       </div>
       {(example.covers.length > 0 || example.madeUp === true) && (
         <div className="flex flex-wrap gap-2">
@@ -243,15 +243,15 @@ function Example({ example }: { example: RuleExample }) {
           ))}
         </div>
       )}
-      <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+      <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-small">
         {example.inputs.map((input) => (
           <div key={input.label} className="flex gap-2">
-            <dt className="text-fg-muted">{input.label}</dt>
-            <dd className="m-0 font-mono text-xs leading-5 text-fg-secondary">{input.value}</dd>
+            <dt className="text-fg">{input.label}</dt>
+            <dd className="m-0 font-mono text-small leading-5 text-fg">{input.value}</dd>
           </div>
         ))}
       </dl>
-      <ol className="m-0 flex list-none flex-col gap-1.5 border-t border-line-row p-0 pt-3 text-sm">
+      <ol className="m-0 flex list-none flex-col gap-1.5 border-t border-line p-0 pt-3 text-small">
         {example.steps.map((step, at) => (
           <li
             key={`${at}:${step.text}`}
@@ -260,7 +260,7 @@ function Example({ example }: { example: RuleExample }) {
               at === example.steps.length - 1 && 'font-medium',
             )}
           >
-            <span className="text-pretty text-fg-secondary">{step.text}</span>
+            <span className="text-pretty text-fg">{step.text}</span>
             <span className="font-mono tabular-nums">{step.value}</span>
           </li>
         ))}

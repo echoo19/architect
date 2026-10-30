@@ -9,7 +9,6 @@ import type {
   Measurement,
 } from '@architect/shared';
 import {
-  cn,
   DetailList,
   Disclosure,
   DrawerSection,
@@ -69,7 +68,7 @@ export function Findings({
       <ul className="m-0 flex list-none flex-col gap-4 p-0">
         {intervention.findings.map((finding) => (
           <li key={`${finding.attemptId}-${finding.failureTurn}`} className="flex flex-col gap-2">
-            <span className="flex flex-wrap items-baseline gap-x-2 text-sm text-fg-muted">
+            <span className="flex flex-wrap items-baseline gap-x-2 text-small text-fg">
               <span>{typeLabel(job, finding.taskType)}</span>
               {categoryLabel(categories, finding.categoryId) && (
                 <>
@@ -78,11 +77,11 @@ export function Findings({
                 </>
               )}
             </span>
-            <p className="m-0 text-md text-fg-soft text-pretty">{finding.cause}</p>
-            <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-fg-secondary">
+            <p className="m-0 text-body text-fg text-pretty">{finding.cause}</p>
+            <ul className="m-0 flex list-none flex-col gap-1 p-0 text-small text-fg">
               {finding.evidence.map((item) => (
                 <li key={`${item.turn}-${item.note}`} className="text-pretty">
-                  <span className="tabular-nums text-fg-muted">
+                  <span className="tabular-nums text-fg">
                     {names.student}&apos;s step {item.turn}
                   </span>{' '}
                   {item.note}
@@ -92,7 +91,7 @@ export function Findings({
             <button
               type="button"
               onClick={() => onOpenAttempt(finding)}
-              className="group flex items-center gap-1.5 self-start rounded-xs text-sm text-fg-secondary transition-colors duration-150 hover:text-fg"
+              className="group flex items-center gap-1.5 self-start rounded-mark text-small text-fg transition-colors duration-150"
             >
               Open {names.student}&apos;s attempt at step {finding.failureTurn}
               <ArrowRight size={13} strokeWidth={2} aria-hidden />
@@ -100,9 +99,9 @@ export function Findings({
           </li>
         ))}
         {intervention.setAside.map((item) => (
-          <li key={`${item.taskId}-${item.reason}`} className="flex items-start gap-2.5 text-sm">
-            <CircleMinus size={14} aria-hidden className="mt-[3px] shrink-0 text-fg-faint" />
-            <span className="text-fg-muted text-pretty">Set aside a finding: {item.reason}</span>
+          <li key={`${item.taskId}-${item.reason}`} className="flex items-start gap-2.5 text-small">
+            <CircleMinus size={14} aria-hidden className="mt-[3px] shrink-0 text-fg" />
+            <span className="text-fg text-pretty">Set aside a finding: {item.reason}</span>
           </li>
         ))}
       </ul>
@@ -114,23 +113,21 @@ export function Findings({
 export function InterventionLine({ intervention }: { intervention: Intervention }) {
   const { label, icon: Icon, meaning } = INTERVENTIONS[intervention.type];
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-line-card px-4 py-3">
+    <div className="flex items-start gap-3 rounded-control px-4 py-3 shadow-edge">
       <Icon size={18} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0 text-mentor" />
       <div className="flex min-w-0 flex-col gap-0.5">
         <span>
           <span className="font-medium">{label}</span>
-          <span className="text-fg-muted">: {meaning}</span>
+          <span className="text-fg">: {meaning}</span>
         </span>
         {intervention.hypothesis && (
-          <span className="text-fg-secondary text-pretty">{intervention.hypothesis}</span>
+          <span className="text-fg text-pretty">{intervention.hypothesis}</span>
         )}
         {intervention.question && (
-          <span className="text-fg-secondary text-pretty">{intervention.question}</span>
+          <span className="text-fg text-pretty">{intervention.question}</span>
         )}
         {intervention.answer && (
-          <span className="text-fg-secondary text-pretty">
-            Your answer: {intervention.answer.text}
-          </span>
+          <span className="text-fg text-pretty">Your answer: {intervention.answer.text}</span>
         )}
       </div>
     </div>
@@ -162,7 +159,7 @@ export function RoundExamples({
             <button
               type="button"
               onClick={() => onOpen(lesson)}
-              className="group grid min-h-12 w-full grid-cols-[18px_minmax(0,1fr)_auto_14px] items-center gap-x-3 border-t border-line-row py-2 text-left first:border-t-0"
+              className="group grid min-h-12 w-full grid-cols-[18px_minmax(0,1fr)_auto_14px] items-center gap-x-3 border-t border-line py-2 text-left first:border-t-0"
             >
               {lesson.status === 'verified' ? (
                 <Check
@@ -178,28 +175,21 @@ export function RoundExamples({
                   strokeWidth={1.8}
                   role="img"
                   aria-label="Rejected"
-                  className="text-fg-faint"
+                  className="text-fg"
                 />
               )}
               <span className="flex min-w-0 flex-col gap-0.5">
-                <span
-                  className={cn(
-                    'line-clamp-2 break-words',
-                    lesson.status === 'verified' ? 'text-fg' : 'text-fg-muted',
-                  )}
-                >
-                  {lessonVerdict(lesson)}
-                </span>
-                <span className="truncate font-mono text-xs text-fg-muted">
+                <span className="line-clamp-2 break-words">{lessonVerdict(lesson)}</span>
+                <span className="truncate font-mono text-small text-fg">
                   {lesson.prompt ?? typeLabel(job, lesson.taskType)}
                 </span>
               </span>
-              <span className="text-sm text-fg-secondary">{lessonOrigin(lesson)}</span>
+              <span className="text-small text-fg">{lessonOrigin(lesson)}</span>
               <ChevronRight
                 size={14}
                 strokeWidth={1.8}
                 aria-hidden
-                className="text-fg-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                className="text-fg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
               />
             </button>
           </li>
@@ -207,10 +197,10 @@ export function RoundExamples({
         {skipped.map((item) => (
           <li
             key={`${item.what}-${item.reason}`}
-            className="flex items-start gap-2.5 border-t border-line-row py-2.5 text-sm first:border-t-0"
+            className="flex items-start gap-2.5 border-t border-line py-2.5 text-small first:border-t-0"
           >
-            <CircleMinus size={14} aria-hidden className="mt-[3px] shrink-0 text-fg-faint" />
-            <span className="text-fg-muted text-pretty">
+            <CircleMinus size={14} aria-hidden className="mt-[3px] shrink-0 text-fg" />
+            <span className="text-fg text-pretty">
               Skipped {item.what}: {item.reason}
             </span>
           </li>
@@ -227,7 +217,7 @@ function ScoreCell({ pass, total }: { pass: number; total: number }) {
       <span className="font-mono tabular-nums text-fg">
         {pass} of {total}
       </span>
-      {total > pass && <span className="text-xs text-fg-muted">{total - pass} failed</span>}
+      {total > pass && <span className="text-small text-fg">{total - pass} failed</span>}
     </span>
   );
 }
@@ -281,7 +271,7 @@ export function CheckTasks({
                 <span className="flex flex-col">
                   <span>{type.label}</span>
                   {(lost.get(type.id) ?? 0) > 0 && (
-                    <span className="text-xs text-danger">
+                    <span className="text-small text-danger">
                       Lost {lost.get(type.id)} {lost.get(type.id) === 1 ? 'pass' : 'passes'}
                     </span>
                   )}
@@ -313,7 +303,7 @@ export function CheckTasks({
                   <span className="font-mono tabular-nums text-fg">
                     {formatAnswerTime(item.latencyMs.p50)}
                   </span>
-                  <span className="text-xs text-fg-muted">
+                  <span className="text-small text-fg">
                     95% within {formatAnswerTime(item.latencyMs.p95)}
                   </span>
                 </span>
@@ -331,7 +321,7 @@ export function Gates({ experiment }: { experiment: Experiment }) {
   if (experiment.gates.length === 0) return null;
   return (
     <DrawerSection title="Rules every change must pass">
-      <ul className="m-0 flex list-none flex-col gap-2 p-0 text-sm">
+      <ul className="m-0 flex list-none flex-col gap-2 p-0 text-small">
         {experiment.gates.map((gate) => (
           <li key={gate.gate} className="flex items-start gap-2.5">
             {gate.passed ? (
@@ -351,7 +341,7 @@ export function Gates({ experiment }: { experiment: Experiment }) {
             )}
             <span className="min-w-0 text-pretty">
               <span className="text-fg">{GATES[gate.gate]}</span>{' '}
-              <span className="text-fg-secondary">{sentence(gate.detail)}</span>
+              <span className="text-fg">{sentence(gate.detail)}</span>
             </span>
           </li>
         ))}
@@ -362,9 +352,9 @@ export function Gates({ experiment }: { experiment: Experiment }) {
 
 function Figure({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5 bg-modal px-4 py-3">
-      <dt className="text-sm text-fg-secondary">{label}</dt>
-      <dd className="m-0 font-mono text-lg tabular-nums">{children}</dd>
+    <div className="flex flex-col gap-0.5 bg-raised px-4 py-3">
+      <dt className="text-small text-fg">{label}</dt>
+      <dd className="m-0 font-mono text-body tabular-nums">{children}</dd>
     </div>
   );
 }
@@ -374,15 +364,12 @@ export function RoundCost({ experiment, names }: { experiment: Experiment; names
   const { budget } = experiment;
   return (
     <DrawerSection title="What this round spent">
-      <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line-card bg-line-card sm:grid-cols-4">
+      <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-control bg-line-strong sm:grid-cols-4 shadow-edge">
         <Figure label={names.mentor}>{formatCost(budget.mentorUsd)}</Figure>
         <Figure label="Compute">
           {formatCost(budget.computeUsd)}
           {budget.computeMinutes > 0 && (
-            <span className="text-sm text-fg-muted">
-              {' '}
-              · {Math.round(budget.computeMinutes)} min
-            </span>
+            <span className="text-small text-fg"> · {Math.round(budget.computeMinutes)} min</span>
           )}
         </Figure>
         <Figure label="Time">{formatDuration(budget.minutes * 60_000)}</Figure>

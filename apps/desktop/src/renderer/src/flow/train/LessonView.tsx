@@ -90,11 +90,11 @@ export function LessonDrawerContent({
         />
         {lesson.diagnosis && sourceId !== null && (
           <DrawerSection title={`${names.mentor}'s finding`} tone="mentor">
-            <p className="m-0 text-md text-fg-soft text-pretty">{lesson.diagnosis.cause}</p>
-            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-fg-secondary">
+            <p className="m-0 text-body text-fg text-pretty">{lesson.diagnosis.cause}</p>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
               {lesson.diagnosis.evidence.map((item) => (
                 <li key={`${item.turn}-${item.note}`} className="text-pretty">
-                  <span className="tabular-nums text-fg-muted">
+                  <span className="tabular-nums text-fg">
                     {names.student}&apos;s step {item.turn}
                   </span>{' '}
                   {item.note}
@@ -120,7 +120,7 @@ export function LessonDrawerContent({
         />
         <Checked lesson={lesson} />
         <DrawerSection title="What this example cost">
-          <p className="m-0 flex flex-wrap gap-x-2 text-sm text-fg-secondary tabular-nums">
+          <p className="m-0 flex flex-wrap gap-x-2 text-small text-fg tabular-nums">
             <span>
               {names.mentor} {formatCost(lesson.cost.usd)}
             </span>
@@ -203,7 +203,7 @@ function BeforeAndAfter({
   return (
     // Whose answer each is, in the title: the second is Spark's, for Glimmer to learn from.
     <DrawerSection title={`${names.student}'s answer, and ${names.mentor}'s correction`}>
-      <dl className="m-0 grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2.5 text-sm">
+      <dl className="m-0 grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2.5 text-small">
         <AnswerRow who={names.student} passed={attempt.check.pass} note={attempt.check.reason} />
         {correction.status === 'success' && correction.data !== null && (
           <AnswerRow
@@ -223,10 +223,10 @@ function BeforeAndAfter({
       {/* The answers as the task's format writes them, for whoever wants to compare them. */}
       {answers.length > 0 && (
         <Disclosure label="Details">
-          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+          <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-small">
             {answers.map((answer) => (
               <Fragment key={answer.who}>
-                <dt className="text-fg-secondary">{answer.who}</dt>
+                <dt className="text-fg">{answer.who}</dt>
                 <dd className="m-0 break-words font-mono text-fg">{answer.text}</dd>
               </Fragment>
             ))}
@@ -255,7 +255,7 @@ function AnswerRow({
           strokeWidth={1.8}
           role="img"
           aria-label="Not read"
-          className="mt-0.5 text-fg-faint"
+          className="mt-0.5 text-fg"
         />
       ) : passed ? (
         <Check
@@ -274,9 +274,9 @@ function AnswerRow({
           className="mt-0.5 text-danger"
         />
       )}
-      <dt className="text-fg-secondary">{who}</dt>
+      <dt className="text-fg">{who}</dt>
       <dd className="m-0 flex min-w-0 flex-col gap-0.5">
-        {note && <span className="text-fg-muted text-pretty">{note}</span>}
+        {note && <span className="text-fg text-pretty">{note}</span>}
       </dd>
     </>
   );
@@ -348,9 +348,7 @@ function LessonSteps({
     return (
       <div className="flex flex-col gap-3">
         {switcher}
-        <p className="m-0 text-fg-secondary text-pretty">
-          This try never ran, so it has no steps to show.
-        </p>
+        <p className="m-0 text-fg text-pretty">This try never ran, so it has no steps to show.</p>
       </div>
     );
   }
@@ -389,7 +387,7 @@ function Checked({ lesson }: { lesson: ListedLesson }) {
   if (lesson.check === null && lesson.audit === null) return null;
   return (
     <DrawerSection title="Checked">
-      <ul className="m-0 flex list-none flex-col gap-2 p-0 text-sm">
+      <ul className="m-0 flex list-none flex-col gap-2 p-0 text-small">
         {lesson.check && (
           <CheckLine passed={lesson.check.pass} label="Checker">
             {lesson.check.reason}
@@ -431,8 +429,7 @@ function CheckLine({
         />
       )}
       <span className="min-w-0 text-pretty">
-        <span className="text-fg">{label}:</span>{' '}
-        <span className="text-fg-secondary">{children}</span>
+        <span className="text-fg">{label}:</span> <span className="text-fg">{children}</span>
       </span>
     </li>
   );

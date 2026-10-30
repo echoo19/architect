@@ -188,7 +188,7 @@ function SaveIndicator({ editor, teacher }: { editor: JobEditor; teacher: string
         <button
           type="button"
           onClick={() => void flush()}
-          className="rounded-xs text-fg underline underline-offset-4"
+          className="rounded-mark text-fg underline underline-offset-4"
         >
           Try again
         </button>
@@ -205,7 +205,7 @@ function SaveIndicator({ editor, teacher }: { editor: JobEditor; teacher: string
   return (
     <p
       role="status"
-      className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-fg-secondary"
+      className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-small text-fg"
     >
       {state}
     </p>
@@ -476,7 +476,7 @@ function MentorTab({
           className="w-64"
         >
           <span className="truncate">{mentor.label}</span>
-          <span className="shrink-0 text-fg-muted">{mentorProvider(mentor)}</span>
+          <span className="shrink-0 text-fg">{mentorProvider(mentor)}</span>
         </ModelPicker>
       </SettingsRow>
       {preset && <TabNote>{mentorNote(preset)}</TabNote>}
@@ -736,7 +736,7 @@ function SplitsTab({ editor, taskCount }: TabProps & { taskCount: number | null 
         onChange={(value) => splits({ test: value })}
       />
       {issues.splits && (
-        <p role="alert" className="m-0 flex items-start gap-1.5 pb-2 text-sm text-fg-muted">
+        <p role="alert" className="m-0 flex items-start gap-1.5 pb-2 text-small text-fg">
           <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger" aria-hidden />
           {issues.splits}
         </p>

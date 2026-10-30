@@ -50,7 +50,7 @@ export function UserBubble({
     <article aria-label="You" className={cn('flex max-w-[75%] self-end', articleClassName)}>
       <p
         className={cn(
-          'm-0 min-w-0 break-words rounded-[22px] bg-bubble px-[18px] py-[11px] leading-[1.55]',
+          'm-0 min-w-0 break-words rounded-[22px] bg-raised px-[18px] py-[11px] leading-[1.55]',
           className,
         )}
         style={style}
@@ -94,10 +94,7 @@ export function WorkedFor({
 }) {
   return (
     <span
-      className={cn(
-        'flex h-7 max-w-full items-center gap-2 self-start text-base text-fg-secondary',
-        className,
-      )}
+      className={cn('flex h-7 max-w-full items-center gap-2 self-start text-ui text-fg', className)}
       style={style}
     >
       {children}
@@ -135,7 +132,7 @@ export function Steps({
     <div className="flex flex-col gap-2">
       <span
         className={cn(
-          'flex h-7 max-w-full items-center gap-2 self-start text-base text-fg-secondary',
+          'flex h-7 max-w-full items-center gap-2 self-start text-ui text-fg',
           headerClassName,
         )}
         style={headerStyle}
@@ -143,7 +140,7 @@ export function Steps({
         {header}
         <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="shrink-0 rotate-90" />
       </span>
-      <ol className="m-0 ml-1.5 flex min-w-0 list-none flex-col border-l border-line-control py-0 pl-4 pr-0 leading-normal">
+      <ol className="m-0 ml-1.5 flex min-w-0 list-none flex-col border-l border-line-strong py-0 pl-4 pr-0 leading-normal">
         {steps.map((step, index) => (
           <li
             key={`${step.action}-${step.target}`}
@@ -155,10 +152,8 @@ export function Steps({
             style={stepStyle?.(index)}
           >
             <span className="text-fg">{step.action}</span>
-            {step.target && (
-              <span className="font-mono text-sm text-fg-secondary">{step.target}</span>
-            )}
-            {step.meta && <span className="ml-1.5 text-sm text-fg-muted">{step.meta}</span>}
+            {step.target && <span className="font-mono text-small text-fg">{step.target}</span>}
+            {step.meta && <span className="ml-1.5 text-small text-fg">{step.meta}</span>}
           </li>
         ))}
       </ol>
@@ -197,7 +192,7 @@ export function Bullets({
   itemStyle?: (index: number) => CSSProperties;
 }) {
   return (
-    <ul className="m-0 list-disc space-y-1.5 pl-6 marker:text-fg-muted">
+    <ul className="m-0 list-disc space-y-1.5 pl-6 marker:text-fg">
       {items.map((item, index) => (
         <li key={index} className={cn('pl-1', itemClassName)} style={itemStyle?.(index)}>
           {item}
@@ -240,7 +235,7 @@ export function DataCard({
         aria-label={label}
         footer={
           footer && (
-            <span className="flex h-10 w-full items-center justify-center border-t border-line-card text-base text-fg-secondary">
+            <span className="flex h-10 w-full items-center justify-center border-t border-line text-ui text-fg">
               {footer}
             </span>
           )
@@ -270,7 +265,7 @@ export function DataCard({
                 {/* The rows that are left out sit above the total, so the sum still reads true. */}
                 {total && note && (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="text-sm first:text-fg-muted">
+                    <TableCell colSpan={columns.length} className="text-small first:text-fg">
                       {note}
                     </TableCell>
                   </TableRow>
@@ -348,28 +343,28 @@ export function ApprovalCard({
       role="group"
       aria-label={`Write to ${file}`}
       className={cn(
-        'flex flex-col overflow-hidden rounded-2xl border border-line-control bg-card-raised leading-[1.4]',
+        'flex flex-col overflow-hidden rounded-card bg-raised leading-[1.4] shadow-edge-strong',
         className,
       )}
       style={style}
     >
       <div className="flex flex-wrap items-center gap-3.5 py-3.5 pl-4 pr-3.5" style={headStyle}>
         <div className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-hover text-fg-secondary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
             <FilePlus size={17} strokeWidth={1.6} aria-hidden />
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 flex-wrap items-center gap-x-1.5">
               <span className="shrink-0">Add to</span>
-              <span className="truncate font-mono text-base">{file}</span>
+              <span className="truncate font-mono text-ui">{file}</span>
               <ChevronRight
                 size={14}
                 strokeWidth={1.8}
                 aria-hidden
-                className="shrink-0 rotate-90 text-fg-muted"
+                className="shrink-0 rotate-90 text-fg"
               />
             </span>
-            <span className="text-sm text-fg-muted">{summary}</span>
+            <span className="text-small text-fg">{summary}</span>
           </span>
         </div>
         <div className={cn('flex gap-1.5', buttonsClassName)} style={buttonsStyle}>
@@ -384,7 +379,7 @@ export function ApprovalCard({
           </Button>
         </div>
       </div>
-      <div className={cn('border-t border-line-card', bodyClassName)} style={bodyStyle}>
+      <div className={cn('border-t border-line', bodyClassName)} style={bodyStyle}>
         <div className="overflow-hidden px-4 pb-2.5 pt-1">
           <Table variant="plain" aria-label="Rows this change writes">
             <TableHeader>
@@ -407,7 +402,7 @@ export function ApprovalCard({
             </TableHeader>
             <TableBody>
               {rows.map((row, index) => (
-                <TableRow key={index} className="bg-student-tint" style={rowStyle?.(index)}>
+                <TableRow key={index} className="bg-student-soft" style={rowStyle?.(index)}>
                   <TableCell className="pl-2 text-student">
                     <span aria-hidden>+</span>
                   </TableCell>
@@ -437,10 +432,7 @@ export function ApprovalCard({
 /** The line under a reply that is held for an answer. */
 export function WaitingLine({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
-    <p
-      className={cn('m-0 flex items-center gap-2 text-base text-fg-secondary', className)}
-      style={style}
-    >
+    <p className={cn('m-0 flex items-center gap-2 text-ui text-fg', className)} style={style}>
       <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
       Waiting for your approval
     </p>
@@ -459,7 +451,7 @@ export function ReplyActions({
   flagClassName?: string;
   flagStyle?: CSSProperties;
 }) {
-  const button = 'inline-flex size-8 items-center justify-center rounded-sm text-fg-muted';
+  const button = 'inline-flex size-8 items-center justify-center rounded-mark text-fg';
   return (
     <div className="-ml-2 -mt-2 flex" style={style}>
       <span className={button}>

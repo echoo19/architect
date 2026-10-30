@@ -83,6 +83,6 @@ describe('the rule as numbered steps', () => {
       renderToStaticMarkup(
         createElement(RuleSteps, { steps, statement: 'Start with labor.', size: 'sm' }),
       ),
-    ).toContain('text-sm');
+    ).toContain('text-small');
   });
 });

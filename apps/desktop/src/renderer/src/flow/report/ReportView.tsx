@@ -197,14 +197,12 @@ export function ReportView({
         <Heading as="h1" size="display">
           {verdict.title}
         </Heading>
-        <p className="m-0 max-w-[660px] text-lg text-fg-secondary text-pretty">
+        <p className="m-0 max-w-[660px] text-body text-fg text-pretty">
           Tested on {test.score.total} tasks it had never seen, {where}, with {names.mentor}{' '}
           disconnected.
         </p>
         {verdict.because.length > 0 && (
-          <p className="m-0 max-w-[620px] text-fg-secondary text-pretty">
-            {verdict.because.join(' ')}
-          </p>
+          <p className="m-0 max-w-[620px] text-fg text-pretty">{verdict.because.join(' ')}</p>
         )}
       </div>
 
@@ -212,30 +210,30 @@ export function ReportView({
       {report.testedOn === 'hosted' && <LocalTest report={report} />}
 
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-2xl border border-line-card bg-line-card">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(180px,100%),1fr))] gap-px overflow-hidden rounded-card bg-line-strong shadow-edge">
           <Stat
-            className="bg-panel p-[22px]"
+            className="bg-card p-[22px]"
             value={formatRate(test.score)}
             label="of new tasks right"
             note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
             noteFont="text"
           />
           <Stat
-            className="bg-panel p-[22px]"
+            className="bg-card p-[22px]"
             value={formatAnswerTime(test.latencyMs.p50)}
             label="Typical answer time"
             note={<Lines lines={[`95% within ${formatAnswerTime(test.latencyMs.p95)}`]} />}
             noteFont="text"
           />
           <Stat
-            className="bg-panel p-[22px]"
+            className="bg-card p-[22px]"
             value={names.student}
             label="Model"
             note={size ? `${formatBytes(size)} on disk` : undefined}
             noteFont="text"
           />
           <Stat
-            className="bg-panel p-[22px]"
+            className="bg-card p-[22px]"
             value={cents(bill.total)}
             label="Training cost"
             note={<Lines lines={[...bill.parts, trainingNote(report, job)]} />}
@@ -280,7 +278,7 @@ export function ReportView({
             ]}
           />
           {source && (
-            <p className="m-0 mt-3 max-w-[620px] text-sm text-fg-secondary text-pretty">{source}</p>
+            <p className="m-0 mt-3 max-w-[620px] text-small text-fg text-pretty">{source}</p>
           )}
           {report.tasks?.rules && (
             <RuleNotes rules={report.tasks.rules} rounds={report.cost.rounds} />
@@ -293,12 +291,12 @@ export function ReportView({
       {((job && job.doesNot.length > 0) || report.refusedTypes.length > 0) && (
         <section aria-labelledby="wont-do" className="flex flex-col gap-3.5">
           <Heading id="wont-do">What it won&apos;t do</Heading>
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-md text-fg-secondary">
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-body text-fg">
             {report.refusedTypes.map((type) => (
               <Limit key={type.type}>
                 <span className="flex flex-col gap-0.5">
                   <span className="text-fg">{type.label}</span>
-                  <span className="text-sm text-fg-muted text-pretty">{type.reason}</span>
+                  <span className="text-small text-fg text-pretty">{type.reason}</span>
                 </span>
               </Limit>
             ))}
@@ -366,17 +364,17 @@ export function ReportView({
             {report.topInterventions.map((change) => (
               <li
                 key={change.round}
-                className="grid min-h-12 grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line-card first:border-t-0"
+                className="grid min-h-12 grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line first:border-t-0"
               >
-                <span className="text-fg-secondary">
+                <span className="text-fg">
                   {change.round === 1 && startedBlank(report, job)
                     ? 'First draft'
                     : `Round ${change.round}`}
                 </span>
                 <span className="truncate">{change.title}</span>
-                <span className="font-mono text-sm tabular-nums">
+                <span className="font-mono text-small tabular-nums">
                   {signed(change.runs ? change.delta / change.runs : change.delta)}{' '}
-                  <span className="font-sans text-fg-muted">check tasks</span>
+                  <span className="font-sans text-fg">check tasks</span>
                 </span>
               </li>
             ))}
@@ -392,12 +390,7 @@ export function ReportView({
 function Limit({ children }: { children: ReactNode }) {
   return (
     <li className="flex items-start gap-2.5">
-      <CircleMinus
-        size={16}
-        strokeWidth={1.8}
-        className="mt-[3px] shrink-0 text-fg-muted"
-        aria-hidden
-      />
+      <CircleMinus size={16} strokeWidth={1.8} className="mt-[3px] shrink-0 text-fg" aria-hidden />
       {children}
     </li>
   );

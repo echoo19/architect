@@ -153,7 +153,7 @@ export function Setup({ settings, update }: SetupProps) {
               </Button>
             ) : (
               <>
-                <span className="max-w-[360px] text-right text-sm text-fg-muted text-pretty">
+                <span className="max-w-[360px] text-right text-small text-fg text-pretty">
                   You can connect one later in Settings. Until then, Architect can&apos;t train new
                   agents.
                 </span>

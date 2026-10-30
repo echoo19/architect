@@ -29,14 +29,14 @@ function Words({ step }: { step: RuleStep }): ReactNode {
     <>
       {stepPieces(step.text, step.files).map((piece, at) =>
         piece.file ? (
-          <span key={at} className="text-fg-muted">
+          <span key={at} className="font-mono">
             {piece.text}
           </span>
         ) : (
           piece.text
         ),
       )}
-      {step.note !== undefined && <span className="text-fg-muted"> {step.note}</span>}
+      {step.note !== undefined && <span> {step.note}</span>}
     </>
   );
 }
@@ -56,7 +56,7 @@ interface RuleStepsProps {
  * steps is said as its one sentence.
  */
 export function RuleSteps({ steps, statement, size = 'md', className }: RuleStepsProps) {
-  const text = size === 'md' ? 'text-md' : 'text-sm text-fg-secondary';
+  const text = size === 'md' ? 'text-body' : 'text-small text-fg';
   if (steps === undefined || steps.length === 0) {
     return <p className={cn('m-0 max-w-[640px] text-pretty', text, className)}>{statement}</p>;
   }
@@ -64,7 +64,7 @@ export function RuleSteps({ steps, statement, size = 'md', className }: RuleStep
     <ol className={cn('m-0 flex max-w-[640px] list-none flex-col gap-1.5 p-0', text, className)}>
       {steps.map((step, at) => (
         <li key={`${at}:${step.text}`} className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-1">
-          <span aria-hidden className="text-fg-muted tabular-nums">
+          <span aria-hidden className="text-fg tabular-nums">
             {at + 1}.
           </span>
           <span className="text-pretty">

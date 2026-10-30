@@ -296,9 +296,9 @@ describe('the notice as it is shown', () => {
     expect(markup.indexOf('Turn one on, then start')).toBeLessThan(
       markup.indexOf('Turn a change back on'),
     );
-    // It is a line of its own in the secondary text, like what is off, and not a button.
+    // It is a line of its own, like what is off, and not a button.
     expect(markup).toMatch(
-      /<span class="[^"]*text-fg-secondary[^"]*">Turn one on, then start training again from the job\.<\/span>/,
+      /<span class="[^"]*">Turn one on, then start training again from the job\.<\/span>/,
     );
     // Where it is not true of the button, it is not there.
     const odd = html(idleView(live({ interventions: ['procedure', 'weights'] }), NO_KEY));

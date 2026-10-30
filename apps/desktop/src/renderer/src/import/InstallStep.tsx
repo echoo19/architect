@@ -59,7 +59,7 @@ export function InstallStep({
     return (
       <div role="status" className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
         <Spinner size={20} tone="student" />
-        <span className="text-fg-secondary">Installing {name} and checking that it works here</span>
+        <span className="text-fg">Installing {name} and checking that it works here</span>
       </div>
     );
   }
@@ -98,12 +98,12 @@ export function InstallStep({
       </header>
       <SettingsSection title={WORKS_HERE_TITLE} className="pt-0">
         <div className="flex flex-col gap-1.5 pt-1">
-          <p className="m-0 flex items-start gap-2.5 text-lg text-fg-soft text-pretty">
+          <p className="m-0 flex items-start gap-2.5 text-body text-fg text-pretty">
             <StatusMark state={statusMark(status)} className="mt-1.5" />
             {problem ? problem.cause : STATUS_LABELS[status]}
           </p>
           {sendersFix && (
-            <p className="m-0 pl-[26px] text-fg-secondary">Ask whoever sent it for a fixed copy.</p>
+            <p className="m-0 pl-[26px] text-fg">Ask whoever sent it for a fixed copy.</p>
           )}
           <Disclosure label="Details" className="pl-[26px]">
             <CheckRows installation={installation} />

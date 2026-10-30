@@ -26,7 +26,7 @@ export function WelcomeScreen() {
         >
           <Skeleton className="h-10 w-80" />
           <Skeleton className="h-4 w-[460px] max-w-full" />
-          <Skeleton className="mt-5 h-[124px] w-full rounded-6xl" />
+          <Skeleton className="mt-5 h-[124px] w-full rounded-card" />
         </div>
       )}
     </SetupShell>

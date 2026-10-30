@@ -56,7 +56,7 @@ function Plan({ job, plan }: { job: Job; plan: TaskPlan }) {
           {plan.unresolved.map((rule) => (
             <SettingsRow key={rule} label={rule} density="compact" />
           ))}
-          <TabNote className="py-3 text-sm text-fg-muted">
+          <TabNote className="py-3 text-small text-fg">
             {mentor} couldn&apos;t settle these from your files and answers.
           </TabNote>
         </SettingsSection>
@@ -70,7 +70,7 @@ function Plan({ job, plan }: { job: Job; plan: TaskPlan }) {
             <SettingsValue>{tasksText(totalOf(type.counts))}</SettingsValue>
           </SettingsRow>
           {type.examples.length > 0 && (
-            <p className="m-0 border-t border-line pb-1 pt-3 text-sm text-fg-muted">
+            <p className="m-0 border-t border-line pb-1 pt-3 text-small text-fg">
               {type.examples.length === 1 ? 'An example' : 'Examples'}
             </p>
           )}

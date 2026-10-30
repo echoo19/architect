@@ -13,7 +13,7 @@ export function ResultsSlot() {
   return (
     <section
       aria-labelledby="measured-title"
-      className="mt-6 rounded-[10px] border border-line px-5 py-7 sm:mt-8 sm:px-8 sm:py-9"
+      className="mt-6 rounded-[10px] px-5 py-7 sm:mt-8 sm:px-8 sm:py-9 shadow-edge"
     >
       <h3
         id="measured-title"
@@ -21,12 +21,12 @@ export function ResultsSlot() {
       >
         {RESULTS.title}
       </h3>
-      <p className="mb-0 mt-3 max-w-[62ch] text-[17px] leading-relaxed text-fg-secondary text-pretty">
+      <p className="mb-0 mt-3 max-w-[62ch] text-[17px] leading-relaxed text-fg text-pretty">
         <Actors text={RESULTS.scope} />
       </p>
       <div className="mt-8 grid gap-x-14 gap-y-9 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="flex flex-col gap-5">
-          <p className="m-0 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-fg-secondary">
+          <p className="m-0 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-fg">
             <EvidenceMark kind="final" className="text-[15px]">
               Final test
             </EvidenceMark>
@@ -38,7 +38,7 @@ export function ResultsSlot() {
                 <span className="text-[16px] text-fg">
                   <Actors text={row.label} />
                 </span>
-                <span className="font-mono text-[15px] tabular-nums text-fg-secondary">
+                <span className="font-mono text-[15px] tabular-nums text-fg">
                   <span className="text-fg">{row.passed}</span> of {row.total}
                 </span>
                 <EvidenceMeter
@@ -47,7 +47,7 @@ export function ResultsSlot() {
                   label={`${row.label}, final test`}
                   valueText={`${row.passed} of ${row.total} passed`}
                 />
-                {row.note && <span className="text-[15px] text-fg-secondary">{row.note}</span>}
+                {row.note && <span className="text-[15px] text-fg">{row.note}</span>}
               </li>
             ))}
           </ul>
@@ -63,7 +63,7 @@ export function ResultsSlot() {
           ))}
         </ul>
       </div>
-      <p className="mb-0 mt-8 max-w-[62ch] text-[16px] leading-snug text-fg-secondary text-pretty">
+      <p className="mb-0 mt-8 max-w-[62ch] text-[16px] leading-snug text-fg text-pretty">
         {RESULTS.earlier}
       </p>
       <a className="link-quiet mt-4 inline-flex items-center gap-1.5 text-[16px]" href={REPORTS}>

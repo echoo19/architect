@@ -37,8 +37,8 @@ function lines(html: string): { text: string; classes: string }[] {
   }));
 }
 
-/** The size classes of Tailwind's type scale, from the smallest. */
-const SMALL = /(^|\s)text-(2xs|xs|sm)(\s|$)/;
+/** The size class of the smallest step of the type scale, the one a tile's note is set in. */
+const SMALL = /(^|\s)text-small(\s|$)/;
 
 describe('what is said under the score of a job with a rule', () => {
   const html = notes([rule()]);
@@ -54,12 +54,12 @@ describe('what is said under the score of a job with a rule', () => {
   it('sets both at the size of the page, never in the small print of a tile note', () => {
     // The size and the color belong to the block, so the two lines cannot differ in either.
     const block = /^<div class="([^"]*)"/.exec(html)?.[1] ?? '';
-    expect(block).toMatch(/(^|\s)text-md(\s|$)/);
+    expect(block).toMatch(/(^|\s)text-body(\s|$)/);
     expect(block).not.toMatch(SMALL);
-    expect(block).toContain('text-fg-secondary');
+    expect(block).toMatch(/(^|\s)text-fg(\s|$)/);
     for (const line of lines(html)) {
       expect(line.classes).not.toMatch(SMALL);
-      expect(line.classes).not.toMatch(/(^|\s)text-(base|md|lg|xl)(\s|$)/);
+      expect(line.classes).not.toMatch(/(^|\s)text-(ui|body|h2|h1|title|hero)(\s|$)/);
       expect(line.classes).not.toMatch(/text-fg(-\w+)?(\s|$)/);
     }
   });

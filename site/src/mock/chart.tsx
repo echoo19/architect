@@ -110,12 +110,12 @@ function NotKept({ round, start }: { round: 2 | 3; start: number }) {
           strokeWidth={1.5}
           strokeDasharray="3 4"
           vectorEffect="non-scaling-stroke"
-          className="stroke-fg-ghost"
+          className="stroke-fg/40"
         />
       </svg>
       <span
         aria-hidden
-        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-fg-faint bg-panel"
+        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-line-strong bg-card"
         style={{ left: `${column(round)}%`, top: `${row(FINAL)}%` }}
       />
     </div>
@@ -142,20 +142,20 @@ export function ScoreChart({
       {[100, 90, 80, 70, 60].map((value) => (
         <span
           key={value}
-          className="absolute inset-x-0 border-t border-line-row"
+          className="absolute inset-x-0 border-t border-line"
           style={{ top: `${row(value)}%` }}
         >
-          <span className="absolute right-full -translate-y-1/2 pr-2.5 font-mono text-sm text-fg-muted">
+          <span className="absolute right-full -translate-y-1/2 pr-2.5 font-mono text-small text-fg">
             {value}%
           </span>
         </span>
       ))}
       <span
-        className="absolute inset-x-0 border-t border-dashed border-fg-faint"
+        className="absolute inset-x-0 border-t border-dashed border-line-strong"
         style={{ top: `${row(TARGET)}%` }}
       >
         {!compact && (
-          <span className="absolute left-full top-0 -translate-y-1/2 whitespace-nowrap pl-3 font-mono text-sm text-fg-secondary">
+          <span className="absolute left-full top-0 -translate-y-1/2 whitespace-nowrap pl-3 font-mono text-small text-fg">
             Target {TARGET}%
           </span>
         )}
@@ -163,12 +163,12 @@ export function ScoreChart({
       {TICKS.map((label, round) => (
         <span
           key={label}
-          className="absolute inset-y-0 border-l border-line-row"
+          className="absolute inset-y-0 border-l border-line"
           style={{ left: `${column(round)}%` }}
         >
           <span
             className={cn(
-              'absolute left-0 top-full -translate-x-1/2 pt-2.5 font-mono text-sm text-fg-secondary',
+              'absolute left-0 top-full -translate-x-1/2 pt-2.5 font-mono text-small text-fg',
             )}
           >
             {label}
@@ -217,20 +217,20 @@ export function ChartLegend({ className }: { className?: string }) {
   return (
     <span
       aria-hidden
-      className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-fg-muted', className)}
+      className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 text-small text-fg', className)}
     >
       <span className="flex items-center gap-1.5 narrow:hidden">
         <span className="size-2.5 rounded-full bg-student" />
         Score now
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="h-0 w-4 border-t-[1.5px] border-dashed border-fg-ghost" />
-        <span className="size-2.5 rounded-full border-[1.5px] border-fg-faint" />
+        <span className="h-0 w-4 border-t-[1.5px] border-dashed border-line-strong" />
+        <span className="size-2.5 rounded-full border-[1.5px] border-line-strong" />
         Not kept
       </span>
       {/* Where the plot has no room to label its target line, the legend does. */}
       <span className="hidden items-center gap-1.5 narrow:flex">
-        <span className="h-0 w-4 border-t border-dashed border-fg-faint" />
+        <span className="h-0 w-4 border-t border-dashed border-line-strong" />
         Target {TARGET}%
       </span>
     </span>

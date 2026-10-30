@@ -170,7 +170,7 @@ function lost(error: Error): boolean {
 function UserMessage({ entry }: { entry: UserEntry }) {
   return (
     <div className="flex max-w-[540px] flex-col items-end gap-2.5 self-end">
-      <p className="m-0 whitespace-pre-wrap rounded-3xl bg-selected px-4 py-3 text-md text-pretty">
+      <p className="m-0 whitespace-pre-wrap rounded-card bg-selected px-4 py-3 text-body text-pretty">
         {entry.text}
       </p>
       {entry.files.length > 0 && (
@@ -188,7 +188,7 @@ function UserMessage({ entry }: { entry: UserEntry }) {
 
 function StepLine({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex h-[22px] items-center gap-2 text-sm text-fg-muted">
+    <div className="flex h-[22px] items-center gap-2 text-small text-fg">
       {icon}
       <span>{children}</span>
     </div>
@@ -222,8 +222,8 @@ function MentorMessage({
   const message = entry.message.trim();
   const showMessage = message.length > 0 && !(entry.draft && message === DRAFTED);
   return (
-    <div className={cn('flex flex-col text-md', entry.options.length > 0 ? 'gap-4' : 'gap-2.5')}>
-      {speaker && <span className="text-sm font-medium text-mentor">{speaker}</span>}
+    <div className={cn('flex flex-col text-body', entry.options.length > 0 ? 'gap-4' : 'gap-2.5')}>
+      {speaker && <span className="text-small font-medium text-mentor">{speaker}</span>}
       {entry.readFiles > 0 && (
         <StepLine icon={<Check size={14} strokeWidth={1.8} aria-hidden />}>
           Read {plural(entry.readFiles, 'file')}
@@ -238,7 +238,7 @@ function MentorMessage({
                 key={option}
                 size="md"
                 onClick={() => onPick(option)}
-                className="rounded-lg bg-card px-4 text-fg-secondary hover:text-fg"
+                className="rounded-control bg-card px-4 text-fg"
               >
                 {option}
               </Button>
@@ -247,10 +247,10 @@ function MentorMessage({
                 key={option}
                 aria-current={entry.chosen === option ? 'true' : undefined}
                 className={cn(
-                  'inline-flex h-10 items-center rounded-lg border px-4',
+                  'inline-flex h-10 items-center rounded-control px-4',
                   entry.chosen === option
-                    ? 'border-fg bg-selected text-fg'
-                    : 'border-line-control bg-card text-fg-muted',
+                    ? 'bg-selected font-medium inset-ring-1 inset-ring-fg'
+                    : 'bg-card shadow-edge-strong',
                 )}
               >
                 {option}
@@ -293,7 +293,7 @@ function Waiting({ since, text, slowText }: { since: number; text: string; slowT
     return () => window.clearTimeout(timer);
   }, [since, slow]);
   return (
-    <div role="status" className="flex h-[22px] items-center gap-2 text-sm text-fg-muted">
+    <div role="status" className="flex h-[22px] items-center gap-2 text-small text-fg">
       <Spinner tone="mentor" size={14} />
       <span>{slow ? slowText : text}</span>
     </div>

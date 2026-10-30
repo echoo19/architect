@@ -19,15 +19,13 @@ export function PassageList({
       {passages.map((passage) => (
         <li
           key={`${passage.file}:${passage.question ?? ''}:${passage.passage}`}
-          className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-l-2 border-line-control pl-4"
+          className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-l-2 border-line-strong pl-4"
         >
           <span className="min-w-0 max-w-[560px] text-pretty">
-            {passage.question !== undefined && (
-              <span className="text-fg-secondary">{passage.question} </span>
-            )}
+            {passage.question !== undefined && <span className="font-medium">{passage.question} </span>}
             <span>{passage.passage}</span>
           </span>
-          <span className="font-mono text-xs text-fg-muted">{passageSource(passage.file)}</span>
+          <span className="font-mono text-small text-fg">{passageSource(passage.file)}</span>
         </li>
       ))}
     </ul>

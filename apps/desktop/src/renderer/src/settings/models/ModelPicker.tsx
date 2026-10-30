@@ -10,7 +10,7 @@ import {
   type ProviderId,
   type TokenPricing,
 } from '@architect/shared';
-import { Combobox, StatusDot, type ComboboxGroup, type ComboboxOption } from '@architect/ui';
+import { Combobox, StatusMark, type ComboboxGroup, type ComboboxOption } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import {
   connectionOf,
@@ -55,12 +55,12 @@ export function priceText(pricing: TokenPricing): string {
   return `${amount(pricing.inputPerM)} · ${amount(pricing.outputPerM)}`;
 }
 
-/** Whether a local model runs entirely on the graphics card, as a dot and a word: fast or slower. */
+/** Whether a local model runs entirely on the graphics card, as a mark and a word: fast or slower. */
 export function GpuMark({ fit }: { fit: GpuFit }) {
   if (fit === 'unknown') return null;
   return (
     <span className="flex items-center gap-1.5">
-      <StatusDot tone={fit === 'full' ? 'student' : 'faint'} />
+      <StatusMark state={fit === 'full' ? 'ok' : 'off'} size={14} />
       {fit === 'full' ? 'Fast' : 'Slower'}
     </span>
   );

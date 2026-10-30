@@ -264,13 +264,13 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               {review.findings.map((finding) => (
                 <li
                   key={`${finding.path}:${finding.line}:${finding.kind}`}
-                  className="flex min-w-0 gap-3 font-mono text-xs"
+                  className="flex min-w-0 gap-3 font-mono text-small"
                 >
-                  <span className="shrink-0 text-fg-secondary">
+                  <span className="shrink-0 text-fg">
                     {/* A shared folder's file, as its row names it: data/policy.md. */}
                     {finding.path.replace(/^resources\//, '')}:{finding.line}
                   </span>
-                  <span className="truncate text-fg-muted">{finding.excerpt}</span>
+                  <span className="truncate text-fg">{finding.excerpt}</span>
                 </li>
               ))}
             </ul>
@@ -282,7 +282,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
           />
         )}
         <SettingsRow
-          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg-faint" />}
+          icon={<Info size={16} strokeWidth={1.8} aria-hidden className="text-fg" />}
           label={
             weights
               ? 'Trained weights may retain information from their training data'
@@ -296,7 +296,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
           <SettingsRow
             key={item.id}
             density="compact"
-            icon={<LockKeyhole size={16} strokeWidth={1.7} aria-hidden className="text-fg-faint" />}
+            icon={<LockKeyhole size={16} strokeWidth={1.7} aria-hidden className="text-fg" />}
             label={itemLabel(item)}
           />
         ))}
@@ -310,7 +310,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
             <SettingsRow
               key={part.part}
               icon={
-                <span className="flex size-7 items-center justify-center rounded-md bg-hover text-fg-secondary">
+                <span className="flex size-7 items-center justify-center rounded-control bg-hover text-fg">
                   <Icon size={15} strokeWidth={1.7} aria-hidden />
                 </span>
               }
@@ -334,9 +334,9 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
       </SettingsSection>
 
       {/* Pinned over the tab's bottom padding, so nothing scrolls by beneath it. */}
-      <div className="sticky -bottom-6 -mx-7 -mb-6 mt-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line-card bg-modal px-7 py-4">
+      <div className="sticky -bottom-6 -mx-7 -mb-6 mt-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line bg-raised px-7 py-4">
         {blocked && (
-          <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-sm text-fg-muted">
+          <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-small text-fg">
             <CircleAlert size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
             {flaggedLines} flagged {flaggedLines === 1 ? 'line needs' : 'lines need'} your OK
           </p>

@@ -38,16 +38,15 @@ export function SidePanel({ content, onClose }: SidePanelProps) {
       ref={panel}
       tabIndex={-1}
       aria-label={label}
-      className="mb-3 mr-3 flex min-w-0 max-w-[50%] shrink basis-[460px] animate-fade flex-col overflow-hidden rounded-3xl border border-line bg-aside outline-none"
+      className="mb-3 mr-3 flex min-w-0 max-w-[50%] shrink basis-[460px] animate-fade flex-col overflow-hidden rounded-card bg-card outline-none shadow-edge"
     >
       <div className="flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-b border-line py-1.5 pl-5 pr-2">
-        <span className="truncate text-md font-medium">
+        <span className="truncate text-body font-medium">
           {content.kind === 'table' ? (
             content.title
           ) : (
             <>
-              {CHANGE_TITLE[content.kind]}{' '}
-              <span className="font-mono text-base">{content.file}</span>
+              {CHANGE_TITLE[content.kind]} <span className="font-mono text-ui">{content.file}</span>
             </>
           )}
         </span>

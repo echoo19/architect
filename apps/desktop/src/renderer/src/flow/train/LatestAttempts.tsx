@@ -28,7 +28,7 @@ export function LatestAttempts({
     <Panel aria-label="Latest attempts" className="min-w-0 flex-[7_1_560px]">
       <PanelHeader title="Latest attempts" />
       {shown.length === 0 ? (
-        <PanelRow className="text-fg-muted">{ended ? 'No attempts' : 'No attempts yet'}</PanelRow>
+        <PanelRow className="text-fg">{ended ? 'No attempts' : 'No attempts yet'}</PanelRow>
       ) : (
         <div className="overflow-x-auto">
           <ul className="m-0 min-w-[560px] list-none p-0">
@@ -68,7 +68,7 @@ function AttemptRow({
     <button
       type="button"
       onClick={onOpen}
-      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_170px_14px] items-center gap-x-4 border-t border-line-row px-7 py-2 text-left text-sm transition-colors duration-150 hover:bg-row-hover"
+      className="group grid min-h-[54px] w-full grid-cols-[20px_minmax(0,1fr)_170px_14px] items-center gap-x-4 border-t border-line px-7 py-2 text-left text-small transition-colors duration-150 hover:bg-hover"
     >
       {passed ? (
         <Check
@@ -79,21 +79,21 @@ function AttemptRow({
           aria-label="Passed"
         />
       ) : (
-        <X size={15} strokeWidth={2.2} className="text-fg-faint" role="img" aria-label="Failed" />
+        <X size={15} strokeWidth={2.2} className="text-fg" role="img" aria-label="Failed" />
       )}
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className={passed ? 'truncate text-fg-soft' : 'truncate text-fg-muted'}>
+        <span className="truncate">
           {attempt.prompt ? taskTitle(attempt.prompt) : attempt.taskId}
         </span>
         {!passed && (
-          <span className="truncate text-xs text-fg-secondary" title={attempt.check.reason}>
+          <span className="truncate text-small text-fg" title={attempt.check.reason}>
             {attempt.check.reason}
           </span>
         )}
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="truncate text-fg-secondary">{type}</span>
-        <EvidenceMark kind={check ? 'check' : 'practice'} className="min-w-0 text-xs">
+        <span className="truncate text-fg">{type}</span>
+        <EvidenceMark kind={check ? 'check' : 'practice'} className="min-w-0 text-small">
           <span className="truncate">{set}</span>
           {check && <span className="sr-only">, {mentor} sees only the score</span>}
         </EvidenceMark>
@@ -102,7 +102,7 @@ function AttemptRow({
         size={14}
         strokeWidth={1.8}
         aria-hidden
-        className="text-fg-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+        className="text-fg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
     </button>
   );

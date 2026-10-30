@@ -66,11 +66,9 @@ function ConnectionResult({ result }: { result: ConnectionTest }) {
         aria-hidden
       />
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className={result.ok ? undefined : 'text-fg-soft'}>
-          {result.ok ? `Connected · ${result.latencyMs} ms` : result.error}
-        </span>
+        <span>{result.ok ? `Connected · ${result.latencyMs} ms` : result.error}</span>
         {!result.ok && result.hint && (
-          <span className="text-sm text-fg-muted text-pretty">{result.hint}</span>
+          <span className="text-small text-fg text-pretty">{result.hint}</span>
         )}
       </div>
     </div>
@@ -163,7 +161,7 @@ export function MentorStep({
           <span className="truncate">
             {chosenHere ? shortModelName(model.label) : 'Choose a model'}
           </span>
-          {chosenHere && <span className="shrink-0 text-fg-muted">{mentorProvider(model)}</span>}
+          {chosenHere && <span className="shrink-0 text-fg">{mentorProvider(model)}</span>}
         </ModelPicker>
         {chosenHere && (
           <Button size="xs" loading={testing} onClick={() => void test()}>

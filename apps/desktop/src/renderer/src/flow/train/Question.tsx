@@ -103,7 +103,7 @@ function Asking({
     >
       <div className="flex flex-col gap-2">
         <span className="text-mentor">{names.mentor} asks</span>
-        <p className="m-0 text-xl text-fg text-pretty">{intervention.question}</p>
+        <p className="m-0 text-h2 text-fg text-pretty">{intervention.question}</p>
       </div>
       <Field label="Your answer" htmlFor={id}>
         <Textarea
@@ -125,7 +125,7 @@ function Asking({
           label="This changes what counts as success"
         />
         {changes && (
-          <p className="m-0 pl-7 text-sm text-fg-secondary text-pretty">
+          <p className="m-0 pl-7 text-small text-fg text-pretty">
             This run stops here. Its final test belongs to the job as it was, so you would train
             again on the changed job.
           </p>

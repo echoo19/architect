@@ -48,7 +48,7 @@ const TABLE_PREVIEW_ROWS = 4;
 const DIFF_PREVIEW_LINES = 6;
 
 const footerButton =
-  'h-10 w-full border-t border-line-card text-base text-fg-secondary transition-colors duration-150 hover:bg-row-hover hover:text-fg';
+  'h-10 w-full border-t border-line text-ui text-fg transition-colors duration-150 hover:bg-hover';
 
 export function TableBlock({
   block,
@@ -109,7 +109,7 @@ export function TableBlock({
           {total && (
             <>
               <TableRow>
-                <TableCell colSpan={block.columns.length} className="text-sm first:text-fg-muted">
+                <TableCell colSpan={block.columns.length} className="text-small first:text-fg">
                   {hidden} more {hidden === 1 ? 'row' : 'rows'}: {hiddenNames}
                 </TableCell>
               </TableRow>
@@ -132,7 +132,7 @@ type Decision = 'approve' | 'deny' | 'always';
 
 function Outcome({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <span className="flex items-center gap-1.5 text-sm text-fg-secondary [&_svg]:shrink-0">
+    <span className="flex items-center gap-1.5 text-small text-fg [&_svg]:shrink-0">
       {icon}
       {children}
     </span>
@@ -214,7 +214,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
     <div
       role="group"
       aria-label={`Write to ${block.file}`}
-      className="flex animate-rise flex-col overflow-hidden rounded-2xl border border-line-control bg-card-raised leading-[1.4]"
+      className="flex animate-rise flex-col overflow-hidden rounded-card bg-raised leading-[1.4] shadow-edge-strong"
     >
       <div className="flex flex-wrap items-center gap-3.5 py-3.5 pl-4 pr-3.5">
         <button
@@ -222,26 +222,26 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
           aria-expanded={expanded}
           aria-controls={previewId}
           onClick={() => setExpanded(!expanded)}
-          className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-md text-left"
+          className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-control text-left"
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-hover text-fg-secondary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
             <FileIcon size={17} strokeWidth={1.6} aria-hidden />
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center gap-1.5">
               <span className="shrink-0">{changeVerb(block)}</span>
-              <span className="truncate font-mono text-base">{block.file}</span>
+              <span className="truncate font-mono text-ui">{block.file}</span>
               <ChevronRight
                 size={14}
                 strokeWidth={1.8}
                 aria-hidden
                 className={cn(
-                  'shrink-0 text-fg-muted transition-transform duration-200',
+                  'shrink-0 text-fg transition-transform duration-200',
                   expanded && 'rotate-90',
                 )}
               />
             </span>
-            <span className="text-sm text-fg-muted">{changeCounts(block) || block.summary}</span>
+            <span className="text-small text-fg">{changeCounts(block) || block.summary}</span>
           </span>
         </button>
         {outcome ??
@@ -266,14 +266,14 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
       {unsaved && (
         <div
           role="alert"
-          className="flex items-start gap-2.5 border-t border-line-card px-4 py-3 text-sm text-fg-secondary"
+          className="flex items-start gap-2.5 border-t border-line px-4 py-3 text-small text-fg"
         >
           <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
           <span className="min-w-0 text-pretty">{block.error}</span>
         </div>
       )}
       {expanded && (
-        <div id={previewId} className="border-t border-line-card">
+        <div id={previewId} className="border-t border-line">
           {block.diff ? (
             <div className="overflow-x-auto px-4 pb-2.5 pt-1">
               <RowDiffTable diff={block.diff} limit={DIFF_PREVIEW_LINES} />
@@ -320,18 +320,18 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
   return (
     <div
       role="note"
-      className="flex animate-rise items-start gap-3.5 rounded-2xl border border-line-control bg-card-raised py-3.5 pl-4 pr-5 leading-[1.4]"
+      className="flex animate-rise items-start gap-3.5 rounded-card bg-raised py-3.5 pl-4 pr-5 leading-[1.4] shadow-edge-strong"
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-hover text-fg-secondary">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
         <Ban size={17} strokeWidth={1.6} aria-hidden />
       </span>
       <span className="flex min-w-0 flex-col gap-1 pt-px">
         <span>
           {agent.name} doesn&apos;t handle {inSentence(label)}
         </span>
-        <span className="text-sm text-fg-secondary text-pretty">{block.reason}</span>
+        <span className="text-small text-fg text-pretty">{block.reason}</span>
         {handled.length > 0 && (
-          <span className="text-sm text-fg-muted text-pretty">
+          <span className="text-small text-fg text-pretty">
             It can help with {listInSentence(handled)}.
           </span>
         )}
@@ -341,5 +341,5 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
 }
 
 export function NoteBlock({ text }: { text: string }) {
-  return <p className="m-0 animate-rise text-sm text-fg-muted">{text}</p>;
+  return <p className="m-0 animate-rise text-small text-fg">{text}</p>;
 }

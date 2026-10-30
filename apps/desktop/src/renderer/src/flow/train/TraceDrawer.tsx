@@ -108,8 +108,8 @@ export function WholeRequest({ prompt }: { prompt: string }) {
   return (
     <Disclosure label="Details" className="-mt-3">
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm text-fg-muted">The whole request</span>
-        <p className="m-0 whitespace-pre-wrap break-words rounded-md bg-well px-3 py-2 text-sm text-fg-soft">
+        <span className="text-small text-fg">The whole request</span>
+        <p className="m-0 whitespace-pre-wrap break-words rounded-control bg-field px-3 py-2 text-small text-fg">
           {prompt}
         </p>
       </div>
@@ -134,11 +134,9 @@ export function TraceFooter({ trace }: { trace: Trace }) {
   return (
     <>
       {(stopped || trace.error) && (
-        <p className="m-0 text-sm text-fg-muted">
-          {[stopped, trace.error].filter(Boolean).join(' ')}
-        </p>
+        <p className="m-0 text-small text-fg">{[stopped, trace.error].filter(Boolean).join(' ')}</p>
       )}
-      <Disclosure label="Details" className="border-t border-line-card pt-2">
+      <Disclosure label="Details" className="border-t border-line pt-2">
         <DetailList
           items={[
             { label: 'Model', value: trace.studentModel },
@@ -187,8 +185,8 @@ export function VerdictBox({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-xl border px-4 py-3.5',
-        passed ? 'border-student-tile-line bg-student-tile' : 'border-danger-line bg-danger-tint',
+        'flex flex-col gap-3 rounded-control px-4 py-3.5',
+        passed ? 'bg-student-soft' : 'bg-danger-soft',
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -204,7 +202,7 @@ export function VerdictBox({
         )}
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="font-medium">{title}</span>
-          {reason && <span className="text-fg-secondary text-pretty">{reason}</span>}
+          {reason && <span className="text-fg text-pretty">{reason}</span>}
         </div>
       </div>
       {rows.length > 0 && (

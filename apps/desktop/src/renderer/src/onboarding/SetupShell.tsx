@@ -12,11 +12,11 @@ export interface SetupShellProps {
   children: ReactNode;
 }
 
-/** First-run setup in the flow's language: the step pills in the header, the dot grid below. */
+/** First-run setup in the flow's language: the step pills in the header, the flat ground below. */
 export function SetupShell({ step, footer, children }: SetupShellProps) {
   return (
-    <div className="flex h-full flex-col bg-ground-flow">
-      <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground-flow px-4 py-2.5">
+    <div className="flex h-full flex-col bg-ground">
+      <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2.5">
         <div className={cn('flex min-w-0 items-center gap-2.5 pl-2.5', isMac() && 'pl-17')}>
           <LogoMark size={20} />
           <span className="truncate font-medium">Architect</span>
@@ -28,14 +28,14 @@ export function SetupShell({ step, footer, children }: SetupShellProps) {
         />
         <div className="pr-window-controls" />
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto bg-dot-grid">
+      <main className="min-h-0 flex-1 overflow-y-auto">
         {/* From the top, so the heading stays where it is as a step's content comes and goes. */}
         <div className="flex min-h-full flex-col items-center gap-8 px-6 pb-10 pt-[clamp(40px,14vh,140px)]">
           {children}
         </div>
       </main>
       {footer && (
-        <footer className="shrink-0 border-t border-line bg-ground-flow px-8 py-4">
+        <footer className="shrink-0 border-t border-line bg-ground px-8 py-4">
           <div className="mx-auto flex max-w-[720px] flex-wrap items-center gap-2">{footer}</div>
         </footer>
       )}
@@ -59,7 +59,7 @@ export function StepIntro({ title, children }: StepIntroProps) {
       <Heading ref={heading} tabIndex={-1} as="h1" size="display-sm" className="outline-none">
         {title}
       </Heading>
-      <p className="m-0 text-lg text-fg-secondary text-pretty">{children}</p>
+      <p className="m-0 text-body text-fg text-pretty">{children}</p>
     </div>
   );
 }

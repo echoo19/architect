@@ -19,7 +19,7 @@ export function JobHeader({ job }: { job: Job }) {
       <Heading as="h1" size="display">
         {job.name}
       </Heading>
-      <p className="m-0 max-w-[620px] text-xl text-fg-secondary text-pretty">
+      <p className="m-0 max-w-[620px] text-h2 text-fg text-pretty">
         {job.summary ?? job.description}
       </p>
       <Badge
@@ -38,7 +38,7 @@ export function JobHeader({ job }: { job: Job }) {
 export function Capabilities({ job }: { job: Job }) {
   if (job.does.length === 0 && job.doesNot.length === 0) return null;
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-3xl border border-line-card bg-card">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] overflow-hidden rounded-card bg-card shadow-edge">
       <CapabilityList
         id="does"
         title="What it does"
@@ -53,11 +53,11 @@ export function Capabilities({ job }: { job: Job }) {
           <CircleMinus
             size={18}
             strokeWidth={1.8}
-            className="mt-0.5 shrink-0 text-fg-muted"
+            className="mt-0.5 shrink-0 text-fg"
             aria-hidden
           />
         }
-        className="border-l border-line-card bg-list text-fg-secondary"
+        className="border-l border-line bg-field text-fg"
       />
     </div>
   );
@@ -78,13 +78,13 @@ function CapabilityList({
 }) {
   return (
     <section aria-labelledby={id} className={cn('flex flex-col gap-4 px-7 py-[26px]', className)}>
-      <Heading id={id} className="text-sm font-normal text-fg-muted">
+      <Heading id={id} className="text-small font-normal text-fg">
         {title}
       </Heading>
       {items.length === 0 ? (
-        <p className="m-0 text-md text-fg-muted">Nothing listed</p>
+        <p className="m-0 text-body text-fg">Nothing listed</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-3.5 p-0 text-md">
+        <ul className="m-0 flex list-none flex-col gap-3.5 p-0 text-body">
           {items.map((item) => (
             <li key={item} className="flex items-start gap-3">
               {icon}
@@ -173,10 +173,10 @@ function PermissionRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line-card py-2 last:border-b-0">
+    <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-2 last:border-b-0">
       <div className="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
         <span>{label}</span>
-        {detail && <span className="text-sm text-fg-muted text-pretty">{detail}</span>}
+        {detail && <span className="text-small text-fg text-pretty">{detail}</span>}
       </div>
       {children}
     </div>

@@ -92,7 +92,7 @@ export const DISPOSITIONS: Record<
     label: 'No gain',
     headline: 'Undone, no gain',
     icon: Undo2,
-    tone: 'text-fg-muted',
+    tone: 'text-fg',
     meaning: "It didn't gain enough on the check tasks, so it was undone.",
   },
   rejected: {
@@ -106,14 +106,14 @@ export const DISPOSITIONS: Record<
     label: "Couldn't be tried",
     headline: "Couldn't be tried",
     icon: CircleSlash,
-    tone: 'text-fg-muted',
+    tone: 'text-fg',
     meaning: "It couldn't be tried in this run, so nothing changed.",
   },
   stopped: {
     label: 'Stopped',
     headline: 'Stopped',
     icon: OctagonPause,
-    tone: 'text-fg-muted',
+    tone: 'text-fg',
     meaning: 'Training ended before it was scored, so the agent never took it.',
   },
 };

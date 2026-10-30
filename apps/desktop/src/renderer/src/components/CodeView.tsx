@@ -22,7 +22,7 @@ export function CodeView({ code, output, failed = false, className }: CodeViewPr
   return (
     <div
       className={cn(
-        'min-w-0 overflow-hidden rounded-lg bg-well font-mono text-xs leading-5',
+        'min-w-0 overflow-hidden rounded-control bg-field font-mono text-small leading-5',
         className,
       )}
     >
@@ -32,7 +32,7 @@ export function CodeView({ code, output, failed = false, className }: CodeViewPr
         aria-expanded={open}
         aria-controls={rest}
         onClick={() => setOpen(!open)}
-        className="flex w-full min-w-0 items-start gap-2 px-3 pt-2 text-left text-fg-secondary transition-colors duration-150 hover:text-fg"
+        className="flex w-full min-w-0 items-start gap-2 px-3 pt-2 text-left text-fg transition-colors duration-150"
       >
         <ChevronRight
           size={13}
@@ -48,13 +48,13 @@ export function CodeView({ code, output, failed = false, className }: CodeViewPr
       <pre
         id={rest}
         hidden={!open || more.length === 0}
-        className="m-0 whitespace-pre-wrap break-words pl-[33px] pr-3 text-fg-secondary"
+        className="m-0 whitespace-pre-wrap break-words pl-[33px] pr-3 text-fg"
       >
         {more.join('\n')}
       </pre>
       <pre
         className={cn(
-          'm-0 mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words border-t border-line-card px-3 py-2',
+          'm-0 mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words border-t border-line px-3 py-2',
           failed ? 'text-danger' : 'text-fg',
         )}
       >

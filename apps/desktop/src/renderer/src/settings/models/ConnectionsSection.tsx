@@ -68,7 +68,7 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
 
   return (
     <section aria-label="Connections" className="flex flex-col">
-      <h3 className="m-0 border-t border-line pb-2 pt-6 text-md font-medium">Connections</h3>
+      <h3 className="m-0 border-t border-line pb-2 pt-6 text-body font-medium">Connections</h3>
       {keyed.map(row)}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
         {!signedIn && (
@@ -88,7 +88,7 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
         </Button>
       </div>
       {signIn.state.phase === 'failed' && (
-        <p role="alert" className="m-0 pt-3 text-sm text-danger text-pretty">
+        <p role="alert" className="m-0 pt-3 text-small text-danger text-pretty">
           {signIn.state.message}
         </p>
       )}
@@ -98,7 +98,7 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
           {here.map(row)}
           <LlamaServerRow />
           {detecting && (
-            <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg-muted">
+            <div className="flex min-h-[60px] items-center gap-2.5 border-t border-line text-fg">
               <Spinner size={13} />
               Looking for models on this computer
             </div>

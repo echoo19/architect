@@ -72,7 +72,7 @@ describe('the permissions Define shows', () => {
     expect(text(html)).not.toContain('output folder');
     expect(text(html)).not.toContain('Files it can change');
     // The answer the job holds is the one chosen.
-    expect(html).toMatch(/aria-checked="true"[^>]*>Ask first</);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*><\/span>)?<span[^>]*>Ask first</);
   });
 
   it('offers it for an output folder alone, and says that is what it covers', () => {

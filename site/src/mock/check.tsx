@@ -31,7 +31,7 @@ const PRESS_AT = 6650;
 const CONFIRMED_AT = 7000;
 
 /** The quiet name over a group inside the rule's card: "The rule, in words", "Examples". */
-const groupName = 'm-0 text-sm font-normal text-fg-muted';
+const groupName = 'm-0 text-small font-normal text-fg';
 
 /** A step's words, with the files it names set quietly and what the person said after them. */
 function StepWords({ step }: { step: RuleStep }) {
@@ -39,14 +39,14 @@ function StepWords({ step }: { step: RuleStep }) {
     <>
       {stepPieces(step).map((piece, index) =>
         piece.file ? (
-          <span key={index} className="text-fg-muted">
+          <span key={index} className="text-fg">
             {piece.text}
           </span>
         ) : (
           piece.text
         ),
       )}
-      {step.note !== undefined && <span className="text-fg-muted"> {step.note}</span>}
+      {step.note !== undefined && <span className="text-fg"> {step.note}</span>}
     </>
   );
 }
@@ -56,7 +56,7 @@ function Steps() {
   return (
     <ol
       aria-label="The rule, in steps"
-      className="m-0 flex max-w-[640px] list-none flex-col gap-1.5 p-0 text-md"
+      className="m-0 flex max-w-[640px] list-none flex-col gap-1.5 p-0 text-body"
     >
       {RULE_STEPS.map((step, index) => (
         <li
@@ -64,7 +64,7 @@ function Steps() {
           className="a a-up grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-1"
           style={at(STEPS_AT + index * STEP_STEP, { dy: 8, dur: 520 })}
         >
-          <span aria-hidden className="text-fg-muted tabular-nums">
+          <span aria-hidden className="text-fg tabular-nums">
             {index + 1}.
           </span>
           <span className="text-pretty">
@@ -83,31 +83,31 @@ function Steps() {
 function Example() {
   return (
     <li
-      className="a a-up flex flex-col gap-3.5 rounded-2xl border border-line-card bg-panel px-5 py-[18px] narrow:px-3 narrow:py-3.5"
+      className="a a-up flex flex-col gap-3.5 rounded-card bg-card px-5 py-[18px] narrow:px-3 narrow:py-3.5 shadow-edge"
       style={at(EXAMPLE_AT, { dy: 16, dur: 600 })}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="min-w-0 text-md text-pretty">{EXAMPLE.request}</span>
+        <span className="min-w-0 text-body text-pretty">{EXAMPLE.request}</span>
         <span
-          className="a a-up text-xl font-medium tabular-nums"
+          className="a a-up font-display text-h2 font-semibold tabular-nums"
           style={at(ANSWER_AT, { dy: 8, dur: 480 })}
         >
           {EXAMPLE.answer}
         </span>
       </div>
-      <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-sm narrow:hidden">
+      <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-small narrow:hidden">
         {EXAMPLE.inputs.map((input, index) => (
           <div
             key={input.label}
             className="a a-up flex gap-2"
             style={at(INPUTS_AT + index * INPUT_STEP, { dy: 6, dur: 420 })}
           >
-            <dt className="text-fg-muted">{input.label}</dt>
-            <dd className="m-0 font-mono text-xs leading-5 text-fg-secondary">{input.value}</dd>
+            <dt className="text-fg">{input.label}</dt>
+            <dd className="m-0 font-mono text-small leading-5 text-fg">{input.value}</dd>
           </div>
         ))}
       </dl>
-      <ol className="m-0 flex list-none flex-col gap-1.5 border-t border-line-row p-0 pt-3 text-sm">
+      <ol className="m-0 flex list-none flex-col gap-1.5 border-t border-line p-0 pt-3 text-small">
         {EXAMPLE.lines.map((line, index) => (
           <li
             key={line.text}
@@ -117,7 +117,7 @@ function Example() {
             )}
             style={at(LINES_AT + index * LINE_STEP, { dy: 6, dur: 420 })}
           >
-            <span className="text-pretty text-fg-secondary">{line.text}</span>
+            <span className="text-pretty text-fg">{line.text}</span>
             <span className="font-mono tabular-nums">{line.value}</span>
           </li>
         ))}
@@ -131,12 +131,12 @@ function RuleCard() {
   return (
     <article
       aria-label={RULE_LABEL}
-      className="a a-up flex flex-col gap-6 rounded-3xl border border-line-card bg-card px-7 py-[26px] narrow:gap-5 narrow:px-3.5 narrow:py-4"
+      className="a a-up flex flex-col gap-6 rounded-card bg-card px-7 py-[26px] narrow:gap-5 narrow:px-3.5 narrow:py-4 shadow-edge"
       style={at(CARD_AT, { dy: 18, dur: 640 })}
     >
       <header>
-        <h3 className="m-0 flex items-center gap-2.5 text-lg font-medium">
-          <ScrollText size={18} strokeWidth={1.7} className="shrink-0 text-fg-muted" aria-hidden />
+        <h3 className="m-0 flex items-center gap-2.5 text-body font-medium">
+          <ScrollText size={18} strokeWidth={1.7} className="shrink-0 text-fg" aria-hidden />
           {RULE_LABEL}
         </h3>
       </header>
@@ -162,10 +162,10 @@ function ConfirmBar() {
   return (
     <div className="a a-up motion-only" style={at(BAR_AT, { dy: 14, dur: 560 })}>
       <div
-        className="a a-exit-up flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-list px-6 py-5 narrow:px-4 narrow:py-4"
+        className="a a-exit-up flex flex-wrap items-center justify-between gap-4 rounded-card bg-field px-6 py-5 narrow:px-4 narrow:py-4"
         style={at(CONFIRMED_AT, { dur: 280, dy: 0 })}
       >
-        <p className="m-0 max-w-[430px] text-fg-secondary text-pretty">
+        <p className="m-0 max-w-[430px] text-fg text-pretty">
           {CONFIRM.says[0]} <span className="narrow:hidden">{CONFIRM.says[1]}</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -190,14 +190,14 @@ function ConfirmBar() {
  */
 function DefineFooter() {
   return (
-    <footer className="shrink-0 border-t border-line bg-ground-flow px-8 py-4 narrow:px-4">
+    <footer className="shrink-0 border-t border-line bg-ground px-8 py-4 narrow:px-4">
       <div className="mx-auto flex max-w-[880px] items-center justify-between gap-3">
         <Button variant="ghost" tabIndex={-1} className="-ml-3 narrow:hidden">
           <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden />
           Advanced settings
         </Button>
         <div className="flex items-center gap-2 narrow:ml-auto">
-          <span className="mr-2 grid justify-items-end text-sm text-fg-muted narrow:hidden [&>*]:[grid-area:1/1]">
+          <span className="mr-2 grid justify-items-end text-small text-fg narrow:hidden [&>*]:[grid-area:1/1]">
             <span className="a a-exit-up motion-only" style={at(CONFIRMED_AT, { dur: 240, dy: 0 })}>
               {FOOTER_WAIT.waiting}
             </span>
@@ -246,7 +246,7 @@ export function CheckMock() {
     >
       <AppWindow className="inset-x-3 bottom-3 top-3 flex flex-col wide:inset-x-7 wide:top-6">
         <FlowBar title={JOB_NAME} current={1} />
-        <div className="min-h-0 flex-1 overflow-hidden bg-ground-flow bg-dot-grid">
+        <div className="min-h-0 flex-1 overflow-hidden bg-ground">
           <section
             aria-label="Check the rule"
             className="mx-auto box-content flex w-full max-w-[880px] flex-col gap-[18px] px-8 pt-6 narrow:box-border narrow:px-3 narrow:pt-4"
