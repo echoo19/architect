@@ -19,6 +19,7 @@ import {
   RunDetailSchema,
   RunSchema,
   SecretStatusSchema,
+  StudentTargetSchema,
   StudyStateSchema,
   TaskPlanSchema,
   TraceSchema,
@@ -90,6 +91,9 @@ export const api = {
   /** The run's report card: from where its own final test ran, or from one endpoint when named. */
   report: (runId: string, target?: StudentTarget) =>
     read('reports.get', ReportCardSchema, bridge().reports.get(runId, target)),
+  /** Where the run has a report card from; none for a run that never took its final test. */
+  reportTargets: (runId: string) =>
+    read('reports.list', z.array(StudentTargetSchema), bridge().reports.list(runId)),
   chats: (graduateId: string) =>
     read(
       'workspace.listChats',
