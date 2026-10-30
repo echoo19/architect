@@ -100,5 +100,9 @@ export const CLOSING = {
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
+  /** The home page's note: which parts of the pictures are real. */
   note: "Both shops are made up. The returns desk's training rounds, scores and final test are from a real run, and so are the repair shop's rule and its run. The chats, the correction and the Hugging Face page are written from the same records to show the screens.",
+  /** The results page's note. */
+  resultsNote:
+    'The returns desks and the repair shop are made up. The figures are from real runs, and the reports they come from are in docs/comparisons.',
 } as const;

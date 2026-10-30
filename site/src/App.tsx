@@ -40,7 +40,7 @@ export function App() {
       >
         Skip to the content
       </a>
-      <Header />
+      <Header page="home" />
       <main id="main">
         <Hero />
         {CHAPTERS.map((copy) => (
@@ -50,7 +50,7 @@ export function App() {
         ))}
         <Closing />
       </main>
-      <Footer />
+      <Footer page="home" />
     </div>
   );
 }

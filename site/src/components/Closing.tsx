@@ -1,6 +1,6 @@
-import { ArrowUpRight } from 'lucide-react';
 import { CLOSING, REPO } from '../content';
 import { Downloads } from './Downloads';
+import { GitHubMark } from './GitHubMark';
 import { Reveal } from './Reveal';
 
 /** The close: the name once more, the downloads, what a first run needs, and the code. */
@@ -9,16 +9,16 @@ export function Closing() {
     <section
       id="get"
       aria-labelledby="closing-title"
-      className="scroll-mt-16 border-t border-line py-24 sm:py-32 lg:py-40"
+      className="scroll-mt-16 border-t border-line py-16 sm:py-20 lg:py-24"
     >
       <div className="page">
         <Reveal>
-          <h2 id="closing-title" className="display-xxl">
+          <h2 id="closing-title" className="t-hero">
             {CLOSING.title}
           </h2>
-          <Downloads className="mt-10 sm:mt-14" />
+          <Downloads className="mt-8 sm:mt-10" />
         </Reveal>
-        <dl className="m-0 mt-16 max-w-[820px] sm:mt-20">
+        <dl className="m-0 mt-12 max-w-[820px] sm:mt-14">
           {CLOSING.needs.map((need) => (
             <div
               key={need.name}
@@ -29,9 +29,9 @@ export function Closing() {
             </div>
           ))}
         </dl>
-        <a className="link-quiet mt-8 inline-flex items-center gap-1.5 text-[17px]" href={REPO}>
+        <a className="link-quiet mt-7 inline-flex items-center gap-2" href={REPO}>
+          <GitHubMark size={18} />
           {CLOSING.github}
-          <ArrowUpRight size={17} strokeWidth={1.8} aria-hidden />
         </a>
       </div>
     </section>
