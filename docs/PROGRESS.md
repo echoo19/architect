@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), the redesign merged, release 0.4.0 signed for Mac, the new site, and the walkthrough film
+
+**Done**
+- *The redesign, phase B.* The owner said the recolored app still felt "classically vibe coded", so each screen was restructured on its own branch and merged: describe and define (`design/flow-define`), training, results and improvement (`design/train-results`), and the workspace (`design/workspace`). Every screen has one focal point, uses rows instead of stacks of cards, and drops the captions, pills and eyebrows that repeated what the layout shows. Settings and first run were left as they are, at the owner's word to wrap up and not over-engineer.
+- *The site.* Rebuilt in the new design (`design/site`), with mocks of the real flow that use CSS-only motion and can be seeked frame by frame. It now uses Inter for all text, the official GitHub mark and one type scale, and it is zoomed out. A new `/results/` page shows the comparisons, the score per round, answer time and cost, how a round works, and the limits, each with its source. Live at https://echoo19.github.io/architect/.
+- *Signed Mac app.* The repository holds the same five signing secrets as Conductor (a Developer ID certificate and an App Store Connect key). A by-hand release run signed and notarized both disk images and passed `codesign`, the stapled ticket and Gatekeeper. Release 0.4.0 is the first signed one. The README and the guide now say the Mac app opens without a warning; the Windows installer is still unsigned.
+- *The film.* Its picture is now a walkthrough of the site's mocks (`site/film/`, a dev-only Vite entry, `film/walkthrough`), rendered by the product-film pipeline outside the repo. The soundtrack keeps the recorded narration. Its music no longer pumps under the voice: the compressor keyed by the voice is replaced by a smooth 6 dB gain envelope, and the hard cut to silence is replaced by the track's own breakdown.
+
+**Next**
+- Recapture `docs/screenshots` from the merged screens with the safe specs, then rebuild the guide.
+- The owner tries 0.4.0 and redirects if needed.
+
 ## 2026-10-30 (Fri), the user guide (branch `docs/guide`)
 
 **Done**

@@ -33,7 +33,7 @@ From the event page and the participants' event guide:
 
 - [x] Repository public, README complete, licence present
 - [ ] CI green on the final commit
-- [x] Installers attached to a GitHub release (0.3.5, Oct 29, after 0.3.0 to 0.3.4 earlier that day; a later fix release goes the same way)
+- [x] Installers attached to a GitHub release (0.4.0, Oct 30, the first with a signed and notarized Mac app; after 0.3.0 to 0.3.5 on Oct 29)
 - [x] Sample job and one shipped graduate in the repo
 - [x] README results filled from real runs
 - [ ] Demo video (3 minutes or less) uploaded and link checked
