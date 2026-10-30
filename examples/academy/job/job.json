@@ -55,7 +55,7 @@
         "name": "policy.md",
         "kind": "text",
         "access": "read",
-        "description": "The academy's tutoring policy: diagnosing a wrong answer, the first hint, history, follow-up practice and when to leave a staff note, with its numbers in a table at the end."
+        "description": "The academy's tutoring policy, in its own words: diagnosing a wrong answer, the first hint, history, follow-up practice and when to leave a staff note, with the academy's numbers."
       },
       {
         "name": "students.csv",
@@ -107,7 +107,7 @@
         "name": "attempts.csv",
         "kind": "table",
         "access": "read",
-        "description": "Every answer students gave on practice tests: the date, where in the test, the topic, the choice picked, the right choice and the result."
+        "description": "Every answer students gave on practice tests: the date, where in the test, the topic, the choice picked, the right choice and the result, the academy's own mark."
       },
       {
         "name": "videos.csv",
@@ -185,26 +185,26 @@
   },
   "organizations": [
     {
-      "id": "ridgeline",
-      "name": "Ridgeline Test Prep",
+      "id": "copperfield",
+      "name": "Copperfield Learning",
       "synthetic": true,
       "role": "train"
     },
     {
-      "id": "wrenfield",
-      "name": "Wrenfield Prep",
+      "id": "thistlewood",
+      "name": "Thistlewood Learning",
       "synthetic": true,
       "role": "train"
     },
     {
-      "id": "lakemont",
-      "name": "Lakemont Scholars",
+      "id": "bramble",
+      "name": "Bramble Hill Academy",
       "synthetic": true,
       "role": "train"
     },
     {
-      "id": "harborview",
-      "name": "Harborview Prep",
+      "id": "juniper",
+      "name": "Juniper Study House",
       "synthetic": true,
       "role": "transfer"
     }

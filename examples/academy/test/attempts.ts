@@ -2,7 +2,7 @@ import type { JsonValue, Task } from '@architect/shared';
 import { afterWrong, assign, diagnose, hint, history, solve } from '../src/reference/solver';
 import { AgentTools } from '../src/reference/tools';
 import type { AssignRequest, HistoryRequest, SolveRequest, WrongAnswer } from '../src/tasks/build';
-import { TODAY, job, orgOf } from './helpers';
+import { job, orgOf, todayOf } from './helpers';
 
 export interface Attempt {
   task: Task;
@@ -12,7 +12,7 @@ export interface Attempt {
 
 /** One reference attempt at a task, with fresh tools bound to the task's organization. */
 export function solveTask(task: Task): Attempt {
-  const tools = new AgentTools(job.data(orgOf(task)), TODAY);
+  const tools = new AgentTools(job.data(orgOf(task)), todayOf(task));
   const request = task.meta?.request;
   const answer = (() => {
     switch (task.type) {

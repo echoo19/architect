@@ -1,0 +1,44 @@
+error_id,topic,name
+E-01,Rule 4A - Solving Linear Equations,Moved the constant with the wrong sign
+E-02,Rule 3B - Area and Perimeter,Used the perimeter as a side
+E-03,Rule 5A - Part-to-part Ratios,Stopped at one share
+E-04,Rule 1A - Pronoun Agreement,Used a contraction where a possessive belongs
+E-05,Rule 3B - Area and Perimeter,Stopped at the width
+E-06,Rule 3A - Percents and Discounts,Took the discount off twice
+E-07,Rule 1B - Parallel Comparisons,Compared a thing with a place
+E-08,Rule 2A - Systems of Equations,Subtracted the equations and stopped
+E-09,Rule 1B - Parallel Comparisons,Did not match one thing or many
+E-10,Rule 4B - Sentence Boundaries,Used a semicolon and a conjunction together
+E-11,Rule 1A - Pronoun Agreement,Used a pronoun for a person to stand for a thing
+E-12,Rule 5A - Part-to-part Ratios,Divided the total by one number of the ratio
+E-13,Rule 4B - Sentence Boundaries,Ran two sentences together with no punctuation
+E-14,Rule 6A - Agreement,Left the sentence without a main verb
+E-15,Rule 3A - Percents and Discounts,"Gave the discount, not the price"
+E-16,Rule 4A - Solving Linear Equations,Subtracted the coefficient instead of dividing
+E-17,Rule 2B - Verb Tense,Used the present for a past event
+E-18,Rule 5A - Part-to-part Ratios,Multiplied the total by the ratio
+E-19,Rule 2A - Systems of Equations,Solved for the other variable
+E-20,Rule 5A - Part-to-part Ratios,Found the other group
+E-21,Rule 3A - Percents and Discounts,Added the discount instead of subtracting it
+E-22,Rule 6B - Transition Words,Chose a contrast transition
+E-23,Rule 6B - Transition Words,Chose a cause-and-effect transition
+E-24,Rule 2A - Systems of Equations,Forgot to halve after adding
+E-25,Rule 6A - Agreement,Shifted the tense
+E-26,Rule 3B - Area and Perimeter,Added the sides instead of multiplying
+E-27,Rule 1A - Pronoun Agreement,Used a plural pronoun for a singular group
+E-28,Rule 2B - Verb Tense,Used the present perfect with a finished time
+E-29,Rule 4A - Solving Linear Equations,Divided only the first term
+E-30,Rule 1B - Parallel Comparisons,Doubled the possessive
+E-31,Rule 5B - Function Notation,Added before multiplying
+E-32,Rule 4A - Solving Linear Equations,Stopped before dividing by the coefficient
+E-33,Rule 5B - Function Notation,Swapped the slope and the constant
+E-34,Rule 5B - Function Notation,Added the input instead of multiplying
+E-35,Rule 2B - Verb Tense,Used the future for a past event
+E-36,Rule 6A - Agreement,Made the verb agree with the nearer noun
+E-37,Rule 5B - Function Notation,Left out the constant
+E-38,Rule 4B - Sentence Boundaries,Joined two sentences with only a comma
+E-39,Rule 3B - Area and Perimeter,Forgot to halve the perimeter
+E-40,Rule 2A - Systems of Equations,Took the sum as the value of x
+E-41,Rule 6B - Transition Words,Chose an example transition
+E-42,Rule 6B - Transition Words,Chose an adding-on transition
+E-43,Rule 3A - Percents and Discounts,Took the percent off as dollars

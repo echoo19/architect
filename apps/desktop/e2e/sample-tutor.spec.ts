@@ -32,8 +32,8 @@ const phil: Job = {
 
 const brief: StudyBrief = {
   organizations: [
-    { id: 'ridgeline', name: 'Ridgeline Test Prep' },
-    { id: 'wrenfield', name: 'Wrenfield Prep' },
+    { id: 'copperfield', name: 'Copperfield Learning' },
+    { id: 'thistlewood', name: 'Thistlewood Learning' },
   ],
   skills: [
     {
@@ -112,7 +112,7 @@ test('starts Phil from a fresh install and reaches the brief to confirm', async 
   await section.getByRole('button', { name: 'Study the material' }).click();
   await expect(section.getByRole('article', { name: 'The brief' })).toBeVisible();
   // Nothing of the academy kept for the final test is on the page.
-  await expect(page.getByText(/Harborview/)).toHaveCount(0);
+  await expect(page.getByText(/Juniper/)).toHaveCount(0);
 
   await section.getByRole('button', { name: 'Confirm and continue' }).click();
   await expect(section.getByText('Confirmed on Oct 30')).toBeVisible();

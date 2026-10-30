@@ -8,7 +8,8 @@ import { parseCsv } from '../src/lib/csv';
 import type { CsvRow } from '../src/lib/csv';
 import { JobFiles } from '../src/reference/tools';
 
-export const TODAY = '2026-11-16';
+/** The job's date, the one the agent's header gives. */
+export { TODAY } from '../src/academy/build';
 
 export interface CheckerContext {
   readTable(name: string): CsvRow[];
@@ -141,6 +142,29 @@ export const job = new JobFolder();
 export function orgOf(task: Task): string {
   if (task.org === undefined) throw new Error(`${task.id} names no organization`);
   return task.org;
+}
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** The date a task's request states it is made on ("It's Monday, November 16, 2026."), YYYY-MM-DD. */
+export function todayOf(task: Task): string {
+  const match = /^It's \w+, (\w+) (\d+), (\d{4})\./.exec(task.prompt);
+  if (!match) throw new Error(`${task.id} states no date`);
+  const month = String(MONTHS.indexOf(match[1]!) + 1).padStart(2, '0');
+  return `${match[3]}-${month}-${match[2]!.padStart(2, '0')}`;
 }
 
 export function paramsOf(task: Task): Record<string, JsonValue> {

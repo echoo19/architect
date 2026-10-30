@@ -1,11 +1,20 @@
 import { toCsv } from '../lib/csv';
-import type { Academy } from './build';
+import type { Random } from '../lib/random';
+import type { Academy, Attempt, Question } from './build';
 import { LETTERS, PROGRAM } from './build';
-import type { PolicyNumbers } from './style';
+import { policyDocument } from './policy';
+import type { LabelForm } from './style';
+import { gridForms } from './topics';
 
 /**
  * An academy's files: the CSV tables in the schema the README documents, and policy.md. A real
  * academy's anonymized export is written into the same tables.
+ *
+ * The files read as exports: in about a fifth of the rows of questions.csv and attempts.csv a
+ * value is written another way. A topic label carries a stray space, other capitals or other
+ * punctuation than topics.csv gives it, and a right grid-in answer may be entered as a decimal or
+ * an unreduced fraction. Every such form reads back to one value. The first rows of each table
+ * are plain.
  */
 export const COLUMNS = {
   'students.csv': ['student_id', 'name', 'grade', 'target_score', 'test_date', 'tutor_id'],
@@ -46,11 +55,33 @@ export const COLUMNS = {
 
 export type TableName = keyof typeof COLUMNS;
 
-export function academyFiles(academy: Academy): Map<string, string> {
+/** Rows at the top of an exported table that are always written plainly. */
+export const PLAIN_ROWS = 5;
+/** The share of the rest whose topic label an export writes another way. */
+const LABEL_SHARE = { questions: 0.2, attempts: 0.17 } as const;
+/** The chance a student enters a right grid-in answer another way than the key. */
+const GRID_FORM_CHANCE = 0.5;
+
+export function academyFiles(academy: Academy, random: Random): Map<string, string> {
   const table = (name: TableName, rows: (string | number)[][]) =>
     [name, toCsv(COLUMNS[name], rows)] as const;
+  const { style } = academy;
+  const questions = exported(
+    random.fork('questions'),
+    academy.questions,
+    style.labelForms,
+    LABEL_SHARE.questions,
+  );
+  const attempts = exported(
+    random.fork('attempts'),
+    academy.attempts,
+    style.labelForms,
+    LABEL_SHARE.attempts,
+  );
+  const grid = random.fork('grid');
+  const gridIns = new Set(academy.questions.filter((q) => q.item.gridIn).map((q) => q.question_id));
   return new Map<string, string>([
-    ['policy.md', policyDocument(academy.style.name, academy.style.policy)],
+    ['policy.md', policyDocument(style.name, style.policy, style.policyStyle)],
     table(
       'students.csv',
       academy.students.map((s) => [
@@ -80,14 +111,14 @@ export function academyFiles(academy: Academy): Map<string, string> {
     ),
     table(
       'questions.csv',
-      academy.questions.map((q) => [
+      questions.map((q) => [
         q.question_id,
         q.section,
         q.topic,
         q.difficulty_pct,
         q.item.stem,
-        ...q.item.choices,
-        LETTERS[q.item.correct]!,
+        ...(q.item.gridIn ? ['', '', '', ''] : q.item.choices),
+        q.item.gridIn ? q.item.gridIn.key : LETTERS[q.item.correct]!,
       ]),
     ),
     table(
@@ -96,7 +127,7 @@ export function academyFiles(academy: Academy): Map<string, string> {
         t.test_id,
         t.test_name,
         PROGRAM,
-        t.section,
+        style.layout === 'full' ? 'Full' : t.section,
         t.module,
         t.number,
         t.question_id,
@@ -104,7 +135,7 @@ export function academyFiles(academy: Academy): Map<string, string> {
     ),
     table(
       'attempts.csv',
-      academy.attempts.map((a) => [
+      attempts.map((a, i) => [
         a.student_id,
         a.test_id,
         a.taken_on,
@@ -113,7 +144,12 @@ export function academyFiles(academy: Academy): Map<string, string> {
         a.number,
         a.question_id,
         a.topic,
-        a.selected,
+        i >= PLAIN_ROWS &&
+        gridIns.has(a.question_id) &&
+        a.result === 'right' &&
+        grid.chance(GRID_FORM_CHANCE)
+          ? grid.pick(gridForms(a.correct))
+          : a.selected,
         a.correct,
         a.result,
       ]),
@@ -146,92 +182,38 @@ export function academyFiles(academy: Academy): Map<string, string> {
   ]);
 }
 
-/** The policy's numbers, in the table at its end. The reference solutions read them from there. */
-export const POLICY_SETTINGS = {
-  practiceCount: 'Practice questions after a wrong answer',
-  bandLow: 'Practice difficulty, lowest percent correct',
-  bandHigh: 'Practice difficulty, highest percent correct',
-  window: 'History window, latest attempts on the topic',
-  escalateWrong: 'Wrong answers that call for a staff note',
-  escalateDays: 'Days those wrong answers are counted over',
-  counts: 'Attempts that count in history',
-  hintRule: 'First hint',
-} as const;
+/** Rows as an export writes them: a share of the rest, past the plain ones, with another label. */
+function exported<T extends Question | Attempt>(
+  random: Random,
+  rows: readonly T[],
+  forms: readonly LabelForm[],
+  share: number,
+): T[] {
+  const rest = rows.length - PLAIN_ROWS;
+  const other = new Set(
+    random.sample(rows.map((_, i) => i).slice(PLAIN_ROWS), Math.round(share * rest)),
+  );
+  return rows.map((row, i) =>
+    other.has(i) ? { ...row, topic: otherLabel(random, row.topic, random.pick(forms)) } : row,
+  );
+}
 
-export function policyDocument(name: string, policy: PolicyNumbers): string {
-  const counts =
-    policy.counts === 'first'
-      ? "Only a student's first attempt at each question counts. When a student retakes a test, the retake's answers do not count toward history."
-      : 'Every attempt counts, retakes included: a question answered twice is two attempts.';
-  const hint =
-    policy.hintRule === 'targeted'
-      ? "Give the approved hint written for the error behind the student's choice (hints.csv, the row whose error_id is that error). When no hint is written for that error, give the topic's general hint, the row with no error_id."
-      : "Always give the topic's general hint first, the row in hints.csv with no error_id, whatever the student chose. Hints written for a particular error are for the second try.";
-  const settings: [string, string][] = [
-    [POLICY_SETTINGS.practiceCount, String(policy.practiceCount)],
-    [POLICY_SETTINGS.bandLow, String(policy.bandLow)],
-    [POLICY_SETTINGS.bandHigh, String(policy.bandHigh)],
-    [POLICY_SETTINGS.window, String(policy.window)],
-    [POLICY_SETTINGS.escalateWrong, String(policy.escalateWrong)],
-    [POLICY_SETTINGS.escalateDays, String(policy.escalateDays)],
-    [POLICY_SETTINGS.counts, policy.counts === 'first' ? 'first attempts only' : 'every attempt'],
-    [
-      POLICY_SETTINGS.hintRule,
-      policy.hintRule === 'targeted' ? 'the hint for the error' : 'the general hint',
-    ],
-  ];
-  return [
-    `# ${name}: tutoring policy`,
-    '',
-    `This is how ${name} tutors a student right after a wrong answer, and how staff read a student's record. Phil, the academy's tutor, follows it, and so do the staff.`,
-    '',
-    '## The records',
-    '',
-    '- `students.csv`: each student, their target score, test date and tutor (`tutor_id`, a row of `staff.csv`).',
-    "- `topics.csv`: the academy's topic labels, with the section and the folder of lesson videos for each.",
-    '- `questions.csv`: the question bank, with full text, the right choice and `difficulty_pct`, the percent of students who get the question right (a higher number is an easier question).',
-    '- `tests.csv`: which bank question sits at each section, module and number of each practice test.',
-    '- `attempts.csv`: every answer a student gave on a practice test, with the choice they picked, the right choice and whether they got it right.',
-    "- `errors.csv`: for each topic, the errors our answer explanations name. Each wrong choice in the bank comes from one of its topic's errors.",
-    '- `hints.csv`: the approved first hints. Phil gives only these hints, by id, and never writes his own.',
-    "- `videos.csv`: the lesson videos, each in a topic's folder.",
-    '- `assignments.csv` and `staff_notes.csv`: practice set for students and notes left for staff. New rows go at the end.',
-    '',
-    '## Diagnosing a wrong answer',
-    '',
-    'Find the question the student answered (the test, section, module and number lead to it through `tests.csv`), its topic and its right choice. Then name the error behind the choice they picked: the row of `errors.csv` for that topic whose error produces that choice. If two errors produce the same choice, either one is right.',
-    '',
-    '## The first hint',
-    '',
-    hint,
-    '',
-    '## History on a topic',
-    '',
-    `A student's history on a topic is read as of a date: attempts taken after that date are left out. ${counts} Of the attempts that count, take the latest ${policy.window}, ordered by the date taken, then module, then question number (fewer if the student has fewer). Report how many attempts that is, how many were right, and the accuracy: right answers divided by those attempts, as a whole percent, rounded half up.`,
-    '',
-    `Escalation looks at time, not at the window: escalate when the attempts that count, taken in the ${policy.escalateDays} days ending on that date (the date itself and the ${policy.escalateDays - 1} before it), hold ${policy.escalateWrong} or more wrong answers.`,
-    '',
-    '## Follow-up practice',
-    '',
-    `Assign ${policy.practiceCount} questions from the bank. Each must be of the same topic, never attempted by the student on any test, not already assigned to them, and with \`difficulty_pct\` from ${policy.bandLow} to ${policy.bandHigh}, both included. Any questions that meet these rules will do; never assign the same question twice. If fewer than ${policy.practiceCount} questions qualify, assign all that do and say how many.`,
-    '',
-    "Each question is one row of `assignments.csv`: a new `assignment_id` (number on from the highest id already in the file, in the same format, one per row; A-0001 if the file has none yet), the student, the question, today's date as `assigned_on`, and the student's tutor as `assigned_by`.",
-    '',
-    '## The tutoring turn after a wrong answer',
-    '',
-    '1. Diagnose the answer: the topic, the right choice and the error.',
-    '2. Give the first hint, by its id.',
-    "3. Point the student to one lesson video from the topic's folder.",
-    '4. Assign the follow-up practice.',
-    `5. Read the student's history on the topic as of today. If it calls for escalation, add one row to \`staff_notes.csv\` for the student's tutor: a new \`note_id\` (numbered on, like assignments), the student, the tutor as \`staff_id\`, today's date, the topic label, and a short note.`,
-    '',
-    'Change nothing else. Never edit or delete a row that is already there.',
-    '',
-    '## In numbers',
-    '',
-    '| Setting | Value |',
-    '| --- | --- |',
-    ...settings.map(([setting, value]) => `| ${setting} | ${value} |`),
-    '',
-  ].join('\n');
+/** A topic label written another way, which still reads back to the same label. */
+export function otherLabel(random: Random, label: string, form: LabelForm): string {
+  switch (form) {
+    case 'spaces': {
+      const spaces = [...label.matchAll(/ /g)].map((match) => match.index);
+      const at = random.pick(spaces);
+      return `${label.slice(0, at)}  ${label.slice(at + 1)}`;
+    }
+    case 'case':
+      return random.chance(0.7) ? label.toLowerCase() : label.toUpperCase();
+    case 'punctuation': {
+      const match = /\s*[-:]\s*/.exec(label);
+      if (!match) throw new Error(`The label "${label}" has no punctuation to write another way`);
+      const others = [' - ', ': ', ' ', '-'].filter((sep) => sep !== match[0]);
+      const end = match.index + match[0].length;
+      return `${label.slice(0, match.index)}${random.pick(others)}${label.slice(end)}`;
+    }
+  }
 }

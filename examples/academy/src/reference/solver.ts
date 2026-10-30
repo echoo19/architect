@@ -1,5 +1,4 @@
 import type { JsonValue } from '@architect/shared';
-import { moduleCell } from '../tasks/records';
 import type { AssignRequest, HistoryRequest, SolveRequest, WrongAnswer } from '../tasks/records';
 import {
   eligibleQuestions,
@@ -8,7 +7,9 @@ import {
   nextIds,
   readPolicy,
   topicHistory,
+  topicKey,
   workQuestion,
+  TOPIC_KEY_CODE,
 } from './rules';
 import type { Policy } from './rules';
 import { cell } from './tools';
@@ -19,7 +20,10 @@ import type { AgentTools, CodeRow, Tables } from './tools';
  * read policy.md, send code to `run` that fetches exactly the rows the request needs, apply the
  * policy to them, and append any rows the request asks for. Nothing about an academy is known in
  * advance: labels, ids, numbers, hints and videos all come from the files of the academy the
- * tools are bound to.
+ * tools are bound to. The question a request names is found from the student's own answer in
+ * attempts.csv, which works however the academy lays out and numbers its tests; topic labels are
+ * matched with their spaces, capitals and punctuation set aside; and the working date is the one
+ * the request states.
  */
 
 const READ = `const read = (name) => csv.parse(files.read('data/' + name));`;
@@ -31,42 +35,85 @@ function policyOf(tools: AgentTools): Policy {
   return readPolicy(tools.fileText('policy.md'));
 }
 
+/**
+ * Code that finds the student's answer the request names, as `answer`: their row of attempts.csv
+ * on that test, at that number, in the section and module when the request names them. A place
+ * in tests.csv may hold two questions, so the row is the student's own. A retake at the same
+ * place is the same question; the latest is taken.
+ */
+function answerCode(w: WrongAnswer): string[] {
+  const place = [
+    `row.number === ${text(w.number)}`,
+    ...(w.section === null ? [] : [`row.section === ${text(w.section)}`]),
+    ...(w.module === null ? [] : [`row.module === ${text(w.module)}`]),
+  ].join(' && ');
+  return [
+    `const student = read('students.csv').find((row) => row.name === ${text(w.student)});`,
+    `const tests = new Set(read('tests.csv').filter((row) => row.test_name === ${text(w.test_name)}).map((row) => row.test_id));`,
+    `const answer = read('attempts.csv').filter((row) => row.student_id === student.student_id && tests.has(row.test_id) && ${place} && row.selected === ${text(w.chosen)}).pop();`,
+  ];
+}
+
+/** The same search, worked out on the rows. */
+function findAnswer(t: Tables, w: WrongAnswer): { student: CodeRow; answer: CodeRow } {
+  const student = t.one('students.csv', (row) => row.name === w.student);
+  const tests = new Set(
+    t.where('tests.csv', (row) => row.test_name === w.test_name).map((row) => row.test_id),
+  );
+  const answer = t
+    .where(
+      'attempts.csv',
+      (row) =>
+        row.student_id === student.student_id &&
+        tests.has(row.test_id) &&
+        row.number === String(w.number) &&
+        (w.section === null || row.section === w.section) &&
+        (w.module === null || row.module === String(w.module)) &&
+        row.selected === w.chosen,
+    )
+    .pop();
+  if (!answer) throw new Error(`No answer of ${w.student} matches the request`);
+  return { student, answer };
+}
+
+const onTopic = (topic: string) => (row: CodeRow) =>
+  topicKey(cell(row, 'topic')) === topicKey(topic);
+
 interface Located {
   student: CodeRow;
   question: CodeRow;
+  /** The question's topic as topics.csv lists it. */
+  topic: string;
   errors: CodeRow[];
   hints: CodeRow[];
 }
 
-/** One run: the student, the question they answered, and its topic's errors and hints. */
+/** One run: the student, the question they answered, its topic, and the topic's errors and hints. */
 function locate(tools: AgentTools, w: WrongAnswer): Located {
   const code = [
     READ,
-    `const student = read('students.csv').find((row) => row.name === ${text(w.student)});`,
-    `const slot = read('tests.csv').find((row) => row.test_name === ${text(w.test_name)} && row.section === ${text(w.section)} && row.module === ${text(moduleCell(w))} && row.number === ${text(w.number)});`,
-    "const question = read('questions.csv').find((row) => row.question_id === slot.question_id);",
+    TOPIC_KEY_CODE,
+    ...answerCode(w),
+    "const question = read('questions.csv').find((row) => row.question_id === answer.question_id);",
+    "const topic = read('topics.csv').find((row) => key(row.topic) === key(question.topic)).topic;",
     '({',
     '  student,',
     '  question,',
-    "  errors: read('errors.csv').filter((row) => row.topic === question.topic),",
-    "  hints: read('hints.csv').filter((row) => row.topic === question.topic),",
+    '  topic,',
+    "  errors: read('errors.csv').filter((row) => key(row.topic) === key(topic)),",
+    "  hints: read('hints.csv').filter((row) => key(row.topic) === key(topic)),",
     '})',
   ].join('\n');
   const found = tools.run(code, (t) => {
-    const slot = t.one(
-      'tests.csv',
-      (row) =>
-        row.test_name === w.test_name &&
-        row.section === w.section &&
-        row.module === moduleCell(w) &&
-        row.number === String(w.number),
-    );
-    const question = t.one('questions.csv', (row) => row.question_id === slot.question_id);
+    const { student, answer } = findAnswer(t, w);
+    const question = t.one('questions.csv', (row) => row.question_id === answer.question_id);
+    const topic = cell(t.one('topics.csv', onTopic(cell(question, 'topic'))), 'topic');
     return {
-      student: t.one('students.csv', (row) => row.name === w.student),
+      student,
       question,
-      errors: t.where('errors.csv', (row) => row.topic === question.topic),
-      hints: t.where('hints.csv', (row) => row.topic === question.topic),
+      topic,
+      errors: t.where('errors.csv', onTopic(topic)),
+      hints: t.where('hints.csv', onTopic(topic)),
     };
   });
   return found as unknown as Located;
@@ -74,9 +121,9 @@ function locate(tools: AgentTools, w: WrongAnswer): Located {
 
 export function diagnose(tools: AgentTools, w: WrongAnswer): JsonValue {
   policyOf(tools);
-  const { question, errors } = locate(tools, w);
+  const { question, topic, errors } = locate(tools, w);
   return {
-    topic: cell(question, 'topic'),
+    topic,
     correct: cell(question, 'correct'),
     error: errorsBehind(question, w.chosen, errors)[0]!,
   };
@@ -84,37 +131,19 @@ export function diagnose(tools: AgentTools, w: WrongAnswer): JsonValue {
 
 /**
  * Diagnose from the records alone, for an academy whose files have no question text or errors:
- * the attempt the student made carries the topic and the right choice.
+ * the answer the student gave carries the topic and the right choice.
  */
 export function diagnoseRecord(tools: AgentTools, w: WrongAnswer): JsonValue {
-  const code = [
-    READ,
-    `const student = read('students.csv').find((row) => row.name === ${text(w.student)});`,
-    `const test = read('tests.csv').find((row) => row.test_name === ${text(w.test_name)});`,
-    `read('attempts.csv').filter((row) => row.student_id === student.student_id && row.test_id === test.test_id && row.section === ${text(w.section)} && row.module === ${text(moduleCell(w))} && row.number === ${text(w.number)} && row.selected === ${text(w.chosen)})`,
-  ].join('\n');
-  const [attempt] = tools.run(code, (t) => {
-    const student = t.one('students.csv', (row) => row.name === w.student);
-    const test = t.where('tests.csv', (row) => row.test_name === w.test_name)[0]!;
-    return t.where(
-      'attempts.csv',
-      (row) =>
-        row.student_id === student.student_id &&
-        row.test_id === test.test_id &&
-        row.section === w.section &&
-        row.module === moduleCell(w) &&
-        row.number === String(w.number) &&
-        row.selected === w.chosen,
-    );
-  });
-  return { topic: cell(attempt!, 'topic'), correct: cell(attempt!, 'correct') };
+  const code = [READ, ...answerCode(w), 'answer'].join('\n');
+  const answer = tools.run(code, (t) => findAnswer(t, w).answer);
+  return { topic: cell(answer, 'topic'), correct: cell(answer, 'correct') };
 }
 
 export function hint(tools: AgentTools, w: WrongAnswer): JsonValue {
   const policy = policyOf(tools);
-  const { question, errors, hints } = locate(tools, w);
+  const { question, topic, errors, hints } = locate(tools, w);
   const errorIds = errorsBehind(question, w.chosen, errors);
-  return { topic: cell(question, 'topic'), hint_id: firstHints(hints, errorIds, policy)[0]! };
+  return { topic, hint_id: firstHints(hints, errorIds, policy)[0]! };
 }
 
 /** A math question given in the request: no files needed. */
@@ -129,14 +158,15 @@ interface StudentRecord {
   attempts: CodeRow[];
 }
 
-/** One run: a student and their attempts on a topic. */
+/** One run: a student and their attempts on a topic, however each row writes the label. */
 function studentRecord(tools: AgentTools, name: string, topic: string): StudentRecord {
   const code = [
     READ,
+    TOPIC_KEY_CODE,
     `const student = read('students.csv').find((row) => row.name === ${text(name)});`,
     '({',
     '  student,',
-    `  attempts: read('attempts.csv').filter((row) => row.student_id === student.student_id && row.topic === ${text(topic)}),`,
+    `  attempts: read('attempts.csv').filter((row) => row.student_id === student.student_id && key(row.topic) === key(${text(topic)})),`,
     '})',
   ].join('\n');
   return tools.run(code, (t) => {
@@ -145,7 +175,7 @@ function studentRecord(tools: AgentTools, name: string, topic: string): StudentR
       student,
       attempts: t.where(
         'attempts.csv',
-        (row) => row.student_id === student.student_id && row.topic === topic,
+        (row) => row.student_id === student.student_id && onTopic(topic)(row),
       ),
     };
   }) as unknown as StudentRecord;
@@ -176,10 +206,11 @@ function practiceRecords(tools: AgentTools, student: CodeRow, topic: string): Pr
   const id = cell(student, 'student_id');
   const code = [
     READ,
+    TOPIC_KEY_CODE,
     '({',
     `  attempted: read('attempts.csv').filter((row) => row.student_id === ${text(id)}).map((row) => row.question_id),`,
     "  assignments: read('assignments.csv'),",
-    `  questions: read('questions.csv').filter((row) => row.topic === ${text(topic)}).map((row) => ({ question_id: row.question_id, difficulty_pct: row.difficulty_pct })),`,
+    `  questions: read('questions.csv').filter((row) => key(row.topic) === key(${text(topic)})).map((row) => ({ question_id: row.question_id, difficulty_pct: row.difficulty_pct })),`,
     '})',
   ].join('\n');
   return tools.run(code, (t: Tables) => ({
@@ -187,12 +218,10 @@ function practiceRecords(tools: AgentTools, student: CodeRow, topic: string): Pr
       .where('attempts.csv', (row) => row.student_id === id)
       .map((row) => cell(row, 'question_id')),
     assignments: t.where('assignments.csv', () => true),
-    questions: t
-      .where('questions.csv', (row) => row.topic === topic)
-      .map((row) => ({
-        question_id: cell(row, 'question_id'),
-        difficulty_pct: cell(row, 'difficulty_pct'),
-      })),
+    questions: t.where('questions.csv', onTopic(topic)).map((row) => ({
+      question_id: cell(row, 'question_id'),
+      difficulty_pct: cell(row, 'difficulty_pct'),
+    })),
   })) as unknown as Practice;
 }
 
@@ -236,15 +265,15 @@ export function assign(tools: AgentTools, request: AssignRequest): JsonValue {
 
 export function afterWrong(tools: AgentTools, w: WrongAnswer): JsonValue {
   const policy = policyOf(tools);
-  const { student, question, errors, hints } = locate(tools, w);
-  const topic = cell(question, 'topic');
+  const { student, question, topic, errors, hints } = locate(tools, w);
   const errorIds = errorsBehind(question, w.chosen, errors);
   const code = [
     READ,
+    TOPIC_KEY_CODE,
     `const topic = read('topics.csv').find((row) => row.topic === ${text(topic)});`,
     '({',
     "  videos: read('videos.csv').filter((row) => row.folder === topic.video_folder),",
-    `  attempts: read('attempts.csv').filter((row) => row.student_id === ${text(cell(student, 'student_id'))} && row.topic === topic.topic),`,
+    `  attempts: read('attempts.csv').filter((row) => row.student_id === ${text(cell(student, 'student_id'))} && key(row.topic) === key(topic.topic)),`,
     "  notes: read('staff_notes.csv').map((row) => row.note_id),",
     '})',
   ].join('\n');
@@ -254,7 +283,7 @@ export function afterWrong(tools: AgentTools, w: WrongAnswer): JsonValue {
       videos: t.where('videos.csv', (r) => r.folder === row.video_folder),
       attempts: t.where(
         'attempts.csv',
-        (r) => r.student_id === student.student_id && r.topic === topic,
+        (r) => r.student_id === student.student_id && onTopic(topic)(r),
       ),
       notes: t.where('staff_notes.csv', () => true).map((r) => cell(r, 'note_id')),
     };

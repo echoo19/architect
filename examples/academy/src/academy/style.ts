@@ -1,11 +1,13 @@
+import { addDays } from '../lib/calendar';
 import type { Random } from '../lib/random';
 import { TOPIC_KINDS } from './topics';
 import type { TopicKind } from './topics';
 
 /**
- * What makes one academy differ from another besides its people and records: its name, how it
- * writes ids, how it labels topics and video folders, how its questions are worded, and the
- * numbers in its tutoring policy. Everything is drawn from the academy's seed.
+ * What makes one academy differ from another besides its people and records: its name, its date,
+ * how it writes ids, how it labels topics and video folders, how its practice tests are laid out,
+ * how its questions are worded, how its exports write labels, and the numbers and style of its
+ * tutoring policy. Everything is drawn from the academy's seed.
  */
 
 export interface IdStyle {
@@ -139,14 +141,36 @@ export interface PolicyNumbers {
   hintRule: 'targeted' | 'general';
 }
 
+/**
+ * How tests.csv places a question. `module`: each section's modules numbered 1 to 6. `full`: the
+ * whole test listed with section "Full", each section numbered on its own within a module, so a
+ * position names two questions. `continuous`: one number through the whole test.
+ */
+export type TestLayout = 'module' | 'full' | 'continuous';
+export const TEST_LAYOUTS: readonly TestLayout[] = ['module', 'full', 'continuous'];
+
+/** How policy.md is written: prose with a table of numbers, prose alone, or a list of rules. */
+export type PolicyStyle = 'table' | 'prose' | 'bullets';
+export const POLICY_STYLES: readonly PolicyStyle[] = ['table', 'prose', 'bullets'];
+
+/** How an export may write a topic label another way: stray spaces, other capitals, other punctuation. */
+export type LabelForm = 'spaces' | 'case' | 'punctuation';
+export const LABEL_FORMS: readonly LabelForm[] = ['spaces', 'case', 'punctuation'];
+
 export interface AcademyStyle {
   name: string;
   /** The organization id: lowercase, from the name. */
   id: string;
+  /** The day the academy's records are current as of, and its requests are made on. */
+  today: string;
   ids: IdStyle;
   topics: TopicStyle;
+  layout: TestLayout;
   /** Which wording of each question kind the academy's bank uses. */
   phrasing: number;
+  /** The ways its exports write a topic label other than topics.csv does. */
+  labelForms: LabelForm[];
+  policyStyle: PolicyStyle;
   policy: PolicyNumbers;
 }
 
@@ -158,17 +182,20 @@ const ESCALATION_RULES = [
   { escalateWrong: 4, escalateDays: 30 },
 ] as const;
 
+// None of these is an academy of an earlier field run.
 const NAMES = [
   'Northgate Prep',
-  'Ridgeline Test Prep',
   'Bramble Hill Academy',
   'Silverleaf Tutoring',
   'Copperfield Learning',
-  'Harborview Prep',
   'Juniper Study House',
-  'Lakemont Scholars',
   'Oakhollow Academy',
-  'Wrenfield Prep',
+  'Fernbrook Prep',
+  'Kestrel Academy',
+  'Marrowdale Tutors',
+  'Thistlewood Learning',
+  'Calder Point Prep',
+  'Quillmere Scholars',
 ];
 
 export function academyStyle(random: Random): AcademyStyle {
@@ -190,5 +217,9 @@ export function academyStyle(random: Random): AcademyStyle {
       counts: random.pick(['first', 'every'] as const),
       hintRule: random.pick(['targeted', 'general'] as const),
     },
+    today: addDays('2026-10-12', random.int(0, 35)),
+    layout: random.pick(TEST_LAYOUTS),
+    labelForms: random.sample(LABEL_FORMS, 2),
+    policyStyle: random.pick(POLICY_STYLES),
   };
 }

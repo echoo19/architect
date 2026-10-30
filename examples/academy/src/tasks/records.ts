@@ -4,7 +4,14 @@ import { TaskSchema } from '@architect/shared';
 import type { JsonValue, Task } from '@architect/shared';
 import { addDays, longDate, monthDay } from '../lib/calendar';
 import { Random } from '../lib/random';
-import { eligibleQuestions, nextIds, readPolicy, topicHistory } from '../reference/rules';
+import {
+  eligibleQuestions,
+  historyWindow,
+  nextIds,
+  readPolicy,
+  topicHistory,
+  topicKey,
+} from '../reference/rules';
 import type { Policy } from '../reference/rules';
 import { JobFiles, cell } from '../reference/tools';
 import type { CodeRow } from '../reference/tools';
@@ -20,12 +27,15 @@ export const SKILLS = ['diagnose', 'solve', 'hint', 'history', 'assign', 'after_
 export type Skill = (typeof SKILLS)[number];
 export const PER_SKILL = 8;
 
-/** A wrong answer as a request names it: who, which test, where in it, and the choice. */
+/**
+ * A wrong answer as a request names it: who, which test, where in it, and the choice. Where an
+ * academy numbers its tests straight through, a request names no section or module; where the
+ * records leave the module blank, it names no module.
+ */
 export interface WrongAnswer {
   student: string;
   test_name: string;
-  section: string;
-  /** Null when the records leave the module blank: the request then names none. */
+  section: string | null;
   module: number | null;
   number: number;
   chosen: string;
@@ -81,6 +91,29 @@ export class Records {
     return this.files.has(name) ? this.files.codeRows(name) : [];
   }
 
+  /** The rows of a table on a topic, however each row writes its label. */
+  onTopic(name: string, topic: string): CodeRow[] {
+    return this.rows(name).filter((row) => topicKey(cell(row, 'topic')) === topicKey(topic));
+  }
+
+  /** A topic's label as the academy lists it, for a label written any other way. */
+  label(topic: string): string {
+    const label = this.topics().find((t) => topicKey(t) === topicKey(topic));
+    if (label === undefined) throw new Error(`No topic reads "${topic}"`);
+    return label;
+  }
+
+  /** Whether the academy's tests number their questions straight through, one number a question. */
+  numberedThrough(): boolean {
+    const seen = new Set<string>();
+    for (const row of this.rows('tests.csv')) {
+      const position = `${row.test_id} ${row.number}`;
+      if (seen.has(position)) return false;
+      seen.add(position);
+    }
+    return true;
+  }
+
   students(): readonly CodeRow[] {
     return this.rows('students.csv');
   }
@@ -94,7 +127,9 @@ export class Records {
     const listed = this.rows('topics.csv').map((row) => cell(row, 'topic'));
     const named =
       listed.length > 0 ? listed : this.rows('attempts.csv').map((r) => cell(r, 'topic'));
-    return [...new Set(named)];
+    const byKey = new Map<string, string>();
+    for (const label of named) if (!byKey.has(topicKey(label))) byKey.set(topicKey(label), label);
+    return [...byKey.values()];
   }
 
   /** The name of a student's tutor, or null when the records don't give one. */
@@ -104,21 +139,24 @@ export class Records {
 
   wrongAnswer(attempt: CodeRow): WrongAnswer {
     const test = this.rows('tests.csv').find((t) => t.test_id === attempt.test_id)!;
+    const through = this.numberedThrough();
     return {
       student: cell(this.student(cell(attempt, 'student_id')), 'name'),
       test_name: cell(test, 'test_name'),
-      section: cell(attempt, 'section'),
-      module: attempt.module === '' ? null : Number(attempt.module),
+      section: through ? null : cell(attempt, 'section'),
+      module: through || attempt.module === '' ? null : Number(attempt.module),
       number: Number(attempt.number),
       chosen: cell(attempt, 'selected'),
     };
   }
 
+  /** A student's attempts on a topic. */
+  attemptsOn(studentId: string, topic: string): CodeRow[] {
+    return this.onTopic('attempts.csv', topic).filter((row) => row.student_id === studentId);
+  }
+
   history(studentId: string, topic: string, asOf: string) {
-    const rows = this.rows('attempts.csv').filter(
-      (row) => row.student_id === studentId && row.topic === topic,
-    );
-    return topicHistory(rows, this.policy, asOf);
+    return topicHistory(this.attemptsOn(studentId, topic), this.policy, asOf);
   }
 
   /** What assigning practice on a topic to a student must do. */
@@ -130,7 +168,7 @@ export class Records {
           .filter((r) => r.student_id === id)
           .map((r) => cell(r, 'question_id')),
       );
-    const questions = this.rows('questions.csv').filter((row) => row.topic === topic);
+    const questions = this.onTopic('questions.csv', topic);
     const eligible = eligibleQuestions(
       questions,
       ofStudent('attempts.csv'),
@@ -177,24 +215,35 @@ export class Records {
   }
 }
 
+/** Where a wrong answer is, the way the academy's staff name it. */
 export const where = (w: WrongAnswer) =>
-  `question ${w.number} of ${w.section}${w.module === null ? '' : ` module ${w.module}`} on ${w.test_name}`;
+  w.section === null
+    ? `question ${w.number} on ${w.test_name}`
+    : `question ${w.number} of ${w.section}${w.module === null ? '' : ` module ${w.module}`} on ${w.test_name}`;
 
-/** A wrong answer's module as the records hold it: blank when they give none. */
-export const moduleCell = (w: WrongAnswer): string => (w.module === null ? '' : String(w.module));
-
-/** Wrong answers spread over students and topics, half from each section, not yet used. */
-export function pickWrong(random: Random, records: Records, count: number): CodeRow[] {
+/**
+ * Wrong answers spread over students and topics, half from each section, not yet used, and
+ * `usable` when that is given.
+ */
+export function pickWrong(
+  random: Random,
+  records: Records,
+  count: number,
+  usable: (attempt: CodeRow) => boolean = () => true,
+): CodeRow[] {
   const wrong = records
     .rows('attempts.csv')
-    .filter((a) => a.result === 'wrong' && a.taken_on! <= records.today && !records.taken.has(a));
+    .filter(
+      (a) =>
+        a.result === 'wrong' && a.taken_on! <= records.today && !records.taken.has(a) && usable(a),
+    );
   const picked: CodeRow[] = [];
   for (const section of ['Math', 'Reading and Writing']) {
     const pool = random.shuffle(wrong.filter((a) => a.section === section));
     const seen = new Set<string>();
     for (const attempt of pool) {
       if (picked.length >= (section === 'Math' ? count / 2 : count)) break;
-      const key = `${attempt.student_id} ${attempt.topic}`;
+      const key = `${attempt.student_id} ${topicKey(cell(attempt, 'topic'))}`;
       if (seen.has(key)) continue;
       seen.add(key);
       picked.push(attempt);
@@ -227,21 +276,19 @@ export function diagnoseTasks(
       random.chance(0.5) && tutor !== null
         ? `${tutor} here. ${w.student} got ${where(w)} wrong and chose ${w.chosen}. ${asking}`
         : `Hi, I'm ${w.student}. I picked ${w.chosen} on ${where(w)} and it was wrong. ${mine}`;
-    const params: Record<string, JsonValue> = {
-      topic: cell(attempt, 'topic'),
-      correct: cell(attempt, 'correct'),
-    };
+    const topic = records.label(cell(attempt, 'topic'));
+    const params: Record<string, JsonValue> = { topic, correct: cell(attempt, 'correct') };
     if (errorsOf) params.errors = errorsOf(attempt);
     return records.task(
       'diagnose',
       i,
-      `${attempt.student_id}:${attempt.topic}`,
+      `${attempt.student_id}:${topic}`,
       prompt,
       {
         expected: { kind: 'end_state', validator: 'diagnosis', params },
         meta: {
           request: w as unknown as JsonValue,
-          summary: `${attempt.topic}, ${attempt.correct}`,
+          summary: `${topic}, ${attempt.correct}`,
         },
       },
       errorsOf ? 'diagnose' : 'diagnose_records',
@@ -265,7 +312,9 @@ export function historyTasks(random: Random, records: Records, perSkill = PER_SK
       ),
     )
     .filter((c) => c.history.attempts > 0);
-  // Of the first eight: half that call for escalation, half that don't, three as of an earlier date.
+  // First one whose window holds a right answer entered another way than the key, when there is
+  // one; then half that call for escalation, half that don't, and three of the eight as of an
+  // earlier date.
   const picked: typeof candidates = [];
   const seen = new Set<string>();
   const take = (c: (typeof candidates)[number]) => {
@@ -275,6 +324,14 @@ export function historyTasks(random: Random, records: Records, perSkill = PER_SK
     picked.push(c);
     return true;
   };
+  const enteredOtherwise = (c: (typeof candidates)[number]) =>
+    historyWindow(
+      records.attemptsOn(cell(c.student, 'student_id'), c.topic),
+      records.policy,
+      c.asOf,
+    ).latest.some((row) => row.result === 'right' && row.selected !== row.correct);
+  const other = candidates.find(enteredOtherwise);
+  if (other) take(other);
   for (const [escalate, asOf, count] of [
     [true, records.today, 3],
     [false, records.today, 2],

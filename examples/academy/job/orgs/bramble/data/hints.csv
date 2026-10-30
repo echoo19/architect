@@ -1,0 +1,47 @@
+hint_id,topic,error_id,text
+HINT-01,Rule 1A - Evaluating Functions,,"Put the input in place of x, then follow the order of operations."
+HINT-02,Rule 1A - Evaluating Functions,ERR-123,"Which number multiplies x, and which is added on?"
+HINT-03,Rule 3B - Two-equation Systems,ERR-141,Which way of combining the equations leaves only x?
+HINT-04,Rule 5B - Percentages,ERR-130,A sale makes the price go down. Does your answer?
+HINT-05,Rule 6B - Rectangles,ERR-101,"The perimeter is a distance around, not one side."
+HINT-06,Rule 5A - Transition Words,ERR-120,Is the second sentence one case of the first?
+HINT-07,Rule 5B - Percentages,,"Find the percent of the original amount first, then decide what to do with it."
+HINT-08,Rule 1B - Linear Equations,ERR-118,"Once the x term is alone, is x itself alone yet?"
+HINT-09,Rule 3A - Part-to-part Ratios,ERR-117,You found one share. How many shares belong to the group asked about?
+HINT-10,Rule 3B - Two-equation Systems,ERR-116,"The first equation gives x and y together, not x by itself."
+HINT-11,Rule 5A - Transition Words,,Decide how the second sentence relates to the first before reading the choices.
+HINT-12,Rule 5A - Transition Words,ERR-129,Is the second sentence caused by the first?
+HINT-13,Rule 4A - Parallel Comparisons,,Check that the sentence compares the same kind of thing on both sides.
+HINT-14,Rule 6A - Subject-Verb Agreement,ERR-112,Read the sentence with your choice. Is it a complete sentence?
+HINT-15,Rule 1B - Linear Equations,ERR-143,The number in front of x multiplies it. Which operation undoes that?
+HINT-16,Rule 5A - Transition Words,ERR-126,Does the second sentence simply add another point?
+HINT-17,Rule 5B - Percentages,ERR-127,Count how many times the price is reduced.
+HINT-18,Rule 4B - Verb Tense,ERR-110,A specific year in the past calls for a simple form of the verb.
+HINT-19,Rule 2B - Pronoun-antecedent Agreement,ERR-113,"Is the noun a person, or a thing?"
+HINT-20,Rule 2B - Pronoun-antecedent Agreement,,Find the noun the pronoun stands for and ask whether it is one thing or many.
+HINT-21,Rule 1A - Evaluating Functions,ERR-134,Check that every term of the function made it into your work.
+HINT-22,Rule 4A - Parallel Comparisons,ERR-107,Is the thing being compared one thing or several?
+HINT-23,Rule 3A - Part-to-part Ratios,,Add the parts of the ratio to see how many equal shares make the whole.
+HINT-24,Rule 1A - Evaluating Functions,ERR-124,A number written next to x multiplies it.
+HINT-25,Rule 6B - Rectangles,ERR-131,You have both sides now. What does the question ask for?
+HINT-26,Rule 1B - Linear Equations,ERR-119,Dividing both sides means dividing every term on each side.
+HINT-27,Rule 3A - Part-to-part Ratios,ERR-140,A share comes from dividing by all the parts together.
+HINT-28,Rule 2B - Pronoun-antecedent Agreement,ERR-121,A group acting together counts as one thing.
+HINT-29,Rule 4B - Verb Tense,ERR-132,"Is the action happening now, or did it already happen?"
+HINT-30,Rule 6A - Subject-Verb Agreement,,"Cross out the phrase between the subject and the verb, then read them together."
+HINT-31,Rule 4A - Parallel Comparisons,ERR-115,What exactly is being compared on the left side of than?
+HINT-32,Rule 3A - Part-to-part Ratios,ERR-138,The total is already the whole group. Should it get bigger?
+HINT-33,Rule 3B - Two-equation Systems,ERR-108,"After adding the equations, how many x are there?"
+HINT-34,Rule 1B - Linear Equations,,"Undo the operations one at a time, doing the same thing to both sides."
+HINT-35,Rule 5B - Percentages,ERR-106,"A percent is a part of the price, not a number of dollars."
+HINT-36,Rule 2B - Pronoun-antecedent Agreement,ERR-128,Read the apostrophe out as two words. Does the sentence still make sense?
+HINT-37,Rule 3B - Two-equation Systems,,Combine the two equations so that one of the variables disappears.
+HINT-38,Rule 2A - Sentence Boundaries,ERR-103,A semicolon already joins the sentences. Does it need help?
+HINT-39,Rule 6A - Subject-Verb Agreement,ERR-104,The noun right before the blank may not be the subject. Which noun is doing the action?
+HINT-40,Rule 2A - Sentence Boundaries,ERR-139,Read the sentence aloud. Where would you pause?
+HINT-41,Rule 6B - Rectangles,ERR-114,Area counts the squares inside. Which operation does that?
+HINT-42,Rule 2A - Sentence Boundaries,,Check whether each side of the blank could stand alone as a sentence.
+HINT-43,Rule 4B - Verb Tense,,Find the words that say when the action happened.
+HINT-44,Rule 5B - Percentages,ERR-133,Read the last sentence again: is it asking for the amount saved or the amount paid?
+HINT-45,Rule 6A - Subject-Verb Agreement,ERR-136,Look at the time words at the start of the sentence.
+HINT-46,Rule 6B - Rectangles,,Use the perimeter to find the missing side before you find the area.
