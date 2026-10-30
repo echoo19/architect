@@ -90,7 +90,7 @@ describe('what a run needs before it starts', () => {
       },
     });
     const [need] = runNeeds(input({ job: added, keys: {} }));
-    expect(need).toMatchObject({ label: 'Add its key', action: { kind: 'open', tab: 'mentor' } });
+    expect(need).toMatchObject({ label: 'Add its key', action: { kind: 'open', tab: 'teacher' } });
   });
 
   it('asks for no key of a teacher that runs on this computer', () => {
@@ -349,7 +349,7 @@ describe('a teacher that may change nothing', () => {
       detail:
         'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one. Turn something else on, or add the key.',
       label: "Open Spark's settings",
-      action: { kind: 'open', tab: 'mentor' },
+      action: { kind: 'open', tab: 'teaching' },
     });
   });
 

@@ -14,13 +14,25 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Open**
 - Field exports aren't listed: the person chooses the folder that `architect field export` (or the Fields lane's export) wrote. A GPU not in the list can't be named by its memory from the screen yet, as `--gpu-memory` can.
 
+## 2026-10-30 (Fri, night), platform lane "Inspector on Define" (branch `platform/inspector`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- Define's Advanced settings dialog is gone; its fields live in the inspector at the page's right, opened by the footer's settings button (which also folds it away) and remembering its tab. Tabs: Spark (the teacher's models as tiles from `models.ts`, any other model a click away, how hard it thinks, the spending cap), Glimmer (the model here, where it practices, the online copy, context), Teaching (what Spark may change as ToggleRows, rounds, patience, the keep rule: gain on check tasks, the most a skill may lose, measured again on new seeds; the starting instructions), Evaluation (ready when, where the final test runs and its seeds, the task sets and their seed, the organizations with the sealed ones only counted, grading, the example tasks), Budget (expected against each cap with meters, then the caps: Spark dollars, training compute dollars, time).
+- Every control writes an existing field of the job schema through the same `jobs.save` path; problems are said under the field and nothing is saved until they are fixed; each saved change raises one Undo toast (`toast({ key })` replaces the last). There is no control for the sealed organizations, the checker's contents, permissions beyond what Define already had, or the student's weights.
+- The page lost its Spark cap slider (now in Spark and Budget) and the export button became an icon in the footer, so the page is the job, where it trains and the estimate.
+- No temperature control: the job schema has no decoding field, and no student dollar cap: the online copy's expected bill is shown alone.
+- `packages/ui`: the Inspector takes a tab from the screen and an `open` state that slides it shut; it is 400 wide everywhere, so up to five tabs show their names (the icon-only fallback from the experiments lane is gone), and Models' `header` stays. ChoiceTiles wrap a long name to two lines. Hidden e2e `define-inspector.spec.ts`; Define's existing specs follow the inspector. Screenshots `define-inspector-{teacher,student,teaching,evaluation,budget}-dark.png`.
+
+**Next**
+- The experiments design screen and the model page can reuse the tab components where their settings are the job's.
+
 ## 2026-10-30 (Fri, night), platform lane "Experiments screens" (branch `platform/experiments`)
 
 **Done** (stand-in engine only: no model was called, no GPU, no spend)
 - `/experiments` lists every experiment in a sortable table: status, field, arms, Spark and student spent of their caps (absent before anything ran), created. One primary action, New experiment.
 - `/experiments/new` and a draft at `/experiments/:id` are one design page: the field's folder (planning spends nothing), the arms as tiles (the weights arms held, with the reason), seeds and rounds, and the estimate with each total against its cap, each arm's estimate and whether it is funded, labeled assumed or measured prices, and what calibration costs before it runs. The inspector holds what the engine takes: Spark's and the student's cap per arm, rounds and the teaching seed, the final-test seeds, and the total caps. Preregister confirms what freezes; Start confirms what it may spend and goes through Spark's brief when the runner waits for it.
 - A preregistered experiment shows its spend against the caps, each arm's status, rounds and spend, and pause, resume and stop. Before the release it says nothing about the final test or the organizations kept back. After it, the results read like a short paper: a summary, Figure 1 (each arm on each group: taught on, each never seen, real), Table 1 (pairs with Newcombe intervals and the gain rule's verdict), Table 2 (skill by organization per arm), Table 3 (spend and latency), the report's notes; a switch picks where the student ran.
-- `packages/ui` Inspector: with more than three tabs, the ones not open show their icon alone, so names are never cut.
+- `packages/ui` Inspector: with more than three tabs, the ones not open showed their icon alone (replaced since by a 400-wide inspector with every name, see the inspector lane above).
 - Hidden e2e `experiments-screens.spec.ts`; screenshots `experiments-list-dark.png`, `experiment-new-dark.png`, `experiment-new-estimate-dark.png`, `experiment-running-dark.png`, `experiment-results-dark.png`, `experiment-results-tables-dark.png`.
 
 **Open**

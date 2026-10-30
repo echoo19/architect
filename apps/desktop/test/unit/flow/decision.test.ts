@@ -206,7 +206,7 @@ describe('refusalSentence', () => {
   it('names a kind the person turned off as theirs, and says where to turn it on', () => {
     const noTools = makeJob({ interventions: ['procedure', 'retrieval', 'weights'] });
     expect(refusalSentence(chosen('helper'), noTools)).toBe(
-      'Spark chose "Small tools", which is turned off for this job under Spark in Advanced settings. Nothing changed.',
+      'Spark chose "Small tools", which is turned off for this job under Teaching in Advanced settings. Nothing changed.',
     );
     // Weights get the same words, not the line for what this computer can't do, and each kind has
     // the name its switch has on the teacher's tab.

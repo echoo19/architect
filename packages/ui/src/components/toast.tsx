@@ -13,6 +13,11 @@ export interface ToastOptions {
   description?: string;
   tone?: 'default' | 'danger';
   action?: { label: string; onClick: () => void };
+  /**
+   * A toast that stands for the latest of a kind, such as the last change with its Undo: a new
+   * one with the same key takes the place of the one showing, so they never pile up.
+   */
+  key?: string;
 }
 
 interface ToastEntry extends ToastOptions {
@@ -35,7 +40,9 @@ function subscribe(listener: () => void) {
 
 /** Shows a toast from anywhere. Needs a `<Toaster />` mounted once. */
 export function toast(options: ToastOptions): void {
-  publish([...entries, { ...options, id: nextId++ }]);
+  const kept =
+    options.key === undefined ? entries : entries.filter((entry) => entry.key !== options.key);
+  publish([...kept, { ...options, id: nextId++ }]);
 }
 
 function dismiss(id: number) {

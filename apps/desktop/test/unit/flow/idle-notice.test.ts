@@ -344,16 +344,16 @@ describe("a way into the job's settings from another screen", () => {
   });
 
   it('is answered once, by the job it was asked for', () => {
-    askForAdvanced('job_desk', 'mentor');
+    askForAdvanced('job_desk', 'teaching');
     expect(takeAdvanced('job_other')).toBeNull();
-    expect(takeAdvanced('job_desk')).toBe('mentor');
+    expect(takeAdvanced('job_desk')).toBe('teaching');
     expect(takeAdvanced('job_desk')).toBeNull();
   });
 
   it('keeps only the latest ask', () => {
     askForAdvanced('job_desk', 'budget');
-    askForAdvanced('job_desk', 'mentor');
-    expect(takeAdvanced('job_desk')).toBe('mentor');
+    askForAdvanced('job_desk', 'teaching');
+    expect(takeAdvanced('job_desk')).toBe('teaching');
   });
 
   it('is empty when nobody asked', () => {

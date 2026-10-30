@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Tabs } from 'radix-ui';
@@ -23,6 +23,14 @@ export interface InspectorProps<T extends string> {
    * as it was left. Without it, it opens on the first tab, unfolded.
    */
   rememberAs?: string;
+  /**
+   * The tab, when the screen chooses it too, such as a line that sends the person to the budget.
+   * A tab chosen this way also unfolds the panel. Without it, the inspector keeps its own.
+   */
+  tab?: T;
+  onTabChange?: (tab: T) => void;
+  /** Whether the panel is shown. Closing slides it shut; it stays mounted, so it keeps its tab. */
+  open?: boolean;
   /** Above the tabs while the panel is open: what it is about, such as a model's name. */
   header?: ReactNode;
   /** What the open tab shows. */
@@ -30,11 +38,8 @@ export interface InspectorProps<T extends string> {
   className?: string;
 }
 
-/** How wide the inspector is, open and folded. */
-export const INSPECTOR_WIDTH = { open: 360, folded: 56 } as const;
-
-/** The most tabs whose names fit side by side; past it, tabs not open show their icon alone. */
-const COMPACT_AFTER = 3;
+/** How wide the inspector is, open and folded: open, five tabs fit side by side by name. */
+export const INSPECTOR_WIDTH = { open: 400, folded: 56 } as const;
 
 interface Remembered {
   tab?: string;
@@ -89,6 +94,9 @@ function keep(name: string | undefined, state: Remembered): void {
 export function Inspector<T extends string>({
   tabs,
   rememberAs,
+  tab: asked,
+  onTabChange,
+  open = true,
   header,
   children,
   className,
@@ -105,24 +113,36 @@ export function Inspector<T extends string>({
   const update = (next: { tab: T | undefined; folded: boolean }) => {
     setState(next);
     keep(rememberAs, next);
+    if (next.tab !== undefined && next.tab !== asked) onTabChange?.(next.tab);
   };
-  const tab = state.tab ?? first;
+  // A tab the screen asks for opens the panel on it, folded or not.
+  const lastAsked = useRef(asked);
+  useEffect(() => {
+    if (asked === undefined || asked === lastAsked.current) return;
+    lastAsked.current = asked;
+    const next = { tab: asked, folded: false };
+    setState(next);
+    keep(rememberAs, next);
+  }, [asked, rememberAs]);
+  const tab = asked ?? state.tab ?? first;
   if (tab === undefined) return null;
-  const compact = tabs.length > COMPACT_AFTER;
+  const width = !open ? 0 : state.folded ? INSPECTOR_WIDTH.folded : INSPECTOR_WIDTH.open;
 
   return (
     <motion.aside
       aria-label={props['aria-label']}
       initial={false}
-      animate={{ width: state.folded ? INSPECTOR_WIDTH.folded : INSPECTOR_WIDTH.open }}
+      animate={{ width }}
       transition={springs.smooth}
       data-folded={state.folded || undefined}
+      aria-hidden={!open || undefined}
       className={cn(
-        'flex h-full shrink-0 flex-col overflow-hidden border-l border-line bg-ground',
+        'flex h-full shrink-0 flex-col overflow-hidden border-line bg-ground',
+        open && 'border-l',
         className,
       )}
     >
-      {state.folded ? (
+      {!open ? null : state.folded ? (
         <div className="flex flex-col items-center gap-1 py-3">
           <Tooltip content="Open" side="left">
             <IconButton
@@ -155,7 +175,8 @@ export function Inspector<T extends string>({
             const match = tabs.find((t) => t.value === next);
             if (match) update({ tab: match.value, folded: false });
           }}
-          className="flex min-h-0 w-[360px] flex-1 flex-col"
+          style={{ width: INSPECTOR_WIDTH.open }}
+          className="flex min-h-0 flex-1 flex-col"
         >
           {header}
           <div className="flex items-center gap-2 px-3 pb-2 pt-3">
@@ -163,49 +184,26 @@ export function Inspector<T extends string>({
               aria-label={props['aria-label']}
               className="flex min-w-0 flex-1 rounded-control bg-field p-[3px] shadow-edge"
             >
-              {tabs.map((t) => {
-                const selected = t.value === tab;
-                // More tabs than fit by name: each shows its icon, and the open one its name too.
-                const iconOnly = compact && !selected;
-                const trigger = (
-                  <Tabs.Trigger key={t.value} value={t.value} asChild>
-                    <motion.button
-                      type="button"
-                      layout={compact ? 'position' : false}
+              {tabs.map((t) => (
+                <Tabs.Trigger
+                  key={t.value}
+                  value={t.value}
+                  className={cn(
+                    'relative h-8 min-w-0 flex-auto rounded-mark px-[5px] text-small font-medium',
+                    'transition-colors duration-150 hover:bg-hover',
+                  )}
+                >
+                  {t.value === tab && (
+                    <motion.span
+                      layoutId={indicator}
                       transition={springs.snappy}
-                      className={cn(
-                        'relative flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-mark px-2',
-                        'text-small font-medium transition-colors duration-150 hover:bg-hover',
-                        iconOnly ? 'w-9 flex-none' : 'flex-1',
-                      )}
-                    >
-                      {selected && (
-                        <motion.span
-                          layoutId={indicator}
-                          transition={springs.snappy}
-                          aria-hidden
-                          className="absolute inset-0 rounded-mark bg-raised shadow-edge-strong"
-                        />
-                      )}
-                      {compact && (
-                        <span aria-hidden className="relative flex [&_svg]:size-4">
-                          {t.icon}
-                        </span>
-                      )}
-                      <span className={cn('relative block truncate', iconOnly && 'sr-only')}>
-                        {t.label}
-                      </span>
-                    </motion.button>
-                  </Tabs.Trigger>
-                );
-                return iconOnly ? (
-                  <Tooltip key={t.value} content={t.label} side="bottom">
-                    {trigger}
-                  </Tooltip>
-                ) : (
-                  trigger
-                );
-              })}
+                      aria-hidden
+                      className="absolute inset-0 rounded-mark bg-raised shadow-edge-strong"
+                    />
+                  )}
+                  <span className="relative block truncate">{t.label}</span>
+                </Tabs.Trigger>
+              ))}
             </Tabs.List>
             <Tooltip content="Fold" side="left">
               <IconButton

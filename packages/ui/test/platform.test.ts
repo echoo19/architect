@@ -176,6 +176,41 @@ describe('Inspector', () => {
     expect(html).toContain('aria-label="Fold Settings"');
   });
 
+  it('opens on the tab the screen asks for, with room for five tabs by name', () => {
+    const html = renderToStaticMarkup(
+      createElement(TooltipProvider, {
+        children: createElement(Inspector<'teacher' | 'budget'>, {
+          'aria-label': 'Settings',
+          tabs,
+          tab: 'budget',
+          children: (tab: string) => `content of ${tab}`,
+        }),
+      }),
+    );
+    expect(html).toMatch(/aria-selected="true"[^>]*>.*?Budget/);
+    expect(html).toContain('content of budget');
+    expect(html).toContain('width:400px');
+    // Every tab shows its name; none is reduced to its icon.
+    expect(html).toContain('>Teacher</span>');
+    expect(html).not.toContain('data-icon');
+  });
+
+  it('holds nothing while closed, and is hidden from assistive tech', () => {
+    const html = renderToStaticMarkup(
+      createElement(TooltipProvider, {
+        children: createElement(Inspector<'teacher' | 'budget'>, {
+          'aria-label': 'Settings',
+          tabs,
+          open: false,
+          children: (tab: string) => `content of ${tab}`,
+        }),
+      }),
+    );
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain('content of');
+  });
+
   it('shows what it is about above its tabs', () => {
     const html = renderToStaticMarkup(
       createElement(TooltipProvider, {

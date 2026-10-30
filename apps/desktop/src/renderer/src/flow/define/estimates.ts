@@ -363,7 +363,7 @@ export function planSeconds(
 }
 
 /** The sum of the amounts that have a price, or null when none does. */
-function sumKnown(amounts: readonly (number | null)[]): number | null {
+export function sumKnown(amounts: readonly (number | null)[]): number | null {
   const known = amounts.filter((amount): amount is number => amount !== null);
   return known.length === 0 ? null : known.reduce((total, amount) => total + amount, 0);
 }

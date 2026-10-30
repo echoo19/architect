@@ -172,8 +172,7 @@ export function refusalSentence(intervention: Intervention | undefined, job: Job
   if (intervention === undefined || mayIntervene(job, intervention.type)) return null;
   const { mentor, student } = modelNames(job);
   const kind = kindLabel(intervention.type, student);
-  // The teacher's tab in Advanced settings is named for the teacher.
-  return `${mentor} chose "${kind}", which is turned off for this job under ${mentor} in Advanced settings. Nothing changed.`;
+  return `${mentor} chose "${kind}", which is turned off for this job under Teaching in Advanced settings. Nothing changed.`;
 }
 
 /**

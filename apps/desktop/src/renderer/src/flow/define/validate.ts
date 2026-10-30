@@ -39,6 +39,9 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   if (!wholeNumber(budget.maxWallMinutes) || !between(budget.maxWallMinutes, 1, 10_080)) {
     add('budget.maxWallMinutes', 'Use whole minutes, from 1 up to a week (10,080).');
   }
+  if (budget.maxComputeUsd !== undefined && !between(budget.maxComputeUsd, 0, 1000)) {
+    add('budget.maxComputeUsd', 'Use an amount from $0 to $1,000.');
+  }
 
   const counts = { calibration: 0, train: 1, dev: 1, test: 1 } as const;
   for (const [name, min] of Object.entries(counts) as [keyof typeof counts, number][]) {
@@ -75,6 +78,14 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   }
   if (!wholeNumber(evaluation.patience) || evaluation.patience < 1) {
     add('evaluation.patience', 'Use a whole number, at least 1.');
+  }
+  const seeds = evaluation.lockedTestSeeds;
+  if (seeds !== undefined) {
+    if (seeds.length > 4) {
+      add('evaluation.lockedTestSeeds', 'Use at most 4 seeds.');
+    } else if (new Set(seeds).size !== seeds.length) {
+      add('evaluation.lockedTestSeeds', 'Use each seed once.');
+    }
   }
 
   if (!student.local.model.trim()) add('student.local.model', 'Name the model your agent runs on.');

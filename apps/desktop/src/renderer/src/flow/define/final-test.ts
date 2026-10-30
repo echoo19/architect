@@ -1,5 +1,6 @@
 import { studentPricing, type Job, type StudentTarget } from '@architect/shared';
 import { aboutUsd, formatAbout, testSeconds, testUsd } from './estimates';
+import type { HostedAvailability } from './hosted';
 
 /** What the agent is called afterwards, said once for each place the final test can run. */
 export const FINAL_TEST_MARKS: Record<StudentTarget, string> = {
@@ -21,4 +22,11 @@ export function finalTestFacts(job: Job, place: StudentTarget): string {
   if (place === 'local') return `${time} · Free`;
   const pricing = job.student.hosted ? studentPricing(job.student.hosted) : undefined;
   return pricing === undefined ? time : `${time} · ${aboutUsd(testUsd(job, pricing))}`;
+}
+
+/** Where the final test runs, and whether the online copy can take it. */
+export interface FinalTestState {
+  place: StudentTarget;
+  onPlaceChange: (place: StudentTarget) => void;
+  hosted: HostedAvailability;
 }

@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { studentPricing, type Job, type StudentTarget } from '@architect/shared';
 import {
   Button,
@@ -8,7 +8,6 @@ import {
   NumberTicker,
   RadioCard,
   RadioCardGroup,
-  Slider,
 } from '@architect/ui';
 import { ChevronRight, RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
@@ -20,10 +19,8 @@ import {
   type Bills,
   capText,
   comparisonSeconds,
-  estimateMentorUsd,
   estimateNotes,
   estimateTime,
-  expectedMentorUsd,
   fittingRounds,
   formatAboutUsd,
   limitText,
@@ -209,24 +206,16 @@ interface PlanLine {
   value: string;
 }
 
-interface TrainingRowsProps extends PlanFacts {
-  onCapChange: (usd: number) => void;
-}
-
 /**
  * The figures of the plan as rows of the page: what it all takes and costs, with the lines it
- * adds up from a click away, and how much of the teacher's bill may be spent.
+ * adds up from a click away. The caps they keep to are in the inspector's Budget.
  */
-export function TrainingRows(props: TrainingRowsProps) {
-  const { job, testPlace, baselines, onCapChange } = props;
-  const capId = useId();
+export function TrainingRows(props: PlanFacts) {
+  const { job, testPlace, baselines } = props;
   const facts = factsOf(props);
   const { names, device, local, remote, chosen, fits, pricing, comparing, hostedReady } = facts;
   const { mentor } = names;
-  const { maxRounds, maxWallMinutes, maxMentorUsd: cap } = job.budget;
-  const usual = estimateMentorUsd(job);
-  const capMax = Math.max(20, Math.ceil(cap), Math.ceil((usual ?? 0) * 3));
-  const expected = expectedMentorUsd(job, chosen);
+  const { maxRounds, maxWallMinutes } = job.budget;
   const bills = planBills(job, chosen, pricing, comparing, testPlace);
   const place = placePhrase(job.student.trainOn, device);
   // When every round fits, the time is a ceiling: training stops once the check tasks reach the
@@ -315,36 +304,6 @@ export function TrainingRows(props: TrainingRowsProps) {
               </ul>
             </div>
           </Disclosure>
-        </div>
-      </SheetRow>
-      <SheetRow label={`${mentor} spending cap`} htmlFor={capId}>
-        <div className="flex flex-col gap-1">
-          <div className="flex min-h-10 items-center gap-5">
-            <Slider
-              id={capId}
-              min={Math.min(1, Math.floor(cap))}
-              max={capMax}
-              step={1}
-              value={cap}
-              onValueChange={onCapChange}
-              aria-label={`${mentor} spending cap`}
-              aria-valuetext={formatUsd(cap)}
-              className="flex-1"
-            />
-            <span
-              aria-hidden
-              className="w-16 shrink-0 text-right font-display text-h2 font-semibold tabular-nums"
-            >
-              <NumberTicker value={cap} kind="currency" />
-            </span>
-          </div>
-          <span className="text-small text-pretty">
-            {expected === null
-              ? `No price on file for ${mentor}`
-              : expected < cap
-                ? `${aboutUsd(expected)} expected`
-                : `${aboutUsd(expected)} expected, more than the cap, so training may stop early`}
-          </span>
         </div>
       </SheetRow>
       {baselines && (
