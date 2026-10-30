@@ -86,7 +86,7 @@ export function connectEngine(
       list: () => request('jobs.list', []),
       get: (jobId) => request('jobs.get', [jobId]),
       save: (job) => request('jobs.save', [job]),
-      createSample: () => request('jobs.createSample', []),
+      createSample: (sample) => request('jobs.createSample', sample === undefined ? [] : [sample]),
       importFile: (file) => request('jobs.importFile', [file]),
       exportFile: (jobId, file) => request('jobs.exportFile', [jobId, file]),
       draftStart: (description, files, teacher) =>

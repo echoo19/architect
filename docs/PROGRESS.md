@@ -2,6 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), field lane "Sample": Phil as a ready-made job (branch `field/sample`)
+
+**Done** (no model was called, no GPU, no spend)
+- "Try the tutor" sits beside "Try the sample job" on the empty workspace and the Describe screen. It imports `examples/academy/job` through `jobs.createSample('academy')`: the three train academies go into the job folder, the transfer academy is sealed by the engine. Define then asks Spark to study the material, and training waits for the brief to be confirmed. The service desk stays the default sample.
+- The installer ships the job as `academy-job` (electron-builder `extraResources`, all four academies); the packaged spec checks for it.
+- Engine test (the real example imported, nothing in the job file names the transfer academy) and hidden e2e `sample-tutor.spec.ts` against the stand-in engine. Screenshot `start-phil-dark.png`.
+
+**Open issues**
+- Adding a person's own academy folder as an unseen organization was left out: it needs the engine to seal an organization into an existing job and to build its tasks from records (`buildRecordTasks` lives in the example package), which is more than this lane.
+
 ## 2026-10-30 (Fri), field lane Study: Spark's cited brief of the academies, confirmed before teaching
 
 **Done** (branch `field/study`; no model was called, no GPU, no spend)
