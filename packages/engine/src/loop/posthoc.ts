@@ -212,25 +212,27 @@ export async function planCertification(
 ): Promise<StoredCertification> {
   const request = CertifyRequestSchema.parse(raw);
   const { store, jobs, deps, paths } = ctx;
-  const named = `version ${request.version}`;
+  const versionName = `version ${request.version}`;
   const version = store.versions.get(request.graduateId, request.version);
   if (version === null) {
-    throw new CodedError('agent_not_found', `There is no ${named} of this agent.`);
+    throw new CodedError('agent_not_found', `There is no ${versionName} of this agent.`);
   }
   const record = version.runId === undefined ? null : store.runs.get(version.runId);
   if (record === null) {
     throw new Error(
-      `${capital(named)} was installed, not trained here, so the tasks its run saw aren't known and none can be shown new to it.`,
+      `${capital(versionName)} was installed, not trained here, so the tasks its run saw aren't known and none can be shown new to it.`,
     );
   }
   const frozen = record.freeze;
   if (frozen === null || record.run.status !== 'finished') {
-    throw new Error(`${capital(named)}'s run hasn't finished, so there is no frozen version.`);
+    throw new Error(
+      `${capital(versionName)}'s run hasn't finished, so there is no frozen version.`,
+    );
   }
   const target: StudentTarget = request.student === undefined ? 'local' : 'hosted';
   if (target === 'hosted' && (frozen.configuration?.adapter ?? null) !== null) {
     throw new Error(
-      `${capital(named)} carries trained weights, which run only on this computer's base model; certify it here, without --student.`,
+      `${capital(versionName)} carries trained weights, which run only on this computer's base model; certify it here, without --student.`,
     );
   }
   const runJob = withStudent(await jobs.forRun(record), request.student);
@@ -242,7 +244,7 @@ export async function planCertification(
       (await dataSha256(runJob, paths.dataDir(runJob.id)));
     if (!same) {
       throw new Error(
-        `"${source.name}" works on other files than the job ${named} was taught on, so its tasks aren't requests like the ones it learned.`,
+        `"${source.name}" works on other files than the job ${versionName} was taught on, so its tasks aren't requests like the ones it learned.`,
       );
     }
   }
@@ -262,7 +264,7 @@ export async function planCertification(
   const fresh = freshTasks(pool, seen);
   if (fresh.length < request.size) {
     throw new Error(
-      `Only ${count(fresh.length, 'task')} of "${source.name}"'s taught organizations ${fresh.length === 1 ? 'is' : 'are'} new to ${named}: its run saw or was tested on the rest, or on tasks of the same family. Ask for ${fresh.length} or fewer, or add tasks to the job.`,
+      `Only ${count(fresh.length, 'task')} of "${source.name}"'s taught organizations ${fresh.length === 1 ? 'is' : 'are'} new to ${versionName}: its run saw or was tested on the rest, or on tasks of the same family. Ask for ${fresh.length} or fewer, or add tasks to the job.`,
     );
   }
   const seq = Math.max(0, ...store.certifications.ofRun(record.run.id).map((item) => item.seq)) + 1;
@@ -291,30 +293,33 @@ export async function planCertification(
     sealedOrgs.length > 0 ? await deps.vault.openForLockedTest(source.id, proof) : [];
   const checks: Record<string, Task[]> = {};
   const checkPlans: CertificationCheckPlan[] = [];
-  for (const orgId of [...new Set(request.check)]) {
-    const own = taught.find((org) => org.id === orgId);
-    const sealed = sealedOrgs.find((org) => org.id === orgId);
-    const org = own ?? sealed;
+  for (const named of request.check) {
+    // An organization is named by its id or its name, since the app knows a sealed one by name.
+    const matches = (org: { id: string; name: string }) =>
+      org.id === named || org.name.toLowerCase() === named.toLowerCase();
+    const own = taught.find(matches);
+    const org = own ?? sealedOrgs.find(matches);
     if (org === undefined) {
-      throw new Error(`"${source.name}" has no organization "${orgId}".`);
+      throw new Error(`"${source.name}" has no organization "${named}".`);
     }
+    if (checks[org.id] !== undefined) continue;
     const tasks =
       own === undefined
         ? freshTasks(
-            sealedTasks.filter((task) => task.org === orgId),
+            sealedTasks.filter((task) => task.org === org.id),
             seen,
           )
-        : fresh.filter((task) => task.org === orgId && !drawn.has(task.id));
+        : fresh.filter((task) => task.org === org.id && !drawn.has(task.id));
     if (tasks.length === 0) {
       throw new Error(
         own === undefined
-          ? `${capital(named)}'s run was already tested on ${org.name}, so a check there wouldn't be on requests it never saw.`
+          ? `${capital(versionName)}'s run was already tested on ${org.name}, so a check there wouldn't be on requests it never saw.`
           : `No task at ${org.name} is left for a check once the calibration tasks are drawn. Ask for fewer calibration tasks.`,
       );
     }
-    checks[orgId] = tasks;
+    checks[org.id] = tasks;
     checkPlans.push({
-      org: orgId,
+      org: org.id,
       orgName: org.name,
       seen: own !== undefined,
       synthetic: org.synthetic,

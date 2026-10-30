@@ -195,7 +195,7 @@ describe('certifying a version after the fact (decision 079)', () => {
     };
     const planned = await planCertification(
       context(),
-      request(graduateId, newer.id, { check: ['hillcrest'] }),
+      request(graduateId, newer.id, { check: ['Hillcrest Prep'] }),
     );
     engine.controller.certify(planned.id);
     await engine.controller.idle();
