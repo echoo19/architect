@@ -2,6 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), the film in the site's hero, a download page, the results page as a paper, and the guide refreshed
+
+**Done**
+- *The film.* The final walkthrough rendered at 1080p and 60 frames a second, 2 min 50 s, with no one-frame pops or jumps in the frame scan. A 21 MB web copy is the site's hero (`site/public/architect-film.mp4`), shown as a still of training with one play button. Nothing loads until it is pressed.
+- *Download page.* `/download/` holds one card for each system under its mark: the Mac disk image for Apple silicon with the Intel one beside it, and the Windows installer. The bar's Download button and the home page's macOS button lead there.
+- *Results page.* At the owner's word ("hard to read", then "almost like a paper"), it is one 760 px column set out as a short paper. It has an abstract, numbered sections, seven figures and seven tables, each in its own panel with a numbered caption, and numbered citations to the reports.
+- *The guide.* Every app screenshot was recaptured from the redesigned screens with the fake-engine specs. The guide's crops and text were matched to the new screens and the PDF rebuilt (45 pages). Two specs were stale after the workspace redesign: one still expected the "· N steps" count the redesign removed, and the other had a race with the home screen's redirect. Both were fixed in the tests, not the app.
+
+**Next**
+- The owner tries 0.4.0 and redirects if needed.
+- Submission by Nov 4, 9 PM ET: upload the film, fill in the form, and an optional post.
+
 ## 2026-10-30 (Fri), the redesign merged, release 0.4.0 signed for Mac, the new site, and the walkthrough film
 
 **Done**
@@ -11,7 +23,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - *The film.* Its picture is now a walkthrough of the site's mocks (`site/film/`, a dev-only Vite entry, `film/walkthrough`), rendered by the product-film pipeline outside the repo. The soundtrack keeps the recorded narration. Its music no longer pumps under the voice: the compressor keyed by the voice is replaced by a smooth 6 dB gain envelope, and the hard cut to silence is replaced by the track's own breakdown.
 
 **Next**
-- Recapture `docs/screenshots` from the merged screens with the safe specs, then rebuild the guide.
+- Recapture `docs/screenshots` from the merged screens with the safe specs, then rebuild the guide (done in the entry above).
 - The owner tries 0.4.0 and redirects if needed.
 
 ## 2026-10-30 (Fri), the user guide (branch `docs/guide`)
