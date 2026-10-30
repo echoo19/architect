@@ -32,6 +32,12 @@ export function organizationProblem(job: Job, tasks: readonly Task[]): string | 
     }
     familyOrg.set(task.family, task.org);
   }
+  const untested = orgs.find(
+    (org) => org.role === 'transfer' && !tasks.some((task) => task.org === org.id),
+  );
+  if (untested !== undefined) {
+    return `${untested.name} is an organization the job never trains on, but no task is for it, so nothing would test it.`;
+  }
   return null;
 }
 
@@ -65,5 +71,6 @@ export function taskDataDir(
   sealed?: Readonly<Record<string, string>>,
 ): string {
   if (task.org === undefined) return join(jobDir, 'data');
-  return sealed?.[task.org] ?? orgDataDir(jobDir, task.org);
+  const own = sealed !== undefined && Object.hasOwn(sealed, task.org);
+  return own ? (sealed[task.org] as string) : orgDataDir(jobDir, task.org);
 }

@@ -67,6 +67,32 @@ export function adapterFile(paths: DataPaths, freeze: GraduateFreeze): AdapterFi
   };
 }
 
+/**
+ * The report card as a package carries it: a real organization is named only by an anonymous
+ * label (`Real organization`, then `Real organization 2`), since a package can leave this
+ * computer. The card in the app's own records keeps the name.
+ */
+export function packagedReport(report: ReportCard): ReportCard {
+  const perOrg = report.test.perOrg;
+  if (perOrg === undefined) return report;
+  const real = [...new Set(perOrg.filter((row) => !row.synthetic).map((row) => row.org))];
+  const label = (org: string) => {
+    const n = real.indexOf(org) + 1;
+    return n === 1 ? 'Real organization' : `Real organization ${n}`;
+  };
+  return {
+    ...report,
+    test: {
+      ...report.test,
+      perOrg: perOrg.map((row) =>
+        row.synthetic
+          ? row
+          : { ...row, org: `real-${real.indexOf(row.org) + 1}`, orgName: label(row.org) },
+      ),
+    },
+  };
+}
+
 /** What a finished run's frozen graduate becomes: version 1 of a new agent. */
 export async function graduationFacts(
   paths: DataPaths,
@@ -97,7 +123,7 @@ export async function graduationFacts(
       files: input.harnessFiles,
       ...origin(input.rounds, freeze.harnessVersion),
     },
-    report,
+    report: packagedReport(report),
     lineage: input.lineage,
     columns: await tableColumns(primaryDataDir(paths.jobDir(job.id), job), contract),
     rounds: report.cost.rounds,

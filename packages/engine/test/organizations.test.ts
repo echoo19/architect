@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, relative, sep } from 'node:path';
+import { join } from 'node:path';
 import {
   CodedError,
   GuardError,
@@ -103,6 +103,15 @@ describe('a job with organizations, when it is made', () => {
     expect(
       await refusal(orgJob(), [...tasks, orgTask('train', 'east', 'invoice', 9)]),
     ).toBeInstanceOf(CodedError);
+    expect(
+      await refusal(
+        orgJob(),
+        tasks.filter((task) => task.org !== 'hillcrest'),
+      ),
+    ).toMatchObject({
+      code: 'not_a_job',
+      message: expect.stringContaining('nothing would test it'),
+    });
   });
 
   it('says what is wrong with organizations before anything is made', () => {
@@ -128,6 +137,10 @@ describe('a job with organizations, when it is made', () => {
     expect(taskDataDir('/jobs/b', { org: 'hillcrest' }, { hillcrest: '/vault/h' })).toBe(
       '/vault/h',
     );
+    // An id that names an inherited property is an organization's folder like any other.
+    for (const org of ['constructor', 'toString', '__proto__']) {
+      expect(taskDataDir('/jobs/b', { org }, {})).toBe(join('/jobs/b', 'orgs', org, 'data'));
+    }
   });
 
   it('spreads every organization over every split', () => {
@@ -159,6 +172,13 @@ describe('a run of a job with organizations', () => {
     expect(record?.run.status).toBe('finished');
     return { job, run, bound, graduateId: record?.run.graduateId ?? '' };
   }
+
+  it('streams nothing of the locked test that could name the unseen organization', async () => {
+    await graduated();
+    const ready = engine.events.findIndex((event) => event.type === 'graduate.ready');
+    expect(ready).toBeGreaterThan(0);
+    expect(JSON.stringify(engine.events.slice(0, ready)).toLowerCase()).not.toContain('hillcrest');
+  });
 
   it('takes the unseen organization only in the locked test, on its sealed files', async () => {
     const { bound } = await graduated();
@@ -205,7 +225,7 @@ describe('a run of a job with organizations', () => {
   });
 
   it('installs the graduate on one organization, exports it, and binds it to another', async () => {
-    const { graduateId } = await graduated();
+    const { graduateId, run } = await graduated();
     const workspace = engine.paths.workspaceDir(graduateId);
     expect(await readFile(join(workspace, 'jobs.csv'), 'utf8')).toBe(
       ORG_FILES['north']?.['jobs.csv'],
@@ -218,12 +238,23 @@ describe('a run of a job with organizations', () => {
       graduateId,
       { directory: join(world.root, 'exports') },
     );
-    // The package carries the unseen organization's results, by name, and nothing of its files.
-    const named = await filesHolding(exported.folder, 'hillcrest');
-    expect(named.map((path) => relative(exported.folder, path).split(sep).join('/'))).toEqual([
-      'evidence/report.json',
-    ]);
+    // The package carries the real organization's results under an anonymous label only.
+    expect(await filesHolding(exported.folder, 'hillcrest')).toEqual([]);
     expect(await filesHolding(exported.folder, 'HJ-9001')).toEqual([]);
+    const packaged = JSON.parse(
+      await readFile(join(exported.folder, 'evidence', 'report.json'), 'utf8'),
+    ) as { test: { per_org: { org: string; org_name: string; seen: boolean }[] } };
+    expect(packaged.test.per_org.filter((row) => !row.seen)).toEqual([
+      expect.objectContaining({ org: 'real-1', org_name: 'Real organization' }),
+      expect.objectContaining({ org: 'real-1', org_name: 'Real organization' }),
+      expect.objectContaining({ org: 'real-1', org_name: 'Real organization' }),
+    ]);
+    // The app's own card keeps the name.
+    expect(
+      engine.store.reports
+        .get(run.id, 'local')
+        ?.test.perOrg?.some((row) => row.orgName === 'Hillcrest Prep'),
+    ).toBe(true);
     const south = join(world.root, 'branches', 'orgs', 'south', 'data');
     const installation = await author.library.bind(graduateId, { bindings: { data: south } });
     expect(installation.bindings['data']).toBe(south);
