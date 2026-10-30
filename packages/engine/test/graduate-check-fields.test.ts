@@ -5,6 +5,7 @@ import {
   AdapterError,
   InstallCheckSchema,
   type InstallCheck,
+  type ResourceFile,
   type Installation,
   type StudentEndpoint,
 } from '@architect/shared';
@@ -230,10 +231,10 @@ describe('install checks carry what the screens need beside their sentences', ()
     // Nothing was bound by looking.
     expect((await here.library.installation('grd_desk')).bindings['data']).not.toBe(own);
 
-    const optional = [
+    const optional: ResourceFile[] = [
       { name: 'hints.csv', kind: 'table', access: 'read', optional: true, columns: ['hint_id'] },
       { name: 'rules.md', kind: 'text', access: 'read' },
-    ] as const;
+    ];
     expect(await folderShortfalls(optional, own)).toEqual([{ file: 'rules.md', kind: 'absent' }]);
     await writeFile(join(own, 'hints.csv'), 'id\n1\n');
     expect(await folderShortfalls(optional, own)).toEqual([
