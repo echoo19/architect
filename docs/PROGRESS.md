@@ -2,6 +2,20 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), the user guide (branch `docs/guide`)
+
+**Done**
+- *The guide.* `docs/Architect-Guide.pdf`, 44 pages on US Letter, 15 chapters: what Architect does (one page and a diagram), before you start, first run, describe a job, answer the questions, check the job and the rule, train, results, use your agent, make it better, share it, the command line, what leaves your computer, when something goes wrong, and a glossary. Each chapter says what you will do, gives the steps, shows what you will see and says what to do when something goes wrong. Every name, number and message in it was checked against the renderer's own strings, `docs/CLI.md`, `docs/ARCHITECTURE.md`, `docs/MODELS.md` and the engine's limits (the drafting limits, the default budget of 8 rounds, $5 and 4 hours, the keep rule of 2 check tasks and 1 per type).
+- *The build.* `docs/guide/` holds `index.html` (the text), `guide.css` (print rules, the type and the grid of `docs/DESIGN.md`) and `build.mjs`. `node docs/guide/build.mjs` works offline: it inlines Inter, Inter Tight and Geist Mono from `node_modules`, takes the app's screens from `docs/screenshots/*.png` as they are, cuts each by fractions of its width and height, counts every chapter's pages to fill in the contents, and prints with Playwright's Chromium. It stops when a screen is missing or the page counts disagree.
+- *Where it is linked.* One line in the README, under "Get it".
+
+**Next**
+- Run `node docs/guide/build.mjs` again once the redesign's screens are recaptured, then look at the figures: the crops are fractions of each capture (`x` and `y` on the `<fig>` tags in `index.html`), so a screen whose layout moved may need its crop moved too.
+
+**Open issues**
+- The guide says what the app says today. A screen that changes its words needs its line in `index.html` changed with it.
+- Page numbers come from Chromium's own layout, so a different Chromium can move a page break; the build prints each chapter's start page and the check it makes catches a total that does not add up.
+
 ## 2026-10-29 (Thu), the design foundation: one dark theme, Inter, and springs (branch `design/foundation`)
 
 **Done** (phase A of the redesign in `docs/DESIGN.md`; no model of the product was called and the GPU stayed off; every run used hidden windows and stand-ins)
