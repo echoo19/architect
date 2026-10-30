@@ -29,6 +29,7 @@ import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/def
 import { RuleReview } from '../flow/define/RuleReview';
 import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
 import { RunNeeds } from '../flow/define/RunNeeds';
+import { StudyReview } from '../flow/define/StudyReview';
 import { TrainingPlace, TrainingRows } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { usePreflight } from '../flow/define/use-preflight';
@@ -118,6 +119,8 @@ function DefineEditor({ initial }: { initial: Job }) {
     taskPlan.status !== 'error' &&
     taskPlan.data?.confirmation !== undefined &&
     ruleTypesOf(taskPlan.data).length > 0;
+  // A field job's study is put in front of the person likewise, before its rules.
+  const hasStudy = taskPlan.status !== 'error' && taskPlan.data?.study !== undefined;
 
   const openAdvanced = (at: AdvancedTab) => {
     setTab(at);
@@ -259,6 +262,13 @@ function DefineEditor({ initial }: { initial: Job }) {
                 </p>
                 <Button onClick={taskPlan.reload}>Try again</Button>
               </div>
+            )}
+          </div>
+        </Collapse>
+        <Collapse open={hasStudy}>
+          <div className="pb-10">
+            {taskPlan.data && taskPlan.status !== 'error' && (
+              <StudyReview job={job} plan={taskPlan.data} />
             )}
           </div>
         </Collapse>
