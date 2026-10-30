@@ -5,6 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { LAB, stubLab } from './fixtures-lab';
+import { installModelsFake } from './fixtures-models';
 import { CHATS } from './fixtures-workspace';
 import { STORY } from './story';
 
@@ -160,13 +161,14 @@ test('leads to each place from the sidebar and the command palette', async () =>
   await goTo(page, '/experiments/exp_gone');
   await expect(page.getByRole('heading', { name: "This experiment isn't here" })).toBeVisible();
 
+  // Models reads every version of every agent; its own spec covers it (models.spec.ts).
+  await installModelsFake(launched.app);
   await places().getByRole('button', { name: 'Models' }).click();
   const models = page.getByRole('table', { name: 'Models' });
-  await expect(models.getByRole('row')).toHaveCount(3);
   // Sorted by name; a click on a header sorts by it, again the other way.
-  await expect(models.getByRole('row').nth(1)).toContainText('Phil');
+  await expect(models.getByRole('row').nth(2)).toContainText('Phil');
   await models.getByRole('button', { name: 'Agent' }).click();
-  await expect(models.getByRole('row').nth(1)).toContainText('Service desk');
+  await expect(models.getByRole('row').nth(2)).toContainText('Service desk');
   await models.getByRole('button', { name: 'Agent' }).click();
   await capture('places-models-dark.png');
 
