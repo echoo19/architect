@@ -64,6 +64,7 @@ architect.db                       jobs and their contract versions, runs, round
                                    graduates with their versions and installations, chats
 jobs/<job>/job.json                the job file (export and import as-is)
 jobs/<job>/data/                   snapshot of the job's data files
+jobs/<job>/orgs/<org>/data/        for a job with organizations, each one it trains on (decision 068)
 jobs/<job>/drafting.json           for a job drafted from the person's files: where its tasks came
                                    from, the rule behind each type, what the teacher left open, and
                                    what drafting cost (decision 058), and for a rule its words,
@@ -80,6 +81,8 @@ jobs/<job>/runs/<run>/harness/v<n>/   every harness version, full folder
 jobs/<job>/runs/<run>/traces/         attempt traces
 jobs/<job>/runs/<run>/mentor/         what the mentor saw and returned, per round
 vault/<job>/test.jsonl             locked test split (runner only)
+vault/<job>/transfer/<org>/data/   the files of an organization the job never trains on (runner only,
+                                   opened for the locked test)
 graduates/<graduate>/versions/v<n>/   one version of a graduate: a package (HARNESS_FORMAT.md)
 workspace/<graduate>/              the graduate's own copy of its job's data, bound to data/
 outputs/<graduate>/                bound to output/
