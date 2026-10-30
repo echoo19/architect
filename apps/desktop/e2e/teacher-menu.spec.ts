@@ -180,11 +180,9 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   } satisfies Job);
 
   await goTo(page, `/jobs/${jobId}/define`);
-  // The teacher runs on this computer as well, so the card for training here can say that nothing
-  // leaves it; with an online teacher it says what goes online (`flow.spec.ts`).
-  await expect(page.getByRole('radio', { name: /Train on this computer/ })).toContainText(
-    'Free. Nothing leaves this computer.',
-  );
+  // The teacher runs on this computer as well, so the note under the choice of a place can say
+  // that nothing leaves it; with an online teacher it says what goes online (`flow.spec.ts`).
+  await expect(page.getByText('Nothing leaves this computer.')).toBeVisible();
   const { advanced, section } = await openTeacherTab(page);
   const small = section.getByRole('switch', { name: 'Small tools' });
   const questions = section.getByRole('switch', { name: 'Questions for you' });
