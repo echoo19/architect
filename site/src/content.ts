@@ -9,6 +9,9 @@ export const RELEASES = `${REPO}/releases/latest`;
  */
 export const APP_VERSION = '0.4.0';
 export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VERSION}.exe`;
+/** The Mac disk images, one for Apple silicon and one for Intel, named by the same version. */
+export const MAC_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-arm64.dmg`;
+export const MAC_INTEL_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-x64.dmg`;
 /** The full reports behind the measured results. */
 export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
 
@@ -19,6 +22,14 @@ export const HERO = {
     'Spark, a large model, teaches Glimmer, a small one that fits on a PC.',
     'Glimmer then works on your files, offline, on your own computer.',
   ],
+} as const;
+
+/** The walkthrough film under the first screen's words. Its files are in public/. */
+export const FILM = {
+  src: './architect-film.mp4',
+  poster: './film-poster.jpg',
+  label: 'A walkthrough of Architect, with narration: 2 minutes 50 seconds.',
+  play: 'Play the walkthrough, 2 minutes 50 seconds, with sound',
 } as const;
 
 export type ChapterId = 'describe' | 'ask' | 'rule' | 'train' | 'test' | 'use' | 'teach' | 'share';

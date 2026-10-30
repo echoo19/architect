@@ -40,7 +40,8 @@ function preloadFonts(): Plugin {
 
 /**
  * A relative base, so the built folder works from any address: a domain's root, or a path such as
- * a project page on GitHub. The site has two pages: the home page and the results page.
+ * a project page on GitHub. The site has three pages: the home page, the results page and the
+ * download page.
  */
 export default defineConfig({
   base: './',
@@ -52,6 +53,7 @@ export default defineConfig({
       input: {
         index: fileURLToPath(new URL('./index.html', import.meta.url)),
         results: fileURLToPath(new URL('./results/index.html', import.meta.url)),
+        download: fileURLToPath(new URL('./download/index.html', import.meta.url)),
       },
     },
   },

@@ -1,8 +1,8 @@
 /**
  * Builds the site into dist/: the scripts and styles for browsers, then each page rendered once
- * into its own file (dist/index.html and dist/results/index.html), so every file carries all its
+ * into its own file (dist/index.html, dist/results/index.html and dist/download/index.html), so every file carries all its
  * words and pictures before any script runs. The result is plain static files that work from any
- * address, and the results page is served at /results/.
+ * address, with the results page at /results/ and the download page at /download/.
  */
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -34,6 +34,7 @@ try {
   for (const [file, html] of [
     [path.join(root, 'dist', 'index.html'), server.render()],
     [path.join(root, 'dist', 'results', 'index.html'), server.renderResults()],
+    [path.join(root, 'dist', 'download', 'index.html'), server.renderDownload()],
   ]) {
     const page = await readFile(file, 'utf8');
     if (!page.includes(marker)) throw new Error(`${file} has no ${marker} to render into.`);

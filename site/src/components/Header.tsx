@@ -1,16 +1,18 @@
 import { LogoMark } from '@architect/ui';
-import { RELEASES, REPO } from '../content';
+import { REPO } from '../content';
 import { GitHubMark } from './GitHubMark';
 
-/** Which of the site's two pages a bar or a footer is on, for the links that go between them. */
-export type Page = 'home' | 'results';
+/** Which of the site's pages a bar or a footer is on, for the links that go between them. */
+export type Page = 'home' | 'results' | 'download';
 
 /** Where each page is from the other, as an address that works from any folder the site is served in. */
 export function addresses(page: Page) {
+  const folder = (name: Page) =>
+    page === name ? './' : page === 'home' ? `./${name}/` : `../${name}/`;
   return {
     home: page === 'home' ? '#top' : '../',
-    results: page === 'home' ? './results/' : './',
-    get: page === 'home' ? '#get' : '../#get',
+    results: folder('results'),
+    download: folder('download'),
   };
 }
 
@@ -40,7 +42,11 @@ export function Header({ page }: { page: Page }) {
           >
             Results
           </a>
-          <a className="btn btn-solid btn-sm" href={RELEASES}>
+          <a
+            className="btn btn-solid btn-sm"
+            href={to.download}
+            {...(page === 'download' ? { 'aria-current': 'page' as const } : {})}
+          >
             Download
           </a>
         </nav>

@@ -70,6 +70,12 @@ body {
   margin-inline: auto;
 }
 
+/* The results page reads as one column, narrow enough to read line by line. */
+.article {
+  width: min(100% - 2 * var(--site-gutter), 760px);
+  margin-inline: auto;
+}
+
 /*
  * Mocks. The stage is the band, and it answers to its own width: the wide layout where the page
  * has room for the product's real arrangement, the compact one where it crops to what matters.
@@ -155,6 +161,15 @@ body {
     margin: 0;
     font-size: 1.125rem;
     line-height: 1.45;
+    color: var(--ui-fg);
+    text-wrap: pretty;
+  }
+
+  /* Running text on the results page: the lead's size, with room between the lines. */
+  .t-read {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.6;
     color: var(--ui-fg);
     text-wrap: pretty;
   }
