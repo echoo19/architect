@@ -3,10 +3,10 @@ import { cn } from '@architect/ui';
 import { at } from './motion';
 
 /**
- * The score on check tasks, round by round, as the Train screen draws it: a line that climbs
- * with each change that is kept, a dashed branch ending in a hollow point for a change that was
- * tried and not kept, and the target. It is laid out in HTML over a plot box, with a stretched
- * SVG for the line, so its labels stay the size of the product's text at any width.
+ * The score on check tasks, round by round: a line that climbs with each change that is kept, a
+ * dashed branch ending in a hollow point for a change that was tried and not kept, and the target.
+ * It is laid out in HTML over a plot box, with a stretched SVG for the line, so its labels stay the
+ * size of the product's text at any width.
  *
  * The scores are the returns desk's, from comparison 2: 31 of 45 check tasks to start, 42 of 45
  * once round 1 was kept, and 44 of 45 once round 4 was. Rounds 2 and 3 scored 44 of 45 but did not
@@ -35,9 +35,7 @@ export interface ChartTimes {
   /** Rounds 2 and 3 are tried and not kept. */
   hollow2: number;
   hollow3: number;
-  /** Round 4 starts being scored. */
-  pending: number;
-  /** Its score lands and the line climbs to it. */
+  /** Round 4's score lands and the line climbs to it. */
   rise4: number;
 }
 
@@ -48,8 +46,7 @@ function sweep(from: number, to: number, start: number, dur: number): CSSPropert
 
 /**
  * A stretch of the line, revealed by sweeping across it. Each stretch is the whole line clipped
- * to its columns, so the line is drawn once and the stretches join without a seam. Only the first
- * is in the finished picture; the rest are there to be played.
+ * to its columns, so the line is drawn once and the stretches join without a seam.
  */
 function Stretch({
   from,
@@ -62,6 +59,7 @@ function Stretch({
   to: number;
   start: number;
   dur: number;
+  /** Not in the finished picture: the first stretch already shows the whole line there. */
   played?: boolean;
 }) {
   return (
@@ -110,42 +108,28 @@ function NotKept({ round, start }: { round: 2 | 3; start: number }) {
           strokeWidth={1.5}
           strokeDasharray="3 4"
           vectorEffect="non-scaling-stroke"
-          className="stroke-fg/40"
+          className="stroke-fg"
         />
       </svg>
       <span
         aria-hidden
-        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-line-strong bg-card"
+        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-fg bg-card"
         style={{ left: `${column(round)}%`, top: `${row(FINAL)}%` }}
       />
     </div>
   );
 }
 
-export function ScoreChart({
-  times,
-  className,
-  compact,
-}: {
-  times: ChartTimes;
-  className?: string;
-  compact?: boolean;
-}) {
+export function ScoreChart({ times, className }: { times: ChartTimes; className?: string }) {
   return (
-    <div
-      className={cn(
-        'relative mb-8 ml-12',
-        compact ? 'mr-2 mt-6 h-[104px]' : 'mr-[92px] mt-3 h-[150px]',
-        className,
-      )}
-    >
+    <div className={cn('relative ml-11 mr-3 mt-8 h-[190px]', className)}>
       {[100, 90, 80, 70, 60].map((value) => (
         <span
           key={value}
           className="absolute inset-x-0 border-t border-line"
           style={{ top: `${row(value)}%` }}
         >
-          <span className="absolute right-full -translate-y-1/2 pr-2.5 font-mono text-small text-fg">
+          <span className="absolute right-full -translate-y-1/2 pr-3 text-small tabular-nums">
             {value}%
           </span>
         </span>
@@ -154,11 +138,9 @@ export function ScoreChart({
         className="absolute inset-x-0 border-t border-dashed border-line-strong"
         style={{ top: `${row(TARGET)}%` }}
       >
-        {!compact && (
-          <span className="absolute left-full top-0 -translate-y-1/2 whitespace-nowrap pl-3 font-mono text-small text-fg">
-            Target {TARGET}%
-          </span>
-        )}
+        <span className="absolute bottom-1.5 left-3 text-small tabular-nums narrow:hidden">
+          Target {TARGET}%
+        </span>
       </span>
       {TICKS.map((label, round) => (
         <span
@@ -166,29 +148,11 @@ export function ScoreChart({
           className="absolute inset-y-0 border-l border-line"
           style={{ left: `${column(round)}%` }}
         >
-          <span
-            className={cn(
-              'absolute left-0 top-full -translate-x-1/2 pt-2.5 font-mono text-small text-fg',
-            )}
-          >
+          <span className="absolute left-0 top-full -translate-x-1/2 pt-3 text-small tabular-nums">
             {label}
           </span>
         </span>
       ))}
-
-      {/* Round 4 while it is being scored: Spark's amber, until its score lands. */}
-      <span
-        aria-hidden
-        className="motion-only absolute inset-y-0"
-        style={{ left: `${column(4)}%` }}
-      >
-        <span className="a a-exit-up block h-full" style={at(times.rise4, { dur: 240, dy: 0 })}>
-          <span
-            className="a a-pop block h-full border-l-2 border-dashed border-mentor"
-            style={at(times.pending, { dur: 300 })}
-          />
-        </span>
-      </span>
 
       <Stretch from={column(0)} to={column(1)} start={times.rise1} dur={750} />
       <Stretch from={column(1)} to={column(2)} start={times.hollow2} dur={420} played />
@@ -208,31 +172,20 @@ export function ScoreChart({
           ...at(times.rise4 + 540, { dur: 340 }),
         }}
       />
+      <span
+        aria-hidden
+        className="a a-pop absolute size-[9px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-student"
+        style={{
+          left: `${column(1)}%`,
+          top: `${row(KEPT_ONE)}%`,
+          ...at(times.rise1 + 600, { dur: 340 }),
+        }}
+      />
+      <span
+        aria-hidden
+        className="absolute size-[9px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-student"
+        style={{ left: `${column(0)}%`, top: `${row(START)}%` }}
+      />
     </div>
-  );
-}
-
-/** What the two kinds of point mean, for the chart's heading line. */
-export function ChartLegend({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 text-small text-fg', className)}
-    >
-      <span className="flex items-center gap-1.5 narrow:hidden">
-        <span className="size-2.5 rounded-full bg-student" />
-        Score now
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="h-0 w-4 border-t-[1.5px] border-dashed border-line-strong" />
-        <span className="size-2.5 rounded-full border-[1.5px] border-line-strong" />
-        Not kept
-      </span>
-      {/* Where the plot has no room to label its target line, the legend does. */}
-      <span className="hidden items-center gap-1.5 narrow:flex">
-        <span className="h-0 w-4 border-t border-dashed border-line-strong" />
-        Target {TARGET}%
-      </span>
-    </span>
   );
 }

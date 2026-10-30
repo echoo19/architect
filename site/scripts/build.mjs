@@ -1,7 +1,8 @@
 /**
- * Builds the page into dist/: the scripts and styles for browsers, then the same page rendered once
- * into dist/index.html, so the file carries all its words and pictures before any script runs.
- * The result is plain static files that work from any address.
+ * Builds the site into dist/: the scripts and styles for browsers, then each page rendered once
+ * into its own file (dist/index.html and dist/results/index.html), so every file carries all its
+ * words and pictures before any script runs. The result is plain static files that work from any
+ * address, and the results page is served at /results/.
  */
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -29,11 +30,15 @@ await build({
 
 try {
   const server = await import(pathToFileURL(path.join(rendered, 'entry-server.js')).href);
-  const file = path.join(root, 'dist', 'index.html');
-  const html = await readFile(file, 'utf8');
   const marker = '<!--app-html-->';
-  if (!html.includes(marker)) throw new Error(`dist/index.html has no ${marker} to render into.`);
-  await writeFile(file, html.replace(marker, server.render()));
+  for (const [file, html] of [
+    [path.join(root, 'dist', 'index.html'), server.render()],
+    [path.join(root, 'dist', 'results', 'index.html'), server.renderResults()],
+  ]) {
+    const page = await readFile(file, 'utf8');
+    if (!page.includes(marker)) throw new Error(`${file} has no ${marker} to render into.`);
+    await writeFile(file, page.replace(marker, html));
+  }
 } finally {
   await rm(rendered, { recursive: true, force: true });
 }

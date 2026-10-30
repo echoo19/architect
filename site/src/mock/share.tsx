@@ -1,344 +1,276 @@
-import type { CSSProperties, ReactNode } from 'react';
-import {
-  AgentAvatar,
-  Button,
-  cn,
-  IconButton,
-  SettingsRow,
-  SettingsSection,
-  SettingsValue,
-  StatusMark,
-  Switch,
-} from '@architect/ui';
-import { Copy, ExternalLink, Package, UploadCloud, X } from 'lucide-react';
-import { AppWindow, ChatHeader, Sidebar } from './frame';
-import { DESK, PICKUP_SIDEBAR, PICKUP_TITLE } from './jobs';
+import type { ReactNode } from 'react';
+import { AgentAvatar, Button, cn, IconButton } from '@architect/ui';
+import { Check, CloudUpload, ExternalLink, X } from 'lucide-react';
+import { Insert, Swap, Typed } from './kit';
 import { at } from './motion';
-import { noop } from './noop';
 import { ChapterStage } from './stage';
 
-const TABS = ['General', 'Permissions', 'Teaching', 'Results', 'Export'] as const;
+/**
+ * Handing the agent to someone else: the Export dialog publishing it to a private Hugging Face
+ * repository, and a terminal where `architect` installs that commit and runs it. The repository is
+ * made up. The terminal's lines are the ones the command prints, from docs/CLI.md.
+ */
 
-/** The agent's name on Hugging Face, and the commit the repository reports. */
-const REPO_NAME = 'larchwood/returns';
+const REPO = 'larchwood/returns';
 const COMMIT = '3f9a2c1';
 
-/** When the chapter's moments happen, in ms from the start. */
-const DIALOG = 350;
-const EXPORT = 2900;
-const SWITCH = 4700;
-const HUB = 5000;
-const PUBLISH = 7000;
-const PUBLISHED = 7350;
+/** When things happen, in ms from the start. */
+const PICK = 700;
+const FIELDS = 1100;
+const NAME = 1500;
+const PUBLISH = 3000;
+const PUBLISHED = PUBLISH + 500;
+const TERMINAL = 3300;
 
-/** The two places an agent can go, as the Export tab's switch shows them. */
-function Destination() {
-  const item = 'relative flex h-[30px] items-center rounded-mark px-3 text-small';
-  const pill = 'absolute inset-0 rounded-mark bg-raised';
+interface Line {
+  /** What the terminal prints, in order. A command is typed; the rest arrives whole. */
+  text: string;
+  command?: boolean;
+}
+
+const LINES: readonly Line[] = [
+  {
+    text: `architect install hf://${REPO} --revision ${COMMIT} --bind data=./records --grant data=read_write`,
+    command: true,
+  },
+  { text: 'architect run returns-desk', command: true },
+  { text: 'Returns desk, version 1, on muse-glimmer:30b (ollama).' },
+  { text: '> Book the earliest pickup for return RT-4106.' },
+  { text: '  read data/returns.csv (1 row)' },
+  { text: 'Add 1 row to data/pickups.csv:' },
+  { text: '  + PU-4106, RT-4106, Cedarline Parcel, 2026-12-04, 2026-11-24' },
+  { text: 'Allow this change? [y]es, [n]o, [a]lways for this agent: y' },
+  { text: '  append data/pickups.csv (1 row added)' },
+  { text: 'Booked. Cedarline Parcel will collect RT-4106 on Friday, December 4.' },
+];
+
+/** When each line of the terminal starts, in ms from the start. */
+const LINE_AT = [
+  TERMINAL,
+  TERMINAL + 1600,
+  TERMINAL + 2200,
+  TERMINAL + 2650,
+  TERMINAL + 3300,
+  TERMINAL + 3750,
+  TERMINAL + 4050,
+  TERMINAL + 4700,
+  TERMINAL + 5300,
+  TERMINAL + 5800,
+] as const;
+
+function Segment({
+  options,
+  selected,
+  from,
+  pickAt,
+}: {
+  options: readonly [string, string];
+  /** The one that ends up selected. */
+  selected: 0 | 1;
+  /** Where the selection starts, when it moves. */
+  from?: 0 | 1;
+  pickAt?: number;
+}) {
+  const pill = 'absolute inset-y-0 w-1/2 rounded-full bg-selected';
+  const place = (index: number) => (index === 0 ? 'left-0' : 'left-1/2');
   return (
-    <div
-      role="group"
-      aria-label="Export to"
-      className="mb-3 inline-flex shrink-0 self-start rounded-control bg-hover p-[3px]"
-    >
-      <span className={cn(item, 'text-fg')}>
+    <span className="relative inline-grid grid-cols-2 rounded-full bg-hover p-[3px] text-small">
+      <span className="absolute inset-[3px]">
+        {from !== undefined && pickAt !== undefined && (
+          <span
+            aria-hidden
+            className={cn(pill, place(from), 'a a-exit-up motion-only')}
+            style={at(pickAt - 30, { dur: 200, dy: 0 })}
+          />
+        )}
         <span
           aria-hidden
-          className={cn(pill, 'a a-unwipe motion-only')}
-          style={at(SWITCH, { dur: 360 })}
+          className={cn(pill, place(selected), from !== undefined && 'a a-fade')}
+          style={from !== undefined && pickAt !== undefined ? at(pickAt, { dur: 260 }) : undefined}
         />
-        <span className="relative">Package file</span>
       </span>
-      <span className={cn(item, 'text-fg')}>
-        <span aria-hidden className={cn(pill, 'a a-wipe')} style={at(SWITCH + 100, { dur: 360 })} />
-        <span className="relative">Hugging Face</span>
-      </span>
-    </div>
+      {options.map((option) => (
+        <span
+          key={option}
+          className="relative flex h-8 items-center justify-center whitespace-nowrap px-4 narrow:px-3"
+        >
+          {option}
+        </span>
+      ))}
+    </span>
   );
 }
 
 function Row({
-  style,
-  className,
+  label,
+  meta,
+  start,
   children,
 }: {
-  style: CSSProperties;
-  className?: string;
+  label: string;
+  meta?: string;
+  start: number;
   children: ReactNode;
 }) {
   return (
-    <div className={cn('a a-up', className)} style={style}>
+    <li
+      className="a a-up flex min-h-14 items-center justify-between gap-4 border-t border-line"
+      style={at(start, { dy: 10, dur: 560 })}
+    >
+      <span className="flex min-w-0 flex-col">
+        <span className="font-medium">{label}</span>
+        {meta && <span className="text-small text-pretty">{meta}</span>}
+      </span>
       {children}
-    </div>
+    </li>
   );
 }
 
-/** The package file: what goes in it, what the scan found, and the one file it makes. */
-function PackageLayer() {
-  const start = DIALOG + 600;
-  return (
-    <div
-      className="a a-exit-left motion-only absolute inset-0 px-7"
-      style={at(SWITCH + 250, { dur: 340, dx: 30 })}
-    >
-      <div className="pt-1">
-        <SettingsSection title="In the package">
-          <Row style={at(start, { dy: 12 })}>
-            <SettingsRow
-              icon={<StatusMark state="ok" />}
-              label={`${DESK}, version 1`}
-              meta="Setup, job and test results"
-            >
-              <SettingsValue>18 KB</SettingsValue>
-            </SettingsRow>
-          </Row>
-          <Row style={at(start + 250, { dy: 12 })}>
-            <SettingsRow
-              icon={<StatusMark state="off" />}
-              label="Files in data/"
-              meta={
-                <span className="font-mono">
-                  category_map.csv, customers.csv, order_lines.csv, orders.csv, pickups.csv,
-                  policy.md, products.csv, returns.csv
-                </span>
-              }
-            >
-              <div className="flex items-center gap-4">
-                <SettingsValue>125 KB</SettingsValue>
-                <Switch
-                  checked={false}
-                  onCheckedChange={noop}
-                  aria-label="Share the files in data"
-                />
-              </div>
-            </SettingsRow>
-          </Row>
-        </SettingsSection>
-        <SettingsSection title="Scan">
-          <Row style={at(start + 650, { dy: 12 })}>
-            <SettingsRow
-              icon={<StatusMark state="ok" />}
-              label="Nothing in the package looks like a key or a private path"
-            />
-          </Row>
-        </SettingsSection>
-      </div>
-    </div>
-  );
-}
+const NAV = ['General', 'Permissions', 'Teaching', 'Results', 'Export'] as const;
 
-const field =
-  'flex h-[38px] items-center rounded-control bg-field px-3 font-mono text-small text-fg shadow-edge-strong';
-
-/** Hugging Face: the repository, private unless chosen, and where it ended up. */
-function HubLayer() {
-  return (
-    <div className="absolute inset-0 px-7">
-      <div className="a a-up pt-1" style={at(HUB - 100, { dy: 8, dur: 360 })}>
-        <SettingsSection title="Repository">
-          <Row style={at(HUB, { dy: 12 })}>
-            <SettingsRow label="Name">
-              <span className={cn(field, 'w-64 narrow:w-56')}>
-                {REPO_NAME.split('').map((letter, index) => (
-                  <span
-                    key={index}
-                    className="a a-up inline-block"
-                    style={at(HUB + 250 + index * 38, { dy: 3, dur: 160 })}
-                  >
-                    {letter}
-                  </span>
-                ))}
-              </span>
-            </SettingsRow>
-          </Row>
-          <Row style={at(HUB + 200, { dy: 12 })}>
-            <SettingsRow
-              label="Visibility"
-              meta="Only accounts you allow on Hugging Face can see it"
-            >
-              <div className="inline-flex shrink-0 rounded-control bg-hover p-[3px]">
-                <span className="flex h-[30px] items-center rounded-mark bg-raised px-3 text-small text-fg">
-                  Private
-                </span>
-                <span className="flex h-[30px] items-center rounded-mark px-3 text-small text-fg">
-                  Public
-                </span>
-              </div>
-            </SettingsRow>
-          </Row>
-          <Row style={at(HUB + 400, { dy: 12 })}>
-            <SettingsRow label="Token">
-              <SettingsValue>Token saved</SettingsValue>
-            </SettingsRow>
-          </Row>
-        </SettingsSection>
-        <div className="a a-unfold" style={at(PUBLISHED, { dur: 560 })}>
-          <SettingsSection title="Published" className="pt-5">
-            <SettingsRow
-              icon={<StatusMark state="ok" label="Published" />}
-              label="Version 1 is on Hugging Face"
-              meta={`Commit ${COMMIT} · Private`}
-            >
-              <Button size="xs" tabIndex={-1}>
-                <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
-                <span>
-                  <span className="narrow:hidden">huggingface.co/</span>
-                  {REPO_NAME}
-                </span>
-              </Button>
-            </SettingsRow>
-            <div className="flex min-h-11 items-center justify-between gap-3 border-t border-line pl-8 narrow:hidden">
-              <code className="min-w-0 truncate font-mono text-small text-fg">
-                architect install hf://{REPO_NAME} --revision {COMMIT}
-              </code>
-              <IconButton label="Copy the command" size="xs" tabIndex={-1}>
-                <Copy size={14} strokeWidth={1.7} aria-hidden />
-              </IconButton>
-            </div>
-          </SettingsSection>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** The bar along the dialog's bottom: the one button that does what the tab shows. */
-function Actions() {
-  return (
-    <div className="grid min-h-[68px] shrink-0 border-t border-line px-7 py-3.5 [&>*]:[grid-area:1/1]">
-      <div
-        className="a a-exit-up motion-only flex items-center justify-end"
-        style={at(SWITCH + 250, { dur: 260, dy: 0 })}
-      >
-        <span className="a a-press inline-flex" style={at(EXPORT, { dur: 320 })}>
-          <Button variant="primary" size="sm" tabIndex={-1}>
-            <Package size={15} strokeWidth={1.7} aria-hidden />
-            Export returns-desk.architect.zip
-          </Button>
-        </span>
-      </div>
-      <div
-        className="a a-up flex items-center justify-end"
-        style={at(SWITCH + 300, { dy: 10, dur: 320 })}
-      >
-        <span className="grid">
-          <span
-            className="a a-exit-up motion-only [grid-area:1/1]"
-            style={at(PUBLISHED - 100, { dur: 200, dy: 0 })}
-          >
-            <span className="a a-press inline-flex" style={at(PUBLISH, { dur: 320 })}>
-              <Button variant="primary" size="sm" tabIndex={-1}>
-                <UploadCloud size={15} strokeWidth={1.7} aria-hidden />
-                Publish version 1
-              </Button>
-            </span>
-          </span>
-          <span className="a a-pop [grid-area:1/1]" style={at(PUBLISHED, { dur: 300 })}>
-            <Button variant="primary" size="sm" disabled tabIndex={-1}>
-              <UploadCloud size={15} strokeWidth={1.7} aria-hidden />
-              Published
-            </Button>
-          </span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** What the app says when the file is written, for the moment it is there. */
-function Toast() {
-  return (
-    <div
-      className="a a-exit-up motion-only absolute bottom-4 right-4 z-10 w-[300px] narrow:left-4 narrow:w-auto"
-      style={at(SWITCH - 300, { dur: 300, dy: 0 })}
-    >
-      <div
-        className="a a-from-right flex flex-col gap-0.5 rounded-control bg-raised px-4 py-3 shadow-float"
-        style={at(EXPORT + 250, { dx: 40, dur: 520 })}
-      >
-        <span className="font-medium">Exported {DESK}</span>
-        <span className="truncate font-mono text-small text-fg">returns-desk.architect.zip</span>
-      </div>
-    </div>
-  );
-}
-
-/** The agent settings dialog on its Export tab. */
 function Dialog() {
   return (
-    <div
-      className={cn(
-        'a a-up absolute inset-y-6 inset-x-0 mx-auto flex w-[780px] max-w-[calc(100%-24px)]',
-        'overflow-hidden rounded-card bg-raised shadow-float',
-        'narrow:inset-y-3 narrow:w-auto narrow:max-w-none',
-      )}
-      style={at(DIALOG, { dur: 760, dy: 30 })}
+    <section
+      aria-label="Export"
+      className="a a-pop grid min-w-0 grid-cols-[168px_minmax(0,1fr)] rounded-card bg-raised shadow-float narrow:grid-cols-1"
+      style={at(150, { dur: 500 })}
     >
-      <div className="flex w-[196px] shrink-0 flex-col gap-0.5 border-r border-line bg-card px-2.5 py-[18px] narrow:hidden">
-        <div className="mb-2.5 flex h-9 items-center gap-2.5 px-2.5 text-body font-medium">
-          <AgentAvatar name={DESK} />
-          <span className="truncate">{DESK}</span>
-        </div>
-        {TABS.map((tab) => (
+      <nav
+        aria-label="Settings"
+        className="flex flex-col gap-1 border-r border-line p-3 narrow:hidden"
+      >
+        <span className="flex h-12 items-center gap-2.5 px-2 font-medium">
+          <AgentAvatar name="Returns desk" />
+          Returns desk
+        </span>
+        {NAV.map((item) => (
           <span
-            key={tab}
+            key={item}
             className={cn(
               'flex h-9 items-center rounded-control px-2.5',
-              tab === 'Export' && 'bg-selected',
+              item === 'Export' && 'bg-selected',
             )}
           >
-            {tab}
+            {item}
           </span>
         ))}
-      </div>
-      <div className="relative flex min-w-0 flex-1 flex-col">
-        <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 py-2.5 pl-7 pr-3">
+      </nav>
+      <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-16 items-center justify-between px-6">
           <h3 className="m-0 font-display text-h2 font-semibold">Export</h3>
-          <IconButton label="Close" tabIndex={-1}>
+          <IconButton label="Close" size="sm" tabIndex={-1}>
             <X size={16} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <div className="px-7">
-            <Destination />
-          </div>
-          <div className="relative h-[330px]">
-            <PackageLayer />
-            <HubLayer />
-          </div>
+        <div className="flex flex-col gap-1 px-6 pb-2">
+          <span className="pb-3">
+            <Segment
+              options={['Package file', 'Hugging Face']}
+              selected={1}
+              from={0}
+              pickAt={PICK}
+            />
+          </span>
+          <ul className="m-0 flex list-none flex-col p-0">
+            <Row label="Name" start={FIELDS}>
+              <span className="min-w-0 rounded-control bg-field px-3.5 py-2 font-mono text-ui shadow-edge-strong">
+                <Typed text={REPO} start={NAME} step={1} />
+              </span>
+            </Row>
+            <Row
+              label="Visibility"
+              meta="Only accounts you allow on Hugging Face can see it"
+              start={FIELDS + 140}
+            >
+              <Segment options={['Private', 'Public']} selected={0} />
+            </Row>
+            <Row label="Token" start={FIELDS + 280}>
+              <span>Uses HF_TOKEN from this computer</span>
+            </Row>
+          </ul>
+          <Insert start={PUBLISHED} dur={600}>
+            <div className="flex min-h-[72px] items-center justify-between gap-3 border-t border-line">
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-student-soft text-student">
+                  <Check size={17} strokeWidth={2} aria-hidden />
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="font-medium">Version 1 is on Hugging Face</span>
+                  <span className="text-small">Commit {COMMIT}, private</span>
+                </span>
+              </span>
+              <Button variant="secondary" size="sm" tabIndex={-1} className="narrow:hidden">
+                <ExternalLink size={14} strokeWidth={1.7} aria-hidden />
+                {REPO}
+              </Button>
+            </div>
+          </Insert>
         </div>
-        <Actions />
+        <div className="flex min-h-[76px] items-center justify-end border-t border-line px-6">
+          <span className="a a-press inline-flex" style={at(PUBLISH, { dur: 360 })}>
+            <Swap
+              at={PUBLISHED}
+              before={
+                <Button variant="primary" size="md" tabIndex={-1}>
+                  <CloudUpload size={15} strokeWidth={1.8} aria-hidden />
+                  Publish version 1
+                </Button>
+              }
+              after={
+                <Button variant="secondary" size="md" tabIndex={-1}>
+                  <Check size={15} strokeWidth={2} aria-hidden />
+                  Published
+                </Button>
+              }
+            />
+          </span>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-/**
- * Sharing: the Export tab writes the agent as one file, or publishes it to a private repository
- * on Hugging Face. The chapter plays the file first and ends on the repository.
- */
+function Terminal() {
+  return (
+    <section
+      aria-label="Terminal"
+      className="a a-pop min-w-0 rounded-card bg-ground p-5 shadow-edge-strong"
+      style={at(TERMINAL - 400, { dur: 500 })}
+    >
+      <pre className="m-0 flex flex-col gap-1 whitespace-pre-wrap break-words font-mono text-small leading-[1.55]">
+        {LINES.map((line, index) => {
+          const start = LINE_AT[index] ?? TERMINAL;
+          return (
+            <code key={line.text} className={cn('block', line.command && index > 0 && 'mt-3')}>
+              {line.command ? (
+                <>
+                  <span aria-hidden>$ </span>
+                  <Typed text={line.text} start={start} step={34} />
+                </>
+              ) : (
+                <span className="a a-fade" style={at(start, { dur: 260 })}>
+                  {line.text}
+                </span>
+              )}
+            </code>
+          );
+        })}
+      </pre>
+    </section>
+  );
+}
+
 export function ShareMock() {
   return (
     <ChapterStage
       id="share"
-      label="The Architect Export tab. The returns desk agent, version 1, is written as one package file, and the scan finds nothing that looks like a key or a private path. Then it is published to a private repository on Hugging Face, where the version and its commit are listed."
-      heightWide={690}
-      heightCompact={745}
+      label="Two panels. On the left, the Architect Export dialog set to Hugging Face, with the repository name larchwood/returns, private visibility and a saved token, after publishing: version 1 is on Hugging Face at commit 3f9a2c1 and private. On the right, a terminal where the architect command installs that commit, runs the returns desk, shows the row it wants to add to pickups.csv, asks to allow the change, and after the answer yes books the pickup."
+      heightWide={510}
     >
-      <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
-        <div className="absolute inset-0 flex narrow:hidden">
-          <Sidebar agents={PICKUP_SIDEBAR} />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <ChatHeader title={PICKUP_TITLE} />
-          </div>
-        </div>
-        <div
-          className="a a-scrim absolute inset-0 bg-backdrop narrow:hidden"
-          style={at(DIALOG - 100, { dur: 500 })}
-        />
+      <div className="absolute inset-0 grid grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-start gap-6 p-7 narrow:relative narrow:inset-auto narrow:grid-cols-1 narrow:gap-4 narrow:p-4">
         <Dialog />
-        <Toast />
-      </AppWindow>
+        <Terminal />
+      </div>
     </ChapterStage>
   );
 }

@@ -16,17 +16,19 @@ import { cn } from '@architect/ui';
  */
 export type Playback = 'waiting' | 'playing' | 'finished';
 
-/** The inline variables a stage reads: how tall it is in product pixels, wide and compact. */
-type StageVars = CSSProperties & { '--h-wide'?: number; '--h-compact'?: number };
+/** The inline variable a stage reads: how tall it is in product pixels where it is wide. */
+type StageVars = CSSProperties & { '--h-wide'?: number };
 
 export interface StageProps {
   /** Names the stage for the captures and for the page's own scripts. */
   id: string;
   /** What the mock shows, in a sentence, for people who cannot see it. */
   label: string;
-  /** Height in product pixels when the page has room for the wide layout, and when it does not. */
+  /**
+   * Height in product pixels when the page has room for the wide layout. Where it does not, the
+   * stage is as tall as its picture.
+   */
   heightWide: number;
-  heightCompact: number;
   /** Where the stage is in its run. A chapter's stage plays when it scrolls into view. */
   playback: Playback;
   className?: string;
@@ -40,17 +42,8 @@ export interface StageProps {
  * and what does not fit is cropped by the band's edge instead of being shrunk to fit.
  * Its contents are a picture, so they are inert and named by `label`.
  */
-export function Stage({
-  id,
-  label,
-  heightWide,
-  heightCompact,
-  playback,
-  className,
-  ref,
-  children,
-}: StageProps) {
-  const style: StageVars = { '--h-wide': heightWide, '--h-compact': heightCompact };
+export function Stage({ id, label, heightWide, playback, className, ref, children }: StageProps) {
+  const style: StageVars = { '--h-wide': heightWide };
   return (
     <div
       ref={ref}

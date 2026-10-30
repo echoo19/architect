@@ -44,6 +44,26 @@ html.motion .stage .a-unfold {
 html.motion .stage .a-pop {
   animation-name: m-pop;
 }
+/* Opacity alone, for a thing that is already where it belongs. */
+html.motion .stage .a-fade {
+  animation-name: m-fade;
+  animation-timing-function: ease-out;
+}
+/* A row made room for: its wrapper is a one-row grid, and its height opens as the row arrives. */
+html.motion .stage .a-insert {
+  animation-name: m-insert;
+}
+@container stage (max-width: 1079.98px) {
+  /* Where the stage is as tall as its picture, a row that opens would move the page under it. */
+  html.motion .stage .a-insert {
+    animation-name: m-insert-still;
+  }
+}
+/* A bar growing from its left edge to its length. */
+html.motion .stage .a-bar {
+  animation-name: m-bar;
+  transform-origin: 0 50%;
+}
 /* A panel arriving from the edge it is attached to: a window's right, or a small one's bottom. */
 html.motion .stage .a-slide-in {
   animation-name: m-slide-in;
@@ -79,6 +99,12 @@ html.motion .stage .a-fill {
 /* A press: the element dips and comes back. */
 html.motion .stage .a-press {
   animation-name: m-press;
+  animation-timing-function: ease-in-out;
+}
+
+/* A highlight laid over a row for a moment, to say which one the eye should be on. */
+html.motion .stage .a-flash {
+  animation-name: m-flash;
   animation-timing-function: ease-in-out;
 }
 
@@ -155,7 +181,43 @@ html.motion .stage[data-finished] .motion-only {
 @keyframes m-pop {
   from {
     opacity: 0;
-    scale: 0.92;
+    scale: 0.96;
+  }
+}
+@keyframes m-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes m-insert {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    translate: 0 var(--dy, 8px);
+  }
+  55% {
+    opacity: 1;
+  }
+}
+@keyframes m-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes m-insert-still {
+  from {
+    opacity: 0;
+    translate: 0 var(--dy, 8px);
+  }
+}
+@keyframes m-bar {
+  from {
+    scale: 0 1;
   }
 }
 @keyframes m-slide-in {

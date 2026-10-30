@@ -1,405 +1,286 @@
-import type { CSSProperties, ReactNode } from 'react';
-import {
-  Button,
-  cn,
-  Heading,
-  IconButton,
-  SettingsRow,
-  StatusMark,
-  ToggleChip,
-  VersionTag,
-} from '@architect/ui';
-import { ArrowUpRight, File, ListChecks, Send, X } from 'lucide-react';
-import { KeepIds, Prose, P, Reply, ReplyActions, UserBubble, WorkedFor } from './chat';
+import type { ReactNode } from 'react';
+import { Button, IconButton, ToggleChip } from '@architect/ui';
+import { Copy, File, Flag, Layers, ListChecks, Send, Trash2, X } from 'lucide-react';
+import { KeepIds, P, Reply, UserBubble } from './chat';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
-import { PICKUP_ASK, PICKUP_SIDEBAR, PICKUP_TITLE } from './jobs';
+import { CHATS, deskSidebar } from './jobs';
+import { Swap, Typed } from './kit';
 import { at } from './motion';
 import { noop } from './noop';
 import { ChapterStage } from './stage';
 
-const FILES = ['orders.csv', 'customers.csv', 'returns.csv', 'pickups.csv', 'policy.md'];
-
 /**
- * The flagged reply, what the person says is wrong with it, and the lesson Spark makes of that.
- * The pickup is for return RT-4092, which can be handed over from Thursday, November 26, 2026. That
- * is Thanksgiving, and the shop's policy says no carrier collects on it.
+ * Teaching it, as the app does it in two steps: the person flags an answer and says what was wrong
+ * (Teach this), then Spark's lesson is shown to review before it is saved as a new version
+ * (Flagged answer). The return is RT-4092, whose earliest day is Thursday, November 26, 2026:
+ * Thanksgiving, when the shop's policy says no carrier collects. The version before it passed 58
+ * of 60 on its final test.
  */
+
+const TITLE = 'Book the earliest pickup for return RT-4092';
+const ASK = 'Book the earliest pickup for return RT-4092.';
 const REPLY = 'Cedarline Parcel can collect it on Thursday, November 26.';
 const WRONG = 'November 26 is Thanksgiving, and no carrier picks up that day.';
 const SHOULD = 'Book Friday, the next day Cedarline collects.';
-const LESSON_TEXT =
+const LESSON =
   'Before booking a pickup, check policy.md for days when no carrier collects, like Thanksgiving.';
+const FILES = ['orders.csv', 'customers.csv', 'returns.csv', 'pickups.csv', 'policy.md'] as const;
 
-/** When the chapter's moments happen, in ms from the start. */
-const FLAG = 500;
-const DRAWER = 850;
-const WRITE = 1500;
-const SEND = 4000;
-const LESSON = 4500;
-const SAVE = 6900;
-const SAVED = 7300;
+/** When things happen, in ms from the start. */
+const ASKED = 300;
+const ANSWER = 900;
+const ACTIONS = 1700;
+const FLAG = 2400;
+const DRAWER = 2650;
+const WRITE = 3300;
+const TYPE_STEP = 52;
+const SHOULD_AT = WRITE + WRONG.split(' ').length * TYPE_STEP + 350;
+const FILES_AT = SHOULD_AT + SHOULD.split(' ').length * TYPE_STEP + 300;
+const PICK = FILES_AT + 900;
+const SHARE = PICK + 1000;
+const REVIEW = SHARE + 450;
 
-/** Words that arrive a few at a time, as a person's typing does. */
-function Typed({ text, start, step = 52 }: { text: string; start: number; step?: number }) {
-  return (
-    <>
-      {text.split(' ').map((word, index) => (
-        <span
-          key={index}
-          className="a a-up inline-block"
-          style={at(start + index * step, { dy: 4, dur: 240 })}
-        >
-          {word}
-          {' '}
-        </span>
-      ))}
-    </>
-  );
-}
+const field =
+  'min-h-[64px] rounded-control bg-field px-3.5 py-3 text-body leading-normal shadow-edge-strong';
 
 function Field({
   label,
-  hint,
+  optional,
+  start,
   children,
-  style,
 }: {
   label: string;
-  hint?: string;
+  optional?: boolean;
+  start: number;
   children: ReactNode;
-  style?: CSSProperties;
 }) {
   return (
-    <div className="a a-up flex flex-col gap-2" style={style}>
-      <span className="flex items-baseline gap-2 text-fg">
+    <div className="a a-up flex flex-col gap-2" style={at(start, { dy: 8 })}>
+      <span className="flex items-baseline gap-2 font-medium">
         {label}
-        {hint && <span className="text-small text-fg">{hint}</span>}
+        {optional && <span className="text-small font-normal">Optional</span>}
       </span>
       {children}
     </div>
   );
 }
 
-const box = 'w-full rounded-control bg-field px-3 py-2.5 text-ui leading-normal shadow-edge-strong';
+/** One line of the lesson's review: what it is, and what it says. */
+function Row({ label, start, children }: { label: string; start: number; children: ReactNode }) {
+  return (
+    <div
+      className="a a-up grid grid-cols-[112px_minmax(0,1fr)] gap-x-4 border-t border-line py-3.5 narrow:grid-cols-1 narrow:gap-y-1"
+      style={at(start, { dy: 8 })}
+    >
+      <span>{label}</span>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
 
-/** What the person writes under a flagged reply, the first thing the drawer shows. */
+/** Step one: the flagged answer and what the person says was wrong with it. */
 function WriteLayer() {
   return (
     <div
-      className="a a-exit-left motion-only absolute inset-0 flex flex-col gap-5 px-6 pt-5"
-      style={at(SEND + 350, { dur: 360, dx: 36 })}
+      className="a a-exit-left motion-only absolute inset-0 flex flex-col"
+      style={at(SHARE, { dur: 380, dx: 40 })}
     >
-      <blockquote
-        className="a a-up m-0 border-l-2 border-line-strong pl-4 text-fg"
-        style={at(WRITE, { dy: 10 })}
-      >
-        {REPLY}
-      </blockquote>
-      <Field label="What was wrong" style={at(WRITE + 150, { dy: 10 })}>
-        <div className={cn(box, 'min-h-[70px]')}>
-          <Typed text={WRONG} start={WRITE + 500} />
+      <div className="flex min-h-[72px] items-start justify-between gap-3 px-6 pt-4 narrow:px-4">
+        <div className="flex min-w-0 flex-col">
+          <h3 className="m-0 font-display text-h2 font-semibold">Teach this</h3>
+          <span className="truncate text-small">Reply to &quot;{ASK}&quot;</span>
         </div>
-      </Field>
-      <Field label="What it should have done" hint="Optional" style={at(WRITE + 300, { dy: 10 })}>
-        <div className={cn(box, 'min-h-[70px]')}>
-          <Typed text={SHOULD} start={WRITE + 1250} />
-        </div>
-      </Field>
-      <Field label="What it should have used" hint="Optional" style={at(WRITE + 450, { dy: 10 })}>
-        <div role="group" className="flex flex-wrap gap-2">
-          {FILES.map((file, index) => (
-            <span
-              key={file}
-              className="a a-from-left grid"
-              style={at(WRITE + 2100 + index * 70, { dx: 8, dur: 360 })}
-            >
-              {file === 'policy.md' ? (
-                <>
-                  <span
-                    className="a a-exit-up [grid-area:1/1]"
-                    style={at(SEND - 700, { dur: 120, dy: 0 })}
+        <IconButton label="Close" size="sm" tabIndex={-1}>
+          <X size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden border-t border-line px-6 pt-5 narrow:px-4">
+        <blockquote className="m-0 border-l-2 border-line-strong pl-4 text-pretty">
+          {REPLY}
+        </blockquote>
+        <Field label="What was wrong" start={FLAG + 700}>
+          <div className={field}>
+            <Typed text={WRONG} start={WRITE} step={TYPE_STEP} />
+          </div>
+        </Field>
+        <Field label="What it should have done" optional start={FLAG + 850}>
+          <div className={field}>
+            <Typed text={SHOULD} start={SHOULD_AT} step={TYPE_STEP} />
+          </div>
+        </Field>
+        <Field label="What it should have used" optional start={FLAG + 1000}>
+          <div role="group" className="flex flex-wrap gap-2">
+            {FILES.map((file, index) => (
+              <span
+                key={file}
+                className="a a-from-left grid"
+                style={at(FILES_AT + index * 70, { dx: 8, dur: 360 })}
+              >
+                {file === 'policy.md' ? (
+                  <Swap
+                    at={PICK}
+                    before={
+                      <ToggleChip
+                        pressed={false}
+                        onPressedChange={noop}
+                        icon={<File size={14} strokeWidth={1.6} />}
+                      >
+                        {file}
+                      </ToggleChip>
+                    }
+                    after={
+                      <ToggleChip
+                        pressed
+                        onPressedChange={noop}
+                        icon={<File size={14} strokeWidth={1.6} />}
+                      >
+                        {file}
+                      </ToggleChip>
+                    }
+                  />
+                ) : (
+                  <ToggleChip
+                    pressed={false}
+                    onPressedChange={noop}
+                    icon={<File size={14} strokeWidth={1.6} />}
                   >
-                    <ToggleChip
-                      pressed={false}
-                      onPressedChange={noop}
-                      icon={<File size={14} strokeWidth={1.6} />}
-                    >
-                      {file}
-                    </ToggleChip>
-                  </span>
-                  <span className="a a-pop [grid-area:1/1]" style={at(SEND - 700, { dur: 260 })}>
-                    <ToggleChip
-                      pressed
-                      onPressedChange={noop}
-                      icon={<File size={14} strokeWidth={1.6} />}
-                    >
-                      {file}
-                    </ToggleChip>
-                  </span>
-                </>
-              ) : (
-                <ToggleChip
-                  pressed={false}
-                  onPressedChange={noop}
-                  icon={<File size={14} strokeWidth={1.6} />}
-                >
-                  {file}
-                </ToggleChip>
-              )}
-            </span>
-          ))}
-        </div>
-      </Field>
-    </div>
-  );
-}
-
-function Fact({
-  label,
-  children,
-  style,
-}: {
-  label: string;
-  children: ReactNode;
-  style?: CSSProperties;
-}) {
-  return (
-    <div
-      className="a a-up grid grid-cols-[112px_minmax(0,1fr)] gap-4 border-t border-line py-3.5 narrow:grid-cols-[72px_minmax(0,1fr)] narrow:gap-2.5"
-      style={style}
-    >
-      <dt className="text-fg">{label}</dt>
-      <dd className="m-0 flex flex-col gap-2 text-fg text-pretty">{children}</dd>
-    </div>
-  );
-}
-
-/** The lesson Spark proposes from the flagged answer. */
-function LessonLayer() {
-  return (
-    <div
-      className="a a-exit-left motion-only absolute inset-0 flex flex-col gap-6 px-6 pt-5"
-      style={at(SAVE + 100, { dur: 360, dx: 36 })}
-    >
-      <div className="flex flex-col gap-3">
-        <span
-          className="a a-up flex items-center gap-2 text-small text-fg"
-          style={at(LESSON + 150, { dy: 10 })}
-        >
-          <ListChecks size={15} strokeWidth={1.7} aria-hidden />
-          Rule
-        </span>
-        <p
-          className="a a-wipe m-0 text-h2 text-fg text-pretty"
-          style={at(LESSON + 350, { dur: 1100 })}
-        >
-          {LESSON_TEXT}
-        </p>
+                    {file}
+                  </ToggleChip>
+                )}
+              </span>
+            ))}
+          </div>
+        </Field>
       </div>
-      <dl className="m-0 flex flex-col">
-        <Fact label="You said" style={at(LESSON + 1100, { dy: 10 })}>
-          {WRONG}
-        </Fact>
-        <Fact label="Change" style={at(LESSON + 1300, { dy: 10 })}>
-          <span className="text-fg">Adds to its instructions</span>
-          <span className="border-l-2 border-line-strong pl-3 text-fg">
-            A pickup date must be a day the carrier collects. policy.md lists the days none do.
-          </span>
-        </Fact>
-        <Fact label="Practice needed" style={at(LESSON + 1500, { dy: 10 })}>
-          No, a rule is enough
-        </Fact>
-      </dl>
-    </div>
-  );
-}
-
-/** What the drawer says once the lesson is saved: the new version, and that the old one answers. */
-function SavedLayer() {
-  return (
-    <div className="absolute inset-0 flex flex-col gap-7 px-6 pt-7">
-      <div role="status" className="flex flex-col items-start gap-4 narrow:flex-row narrow:gap-3">
-        <div className="a a-pop" style={at(SAVED + 100, { dur: 420 })}>
-          <StatusMark state="ok" size={24} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Heading as="h3" size="title" className="a a-up" style={at(SAVED + 250, { dy: 12 })}>
-            Saved as version 2
-          </Heading>
-          <p className="m-0 flex flex-col text-fg">
-            <span className="a a-up narrow:hidden" style={at(SAVED + 450, { dy: 10 })}>
-              It hasn&apos;t taken a final test.
-            </span>
-            <span className="a a-up" style={at(SAVED + 650, { dy: 10 })}>
-              Version 1 keeps answering until you use version 2.
-            </span>
-          </p>
-        </div>
-      </div>
-      <dl className="m-0 flex flex-col">
-        <Fact label="You said" style={at(SAVED + 800, { dy: 12 })}>
-          {WRONG}
-        </Fact>
-        <Fact label="Lesson" style={at(SAVED + 950, { dy: 12 })}>
-          {LESSON_TEXT}
-        </Fact>
-      </dl>
-      <ul aria-label="Versions" className="m-0 flex list-none flex-col p-0">
-        <li className="a a-up" style={at(SAVED + 1100, { dy: 12 })}>
-          <SettingsRow
-            icon={<VersionTag version={2} />}
-            label="New, not in use yet"
-            meta="No final test yet · from version 1"
-          >
-            <Button size="xs" tabIndex={-1}>
-              <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
-              Use this version
-            </Button>
-          </SettingsRow>
-        </li>
-        <li className="a a-up" style={at(SAVED + 1300, { dy: 12 })}>
-          <SettingsRow icon={<VersionTag version={1} active />} label="In use">
-            <span className="flex flex-col items-end tabular-nums narrow:hidden">
-              <span className="font-mono">97%</span>
-              <span className="text-small text-fg">58 of 60 passed</span>
-            </span>
-          </SettingsRow>
-        </li>
-      </ul>
-    </div>
-  );
-}
-
-/** The drawer's footer: three states in one place, each leaving as the next arrives. */
-function Footers() {
-  return (
-    <div className="grid min-h-16 shrink-0 border-t border-line px-6 py-3.5 [&>*]:[grid-area:1/1]">
-      <div
-        className="a a-exit-up motion-only flex flex-wrap items-center justify-end gap-x-4 gap-y-3"
-        style={at(SEND + 350, { dur: 260, dy: 0 })}
-      >
-        <p className="m-0 mr-auto max-w-[260px] text-small text-fg text-pretty narrow:hidden">
+      <div className="flex min-h-[76px] items-center justify-between gap-4 border-t border-line px-6 narrow:flex-col narrow:items-stretch narrow:gap-3 narrow:px-4 narrow:py-3">
+        <span className="max-w-[34ch] text-small text-pretty">
           Only this exchange, its steps and your notes go to Spark, for up to $0.25.
-        </p>
-        <span className="a a-press inline-flex" style={at(SEND - 100, { dur: 300 })}>
-          <Button size="md" variant="primary" tabIndex={-1}>
-            <Send size={14} strokeWidth={1.8} aria-hidden />
+        </span>
+        <span className="a a-press inline-flex" style={at(SHARE - 120, { dur: 320 })}>
+          <Button variant="primary" size="md" tabIndex={-1}>
+            <Send size={15} strokeWidth={1.8} aria-hidden />
             Share with Spark
           </Button>
         </span>
       </div>
-      <div
-        className="a a-up motion-only flex items-center justify-end"
-        style={at(LESSON + 300, { dy: 10 })}
-      >
-        <div
-          className="a a-exit-up flex flex-wrap items-center justify-end gap-x-3 gap-y-3"
-          style={at(SAVE + 100, { dur: 260, dy: 0 })}
-        >
-          <Button size="md" variant="ghost" tabIndex={-1} className="narrow:hidden">
-            Discard
-          </Button>
-          <Button size="md" variant="secondary" tabIndex={-1} className="narrow:hidden">
-            Save for Improve
-          </Button>
-          <span className="a a-press inline-flex" style={at(SAVE - 150, { dur: 300 })}>
-            <Button size="md" variant="primary" tabIndex={-1}>
-              Save as version 2
-            </Button>
-          </span>
-        </div>
-      </div>
-      <div
-        className="a a-up flex items-center justify-end gap-x-4"
-        style={at(SAVED + 1500, { dy: 10 })}
-      >
-        <Button size="md" tabIndex={-1}>
-          Done
-        </Button>
-        <Button size="md" variant="primary" tabIndex={-1}>
-          Open Teaching
-        </Button>
-      </div>
     </div>
   );
 }
 
-/** The drawer over the window, from the flag to the saved version. */
-function Drawer() {
+/** Step two: Spark's lesson, to review before it is saved as a new version. */
+function ReviewLayer() {
   return (
-    <div
-      className={cn(
-        'a a-slide-in absolute bottom-3 right-3 top-3 flex w-[520px] flex-col overflow-hidden',
-        'rounded-card bg-raised shadow-float',
-        'narrow:inset-x-3 narrow:w-auto',
-      )}
-      style={at(DRAWER, { dur: 640 })}
-    >
-      <div className="flex min-h-[60px] shrink-0 items-start gap-3 border-b border-line py-2.5 pl-6 pr-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1.5">
-          <h3 className="m-0 text-body font-medium">Teach this</h3>
-          <span className="truncate text-small text-fg narrow:hidden">
-            Reply to &quot;{PICKUP_ASK}&quot;
-          </span>
+    <div className="absolute inset-0 flex flex-col">
+      <div
+        className="a a-from-right flex min-h-[72px] items-start justify-between gap-3 px-6 pt-4 narrow:px-4"
+        style={at(REVIEW, { dx: 40, dur: 520 })}
+      >
+        <div className="flex min-w-0 flex-col">
+          <h3 className="m-0 font-display text-h2 font-semibold">Flagged answer</h3>
+          <span className="text-small">To review</span>
         </div>
-        <IconButton label="Close" tabIndex={-1}>
+        <IconButton label="Close" size="sm" tabIndex={-1}>
           <X size={16} strokeWidth={1.8} aria-hidden />
         </IconButton>
       </div>
-      <div className="relative min-h-0 flex-1">
-        <WriteLayer />
-        <LessonLayer />
-        <SavedLayer />
+      <div className="min-h-0 flex-1 overflow-hidden border-t border-line px-6 pt-5 narrow:px-4">
+        <div
+          className="a a-from-right flex flex-col gap-3 pb-5"
+          style={at(REVIEW + 120, { dx: 40, dur: 520 })}
+        >
+          <span className="flex items-center gap-2 text-small">
+            <ListChecks size={15} strokeWidth={1.7} aria-hidden />
+            Rule
+          </span>
+          <p className="m-0 font-display text-h1 font-semibold text-balance">
+            Check policy.md for days no carrier collects before booking a pickup.
+          </p>
+        </div>
+        <Row label="You said" start={REVIEW + 450}>
+          {WRONG}
+        </Row>
+        <Row label="Change" start={REVIEW + 600}>
+          <span className="font-medium">Adds to its instructions</span>
+          <blockquote className="m-0 mt-2 border-l-2 border-line-strong pl-3 text-pretty">
+            {LESSON}
+          </blockquote>
+        </Row>
+        <Row label="Practice needed" start={REVIEW + 750}>
+          No, a rule is enough
+        </Row>
+        <Row label="Why" start={REVIEW + 900}>
+          Its instructions don&apos;t say that no carrier collects on a holiday such as
+          Thanksgiving.
+        </Row>
       </div>
-      <Footers />
+      <div
+        className="a a-up flex min-h-[76px] items-center justify-end gap-3 border-t border-line px-6 narrow:flex-wrap narrow:px-4 narrow:py-3"
+        style={at(REVIEW + 1100, { dy: 8 })}
+      >
+        <Button variant="ghost" size="md" tabIndex={-1}>
+          <Trash2 size={15} strokeWidth={1.7} aria-hidden />
+          Discard
+        </Button>
+        <Button variant="secondary" size="md" tabIndex={-1} className="narrow:hidden">
+          Save for Improve
+        </Button>
+        <Button variant="primary" size="md" tabIndex={-1}>
+          <Layers size={15} strokeWidth={1.7} aria-hidden />
+          Save as version 2
+        </Button>
+      </div>
     </div>
   );
 }
 
-/**
- * Correcting an answer: the flag under a reply opens Teach this. The person says what was wrong,
- * Spark turns it into a lesson, and saving it makes a new version. The version in use keeps
- * answering until the person switches.
- */
 export function TeachMock() {
   return (
     <ChapterStage
       id="teach"
-      label="The Architect workspace with Teach this open. The person flagged the returns desk's reply about a pickup date, and wrote what was wrong: no carrier picks up on Thanksgiving. Spark turned it into a lesson: before booking a pickup, check policy.md for days when no carrier collects. It is saved as version 2. Version 1 keeps answering until the person uses version 2."
-      heightWide={690}
-      heightCompact={865}
+      label="The Architect workspace. The returns desk agent answered a request to book the earliest pickup for a return with Thursday, November 26. The person flags the answer and, in Teach this, writes that November 26 is Thanksgiving and no carrier picks up that day, says it should book Friday, and picks policy.md as the file it should have used, then shares it with Spark. Spark's lesson is shown to review as Flagged answer: a rule that adds to its instructions to check the policy for days when no carrier collects, with no practice needed. It can be discarded, saved for Improve, or saved as version 2, while version 1 keeps answering."
+      heightWide={700}
     >
-      <AppWindow className="inset-x-3 bottom-3 top-3 wide:inset-x-7 wide:top-6">
-        <div className="absolute inset-0 flex narrow:hidden">
-          <Sidebar agents={PICKUP_SIDEBAR} />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <ChatHeader title={PICKUP_TITLE} />
-            <div className="min-h-0 flex-1 overflow-hidden px-8 pt-5">
-              <div className="ml-0 flex w-[212px] flex-col gap-6 text-body">
-                <UserBubble articleClassName="max-w-full">
-                  <KeepIds text={PICKUP_ASK} />
-                </UserBubble>
-                <Reply>
-                  <WorkedFor>Worked for 49 s · 2 steps</WorkedFor>
-                  <Prose>
-                    <P>{REPLY}</P>
-                  </Prose>
-                  <span className="a a-press -mt-2 block" style={at(FLAG, { dur: 360 })}>
-                    <ReplyActions
-                      flagged
-                      flagClassName="a a-fill"
-                      flagStyle={at(FLAG + 80, { dur: 300 })}
-                    />
+      <AppWindow className="inset-x-3 bottom-3 top-3 flex wide:inset-x-7 wide:top-6 narrow:min-h-[700px]">
+        <Sidebar agents={deskSidebar([TITLE, CHATS[0], CHATS[1]], 0)} className="narrow:hidden" />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <ChatHeader title={TITLE} />
+          <div className="min-h-0 flex-1 overflow-hidden px-8 pt-4 narrow:px-4">
+            <div className="mx-auto flex max-w-[720px] flex-col gap-6">
+              <UserBubble className="a a-up" style={at(ASKED, { dy: 36, dur: 700 })}>
+                <KeepIds text={ASK} />
+              </UserBubble>
+              <Reply>
+                <P className="a a-wipe" style={at(ANSWER, { dur: 900 })}>
+                  {REPLY}
+                </P>
+                <div className="a a-up flex gap-1" style={at(ACTIONS, { dy: 8 })}>
+                  <IconButton label="Copy" size="sm" tabIndex={-1}>
+                    <Copy size={15} strokeWidth={1.6} aria-hidden />
+                  </IconButton>
+                  <span className="a a-press relative inline-flex" style={at(FLAG, { dur: 360 })}>
+                    <IconButton label="Teach this" size="sm" tabIndex={-1}>
+                      <Flag size={15} strokeWidth={1.6} aria-hidden />
+                    </IconButton>
                   </span>
-                </Reply>
-              </div>
+                </div>
+              </Reply>
             </div>
           </div>
         </div>
+
         <div
-          className="a a-scrim absolute inset-0 bg-backdrop narrow:hidden"
-          style={at(DRAWER - 50, { dur: 500 })}
+          aria-hidden
+          className="a a-scrim absolute inset-0 bg-backdrop"
+          style={at(DRAWER, { dur: 420 })}
         />
-        <Drawer />
+        <aside
+          aria-label="Teach this"
+          className="a a-slide-in absolute inset-y-0 right-0 w-[520px] overflow-hidden bg-raised shadow-float narrow:inset-x-2 narrow:bottom-2 narrow:top-14 narrow:w-auto narrow:rounded-card"
+          style={at(DRAWER, { dur: 560, dx: '100%', dy: 60 })}
+        >
+          <WriteLayer />
+          <ReviewLayer />
+        </aside>
       </AppWindow>
     </ChapterStage>
   );

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Results: what teaching changed, measured | Architect</title>
+    <meta
+      name="description"
+      content="The evidence behind Architect: the same sealed final test taken by the student alone, with a one-shot setup, and after the teacher watched it fail, with the score per round, time, cost and limits."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070707" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Architect results" />
+    <meta
+      property="og:description"
+      content="What teaching changed on a sealed final test, with the numbers, the rounds and the limits."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // Motion is on only when scripts run and the visitor has not asked for less of it.
+      var root = document.documentElement;
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        root.classList.add('motion');
+      }
+      var platform =
+        (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      root.dataset.os = /mac|iphone|ipad/i.test(platform)
+        ? 'mac'
+        : /win/i.test(platform)
+          ? 'windows'
+          : 'other';
+    </script>
+  </head>
+  <body>
+    <div id="root"><!--app-html--></div>
+    <script type="module" src="/src/results-main.tsx"></script>
+  </body>
+</html>

@@ -13,7 +13,6 @@ export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VER
 export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
 
 export const HERO = {
-  eyebrow: 'Open source, for Windows and macOS',
   title: 'Describe a job. Get an agent that runs on your computer.',
   /** Two sentences, each on its own line where there is room. */
   line: [
@@ -22,7 +21,7 @@ export const HERO = {
   ],
 } as const;
 
-export type ChapterId = 'describe' | 'check' | 'train' | 'test' | 'use' | 'teach' | 'share';
+export type ChapterId = 'describe' | 'ask' | 'rule' | 'train' | 'test' | 'use' | 'teach' | 'share';
 
 export interface ChapterCopy {
   id: ChapterId;
@@ -36,22 +35,27 @@ export const CHAPTERS: readonly ChapterCopy[] = [
   {
     id: 'describe',
     title: 'Describe the job in your own words.',
-    body: 'Attach its files. Spark asks about anything unclear, then drafts the job with you.',
+    body: 'Say what you need done and attach the files it works from.',
   },
   {
-    id: 'check',
+    id: 'ask',
+    title: 'Spark asks what your files leave open.',
+    body: "Where your records or your policy don't settle something, it asks before it guesses.",
+  },
+  {
+    id: 'rule',
     title: 'Nothing trains until you confirm the rule.',
-    body: 'When your files hold prices or discounts, Spark turns them into a rule. You read it as steps, with some of your own records worked through it.',
+    body: 'Spark turns your pricing into steps and works one of your own records through them. You check it, then confirm.',
   },
   {
     id: 'train',
-    title: 'It learns by trying and keeps only what works.',
-    body: 'Spark finds where Glimmer goes wrong and changes its instructions. A change stays only if the score goes up enough on check tasks that Spark never sees.',
+    title: 'It learns by trying, and keeps only what works.',
+    body: 'Spark finds where Glimmer slips and changes its instructions. A change stays only if the score goes up on check tasks Spark never sees.',
   },
   {
     id: 'test',
     title: 'Then it takes a test it has never seen.',
-    body: 'Spark is disconnected. Glimmer answers new tasks once, and you see how it did on each type of task.',
+    body: 'Spark is disconnected. Glimmer answers new tasks once, and you see how it did on each kind.',
   },
   {
     id: 'use',
@@ -61,25 +65,44 @@ export const CHAPTERS: readonly ChapterCopy[] = [
   {
     id: 'teach',
     title: 'Correct it when it is wrong.',
-    body: 'Flag an answer and Spark turns it into a lesson. Save it as a new version, and the old one keeps answering until you use the new one.',
+    body: 'Flag an answer and Spark turns it into a lesson. Save it as a new version; the old one keeps answering until you switch.',
   },
   {
     id: 'share',
     title: 'Hand it to someone else.',
-    body: 'Export one file, or publish a private repository on Hugging Face. Your keys and chats stay on your computer.',
+    body: 'Publish it to Hugging Face, private by default, or export one file. Install it and run it from a terminal. Your keys and chats stay on your computer.',
   },
 ];
+
+export interface Requirement {
+  name: string;
+  text: string;
+}
 
 export const CLOSING = {
   title: 'Get Architect.',
   /** What a first run asks for, in the README's words. */
-  needs:
-    "You'll need Ollama. The first screens download Glimmer (17 GB, or 14 GB for a 12 GB graphics card) and connect Spark with an API key from Meta. The app isn't signed yet: on Windows choose More info, then Run anyway; on a Mac, right-click it and choose Open.",
+  needs: [
+    { name: 'Ollama', text: 'Runs Glimmer on your computer.' },
+    {
+      name: 'Glimmer',
+      text: 'The first screens download it: 17 GB, or 14 GB for a 12 GB graphics card.',
+    },
+    { name: 'Spark', text: 'The first screens connect it with an API key from Meta.' },
+    {
+      name: 'Opening it',
+      text: "The app isn't signed yet. On Windows choose More info, then Run anyway. On a Mac, right-click it and choose Open.",
+    },
+  ] satisfies readonly Requirement[],
   github: 'View the code on GitHub',
 } as const;
 
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
-  note: "Both shops are made up. The returns desk's training run, its results and the October orders answer are real, and so are the repair shop's rule and its run. The other requests shown are written from the returns desk's records.",
+  /** The home page's note: which parts of the pictures are real. */
+  note: "Both shops are made up. The returns desk's training rounds, scores and final test are from a real run, and so are the repair shop's rule and its run. The chats, the correction and the Hugging Face page are written from the same records to show the screens.",
+  /** The results page's note. */
+  resultsNote:
+    'The returns desks and the repair shop are made up. The figures are from real runs, and the reports they come from are in docs/comparisons.',
 } as const;

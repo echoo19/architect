@@ -10,21 +10,22 @@ import { Downloads } from './Downloads';
 export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="overflow-hidden">
-      <div className="page pt-12 sm:pt-14 lg:pt-16">
-        <p className="eyebrow">{HERO.eyebrow}</p>
-        <h1 id="hero-title" className="display-xl mt-5 max-w-[13.5em] sm:mt-6">
+      <div className="page pt-10 sm:pt-12 lg:pt-12">
+        <h1 id="hero-title" className="t-hero max-w-[13em]">
           {HERO.title}
         </h1>
-        <p className="lead mt-6 max-w-[66ch]">
-          {HERO.line.map((sentence) => (
-            <span key={sentence} className="sm:block">
-              <Actors text={sentence} />{' '}
-            </span>
-          ))}
-        </p>
-        <Downloads className="mt-8" />
+        <div className="mt-5 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between xl:gap-12">
+          <p className="t-lead max-w-[66ch]">
+            {HERO.line.map((sentence) => (
+              <span key={sentence} className="sm:block">
+                <Actors text={sentence} />{' '}
+              </span>
+            ))}
+          </p>
+          <Downloads className="shrink-0" />
+        </div>
       </div>
-      <div className="page mt-12 sm:mt-14">
+      <div className="page mt-9 sm:mt-10">
         <HeroWindow />
       </div>
     </section>

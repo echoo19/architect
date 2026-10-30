@@ -10,6 +10,8 @@
  *   node scripts/capture.mjs --widths 1280        only these widths
  *   node scripts/capture.mjs --height 1200        a taller window than the width's usual one
  *   node scripts/capture.mjs --url <address>      a different address (default: the preview server)
+ *   node scripts/capture.mjs --url <address>/results/ --only page --prefix results
+ *       the results page, whole, as results-page-1280.png
  *   node scripts/capture.mjs --out <folder>       a different folder
  *   node scripts/capture.mjs --selector '[data-stage="train"]' --widths 1280 --name train
  *       one element, scrolled into view and captured after its chapter has played
@@ -46,6 +48,8 @@ const outDir = path.resolve(String(args.out ?? path.join(here, '..', 'screenshot
 const widths = String(args.widths ?? '1280,375')
   .split(',')
   .map(Number);
+/** A word put before every file's name, for a page other than the home page. */
+const prefix = args.prefix ? `${args.prefix}-` : '';
 const only = args.only ? String(args.only).split(',') : null;
 const wanted = (kind) => only === null || only.includes(kind);
 const HEIGHTS = { 375: 812, 768: 1024, 1280: 800, 1920: 1080 };
@@ -101,12 +105,19 @@ async function playEverything(context, page) {
     );
     await page.waitForTimeout(900);
   }
+  // The page's words rise into place as they come into view, so the way down is walked once more.
+  const total = await page.evaluate(() => document.documentElement.scrollHeight);
+  const view = page.viewportSize()?.height ?? 800;
+  for (let y = 0; y < total; y += Math.round(view * 0.6)) {
+    await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
+    await page.waitForTimeout(120);
+  }
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(1200);
 }
 
 async function save(page, name, options = {}) {
-  const file = path.join(outDir, `${name}.png`);
+  const file = path.join(outDir, `${prefix}${name}.png`);
   // A shot of more than the screen starts the page's animations over, so they are let finish first.
   await page.screenshot({ path: file, animations: 'disabled', ...options });
   console.log(file);
@@ -119,7 +130,7 @@ if (args.selector) {
     // The bar that follows the page would sit over the top of an element.
     await page.addStyleTag({ content: 'header.sticky { position: static !important; }' });
     await target.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(Number(args.wait ?? 6000));
+    await page.waitForTimeout(Number(args.wait ?? 11000));
     await target.screenshot({ path: path.join(outDir, `${args.name ?? 'element'}-${width}.png`) });
     console.log(path.join(outDir, `${args.name ?? 'element'}-${width}.png`));
     await context.close();
@@ -128,7 +139,7 @@ if (args.selector) {
   for (const width of widths) {
     if (wanted('hero')) {
       const { context, page } = await open(width);
-      await page.waitForTimeout(Number(args.wait ?? 3500));
+      await page.waitForTimeout(Number(args.wait ?? 7500));
       await save(page, `hero-${width}`);
       await context.close();
     }
