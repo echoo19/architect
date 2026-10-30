@@ -44,20 +44,20 @@
   --font-display: 'Inter Tight Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* The type scale. Display sizes carry their tracking: -0.03em from 28px up, -0.015em below. */
+  /* The type scale. Display sizes carry their tracking, tightest at the largest: -0.03em at 56px, -0.024em at 40px, -0.018em at 28px, -0.012em below. */
   --text-*: initial;
   --text-hero: 56px;
   --text-hero--line-height: 1;
   --text-hero--letter-spacing: -0.03em;
   --text-title: 40px;
   --text-title--line-height: 1.05;
-  --text-title--letter-spacing: -0.03em;
+  --text-title--letter-spacing: -0.024em;
   --text-h1: 28px;
   --text-h1--line-height: 1.15;
-  --text-h1--letter-spacing: -0.03em;
+  --text-h1--letter-spacing: -0.018em;
   --text-h2: 20px;
   --text-h2--line-height: 1.3;
-  --text-h2--letter-spacing: -0.015em;
+  --text-h2--letter-spacing: -0.012em;
   --text-body: 15px;
   --text-body--line-height: 1.55;
   --text-ui: 14px;

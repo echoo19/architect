@@ -179,14 +179,14 @@ describe('type scale', () => {
     expect(small).toEqual([['key', 12]]);
   });
 
-  it('tightens display type: -0.03em from 28px up, -0.015em below', () => {
+  it('tightens display type with its size, from -0.03em at 56px to -0.012em at 20px', () => {
     const tracking = Object.fromEntries(
       [...theme.matchAll(/--text-([\w]+)--letter-spacing:\s*(-?[\d.]+)em;/g)].map((m) => [
         m[1]!,
         Number(m[2]),
       ]),
     );
-    expect(tracking).toEqual({ hero: -0.03, title: -0.03, h1: -0.03, h2: -0.015 });
+    expect(tracking).toEqual({ hero: -0.03, title: -0.024, h1: -0.018, h2: -0.012 });
   });
 
   it('sets titles in Inter Tight, reading text in Inter and code in Geist Mono', () => {

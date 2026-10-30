@@ -53,8 +53,9 @@ There is one theme. The window, the native title bar and `color-scheme` are alwa
 
 ## Type
 
-- **Inter Tight** (variable) for titles and for numbers that matter. Weight 600, tracking -0.03em
-  at 28px and up, -0.015em below.
+- **Inter Tight** (variable) for titles and for numbers that matter. Weight 600. Tracking tightens
+  with size: -0.03em at 56px, -0.024em at 40px, -0.018em at 28px, -0.012em below. Tighter than that
+  and the word gaps close up.
 - **Inter** (variable) for everything else. Weight 400 for reading, 500 for labels and controls.
 - **Geist Mono** only for code, file contents, diffs and identifiers a user might copy.
 - Numbers that change or line up use tabular figures.
