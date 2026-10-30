@@ -1,4 +1,4 @@
-import { mkdtemp, rm, unlink } from 'node:fs/promises';
+import { mkdtemp, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -9,6 +9,7 @@ import {
   type StudentEndpoint,
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { folderShortfalls } from '../src/graduates/checks';
 import { FakeStudent } from './fakes/adapters';
 import { fakeLlamaCommand, standInAdapter, storeBase } from './support/adapter-runtime';
 import {
@@ -194,6 +195,50 @@ describe('install checks carry what the screens need beside their sentences', ()
     const unbound = await here.library.verify('grd_desk', { loadModel: false });
     expect(checkOf(unbound, 'resources_bound').folders).toEqual([
       { name: 'data', problem: 'not_chosen' },
+    ]);
+  });
+
+  it('says in plain words what a folder lacks before it is chosen, and lets optional files be absent', async () => {
+    const here = await computer();
+    await addVersion(here, { graduateId: 'grd_desk' });
+    const own = await mkdtemp(join(tmpdir(), 'architect-own-records-'));
+    cleanups.push(() => rm(own, { recursive: true, force: true }));
+
+    expect(await here.library.checkFolder('grd_desk', 'data', own)).toEqual({
+      problems: [
+        "customers.csv isn't in the folder.",
+        "invoices.csv isn't in the folder.",
+        "policy.md isn't in the folder.",
+      ],
+    });
+    await writeFile(join(own, 'invoices.csv'), 'anything\n');
+    await writeFile(join(own, 'policy.md'), 'Terms.\n');
+    await writeFile(join(own, 'customers.csv'), 'customer_id,name\nC1,Ana\n');
+    expect(await here.library.checkFolder('grd_desk', 'data', own)).toEqual({
+      problems: ['customers.csv has no city, terms_days columns.'],
+    });
+    await writeFile(
+      join(own, 'customers.csv'),
+      'customer_id,name,city,terms_days\nC1,Ana,Reno,30\n',
+    );
+    expect(await here.library.checkFolder('grd_desk', 'data', own)).toEqual({ problems: [] });
+    expect(
+      (await here.library.checkFolder('grd_desk', 'data', join(own, 'customers.csv'))).problems,
+    ).toHaveLength(1);
+    await expect(here.library.checkFolder('grd_desk', 'notes', own)).rejects.toThrow(/no resource/);
+
+    // Nothing was bound by looking.
+    expect((await here.library.installation('grd_desk')).bindings['data']).not.toBe(own);
+
+    const optional = [
+      { name: 'hints.csv', kind: 'table', access: 'read', optional: true, columns: ['hint_id'] },
+      { name: 'rules.md', kind: 'text', access: 'read' },
+    ] as const;
+    expect(await folderShortfalls(optional, own)).toEqual([{ file: 'rules.md', kind: 'absent' }]);
+    await writeFile(join(own, 'hints.csv'), 'id\n1\n');
+    expect(await folderShortfalls(optional, own)).toEqual([
+      { file: 'hints.csv', kind: 'columns', columns: ['hint_id'] },
+      { file: 'rules.md', kind: 'absent' },
     ]);
   });
 

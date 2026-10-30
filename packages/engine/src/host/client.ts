@@ -160,6 +160,8 @@ export function connectEngine(
       rollback: (graduateId, version) => request('graduates.rollback', [graduateId, version]),
       installation: (graduateId) => request('graduates.installation', [graduateId]),
       bind: (graduateId, bindRequest) => request('graduates.bind', [graduateId, bindRequest]),
+      checkFolder: (graduateId, resource, folder) =>
+        request('graduates.checkFolder', [graduateId, resource, folder]),
       verify: (graduateId, options) => request('graduates.verify', [graduateId, options ?? {}]),
       reviewExport: (graduateId, version, include) =>
         request('graduates.reviewExport', [graduateId, version ?? null, include ?? []]),

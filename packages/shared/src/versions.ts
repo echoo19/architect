@@ -468,6 +468,13 @@ export const BindRequestSchema = z
   .strict();
 export type BindRequest = z.infer<typeof BindRequestSchema>;
 
+/**
+ * Whether a folder holds what an agent's resource needs, said before anything is bound: each
+ * problem is a sentence in plain words, and none means it fits. A fit is not a qualification.
+ */
+export const FolderFitSchema = z.object({ problems: z.array(z.string()) });
+export type FolderFit = z.infer<typeof FolderFitSchema>;
+
 /** What publishing a version asks for. New repositories are private unless this says public. */
 export const PublishRequestSchema = z
   .object({
