@@ -17,11 +17,17 @@ import {
 import { Organizations } from '../fields/Organizations';
 import { Overview } from '../fields/Overview';
 import { scoreCell } from '../fields/parts';
+import { useDraftStore } from '../flow/describe/draft-store';
 import { shortDate } from '../flow/format';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 
-const newField = () => navigate(paths.newAgent());
+/** A new field opens Describe ready for its organizations' folders. */
+const newField = () => {
+  const { organizations, setOrganizations } = useDraftStore.getState();
+  if (organizations === null) setOrganizations([]);
+  navigate(paths.newAgent());
+};
 
 /** Fields: every job, each a field of one or several organizations, with its best candidate. */
 export function FieldsScreen() {
