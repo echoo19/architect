@@ -373,8 +373,13 @@ test('stops a reply and says so', async () => {
   await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
 });
 
-test('opens the chat used last when the workspace opens', async () => {
+test('opens an agent from the Lab at the chat it was used in last', async () => {
   await open('/');
+  await expect(page.getByRole('heading', { name: 'Lab', level: 1 })).toBeVisible();
+  await page
+    .getByRole('region', { name: 'Agents' })
+    .getByRole('button', { name: `Open ${AGENT.name}` })
+    .click();
   await expect(page).toHaveURL(new RegExp(`#${chatPath(CHATS.fresh.id)}$`));
   await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Close out Tuesday');
 });

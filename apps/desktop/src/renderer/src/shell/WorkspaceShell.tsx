@@ -5,7 +5,21 @@ import { AgentSettingsModal } from '../workspace/settings/AgentSettingsModal';
 import { useWorkspaceEvents } from '../workspace/store';
 import { Sidebar } from './Sidebar';
 
-/** The "Use" layout: the agents sidebar on the left, the current screen on the right. */
+/** A new page slides in for each chat, field and experiment, not only for each kind of screen. */
+function transitionKey(route: Route): string {
+  switch (route.name) {
+    case 'chat':
+      return route.chatId;
+    case 'field':
+      return `field:${route.jobId}`;
+    case 'experiment':
+      return `experiment:${route.experimentId}`;
+    default:
+      return route.name;
+  }
+}
+
+/** The sidebar of places and agents on the left, the current screen on the right. */
 export function WorkspaceShell({ route, children }: { route: Route; children: ReactNode }) {
   useWorkspaceEvents();
   return (
@@ -13,7 +27,7 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
       <Sidebar route={route} />
       <main className="flex min-w-0 flex-1 flex-col">
         <StepTransition
-          transitionKey={route.name === 'chat' ? route.chatId : route.name}
+          transitionKey={transitionKey(route)}
           className="flex min-h-0 flex-1 flex-col"
         >
           {children}

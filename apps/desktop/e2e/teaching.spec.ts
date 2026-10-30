@@ -83,9 +83,7 @@ async function open(path: string, teaching: TeachingSeed): Promise<void> {
   });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  // The home screen opens the latest chat once the agents load; going on before it has would
-  // let that redirect land on top of the route this opens.
-  await page.waitForFunction(() => window.location.hash !== '#/');
+  await settle(page);
   await goTo(page, path);
 }
 

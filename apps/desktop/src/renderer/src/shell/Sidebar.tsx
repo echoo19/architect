@@ -26,6 +26,7 @@ import {
   Settings,
   Square,
 } from 'lucide-react';
+import { PLACES, placeOf } from './places';
 import { api } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
@@ -68,11 +69,10 @@ export function Sidebar({ route }: { route: Route }) {
   const openSettings = useUi((state) => state.openSettings);
   useTrainingRefresh();
 
+  const place = placeOf(route);
+
   return (
-    <nav
-      aria-label="Agents"
-      className="flex h-full w-60 shrink-0 flex-col gap-5 border-r border-line bg-ground px-3 pb-3.5"
-    >
+    <aside className="flex h-full w-60 shrink-0 flex-col gap-4 border-r border-line bg-ground px-3 pb-3.5">
       {/* The top strip drags the window; on macOS the traffic lights sit at its left. */}
       <div
         className={cn(
@@ -84,52 +84,69 @@ export function Sidebar({ route }: { route: Route }) {
         <span className="text-body font-semibold">Architect</span>
       </div>
 
-      <div className="flex items-center gap-0.5">
-        <button
-          type="button"
-          onClick={() => navigate(paths.newAgent())}
-          aria-current={route.name === 'new' ? 'page' : undefined}
-          className={cn(navRow, 'min-w-0 flex-1', route.name === 'new' && selectedRow)}
-        >
-          <Plus size={16} strokeWidth={1.8} aria-hidden />
-          New agent
-        </button>
-        <AgentMenu />
-      </div>
+      <nav aria-label="Places" className="flex flex-col gap-0.5">
+        {PLACES.map(({ id, label, Icon, path }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => navigate(path)}
+            aria-current={place === id ? 'page' : undefined}
+            className={cn(navRow, place === id && selectedRow)}
+          >
+            <Icon size={17} strokeWidth={1.6} aria-hidden />
+            {label}
+          </button>
+        ))}
+      </nav>
 
-      <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
-        {graduates.data ? (
-          <>
-            <AgentList graduates={graduates.data} route={route} />
-            {jobs.data ? (
-              <TrainingList jobs={jobs.data} route={route} />
-            ) : (
-              jobs.status === 'error' && (
-                <ProblemState
-                  layout="inline"
-                  error={jobs.error}
-                  title="Couldn't load training"
-                  onRetry={jobs.reload}
-                  className="px-2.5"
-                />
-              )
-            )}
-          </>
-        ) : graduates.status === 'error' ? (
-          <ProblemState
-            layout="inline"
-            error={graduates.error}
-            title="Couldn't load your agents"
-            onRetry={() => {
-              graduates.reload();
-              jobs.reload();
-            }}
-            className="px-2.5"
-          />
-        ) : (
-          <AgentListSkeleton />
-        )}
-      </div>
+      <nav aria-label="Agents" className="flex min-h-0 flex-col gap-4 border-t border-line pt-4">
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => navigate(paths.newAgent())}
+            aria-current={route.name === 'new' ? 'page' : undefined}
+            className={cn(navRow, 'min-w-0 flex-1', route.name === 'new' && selectedRow)}
+          >
+            <Plus size={16} strokeWidth={1.8} aria-hidden />
+            New agent
+          </button>
+          <AgentMenu />
+        </div>
+
+        <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
+          {graduates.data ? (
+            <>
+              <AgentList graduates={graduates.data} route={route} />
+              {jobs.data ? (
+                <TrainingList jobs={jobs.data} route={route} />
+              ) : (
+                jobs.status === 'error' && (
+                  <ProblemState
+                    layout="inline"
+                    error={jobs.error}
+                    title="Couldn't load training"
+                    onRetry={jobs.reload}
+                    className="px-2.5"
+                  />
+                )
+              )}
+            </>
+          ) : graduates.status === 'error' ? (
+            <ProblemState
+              layout="inline"
+              error={graduates.error}
+              title="Couldn't load your agents"
+              onRetry={() => {
+                graduates.reload();
+                jobs.reload();
+              }}
+              className="px-2.5"
+            />
+          ) : (
+            <AgentListSkeleton />
+          )}
+        </div>
+      </nav>
 
       <div className="flex-1" />
 
@@ -137,7 +154,7 @@ export function Sidebar({ route }: { route: Route }) {
         <Settings size={17} strokeWidth={1.6} aria-hidden />
         Settings
       </button>
-    </nav>
+    </aside>
   );
 }
 

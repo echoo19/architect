@@ -169,7 +169,7 @@ test('offers it on the last screen of setup and on the screen after it', async (
 
   await page.getByRole('button', { name: 'Get started' }).click();
   await expect(page).toHaveURL(/#\/$/);
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
   await expect(sampleJob()).toBeVisible();
   await expect(readyMade()).toBeVisible();
   await capture('sample-agent-empty-dark.png');
@@ -192,7 +192,7 @@ test('offers nothing, and says nothing of it, in a build that does not ship the 
     page.getByText('On the next screen you can try the sample job first, if you like.'),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Get started' }).click();
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
   await expect(sampleJob()).toBeVisible();
   await expect(page.getByText(/ready-made/)).toHaveCount(0);
 

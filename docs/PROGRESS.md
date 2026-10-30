@@ -21,6 +21,18 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The experiments screens lane builds list, design, live status and results against the stand-in, and a renderer client for the new channels.
 - Not offered from the app yet: the regression job, local re-tests, a per-arm wall cap. A pause during calibration waits for it to finish.
 
+## 2026-10-30 (Fri, night), platform lane "Foundation": the places and the Lab (branch `platform/foundation`)
+
+**Done** (stand-in engine only: no model was called, no GPU, no spend)
+- *Places* (decision 073): the sidebar leads with Lab, Fields, Experiments, Models and Compute, icon-led, above the agents; the command palette lists them. New routes `/fields`, `/fields/:jobId`, `/experiments`, `/experiments/new`, `/experiments/:id`, `/models`, `/compute`, each a real page with one way on, for the other lanes to fill. The guided flow and its stepper are unchanged.
+- *The Lab* at `/` replaces the home that jumped to the last chat: Needs you and Running side by side as the focal point, then Recently finished (seen, unseen and real where the report has organizations), Spend (Spark against each run's cap, the student where recorded), Fields and Agents, all from records the engine already keeps. A fresh install sees one empty state with Describe a field, Try the tutor and Try the sample job.
+- *`packages/ui`*: Card, CardGrid, CardRow, ChoiceTiles, ToggleRow, CapMeter (and a Meter that turns red past its cap), Inspector, IntervalPlot and DataTable, with tests; `docs/DESIGN.md` describes them and the inspector pattern.
+- *Tests*: hidden e2e `lab.spec.ts`; specs that expected "No agents yet" or the jump to the last chat now expect the Lab. Screenshots `lab-dark.png`, `lab-lower-dark.png`, `lab-empty-dark.png`, `places-*.png`.
+
+**Next**
+- The other platform lanes fill Experiments, Models, Fields, Compute and the inspector on Define from these parts.
+- A study brief waiting to be confirmed isn't in Needs you: the only read of it may start a study. A read-only state call in the engine would let the Lab list it.
+
 ## 2026-10-30 (Fri, evening), field specialists on main, Phil 2 waiting on budget (start the next session here)
 
 **Where things stand**

@@ -55,6 +55,47 @@ export {
 } from './components/command-palette';
 export { Composer, type ComposerProps } from './components/composer';
 export {
+  Card,
+  CardGrid,
+  CardRow,
+  type CardGridProps,
+  type CardProps,
+  type CardRowProps,
+} from './components/card';
+export {
+  ChoiceTiles,
+  type ChoiceTile,
+  type ChoiceTilesProps,
+  type MultipleChoiceTilesProps,
+  type SingleChoiceTilesProps,
+} from './components/choice-tiles';
+export {
+  DataTable,
+  sortRows,
+  type DataColumn,
+  type DataSort,
+  type DataTableProps,
+  type SortDirection,
+  type SortValue,
+} from './components/data-table';
+export {
+  INSPECTOR_WIDTH,
+  Inspector,
+  readInspector,
+  type InspectorProps,
+  type InspectorTab,
+} from './components/inspector';
+export {
+  IntervalPlot,
+  intervalPercent,
+  intervalText,
+  type IntervalGroup,
+  type IntervalPlotProps,
+  type IntervalRow,
+  type IntervalTone,
+} from './components/interval-plot';
+export {
+  CapMeter,
   Meter,
   Stat,
   Table,
@@ -63,6 +104,7 @@ export {
   TableHead,
   TableHeader,
   TableRow,
+  type CapMeterProps,
   type MeterProps,
   type StatProps,
   type StatSize,
@@ -201,5 +243,6 @@ export {
   type VersionTagProps,
 } from './components/status';
 export { Switch, type SwitchProps } from './components/switch';
+export { ToggleRow, type ToggleRowProps } from './components/toggle-row';
 export { Toaster, toast, type ToastOptions } from './components/toast';
 export { Tooltip, TooltipProvider, type TooltipProps } from './components/tooltip';

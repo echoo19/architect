@@ -81,6 +81,42 @@ Nothing below 13px except keyboard hints.
 - Spacing is on a 4px grid. Cards pad 24; rows are 48 tall; page gutters are 40, content max
   width 1120 for reading pages.
 
+## Places and their parts
+
+The sidebar leads with Architect's places, an icon and a word each: Lab, Fields, Experiments,
+Models, Compute (decision 073). The agents and their chats follow under a hairline. A place's page
+has a 40px title and nothing under it; its one primary action, if it has one, sits at the title's
+right.
+
+- **Card and CardGrid.** A card is the flat card surface with a title row: the title at 15px Inter
+  Tight, an optional 16px icon before it and one optional control after it. Rows inside a card
+  (`CardRow`) run edge to edge, split by hairlines, with a 36px icon tile or an avatar at the left
+  and a figure, a status word or a chevron at the right. A grid holds one column on a narrow
+  window and two or three on a wide one; rows of cards on one page share their columns so their
+  edges line up. The cards rise in one after another on first mount.
+- **The Lab** has one focal point: Needs you and Running side by side, the same height. What a
+  card lacks is said in a few words on a quiet line ("Nothing is running"), never with a
+  placeholder illustration.
+- **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
+  teacher, the student, teaching, evaluation, budget). Its tabs are a segmented strip whose
+  selected fill slides between them; a button folds it to a 56px rail of the tabs' icons, and
+  opening it there lands on that tab. It remembers its tab and whether it was folded, per screen.
+  Width changes with the `smooth` spring. It never holds a control that would break an invariant.
+- **ChoiceTiles.** A choice among a few things shown as icon tiles (an icon at the top left, the
+  name under it), three to a row in an inspector. One or several may be chosen; the chosen tile
+  takes the selected fill and a light edge. Arrow keys move between tiles.
+- **ToggleRow.** A switch, its label, and at the far right the kind of value it governs ("Text",
+  "USD", "Rounds"). The label flips the switch too.
+- **Meter and CapMeter.** A meter fills to its share and springs to a new value; past its cap it
+  is full and red. CapMeter adds the label and "used of cap" in tabular figures; Spark's meters are
+  amber and the student's blue. An amount with no recorded cap stands alone, with no meter.
+- **IntervalPlot.** A dot for each measured value and a line for its 95% interval, rows grouped
+  under a name, faint guides at the ticks, figures at the right. A value not measured shows a dash
+  and draws nothing. Each row reads out as its label, value and interval.
+- **DataTable.** A table of records on the card surface: sortable headers with an arrow on the
+  sorted one, a header that stays in place while the body scrolls, rows that open on click or
+  Enter. An empty cell is a dash read out as "None", never a zero.
+
 ## Motion
 
 The app uses the `motion` library through `@architect/ui` (screens import the wrappers, not
