@@ -2,6 +2,14 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), `architect serve` (branch `cli/serve`)
+
+**Done** (no model was called, no GPU, no spend)
+- `architect serve <agent> [--port N] [--version N] [--token-file F]`: an installed agent as an OpenAI-compatible Chat Completions endpoint (`POST /v1/chat/completions`, non-streaming; `GET /v1/models`) on 127.0.0.1 only, behind a bearer token printed once. Each request runs through the same agent host as `run` and the workspace, under the same network guard; a certified version answers with the agreed answer or hands off, and the response's `architect` object says which. It never writes: a change comes back as `proposedChange`. Ctrl+C exits 130. Decision 080, `docs/CLI.md`.
+
+**Next**
+- Streaming, if a client needs it.
+
 ## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
 
 **Done** (no model was called, no GPU, no spend)
