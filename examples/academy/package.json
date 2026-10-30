@@ -1,0 +1,20 @@
+{
+  "name": "@architect/example-academy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "tsx src/cli/generate.ts",
+    "record-tasks": "tsx src/cli/record-tasks.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@architect/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@architect/engine": "workspace:*"
+  }
+}

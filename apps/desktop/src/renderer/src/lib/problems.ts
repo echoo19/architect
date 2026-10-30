@@ -46,6 +46,10 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     cause: 'The records or the rule changed after the rule was confirmed.',
     next: 'Describe the job again, so the tasks are made from the records as they are now.',
   },
+  study_unconfirmed: {
+    cause: "The study of this job's organizations isn't confirmed yet.",
+    next: 'Read the brief on the job page, confirm it, then start training.',
+  },
   process_starting: {
     cause: 'Architect is still starting up.',
     next: 'Try again in a moment.',

@@ -1,0 +1,1681 @@
+student_id,test_id,taken_on,section,module,number,question_id,topic,selected,correct,result
+ST0013,BB1,2026-08-07,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0013,BB1,2026-08-07,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,A,A,right
+ST0013,BB1,2026-08-07,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,A,A,right
+ST0013,BB1,2026-08-07,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0013,BB1,2026-08-07,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0013,BB1,2026-08-07,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,B,B,right
+ST0013,BB1,2026-08-07,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,C,C,right
+ST0013,BB1,2026-08-07,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,B,A,wrong
+ST0013,BB1,2026-08-07,Reading and Writing,2,3,RW228,Rule 2A - Transitions,B,B,right
+ST0013,BB1,2026-08-07,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0013,BB1,2026-08-07,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,B,C,wrong
+ST0013,BB1,2026-08-07,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0013,BB1,2026-08-07,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0013,BB1,2026-08-07,Math,1,2,M298,Rule 3A - One-variable Equations,6,3/4,wrong
+ST0013,BB1,2026-08-07,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0013,BB1,2026-08-07,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0013,BB1,2026-08-07,Math,1,5,M129,Rule 1A - Function Notation,A,B,wrong
+ST0013,BB1,2026-08-07,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0013,BB1,2026-08-07,Math,2,1,M172,rule 1a - function notation,D,D,right
+ST0013,BB1,2026-08-07,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0013,BB1,2026-08-07,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0013,BB1,2026-08-07,Math,2,4,M106,Rule 3B - Percent Change,B,A,wrong
+ST0013,BB1,2026-08-07,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0013,BB1,2026-08-07,Math,2,6,M347,Rule 5A - Two-equation Systems,C,B,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,1,1,RW267,Rule 2A: Transitions,B,B,right
+ST0001,BB1,2026-08-08,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,C,A,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,A,A,right
+ST0001,BB1,2026-08-08,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0001,BB1,2026-08-08,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,B,B,right
+ST0001,BB1,2026-08-08,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,D,A,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,2,3,RW228,Rule 2A - Transitions,B,B,right
+ST0001,BB1,2026-08-08,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,D,C,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,2,5,RW222,rule 1b - parallel comparisons,A,C,wrong
+ST0001,BB1,2026-08-08,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0001,BB1,2026-08-08,Math,1,1,M326,rule 5a - two-equation systems,C,C,right
+ST0001,BB1,2026-08-08,Math,1,2,M298,Rule 3A - One-variable Equations,6,3/4,wrong
+ST0001,BB1,2026-08-08,Math,1,3,M280,Rule 3B - Percent Change,A,B,wrong
+ST0001,BB1,2026-08-08,Math,1,4,M214,rule 6a - part-to-part ratios,A,A,right
+ST0001,BB1,2026-08-08,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0001,BB1,2026-08-08,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0001,BB1,2026-08-08,Math,2,1,M172,RULE 1A - FUNCTION NOTATION,D,D,right
+ST0001,BB1,2026-08-08,Math,2,2,M256,RULE 6A - PART-TO-PART RATIOS,A,A,right
+ST0001,BB1,2026-08-08,Math,2,3,M159,Rule 3A - One-variable Equations,B,D,wrong
+ST0001,BB1,2026-08-08,Math,2,4,M106,Rule 3B - Percent Change,C,A,wrong
+ST0001,BB1,2026-08-08,Math,2,5,M173,rule 4a - perimeter and area of rectangles,B,C,wrong
+ST0001,BB1,2026-08-08,Math,2,6,M347,Rule 5A: Two-equation Systems,A,B,wrong
+ST0005,BB4,2026-08-08,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,D,B,wrong
+ST0005,BB4,2026-08-08,Reading and Writing,1,2,RW142,rule 2b - sentence boundaries,C,C,right
+ST0005,BB4,2026-08-08,Reading and Writing,1,3,RW270,Rule 2A - Transitions,B,C,wrong
+ST0005,BB4,2026-08-08,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0005,BB4,2026-08-08,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,C,C,right
+ST0005,BB4,2026-08-08,Reading and Writing,1,6,RW141,RULE 1B - PARALLEL COMPARISONS,A,C,wrong
+ST0005,BB4,2026-08-08,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,A,C,wrong
+ST0005,BB4,2026-08-08,Reading and Writing,2,2,RW211,Rule 1B-Parallel Comparisons,A,A,right
+ST0005,BB4,2026-08-08,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,A,C,wrong
+ST0005,BB4,2026-08-08,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0005,BB4,2026-08-08,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0005,BB4,2026-08-08,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0005,BB4,2026-08-08,Math,1,1,M177,Rule 3A - One-variable Equations,8,4/5,wrong
+ST0005,BB4,2026-08-08,Math,1,2,M114,Rule 6A - Part-to-part Ratios,D,D,right
+ST0005,BB4,2026-08-08,Math,1,3,M130,Rule 3B - Percent Change,C,C,right
+ST0005,BB4,2026-08-08,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0005,BB4,2026-08-08,Math,1,5,M295,Rule 5A - Two-equation Systems,C,B,wrong
+ST0005,BB4,2026-08-08,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0005,BB4,2026-08-08,Math,2,1,M155,Rule 3A - One-variable Equations,B,C,wrong
+ST0005,BB4,2026-08-08,Math,2,2,M230,Rule 6A Part-to-part Ratios,D,B,wrong
+ST0005,BB4,2026-08-08,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0005,BB4,2026-08-08,Math,2,4,M314,Rule 3B - Percent Change,B,C,wrong
+ST0005,BB4,2026-08-08,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0005,BB4,2026-08-08,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0009,BB1,2026-08-10,Reading and Writing,1,1,RW267,Rule 2A - Transitions,D,B,wrong
+ST0009,BB1,2026-08-10,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,D,A,wrong
+ST0009,BB1,2026-08-10,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,D,A,wrong
+ST0009,BB1,2026-08-10,Reading and Writing,1,4,RW320,Rule 2B-Sentence Boundaries,A,A,right
+ST0009,BB1,2026-08-10,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0009,BB1,2026-08-10,Reading and Writing,1,6,RW284,Rule 1B: Parallel Comparisons,A,B,wrong
+ST0009,BB1,2026-08-10,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,C,C,right
+ST0009,BB1,2026-08-10,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,C,A,wrong
+ST0009,BB1,2026-08-10,Reading and Writing,2,3,RW228,Rule 2A - Transitions,D,B,wrong
+ST0009,BB1,2026-08-10,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0009,BB1,2026-08-10,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,C,C,right
+ST0009,BB1,2026-08-10,Reading and Writing,2,6,RW104,Rule 5B: Pronoun Agreement,B,B,right
+ST0009,BB1,2026-08-10,Math,1,1,M326,Rule 5A - Two-equation Systems,A,C,wrong
+ST0009,BB1,2026-08-10,Math,1,2,M298,Rule 3A - One-variable Equations,3/4,3/4,right
+ST0009,BB1,2026-08-10,Math,1,3,M280,Rule 3B - Percent Change,D,B,wrong
+ST0009,BB1,2026-08-10,Math,1,4,M214,Rule 6A - Part-to-part Ratios,B,A,wrong
+ST0009,BB1,2026-08-10,Math,1,5,M129,Rule 1A - Function Notation,C,B,wrong
+ST0009,BB1,2026-08-10,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB1,2026-08-10,Math,2,1,M172,Rule 1A Function Notation,A,D,wrong
+ST0009,BB1,2026-08-10,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0009,BB1,2026-08-10,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0009,BB1,2026-08-10,Math,2,4,M106,Rule 3B - Percent Change,B,A,wrong
+ST0009,BB1,2026-08-10,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0009,BB1,2026-08-10,Math,2,6,M347,Rule 5A - Two-equation Systems,A,B,wrong
+ST0010,BB1,2026-08-10,Reading and Writing,1,1,RW267,Rule 2A: Transitions,B,B,right
+ST0010,BB1,2026-08-10,Reading and Writing,1,2,RW127,Rule 4B: Verb Tense,B,A,wrong
+ST0010,BB1,2026-08-10,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,A,A,right
+ST0010,BB1,2026-08-10,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0010,BB1,2026-08-10,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0010,BB1,2026-08-10,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,C,B,wrong
+ST0010,BB1,2026-08-10,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0010,BB1,2026-08-10,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0010,BB1,2026-08-10,Reading and Writing,2,3,RW228,Rule 2A-Transitions,B,B,right
+ST0010,BB1,2026-08-10,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0010,BB1,2026-08-10,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,C,C,right
+ST0010,BB1,2026-08-10,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,C,B,wrong
+ST0010,BB1,2026-08-10,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0010,BB1,2026-08-10,Math,1,2,M298,Rule 3A - One-variable Equations,6,3/4,wrong
+ST0010,BB1,2026-08-10,Math,1,3,M280,Rule 3B - Percent Change,C,B,wrong
+ST0010,BB1,2026-08-10,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0010,BB1,2026-08-10,Math,1,5,M129,Rule 1A - Function Notation,C,B,wrong
+ST0010,BB1,2026-08-10,Math,1,6,M237,rule 4a - perimeter and area of rectangles,A,A,right
+ST0010,BB1,2026-08-10,Math,2,1,M172,Rule 1A - Function Notation,D,D,right
+ST0010,BB1,2026-08-10,Math,2,2,M256,Rule 6A - Part-to-part Ratios,C,A,wrong
+ST0010,BB1,2026-08-10,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0010,BB1,2026-08-10,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0010,BB1,2026-08-10,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0010,BB1,2026-08-10,Math,2,6,M347,Rule 5A - Two-equation Systems,D,B,wrong
+ST0006,BB1,2026-08-11,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0006,BB1,2026-08-11,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,A,A,right
+ST0006,BB1,2026-08-11,Reading and Writing,1,3,RW213,rule 5b - pronoun agreement,A,A,right
+ST0006,BB1,2026-08-11,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0006,BB1,2026-08-11,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0006,BB1,2026-08-11,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,B,B,right
+ST0006,BB1,2026-08-11,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0006,BB1,2026-08-11,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,D,A,wrong
+ST0006,BB1,2026-08-11,Reading and Writing,2,3,RW228,Rule 2A - Transitions,C,B,wrong
+ST0006,BB1,2026-08-11,Reading and Writing,2,4,RW304,Rule 4B-Verb Tense,C,C,right
+ST0006,BB1,2026-08-11,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,B,C,wrong
+ST0006,BB1,2026-08-11,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,A,B,wrong
+ST0006,BB1,2026-08-11,Math,1,1,M326,Rule 5A: Two-equation Systems,C,C,right
+ST0006,BB1,2026-08-11,Math,1,2,M298,Rule 3A - One-variable Equations,6,3/4,wrong
+ST0006,BB1,2026-08-11,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0006,BB1,2026-08-11,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0006,BB1,2026-08-11,Math,1,5,M129,Rule 1A - Function Notation,D,B,wrong
+ST0006,BB1,2026-08-11,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,C,A,wrong
+ST0006,BB1,2026-08-11,Math,2,1,M172,Rule 1A Function Notation,D,D,right
+ST0006,BB1,2026-08-11,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0006,BB1,2026-08-11,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0006,BB1,2026-08-11,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0006,BB1,2026-08-11,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0006,BB1,2026-08-11,Math,2,6,M347,Rule 5A - Two-equation Systems,B,B,right
+ST0013,BB2,2026-08-12,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0013,BB2,2026-08-12,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0013,BB2,2026-08-12,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0013,BB2,2026-08-12,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,C,B,wrong
+ST0013,BB2,2026-08-12,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,A,B,wrong
+ST0013,BB2,2026-08-12,Reading and Writing,1,6,RW147,Rule 2A - Transitions,A,D,wrong
+ST0013,BB2,2026-08-12,Reading and Writing,2,1,RW160,rule 2b - sentence boundaries,A,A,right
+ST0013,BB2,2026-08-12,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0013,BB2,2026-08-12,Reading and Writing,2,3,RW115,Rule 2A - Transitions,A,C,wrong
+ST0013,BB2,2026-08-12,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0013,BB2,2026-08-12,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0013,BB2,2026-08-12,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0013,BB2,2026-08-12,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0013,BB2,2026-08-12,Math,1,2,M209,Rule 3A - One-variable Equations,D,C,wrong
+ST0013,BB2,2026-08-12,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0013,BB2,2026-08-12,Math,1,4,M185,Rule 3B - Percent Change,B,C,wrong
+ST0013,BB2,2026-08-12,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0013,BB2,2026-08-12,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0013,BB2,2026-08-12,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,D,D,right
+ST0013,BB2,2026-08-12,Math,2,2,M248,Rule 6A - Part-to-part Ratios,A,D,wrong
+ST0013,BB2,2026-08-12,Math,2,3,M134,Rule 1A - Function Notation,D,A,wrong
+ST0013,BB2,2026-08-12,Math,2,4,M133,Rule 3B - Percent Change,B,D,wrong
+ST0013,BB2,2026-08-12,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0013,BB2,2026-08-12,Math,2,6,M341,Rule 3A - One-variable Equations,10/4,5/2,right
+ST0003,BB2,2026-08-13,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,B,D,wrong
+ST0003,BB2,2026-08-13,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0003,BB2,2026-08-13,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,B,C,wrong
+ST0003,BB2,2026-08-13,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,A,B,wrong
+ST0003,BB2,2026-08-13,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0003,BB2,2026-08-13,Reading and Writing,1,6,RW147,rule 2a - transitions,D,D,right
+ST0003,BB2,2026-08-13,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0003,BB2,2026-08-13,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0003,BB2,2026-08-13,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0003,BB2,2026-08-13,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,A,C,wrong
+ST0003,BB2,2026-08-13,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0003,BB2,2026-08-13,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0003,BB2,2026-08-13,Math,1,1,M328,rule 5a - two-equation systems,B,C,wrong
+ST0003,BB2,2026-08-13,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0003,BB2,2026-08-13,Math,1,3,M194,rule 1a - function notation,A,B,wrong
+ST0003,BB2,2026-08-13,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0003,BB2,2026-08-13,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0003,BB2,2026-08-13,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0003,BB2,2026-08-13,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,D,D,right
+ST0003,BB2,2026-08-13,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0003,BB2,2026-08-13,Math,2,3,M134,Rule 1A - Function Notation,D,A,wrong
+ST0003,BB2,2026-08-13,Math,2,4,M133,Rule 3B - Percent Change,B,D,wrong
+ST0003,BB2,2026-08-13,Math,2,5,M152,Rule 5A - Two-equation Systems,B,D,wrong
+ST0003,BB2,2026-08-13,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0008,BB1,2026-08-14,Reading and Writing,1,1,RW267,Rule 2A - Transitions,A,B,wrong
+ST0008,BB1,2026-08-14,Reading and Writing,1,2,RW127,rule 4b - verb tense,A,A,right
+ST0008,BB1,2026-08-14,Reading and Writing,1,3,RW213,RULE 5B - PRONOUN AGREEMENT,A,A,right
+ST0008,BB1,2026-08-14,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0008,BB1,2026-08-14,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0008,BB1,2026-08-14,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,C,B,wrong
+ST0008,BB1,2026-08-14,Reading and Writing,2,1,RW212,rule 2b - sentence boundaries,D,C,wrong
+ST0008,BB1,2026-08-14,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0008,BB1,2026-08-14,Reading and Writing,2,3,RW228,Rule 2A - Transitions,D,B,wrong
+ST0008,BB1,2026-08-14,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0008,BB1,2026-08-14,Reading and Writing,2,5,RW222,rule 1b - parallel comparisons,C,C,right
+ST0008,BB1,2026-08-14,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0008,BB1,2026-08-14,Math,1,1,M326,Rule 5A - Two-equation Systems,B,C,wrong
+ST0008,BB1,2026-08-14,Math,1,2,M298,Rule 3A - One-variable Equations,6,3/4,wrong
+ST0008,BB1,2026-08-14,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0008,BB1,2026-08-14,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0008,BB1,2026-08-14,Math,1,5,M129,Rule 1A-Function Notation,C,B,wrong
+ST0008,BB1,2026-08-14,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0008,BB1,2026-08-14,Math,2,1,M172,Rule 1A - Function Notation,D,D,right
+ST0008,BB1,2026-08-14,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0008,BB1,2026-08-14,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0008,BB1,2026-08-14,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0008,BB1,2026-08-14,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0008,BB1,2026-08-14,Math,2,6,M347,Rule 5A - Two-equation Systems,B,B,right
+ST0004,BB1,2026-08-15,Reading and Writing,1,1,RW267,Rule 2A - Transitions,D,B,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,D,A,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,C,A,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0004,BB1,2026-08-15,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0004,BB1,2026-08-15,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,A,B,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,C,C,right
+ST0004,BB1,2026-08-15,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,D,A,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,2,3,RW228,Rule 2A - Transitions,D,B,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,B,C,wrong
+ST0004,BB1,2026-08-15,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,C,C,right
+ST0004,BB1,2026-08-15,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0004,BB1,2026-08-15,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0004,BB1,2026-08-15,Math,1,2,M298,Rule 3A - One-variable Equations,6/8,3/4,right
+ST0004,BB1,2026-08-15,Math,1,3,M280,Rule 3B - Percent Change,C,B,wrong
+ST0004,BB1,2026-08-15,Math,1,4,M214,rule 6a - part-to-part ratios,A,A,right
+ST0004,BB1,2026-08-15,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0004,BB1,2026-08-15,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0004,BB1,2026-08-15,Math,2,1,M172,Rule 1A: Function Notation,D,D,right
+ST0004,BB1,2026-08-15,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0004,BB1,2026-08-15,Math,2,3,M159,Rule 3A - One-variable Equations,A,D,wrong
+ST0004,BB1,2026-08-15,Math,2,4,M106,Rule 3B - Percent Change,C,A,wrong
+ST0004,BB1,2026-08-15,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,D,C,wrong
+ST0004,BB1,2026-08-15,Math,2,6,M347,Rule 5A - Two-equation Systems,B,B,right
+ST0003,BB3,2026-08-16,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,A,A,right
+ST0003,BB3,2026-08-16,Reading and Writing,1,2,RW116,Rule 6B-Subject-Verb Agreement,D,D,right
+ST0003,BB3,2026-08-16,Reading and Writing,1,3,RW191,RULE 5B - PRONOUN AGREEMENT,A,A,right
+ST0003,BB3,2026-08-16,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,C,C,right
+ST0003,BB3,2026-08-16,Reading and Writing,1,5,RW195,Rule 4B - Verb Tense,C,C,right
+ST0003,BB3,2026-08-16,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0003,BB3,2026-08-16,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,D,D,right
+ST0003,BB3,2026-08-16,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0003,BB3,2026-08-16,Reading and Writing,2,3,RW208,rule 1b - parallel comparisons,C,B,wrong
+ST0003,BB3,2026-08-16,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,C,B,wrong
+ST0003,BB3,2026-08-16,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0003,BB3,2026-08-16,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,A,A,right
+ST0003,BB3,2026-08-16,Math,1,1,M223,Rule 5A - Two-equation Systems,C,B,wrong
+ST0003,BB3,2026-08-16,Math,1,2,M255,Rule 6A-Part-to-part Ratios,C,A,wrong
+ST0003,BB3,2026-08-16,Math,1,3,M269,Rule 3A - One-variable Equations,D,D,right
+ST0003,BB3,2026-08-16,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0003,BB3,2026-08-16,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0003,BB3,2026-08-16,Math,1,6,M311,Rule 3B - Percent Change,A,D,wrong
+ST0003,BB3,2026-08-16,Math,2,1,M273,rule 5a - two-equation systems,B,D,wrong
+ST0003,BB3,2026-08-16,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0003,BB3,2026-08-16,Math,2,3,M249,Rule 3A - One-variable Equations,D,C,wrong
+ST0003,BB3,2026-08-16,Math,2,4,M125,Rule 3B - Percent Change,A,A,right
+ST0003,BB3,2026-08-16,Math,2,5,M201,Rule 1A - Function Notation,B,B,right
+ST0003,BB3,2026-08-16,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0007,BB1,2026-08-17,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0007,BB1,2026-08-17,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,A,A,right
+ST0007,BB1,2026-08-17,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,A,A,right
+ST0007,BB1,2026-08-17,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0007,BB1,2026-08-17,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,D,B,wrong
+ST0007,BB1,2026-08-17,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,D,B,wrong
+ST0007,BB1,2026-08-17,Reading and Writing,2,1,RW212,Rule 2B: Sentence Boundaries,B,C,wrong
+ST0007,BB1,2026-08-17,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0007,BB1,2026-08-17,Reading and Writing,2,3,RW228,rule 2a - transitions,B,B,right
+ST0007,BB1,2026-08-17,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0007,BB1,2026-08-17,Reading and Writing,2,5,RW222,rule 1b - parallel comparisons,B,C,wrong
+ST0007,BB1,2026-08-17,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0007,BB1,2026-08-17,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0007,BB1,2026-08-17,Math,1,2,M298,Rule 3A - One-variable Equations,6/8,3/4,right
+ST0007,BB1,2026-08-17,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0007,BB1,2026-08-17,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0007,BB1,2026-08-17,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0007,BB1,2026-08-17,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0007,BB1,2026-08-17,Math,2,1,M172,Rule 1A-Function Notation,B,D,wrong
+ST0007,BB1,2026-08-17,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0007,BB1,2026-08-17,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0007,BB1,2026-08-17,Math,2,4,M106,Rule 3B Percent Change,D,A,wrong
+ST0007,BB1,2026-08-17,Math,2,5,M173,Rule 4A: Perimeter and Area of Rectangles,D,C,wrong
+ST0007,BB1,2026-08-17,Math,2,6,M347,rule 5a - two-equation systems,B,B,right
+ST0015,BB4,2026-08-17,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0015,BB4,2026-08-17,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,1,3,RW270,Rule 2A - Transitions,D,C,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0015,BB4,2026-08-17,Reading and Writing,1,5,RW302,RULE 5B - PRONOUN AGREEMENT,A,C,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,D,C,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,A,C,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,2,2,RW211,RULE 1B - PARALLEL COMPARISONS,C,A,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0015,BB4,2026-08-17,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0015,BB4,2026-08-17,Reading and Writing,2,5,RW229,rule 4b - verb tense,B,B,right
+ST0015,BB4,2026-08-17,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0015,BB4,2026-08-17,Math,1,1,M177,Rule 3A - One-variable Equations,8/10,4/5,right
+ST0015,BB4,2026-08-17,Math,1,2,M114,Rule 6A - Part-to-part Ratios,D,D,right
+ST0015,BB4,2026-08-17,Math,1,3,M130,Rule 3B - Percent Change,A,C,wrong
+ST0015,BB4,2026-08-17,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0015,BB4,2026-08-17,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0015,BB4,2026-08-17,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0015,BB4,2026-08-17,Math,2,1,M155,Rule 3A - One-variable Equations,C,C,right
+ST0015,BB4,2026-08-17,Math,2,2,M230,rule 6a - part-to-part ratios,B,B,right
+ST0015,BB4,2026-08-17,Math,2,3,M272,Rule 5A: Two-equation Systems,B,C,wrong
+ST0015,BB4,2026-08-17,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0015,BB4,2026-08-17,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0015,BB4,2026-08-17,Math,2,6,M162,Rule 1A Function Notation,A,A,right
+ST0002,BB1,2026-08-18,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0002,BB1,2026-08-18,Reading and Writing,1,2,RW127,rule 4b - verb tense,A,A,right
+ST0002,BB1,2026-08-18,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,A,A,right
+ST0002,BB1,2026-08-18,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0002,BB1,2026-08-18,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,C,B,wrong
+ST0002,BB1,2026-08-18,Reading and Writing,1,6,RW284,Rule 1B: Parallel Comparisons,B,B,right
+ST0002,BB1,2026-08-18,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,C,C,right
+ST0002,BB1,2026-08-18,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0002,BB1,2026-08-18,Reading and Writing,2,3,RW228,Rule 2A - Transitions,D,B,wrong
+ST0002,BB1,2026-08-18,Reading and Writing,2,4,RW304,Rule 4B: Verb Tense,A,C,wrong
+ST0002,BB1,2026-08-18,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,C,C,right
+ST0002,BB1,2026-08-18,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0002,BB1,2026-08-18,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0002,BB1,2026-08-18,Math,1,2,M298,Rule 3A - One-variable Equations,.75,3/4,right
+ST0002,BB1,2026-08-18,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0002,BB1,2026-08-18,Math,1,4,M214,Rule 6A - Part-to-part Ratios,C,A,wrong
+ST0002,BB1,2026-08-18,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0002,BB1,2026-08-18,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0002,BB1,2026-08-18,Math,2,1,M172,Rule 1A - Function Notation,D,D,right
+ST0002,BB1,2026-08-18,Math,2,2,M256,Rule 6A - Part-to-part Ratios,D,A,wrong
+ST0002,BB1,2026-08-18,Math,2,3,M159,RULE 3A - ONE-VARIABLE EQUATIONS,D,D,right
+ST0002,BB1,2026-08-18,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0002,BB1,2026-08-18,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0002,BB1,2026-08-18,Math,2,6,M347,Rule 5A-Two-equation Systems,B,B,right
+ST0004,BB2,2026-08-18,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0004,BB2,2026-08-18,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0004,BB2,2026-08-18,Reading and Writing,1,3,RW313,Rule 5B-Pronoun Agreement,B,C,wrong
+ST0004,BB2,2026-08-18,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0004,BB2,2026-08-18,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0004,BB2,2026-08-18,Reading and Writing,1,6,RW147,Rule 2A - Transitions,A,D,wrong
+ST0004,BB2,2026-08-18,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0004,BB2,2026-08-18,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0004,BB2,2026-08-18,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0004,BB2,2026-08-18,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,B,C,wrong
+ST0004,BB2,2026-08-18,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0004,BB2,2026-08-18,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0004,BB2,2026-08-18,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0004,BB2,2026-08-18,Math,1,2,M209,RULE 3A - ONE-VARIABLE EQUATIONS,B,C,wrong
+ST0004,BB2,2026-08-18,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0004,BB2,2026-08-18,Math,1,4,M185,RULE 3B - PERCENT CHANGE,C,C,right
+ST0004,BB2,2026-08-18,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0004,BB2,2026-08-18,Math,1,6,M264,Rule 6A: Part-to-part Ratios,A,D,wrong
+ST0004,BB2,2026-08-18,Math,2,1,M251,Rule 4A-Perimeter and Area of Rectangles,D,D,right
+ST0004,BB2,2026-08-18,Math,2,2,M248,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0004,BB2,2026-08-18,Math,2,3,M134,rule 1a - function notation,C,A,wrong
+ST0004,BB2,2026-08-18,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0004,BB2,2026-08-18,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0004,BB2,2026-08-18,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0007,BB2,2026-08-18,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0007,BB2,2026-08-18,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0007,BB2,2026-08-18,Reading and Writing,1,3,RW313,Rule 5B: Pronoun Agreement,D,C,wrong
+ST0007,BB2,2026-08-18,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0007,BB2,2026-08-18,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0007,BB2,2026-08-18,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0007,BB2,2026-08-18,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0007,BB2,2026-08-18,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0007,BB2,2026-08-18,Reading and Writing,2,3,RW115,Rule 2A - Transitions,B,C,wrong
+ST0007,BB2,2026-08-18,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0007,BB2,2026-08-18,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,D,C,wrong
+ST0007,BB2,2026-08-18,Reading and Writing,2,6,RW144,Rule 5B Pronoun Agreement,B,B,right
+ST0007,BB2,2026-08-18,Math,1,1,M328,RULE 5A - TWO-EQUATION SYSTEMS,C,C,right
+ST0007,BB2,2026-08-18,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0007,BB2,2026-08-18,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0007,BB2,2026-08-18,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0007,BB2,2026-08-18,Math,1,5,M309,Rule 4A: Perimeter and Area of Rectangles,D,C,wrong
+ST0007,BB2,2026-08-18,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0007,BB2,2026-08-18,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,C,D,wrong
+ST0007,BB2,2026-08-18,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0007,BB2,2026-08-18,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0007,BB2,2026-08-18,Math,2,4,M133,Rule 3B Percent Change,D,D,right
+ST0007,BB2,2026-08-18,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0007,BB2,2026-08-18,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0007,BB4,2026-08-20,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0007,BB4,2026-08-20,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,C,C,right
+ST0007,BB4,2026-08-20,Reading and Writing,1,3,RW270,Rule 2A - Transitions,A,C,wrong
+ST0007,BB4,2026-08-20,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0007,BB4,2026-08-20,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,C,C,right
+ST0007,BB4,2026-08-20,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,D,C,wrong
+ST0007,BB4,2026-08-20,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0007,BB4,2026-08-20,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0007,BB4,2026-08-20,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0007,BB4,2026-08-20,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,D,C,wrong
+ST0007,BB4,2026-08-20,Reading and Writing,2,5,RW229,rule 4b - verb tense,B,B,right
+ST0007,BB4,2026-08-20,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0007,BB4,2026-08-20,Math,1,1,M177,Rule 3A - One-variable Equations,4/5,4/5,right
+ST0007,BB4,2026-08-20,Math,1,2,M114,Rule 6A - Part-to-part Ratios,D,D,right
+ST0007,BB4,2026-08-20,Math,1,3,M130,RULE 3B - PERCENT CHANGE,B,C,wrong
+ST0007,BB4,2026-08-20,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0007,BB4,2026-08-20,Math,1,5,M295,RULE 5A - TWO-EQUATION SYSTEMS,B,B,right
+ST0007,BB4,2026-08-20,Math,1,6,M277,Rule 1A - Function Notation,A,B,wrong
+ST0007,BB4,2026-08-20,Math,2,1,M155,Rule 3A - One-variable Equations,C,C,right
+ST0007,BB4,2026-08-20,Math,2,2,M230,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0007,BB4,2026-08-20,Math,2,3,M272,RULE 5A - TWO-EQUATION SYSTEMS,C,C,right
+ST0007,BB4,2026-08-20,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0007,BB4,2026-08-20,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0007,BB4,2026-08-20,Math,2,6,M162,Rule 1A - Function Notation,C,A,wrong
+ST0014,BB1,2026-08-20,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0014,BB1,2026-08-20,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,A,A,right
+ST0014,BB1,2026-08-20,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,C,A,wrong
+ST0014,BB1,2026-08-20,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,C,A,wrong
+ST0014,BB1,2026-08-20,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,D,B,wrong
+ST0014,BB1,2026-08-20,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,A,B,wrong
+ST0014,BB1,2026-08-20,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,C,C,right
+ST0014,BB1,2026-08-20,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0014,BB1,2026-08-20,Reading and Writing,2,3,RW228,Rule 2A - Transitions,B,B,right
+ST0014,BB1,2026-08-20,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0014,BB1,2026-08-20,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,C,C,right
+ST0014,BB1,2026-08-20,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0014,BB1,2026-08-20,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0014,BB1,2026-08-20,Math,1,2,M298,Rule 3A - One-variable Equations,6/8,3/4,right
+ST0014,BB1,2026-08-20,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0014,BB1,2026-08-20,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0014,BB1,2026-08-20,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0014,BB1,2026-08-20,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0014,BB1,2026-08-20,Math,2,1,M172,Rule 1A - Function Notation,D,D,right
+ST0014,BB1,2026-08-20,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0014,BB1,2026-08-20,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0014,BB1,2026-08-20,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0014,BB1,2026-08-20,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0014,BB1,2026-08-20,Math,2,6,M347,Rule 5A - Two-equation Systems,D,B,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,1,1,RW350,rule 1b - parallel comparisons,D,D,right
+ST0006,BB2,2026-08-21,Reading and Writing,1,2,RW254,Rule 2B Sentence Boundaries,B,A,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0006,BB2,2026-08-21,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,A,B,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0006,BB2,2026-08-21,Reading and Writing,1,6,RW147,Rule 2A - Transitions,A,D,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0006,BB2,2026-08-21,Reading and Writing,2,3,RW115,Rule 2A - Transitions,A,C,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,A,C,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0006,BB2,2026-08-21,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0006,BB2,2026-08-21,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0006,BB2,2026-08-21,Math,1,2,M209,rule 3a - one-variable equations,A,C,wrong
+ST0006,BB2,2026-08-21,Math,1,3,M194,Rule 1A - Function Notation,A,B,wrong
+ST0006,BB2,2026-08-21,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0006,BB2,2026-08-21,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0006,BB2,2026-08-21,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0006,BB2,2026-08-21,Math,2,1,M251,Rule 4A-Perimeter and Area of Rectangles,D,D,right
+ST0006,BB2,2026-08-21,Math,2,2,M248,Rule 6A Part-to-part Ratios,D,D,right
+ST0006,BB2,2026-08-21,Math,2,3,M134,Rule 1A - Function Notation,C,A,wrong
+ST0006,BB2,2026-08-21,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0006,BB2,2026-08-21,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0006,BB2,2026-08-21,Math,2,6,M341,Rule 3A - One-variable Equations,3,5/2,wrong
+ST0012,BB1,2026-08-21,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0012,BB1,2026-08-21,Reading and Writing,1,2,RW127,Rule 4B Verb Tense,A,A,right
+ST0012,BB1,2026-08-21,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,C,A,wrong
+ST0012,BB1,2026-08-21,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,C,A,wrong
+ST0012,BB1,2026-08-21,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0012,BB1,2026-08-21,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,B,B,right
+ST0012,BB1,2026-08-21,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,A,C,wrong
+ST0012,BB1,2026-08-21,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0012,BB1,2026-08-21,Reading and Writing,2,3,RW228,Rule 2A - Transitions,B,B,right
+ST0012,BB1,2026-08-21,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0012,BB1,2026-08-21,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,A,C,wrong
+ST0012,BB1,2026-08-21,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,C,B,wrong
+ST0012,BB1,2026-08-21,Math,1,1,M326,Rule 5A: Two-equation Systems,B,C,wrong
+ST0012,BB1,2026-08-21,Math,1,2,M298,Rule 3A - One-variable Equations,3/4,3/4,right
+ST0012,BB1,2026-08-21,Math,1,3,M280,Rule 3B - Percent Change,C,B,wrong
+ST0012,BB1,2026-08-21,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0012,BB1,2026-08-21,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0012,BB1,2026-08-21,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0012,BB1,2026-08-21,Math,2,1,M172,Rule 1A - Function Notation,D,D,right
+ST0012,BB1,2026-08-21,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0012,BB1,2026-08-21,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0012,BB1,2026-08-21,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0012,BB1,2026-08-21,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0012,BB1,2026-08-21,Math,2,6,M347,Rule 5A - Two-equation Systems,B,B,right
+ST0008,BB2,2026-08-25,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,A,D,wrong
+ST0008,BB2,2026-08-25,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0008,BB2,2026-08-25,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0008,BB2,2026-08-25,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0008,BB2,2026-08-25,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,C,B,wrong
+ST0008,BB2,2026-08-25,Reading and Writing,1,6,RW147,Rule 2A - Transitions,C,D,wrong
+ST0008,BB2,2026-08-25,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0008,BB2,2026-08-25,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0008,BB2,2026-08-25,Reading and Writing,2,3,RW115,Rule 2A - Transitions,D,C,wrong
+ST0008,BB2,2026-08-25,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0008,BB2,2026-08-25,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0008,BB2,2026-08-25,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0008,BB2,2026-08-25,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0008,BB2,2026-08-25,Math,1,2,M209,Rule 3A - One-variable Equations,A,C,wrong
+ST0008,BB2,2026-08-25,Math,1,3,M194,Rule 1A - Function Notation,D,B,wrong
+ST0008,BB2,2026-08-25,Math,1,4,M185,Rule 3B-Percent Change,A,C,wrong
+ST0008,BB2,2026-08-25,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0008,BB2,2026-08-25,Math,1,6,M264,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0008,BB2,2026-08-25,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,B,D,wrong
+ST0008,BB2,2026-08-25,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0008,BB2,2026-08-25,Math,2,3,M134,Rule 1A - Function Notation,C,A,wrong
+ST0008,BB2,2026-08-25,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0008,BB2,2026-08-25,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0008,BB2,2026-08-25,Math,2,6,M341,Rule 3A - One-variable Equations,5,5/2,wrong
+ST0014,BB2,2026-08-25,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0014,BB2,2026-08-25,Reading and Writing,1,2,RW254,Rule 2B Sentence Boundaries,B,A,wrong
+ST0014,BB2,2026-08-25,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,A,C,wrong
+ST0014,BB2,2026-08-25,Reading and Writing,1,4,RW240,Rule 4B Verb Tense,C,B,wrong
+ST0014,BB2,2026-08-25,Reading and Writing,1,5,RW268,rule 6b - subject-verb agreement,A,B,wrong
+ST0014,BB2,2026-08-25,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0014,BB2,2026-08-25,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0014,BB2,2026-08-25,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0014,BB2,2026-08-25,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0014,BB2,2026-08-25,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0014,BB2,2026-08-25,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0014,BB2,2026-08-25,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,D,B,wrong
+ST0014,BB2,2026-08-25,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0014,BB2,2026-08-25,Math,1,2,M209,Rule 3A - One-variable Equations,D,C,wrong
+ST0014,BB2,2026-08-25,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0014,BB2,2026-08-25,Math,1,4,M185,RULE 3B - PERCENT CHANGE,B,C,wrong
+ST0014,BB2,2026-08-25,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0014,BB2,2026-08-25,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0014,BB2,2026-08-25,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,A,D,wrong
+ST0014,BB2,2026-08-25,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0014,BB2,2026-08-25,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0014,BB2,2026-08-25,Math,2,4,M133,RULE 3B - PERCENT CHANGE,D,D,right
+ST0014,BB2,2026-08-25,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0014,BB2,2026-08-25,Math,2,6,M341,Rule 3A - One-variable Equations,10/4,5/2,right
+ST0004,BB4,2026-08-27,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0004,BB4,2026-08-27,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,C,C,right
+ST0004,BB4,2026-08-27,Reading and Writing,1,3,RW270,Rule 2A - Transitions,B,C,wrong
+ST0004,BB4,2026-08-27,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0004,BB4,2026-08-27,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,C,C,right
+ST0004,BB4,2026-08-27,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,C,C,right
+ST0004,BB4,2026-08-27,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0004,BB4,2026-08-27,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,B,A,wrong
+ST0004,BB4,2026-08-27,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0004,BB4,2026-08-27,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0004,BB4,2026-08-27,Reading and Writing,2,5,RW229,rule 4b - verb tense,C,B,wrong
+ST0004,BB4,2026-08-27,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0004,BB4,2026-08-27,Math,1,1,M177,Rule 3A - One-variable Equations,8,4/5,wrong
+ST0004,BB4,2026-08-27,Math,1,2,M114,Rule 6A - Part-to-part Ratios,D,D,right
+ST0004,BB4,2026-08-27,Math,1,3,M130,Rule 3B - Percent Change,C,C,right
+ST0004,BB4,2026-08-27,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0004,BB4,2026-08-27,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0004,BB4,2026-08-27,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0004,BB4,2026-08-27,Math,2,1,M155,Rule 3A - One-variable Equations,C,C,right
+ST0004,BB4,2026-08-27,Math,2,2,M230,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0004,BB4,2026-08-27,Math,2,3,M272,Rule 5A-Two-equation Systems,C,C,right
+ST0004,BB4,2026-08-27,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0004,BB4,2026-08-27,Math,2,5,M232,rule 4a - perimeter and area of rectangles,C,C,right
+ST0004,BB4,2026-08-27,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0007,BB5,2026-08-27,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0007,BB5,2026-08-27,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0007,BB5,2026-08-27,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0007,BB5,2026-08-27,Reading and Writing,1,4,RW306,RULE 4B - VERB TENSE,B,B,right
+ST0007,BB5,2026-08-27,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,D,B,wrong
+ST0007,BB5,2026-08-27,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0007,BB5,2026-08-27,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0007,BB5,2026-08-27,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,C,A,wrong
+ST0007,BB5,2026-08-27,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0007,BB5,2026-08-27,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0007,BB5,2026-08-27,Reading and Writing,2,5,RW224,Rule 6B: Subject-Verb Agreement,C,C,right
+ST0007,BB5,2026-08-27,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0007,BB5,2026-08-27,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0007,BB5,2026-08-27,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0007,BB5,2026-08-27,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0007,BB5,2026-08-27,Math,1,4,M216,Rule 3A - One-variable Equations,C,D,wrong
+ST0007,BB5,2026-08-27,Math,1,5,M158,Rule 3B: Percent Change,B,D,wrong
+ST0007,BB5,2026-08-27,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0007,BB5,2026-08-27,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0007,BB5,2026-08-27,Math,2,2,M105,Rule 5A Two-equation Systems,A,A,right
+ST0007,BB5,2026-08-27,Math,2,3,M239,Rule 6A - Part-to-part Ratios,B,B,right
+ST0007,BB5,2026-08-27,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,C,A,wrong
+ST0007,BB5,2026-08-27,Math,2,5,M151,Rule 3A - One-variable Equations,28/10,14/5,right
+ST0007,BB5,2026-08-27,Math,2,6,M336,rule 1a - function notation,A,D,wrong
+ST0005,BB5,2026-08-28,Reading and Writing,1,1,RW146,Rule 2A - Transitions,B,A,wrong
+ST0005,BB5,2026-08-28,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0005,BB5,2026-08-28,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0005,BB5,2026-08-28,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,D,B,wrong
+ST0005,BB5,2026-08-28,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0005,BB5,2026-08-28,Reading and Writing,1,6,RW161,Rule 5B: Pronoun Agreement,C,C,right
+ST0005,BB5,2026-08-28,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0005,BB5,2026-08-28,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,A,A,right
+ST0005,BB5,2026-08-28,Reading and Writing,2,3,RW319,RULE 4B - VERB TENSE,D,C,wrong
+ST0005,BB5,2026-08-28,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,D,B,wrong
+ST0005,BB5,2026-08-28,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0005,BB5,2026-08-28,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0005,BB5,2026-08-28,Math,1,1,M207,Rule 4A-Perimeter and Area of Rectangles,B,A,wrong
+ST0005,BB5,2026-08-28,Math,1,2,M318,Rule 1A - Function Notation,D,C,wrong
+ST0005,BB5,2026-08-28,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0005,BB5,2026-08-28,Math,1,4,M216,Rule 3A - One-variable Equations,C,D,wrong
+ST0005,BB5,2026-08-28,Math,1,5,M158,Rule 3B - Percent Change,D,D,right
+ST0005,BB5,2026-08-28,Math,1,6,M315,Rule 5A - Two-equation Systems,B,C,wrong
+ST0005,BB5,2026-08-28,Math,2,1,M166,Rule 3B - Percent Change,D,B,wrong
+ST0005,BB5,2026-08-28,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0005,BB5,2026-08-28,Math,2,3,M239,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0005,BB5,2026-08-28,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,D,A,wrong
+ST0005,BB5,2026-08-28,Math,2,5,M151,Rule 3A - One-variable Equations,9,14/5,wrong
+ST0005,BB5,2026-08-28,Math,2,6,M336,Rule 1A - Function Notation,B,D,wrong
+ST0006,BB3,2026-08-28,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,A,A,right
+ST0006,BB3,2026-08-28,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0006,BB3,2026-08-28,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0006,BB3,2026-08-28,Reading and Writing,1,4,RW204,Rule 2B Sentence Boundaries,A,C,wrong
+ST0006,BB3,2026-08-28,Reading and Writing,1,5,RW195,Rule 4B - Verb Tense,C,C,right
+ST0006,BB3,2026-08-28,Reading and Writing,1,6,RW165,Rule 2A - Transitions,B,C,wrong
+ST0006,BB3,2026-08-28,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,D,D,right
+ST0006,BB3,2026-08-28,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0006,BB3,2026-08-28,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,B,B,right
+ST0006,BB3,2026-08-28,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0006,BB3,2026-08-28,Reading and Writing,2,5,RW329,Rule 2A - Transitions,B,D,wrong
+ST0006,BB3,2026-08-28,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,B,A,wrong
+ST0006,BB3,2026-08-28,Math,1,1,M223,Rule 5A - Two-equation Systems,B,B,right
+ST0006,BB3,2026-08-28,Math,1,2,M255,Rule 6A - Part-to-part Ratios,A,A,right
+ST0006,BB3,2026-08-28,Math,1,3,M269,Rule 3A - One-variable Equations,B,D,wrong
+ST0006,BB3,2026-08-28,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0006,BB3,2026-08-28,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0006,BB3,2026-08-28,Math,1,6,M311,Rule 3B - Percent Change,D,D,right
+ST0006,BB3,2026-08-28,Math,2,1,M273,Rule 5A - Two-equation Systems,D,D,right
+ST0006,BB3,2026-08-28,Math,2,2,M281,rule 6a - part-to-part ratios,B,B,right
+ST0006,BB3,2026-08-28,Math,2,3,M249,Rule 3A - One-variable Equations,C,C,right
+ST0006,BB3,2026-08-28,Math,2,4,M125,Rule 3B - Percent Change,A,A,right
+ST0006,BB3,2026-08-28,Math,2,5,M201,Rule 1A - Function Notation,B,B,right
+ST0006,BB3,2026-08-28,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,B,C,wrong
+ST0016,BB1,2026-08-31,Reading and Writing,1,1,RW267,Rule 2A - Transitions,B,B,right
+ST0016,BB1,2026-08-31,Reading and Writing,1,2,RW127,Rule 4B - Verb Tense,A,A,right
+ST0016,BB1,2026-08-31,Reading and Writing,1,3,RW213,Rule 5B-Pronoun Agreement,A,A,right
+ST0016,BB1,2026-08-31,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,A,A,right
+ST0016,BB1,2026-08-31,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0016,BB1,2026-08-31,Reading and Writing,1,6,RW284,Rule 1B - Parallel Comparisons,B,B,right
+ST0016,BB1,2026-08-31,Reading and Writing,2,1,RW212,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0016,BB1,2026-08-31,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,C,A,wrong
+ST0016,BB1,2026-08-31,Reading and Writing,2,3,RW228,Rule 2A - Transitions,B,B,right
+ST0016,BB1,2026-08-31,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0016,BB1,2026-08-31,Reading and Writing,2,5,RW222,rule 1b - parallel comparisons,C,C,right
+ST0016,BB1,2026-08-31,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,B,B,right
+ST0016,BB1,2026-08-31,Math,1,1,M326,Rule 5A - Two-equation Systems,C,C,right
+ST0016,BB1,2026-08-31,Math,1,2,M298,Rule 3A-One-variable Equations,3/4,3/4,right
+ST0016,BB1,2026-08-31,Math,1,3,M280,rule 3b - percent change,B,B,right
+ST0016,BB1,2026-08-31,Math,1,4,M214,Rule 6A - Part-to-part Ratios,A,A,right
+ST0016,BB1,2026-08-31,Math,1,5,M129,Rule 1A-Function Notation,B,B,right
+ST0016,BB1,2026-08-31,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0016,BB1,2026-08-31,Math,2,1,M172,Rule 1A - Function Notation,B,D,wrong
+ST0016,BB1,2026-08-31,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0016,BB1,2026-08-31,Math,2,3,M159,Rule 3A - One-variable Equations,C,D,wrong
+ST0016,BB1,2026-08-31,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0016,BB1,2026-08-31,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,D,C,wrong
+ST0016,BB1,2026-08-31,Math,2,6,M347,Rule 5A - Two-equation Systems,B,B,right
+ST0011,BB3,2026-09-01,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,A,A,right
+ST0011,BB3,2026-09-01,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,A,D,wrong
+ST0011,BB3,2026-09-01,Reading and Writing,1,3,RW191,rule 5b - pronoun agreement,A,A,right
+ST0011,BB3,2026-09-01,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,C,C,right
+ST0011,BB3,2026-09-01,Reading and Writing,1,5,RW195,Rule 4B - Verb Tense,C,C,right
+ST0011,BB3,2026-09-01,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0011,BB3,2026-09-01,Reading and Writing,2,1,RW332,RULE 4B - VERB TENSE,D,D,right
+ST0011,BB3,2026-09-01,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0011,BB3,2026-09-01,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,D,B,wrong
+ST0011,BB3,2026-09-01,Reading and Writing,2,4,RW138,rule 5b - pronoun agreement,B,B,right
+ST0011,BB3,2026-09-01,Reading and Writing,2,5,RW329,Rule 2A - Transitions,C,D,wrong
+ST0011,BB3,2026-09-01,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,B,A,wrong
+ST0011,BB3,2026-09-01,Math,1,1,M223,Rule 5A: Two-equation Systems,B,B,right
+ST0011,BB3,2026-09-01,Math,1,2,M255,Rule 6A - Part-to-part Ratios,B,A,wrong
+ST0011,BB3,2026-09-01,Math,1,3,M269,rule 3a - one-variable equations,D,D,right
+ST0011,BB3,2026-09-01,Math,1,4,M132,Rule 4A: Perimeter and Area of Rectangles,A,A,right
+ST0011,BB3,2026-09-01,Math,1,5,M150,Rule 1A - Function Notation,A,C,wrong
+ST0011,BB3,2026-09-01,Math,1,6,M311,Rule 3B-Percent Change,A,D,wrong
+ST0011,BB3,2026-09-01,Math,2,1,M273,Rule 5A - Two-equation Systems,C,D,wrong
+ST0011,BB3,2026-09-01,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0011,BB3,2026-09-01,Math,2,3,M249,Rule 3A - One-variable Equations,D,C,wrong
+ST0011,BB3,2026-09-01,Math,2,4,M125,Rule 3B - Percent Change,A,A,right
+ST0011,BB3,2026-09-01,Math,2,5,M201,Rule 1A - Function Notation,D,B,wrong
+ST0011,BB3,2026-09-01,Math,2,6,M190,Rule 4A: Perimeter and Area of Rectangles,C,C,right
+ST0016,BB2,2026-09-01,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,A,D,wrong
+ST0016,BB2,2026-09-01,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0016,BB2,2026-09-01,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0016,BB2,2026-09-01,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0016,BB2,2026-09-01,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0016,BB2,2026-09-01,Reading and Writing,1,6,RW147,RULE 2A - TRANSITIONS,B,D,wrong
+ST0016,BB2,2026-09-01,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0016,BB2,2026-09-01,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0016,BB2,2026-09-01,Reading and Writing,2,3,RW115,Rule 2A - Transitions,D,C,wrong
+ST0016,BB2,2026-09-01,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0016,BB2,2026-09-01,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0016,BB2,2026-09-01,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0016,BB2,2026-09-01,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0016,BB2,2026-09-01,Math,1,2,M209,Rule 3A - One-variable Equations,A,C,wrong
+ST0016,BB2,2026-09-01,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0016,BB2,2026-09-01,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0016,BB2,2026-09-01,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0016,BB2,2026-09-01,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0016,BB2,2026-09-01,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,C,D,wrong
+ST0016,BB2,2026-09-01,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0016,BB2,2026-09-01,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0016,BB2,2026-09-01,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0016,BB2,2026-09-01,Math,2,5,M152,Rule 5A - Two-equation Systems,C,D,wrong
+ST0016,BB2,2026-09-01,Math,2,6,M341,Rule 3A - One-variable Equations,3,5/2,wrong
+ST0006,BB4,2026-09-02,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0006,BB4,2026-09-02,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0006,BB4,2026-09-02,Reading and Writing,1,3,RW270,Rule 2A - Transitions,D,C,wrong
+ST0006,BB4,2026-09-02,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0006,BB4,2026-09-02,Reading and Writing,1,5,RW302,RULE 5B - PRONOUN AGREEMENT,C,C,right
+ST0006,BB4,2026-09-02,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,C,C,right
+ST0006,BB4,2026-09-02,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,A,C,wrong
+ST0006,BB4,2026-09-02,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0006,BB4,2026-09-02,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,A,C,wrong
+ST0006,BB4,2026-09-02,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0006,BB4,2026-09-02,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0006,BB4,2026-09-02,Reading and Writing,2,6,RW247,Rule 2A - Transitions,A,C,wrong
+ST0006,BB4,2026-09-02,Math,1,1,M177,Rule 3A - One-variable Equations,4/5,4/5,right
+ST0006,BB4,2026-09-02,Math,1,2,M114,Rule 6A - Part-to-part Ratios,D,D,right
+ST0006,BB4,2026-09-02,Math,1,3,M130,Rule 3B - Percent Change,C,C,right
+ST0006,BB4,2026-09-02,Math,1,4,M261,Rule 4A-Perimeter and Area of Rectangles,C,A,wrong
+ST0006,BB4,2026-09-02,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0006,BB4,2026-09-02,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0006,BB4,2026-09-02,Math,2,1,M155,Rule 3A - One-variable Equations,A,C,wrong
+ST0006,BB4,2026-09-02,Math,2,2,M230,Rule 6A - Part-to-part Ratios,B,B,right
+ST0006,BB4,2026-09-02,Math,2,3,M272,Rule 5A Two-equation Systems,C,C,right
+ST0006,BB4,2026-09-02,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0006,BB4,2026-09-02,Math,2,5,M232,rule 4a - perimeter and area of rectangles,D,C,wrong
+ST0006,BB4,2026-09-02,Math,2,6,M162,Rule 1A - Function Notation,B,A,wrong
+ST0009,BB2,2026-09-02,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0009,BB2,2026-09-02,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0009,BB2,2026-09-02,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0009,BB2,2026-09-02,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,D,B,wrong
+ST0009,BB2,2026-09-02,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,C,B,wrong
+ST0009,BB2,2026-09-02,Reading and Writing,1,6,RW147,Rule 2A-Transitions,B,D,wrong
+ST0009,BB2,2026-09-02,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0009,BB2,2026-09-02,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0009,BB2,2026-09-02,Reading and Writing,2,3,RW115,Rule 2A - Transitions,B,C,wrong
+ST0009,BB2,2026-09-02,Reading and Writing,2,4,RW285,RULE 4B - VERB TENSE,C,C,right
+ST0009,BB2,2026-09-02,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0009,BB2,2026-09-02,Reading and Writing,2,6,RW144,Rule 5B Pronoun Agreement,B,B,right
+ST0009,BB2,2026-09-02,Math,1,1,M328,Rule 5A - Two-equation Systems,A,C,wrong
+ST0009,BB2,2026-09-02,Math,1,2,M209,Rule 3A - One-variable Equations,A,C,wrong
+ST0009,BB2,2026-09-02,Math,1,3,M194,Rule 1A - Function Notation,C,B,wrong
+ST0009,BB2,2026-09-02,Math,1,4,M185,Rule 3B - Percent Change,B,C,wrong
+ST0009,BB2,2026-09-02,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0009,BB2,2026-09-02,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0009,BB2,2026-09-02,Math,2,1,M251,RULE 4A - PERIMETER AND AREA OF RECTANGLES,D,D,right
+ST0009,BB2,2026-09-02,Math,2,2,M248,Rule 6A - Part-to-part Ratios,A,D,wrong
+ST0009,BB2,2026-09-02,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0009,BB2,2026-09-02,Math,2,4,M133,Rule 3B - Percent Change,C,D,wrong
+ST0009,BB2,2026-09-02,Math,2,5,M152,Rule 5A - Two-equation Systems,C,D,wrong
+ST0009,BB2,2026-09-02,Math,2,6,M341,Rule 3A - One-variable Equations,3,5/2,wrong
+ST0016,BB3,2026-09-02,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,B,A,wrong
+ST0016,BB3,2026-09-02,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,B,D,wrong
+ST0016,BB3,2026-09-02,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0016,BB3,2026-09-02,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0016,BB3,2026-09-02,Reading and Writing,1,5,RW195,Rule 4B - Verb Tense,C,C,right
+ST0016,BB3,2026-09-02,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0016,BB3,2026-09-02,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,B,D,wrong
+ST0016,BB3,2026-09-02,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0016,BB3,2026-09-02,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,D,B,wrong
+ST0016,BB3,2026-09-02,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0016,BB3,2026-09-02,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0016,BB3,2026-09-02,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,C,A,wrong
+ST0016,BB3,2026-09-02,Math,1,1,M223,rule 5a - two-equation systems,D,B,wrong
+ST0016,BB3,2026-09-02,Math,1,2,M255,Rule 6A - Part-to-part Ratios,D,A,wrong
+ST0016,BB3,2026-09-02,Math,1,3,M269,Rule 3A - One-variable Equations,D,D,right
+ST0016,BB3,2026-09-02,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0016,BB3,2026-09-02,Math,1,5,M150,Rule 1A - Function Notation,D,C,wrong
+ST0016,BB3,2026-09-02,Math,1,6,M311,Rule 3B - Percent Change,D,D,right
+ST0016,BB3,2026-09-02,Math,2,1,M273,Rule 5A - Two-equation Systems,D,D,right
+ST0016,BB3,2026-09-02,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0016,BB3,2026-09-02,Math,2,3,M249,Rule 3A - One-variable Equations,C,C,right
+ST0016,BB3,2026-09-02,Math,2,4,M125,Rule 3B - Percent Change,C,A,wrong
+ST0016,BB3,2026-09-02,Math,2,5,M201,rule 1a - function notation,B,B,right
+ST0016,BB3,2026-09-02,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,B,C,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,D,B,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,C,C,right
+ST0016,BB4,2026-09-03,Reading and Writing,1,3,RW270,Rule 2A - Transitions,B,C,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,C,D,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,C,C,right
+ST0016,BB4,2026-09-03,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,A,C,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0016,BB4,2026-09-03,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,B,A,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,D,B,wrong
+ST0016,BB4,2026-09-03,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0016,BB4,2026-09-03,Math,1,1,M177,Rule 3A - One-variable Equations,8,4/5,wrong
+ST0016,BB4,2026-09-03,Math,1,2,M114,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0016,BB4,2026-09-03,Math,1,3,M130,Rule 3B - Percent Change,D,C,wrong
+ST0016,BB4,2026-09-03,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0016,BB4,2026-09-03,Math,1,5,M295,Rule 5A - Two-equation Systems,C,B,wrong
+ST0016,BB4,2026-09-03,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0016,BB4,2026-09-03,Math,2,1,M155,Rule 3A One-variable Equations,C,C,right
+ST0016,BB4,2026-09-03,Math,2,2,M230,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0016,BB4,2026-09-03,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0016,BB4,2026-09-03,Math,2,4,M314,Rule 3B - Percent Change,D,C,wrong
+ST0016,BB4,2026-09-03,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,D,C,wrong
+ST0016,BB4,2026-09-03,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0006,BB5,2026-09-06,Reading and Writing,1,1,RW146,Rule 2A - Transitions,D,A,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0006,BB5,2026-09-06,Reading and Writing,1,3,RW218,RULE 2B - SENTENCE BOUNDARIES,D,C,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,1,4,RW306,Rule 4B Verb Tense,B,B,right
+ST0006,BB5,2026-09-06,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0006,BB5,2026-09-06,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,2,1,RW333,Rule 2A - Transitions,B,D,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,2,2,RW258,rule 1b - parallel comparisons,D,A,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0006,BB5,2026-09-06,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,A,B,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,D,C,wrong
+ST0006,BB5,2026-09-06,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,A,D,wrong
+ST0006,BB5,2026-09-06,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0006,BB5,2026-09-06,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0006,BB5,2026-09-06,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0006,BB5,2026-09-06,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0006,BB5,2026-09-06,Math,1,5,M158,Rule 3B - Percent Change,A,D,wrong
+ST0006,BB5,2026-09-06,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0006,BB5,2026-09-06,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0006,BB5,2026-09-06,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0006,BB5,2026-09-06,Math,2,3,M239,Rule 6A - Part-to-part Ratios,A,B,wrong
+ST0006,BB5,2026-09-06,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,D,A,wrong
+ST0006,BB5,2026-09-06,Math,2,5,M151,Rule 3A - One-variable Equations,9,14/5,wrong
+ST0006,BB5,2026-09-06,Math,2,6,M336,RULE 1A - FUNCTION NOTATION,B,D,wrong
+ST0016,BB5,2026-09-07,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0016,BB5,2026-09-07,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,C,B,wrong
+ST0016,BB5,2026-09-07,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0016,BB5,2026-09-07,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0016,BB5,2026-09-07,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,A,B,wrong
+ST0016,BB5,2026-09-07,Reading and Writing,1,6,RW161,Rule 5B Pronoun Agreement,C,C,right
+ST0016,BB5,2026-09-07,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0016,BB5,2026-09-07,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,B,A,wrong
+ST0016,BB5,2026-09-07,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0016,BB5,2026-09-07,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0016,BB5,2026-09-07,Reading and Writing,2,5,RW224,RULE 6B - SUBJECT-VERB AGREEMENT,C,C,right
+ST0016,BB5,2026-09-07,Reading and Writing,2,6,RW243,Rule 5B Pronoun Agreement,B,D,wrong
+ST0016,BB5,2026-09-07,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0016,BB5,2026-09-07,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0016,BB5,2026-09-07,Math,1,3,M187,rule 6a - part-to-part ratios,C,D,wrong
+ST0016,BB5,2026-09-07,Math,1,4,M216,Rule 3A - One-variable Equations,C,D,wrong
+ST0016,BB5,2026-09-07,Math,1,5,M158,rule 3b - percent change,D,D,right
+ST0016,BB5,2026-09-07,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0016,BB5,2026-09-07,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0016,BB5,2026-09-07,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0016,BB5,2026-09-07,Math,2,3,M239,Rule 6A - Part-to-part Ratios,A,B,wrong
+ST0016,BB5,2026-09-07,Math,2,4,M278,rule 4a - perimeter and area of rectangles,D,A,wrong
+ST0016,BB5,2026-09-07,Math,2,5,M151,Rule 3A - One-variable Equations,28/10,14/5,right
+ST0016,BB5,2026-09-07,Math,2,6,M336,Rule 1A - Function Notation,C,D,wrong
+ST0002,BB2,2026-09-09,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0002,BB2,2026-09-09,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0002,BB2,2026-09-09,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0002,BB2,2026-09-09,Reading and Writing,1,4,RW240,rule 4b - verb tense,B,B,right
+ST0002,BB2,2026-09-09,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0002,BB2,2026-09-09,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0002,BB2,2026-09-09,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0002,BB2,2026-09-09,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0002,BB2,2026-09-09,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0002,BB2,2026-09-09,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0002,BB2,2026-09-09,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0002,BB2,2026-09-09,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0002,BB2,2026-09-09,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0002,BB2,2026-09-09,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0002,BB2,2026-09-09,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0002,BB2,2026-09-09,Math,1,4,M185,Rule 3B Percent Change,C,C,right
+ST0002,BB2,2026-09-09,Math,1,5,M309,Rule 4A-Perimeter and Area of Rectangles,C,C,right
+ST0002,BB2,2026-09-09,Math,1,6,M264,Rule 6A - Part-to-part Ratios,B,D,wrong
+ST0002,BB2,2026-09-09,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,D,D,right
+ST0002,BB2,2026-09-09,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0002,BB2,2026-09-09,Math,2,3,M134,rule 1a - function notation,A,A,right
+ST0002,BB2,2026-09-09,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0002,BB2,2026-09-09,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0002,BB2,2026-09-09,Math,2,6,M341,Rule 3A - One-variable Equations,3,5/2,wrong
+ST0004,BB5,2026-09-10,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0004,BB5,2026-09-10,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0004,BB5,2026-09-10,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0004,BB5,2026-09-10,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0004,BB5,2026-09-10,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0004,BB5,2026-09-10,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0004,BB5,2026-09-10,Reading and Writing,2,1,RW333,Rule 2A - Transitions,C,D,wrong
+ST0004,BB5,2026-09-10,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,A,A,right
+ST0004,BB5,2026-09-10,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0004,BB5,2026-09-10,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0004,BB5,2026-09-10,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0004,BB5,2026-09-10,Reading and Writing,2,6,RW243,Rule 5B Pronoun Agreement,D,D,right
+ST0004,BB5,2026-09-10,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0004,BB5,2026-09-10,Math,1,2,M318,RULE 1A - FUNCTION NOTATION,C,C,right
+ST0004,BB5,2026-09-10,Math,1,3,M187,Rule 6A - Part-to-part Ratios,A,D,wrong
+ST0004,BB5,2026-09-10,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0004,BB5,2026-09-10,Math,1,5,M158,Rule 3B-Percent Change,D,D,right
+ST0004,BB5,2026-09-10,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0004,BB5,2026-09-10,Math,2,1,M166,rule 3b - percent change,A,B,wrong
+ST0004,BB5,2026-09-10,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0004,BB5,2026-09-10,Math,2,3,M239,Rule 6A - Part-to-part Ratios,B,B,right
+ST0004,BB5,2026-09-10,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0004,BB5,2026-09-10,Math,2,5,M151,Rule 3A: One-variable Equations,28/10,14/5,right
+ST0004,BB5,2026-09-10,Math,2,6,M336,Rule 1A Function Notation,D,D,right
+ST0002,BB4,2026-09-11,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0002,BB4,2026-09-11,Reading and Writing,1,2,RW142,Rule 2B Sentence Boundaries,B,C,wrong
+ST0002,BB4,2026-09-11,Reading and Writing,1,3,RW270,Rule 2A - Transitions,C,C,right
+ST0002,BB4,2026-09-11,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0002,BB4,2026-09-11,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,C,C,right
+ST0002,BB4,2026-09-11,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,C,C,right
+ST0002,BB4,2026-09-11,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0002,BB4,2026-09-11,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0002,BB4,2026-09-11,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0002,BB4,2026-09-11,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0002,BB4,2026-09-11,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0002,BB4,2026-09-11,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0002,BB4,2026-09-11,Math,1,1,M177,Rule 3A - One-variable Equations,4/5,4/5,right
+ST0002,BB4,2026-09-11,Math,1,2,M114,Rule 6A: Part-to-part Ratios,C,D,wrong
+ST0002,BB4,2026-09-11,Math,1,3,M130,Rule 3B - Percent Change,C,C,right
+ST0002,BB4,2026-09-11,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0002,BB4,2026-09-11,Math,1,5,M295,Rule 5A: Two-equation Systems,B,B,right
+ST0002,BB4,2026-09-11,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0002,BB4,2026-09-11,Math,2,1,M155,Rule 3A - One-variable Equations,C,C,right
+ST0002,BB4,2026-09-11,Math,2,2,M230,Rule 6A - Part-to-part Ratios,C,B,wrong
+ST0002,BB4,2026-09-11,Math,2,3,M272,rule 5a - two-equation systems,C,C,right
+ST0002,BB4,2026-09-11,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0002,BB4,2026-09-11,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0002,BB4,2026-09-11,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0001,BB2,2026-09-16,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0001,BB2,2026-09-16,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,C,A,wrong
+ST0001,BB2,2026-09-16,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0001,BB2,2026-09-16,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0001,BB2,2026-09-16,Reading and Writing,1,5,RW268,rule 6b - subject-verb agreement,B,B,right
+ST0001,BB2,2026-09-16,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0001,BB2,2026-09-16,Reading and Writing,2,1,RW160,rule 2b - sentence boundaries,D,A,wrong
+ST0001,BB2,2026-09-16,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,C,A,wrong
+ST0001,BB2,2026-09-16,Reading and Writing,2,3,RW115,RULE 2A - TRANSITIONS,C,C,right
+ST0001,BB2,2026-09-16,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,D,C,wrong
+ST0001,BB2,2026-09-16,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0001,BB2,2026-09-16,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,A,B,wrong
+ST0001,BB2,2026-09-16,Math,1,1,M328,Rule 5A - Two-equation Systems,B,C,wrong
+ST0001,BB2,2026-09-16,Math,1,2,M209,Rule 3A - One-variable Equations,B,C,wrong
+ST0001,BB2,2026-09-16,Math,1,3,M194,rule 1a - function notation,B,B,right
+ST0001,BB2,2026-09-16,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0001,BB2,2026-09-16,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0001,BB2,2026-09-16,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0001,BB2,2026-09-16,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,D,D,right
+ST0001,BB2,2026-09-16,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0001,BB2,2026-09-16,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0001,BB2,2026-09-16,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0001,BB2,2026-09-16,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0001,BB2,2026-09-16,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0010,BB2,2026-09-16,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0010,BB2,2026-09-16,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0010,BB2,2026-09-16,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,B,C,wrong
+ST0010,BB2,2026-09-16,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,C,B,wrong
+ST0010,BB2,2026-09-16,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,A,B,wrong
+ST0010,BB2,2026-09-16,Reading and Writing,1,6,RW147,Rule 2A - Transitions,B,D,wrong
+ST0010,BB2,2026-09-16,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0010,BB2,2026-09-16,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0010,BB2,2026-09-16,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0010,BB2,2026-09-16,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0010,BB2,2026-09-16,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0010,BB2,2026-09-16,Reading and Writing,2,6,RW144,Rule 5B Pronoun Agreement,D,B,wrong
+ST0010,BB2,2026-09-16,Math,1,1,M328,Rule 5A Two-equation Systems,A,C,wrong
+ST0010,BB2,2026-09-16,Math,1,2,M209,Rule 3A - One-variable Equations,B,C,wrong
+ST0010,BB2,2026-09-16,Math,1,3,M194,Rule 1A - Function Notation,A,B,wrong
+ST0010,BB2,2026-09-16,Math,1,4,M185,Rule 3B - Percent Change,B,C,wrong
+ST0010,BB2,2026-09-16,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0010,BB2,2026-09-16,Math,1,6,M264,Rule 6A - Part-to-part Ratios,A,D,wrong
+ST0010,BB2,2026-09-16,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,B,D,wrong
+ST0010,BB2,2026-09-16,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0010,BB2,2026-09-16,Math,2,3,M134,Rule 1A - Function Notation,B,A,wrong
+ST0010,BB2,2026-09-16,Math,2,4,M133,Rule 3B - Percent Change,B,D,wrong
+ST0010,BB2,2026-09-16,Math,2,5,M152,Rule 5A - Two-equation Systems,A,D,wrong
+ST0010,BB2,2026-09-16,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0012,BB2,2026-09-17,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,C,D,wrong
+ST0012,BB2,2026-09-17,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,B,A,wrong
+ST0012,BB2,2026-09-17,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0012,BB2,2026-09-17,Reading and Writing,1,4,RW240,Rule 4B-Verb Tense,C,B,wrong
+ST0012,BB2,2026-09-17,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0012,BB2,2026-09-17,Reading and Writing,1,6,RW147,RULE 2A - TRANSITIONS,D,D,right
+ST0012,BB2,2026-09-17,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0012,BB2,2026-09-17,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0012,BB2,2026-09-17,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0012,BB2,2026-09-17,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0012,BB2,2026-09-17,Reading and Writing,2,5,RW192,Rule 6B: Subject-Verb Agreement,B,C,wrong
+ST0012,BB2,2026-09-17,Reading and Writing,2,6,RW144,Rule 5B-Pronoun Agreement,B,B,right
+ST0012,BB2,2026-09-17,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0012,BB2,2026-09-17,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0012,BB2,2026-09-17,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0012,BB2,2026-09-17,Math,1,4,M185,Rule 3B - Percent Change,A,C,wrong
+ST0012,BB2,2026-09-17,Math,1,5,M309,Rule 4A Perimeter and Area of Rectangles,B,C,wrong
+ST0012,BB2,2026-09-17,Math,1,6,M264,Rule 6A - Part-to-part Ratios,B,D,wrong
+ST0012,BB2,2026-09-17,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,C,D,wrong
+ST0012,BB2,2026-09-17,Math,2,2,M248,Rule 6A Part-to-part Ratios,D,D,right
+ST0012,BB2,2026-09-17,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0012,BB2,2026-09-17,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0012,BB2,2026-09-17,Math,2,5,M152,Rule 5A: Two-equation Systems,D,D,right
+ST0012,BB2,2026-09-17,Math,2,6,M341,Rule 3A - One-variable Equations,3,5/2,wrong
+ST0009,BB3,2026-09-18,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0009,BB3,2026-09-18,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0009,BB3,2026-09-18,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0009,BB3,2026-09-18,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,C,C,right
+ST0009,BB3,2026-09-18,Reading and Writing,1,5,RW195,rule 4b - verb tense,A,C,wrong
+ST0009,BB3,2026-09-18,Reading and Writing,1,6,RW165,Rule 2A Transitions,C,C,right
+ST0009,BB3,2026-09-18,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,A,D,wrong
+ST0009,BB3,2026-09-18,Reading and Writing,2,2,RW119,rule 6b - subject-verb agreement,C,C,right
+ST0009,BB3,2026-09-18,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,B,B,right
+ST0009,BB3,2026-09-18,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0009,BB3,2026-09-18,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0009,BB3,2026-09-18,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,A,A,right
+ST0009,BB3,2026-09-18,Math,1,1,M223,Rule 5A - Two-equation Systems,B,B,right
+ST0009,BB3,2026-09-18,Math,1,2,M255,rule 6a - part-to-part ratios,A,A,right
+ST0009,BB3,2026-09-18,Math,1,3,M269,Rule 3A - One-variable Equations,C,D,wrong
+ST0009,BB3,2026-09-18,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB3,2026-09-18,Math,1,5,M150,Rule 1A - Function Notation,B,C,wrong
+ST0009,BB3,2026-09-18,Math,1,6,M311,Rule 3B - Percent Change,D,D,right
+ST0009,BB3,2026-09-18,Math,2,1,M273,Rule 5A-Two-equation Systems,D,D,right
+ST0009,BB3,2026-09-18,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0009,BB3,2026-09-18,Math,2,3,M249,rule 3a - one-variable equations,C,C,right
+ST0009,BB3,2026-09-18,Math,2,4,M125,Rule 3B - Percent Change,B,A,wrong
+ST0009,BB3,2026-09-18,Math,2,5,M201,Rule 1A - Function Notation,C,B,wrong
+ST0009,BB3,2026-09-18,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0014,BB3,2026-09-18,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,A,A,right
+ST0014,BB3,2026-09-18,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,C,D,wrong
+ST0014,BB3,2026-09-18,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0014,BB3,2026-09-18,Reading and Writing,1,4,RW204,Rule 2B Sentence Boundaries,A,C,wrong
+ST0014,BB3,2026-09-18,Reading and Writing,1,5,RW195,RULE 4B - VERB TENSE,B,C,wrong
+ST0014,BB3,2026-09-18,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0014,BB3,2026-09-18,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,D,D,right
+ST0014,BB3,2026-09-18,Reading and Writing,2,2,RW119,Rule 6B-Subject-Verb Agreement,C,C,right
+ST0014,BB3,2026-09-18,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,B,B,right
+ST0014,BB3,2026-09-18,Reading and Writing,2,4,RW138,Rule 5B Pronoun Agreement,B,B,right
+ST0014,BB3,2026-09-18,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0014,BB3,2026-09-18,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0014,BB3,2026-09-18,Math,1,1,M223,rule 5a - two-equation systems,B,B,right
+ST0014,BB3,2026-09-18,Math,1,2,M255,Rule 6A - Part-to-part Ratios,A,A,right
+ST0014,BB3,2026-09-18,Math,1,3,M269,Rule 3A: One-variable Equations,C,D,wrong
+ST0014,BB3,2026-09-18,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,C,A,wrong
+ST0014,BB3,2026-09-18,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0014,BB3,2026-09-18,Math,1,6,M311,Rule 3B - Percent Change,A,D,wrong
+ST0014,BB3,2026-09-18,Math,2,1,M273,Rule 5A - Two-equation Systems,B,D,wrong
+ST0014,BB3,2026-09-18,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0014,BB3,2026-09-18,Math,2,3,M249,Rule 3A - One-variable Equations,C,C,right
+ST0014,BB3,2026-09-18,Math,2,4,M125,Rule 3B - Percent Change,A,A,right
+ST0014,BB3,2026-09-18,Math,2,5,M201,Rule 1A - Function Notation,B,B,right
+ST0014,BB3,2026-09-18,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0012,BB3,2026-09-21,Reading and Writing,1,1,RW178,rule 1b - parallel comparisons,A,A,right
+ST0012,BB3,2026-09-21,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0012,BB3,2026-09-21,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0012,BB3,2026-09-21,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,C,C,right
+ST0012,BB3,2026-09-21,Reading and Writing,1,5,RW195,Rule 4B: Verb Tense,C,C,right
+ST0012,BB3,2026-09-21,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0012,BB3,2026-09-21,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,D,D,right
+ST0012,BB3,2026-09-21,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0012,BB3,2026-09-21,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,C,B,wrong
+ST0012,BB3,2026-09-21,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0012,BB3,2026-09-21,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0012,BB3,2026-09-21,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,A,A,right
+ST0012,BB3,2026-09-21,Math,1,1,M223,Rule 5A - Two-equation Systems,B,B,right
+ST0012,BB3,2026-09-21,Math,1,2,M255,Rule 6A - Part-to-part Ratios,A,A,right
+ST0012,BB3,2026-09-21,Math,1,3,M269,Rule 3A-One-variable Equations,D,D,right
+ST0012,BB3,2026-09-21,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,C,A,wrong
+ST0012,BB3,2026-09-21,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0012,BB3,2026-09-21,Math,1,6,M311,Rule 3B - Percent Change,D,D,right
+ST0012,BB3,2026-09-21,Math,2,1,M273,Rule 5A - Two-equation Systems,D,D,right
+ST0012,BB3,2026-09-21,Math,2,2,M281,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0012,BB3,2026-09-21,Math,2,3,M249,Rule 3A - One-variable Equations,C,C,right
+ST0012,BB3,2026-09-21,Math,2,4,M125,rule 3b - percent change,D,A,wrong
+ST0012,BB3,2026-09-21,Math,2,5,M201,Rule 1A - Function Notation,B,B,right
+ST0012,BB3,2026-09-21,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0012,BB4,2026-09-22,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0012,BB4,2026-09-22,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,C,C,right
+ST0012,BB4,2026-09-22,Reading and Writing,1,3,RW270,Rule 2A - Transitions,C,C,right
+ST0012,BB4,2026-09-22,Reading and Writing,1,4,RW113,Rule 6B Subject-Verb Agreement,D,D,right
+ST0012,BB4,2026-09-22,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,B,C,wrong
+ST0012,BB4,2026-09-22,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,A,C,wrong
+ST0012,BB4,2026-09-22,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,A,C,wrong
+ST0012,BB4,2026-09-22,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0012,BB4,2026-09-22,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,B,C,wrong
+ST0012,BB4,2026-09-22,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0012,BB4,2026-09-22,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0012,BB4,2026-09-22,Reading and Writing,2,6,RW247,Rule 2A-Transitions,C,C,right
+ST0012,BB4,2026-09-22,Math,1,1,M177,Rule 3A - One-variable Equations,4/5,4/5,right
+ST0012,BB4,2026-09-22,Math,1,2,M114,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0012,BB4,2026-09-22,Math,1,3,M130,Rule 3B-Percent Change,C,C,right
+ST0012,BB4,2026-09-22,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0012,BB4,2026-09-22,Math,1,5,M295,Rule 5A - Two-equation Systems,A,B,wrong
+ST0012,BB4,2026-09-22,Math,1,6,M277,Rule 1A - Function Notation,D,B,wrong
+ST0012,BB4,2026-09-22,Math,2,1,M155,Rule 3A - One-variable Equations,A,C,wrong
+ST0012,BB4,2026-09-22,Math,2,2,M230,Rule 6A - Part-to-part Ratios,A,B,wrong
+ST0012,BB4,2026-09-22,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0012,BB4,2026-09-22,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0012,BB4,2026-09-22,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,A,C,wrong
+ST0012,BB4,2026-09-22,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0014,BB5,2026-09-23,Reading and Writing,1,1,RW146,Rule 2A - Transitions,C,A,wrong
+ST0014,BB5,2026-09-23,Reading and Writing,1,2,RW327,Rule 6B: Subject-Verb Agreement,C,B,wrong
+ST0014,BB5,2026-09-23,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0014,BB5,2026-09-23,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0014,BB5,2026-09-23,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0014,BB5,2026-09-23,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0014,BB5,2026-09-23,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0014,BB5,2026-09-23,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,A,A,right
+ST0014,BB5,2026-09-23,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0014,BB5,2026-09-23,Reading and Writing,2,4,RW136,Rule 2B: Sentence Boundaries,D,B,wrong
+ST0014,BB5,2026-09-23,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,D,C,wrong
+ST0014,BB5,2026-09-23,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0014,BB5,2026-09-23,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0014,BB5,2026-09-23,Math,1,2,M318,Rule 1A - Function Notation,A,C,wrong
+ST0014,BB5,2026-09-23,Math,1,3,M187,Rule 6A: Part-to-part Ratios,D,D,right
+ST0014,BB5,2026-09-23,Math,1,4,M216,Rule 3A - One-variable Equations,C,D,wrong
+ST0014,BB5,2026-09-23,Math,1,5,M158,Rule 3B - Percent Change,D,D,right
+ST0014,BB5,2026-09-23,Math,1,6,M315,Rule 5A - Two-equation Systems,A,C,wrong
+ST0014,BB5,2026-09-23,Math,2,1,M166,Rule 3B - Percent Change,C,B,wrong
+ST0014,BB5,2026-09-23,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0014,BB5,2026-09-23,Math,2,3,M239,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0014,BB5,2026-09-23,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0014,BB5,2026-09-23,Math,2,5,M151,Rule 3A - One-variable Equations,2.8,14/5,right
+ST0014,BB5,2026-09-23,Math,2,6,M336,Rule 1A - Function Notation,B,D,wrong
+ST0008,BB4,2026-09-24,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0008,BB4,2026-09-24,Reading and Writing,1,2,RW142,Rule 2B-Sentence Boundaries,B,C,wrong
+ST0008,BB4,2026-09-24,Reading and Writing,1,3,RW270,Rule 2A - Transitions,C,C,right
+ST0008,BB4,2026-09-24,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,C,D,wrong
+ST0008,BB4,2026-09-24,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0008,BB4,2026-09-24,Reading and Writing,1,6,RW141,rule 1b - parallel comparisons,D,C,wrong
+ST0008,BB4,2026-09-24,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0008,BB4,2026-09-24,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0008,BB4,2026-09-24,Reading and Writing,2,3,RW112,RULE 5B - PRONOUN AGREEMENT,C,C,right
+ST0008,BB4,2026-09-24,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0008,BB4,2026-09-24,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0008,BB4,2026-09-24,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0008,BB4,2026-09-24,Math,1,1,M177,Rule 3A - One-variable Equations,8/10,4/5,right
+ST0008,BB4,2026-09-24,Math,1,2,M114,Rule 6A - Part-to-part Ratios,D,D,right
+ST0008,BB4,2026-09-24,Math,1,3,M130,Rule 3B - Percent Change,C,C,right
+ST0008,BB4,2026-09-24,Math,1,4,M261,Rule 4A Perimeter and Area of Rectangles,A,A,right
+ST0008,BB4,2026-09-24,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0008,BB4,2026-09-24,Math,1,6,M277,Rule 1A - Function Notation,D,B,wrong
+ST0008,BB4,2026-09-24,Math,2,1,M155,Rule 3A - One-variable Equations,D,C,wrong
+ST0008,BB4,2026-09-24,Math,2,2,M230,Rule 6A - Part-to-part Ratios,B,B,right
+ST0008,BB4,2026-09-24,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0008,BB4,2026-09-24,Math,2,4,M314,Rule 3B - Percent Change,D,C,wrong
+ST0008,BB4,2026-09-24,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0008,BB4,2026-09-24,Math,2,6,M162,Rule 1A - Function Notation,B,A,wrong
+ST0009,BB4,2026-09-25,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0009,BB4,2026-09-25,Reading and Writing,1,2,RW142,rule 2b - sentence boundaries,C,C,right
+ST0009,BB4,2026-09-25,Reading and Writing,1,3,RW270,Rule 2A - Transitions,B,C,wrong
+ST0009,BB4,2026-09-25,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0009,BB4,2026-09-25,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,A,C,wrong
+ST0009,BB4,2026-09-25,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,C,C,right
+ST0009,BB4,2026-09-25,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0009,BB4,2026-09-25,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0009,BB4,2026-09-25,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0009,BB4,2026-09-25,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0009,BB4,2026-09-25,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0009,BB4,2026-09-25,Reading and Writing,2,6,RW247,Rule 2A - Transitions,D,C,wrong
+ST0009,BB4,2026-09-25,Math,1,1,M177,Rule 3A - One-variable Equations,.8,4/5,right
+ST0009,BB4,2026-09-25,Math,1,2,M114,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0009,BB4,2026-09-25,Math,1,3,M130,Rule 3B - Percent Change,A,C,wrong
+ST0009,BB4,2026-09-25,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB4,2026-09-25,Math,1,5,M295,Rule 5A - Two-equation Systems,D,B,wrong
+ST0009,BB4,2026-09-25,Math,1,6,M277,Rule 1A-Function Notation,D,B,wrong
+ST0009,BB4,2026-09-25,Math,2,1,M155,Rule 3A - One-variable Equations,D,C,wrong
+ST0009,BB4,2026-09-25,Math,2,2,M230,Rule 6A - Part-to-part Ratios,B,B,right
+ST0009,BB4,2026-09-25,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0009,BB4,2026-09-25,Math,2,4,M314,RULE 3B - PERCENT CHANGE,D,C,wrong
+ST0009,BB4,2026-09-25,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0009,BB4,2026-09-25,Math,2,6,M162,Rule 1A: Function Notation,B,A,wrong
+ST0013,BB3,2026-09-27,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,C,A,wrong
+ST0013,BB3,2026-09-27,Reading and Writing,1,2,RW116,rule 6b - subject-verb agreement,D,D,right
+ST0013,BB3,2026-09-27,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0013,BB3,2026-09-27,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,C,C,right
+ST0013,BB3,2026-09-27,Reading and Writing,1,5,RW195,Rule 4B - Verb Tense,D,C,wrong
+ST0013,BB3,2026-09-27,Reading and Writing,1,6,RW165,Rule 2A: Transitions,C,C,right
+ST0013,BB3,2026-09-27,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,A,D,wrong
+ST0013,BB3,2026-09-27,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0013,BB3,2026-09-27,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,B,B,right
+ST0013,BB3,2026-09-27,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0013,BB3,2026-09-27,Reading and Writing,2,5,RW329,Rule 2A - Transitions,B,D,wrong
+ST0013,BB3,2026-09-27,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,A,A,right
+ST0013,BB3,2026-09-27,Math,1,1,M223,Rule 5A - Two-equation Systems,B,B,right
+ST0013,BB3,2026-09-27,Math,1,2,M255,Rule 6A - Part-to-part Ratios,D,A,wrong
+ST0013,BB3,2026-09-27,Math,1,3,M269,Rule 3A - One-variable Equations,B,D,wrong
+ST0013,BB3,2026-09-27,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0013,BB3,2026-09-27,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0013,BB3,2026-09-27,Math,1,6,M311,Rule 3B - Percent Change,D,D,right
+ST0013,BB3,2026-09-27,Math,2,1,M273,Rule 5A - Two-equation Systems,D,D,right
+ST0013,BB3,2026-09-27,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0013,BB3,2026-09-27,Math,2,3,M249,Rule 3A - One-variable Equations,A,C,wrong
+ST0013,BB3,2026-09-27,Math,2,4,M125,RULE 3B - PERCENT CHANGE,A,A,right
+ST0013,BB3,2026-09-27,Math,2,5,M201,Rule 1A - Function Notation,B,B,right
+ST0013,BB3,2026-09-27,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0009,BB5,2026-09-29,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0009,BB5,2026-09-29,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0009,BB5,2026-09-29,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0009,BB5,2026-09-29,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0009,BB5,2026-09-29,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0009,BB5,2026-09-29,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0009,BB5,2026-09-29,Reading and Writing,2,1,RW333,Rule 2A - Transitions,A,D,wrong
+ST0009,BB5,2026-09-29,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,A,A,right
+ST0009,BB5,2026-09-29,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0009,BB5,2026-09-29,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0009,BB5,2026-09-29,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,D,C,wrong
+ST0009,BB5,2026-09-29,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0009,BB5,2026-09-29,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB5,2026-09-29,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0009,BB5,2026-09-29,Math,1,3,M187,Rule 6A - Part-to-part Ratios,B,D,wrong
+ST0009,BB5,2026-09-29,Math,1,4,M216,Rule 3A: One-variable Equations,D,D,right
+ST0009,BB5,2026-09-29,Math,1,5,M158,Rule 3B - Percent Change,C,D,wrong
+ST0009,BB5,2026-09-29,Math,1,6,M315,Rule 5A-Two-equation Systems,D,C,wrong
+ST0009,BB5,2026-09-29,Math,2,1,M166,Rule 3B - Percent Change,A,B,wrong
+ST0009,BB5,2026-09-29,Math,2,2,M105,Rule 5A - Two-equation Systems,D,A,wrong
+ST0009,BB5,2026-09-29,Math,2,3,M239,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0009,BB5,2026-09-29,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB5,2026-09-29,Math,2,5,M151,Rule 3A - One-variable Equations,14,14/5,wrong
+ST0009,BB5,2026-09-29,Math,2,6,M336,Rule 1A: Function Notation,D,D,right
+ST0013,BB5,2026-09-29,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0013,BB5,2026-09-29,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0013,BB5,2026-09-29,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0013,BB5,2026-09-29,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,D,B,wrong
+ST0013,BB5,2026-09-29,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,C,B,wrong
+ST0013,BB5,2026-09-29,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0013,BB5,2026-09-29,Reading and Writing,2,1,RW333,Rule 2A Transitions,B,D,wrong
+ST0013,BB5,2026-09-29,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0013,BB5,2026-09-29,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,B,C,wrong
+ST0013,BB5,2026-09-29,Reading and Writing,2,4,RW136,rule 2b - sentence boundaries,B,B,right
+ST0013,BB5,2026-09-29,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0013,BB5,2026-09-29,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0013,BB5,2026-09-29,Math,1,1,M207,Rule 4A: Perimeter and Area of Rectangles,A,A,right
+ST0013,BB5,2026-09-29,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0013,BB5,2026-09-29,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0013,BB5,2026-09-29,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0013,BB5,2026-09-29,Math,1,5,M158,Rule 3B - Percent Change,B,D,wrong
+ST0013,BB5,2026-09-29,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0013,BB5,2026-09-29,Math,2,1,M166,Rule 3B: Percent Change,B,B,right
+ST0013,BB5,2026-09-29,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0013,BB5,2026-09-29,Math,2,3,M239,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0013,BB5,2026-09-29,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0013,BB5,2026-09-29,Math,2,5,M151,Rule 3A-One-variable Equations,9,14/5,wrong
+ST0013,BB5,2026-09-29,Math,2,6,M336,Rule 1A Function Notation,D,D,right
+ST0010,BB3,2026-10-01,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,C,A,wrong
+ST0010,BB3,2026-10-01,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0010,BB3,2026-10-01,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0010,BB3,2026-10-01,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,B,C,wrong
+ST0010,BB3,2026-10-01,Reading and Writing,1,5,RW195,rule 4b - verb tense,C,C,right
+ST0010,BB3,2026-10-01,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0010,BB3,2026-10-01,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,B,D,wrong
+ST0010,BB3,2026-10-01,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0010,BB3,2026-10-01,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,B,B,right
+ST0010,BB3,2026-10-01,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,A,B,wrong
+ST0010,BB3,2026-10-01,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0010,BB3,2026-10-01,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,A,A,right
+ST0010,BB3,2026-10-01,Math,1,1,M223,rule 5a - two-equation systems,C,B,wrong
+ST0010,BB3,2026-10-01,Math,1,2,M255,Rule 6A - Part-to-part Ratios,A,A,right
+ST0010,BB3,2026-10-01,Math,1,3,M269,Rule 3A - One-variable Equations,D,D,right
+ST0010,BB3,2026-10-01,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,C,A,wrong
+ST0010,BB3,2026-10-01,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0010,BB3,2026-10-01,Math,1,6,M311,Rule 3B - Percent Change,D,D,right
+ST0010,BB3,2026-10-01,Math,2,1,M273,Rule 5A - Two-equation Systems,D,D,right
+ST0010,BB3,2026-10-01,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0010,BB3,2026-10-01,Math,2,3,M249,Rule 3A - One-variable Equations,C,C,right
+ST0010,BB3,2026-10-01,Math,2,4,M125,Rule 3B - Percent Change,A,A,right
+ST0010,BB3,2026-10-01,Math,2,5,M201,Rule 1A - Function Notation,A,B,wrong
+ST0010,BB3,2026-10-01,Math,2,6,M190,rule 4a - perimeter and area of rectangles,C,C,right
+ST0012,BB5,2026-10-03,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0012,BB5,2026-10-03,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,A,B,wrong
+ST0012,BB5,2026-10-03,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0012,BB5,2026-10-03,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0012,BB5,2026-10-03,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0012,BB5,2026-10-03,Reading and Writing,1,6,RW161,rule 5b - pronoun agreement,D,C,wrong
+ST0012,BB5,2026-10-03,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0012,BB5,2026-10-03,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,B,A,wrong
+ST0012,BB5,2026-10-03,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,D,C,wrong
+ST0012,BB5,2026-10-03,Reading and Writing,2,4,RW136,rule 2b - sentence boundaries,D,B,wrong
+ST0012,BB5,2026-10-03,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0012,BB5,2026-10-03,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,A,D,wrong
+ST0012,BB5,2026-10-03,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0012,BB5,2026-10-03,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0012,BB5,2026-10-03,Math,1,3,M187,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0012,BB5,2026-10-03,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0012,BB5,2026-10-03,Math,1,5,M158,Rule 3B - Percent Change,D,D,right
+ST0012,BB5,2026-10-03,Math,1,6,M315,rule 5a - two-equation systems,D,C,wrong
+ST0012,BB5,2026-10-03,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0012,BB5,2026-10-03,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0012,BB5,2026-10-03,Math,2,3,M239,Rule 6A - Part-to-part Ratios,A,B,wrong
+ST0012,BB5,2026-10-03,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0012,BB5,2026-10-03,Math,2,5,M151,Rule 3A - One-variable Equations,14/5,14/5,right
+ST0012,BB5,2026-10-03,Math,2,6,M336,Rule 1A - Function Notation,D,D,right
+ST0001,BB3,2026-10-04,Reading and Writing,1,1,RW178,Rule 1B - Parallel Comparisons,A,A,right
+ST0001,BB3,2026-10-04,Reading and Writing,1,2,RW116,RULE 6B - SUBJECT-VERB AGREEMENT,D,D,right
+ST0001,BB3,2026-10-04,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0001,BB3,2026-10-04,Reading and Writing,1,4,RW204,RULE 2B - SENTENCE BOUNDARIES,C,C,right
+ST0001,BB3,2026-10-04,Reading and Writing,1,5,RW195,rule 4b - verb tense,C,C,right
+ST0001,BB3,2026-10-04,Reading and Writing,1,6,RW165,Rule 2A - Transitions,C,C,right
+ST0001,BB3,2026-10-04,Reading and Writing,2,1,RW332,Rule 4B - Verb Tense,D,D,right
+ST0001,BB3,2026-10-04,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0001,BB3,2026-10-04,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,D,B,wrong
+ST0001,BB3,2026-10-04,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0001,BB3,2026-10-04,Reading and Writing,2,5,RW329,Rule 2A - Transitions,D,D,right
+ST0001,BB3,2026-10-04,Reading and Writing,2,6,RW220,Rule 2B - Sentence Boundaries,D,A,wrong
+ST0001,BB3,2026-10-04,Math,1,1,M223,Rule 5A - Two-equation Systems,C,B,wrong
+ST0001,BB3,2026-10-04,Math,1,2,M255,Rule 6A - Part-to-part Ratios,A,A,right
+ST0001,BB3,2026-10-04,Math,1,3,M269,Rule 3A - One-variable Equations,D,D,right
+ST0001,BB3,2026-10-04,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0001,BB3,2026-10-04,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0001,BB3,2026-10-04,Math,1,6,M311,Rule 3B Percent Change,D,D,right
+ST0001,BB3,2026-10-04,Math,2,1,M273,Rule 5A - Two-equation Systems,B,D,wrong
+ST0001,BB3,2026-10-04,Math,2,2,M281,rule 6a - part-to-part ratios,B,B,right
+ST0001,BB3,2026-10-04,Math,2,3,M249,Rule 3A - One-variable Equations,C,C,right
+ST0001,BB3,2026-10-04,Math,2,4,M125,Rule 3B - Percent Change,B,A,wrong
+ST0001,BB3,2026-10-04,Math,2,5,M201,Rule 1A - Function Notation,A,B,wrong
+ST0001,BB3,2026-10-04,Math,2,6,M190,RULE 4A - PERIMETER AND AREA OF RECTANGLES,C,C,right
+ST0003,BB5,2026-10-07,Reading and Writing,1,1,RW146,rule 2a - transitions,A,A,right
+ST0003,BB5,2026-10-07,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0003,BB5,2026-10-07,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0003,BB5,2026-10-07,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0003,BB5,2026-10-07,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0003,BB5,2026-10-07,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,B,C,wrong
+ST0003,BB5,2026-10-07,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0003,BB5,2026-10-07,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,C,A,wrong
+ST0003,BB5,2026-10-07,Reading and Writing,2,3,RW319,rule 4b - verb tense,C,C,right
+ST0003,BB5,2026-10-07,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0003,BB5,2026-10-07,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0003,BB5,2026-10-07,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,C,D,wrong
+ST0003,BB5,2026-10-07,Math,1,1,M207,Rule 4A Perimeter and Area of Rectangles,C,A,wrong
+ST0003,BB5,2026-10-07,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0003,BB5,2026-10-07,Math,1,3,M187,Rule 6A Part-to-part Ratios,D,D,right
+ST0003,BB5,2026-10-07,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0003,BB5,2026-10-07,Math,1,5,M158,Rule 3B - Percent Change,D,D,right
+ST0003,BB5,2026-10-07,Math,1,6,M315,Rule 5A - Two-equation Systems,B,C,wrong
+ST0003,BB5,2026-10-07,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0003,BB5,2026-10-07,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0003,BB5,2026-10-07,Math,2,3,M239,Rule 6A Part-to-part Ratios,B,B,right
+ST0003,BB5,2026-10-07,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0003,BB5,2026-10-07,Math,2,5,M151,Rule 3A - One-variable Equations,14/5,14/5,right
+ST0003,BB5,2026-10-07,Math,2,6,M336,Rule 1A - Function Notation,D,D,right
+ST0011,BB4,2026-10-07,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0011,BB4,2026-10-07,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,A,C,wrong
+ST0011,BB4,2026-10-07,Reading and Writing,1,3,RW270,Rule 2A - Transitions,B,C,wrong
+ST0011,BB4,2026-10-07,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0011,BB4,2026-10-07,Reading and Writing,1,5,RW302,rule 5b - pronoun agreement,C,C,right
+ST0011,BB4,2026-10-07,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,D,C,wrong
+ST0011,BB4,2026-10-07,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0011,BB4,2026-10-07,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0011,BB4,2026-10-07,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0011,BB4,2026-10-07,Reading and Writing,2,4,RW181,Rule 6B Subject-Verb Agreement,A,C,wrong
+ST0011,BB4,2026-10-07,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0011,BB4,2026-10-07,Reading and Writing,2,6,RW247,RULE 2A - TRANSITIONS,C,C,right
+ST0011,BB4,2026-10-07,Math,1,1,M177,Rule 3A - One-variable Equations,0.8,4/5,right
+ST0011,BB4,2026-10-07,Math,1,2,M114,Rule 6A - Part-to-part Ratios,A,D,wrong
+ST0011,BB4,2026-10-07,Math,1,3,M130,Rule 3B - Percent Change,D,C,wrong
+ST0011,BB4,2026-10-07,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,B,A,wrong
+ST0011,BB4,2026-10-07,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0011,BB4,2026-10-07,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0011,BB4,2026-10-07,Math,2,1,M155,Rule 3A One-variable Equations,C,C,right
+ST0011,BB4,2026-10-07,Math,2,2,M230,Rule 6A - Part-to-part Ratios,C,B,wrong
+ST0011,BB4,2026-10-07,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0011,BB4,2026-10-07,Math,2,4,M314,Rule 3B-Percent Change,B,C,wrong
+ST0011,BB4,2026-10-07,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0011,BB4,2026-10-07,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0016,BB4,2026-10-07,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,B,B,right
+ST0016,BB4,2026-10-07,Reading and Writing,1,2,RW142,RULE 2B - SENTENCE BOUNDARIES,A,C,wrong
+ST0016,BB4,2026-10-07,Reading and Writing,1,3,RW270,Rule 2A - Transitions,C,C,right
+ST0016,BB4,2026-10-07,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,A,D,wrong
+ST0016,BB4,2026-10-07,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,B,C,wrong
+ST0016,BB4,2026-10-07,Reading and Writing,1,6,RW141,Rule 1B: Parallel Comparisons,B,C,wrong
+ST0016,BB4,2026-10-07,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,D,C,wrong
+ST0016,BB4,2026-10-07,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0016,BB4,2026-10-07,Reading and Writing,2,3,RW112,rule 5b - pronoun agreement,C,C,right
+ST0016,BB4,2026-10-07,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,D,C,wrong
+ST0016,BB4,2026-10-07,Reading and Writing,2,5,RW229,RULE 4B - VERB TENSE,B,B,right
+ST0016,BB4,2026-10-07,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0016,BB4,2026-10-07,Math,1,1,M177,Rule 3A - One-variable Equations,8/10,4/5,right
+ST0016,BB4,2026-10-07,Math,1,2,M114,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0016,BB4,2026-10-07,Math,1,3,M130,Rule 3B - Percent Change,C,C,right
+ST0016,BB4,2026-10-07,Math,1,4,M261,rule 4a - perimeter and area of rectangles,B,A,wrong
+ST0016,BB4,2026-10-07,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0016,BB4,2026-10-07,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0016,BB4,2026-10-07,Math,2,1,M155,Rule 3A - One-variable Equations,C,C,right
+ST0016,BB4,2026-10-07,Math,2,2,M230,Rule 6A - Part-to-part Ratios,B,B,right
+ST0016,BB4,2026-10-07,Math,2,3,M272,RULE 5A - TWO-EQUATION SYSTEMS,C,C,right
+ST0016,BB4,2026-10-07,Math,2,4,M314,Rule 3B Percent Change,A,C,wrong
+ST0016,BB4,2026-10-07,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0016,BB4,2026-10-07,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0010,BB4,2026-10-09,Reading and Writing,1,1,RW157,Rule 4B - Verb Tense,C,B,wrong
+ST0010,BB4,2026-10-09,Reading and Writing,1,2,RW142,Rule 2B - Sentence Boundaries,C,C,right
+ST0010,BB4,2026-10-09,Reading and Writing,1,3,RW270,Rule 2A - Transitions,C,C,right
+ST0010,BB4,2026-10-09,Reading and Writing,1,4,RW113,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0010,BB4,2026-10-09,Reading and Writing,1,5,RW302,Rule 5B - Pronoun Agreement,C,C,right
+ST0010,BB4,2026-10-09,Reading and Writing,1,6,RW141,Rule 1B - Parallel Comparisons,A,C,wrong
+ST0010,BB4,2026-10-09,Reading and Writing,2,1,RW351,Rule 2B - Sentence Boundaries,C,C,right
+ST0010,BB4,2026-10-09,Reading and Writing,2,2,RW211,Rule 1B - Parallel Comparisons,A,A,right
+ST0010,BB4,2026-10-09,Reading and Writing,2,3,RW112,Rule 5B - Pronoun Agreement,C,C,right
+ST0010,BB4,2026-10-09,Reading and Writing,2,4,RW181,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0010,BB4,2026-10-09,Reading and Writing,2,5,RW229,Rule 4B - Verb Tense,B,B,right
+ST0010,BB4,2026-10-09,Reading and Writing,2,6,RW247,Rule 2A - Transitions,C,C,right
+ST0010,BB4,2026-10-09,Math,1,1,M177,Rule 3A - One-variable Equations,8,4/5,wrong
+ST0010,BB4,2026-10-09,Math,1,2,M114,Rule 6A - Part-to-part Ratios,B,D,wrong
+ST0010,BB4,2026-10-09,Math,1,3,M130,Rule 3B - Percent Change,A,C,wrong
+ST0010,BB4,2026-10-09,Math,1,4,M261,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0010,BB4,2026-10-09,Math,1,5,M295,Rule 5A - Two-equation Systems,B,B,right
+ST0010,BB4,2026-10-09,Math,1,6,M277,Rule 1A - Function Notation,B,B,right
+ST0010,BB4,2026-10-09,Math,2,1,M155,Rule 3A - One-variable Equations,D,C,wrong
+ST0010,BB4,2026-10-09,Math,2,2,M230,Rule 6A - Part-to-part Ratios,C,B,wrong
+ST0010,BB4,2026-10-09,Math,2,3,M272,Rule 5A - Two-equation Systems,C,C,right
+ST0010,BB4,2026-10-09,Math,2,4,M314,Rule 3B - Percent Change,C,C,right
+ST0010,BB4,2026-10-09,Math,2,5,M232,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0010,BB4,2026-10-09,Math,2,6,M162,Rule 1A - Function Notation,A,A,right
+ST0012,BB2,2026-10-09,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,C,D,wrong
+ST0012,BB2,2026-10-09,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0012,BB2,2026-10-09,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,A,C,wrong
+ST0012,BB2,2026-10-09,Reading and Writing,1,4,RW240,rule 4b - verb tense,B,B,right
+ST0012,BB2,2026-10-09,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0012,BB2,2026-10-09,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0012,BB2,2026-10-09,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0012,BB2,2026-10-09,Reading and Writing,2,2,RW221,Rule 1B-Parallel Comparisons,A,A,right
+ST0012,BB2,2026-10-09,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0012,BB2,2026-10-09,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0012,BB2,2026-10-09,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0012,BB2,2026-10-09,Reading and Writing,2,6,RW144,rule 5b - pronoun agreement,B,B,right
+ST0012,BB2,2026-10-09,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0012,BB2,2026-10-09,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0012,BB2,2026-10-09,Math,1,3,M194,Rule 1A: Function Notation,B,B,right
+ST0012,BB2,2026-10-09,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0012,BB2,2026-10-09,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0012,BB2,2026-10-09,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0012,BB2,2026-10-09,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,C,D,wrong
+ST0012,BB2,2026-10-09,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0012,BB2,2026-10-09,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0012,BB2,2026-10-09,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0012,BB2,2026-10-09,Math,2,5,M152,rule 5a - two-equation systems,D,D,right
+ST0012,BB2,2026-10-09,Math,2,6,M341,Rule 3A One-variable Equations,5/2,5/2,right
+ST0015,BB5,2026-10-11,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0015,BB5,2026-10-11,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0015,BB5,2026-10-11,Reading and Writing,1,3,RW218,Rule 2B-Sentence Boundaries,B,C,wrong
+ST0015,BB5,2026-10-11,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0015,BB5,2026-10-11,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0015,BB5,2026-10-11,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0015,BB5,2026-10-11,Reading and Writing,2,1,RW333,Rule 2A - Transitions,B,D,wrong
+ST0015,BB5,2026-10-11,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0015,BB5,2026-10-11,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,B,C,wrong
+ST0015,BB5,2026-10-11,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,D,B,wrong
+ST0015,BB5,2026-10-11,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0015,BB5,2026-10-11,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0015,BB5,2026-10-11,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0015,BB5,2026-10-11,Math,1,2,M318,Rule 1A - Function Notation,B,C,wrong
+ST0015,BB5,2026-10-11,Math,1,3,M187,Rule 6A: Part-to-part Ratios,A,D,wrong
+ST0015,BB5,2026-10-11,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0015,BB5,2026-10-11,Math,1,5,M158,Rule 3B - Percent Change,B,D,wrong
+ST0015,BB5,2026-10-11,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0015,BB5,2026-10-11,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0015,BB5,2026-10-11,Math,2,2,M105,Rule 5A: Two-equation Systems,A,A,right
+ST0015,BB5,2026-10-11,Math,2,3,M239,Rule 6A Part-to-part Ratios,B,B,right
+ST0015,BB5,2026-10-11,Math,2,4,M278,RULE 4A - PERIMETER AND AREA OF RECTANGLES,A,A,right
+ST0015,BB5,2026-10-11,Math,2,5,M151,Rule 3A - One-variable Equations,2.8,14/5,right
+ST0015,BB5,2026-10-11,Math,2,6,M336,Rule 1A - Function Notation,D,D,right
+ST0001,BB5,2026-10-12,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0001,BB5,2026-10-12,Reading and Writing,1,2,RW327,Rule 6B Subject-Verb Agreement,B,B,right
+ST0001,BB5,2026-10-12,Reading and Writing,1,3,RW218,rule 2b - sentence boundaries,B,C,wrong
+ST0001,BB5,2026-10-12,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0001,BB5,2026-10-12,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0001,BB5,2026-10-12,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0001,BB5,2026-10-12,Reading and Writing,2,1,RW333,Rule 2A - Transitions,C,D,wrong
+ST0001,BB5,2026-10-12,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,B,A,wrong
+ST0001,BB5,2026-10-12,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0001,BB5,2026-10-12,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,C,B,wrong
+ST0001,BB5,2026-10-12,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,B,C,wrong
+ST0001,BB5,2026-10-12,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0001,BB5,2026-10-12,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0001,BB5,2026-10-12,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0001,BB5,2026-10-12,Math,1,3,M187,Rule 6A - Part-to-part Ratios,A,D,wrong
+ST0001,BB5,2026-10-12,Math,1,4,M216,Rule 3A - One-variable Equations,A,D,wrong
+ST0001,BB5,2026-10-12,Math,1,5,M158,RULE 3B - PERCENT CHANGE,C,D,wrong
+ST0001,BB5,2026-10-12,Math,1,6,M315,Rule 5A - Two-equation Systems,A,C,wrong
+ST0001,BB5,2026-10-12,Math,2,1,M166,rule 3b - percent change,C,B,wrong
+ST0001,BB5,2026-10-12,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0001,BB5,2026-10-12,Math,2,3,M239,Rule 6A - Part-to-part Ratios,A,B,wrong
+ST0001,BB5,2026-10-12,Math,2,4,M278,rule 4a - perimeter and area of rectangles,A,A,right
+ST0001,BB5,2026-10-12,Math,2,5,M151,Rule 3A - One-variable Equations,14,14/5,wrong
+ST0001,BB5,2026-10-12,Math,2,6,M336,Rule 1A - Function Notation,D,D,right
+ST0005,BB5,2026-10-12,Reading and Writing,1,1,RW146,Rule 2A: Transitions,D,A,wrong
+ST0005,BB5,2026-10-12,Reading and Writing,1,2,RW327,rule 6b - subject-verb agreement,B,B,right
+ST0005,BB5,2026-10-12,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0005,BB5,2026-10-12,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0005,BB5,2026-10-12,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,D,B,wrong
+ST0005,BB5,2026-10-12,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,D,C,wrong
+ST0005,BB5,2026-10-12,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0005,BB5,2026-10-12,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,C,A,wrong
+ST0005,BB5,2026-10-12,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0005,BB5,2026-10-12,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0005,BB5,2026-10-12,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0005,BB5,2026-10-12,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0005,BB5,2026-10-12,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0005,BB5,2026-10-12,Math,1,2,M318,Rule 1A - Function Notation,C,C,right
+ST0005,BB5,2026-10-12,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0005,BB5,2026-10-12,Math,1,4,M216,Rule 3A: One-variable Equations,D,D,right
+ST0005,BB5,2026-10-12,Math,1,5,M158,Rule 3B - Percent Change,D,D,right
+ST0005,BB5,2026-10-12,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0005,BB5,2026-10-12,Math,2,1,M166,Rule 3B - Percent Change,B,B,right
+ST0005,BB5,2026-10-12,Math,2,2,M105,Rule 5A - Two-equation Systems,A,A,right
+ST0005,BB5,2026-10-12,Math,2,3,M239,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0005,BB5,2026-10-12,Math,2,4,M278,Rule 4A: Perimeter and Area of Rectangles,A,A,right
+ST0005,BB5,2026-10-12,Math,2,5,M151,Rule 3A - One-variable Equations,14/5,14/5,right
+ST0005,BB5,2026-10-12,Math,2,6,M336,Rule 1A - Function Notation,C,D,wrong
+ST0002,BB2,2026-10-13,Reading and Writing,1,1,RW350,RULE 1B - PARALLEL COMPARISONS,D,D,right
+ST0002,BB2,2026-10-13,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0002,BB2,2026-10-13,Reading and Writing,1,3,RW313,Rule 5B - Pronoun Agreement,C,C,right
+ST0002,BB2,2026-10-13,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0002,BB2,2026-10-13,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0002,BB2,2026-10-13,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0002,BB2,2026-10-13,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0002,BB2,2026-10-13,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0002,BB2,2026-10-13,Reading and Writing,2,3,RW115,Rule 2A - Transitions,D,C,wrong
+ST0002,BB2,2026-10-13,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0002,BB2,2026-10-13,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0002,BB2,2026-10-13,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0002,BB2,2026-10-13,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0002,BB2,2026-10-13,Math,1,2,M209,rule 3a - one-variable equations,C,C,right
+ST0002,BB2,2026-10-13,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0002,BB2,2026-10-13,Math,1,4,M185,Rule 3B: Percent Change,C,C,right
+ST0002,BB2,2026-10-13,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0002,BB2,2026-10-13,Math,1,6,M264,Rule 6A - Part-to-part Ratios,C,D,wrong
+ST0002,BB2,2026-10-13,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,D,D,right
+ST0002,BB2,2026-10-13,Math,2,2,M248,Rule 6A-Part-to-part Ratios,D,D,right
+ST0002,BB2,2026-10-13,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0002,BB2,2026-10-13,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0002,BB2,2026-10-13,Math,2,5,M152,rule 5a - two-equation systems,D,D,right
+ST0002,BB2,2026-10-13,Math,2,6,M341,Rule 3A - One-variable Equations,2.5,5/2,right
+ST0013,BB3,2026-10-13,Reading and Writing,1,1,RW178,Rule 1B: Parallel Comparisons,A,A,right
+ST0013,BB3,2026-10-13,Reading and Writing,1,2,RW116,Rule 6B - Subject-Verb Agreement,D,D,right
+ST0013,BB3,2026-10-13,Reading and Writing,1,3,RW191,Rule 5B - Pronoun Agreement,A,A,right
+ST0013,BB3,2026-10-13,Reading and Writing,1,4,RW204,Rule 2B - Sentence Boundaries,C,C,right
+ST0013,BB3,2026-10-13,Reading and Writing,1,5,RW195,rule 4b - verb tense,C,C,right
+ST0013,BB3,2026-10-13,Reading and Writing,1,6,RW165,Rule 2A - Transitions,A,C,wrong
+ST0013,BB3,2026-10-13,Reading and Writing,2,1,RW332,Rule 4B Verb Tense,B,D,wrong
+ST0013,BB3,2026-10-13,Reading and Writing,2,2,RW119,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0013,BB3,2026-10-13,Reading and Writing,2,3,RW208,Rule 1B - Parallel Comparisons,B,B,right
+ST0013,BB3,2026-10-13,Reading and Writing,2,4,RW138,Rule 5B - Pronoun Agreement,B,B,right
+ST0013,BB3,2026-10-13,Reading and Writing,2,5,RW329,Rule 2A - Transitions,B,D,wrong
+ST0013,BB3,2026-10-13,Reading and Writing,2,6,RW220,Rule 2B: Sentence Boundaries,A,A,right
+ST0013,BB3,2026-10-13,Math,1,1,M223,Rule 5A - Two-equation Systems,B,B,right
+ST0013,BB3,2026-10-13,Math,1,2,M255,Rule 6A - Part-to-part Ratios,A,A,right
+ST0013,BB3,2026-10-13,Math,1,3,M269,Rule 3A - One-variable Equations,B,D,wrong
+ST0013,BB3,2026-10-13,Math,1,4,M132,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0013,BB3,2026-10-13,Math,1,5,M150,Rule 1A - Function Notation,C,C,right
+ST0013,BB3,2026-10-13,Math,1,6,M311,rule 3b - percent change,D,D,right
+ST0013,BB3,2026-10-13,Math,2,1,M273,Rule 5A - Two-equation Systems,D,D,right
+ST0013,BB3,2026-10-13,Math,2,2,M281,Rule 6A - Part-to-part Ratios,B,B,right
+ST0013,BB3,2026-10-13,Math,2,3,M249,Rule 3A: One-variable Equations,B,C,wrong
+ST0013,BB3,2026-10-13,Math,2,4,M125,Rule 3B - Percent Change,A,A,right
+ST0013,BB3,2026-10-13,Math,2,5,M201,Rule 1A - Function Notation,B,B,right
+ST0013,BB3,2026-10-13,Math,2,6,M190,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0004,BB2,2026-10-17,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0004,BB2,2026-10-17,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0004,BB2,2026-10-17,Reading and Writing,1,3,RW313,Rule 5B Pronoun Agreement,C,C,right
+ST0004,BB2,2026-10-17,Reading and Writing,1,4,RW240,RULE 4B - VERB TENSE,A,B,wrong
+ST0004,BB2,2026-10-17,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0004,BB2,2026-10-17,Reading and Writing,1,6,RW147,Rule 2A - Transitions,B,D,wrong
+ST0004,BB2,2026-10-17,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0004,BB2,2026-10-17,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0004,BB2,2026-10-17,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0004,BB2,2026-10-17,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0004,BB2,2026-10-17,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0004,BB2,2026-10-17,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0004,BB2,2026-10-17,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0004,BB2,2026-10-17,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0004,BB2,2026-10-17,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0004,BB2,2026-10-17,Math,1,4,M185,Rule 3B - Percent Change,B,C,wrong
+ST0004,BB2,2026-10-17,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0004,BB2,2026-10-17,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0004,BB2,2026-10-17,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,C,D,wrong
+ST0004,BB2,2026-10-17,Math,2,2,M248,Rule 6A-Part-to-part Ratios,C,D,wrong
+ST0004,BB2,2026-10-17,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0004,BB2,2026-10-17,Math,2,4,M133,Rule 3B - Percent Change,A,D,wrong
+ST0004,BB2,2026-10-17,Math,2,5,M152,Rule 5A - Two-equation Systems,D,D,right
+ST0004,BB2,2026-10-17,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0014,BB2,2026-10-18,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0014,BB2,2026-10-18,Reading and Writing,1,2,RW254,Rule 2B - Sentence Boundaries,A,A,right
+ST0014,BB2,2026-10-18,Reading and Writing,1,3,RW313,Rule 5B Pronoun Agreement,C,C,right
+ST0014,BB2,2026-10-18,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0014,BB2,2026-10-18,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,A,B,wrong
+ST0014,BB2,2026-10-18,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0014,BB2,2026-10-18,Reading and Writing,2,1,RW160,Rule 2B: Sentence Boundaries,A,A,right
+ST0014,BB2,2026-10-18,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,D,A,wrong
+ST0014,BB2,2026-10-18,Reading and Writing,2,3,RW115,rule 2a - transitions,C,C,right
+ST0014,BB2,2026-10-18,Reading and Writing,2,4,RW285,Rule 4B - Verb Tense,C,C,right
+ST0014,BB2,2026-10-18,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0014,BB2,2026-10-18,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0014,BB2,2026-10-18,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0014,BB2,2026-10-18,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0014,BB2,2026-10-18,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0014,BB2,2026-10-18,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0014,BB2,2026-10-18,Math,1,5,M309,Rule 4A Perimeter and Area of Rectangles,D,C,wrong
+ST0014,BB2,2026-10-18,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0014,BB2,2026-10-18,Math,2,1,M251,RULE 4A - PERIMETER AND AREA OF RECTANGLES,B,D,wrong
+ST0014,BB2,2026-10-18,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0014,BB2,2026-10-18,Math,2,3,M134,Rule 1A - Function Notation,A,A,right
+ST0014,BB2,2026-10-18,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0014,BB2,2026-10-18,Math,2,5,M152,Rule 5A - Two-equation Systems,B,D,wrong
+ST0014,BB2,2026-10-18,Math,2,6,M341,Rule 3A - One-variable Equations,5/2,5/2,right
+ST0009,BB5,2026-10-19,Reading and Writing,1,1,RW146,Rule 2A - Transitions,A,A,right
+ST0009,BB5,2026-10-19,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,D,B,wrong
+ST0009,BB5,2026-10-19,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0009,BB5,2026-10-19,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0009,BB5,2026-10-19,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0009,BB5,2026-10-19,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0009,BB5,2026-10-19,Reading and Writing,2,1,RW333,Rule 2A - Transitions,D,D,right
+ST0009,BB5,2026-10-19,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,A,A,right
+ST0009,BB5,2026-10-19,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,A,C,wrong
+ST0009,BB5,2026-10-19,Reading and Writing,2,4,RW136,RULE 2B - SENTENCE BOUNDARIES,B,B,right
+ST0009,BB5,2026-10-19,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,C,C,right
+ST0009,BB5,2026-10-19,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0009,BB5,2026-10-19,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB5,2026-10-19,Math,1,2,M318,Rule 1A - Function Notation,D,C,wrong
+ST0009,BB5,2026-10-19,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0009,BB5,2026-10-19,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0009,BB5,2026-10-19,Math,1,5,M158,Rule 3B - Percent Change,C,D,wrong
+ST0009,BB5,2026-10-19,Math,1,6,M315,Rule 5A - Two-equation Systems,B,C,wrong
+ST0009,BB5,2026-10-19,Math,2,1,M166,Rule 3B - Percent Change,D,B,wrong
+ST0009,BB5,2026-10-19,Math,2,2,M105,Rule 5A - Two-equation Systems,C,A,wrong
+ST0009,BB5,2026-10-19,Math,2,3,M239,Rule 6A - Part-to-part Ratios,D,B,wrong
+ST0009,BB5,2026-10-19,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0009,BB5,2026-10-19,Math,2,5,M151,rule 3a - one-variable equations,2.8,14/5,right
+ST0009,BB5,2026-10-19,Math,2,6,M336,Rule 1A - Function Notation,D,D,right
+ST0006,BB1,2026-10-20,Reading and Writing,1,1,RW267,Rule 2A - Transitions,C,B,wrong
+ST0006,BB1,2026-10-20,Reading and Writing,1,2,RW127,rule 4b - verb tense,A,A,right
+ST0006,BB1,2026-10-20,Reading and Writing,1,3,RW213,Rule 5B - Pronoun Agreement,B,A,wrong
+ST0006,BB1,2026-10-20,Reading and Writing,1,4,RW320,Rule 2B - Sentence Boundaries,C,A,wrong
+ST0006,BB1,2026-10-20,Reading and Writing,1,5,RW292,Rule 6B - Subject-Verb Agreement,C,B,wrong
+ST0006,BB1,2026-10-20,Reading and Writing,1,6,RW284,rule 1b - parallel comparisons,B,B,right
+ST0006,BB1,2026-10-20,Reading and Writing,2,1,RW212,Rule 2B: Sentence Boundaries,B,C,wrong
+ST0006,BB1,2026-10-20,Reading and Writing,2,2,RW137,Rule 6B - Subject-Verb Agreement,A,A,right
+ST0006,BB1,2026-10-20,Reading and Writing,2,3,RW228,Rule 2A - Transitions,B,B,right
+ST0006,BB1,2026-10-20,Reading and Writing,2,4,RW304,Rule 4B - Verb Tense,C,C,right
+ST0006,BB1,2026-10-20,Reading and Writing,2,5,RW222,Rule 1B - Parallel Comparisons,C,C,right
+ST0006,BB1,2026-10-20,Reading and Writing,2,6,RW104,Rule 5B - Pronoun Agreement,D,B,wrong
+ST0006,BB1,2026-10-20,Math,1,1,M326,Rule 5A Two-equation Systems,C,C,right
+ST0006,BB1,2026-10-20,Math,1,2,M298,Rule 3A - One-variable Equations,6/8,3/4,right
+ST0006,BB1,2026-10-20,Math,1,3,M280,Rule 3B - Percent Change,B,B,right
+ST0006,BB1,2026-10-20,Math,1,4,M214,rule 6a - part-to-part ratios,A,A,right
+ST0006,BB1,2026-10-20,Math,1,5,M129,Rule 1A - Function Notation,B,B,right
+ST0006,BB1,2026-10-20,Math,1,6,M237,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0006,BB1,2026-10-20,Math,2,1,M172,rule 1a - function notation,D,D,right
+ST0006,BB1,2026-10-20,Math,2,2,M256,Rule 6A - Part-to-part Ratios,A,A,right
+ST0006,BB1,2026-10-20,Math,2,3,M159,Rule 3A - One-variable Equations,D,D,right
+ST0006,BB1,2026-10-20,Math,2,4,M106,Rule 3B - Percent Change,A,A,right
+ST0006,BB1,2026-10-20,Math,2,5,M173,Rule 4A - Perimeter and Area of Rectangles,D,C,wrong
+ST0006,BB1,2026-10-20,Math,2,6,M347,Rule 5A - Two-equation Systems,B,B,right
+ST0008,BB5,2026-10-20,Reading and Writing,1,1,RW146,Rule 2A - Transitions,C,A,wrong
+ST0008,BB5,2026-10-20,Reading and Writing,1,2,RW327,Rule 6B - Subject-Verb Agreement,B,B,right
+ST0008,BB5,2026-10-20,Reading and Writing,1,3,RW218,Rule 2B - Sentence Boundaries,C,C,right
+ST0008,BB5,2026-10-20,Reading and Writing,1,4,RW306,Rule 4B - Verb Tense,B,B,right
+ST0008,BB5,2026-10-20,Reading and Writing,1,5,RW321,Rule 1B - Parallel Comparisons,B,B,right
+ST0008,BB5,2026-10-20,Reading and Writing,1,6,RW161,Rule 5B - Pronoun Agreement,C,C,right
+ST0008,BB5,2026-10-20,Reading and Writing,2,1,RW333,Rule 2A - Transitions,C,D,wrong
+ST0008,BB5,2026-10-20,Reading and Writing,2,2,RW258,Rule 1B - Parallel Comparisons,A,A,right
+ST0008,BB5,2026-10-20,Reading and Writing,2,3,RW319,Rule 4B - Verb Tense,C,C,right
+ST0008,BB5,2026-10-20,Reading and Writing,2,4,RW136,Rule 2B - Sentence Boundaries,B,B,right
+ST0008,BB5,2026-10-20,Reading and Writing,2,5,RW224,Rule 6B - Subject-Verb Agreement,A,C,wrong
+ST0008,BB5,2026-10-20,Reading and Writing,2,6,RW243,Rule 5B - Pronoun Agreement,D,D,right
+ST0008,BB5,2026-10-20,Math,1,1,M207,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0008,BB5,2026-10-20,Math,1,2,M318,Rule 1A - Function Notation,A,C,wrong
+ST0008,BB5,2026-10-20,Math,1,3,M187,Rule 6A - Part-to-part Ratios,D,D,right
+ST0008,BB5,2026-10-20,Math,1,4,M216,Rule 3A - One-variable Equations,D,D,right
+ST0008,BB5,2026-10-20,Math,1,5,M158,Rule 3B - Percent Change,D,D,right
+ST0008,BB5,2026-10-20,Math,1,6,M315,Rule 5A - Two-equation Systems,C,C,right
+ST0008,BB5,2026-10-20,Math,2,1,M166,Rule 3B - Percent Change,D,B,wrong
+ST0008,BB5,2026-10-20,Math,2,2,M105,Rule 5A: Two-equation Systems,B,A,wrong
+ST0008,BB5,2026-10-20,Math,2,3,M239,Rule 6A - Part-to-part Ratios,B,B,right
+ST0008,BB5,2026-10-20,Math,2,4,M278,Rule 4A - Perimeter and Area of Rectangles,A,A,right
+ST0008,BB5,2026-10-20,Math,2,5,M151,Rule 3A - One-variable Equations,2.8,14/5,right
+ST0008,BB5,2026-10-20,Math,2,6,M336,Rule 1A - Function Notation,C,D,wrong
+ST0007,BB2,2026-10-21,Reading and Writing,1,1,RW350,Rule 1B - Parallel Comparisons,D,D,right
+ST0007,BB2,2026-10-21,Reading and Writing,1,2,RW254,Rule 2B Sentence Boundaries,A,A,right
+ST0007,BB2,2026-10-21,Reading and Writing,1,3,RW313,Rule 5B: Pronoun Agreement,C,C,right
+ST0007,BB2,2026-10-21,Reading and Writing,1,4,RW240,Rule 4B - Verb Tense,B,B,right
+ST0007,BB2,2026-10-21,Reading and Writing,1,5,RW268,Rule 6B - Subject-Verb Agreement,A,B,wrong
+ST0007,BB2,2026-10-21,Reading and Writing,1,6,RW147,Rule 2A - Transitions,D,D,right
+ST0007,BB2,2026-10-21,Reading and Writing,2,1,RW160,Rule 2B - Sentence Boundaries,A,A,right
+ST0007,BB2,2026-10-21,Reading and Writing,2,2,RW221,Rule 1B - Parallel Comparisons,A,A,right
+ST0007,BB2,2026-10-21,Reading and Writing,2,3,RW115,Rule 2A - Transitions,C,C,right
+ST0007,BB2,2026-10-21,Reading and Writing,2,4,RW285,Rule 4B Verb Tense,A,C,wrong
+ST0007,BB2,2026-10-21,Reading and Writing,2,5,RW192,Rule 6B - Subject-Verb Agreement,B,C,wrong
+ST0007,BB2,2026-10-21,Reading and Writing,2,6,RW144,Rule 5B - Pronoun Agreement,B,B,right
+ST0007,BB2,2026-10-21,Math,1,1,M328,Rule 5A - Two-equation Systems,C,C,right
+ST0007,BB2,2026-10-21,Math,1,2,M209,Rule 3A - One-variable Equations,C,C,right
+ST0007,BB2,2026-10-21,Math,1,3,M194,Rule 1A - Function Notation,B,B,right
+ST0007,BB2,2026-10-21,Math,1,4,M185,Rule 3B - Percent Change,C,C,right
+ST0007,BB2,2026-10-21,Math,1,5,M309,Rule 4A - Perimeter and Area of Rectangles,C,C,right
+ST0007,BB2,2026-10-21,Math,1,6,M264,Rule 6A - Part-to-part Ratios,D,D,right
+ST0007,BB2,2026-10-21,Math,2,1,M251,Rule 4A - Perimeter and Area of Rectangles,D,D,right
+ST0007,BB2,2026-10-21,Math,2,2,M248,Rule 6A - Part-to-part Ratios,D,D,right
+ST0007,BB2,2026-10-21,Math,2,3,M134,Rule 1A - Function Notation,D,A,wrong
+ST0007,BB2,2026-10-21,Math,2,4,M133,Rule 3B - Percent Change,D,D,right
+ST0007,BB2,2026-10-21,Math,2,5,M152,rule 5a - two-equation systems,B,D,wrong
+ST0007,BB2,2026-10-21,Math,2,6,M341,Rule 3A - One-variable Equations,10/4,5/2,right

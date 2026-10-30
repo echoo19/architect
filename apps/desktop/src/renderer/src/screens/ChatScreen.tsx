@@ -18,6 +18,7 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { SidePanel, type PanelContent } from '../workspace/SidePanel';
 import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
 import { TeachSheet } from '../workspace/teach/TeachSheet';
+import { OrganizationMenu } from '../workspace/OrganizationMenu';
 import { useBottomPin } from '../workspace/useBottomPin';
 
 /** The request a reply answered: the person's message before it in the chat. */
@@ -32,9 +33,10 @@ function requestOf(messages: readonly WorkspaceMessage[], reply: WorkspaceMessag
 }
 
 /**
- * The header's right side. An agent that can't run on this computer says so; otherwise a quiet
- * icon holds what the footer under the message box used to say (the version and model that
- * answer, and that they run here), and opens the agent's settings.
+ * The header's right side. An agent that can't run on this computer says so; one from a job with
+ * several organizations names the one whose records it works on; and a quiet icon holds what the
+ * footer under the message box used to say (the version and model that answer, and that they run
+ * here), and opens the agent's settings.
  */
 function AgentDetails({ agent }: { agent: GraduateSummary }) {
   const showSettings = useAgentSettingsUi((state) => state.show);
@@ -53,6 +55,7 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
           Can&apos;t run on {device}
         </Badge>
       )}
+      <OrganizationMenu agent={agent} />
       <Tooltip content={facts.join(' · ')} side="bottom">
         <IconButton label={`About ${agent.name}`} size="sm" onClick={() => showSettings(agent.id)}>
           <Info size={16} strokeWidth={1.8} aria-hidden />

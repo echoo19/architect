@@ -86,7 +86,7 @@ export function connectEngine(
       list: () => request('jobs.list', []),
       get: (jobId) => request('jobs.get', [jobId]),
       save: (job) => request('jobs.save', [job]),
-      createSample: () => request('jobs.createSample', []),
+      createSample: (sample) => request('jobs.createSample', sample === undefined ? [] : [sample]),
       importFile: (file) => request('jobs.importFile', [file]),
       exportFile: (jobId, file) => request('jobs.exportFile', [jobId, file]),
       draftStart: (description, files, teacher) =>
@@ -95,6 +95,8 @@ export function connectEngine(
         request('jobs.draftReply', [sessionId, text, teacher]),
       taskPlan: (jobId) => request('jobs.taskPlan', [jobId]),
       confirmRules: (jobId, token) => request('jobs.confirmRules', [jobId, token]),
+      study: (jobId) => request('jobs.study', [jobId]),
+      confirmStudy: (jobId, token) => request('jobs.confirmStudy', [jobId, token]),
     },
     runs: {
       start: (jobId, options) => request('runs.start', [jobId, options]),
@@ -158,6 +160,8 @@ export function connectEngine(
       rollback: (graduateId, version) => request('graduates.rollback', [graduateId, version]),
       installation: (graduateId) => request('graduates.installation', [graduateId]),
       bind: (graduateId, bindRequest) => request('graduates.bind', [graduateId, bindRequest]),
+      checkFolder: (graduateId, resource, folder) =>
+        request('graduates.checkFolder', [graduateId, resource, folder]),
       verify: (graduateId, options) => request('graduates.verify', [graduateId, options ?? {}]),
       reviewExport: (graduateId, version, include) =>
         request('graduates.reviewExport', [graduateId, version ?? null, include ?? []]),

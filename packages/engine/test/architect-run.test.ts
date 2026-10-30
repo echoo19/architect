@@ -182,7 +182,7 @@ describe('an architect run', () => {
         'frozen',
         (e) => e.type === 'log' && e.message.startsWith('Graduate frozen at harness version 2'),
       ],
-      ['test starts', (e) => e.type === 'attempt.started' && e.split === 'test'],
+      ['test starts', (e) => e.type === 'eval.progress' && e.split === 'test'],
       [
         'test ends',
         (e) => e.type === 'eval.finished' && e.split === 'test' && e.harnessVersion === 2,
@@ -195,13 +195,16 @@ describe('an architect run', () => {
     expect(
       afterTesting.some((e) => e.type === 'mentor.started' || e.type === 'round.updated'),
     ).toBe(false);
+    // The locked test streams its progress, never an attempt's task or result.
     const testAttempts = events.filter(
-      (e) => e.type === 'attempt.finished' && e.attempt.split === 'test',
+      (e) =>
+        (e.type === 'attempt.finished' && e.attempt.split === 'test') ||
+        (e.type === 'attempt.started' && e.split === 'test'),
     );
-    expect(testAttempts).toHaveLength(6);
-    expect(testAttempts.every((e) => e.type === 'attempt.finished' && e.prompt === undefined)).toBe(
-      true,
-    );
+    expect(testAttempts).toEqual([]);
+    expect(
+      events.filter((e) => e.type === 'eval.progress' && e.split === 'test').at(-1),
+    ).toMatchObject({ done: 6, total: 6 });
   });
 
   it('never shows the mentor a dev or test task', async () => {
@@ -299,7 +302,8 @@ describe('an architect run', () => {
     const emitted = engine.events.flatMap((e) =>
       e.type === 'attempt.finished' && e.attempt.split === 'test' ? [e.attempt.check] : [],
     );
-    expect(emitted).toEqual(tests.map((attempt) => attempt.check));
+    expect(tests).toHaveLength(6);
+    expect(emitted).toEqual([]);
 
     const dev = engine.store.attempts.list({ runId: record.run.id, split: 'dev' });
     expect(dev.find((attempt) => !attempt.check.pass)?.check).toEqual({

@@ -2,6 +2,72 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri), field specialists: Phil, the academy tutor, built and measured (start the next session here)
+
+**Where things stand**
+- *Direction.* The owner asked for a more ambitious Architect ("not a little party trick that produces a small agent"), based on `docs/SPEC_FIELD_SPECIALIZATION.md`, useful in the real world, with a real business anonymized, and with the base kept as a fallback. The one-job product is frozen at branch `base/one-job` and tag `base-one-job` (`0b592784`, what `main` was). The plan and contract are `docs/FIELD.md`, amended after a GPT-6 Astra reading. Work goes to `field/main`; `main` is unchanged since `0b592784`.
+- *Built and merged into `field/main`* (each lane reviewed; GPT-6 Sol found 4 + 4 issues, all fixed): organizations in a job, with transfer academies sealed as snapshots in the vault and every attempt bound to its academy's files (decision 068); Study, Spark's cited brief of the train academies, confirmed before teaching (069); the report's skill-by-organization grid and the organization choice in the workspace, including "Another academy…" for a folder of your own, checked against the schema and labeled not tested there (070); `examples/academy`, four generated academies with six tutoring skills, a deterministic checker and a reference tutor; Phil as a ready-made job in the app. `pnpm check` exits 0 (3,510 tests), the build passes, and the hidden field, study and sample e2e pass.
+- *The real academy.* An anonymized snapshot of a real test-prep academy that uses the owner's Lectern platform, pulled read-only through its connector: 16 students, 1,990 graded answers, 38 of its own topics, 11 lessons, no question text. Names, emails, ids and notes were replaced or dropped, and lesson passcodes removed. It lives only in `C:/JakeOS/projects/architect-runs/academy-real/` and is called "Real academy" everywhere in the repo. Its policy was drafted for the test and waits for the academy's confirmation.
+- *The first field result* (`architect-runs/phil-1`, preregistered, hosted Glimmer, seed 101, every arm frozen before any locked test opened). On the academies it trained with: bare 21/48, one-shot draft 22/48, Phil 44/48. On the generated academy it never saw: bare 24/48, draft 22/48, Phil 43/48 (20 wins, 1 loss, +39.6 points, interval +22.9 to +53.7). On the real academy: bare 9/24, draft 11/24, Phil 12/24 (9 wins, 6 losses, no clear gain): assign 7/8, but history 3/8 and diagnose 2/8. Spend: OpenRouter $4.26, Spark about $0.58.
+
+**Next**
+- Merge `field/run-fixes` (the run's three workarounds made proper: Meta replies without usage, the comparisons runner for organization jobs, record-tasks), and commit the write-up as `docs/comparisons/phil-1.md` with `FAILURES.md`'s diagnosis of the real academy's misses.
+- Phil 2: widen the field so a helper can't fit one policy format, then measure on a fresh real cohort (older attempts not in the first snapshot) and a fresh generated academy.
+- Positioning (README, the results paper, the site's claim) once phil-2 is in; the film needs the owner for new narration.
+- Owner: confirm or correct the real academy's drafted policy; say whether question text can be exported.
+
+## 2026-10-30 (Fri), field lane "Academy realism": generated academies that differ the way real exports do (branch `field/academy-realism`)
+
+**Done** (no model was called, no GPU, no spend)
+- Each generated academy now differs in the ways the first run's helper broke on the real academy: its own date, stated in every request (none is the header's Nov 16); tests laid out by module, as "Full" tests numbered per section (a place holds two questions) or numbered straight through; grid-in answers entered as 0.125, .125 or 2/16 for a key of 1/8, with `result` the academy's own mark and every policy saying so; topic labels in questions.csv and attempts.csv written with stray spaces, other capitals or other punctuation than topics.csv; policies written as prose with a table, prose alone, or a list of rules. About a fifth of those two tables' rows are written another way, never the first five, and every form reads back to one value.
+- The reference tutor finds a question from the student's own attempts row, matches labels with spaces, capitals and punctuation set aside, counts from `result`, takes the request's date and reads all three policy styles; it passes all 192 tasks through the engine's tools and checker. The checker matches labels and grid-in numbers the same way.
+- A fresh job: train Copperfield Learning, Thistlewood Learning, Bramble Hill Academy; transfer Juniper Study House. The first run's four academies are gone from the name list, so its unseen academy stays unseen. `buildRecordTasks` still works for stem-less folders, now tested on a "Full" export too.
+## 2026-10-30 (Fri), fixes from the first field run (branch `field/run-fixes`)
+
+**Done** (fakes only: no model was called, no GPU, no spend). The first Phil run (`architect-runs/phil-1`) patched copies of the code around four problems; these are the fixes in the repo.
+- *Meta's usage.* Meta's streamed replies end without token usage about one time in three, and Meta still bills them. Meta's mentor and actor calls now ask for whole replies, which always carry usage. A reply from any provider that still lacks usage is refused as uncounted, and the mentor gate charges it the most it authorized, so the dollar cap holds (`docs/GOTCHAS.md`).
+- *Comparisons on a job with organizations.* The locked test is priced and counted as the test split plus every sealed organization's task; each arm's copy lists the sealed organizations again; the pin covers `orgs/`. Spark studies the organizations once for the comparison: the brief goes to `study.json`, `--confirm-study <token>` confirms it, the same confirmed brief sits beside every arm's copy, and the bare arm imports the blank harness so the procedure isn't added. Each report row has its results by organization (trained on or never seen, synthetic or real), the target is judged on the trained organizations, and the study's cost is counted once.
+- *record-tasks.* A wrong answer whose module is blank is asked about without a module (it said "module 0"); `--per-skill N` replaces the fixed eight.
+- *Optional files.* An organization's folder may lack the files the job marks optional: import, the seal, the mentor's data view and the agent's folder all take it. A policy without the escalation-days row counts wrong answers over the history window; one without the first-hint row builds every records-only task.
+
+**Open issues**
+- Nothing here was run against a live model; the next hosted run should use the repo's runner instead of the patched copies.
+- A blank-module answer is asked about by test, section and number; a test that numbers questions per module but leaves the module blank in its records would make that ambiguous.
+
+## 2026-10-30 (Fri), field lane "Sample": Phil as a ready-made job (branch `field/sample`)
+
+**Done** (no model was called, no GPU, no spend)
+- "Try the tutor" sits beside "Try the sample job" on the empty workspace and the Describe screen. It imports `examples/academy/job` through `jobs.createSample('academy')`: the three train academies go into the job folder, the transfer academy is sealed by the engine. Define then asks Spark to study the material, and training waits for the brief to be confirmed. The service desk stays the default sample.
+- The installer ships the job as `academy-job` (electron-builder `extraResources`, all four academies); the packaged spec checks for it.
+- Engine test (the real example imported, nothing in the job file names the transfer academy) and hidden e2e `sample-tutor.spec.ts` against the stand-in engine. Screenshot `start-phil-dark.png`.
+
+**Open issues**
+- Adding a person's own academy folder as an unseen organization was left out: it needs the engine to seal an organization into an existing job and to build its tasks from records (`buildRecordTasks` lives in the example package), which is more than this lane.
+
+## 2026-10-30 (Fri), field lane Study: Spark's cited brief of the academies, confirmed before teaching
+
+**Done** (branch `field/study`; no model was called, no GPU, no spend)
+- Decision 069. A field job's train organizations are studied by Spark into a short brief held to a schema: skills by task type, connections, rules, differences between academies, open questions, out of scope. Every passage is checked word for word in the file it names; unfound ones are taken out and counted, and uncited claims are marked as Spark's own. $1 cap, kept in `study.json`, resumable.
+- Transfer organizations never reach the study: their folders are not opened, and their names stop the study before any call (tested).
+- Define shows the brief with one primary action; every run of a field job waits for it. A confirmed brief seeds the first harness with a shared `procedure` skill, with no academy's facts.
+- Minimal `Job.organizations` and `Task.org` added per the contract, since `field/orgs-engine` had not landed on `field/main`.
+
+**Open issues**
+- Importing a field job's `orgs/` folders belongs to `field/orgs-engine`; until then the files must be placed in the job's folder.
+- The step guard (no digits, no organization names) is a heuristic.
+
+## 2026-10-30 (Fri), field lane "Report and workspace" (branch `field/report`, from `field/orgs-engine`)
+
+**Done** (no model was called; the GPU stayed off; no money spent)
+- *Judged on the trained organizations* (decision 070). For a job with organizations, the score, per-type results, latency and the required pass rate count only the organizations it trained with; each one it never saw is reported in `perOrg` alone. One-organization jobs are unchanged.
+- *The report's "By organization" grid*: skills by organizations, grouped Trained with, Never seen and Never seen, real, pass/total per cell, empty where a skill wasn't tested there, each organization's own total in the last row. Practice and check tasks stay in "By task type". Screenshot `report-field-dark.png`.
+- *The workspace* names the organization an agent works on in the chat header; that name is the one menu that moves it to another by rebinding `data`. Another organization's folder is refused. Writes still ask. Screenshot `workspace-org-dark.png`.
+- Hidden e2e `field.spec.ts` (4) passes against the stand-in engine.
+
+**Open issues**
+- The workspace knows an organization by its folder's place (`orgs/<id>/data`). The real academy's snapshot should sit in that layout, or the header shows the folder's name.
+- The menu lists the organizations from the agent's report card, so an organization it was never tested on can't be chosen from it; the settings' folder row still binds any folder.
+
 ## 2026-10-30 (Fri), the proposal weighed: Teach this now proves the student learned, stale approvals refused, honest copy
 
 **Done** (no model of the product was called; the GPU stayed off; no money spent)

@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { primaryDataDir } from '../loop/organizations';
 import type {
   Correction,
   Experiment,
@@ -295,7 +296,7 @@ async function writeCandidate(state: RunState, kept: number): Promise<void> {
     harness: { meta: harness.meta, files: deps.harness.harnessToFiles(harness) },
     report: null,
     lineage: await state.lineage.read(),
-    columns: await tableColumns(paths.dataDir(state.job.id), contract),
+    columns: await tableColumns(primaryDataDir(paths.jobDir(state.job.id), state.job), contract),
     rounds: state.rounds().length,
     keptChanges: kept,
     testMachine: null,

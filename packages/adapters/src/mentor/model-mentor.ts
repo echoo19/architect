@@ -2,6 +2,7 @@ import {
   addUsage,
   AdapterError,
   costUsd,
+  emptyUsage,
   mentorPricing,
   type ChatMessage,
   type ConnectionTest,
@@ -12,11 +13,12 @@ import {
 } from '@architect/shared';
 import type { MentorDeps } from '../deps';
 import { createHttpClient } from '../http/client';
-import { badResponse, connectionFailure, cutOff } from '../http/errors';
+import { connectionFailure, cutOff } from '../http/errors';
 import { extractJsonObject, type JsonObject } from '../json-extract';
 import { fitsStrictSubset } from '../json-schema';
 import { toWireMessages } from '../openai/messages';
 import { describeMissingModel, probeModel } from '../openai/models';
+import { openUnstreamed } from '../openai/unstreamed';
 import { readChatCompletionStream, type FinishReason } from '../openai/stream';
 import { emptyReply, jsonInstructions, repairMessages, unusableJson } from './prompts';
 import { chatTraits, type ModelMentorConfig } from './providers';
@@ -25,20 +27,24 @@ const CHAT_PATH = '/chat/completions';
 
 /**
  * A call that produced nothing usable, with what it spent, so the caller can still count it. A
- * provider declining the request is `blocked`; anything else is a `bad_response`.
+ * provider declining the request is `blocked`; anything else is a `bad_response`. `uncounted`
+ * marks a call the provider ran without saying what it used, which the caller charges at the
+ * most it allowed the call to cost.
  */
 export class MentorReplyError extends AdapterError {
   readonly usage: Usage;
   readonly costUsd: number | null;
+  readonly uncounted: boolean;
 
   constructor(
     message: string,
-    spent: { usage: Usage; costUsd: number | null },
+    spent: { usage: Usage; costUsd: number | null; uncounted?: boolean },
     code: 'bad_response' | 'blocked' = 'bad_response',
   ) {
     super(code, message);
     this.usage = spent.usage;
     this.costUsd = spent.costUsd;
+    this.uncounted = spent.uncounted ?? false;
   }
 }
 
@@ -59,7 +65,7 @@ export function addCosts(a: number | null, b: number | null): number | null {
  * A mentor behind an OpenAI-compatible Chat Completions endpoint: Meta, OpenAI, Google Gemini,
  * OpenRouter, Muse Spark Open on Baseten or Modal, a model on this computer, or any other
  * compatible server. Replies are streamed, since a long non-streamed request can hit a gateway's
- * timeout.
+ * timeout, except from a provider whose streams can end without their usage (`unstreamed`).
  */
 export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = {}): MentorAdapter {
   const traits = chatTraits(config);
@@ -133,11 +139,13 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = 
     retries: boolean,
   ): Promise<Reply> {
     const attempt = async (): Promise<Reply> => {
-      const stream = await http.openStream(CHAT_PATH, body, {
-        signal,
-        model: config.model,
-        accept: 'text/event-stream',
-      });
+      const stream = traits.unstreamed
+        ? await openUnstreamed(http, CHAT_PATH, body, { signal, model: config.model })
+        : await http.openStream(CHAT_PATH, body, {
+            signal,
+            model: config.model,
+            accept: 'text/event-stream',
+          });
       try {
         let text = '';
         for await (const event of readChatCompletionStream(stream, { service })) {
@@ -146,9 +154,9 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = 
             continue;
           }
           if (!event.usage) {
-            throw badResponse(
-              service,
-              'a reply without token usage, so its cost cannot be counted',
+            throw new MentorReplyError(
+              `${service} sent a reply without token usage, so its cost cannot be counted.`,
+              { usage: emptyUsage(), costUsd: null, uncounted: true },
             );
           }
           return {
@@ -186,7 +194,15 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = 
           ...request.messages,
           ...repairMessages(first.text, parsed.error, traits.json !== 'schema'),
         ];
-        last = await ask(requestBody(request, correction), signal, retries);
+        try {
+          last = await ask(requestBody(request, correction), signal, retries);
+        } catch (error) {
+          // The first call's usage is known; the repair's isn't, so the pair counts as uncounted.
+          if (error instanceof MentorReplyError && error.uncounted) {
+            throw new MentorReplyError(error.message, { usage, costUsd: cost, uncounted: true });
+          }
+          throw error;
+        }
         usage = addUsage(usage, last.usage);
         cost = addCosts(cost, last.costUsd);
         parsed = extractJsonObject(last.text);

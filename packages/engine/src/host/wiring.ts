@@ -63,6 +63,8 @@ export interface EngineWiringOptions {
   getSecret(ref: string): Promise<string | undefined>;
   /** The sample job shipped with the app (`job.json`, with `tasks.jsonl` and `data/` beside it). */
   sampleJobFile?: string;
+  /** The tutor's job shipped with the app, with its academies at `orgs/<id>/data/` beside it. */
+  academyJobFile?: string;
   /** The ready-made agent shipped with the app: its package, and the data it works on. */
   sampleAgent?: SampleAgentFiles;
   /** The CPU-thread cap for students on a local runtime right now, if there is one. */
@@ -151,6 +153,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
           {
             job: ctx.job,
             jobDir: ctx.jobDir,
+            ...(ctx.sealedData === undefined ? {} : { sealedData: ctx.sealedData }),
             harness: ctx.harness,
             student: ctx.student,
             sandbox: asSandbox(ctx.sandbox),
@@ -180,13 +183,16 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       releaseMentor: () => releaseMentor({ dispose: () => undefined }),
     },
     vault: {
-      seal: (jobId, tests, others, data) => vault.seal(jobId, tests, others, data),
+      seal: (jobId, tests, others, data, transfer) =>
+        vault.seal(jobId, tests, others, data, transfer),
       discard: (jobId) => vault.reset(jobId),
       isSealed: (jobId) => vault.isSealed(jobId),
       count: (jobId) => vault.count(jobId),
       typeCounts: (jobId) => vault.typeCounts(jobId),
+      transferIdentifiers: (jobId) => vault.transferIdentifiers(jobId),
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
+      openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),
@@ -215,6 +221,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     },
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),
+    ...(options.academyJobFile === undefined ? {} : { academyJobFile: options.academyJobFile }),
     ...(options.sampleAgent === undefined ? {} : { sampleAgent: options.sampleAgent }),
   };
 }

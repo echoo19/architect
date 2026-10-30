@@ -74,7 +74,12 @@ async function measureReference(state: RunState, split: ReferenceRecord['split']
   let leakDetector: LeakDetector;
   if (split === 'test') {
     const proof = await state.resources.releaseMentor();
-    tasks = await deps.vault.openForLockedTest(state.run.jobId, proof);
+    // The organizations the job never trained on are the graduate's to take, never Spark's: their
+    // files stay on this computer (decision 068).
+    const trained = new Set((state.job.organizations ?? []).map((org) => org.id));
+    tasks = (await deps.vault.openForLockedTest(state.run.jobId, proof)).filter(
+      (task) => task.org === undefined || trained.has(task.org),
+    );
     leakDetector = TEST_CONTENT_IS_THE_POINT;
   } else {
     tasks = await state.devTasks();

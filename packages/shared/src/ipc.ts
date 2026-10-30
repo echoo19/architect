@@ -10,9 +10,17 @@ import type {
 } from './corrections';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
+import type { StudyState } from './study';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
-import type { Job, MentorConfig, PermissionMode, StudentEndpoint, StudentTarget } from './job';
+import type {
+  Job,
+  MentorConfig,
+  PermissionMode,
+  SampleJob,
+  StudentEndpoint,
+  StudentTarget,
+} from './job';
 import type { LineageEntry } from './lineage';
 import type {
   CapabilityBreakdown,
@@ -31,6 +39,7 @@ import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
 import type {
   BindRequest,
+  FolderFit,
   ExportPartRequest,
   ExportPartResult,
   ExportRequest,
@@ -440,8 +449,11 @@ export interface ArchitectApi {
     list(): Promise<JobSummary[]>;
     get(jobId: string): Promise<Job>;
     save(job: Job): Promise<Job>;
-    /** Creates the sample job shipped with the app and returns it. */
-    createSample(): Promise<Job>;
+    /**
+     * Creates a sample job shipped with the app, the service desk unless another is named, and
+     * returns it; one made before is returned as it is.
+     */
+    createSample(sample?: SampleJob): Promise<Job>;
     /**
      * Imports a job file with its `tasks.jsonl` and `data/` folder beside it, as a new job that
      * starts from this person's teacher and model. A file that isn't a job file fails with the
@@ -463,6 +475,14 @@ export interface ArchitectApi {
      * task plan showed them: a rule or a record that changed since is refused, not confirmed.
      */
     confirmRules(jobId: string, token: string): Promise<RuleConfirmationState>;
+    /**
+     * Has the teacher study the train organizations' material of a job that lists organizations,
+     * and returns the brief for the person to confirm. A brief already made over the same material
+     * is returned as it is, with no call.
+     */
+    study(jobId: string): Promise<StudyState>;
+    /** Records that the person confirmed the brief. `token` is the one the brief came with. */
+    confirmStudy(jobId: string, token: string): Promise<StudyState>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;
@@ -589,6 +609,8 @@ export interface ArchitectApi {
     installation(graduateId: string): Promise<Installation>;
     /** Binds resources to folders, changes grants or the model endpoint, then checks again. */
     bind(graduateId: string, request: BindRequest): Promise<Installation>;
+    /** What a folder lacks of the files and columns a resource needs, before it is bound to it. */
+    checkFolder(graduateId: string, resource: string, folder: string): Promise<FolderFit>;
     /** Runs the installation checks of the active version again. */
     verify(graduateId: string, options?: { loadModel?: boolean }): Promise<Installation>;
     /** What an export would carry and leave out, and what the scan finds in it. */

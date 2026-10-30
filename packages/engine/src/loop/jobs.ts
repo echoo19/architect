@@ -8,7 +8,9 @@ import {
   JobSchema,
   newId,
   RuleConfirmationSchema,
+  StudyRecordSchema,
   TaskSchema,
+  trainOrganizations,
   type DraftRecord,
   type Job,
   type JobRun,
@@ -16,6 +18,8 @@ import {
   type RuleConfirmation,
   type RuleConfirmationState,
   type RuleReport,
+  type StudyRecord,
+  type StudyState,
   type Task,
   type TaskPlan,
 } from '@architect/shared';
@@ -23,12 +27,16 @@ import { z } from 'zod';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
+import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
+import { readDataFile } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
+import type { TransferOrganization } from '../vault/vault';
 import type { Clock, LoopDeps } from './deps';
 import { readJsonFile, readJsonLines, writeJsonFile, writeJsonLines } from './files';
 import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
+import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
 
 /** A relative path that stays inside its folder. */
@@ -50,6 +58,16 @@ function checkTasks(job: Job, tasks: readonly Task[]): void {
       throw new Error(`Task "${task.id}" has type "${task.type}", which the job doesn't declare.`);
     }
   }
+  checkOrganizations(job, tasks);
+}
+
+/**
+ * The job as the library keeps it: only the organizations it trains on. The ones it never
+ * trains on go to the vault with their files and tasks, so nothing in the job's folder names
+ * them (decision 068).
+ */
+function withoutTransfer(job: Job): Job {
+  return job.organizations === undefined ? job : { ...job, organizations: trainOrganizations(job) };
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -88,6 +106,37 @@ async function readJobFile(file: string): Promise<Job> {
   return parsed.data;
 }
 
+/**
+ * The files of each organization the job never trains on, read from `orgs/<id>/data/` next to
+ * the job file, for the vault: every file the job declares, less an optional one it lacks. None
+ * for a job without such organizations.
+ */
+async function readTransfer(job: Job, source: string): Promise<TransferOrganization[]> {
+  const transfer = (job.organizations ?? []).filter((org) => org.role === 'transfer');
+  return Promise.all(
+    transfer.map(async (org) => ({
+      org,
+      files: (
+        await Promise.all(
+          job.data.files.map(async (file) => {
+            const path = join(orgDataDir(source, org.id), file.name);
+            try {
+              return [{ name: file.name, content: await readFile(path) }];
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+              if (file.optional === true) return [];
+              throw new Error(
+                `A data file of a sealed organization is missing; each organization the job never trains on needs the job's data files in its own orgs/<id>/data folder next to the job file.`,
+                { cause: error },
+              );
+            }
+          }),
+        )
+      ).flat(),
+    })),
+  );
+}
+
 /** The tasks of a `tasks.jsonl`, with the line named when one isn't a task. None for no file. */
 async function readTasks(file: string): Promise<Task[]> {
   let text: string;
@@ -108,12 +157,19 @@ async function readTasks(file: string): Promise<Task[]> {
   });
 }
 
-async function copyInto(from: string, to: string, missing: string): Promise<void> {
+/** Copies a file, saying `missing` when it isn't there; an `optional` file that isn't is skipped. */
+async function copyInto(
+  from: string,
+  to: string,
+  missing: string,
+  optional = false,
+): Promise<void> {
   await mkdir(dirname(to), { recursive: true });
   try {
     await copyFile(from, to);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (optional) return;
       throw new Error(missing, { cause: error });
     }
     throw error;
@@ -201,7 +257,8 @@ export class JobLibrary {
   /**
    * The job as it was when the run started, for work that is about to use the job's records as
    * they are now: refused, with the reason, unless its rules are confirmed over them (decision
-   * 061). A re-test or a measure of a finished run is such work too.
+   * 061) and its study of its organizations is confirmed (069). A re-test or a measure of a
+   * finished run is such work too.
    */
   async forWork(record: StoredRun): Promise<Job> {
     const job = await this.forRun(record);
@@ -258,14 +315,28 @@ export class JobLibrary {
     const job: Job = { ...parsed, id: await this.freshId(parsed.id) };
     const tasks = await readTasks(join(source, 'tasks.jsonl'));
     checkTasks(job, tasks);
+    const transfer = await readTransfer(job, source);
+    const kept = withoutTransfer(job);
 
-    return this.finalize(job, async () => {
+    return this.finalize(kept, async () => {
+      const orgs = trainOrganizations(job);
       for (const data of job.data.files) {
-        await copyInto(
-          join(source, 'data', data.name),
-          join(this.paths.dataDir(job.id), data.name),
-          `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
-        );
+        if (orgs.length === 0) {
+          await copyInto(
+            join(source, 'data', data.name),
+            join(this.paths.dataDir(job.id), data.name),
+            `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
+            data.optional === true,
+          );
+        }
+        for (const org of orgs) {
+          await copyInto(
+            join(orgDataDir(source, org.id), data.name),
+            join(orgDataDir(this.paths.jobDir(job.id), org.id), data.name),
+            `The data file "${data.name}" of ${org.name} is missing; it belongs in orgs/${org.id}/data next to the job file.`,
+            data.optional === true,
+          );
+        }
       }
       if (job.checker.kind === 'module') {
         const checker = insidePath(job.checker.path);
@@ -285,11 +356,11 @@ export class JobLibrary {
         }
         await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
       }
-      if (tasks.length > 0) await this.installTasks(job, tasks);
+      if (tasks.length > 0) await this.installTasks(kept, tasks, transfer);
 
-      await writeJsonFile(this.paths.jobFile(job.id), job);
-      this.record(job, tasks.length);
-      return job;
+      await writeJsonFile(this.paths.jobFile(job.id), kept);
+      this.record(kept, tasks.length);
+      return kept;
     });
   }
 
@@ -393,6 +464,12 @@ export class JobLibrary {
   async create(input: NewJob): Promise<Job> {
     const job: Job = { ...input.job, id: await this.freshId(input.job.id) };
     const tasks = [...input.tasks];
+    if (job.organizations !== undefined) {
+      throw new CodedError(
+        'not_a_job',
+        "A job with organizations is imported from its folder, with each one's files in orgs/<id>/data.",
+      );
+    }
     checkTasks(job, tasks);
     this.deps.runtime.splitTasks(tasks, job.splits);
     return this.finalize(job, async () => {
@@ -403,7 +480,7 @@ export class JobLibrary {
       }
       await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(input.drafting));
       await writeJsonFile(this.paths.jobFile(job.id), job);
-      await this.installTasks(job, tasks);
+      await this.installTasks(job, tasks, []);
       this.record(job, tasks.length);
       return job;
     });
@@ -441,6 +518,7 @@ export class JobLibrary {
       ? await this.deps.vault.typeCounts(jobId)
       : {};
     const confirmation = await this.ruleState(jobId);
+    const study = await this.studyState(jobId);
     return {
       ...buildTaskPlan({
         job,
@@ -449,6 +527,7 @@ export class JobLibrary {
         sealed,
       }),
       ...(confirmation === null ? {} : { confirmation }),
+      ...(study === null ? {} : { study }),
     };
   }
 
@@ -521,8 +600,77 @@ export class JobLibrary {
     return { state: 'confirmed', token: now.token, confirmedAt };
   }
 
-  /** Refuses a run on a job whose rules the person has not confirmed over these records. */
+  /** What the teacher's study of a field job left, or null before it was studied. */
+  async studyRecord(jobId: string): Promise<StudyRecord | null> {
+    try {
+      return StudyRecordSchema.parse(await readJsonFile(this.paths.studyFile(jobId)));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  /** Keeps a study's brief beside the job, unconfirmed: a new one replaces the one before. */
+  async writeStudy(jobId: string, record: StudyRecord): Promise<void> {
+    await writeJsonFile(this.paths.studyFile(jobId), StudyRecordSchema.parse(record));
+  }
+
+  /** The train organizations' files as they are now, hashed. */
+  studiedFiles(job: Job): Promise<StudyRecord['files']> {
+    return materialFiles(job, (orgId) => this.paths.orgDataDir(job.id, orgId));
+  }
+
+  /**
+   * Where the study of a job that lists organizations stands (decision 069). Null for any other
+   * job, which has nothing to study.
+   */
+  async studyState(jobId: string): Promise<StudyState | null> {
+    const job = await this.get(jobId);
+    if (!isStudied(job)) return null;
+    return studyStateOf(await this.studyRecord(jobId), await this.studiedFiles(job));
+  }
+
+  /**
+   * Records that the person confirmed the brief. `token` is the one the brief was shown with, so
+   * a brief or material that changed since is refused rather than confirmed unseen.
+   */
+  async confirmStudy(jobId: string, token: string): Promise<StudyState> {
+    const record = await this.studyRecord(jobId);
+    const state = await this.studyState(jobId);
+    if (record === null || state === null || state.state === 'unstudied') {
+      throw new Error('This job has no brief to confirm yet.');
+    }
+    if (state.state === 'changed' || state.token !== token) {
+      throw new CodedError(
+        'study_unconfirmed',
+        state.problem ??
+          'The brief or the material changed since you read it. Read the brief again, then confirm it.',
+      );
+    }
+    if (state.state === 'confirmed') return state;
+    const confirmedAt = isoNow(this.clock);
+    await this.writeStudy(jobId, { ...record, confirmedAt });
+    return { ...state, state: 'confirmed', confirmedAt };
+  }
+
+  /** Refuses a run on a field job whose study the person has not confirmed. */
+  async requireStudied(job: Job): Promise<void> {
+    const state = await this.studyState(job.id);
+    if (state === null || state.state === 'confirmed') return;
+    throw new CodedError(
+      'study_unconfirmed',
+      state.state === 'changed'
+        ? (state.problem ?? "The organizations' files changed since they were studied.")
+        : `${job.mentor.label}'s study of the organizations for "${job.name}" isn't confirmed yet. Open the job, read the brief and confirm it before training.`,
+    );
+  }
+
+  /**
+   * Refuses a run on a job whose rules the person has not confirmed over these records, or whose
+   * study of its organizations they have not confirmed.
+   */
   async requireConfirmedRules(job: Job): Promise<void> {
+    await this.requireStudied(job);
     const state = await this.ruleState(job.id);
     if (state === null || state.state === 'confirmed') return;
     if (state.state === 'needed') {
@@ -609,20 +757,40 @@ export class JobLibrary {
     return tasks;
   }
 
-  private async installTasks(job: Job, tasks: Task[]): Promise<void> {
-    const splits = this.deps.runtime.splitTasks(tasks, job.splits);
+  /**
+   * Splits the tasks of the organizations the job trains on and seals the test split in the
+   * vault, with every task and file of the organizations it never trains on. Those are taken out
+   * before splitting, so no ordinary split ever holds one.
+   */
+  private async installTasks(
+    job: Job,
+    tasks: Task[],
+    transfer: TransferOrganization[],
+  ): Promise<void> {
+    const sealedOrgs = new Set(transfer.map(({ org }) => org.id));
+    const sealed = tasks.filter((task) => task.org !== undefined && sealedOrgs.has(task.org));
+    const trained = tasks.filter((task) => task.org === undefined || !sealedOrgs.has(task.org));
+    const splits = this.deps.runtime.splitTasks(trained, job.splits);
     await writeJsonLines(this.paths.tasksFile(job.id, 'calibration'), splits.calibration);
     await writeJsonLines(this.paths.tasksFile(job.id, 'train'), splits.train);
     await writeJsonLines(this.paths.tasksFile(job.id, 'dev'), splits.dev);
     const testIds = new Set(splits.test.map((task) => task.id));
-    const data = await Promise.all(
-      job.data.files.map((file) => readFile(join(this.paths.dataDir(job.id), file.name), 'utf8')),
-    );
+    const orgs = trainOrganizations(job);
+    const folders =
+      orgs.length === 0
+        ? [this.paths.dataDir(job.id)]
+        : orgs.map((org) => orgDataDir(this.paths.jobDir(job.id), org.id));
+    const data = (
+      await Promise.all(
+        folders.flatMap((folder) => job.data.files.map((file) => readDataFile(folder, file))),
+      )
+    ).filter((text) => text !== null);
     await this.deps.vault.seal(
       job.id,
-      splits.test,
-      tasks.filter((task) => !testIds.has(task.id)),
+      [...splits.test, ...sealed],
+      trained.filter((task) => !testIds.has(task.id)),
       data,
+      transfer,
     );
   }
 

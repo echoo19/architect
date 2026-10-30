@@ -29,6 +29,7 @@ import { improvementsOf } from '../improve/improvement';
 import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
+import { JobStudy } from '../drafting/studying';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
@@ -86,6 +87,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const versionsOf = (record: StoredRun) =>
     deps.harness.versions(paths.harnessDir(record.run.jobId, record.run.id));
   const drafter: JobDrafter = new JobDrafting({ jobs, deps, clock: ctx.clock });
+  const studying = new JobStudy({ jobs, paths, deps, clock: ctx.clock });
   const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
   /** Who hears a publication move. Listeners only pass it on, so none of them throws. */
   const publishListeners = new Set<(progress: PublishProgress) => void>();
@@ -268,8 +270,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       list: async () => jobs.summaries(),
       get: (jobId) => jobs.get(jobId),
       save: (job) => jobs.save(job),
-      createSample: async () => {
-        const file = found(deps.sampleJobFile, "The sample job isn't available in this build.");
+      createSample: async (sample = 'home-services') => {
+        const file = found(
+          sample === 'academy' ? deps.academyJobFile : deps.sampleJobFile,
+          "The sample job isn't available in this build.",
+        );
         const { id } = JobSchema.parse(await readJsonFile(file));
         return store.jobs.get(id) ? jobs.get(id) : jobs.importFile(file);
       },
@@ -279,6 +284,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       draftReply: (sessionId, text, teacher) => drafter.reply(sessionId, text, teacher),
       taskPlan: (jobId) => jobs.taskPlan(jobId),
       confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),
+      study: (jobId) => studying.study(jobId),
+      confirmStudy: (jobId, token) => jobs.confirmStudy(jobId, token),
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>
@@ -353,6 +360,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       rollback: async (graduateId, version) => checked(graduates.rollback(graduateId, version).id),
       installation: async (graduateId) => graduates.installation(graduateId),
       bind: (graduateId, request) => graduates.bind(graduateId, request),
+      checkFolder: (graduateId, resource, folder) =>
+        graduates.checkFolder(graduateId, resource, folder),
       verify: (graduateId, options) => graduates.verify(graduateId, options),
       reviewExport: (graduateId, version, include) =>
         reviewExport(packages, graduateId, version, include),

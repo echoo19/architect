@@ -1,0 +1,1705 @@
+student_id,test_id,taken_on,section,module,number,question_id,topic,selected,correct,result
+S-1002,PT-1,2026-08-19,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1002,PT-1,2026-08-19,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1002,PT-1,2026-08-19,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1002,PT-1,2026-08-19,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,D,A,wrong
+S-1002,PT-1,2026-08-19,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,D,C,wrong
+S-1002,PT-1,2026-08-19,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1002,PT-1,2026-08-19,Reading and Writing,2,1,Q-0042,RULE 6A - AGREEMENT,C,C,right
+S-1002,PT-1,2026-08-19,Reading and Writing,2,2,Q-0060,rule 1a - pronoun agreement,B,A,wrong
+S-1002,PT-1,2026-08-19,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1002,PT-1,2026-08-19,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,A,A,right
+S-1002,PT-1,2026-08-19,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1002,PT-1,2026-08-19,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1002,PT-1,2026-08-19,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1002,PT-1,2026-08-19,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1002,PT-1,2026-08-19,Math,1,3,Q-0118,rule 4a - solving linear equations,A,A,right
+S-1002,PT-1,2026-08-19,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1002,PT-1,2026-08-19,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1002,PT-1,2026-08-19,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1002,PT-1,2026-08-19,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1002,PT-1,2026-08-19,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1002,PT-1,2026-08-19,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1002,PT-1,2026-08-19,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1002,PT-1,2026-08-19,Math,2,5,Q-0099,Rule 3A -  Percents and Discounts,A,D,wrong
+S-1002,PT-1,2026-08-19,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1007,PT-1,2026-08-20,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1007,PT-1,2026-08-20,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1007,PT-1,2026-08-20,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1007,PT-1,2026-08-20,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1007,PT-1,2026-08-20,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,D,C,wrong
+S-1007,PT-1,2026-08-20,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1007,PT-1,2026-08-20,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1007,PT-1,2026-08-20,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1007,PT-1,2026-08-20,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1007,PT-1,2026-08-20,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,D,A,wrong
+S-1007,PT-1,2026-08-20,Reading and Writing,2,5,Q-0013,Rule 6B  - Transition Words,D,D,right
+S-1007,PT-1,2026-08-20,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,A,C,wrong
+S-1007,PT-1,2026-08-20,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1007,PT-1,2026-08-20,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,D,D,right
+S-1007,PT-1,2026-08-20,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,B,A,wrong
+S-1007,PT-1,2026-08-20,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1007,PT-1,2026-08-20,Math,1,5,Q-0210,Rule 5B - Function Notation,B,A,wrong
+S-1007,PT-1,2026-08-20,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,D,A,wrong
+S-1007,PT-1,2026-08-20,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1007,PT-1,2026-08-20,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1007,PT-1,2026-08-20,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1007,PT-1,2026-08-20,Math,2,4,Q-0001,Rule  5B - Function Notation,B,B,right
+S-1007,PT-1,2026-08-20,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1007,PT-1,2026-08-20,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1013,PT-1,2026-08-20,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1013,PT-1,2026-08-20,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1013,PT-1,2026-08-20,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel  Comparisons,B,D,wrong
+S-1013,PT-1,2026-08-20,Reading and Writing,1,4,Q-0285,Rule  4B - Sentence Boundaries,A,A,right
+S-1013,PT-1,2026-08-20,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,C,C,right
+S-1013,PT-1,2026-08-20,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1013,PT-1,2026-08-20,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1013,PT-1,2026-08-20,Reading and Writing,2,2,Q-0060,RULE 1A - PRONOUN AGREEMENT,C,A,wrong
+S-1013,PT-1,2026-08-20,Reading and Writing,2,3,Q-0087,Rule 2B - Verb  Tense,D,D,right
+S-1013,PT-1,2026-08-20,Reading and Writing,2,4,Q-0274,rule 4b - sentence boundaries,A,A,right
+S-1013,PT-1,2026-08-20,Reading and Writing,2,5,Q-0013,Rule 6B -  Transition Words,D,D,right
+S-1013,PT-1,2026-08-20,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1013,PT-1,2026-08-20,Math,1,1,Q-0304,Rule 2A - Systems of Equations,C,D,wrong
+S-1013,PT-1,2026-08-20,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-1,2026-08-20,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,B,A,wrong
+S-1013,PT-1,2026-08-20,Math,1,4,Q-0268,RULE 3B - AREA AND PERIMETER,D,D,right
+S-1013,PT-1,2026-08-20,Math,1,5,Q-0210,Rule 5B - Function Notation,D,A,wrong
+S-1013,PT-1,2026-08-20,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1013,PT-1,2026-08-20,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,D,B,wrong
+S-1013,PT-1,2026-08-20,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1013,PT-1,2026-08-20,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1013,PT-1,2026-08-20,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1013,PT-1,2026-08-20,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,B,D,wrong
+S-1013,PT-1,2026-08-20,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1015,PT-2,2026-08-21,Reading and Writing,1,1,Q-0075,rule 4b - sentence boundaries,D,D,right
+S-1015,PT-2,2026-08-21,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,A,A,right
+S-1015,PT-2,2026-08-21,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1015,PT-2,2026-08-21,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1015,PT-2,2026-08-21,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,A,B,wrong
+S-1015,PT-2,2026-08-21,Reading and Writing,1,6,Q-0155,Rule 6A  - Agreement,C,C,right
+S-1015,PT-2,2026-08-21,Reading and Writing,2,1,Q-0269,Rule  1B - Parallel Comparisons,B,B,right
+S-1015,PT-2,2026-08-21,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1015,PT-2,2026-08-21,Reading and Writing,2,3,Q-0089,rule 4b - sentence boundaries,C,D,wrong
+S-1015,PT-2,2026-08-21,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,A,C,wrong
+S-1015,PT-2,2026-08-21,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1015,PT-2,2026-08-21,Reading and Writing,2,6,Q-0132,rule 6b - transition words,B,B,right
+S-1015,PT-2,2026-08-21,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,D,D,right
+S-1015,PT-2,2026-08-21,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,B,C,wrong
+S-1015,PT-2,2026-08-21,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,5/2,5/2,right
+S-1015,PT-2,2026-08-21,Math,1,4,Q-0104,rule 5b - function notation,B,B,right
+S-1015,PT-2,2026-08-21,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1015,PT-2,2026-08-21,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1015,PT-2,2026-08-21,Math,2,1,Q-0184,Rule 5B - Function Notation,B,C,wrong
+S-1015,PT-2,2026-08-21,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,A,A,right
+S-1015,PT-2,2026-08-21,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1015,PT-2,2026-08-21,Math,2,4,Q-0004,Rule 4A  - Solving Linear Equations,C,C,right
+S-1015,PT-2,2026-08-21,Math,2,5,Q-0262,rule 3a - percents and discounts,C,B,wrong
+S-1015,PT-2,2026-08-21,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1002,PT-2,2026-08-22,Reading and Writing,1,1,Q-0075,rule 4b - sentence boundaries,A,D,wrong
+S-1002,PT-2,2026-08-22,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,A,A,right
+S-1002,PT-2,2026-08-22,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1002,PT-2,2026-08-22,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1002,PT-2,2026-08-22,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1002,PT-2,2026-08-22,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,B,C,wrong
+S-1002,PT-2,2026-08-22,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1002,PT-2,2026-08-22,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1002,PT-2,2026-08-22,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,B,D,wrong
+S-1002,PT-2,2026-08-22,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1002,PT-2,2026-08-22,Reading and Writing,2,5,Q-0114,rule 6a - agreement,C,A,wrong
+S-1002,PT-2,2026-08-22,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1002,PT-2,2026-08-22,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1002,PT-2,2026-08-22,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,B,C,wrong
+S-1002,PT-2,2026-08-22,Math,1,3,Q-0198,RULE 4A - SOLVING LINEAR EQUATIONS,10/4,5/2,right
+S-1002,PT-2,2026-08-22,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1002,PT-2,2026-08-22,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1002,PT-2,2026-08-22,Math,1,6,Q-0257,RULE 3A - PERCENTS AND DISCOUNTS,C,C,right
+S-1002,PT-2,2026-08-22,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1002,PT-2,2026-08-22,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1002,PT-2,2026-08-22,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1002,PT-2,2026-08-22,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1002,PT-2,2026-08-22,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,C,B,wrong
+S-1002,PT-2,2026-08-22,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,B,D,wrong
+S-1012,PT-1,2026-08-24,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,A,B,wrong
+S-1012,PT-1,2026-08-24,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1012,PT-1,2026-08-24,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1012,PT-1,2026-08-24,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1012,PT-1,2026-08-24,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,C,C,right
+S-1012,PT-1,2026-08-24,Reading and Writing,1,6,Q-0080,Rule 1A -  Pronoun Agreement,C,C,right
+S-1012,PT-1,2026-08-24,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,B,C,wrong
+S-1012,PT-1,2026-08-24,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,C,A,wrong
+S-1012,PT-1,2026-08-24,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1012,PT-1,2026-08-24,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,A,A,right
+S-1012,PT-1,2026-08-24,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1012,PT-1,2026-08-24,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1012,PT-1,2026-08-24,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1012,PT-1,2026-08-24,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1012,PT-1,2026-08-24,Math,1,3,Q-0118,Rule 4A  - Solving Linear Equations,A,A,right
+S-1012,PT-1,2026-08-24,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,C,D,wrong
+S-1012,PT-1,2026-08-24,Math,1,5,Q-0210,Rule 5B - Function Notation,B,A,wrong
+S-1012,PT-1,2026-08-24,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1012,PT-1,2026-08-24,Math,2,1,Q-0137,RULE 4A - SOLVING LINEAR EQUATIONS,B,B,right
+S-1012,PT-1,2026-08-24,Math,2,2,Q-0043,Rule 2A - Systems of Equations,C,A,wrong
+S-1012,PT-1,2026-08-24,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1012,PT-1,2026-08-24,Math,2,4,Q-0001,Rule 5B - Function Notation,A,B,wrong
+S-1012,PT-1,2026-08-24,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1012,PT-1,2026-08-24,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-1,2026-08-28,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1008,PT-1,2026-08-28,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1008,PT-1,2026-08-28,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1008,PT-1,2026-08-28,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1008,PT-1,2026-08-28,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,A,C,wrong
+S-1008,PT-1,2026-08-28,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1008,PT-1,2026-08-28,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,B,C,wrong
+S-1008,PT-1,2026-08-28,Reading and Writing,2,2,Q-0060,RULE 1A - PRONOUN AGREEMENT,D,A,wrong
+S-1008,PT-1,2026-08-28,Reading and Writing,2,3,Q-0087,Rule 2B - Verb  Tense,D,D,right
+S-1008,PT-1,2026-08-28,Reading and Writing,2,4,Q-0274,rule 4b - sentence boundaries,B,A,wrong
+S-1008,PT-1,2026-08-28,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1008,PT-1,2026-08-28,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1008,PT-1,2026-08-28,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1008,PT-1,2026-08-28,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-1,2026-08-28,Math,1,3,Q-0118,Rule 4A  - Solving Linear Equations,B,A,wrong
+S-1008,PT-1,2026-08-28,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,B,D,wrong
+S-1008,PT-1,2026-08-28,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1008,PT-1,2026-08-28,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1008,PT-1,2026-08-28,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,D,B,wrong
+S-1008,PT-1,2026-08-28,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1008,PT-1,2026-08-28,Math,2,3,Q-0049,rule 3b - area and perimeter,C,C,right
+S-1008,PT-1,2026-08-28,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1008,PT-1,2026-08-28,Math,2,5,Q-0099,Rule 3A - Percents and  Discounts,B,D,wrong
+S-1008,PT-1,2026-08-28,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,D,D,right
+S-1016,PT-1,2026-08-28,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1016,PT-1,2026-08-28,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1016,PT-1,2026-08-28,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1016,PT-1,2026-08-28,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1016,PT-1,2026-08-28,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,C,C,right
+S-1016,PT-1,2026-08-28,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1016,PT-1,2026-08-28,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,B,C,wrong
+S-1016,PT-1,2026-08-28,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,C,A,wrong
+S-1016,PT-1,2026-08-28,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1016,PT-1,2026-08-28,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,D,A,wrong
+S-1016,PT-1,2026-08-28,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1016,PT-1,2026-08-28,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1016,PT-1,2026-08-28,Math,1,1,Q-0304,rule 2a - systems of equations,D,D,right
+S-1016,PT-1,2026-08-28,Math,1,2,Q-0199,rule 5a - part-to-part ratios,D,D,right
+S-1016,PT-1,2026-08-28,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,C,A,wrong
+S-1016,PT-1,2026-08-28,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1016,PT-1,2026-08-28,Math,1,5,Q-0210,rule 5b - function notation,A,A,right
+S-1016,PT-1,2026-08-28,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,B,A,wrong
+S-1016,PT-1,2026-08-28,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1016,PT-1,2026-08-28,Math,2,2,Q-0043,Rule 2A - Systems of Equations,C,A,wrong
+S-1016,PT-1,2026-08-28,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,B,C,wrong
+S-1016,PT-1,2026-08-28,Math,2,4,Q-0001,rule 5b - function notation,A,B,wrong
+S-1016,PT-1,2026-08-28,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,A,D,wrong
+S-1016,PT-1,2026-08-28,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1012,PT-2,2026-08-29,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,D,D,right
+S-1012,PT-2,2026-08-29,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,B,A,wrong
+S-1012,PT-2,2026-08-29,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1012,PT-2,2026-08-29,Reading and Writing,1,4,Q-0125,Rule 6B -  Transition Words,A,A,right
+S-1012,PT-2,2026-08-29,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,A,B,wrong
+S-1012,PT-2,2026-08-29,Reading and Writing,1,6,Q-0155,rule 6a - agreement,A,C,wrong
+S-1012,PT-2,2026-08-29,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1012,PT-2,2026-08-29,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,D,C,wrong
+S-1012,PT-2,2026-08-29,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1012,PT-2,2026-08-29,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1012,PT-2,2026-08-29,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1012,PT-2,2026-08-29,Reading and Writing,2,6,Q-0132,rule 6b - transition words,D,B,wrong
+S-1012,PT-2,2026-08-29,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1012,PT-2,2026-08-29,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,A,C,wrong
+S-1012,PT-2,2026-08-29,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,10/4,5/2,right
+S-1012,PT-2,2026-08-29,Math,1,4,Q-0104,Rule 5B - Function Notation,C,B,wrong
+S-1012,PT-2,2026-08-29,Math,1,5,Q-0120,Rule 2A - Systems of Equations,D,C,wrong
+S-1012,PT-2,2026-08-29,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1012,PT-2,2026-08-29,Math,2,1,Q-0184,Rule 5B - Function Notation,A,C,wrong
+S-1012,PT-2,2026-08-29,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1012,PT-2,2026-08-29,Math,2,3,Q-0097,Rule 2A - Systems  of Equations,D,A,wrong
+S-1012,PT-2,2026-08-29,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1012,PT-2,2026-08-29,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1012,PT-2,2026-08-29,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1002,PT-3,2026-09-01,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1002,PT-3,2026-09-01,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1002,PT-3,2026-09-01,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1002,PT-3,2026-09-01,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1002,PT-3,2026-09-01,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,A,C,wrong
+S-1002,PT-3,2026-09-01,Reading and Writing,1,6,Q-0323,rule 2b - verb tense,B,D,wrong
+S-1002,PT-3,2026-09-01,Reading and Writing,2,1,Q-0313,rule 6a - agreement,A,D,wrong
+S-1002,PT-3,2026-09-01,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,D,C,wrong
+S-1002,PT-3,2026-09-01,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1002,PT-3,2026-09-01,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,A,C,wrong
+S-1002,PT-3,2026-09-01,Reading and Writing,2,5,Q-0103,rule 2b - verb tense,C,C,right
+S-1002,PT-3,2026-09-01,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1002,PT-3,2026-09-01,Math,1,1,Q-0140,Rule 2A - Systems of Equations,A,B,wrong
+S-1002,PT-3,2026-09-01,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1/8,1/8,right
+S-1002,PT-3,2026-09-01,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,A,C,wrong
+S-1002,PT-3,2026-09-01,Math,1,4,Q-0046,Rule 3B -  Area and Perimeter,C,C,right
+S-1002,PT-3,2026-09-01,Math,1,5,Q-0308,Rule 5B - Function Notation,C,A,wrong
+S-1002,PT-3,2026-09-01,Math,1,6,Q-0115,Rule 5A - Part-to-part  Ratios,B,D,wrong
+S-1002,PT-3,2026-09-01,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1002,PT-3,2026-09-01,Math,2,2,Q-0244,rule 2a - systems of equations,D,D,right
+S-1002,PT-3,2026-09-01,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,D,B,wrong
+S-1002,PT-3,2026-09-01,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,.4,2/5,right
+S-1002,PT-3,2026-09-01,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1002,PT-3,2026-09-01,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,B,B,right
+S-1004,PT-1,2026-09-04,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1004,PT-1,2026-09-04,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1004,PT-1,2026-09-04,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1004,PT-1,2026-09-04,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1004,PT-1,2026-09-04,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,B,C,wrong
+S-1004,PT-1,2026-09-04,Reading and Writing,1,6,Q-0080,RULE 1A - PRONOUN AGREEMENT,C,C,right
+S-1004,PT-1,2026-09-04,Reading and Writing,2,1,Q-0042,Rule 6A -  Agreement,B,C,wrong
+S-1004,PT-1,2026-09-04,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1004,PT-1,2026-09-04,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1004,PT-1,2026-09-04,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,A,A,right
+S-1004,PT-1,2026-09-04,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1004,PT-1,2026-09-04,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1004,PT-1,2026-09-04,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1004,PT-1,2026-09-04,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1004,PT-1,2026-09-04,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1004,PT-1,2026-09-04,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,A,D,wrong
+S-1004,PT-1,2026-09-04,Math,1,5,Q-0210,Rule  5B - Function Notation,A,A,right
+S-1004,PT-1,2026-09-04,Math,1,6,Q-0263,rule 3a - percents and discounts,A,A,right
+S-1004,PT-1,2026-09-04,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1004,PT-1,2026-09-04,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1004,PT-1,2026-09-04,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1004,PT-1,2026-09-04,Math,2,4,Q-0001,Rule 5B - Function Notation,D,B,wrong
+S-1004,PT-1,2026-09-04,Math,2,5,Q-0099,Rule 3A - Percents  and Discounts,D,D,right
+S-1004,PT-1,2026-09-04,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1014,PT-1,2026-09-04,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,A,B,wrong
+S-1014,PT-1,2026-09-04,Reading and Writing,1,2,Q-0195,RULE 2B - VERB TENSE,A,A,right
+S-1014,PT-1,2026-09-04,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1014,PT-1,2026-09-04,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1014,PT-1,2026-09-04,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,B,C,wrong
+S-1014,PT-1,2026-09-04,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun  Agreement,B,C,wrong
+S-1014,PT-1,2026-09-04,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1014,PT-1,2026-09-04,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1014,PT-1,2026-09-04,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1014,PT-1,2026-09-04,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,B,A,wrong
+S-1014,PT-1,2026-09-04,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1014,PT-1,2026-09-04,Reading and Writing,2,6,Q-0033,rule 1b - parallel comparisons,A,C,wrong
+S-1014,PT-1,2026-09-04,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1014,PT-1,2026-09-04,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1014,PT-1,2026-09-04,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1014,PT-1,2026-09-04,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1014,PT-1,2026-09-04,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1014,PT-1,2026-09-04,Math,1,6,Q-0263,Rule 3A -  Percents and Discounts,A,A,right
+S-1014,PT-1,2026-09-04,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,A,B,wrong
+S-1014,PT-1,2026-09-04,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1014,PT-1,2026-09-04,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1014,PT-1,2026-09-04,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1014,PT-1,2026-09-04,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1014,PT-1,2026-09-04,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1010,PT-1,2026-09-06,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1010,PT-1,2026-09-06,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1010,PT-1,2026-09-06,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1010,PT-1,2026-09-06,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,B,A,wrong
+S-1010,PT-1,2026-09-06,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,D,C,wrong
+S-1010,PT-1,2026-09-06,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1010,PT-1,2026-09-06,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,A,C,wrong
+S-1010,PT-1,2026-09-06,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1010,PT-1,2026-09-06,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1010,PT-1,2026-09-06,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,D,A,wrong
+S-1010,PT-1,2026-09-06,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1010,PT-1,2026-09-06,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,B,C,wrong
+S-1010,PT-1,2026-09-06,Math,1,1,Q-0304,Rule  2A - Systems of Equations,A,D,wrong
+S-1010,PT-1,2026-09-06,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1010,PT-1,2026-09-06,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1010,PT-1,2026-09-06,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1010,PT-1,2026-09-06,Math,1,5,Q-0210,rule 5b - function notation,A,A,right
+S-1010,PT-1,2026-09-06,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,D,A,wrong
+S-1010,PT-1,2026-09-06,Math,2,1,Q-0137,rule 4a - solving linear equations,B,B,right
+S-1010,PT-1,2026-09-06,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1010,PT-1,2026-09-06,Math,2,3,Q-0049,RULE 3B - AREA AND PERIMETER,C,C,right
+S-1010,PT-1,2026-09-06,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1010,PT-1,2026-09-06,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1010,PT-1,2026-09-06,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1015,PT-3,2026-09-06,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1015,PT-3,2026-09-06,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1015,PT-3,2026-09-06,Reading and Writing,1,3,Q-0206,RULE 4B - SENTENCE BOUNDARIES,D,D,right
+S-1015,PT-3,2026-09-06,Reading and Writing,1,4,Q-0021,Rule 6A  - Agreement,B,B,right
+S-1015,PT-3,2026-09-06,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1015,PT-3,2026-09-06,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1015,PT-3,2026-09-06,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,D,D,right
+S-1015,PT-3,2026-09-06,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1015,PT-3,2026-09-06,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,A,C,wrong
+S-1015,PT-3,2026-09-06,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1015,PT-3,2026-09-06,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,B,C,wrong
+S-1015,PT-3,2026-09-06,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,D,C,wrong
+S-1015,PT-3,2026-09-06,Math,1,1,Q-0140,Rule 2A - Systems of Equations,D,B,wrong
+S-1015,PT-3,2026-09-06,Math,1,2,Q-0090,rule 4a - solving linear equations,0.125,1/8,right
+S-1015,PT-3,2026-09-06,Math,1,3,Q-0143,Rule 3A -  Percents and Discounts,B,C,wrong
+S-1015,PT-3,2026-09-06,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1015,PT-3,2026-09-06,Math,1,5,Q-0308,Rule 5B - Function Notation,D,A,wrong
+S-1015,PT-3,2026-09-06,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1015,PT-3,2026-09-06,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1015,PT-3,2026-09-06,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1015,PT-3,2026-09-06,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,D,B,wrong
+S-1015,PT-3,2026-09-06,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,4,2/5,wrong
+S-1015,PT-3,2026-09-06,Math,2,5,Q-0317,RULE 5A - PART-TO-PART RATIOS,B,D,wrong
+S-1015,PT-3,2026-09-06,Math,2,6,Q-0299,Rule 3B - Area  and Perimeter,C,B,wrong
+S-1014,PT-2,2026-09-07,Reading and Writing,1,1,Q-0075,Rule  4B - Sentence Boundaries,D,D,right
+S-1014,PT-2,2026-09-07,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,A,A,right
+S-1014,PT-2,2026-09-07,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1014,PT-2,2026-09-07,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,D,A,wrong
+S-1014,PT-2,2026-09-07,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,C,B,wrong
+S-1014,PT-2,2026-09-07,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,A,C,wrong
+S-1014,PT-2,2026-09-07,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,A,B,wrong
+S-1014,PT-2,2026-09-07,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1014,PT-2,2026-09-07,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1014,PT-2,2026-09-07,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun  Agreement,C,C,right
+S-1014,PT-2,2026-09-07,Reading and Writing,2,5,Q-0114,Rule 6A  - Agreement,A,A,right
+S-1014,PT-2,2026-09-07,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,C,B,wrong
+S-1014,PT-2,2026-09-07,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1014,PT-2,2026-09-07,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1014,PT-2,2026-09-07,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,6,5/2,wrong
+S-1014,PT-2,2026-09-07,Math,1,4,Q-0104,RULE 5B - FUNCTION NOTATION,B,B,right
+S-1014,PT-2,2026-09-07,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1014,PT-2,2026-09-07,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1014,PT-2,2026-09-07,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1014,PT-2,2026-09-07,Math,2,2,Q-0146,Rule  5A - Part-to-part Ratios,A,A,right
+S-1014,PT-2,2026-09-07,Math,2,3,Q-0097,RULE 2A - SYSTEMS OF EQUATIONS,A,A,right
+S-1014,PT-2,2026-09-07,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,D,C,wrong
+S-1014,PT-2,2026-09-07,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1014,PT-2,2026-09-07,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1011,PT-1,2026-09-08,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1011,PT-1,2026-09-08,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1011,PT-1,2026-09-08,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,A,D,wrong
+S-1011,PT-1,2026-09-08,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,C,A,wrong
+S-1011,PT-1,2026-09-08,Reading and Writing,1,5,Q-0298,Rule  6A - Agreement,C,C,right
+S-1011,PT-1,2026-09-08,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1011,PT-1,2026-09-08,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,B,C,wrong
+S-1011,PT-1,2026-09-08,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1011,PT-1,2026-09-08,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1011,PT-1,2026-09-08,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,D,A,wrong
+S-1011,PT-1,2026-09-08,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1011,PT-1,2026-09-08,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,A,C,wrong
+S-1011,PT-1,2026-09-08,Math,1,1,Q-0304,Rule 2A - Systems of Equations,B,D,wrong
+S-1011,PT-1,2026-09-08,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,D,D,right
+S-1011,PT-1,2026-09-08,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,D,A,wrong
+S-1011,PT-1,2026-09-08,Math,1,4,Q-0268,Rule  3B - Area and Perimeter,C,D,wrong
+S-1011,PT-1,2026-09-08,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1011,PT-1,2026-09-08,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1011,PT-1,2026-09-08,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1011,PT-1,2026-09-08,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1011,PT-1,2026-09-08,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1011,PT-1,2026-09-08,Math,2,4,Q-0001,Rule 5B - Function  Notation,B,B,right
+S-1011,PT-1,2026-09-08,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1011,PT-1,2026-09-08,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1007,PT-2,2026-09-10,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,B,D,wrong
+S-1007,PT-2,2026-09-10,Reading and Writing,1,2,Q-0292,Rule 2B  - Verb Tense,A,A,right
+S-1007,PT-2,2026-09-10,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1007,PT-2,2026-09-10,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1007,PT-2,2026-09-10,Reading and Writing,1,5,Q-0175,rule 1b - parallel comparisons,A,B,wrong
+S-1007,PT-2,2026-09-10,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,C,C,right
+S-1007,PT-2,2026-09-10,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1007,PT-2,2026-09-10,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1007,PT-2,2026-09-10,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1007,PT-2,2026-09-10,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1007,PT-2,2026-09-10,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,B,A,wrong
+S-1007,PT-2,2026-09-10,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1007,PT-2,2026-09-10,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1007,PT-2,2026-09-10,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1007,PT-2,2026-09-10,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,10/4,5/2,right
+S-1007,PT-2,2026-09-10,Math,1,4,Q-0104,Rule 5B - Function Notation,A,B,wrong
+S-1007,PT-2,2026-09-10,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1007,PT-2,2026-09-10,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,B,C,wrong
+S-1007,PT-2,2026-09-10,Math,2,1,Q-0184,rule 5b - function notation,C,C,right
+S-1007,PT-2,2026-09-10,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,A,A,right
+S-1007,PT-2,2026-09-10,Math,2,3,Q-0097,Rule  2A - Systems of Equations,A,A,right
+S-1007,PT-2,2026-09-10,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1007,PT-2,2026-09-10,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,A,B,wrong
+S-1007,PT-2,2026-09-10,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1009,PT-1,2026-09-10,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1009,PT-1,2026-09-10,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,B,A,wrong
+S-1009,PT-1,2026-09-10,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,A,D,wrong
+S-1009,PT-1,2026-09-10,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1009,PT-1,2026-09-10,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,D,C,wrong
+S-1009,PT-1,2026-09-10,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1009,PT-1,2026-09-10,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1009,PT-1,2026-09-10,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1009,PT-1,2026-09-10,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1009,PT-1,2026-09-10,Reading and Writing,2,4,Q-0274,rule 4b - sentence boundaries,A,A,right
+S-1009,PT-1,2026-09-10,Reading and Writing,2,5,Q-0013,RULE 6B - TRANSITION WORDS,D,D,right
+S-1009,PT-1,2026-09-10,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1009,PT-1,2026-09-10,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1009,PT-1,2026-09-10,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1009,PT-1,2026-09-10,Math,1,3,Q-0118,rule 4a - solving linear equations,A,A,right
+S-1009,PT-1,2026-09-10,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1009,PT-1,2026-09-10,Math,1,5,Q-0210,Rule 5B  - Function Notation,A,A,right
+S-1009,PT-1,2026-09-10,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,D,A,wrong
+S-1009,PT-1,2026-09-10,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1009,PT-1,2026-09-10,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1009,PT-1,2026-09-10,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1009,PT-1,2026-09-10,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1009,PT-1,2026-09-10,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,C,D,wrong
+S-1009,PT-1,2026-09-10,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1007,PT-3,2026-09-11,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,D,C,wrong
+S-1007,PT-3,2026-09-11,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1007,PT-3,2026-09-11,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1007,PT-3,2026-09-11,Reading and Writing,1,4,Q-0021,rule 6a - agreement,D,B,wrong
+S-1007,PT-3,2026-09-11,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1007,PT-3,2026-09-11,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,B,D,wrong
+S-1007,PT-3,2026-09-11,Reading and Writing,2,1,Q-0313,rule 6a - agreement,D,D,right
+S-1007,PT-3,2026-09-11,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,D,C,wrong
+S-1007,PT-3,2026-09-11,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1007,PT-3,2026-09-11,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1007,PT-3,2026-09-11,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,C,C,right
+S-1007,PT-3,2026-09-11,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1007,PT-3,2026-09-11,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1007,PT-3,2026-09-11,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1,1/8,wrong
+S-1007,PT-3,2026-09-11,Math,1,3,Q-0143,rule 3a - percents and discounts,B,C,wrong
+S-1007,PT-3,2026-09-11,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1007,PT-3,2026-09-11,Math,1,5,Q-0308,Rule 5B - Function Notation,C,A,wrong
+S-1007,PT-3,2026-09-11,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1007,PT-3,2026-09-11,Math,2,1,Q-0072,Rule 5B - Function Notation,D,C,wrong
+S-1007,PT-3,2026-09-11,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1007,PT-3,2026-09-11,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1007,PT-3,2026-09-11,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,.4,2/5,right
+S-1007,PT-3,2026-09-11,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1007,PT-3,2026-09-11,Math,2,6,Q-0299,RULE 3B - AREA AND PERIMETER,B,B,right
+S-1011,PT-2,2026-09-12,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1011,PT-2,2026-09-12,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,C,A,wrong
+S-1011,PT-2,2026-09-12,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1011,PT-2,2026-09-12,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1011,PT-2,2026-09-12,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1011,PT-2,2026-09-12,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,B,C,wrong
+S-1011,PT-2,2026-09-12,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1011,PT-2,2026-09-12,Reading and Writing,2,2,Q-0226,Rule 2B -  Verb Tense,C,C,right
+S-1011,PT-2,2026-09-12,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1011,PT-2,2026-09-12,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1011,PT-2,2026-09-12,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1011,PT-2,2026-09-12,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1011,PT-2,2026-09-12,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,D,D,right
+S-1011,PT-2,2026-09-12,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,A,C,wrong
+S-1011,PT-2,2026-09-12,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,10,5/2,wrong
+S-1011,PT-2,2026-09-12,Math,1,4,Q-0104,Rule 5B - Function  Notation,B,B,right
+S-1011,PT-2,2026-09-12,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1011,PT-2,2026-09-12,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1011,PT-2,2026-09-12,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1011,PT-2,2026-09-12,Math,2,2,Q-0146,Rule 5A - Part-to-part  Ratios,C,A,wrong
+S-1011,PT-2,2026-09-12,Math,2,3,Q-0097,Rule 2A - Systems of Equations,B,A,wrong
+S-1011,PT-2,2026-09-12,Math,2,4,Q-0004,Rule 4A -  Solving Linear Equations,C,C,right
+S-1011,PT-2,2026-09-12,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1011,PT-2,2026-09-12,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1003,PT-2,2026-09-14,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,D,D,right
+S-1003,PT-2,2026-09-14,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,B,A,wrong
+S-1003,PT-2,2026-09-14,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,A,D,wrong
+S-1003,PT-2,2026-09-14,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1003,PT-2,2026-09-14,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1003,PT-2,2026-09-14,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,C,C,right
+S-1003,PT-2,2026-09-14,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1003,PT-2,2026-09-14,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1003,PT-2,2026-09-14,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1003,PT-2,2026-09-14,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1003,PT-2,2026-09-14,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1003,PT-2,2026-09-14,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1003,PT-2,2026-09-14,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,D,D,right
+S-1003,PT-2,2026-09-14,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,D,C,wrong
+S-1003,PT-2,2026-09-14,Math,1,3,Q-0198,Rule  4A - Solving Linear Equations,2.5,5/2,right
+S-1003,PT-2,2026-09-14,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1003,PT-2,2026-09-14,Math,1,5,Q-0120,Rule 2A - Systems of Equations,D,C,wrong
+S-1003,PT-2,2026-09-14,Math,1,6,Q-0257,rule 3a - percents and discounts,C,C,right
+S-1003,PT-2,2026-09-14,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1003,PT-2,2026-09-14,Math,2,2,Q-0146,rule 5a - part-to-part ratios,D,A,wrong
+S-1003,PT-2,2026-09-14,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1003,PT-2,2026-09-14,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1003,PT-2,2026-09-14,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1003,PT-2,2026-09-14,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,C,D,wrong
+S-1001,PT-1,2026-09-15,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,C,B,wrong
+S-1001,PT-1,2026-09-15,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1001,PT-1,2026-09-15,Reading and Writing,1,3,Q-0003,Rule  1B - Parallel Comparisons,A,D,wrong
+S-1001,PT-1,2026-09-15,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,C,A,wrong
+S-1001,PT-1,2026-09-15,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,C,C,right
+S-1001,PT-1,2026-09-15,Reading and Writing,1,6,Q-0080,RULE 1A - PRONOUN AGREEMENT,C,C,right
+S-1001,PT-1,2026-09-15,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1001,PT-1,2026-09-15,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1001,PT-1,2026-09-15,Reading and Writing,2,3,Q-0087,Rule 2B - Verb  Tense,D,D,right
+S-1001,PT-1,2026-09-15,Reading and Writing,2,4,Q-0274,rule 4b - sentence boundaries,C,A,wrong
+S-1001,PT-1,2026-09-15,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,B,D,wrong
+S-1001,PT-1,2026-09-15,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,D,C,wrong
+S-1001,PT-1,2026-09-15,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1001,PT-1,2026-09-15,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1001,PT-1,2026-09-15,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1001,PT-1,2026-09-15,Math,1,4,Q-0268,Rule 3B - Area  and Perimeter,C,D,wrong
+S-1001,PT-1,2026-09-15,Math,1,5,Q-0210,rule 5b - function notation,B,A,wrong
+S-1001,PT-1,2026-09-15,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1001,PT-1,2026-09-15,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1001,PT-1,2026-09-15,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1001,PT-1,2026-09-15,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1001,PT-1,2026-09-15,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1001,PT-1,2026-09-15,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1001,PT-1,2026-09-15,Math,2,6,Q-0189,Rule 5A -  Part-to-part Ratios,A,D,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,A,C,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,A,B,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1011,PT-3,2026-09-16,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,D,D,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,D,C,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,2,3,Q-0038,Rule  1B - Parallel Comparisons,C,C,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,D,C,wrong
+S-1011,PT-3,2026-09-16,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,C,C,right
+S-1011,PT-3,2026-09-16,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1011,PT-3,2026-09-16,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1011,PT-3,2026-09-16,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,.125,1/8,right
+S-1011,PT-3,2026-09-16,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,A,C,wrong
+S-1011,PT-3,2026-09-16,Math,1,4,Q-0046,rule 3b - area and perimeter,C,C,right
+S-1011,PT-3,2026-09-16,Math,1,5,Q-0308,Rule 5B - Function Notation,A,A,right
+S-1011,PT-3,2026-09-16,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1011,PT-3,2026-09-16,Math,2,1,Q-0072,Rule  5B - Function Notation,C,C,right
+S-1011,PT-3,2026-09-16,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1011,PT-3,2026-09-16,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1011,PT-3,2026-09-16,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,0.4,2/5,right
+S-1011,PT-3,2026-09-16,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,D,D,right
+S-1011,PT-3,2026-09-16,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,B,B,right
+S-1016,PT-2,2026-09-16,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,D,D,right
+S-1016,PT-2,2026-09-16,Reading and Writing,1,2,Q-0292,Rule 2B -  Verb Tense,A,A,right
+S-1016,PT-2,2026-09-16,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1016,PT-2,2026-09-16,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1016,PT-2,2026-09-16,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1016,PT-2,2026-09-16,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,A,C,wrong
+S-1016,PT-2,2026-09-16,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,D,B,wrong
+S-1016,PT-2,2026-09-16,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1016,PT-2,2026-09-16,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1016,PT-2,2026-09-16,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,A,C,wrong
+S-1016,PT-2,2026-09-16,Reading and Writing,2,5,Q-0114,Rule 6A -  Agreement,C,A,wrong
+S-1016,PT-2,2026-09-16,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1016,PT-2,2026-09-16,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1016,PT-2,2026-09-16,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1016,PT-2,2026-09-16,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,5/2,5/2,right
+S-1016,PT-2,2026-09-16,Math,1,4,Q-0104,Rule 5B - Function Notation,D,B,wrong
+S-1016,PT-2,2026-09-16,Math,1,5,Q-0120,Rule 2A - Systems of Equations,D,C,wrong
+S-1016,PT-2,2026-09-16,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1016,PT-2,2026-09-16,Math,2,1,Q-0184,Rule 5B - Function Notation,D,C,wrong
+S-1016,PT-2,2026-09-16,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1016,PT-2,2026-09-16,Math,2,3,Q-0097,Rule  2A - Systems of Equations,C,A,wrong
+S-1016,PT-2,2026-09-16,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1016,PT-2,2026-09-16,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,C,B,wrong
+S-1016,PT-2,2026-09-16,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,B,D,wrong
+S-1005,PT-1,2026-09-17,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1005,PT-1,2026-09-17,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,C,A,wrong
+S-1005,PT-1,2026-09-17,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1005,PT-1,2026-09-17,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1005,PT-1,2026-09-17,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,C,C,right
+S-1005,PT-1,2026-09-17,Reading and Writing,1,6,Q-0080,Rule 1A -  Pronoun Agreement,C,C,right
+S-1005,PT-1,2026-09-17,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1005,PT-1,2026-09-17,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,B,A,wrong
+S-1005,PT-1,2026-09-17,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1005,PT-1,2026-09-17,Reading and Writing,2,4,Q-0274,rule 4b - sentence boundaries,A,A,right
+S-1005,PT-1,2026-09-17,Reading and Writing,2,5,Q-0013,rule 6b - transition words,D,D,right
+S-1005,PT-1,2026-09-17,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1005,PT-1,2026-09-17,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1005,PT-1,2026-09-17,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1005,PT-1,2026-09-17,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1005,PT-1,2026-09-17,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1005,PT-1,2026-09-17,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1005,PT-1,2026-09-17,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1005,PT-1,2026-09-17,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1005,PT-1,2026-09-17,Math,2,2,Q-0043,Rule 2A - Systems of  Equations,A,A,right
+S-1005,PT-1,2026-09-17,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,C,C,right
+S-1005,PT-1,2026-09-17,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1005,PT-1,2026-09-17,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,D,D,right
+S-1005,PT-1,2026-09-17,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,D,D,right
+S-1015,PT-4,2026-09-17,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,D,D,right
+S-1015,PT-4,2026-09-17,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1015,PT-4,2026-09-17,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1015,PT-4,2026-09-17,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,D,B,wrong
+S-1015,PT-4,2026-09-17,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1015,PT-4,2026-09-17,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,A,A,right
+S-1015,PT-4,2026-09-17,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1015,PT-4,2026-09-17,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1015,PT-4,2026-09-17,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1015,PT-4,2026-09-17,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1015,PT-4,2026-09-17,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1015,PT-4,2026-09-17,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,C,C,right
+S-1015,PT-4,2026-09-17,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,19/8,19/8,right
+S-1015,PT-4,2026-09-17,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,C,C,right
+S-1015,PT-4,2026-09-17,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1015,PT-4,2026-09-17,Math,1,4,Q-0282,rule 3b - area and perimeter,A,A,right
+S-1015,PT-4,2026-09-17,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1015,PT-4,2026-09-17,Math,1,6,Q-0241,Rule 2A - Systems of Equations,D,A,wrong
+S-1015,PT-4,2026-09-17,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1015,PT-4,2026-09-17,Math,2,2,Q-0071,Rule 5A - Part-to-part  Ratios,A,A,right
+S-1015,PT-4,2026-09-17,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,14,7/5,wrong
+S-1015,PT-4,2026-09-17,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1015,PT-4,2026-09-17,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,C,B,wrong
+S-1015,PT-4,2026-09-17,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1001,PT-4,2026-09-18,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,D,D,right
+S-1001,PT-4,2026-09-18,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1001,PT-4,2026-09-18,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel  Comparisons,B,B,right
+S-1001,PT-4,2026-09-18,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,D,B,wrong
+S-1001,PT-4,2026-09-18,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1001,PT-4,2026-09-18,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,A,A,right
+S-1001,PT-4,2026-09-18,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1001,PT-4,2026-09-18,Reading and Writing,2,2,Q-0230,Rule 6B -  Transition Words,A,C,wrong
+S-1001,PT-4,2026-09-18,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,C,A,wrong
+S-1001,PT-4,2026-09-18,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1001,PT-4,2026-09-18,Reading and Writing,2,5,Q-0083,rule 1a - pronoun agreement,B,B,right
+S-1001,PT-4,2026-09-18,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,C,C,right
+S-1001,PT-4,2026-09-18,Math,1,1,Q-0205,Rule  4A - Solving Linear Equations,22,19/8,wrong
+S-1001,PT-4,2026-09-18,Math,1,2,Q-0077,Rule  5A - Part-to-part Ratios,D,C,wrong
+S-1001,PT-4,2026-09-18,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1001,PT-4,2026-09-18,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1001,PT-4,2026-09-18,Math,1,5,Q-0260,Rule 5B - Function Notation,A,B,wrong
+S-1001,PT-4,2026-09-18,Math,1,6,Q-0241,RULE 2A - SYSTEMS OF EQUATIONS,A,A,right
+S-1001,PT-4,2026-09-18,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1001,PT-4,2026-09-18,Math,2,2,Q-0071,rule 5a - part-to-part ratios,A,A,right
+S-1001,PT-4,2026-09-18,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,4,7/5,wrong
+S-1001,PT-4,2026-09-18,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1001,PT-4,2026-09-18,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,B,B,right
+S-1001,PT-4,2026-09-18,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1013,PT-2,2026-09-18,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1013,PT-2,2026-09-18,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,C,A,wrong
+S-1013,PT-2,2026-09-18,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1013,PT-2,2026-09-18,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1013,PT-2,2026-09-18,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,D,B,wrong
+S-1013,PT-2,2026-09-18,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,D,C,wrong
+S-1013,PT-2,2026-09-18,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,D,B,wrong
+S-1013,PT-2,2026-09-18,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1013,PT-2,2026-09-18,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1013,PT-2,2026-09-18,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun  Agreement,C,C,right
+S-1013,PT-2,2026-09-18,Reading and Writing,2,5,Q-0114,Rule 6A  - Agreement,A,A,right
+S-1013,PT-2,2026-09-18,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1013,PT-2,2026-09-18,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1013,PT-2,2026-09-18,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1013,PT-2,2026-09-18,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,6,5/2,wrong
+S-1013,PT-2,2026-09-18,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1013,PT-2,2026-09-18,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1013,PT-2,2026-09-18,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,B,C,wrong
+S-1013,PT-2,2026-09-18,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1013,PT-2,2026-09-18,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,A,A,right
+S-1013,PT-2,2026-09-18,Math,2,3,Q-0097,Rule 2A - Systems of Equations,C,A,wrong
+S-1013,PT-2,2026-09-18,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1013,PT-2,2026-09-18,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,D,B,wrong
+S-1013,PT-2,2026-09-18,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1009,PT-2,2026-09-19,Reading and Writing,1,1,Q-0075,RULE 4B - SENTENCE BOUNDARIES,D,D,right
+S-1009,PT-2,2026-09-19,Reading and Writing,1,2,Q-0292,Rule 2B -  Verb Tense,C,A,wrong
+S-1009,PT-2,2026-09-19,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1009,PT-2,2026-09-19,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1009,PT-2,2026-09-19,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,D,B,wrong
+S-1009,PT-2,2026-09-19,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,C,C,right
+S-1009,PT-2,2026-09-19,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,A,B,wrong
+S-1009,PT-2,2026-09-19,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1009,PT-2,2026-09-19,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1009,PT-2,2026-09-19,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1009,PT-2,2026-09-19,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,B,A,wrong
+S-1009,PT-2,2026-09-19,Reading and Writing,2,6,Q-0132,Rule 6B - Transition  Words,D,B,wrong
+S-1009,PT-2,2026-09-19,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1009,PT-2,2026-09-19,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1009,PT-2,2026-09-19,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,10,5/2,wrong
+S-1009,PT-2,2026-09-19,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1009,PT-2,2026-09-19,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1009,PT-2,2026-09-19,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,B,C,wrong
+S-1009,PT-2,2026-09-19,Math,2,1,Q-0184,Rule 5B - Function Notation,B,C,wrong
+S-1009,PT-2,2026-09-19,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1009,PT-2,2026-09-19,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1009,PT-2,2026-09-19,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1009,PT-2,2026-09-19,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1009,PT-2,2026-09-19,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1009,PT-3,2026-09-20,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1009,PT-3,2026-09-20,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1009,PT-3,2026-09-20,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1009,PT-3,2026-09-20,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1009,PT-3,2026-09-20,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1009,PT-3,2026-09-20,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1009,PT-3,2026-09-20,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,A,D,wrong
+S-1009,PT-3,2026-09-20,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1009,PT-3,2026-09-20,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,D,C,wrong
+S-1009,PT-3,2026-09-20,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1009,PT-3,2026-09-20,Reading and Writing,2,5,Q-0103,RULE 2B - VERB TENSE,C,C,right
+S-1009,PT-3,2026-09-20,Reading and Writing,2,6,Q-0110,rule 1a - pronoun agreement,C,C,right
+S-1009,PT-3,2026-09-20,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1009,PT-3,2026-09-20,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,.125,1/8,right
+S-1009,PT-3,2026-09-20,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,A,C,wrong
+S-1009,PT-3,2026-09-20,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1009,PT-3,2026-09-20,Math,1,5,Q-0308,Rule 5B - Function Notation,A,A,right
+S-1009,PT-3,2026-09-20,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1009,PT-3,2026-09-20,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1009,PT-3,2026-09-20,Math,2,2,Q-0244,Rule 2A  - Systems of Equations,D,D,right
+S-1009,PT-3,2026-09-20,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,C,B,wrong
+S-1009,PT-3,2026-09-20,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,4,2/5,wrong
+S-1009,PT-3,2026-09-20,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1009,PT-3,2026-09-20,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,B,B,right
+S-1006,PT-1,2026-09-22,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1006,PT-1,2026-09-22,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1006,PT-1,2026-09-22,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1006,PT-1,2026-09-22,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1006,PT-1,2026-09-22,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,C,C,right
+S-1006,PT-1,2026-09-22,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1006,PT-1,2026-09-22,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1006,PT-1,2026-09-22,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1006,PT-1,2026-09-22,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1006,PT-1,2026-09-22,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,A,A,right
+S-1006,PT-1,2026-09-22,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,C,D,wrong
+S-1006,PT-1,2026-09-22,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1006,PT-1,2026-09-22,Math,1,1,Q-0304,Rule 2A - Systems of Equations,A,D,wrong
+S-1006,PT-1,2026-09-22,Math,1,2,Q-0199,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1006,PT-1,2026-09-22,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1006,PT-1,2026-09-22,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1006,PT-1,2026-09-22,Math,1,5,Q-0210,rule 5b - function notation,C,A,wrong
+S-1006,PT-1,2026-09-22,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,A,A,right
+S-1006,PT-1,2026-09-22,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,C,B,wrong
+S-1006,PT-1,2026-09-22,Math,2,2,Q-0043,Rule 2A - Systems of  Equations,A,A,right
+S-1006,PT-1,2026-09-22,Math,2,3,Q-0049,Rule 3B - Area and Perimeter,B,C,wrong
+S-1006,PT-1,2026-09-22,Math,2,4,Q-0001,Rule 5B - Function Notation,A,B,wrong
+S-1006,PT-1,2026-09-22,Math,2,5,Q-0099,rule 3a - percents and discounts,D,D,right
+S-1006,PT-1,2026-09-22,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-2,2026-09-23,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1008,PT-2,2026-09-23,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,A,A,right
+S-1008,PT-2,2026-09-23,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1008,PT-2,2026-09-23,Reading and Writing,1,4,Q-0125,Rule  6B - Transition Words,A,A,right
+S-1008,PT-2,2026-09-23,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1008,PT-2,2026-09-23,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,D,C,wrong
+S-1008,PT-2,2026-09-23,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1008,PT-2,2026-09-23,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1008,PT-2,2026-09-23,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1008,PT-2,2026-09-23,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1008,PT-2,2026-09-23,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1008,PT-2,2026-09-23,Reading and Writing,2,6,Q-0132,rule 6b - transition words,B,B,right
+S-1008,PT-2,2026-09-23,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1008,PT-2,2026-09-23,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1008,PT-2,2026-09-23,Math,1,3,Q-0198,Rule 4A - Solving  Linear Equations,2.5,5/2,right
+S-1008,PT-2,2026-09-23,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1008,PT-2,2026-09-23,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1008,PT-2,2026-09-23,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1008,PT-2,2026-09-23,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1008,PT-2,2026-09-23,Math,2,2,Q-0146,rule 5a - part-to-part ratios,A,A,right
+S-1008,PT-2,2026-09-23,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1008,PT-2,2026-09-23,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,D,C,wrong
+S-1008,PT-2,2026-09-23,Math,2,5,Q-0262,RULE 3A - PERCENTS AND DISCOUNTS,B,B,right
+S-1008,PT-2,2026-09-23,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1008,PT-3,2026-09-24,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1008,PT-3,2026-09-24,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1008,PT-3,2026-09-24,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1008,PT-3,2026-09-24,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,A,B,wrong
+S-1008,PT-3,2026-09-24,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1008,PT-3,2026-09-24,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1008,PT-3,2026-09-24,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,D,D,right
+S-1008,PT-3,2026-09-24,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1008,PT-3,2026-09-24,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1008,PT-3,2026-09-24,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1008,PT-3,2026-09-24,Reading and Writing,2,5,Q-0103,Rule 2B -  Verb Tense,C,C,right
+S-1008,PT-3,2026-09-24,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1008,PT-3,2026-09-24,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1008,PT-3,2026-09-24,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1,1/8,wrong
+S-1008,PT-3,2026-09-24,Math,1,3,Q-0143,Rule 3A - Percents  and Discounts,C,C,right
+S-1008,PT-3,2026-09-24,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1008,PT-3,2026-09-24,Math,1,5,Q-0308,Rule 5B - Function Notation,A,A,right
+S-1008,PT-3,2026-09-24,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-3,2026-09-24,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1008,PT-3,2026-09-24,Math,2,2,Q-0244,Rule 2A - Systems of Equations,C,D,wrong
+S-1008,PT-3,2026-09-24,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1008,PT-3,2026-09-24,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,2/5,2/5,right
+S-1008,PT-3,2026-09-24,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-3,2026-09-24,Math,2,6,Q-0299,rule 3b - area and perimeter,B,B,right
+S-1006,PT-2,2026-09-26,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,D,D,right
+S-1006,PT-2,2026-09-26,Reading and Writing,1,2,Q-0292,rule 2b - verb tense,A,A,right
+S-1006,PT-2,2026-09-26,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,A,D,wrong
+S-1006,PT-2,2026-09-26,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,D,A,wrong
+S-1006,PT-2,2026-09-26,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1006,PT-2,2026-09-26,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,A,C,wrong
+S-1006,PT-2,2026-09-26,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1006,PT-2,2026-09-26,Reading and Writing,2,2,Q-0226,Rule 2B - Verb  Tense,C,C,right
+S-1006,PT-2,2026-09-26,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1006,PT-2,2026-09-26,Reading and Writing,2,4,Q-0204,RULE 1A - PRONOUN AGREEMENT,C,C,right
+S-1006,PT-2,2026-09-26,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1006,PT-2,2026-09-26,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1006,PT-2,2026-09-26,Math,1,1,Q-0243,rule 5a - part-to-part ratios,D,D,right
+S-1006,PT-2,2026-09-26,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,D,C,wrong
+S-1006,PT-2,2026-09-26,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,6,5/2,wrong
+S-1006,PT-2,2026-09-26,Math,1,4,Q-0104,Rule 5B - Function Notation,D,B,wrong
+S-1006,PT-2,2026-09-26,Math,1,5,Q-0120,Rule 2A - Systems of Equations,D,C,wrong
+S-1006,PT-2,2026-09-26,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,A,C,wrong
+S-1006,PT-2,2026-09-26,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1006,PT-2,2026-09-26,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,A,A,right
+S-1006,PT-2,2026-09-26,Math,2,3,Q-0097,Rule 2A - Systems of Equations,B,A,wrong
+S-1006,PT-2,2026-09-26,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1006,PT-2,2026-09-26,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,D,B,wrong
+S-1006,PT-2,2026-09-26,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,A,D,wrong
+S-1003,PT-3,2026-09-29,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1003,PT-3,2026-09-29,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1003,PT-3,2026-09-29,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,B,D,wrong
+S-1003,PT-3,2026-09-29,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1003,PT-3,2026-09-29,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1003,PT-3,2026-09-29,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1003,PT-3,2026-09-29,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,C,D,wrong
+S-1003,PT-3,2026-09-29,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1003,PT-3,2026-09-29,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,D,C,wrong
+S-1003,PT-3,2026-09-29,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1003,PT-3,2026-09-29,Reading and Writing,2,5,Q-0103,Rule  2B - Verb Tense,B,C,wrong
+S-1003,PT-3,2026-09-29,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1003,PT-3,2026-09-29,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1003,PT-3,2026-09-29,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1/8,1/8,right
+S-1003,PT-3,2026-09-29,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,C,C,right
+S-1003,PT-3,2026-09-29,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,B,C,wrong
+S-1003,PT-3,2026-09-29,Math,1,5,Q-0308,Rule 5B - Function Notation,C,A,wrong
+S-1003,PT-3,2026-09-29,Math,1,6,Q-0115,Rule 5A  - Part-to-part Ratios,A,D,wrong
+S-1003,PT-3,2026-09-29,Math,2,1,Q-0072,Rule 5B - Function Notation,B,C,wrong
+S-1003,PT-3,2026-09-29,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1003,PT-3,2026-09-29,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1003,PT-3,2026-09-29,Math,2,4,Q-0093,Rule 4A  - Solving Linear Equations,2/5,2/5,right
+S-1003,PT-3,2026-09-29,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,D,D,right
+S-1003,PT-3,2026-09-29,Math,2,6,Q-0299,rule 3b - area and perimeter,B,B,right
+S-1004,PT-2,2026-09-29,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1004,PT-2,2026-09-29,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,B,A,wrong
+S-1004,PT-2,2026-09-29,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1004,PT-2,2026-09-29,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1004,PT-2,2026-09-29,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,C,B,wrong
+S-1004,PT-2,2026-09-29,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,A,C,wrong
+S-1004,PT-2,2026-09-29,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,A,B,wrong
+S-1004,PT-2,2026-09-29,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,A,C,wrong
+S-1004,PT-2,2026-09-29,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1004,PT-2,2026-09-29,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1004,PT-2,2026-09-29,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,A,A,right
+S-1004,PT-2,2026-09-29,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1004,PT-2,2026-09-29,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,D,D,right
+S-1004,PT-2,2026-09-29,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,B,C,wrong
+S-1004,PT-2,2026-09-29,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,5/2,5/2,right
+S-1004,PT-2,2026-09-29,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1004,PT-2,2026-09-29,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1004,PT-2,2026-09-29,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1004,PT-2,2026-09-29,Math,2,1,Q-0184,Rule 5B - Function Notation,B,C,wrong
+S-1004,PT-2,2026-09-29,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1004,PT-2,2026-09-29,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1004,PT-2,2026-09-29,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,C,C,right
+S-1004,PT-2,2026-09-29,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1004,PT-2,2026-09-29,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,B,D,wrong
+S-1005,PT-2,2026-09-30,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,D,D,right
+S-1005,PT-2,2026-09-30,Reading and Writing,1,2,Q-0292,Rule  2B - Verb Tense,A,A,right
+S-1005,PT-2,2026-09-30,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1005,PT-2,2026-09-30,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1005,PT-2,2026-09-30,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1005,PT-2,2026-09-30,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,B,C,wrong
+S-1005,PT-2,2026-09-30,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1005,PT-2,2026-09-30,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1005,PT-2,2026-09-30,Reading and Writing,2,3,Q-0089,Rule  4B - Sentence Boundaries,D,D,right
+S-1005,PT-2,2026-09-30,Reading and Writing,2,4,Q-0204,Rule  1A - Pronoun Agreement,D,C,wrong
+S-1005,PT-2,2026-09-30,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,B,A,wrong
+S-1005,PT-2,2026-09-30,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1005,PT-2,2026-09-30,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1005,PT-2,2026-09-30,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1005,PT-2,2026-09-30,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,6,5/2,wrong
+S-1005,PT-2,2026-09-30,Math,1,4,Q-0104,Rule 5B - Function Notation,A,B,wrong
+S-1005,PT-2,2026-09-30,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1005,PT-2,2026-09-30,Math,1,6,Q-0257,rule 3a - percents and discounts,C,C,right
+S-1005,PT-2,2026-09-30,Math,2,1,Q-0184,Rule 5B - Function Notation,B,C,wrong
+S-1005,PT-2,2026-09-30,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1005,PT-2,2026-09-30,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1005,PT-2,2026-09-30,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,D,C,wrong
+S-1005,PT-2,2026-09-30,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,C,B,wrong
+S-1005,PT-2,2026-09-30,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1004,PT-3,2026-10-01,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,D,C,wrong
+S-1004,PT-3,2026-10-01,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,C,D,wrong
+S-1004,PT-3,2026-10-01,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1004,PT-3,2026-10-01,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1004,PT-3,2026-10-01,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1004,PT-3,2026-10-01,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1004,PT-3,2026-10-01,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,B,D,wrong
+S-1004,PT-3,2026-10-01,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1004,PT-3,2026-10-01,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1004,PT-3,2026-10-01,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1004,PT-3,2026-10-01,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,C,C,right
+S-1004,PT-3,2026-10-01,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1004,PT-3,2026-10-01,Math,1,1,Q-0140,Rule 2A  - Systems of Equations,B,B,right
+S-1004,PT-3,2026-10-01,Math,1,2,Q-0090,rule 4a - solving linear equations,0.125,1/8,right
+S-1004,PT-3,2026-10-01,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,D,C,wrong
+S-1004,PT-3,2026-10-01,Math,1,4,Q-0046,Rule 3B -  Area and Perimeter,C,C,right
+S-1004,PT-3,2026-10-01,Math,1,5,Q-0308,Rule 5B  - Function Notation,A,A,right
+S-1004,PT-3,2026-10-01,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,D,D,right
+S-1004,PT-3,2026-10-01,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1004,PT-3,2026-10-01,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1004,PT-3,2026-10-01,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1004,PT-3,2026-10-01,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,.4,2/5,right
+S-1004,PT-3,2026-10-01,Math,2,5,Q-0317,RULE 5A - PART-TO-PART RATIOS,D,D,right
+S-1004,PT-3,2026-10-01,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,A,B,wrong
+S-1010,PT-2,2026-10-01,Reading and Writing,1,1,Q-0075,rule 4b - sentence boundaries,D,D,right
+S-1010,PT-2,2026-10-01,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,A,A,right
+S-1010,PT-2,2026-10-01,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1010,PT-2,2026-10-01,Reading and Writing,1,4,Q-0125,Rule 6B - Transition Words,A,A,right
+S-1010,PT-2,2026-10-01,Reading and Writing,1,5,Q-0175,Rule 1B  - Parallel Comparisons,D,B,wrong
+S-1010,PT-2,2026-10-01,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,A,C,wrong
+S-1010,PT-2,2026-10-01,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1010,PT-2,2026-10-01,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1010,PT-2,2026-10-01,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1010,PT-2,2026-10-01,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1010,PT-2,2026-10-01,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,D,A,wrong
+S-1010,PT-2,2026-10-01,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1010,PT-2,2026-10-01,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,D,D,right
+S-1010,PT-2,2026-10-01,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1010,PT-2,2026-10-01,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,10,5/2,wrong
+S-1010,PT-2,2026-10-01,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1010,PT-2,2026-10-01,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1010,PT-2,2026-10-01,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,D,C,wrong
+S-1010,PT-2,2026-10-01,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1010,PT-2,2026-10-01,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,A,A,right
+S-1010,PT-2,2026-10-01,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1010,PT-2,2026-10-01,Math,2,4,Q-0004,Rule 4A - Solving Linear Equations,B,C,wrong
+S-1010,PT-2,2026-10-01,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1010,PT-2,2026-10-01,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1014,PT-5,2026-10-01,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,A,C,wrong
+S-1014,PT-5,2026-10-01,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1014,PT-5,2026-10-01,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,B,B,right
+S-1014,PT-5,2026-10-01,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,D,A,wrong
+S-1014,PT-5,2026-10-01,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1014,PT-5,2026-10-01,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,D,D,right
+S-1014,PT-5,2026-10-01,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,C,D,wrong
+S-1014,PT-5,2026-10-01,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1014,PT-5,2026-10-01,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1014,PT-5,2026-10-01,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1014,PT-5,2026-10-01,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1014,PT-5,2026-10-01,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1014,PT-5,2026-10-01,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1014,PT-5,2026-10-01,Math,1,2,Q-0288,RULE 3A - PERCENTS AND DISCOUNTS,B,C,wrong
+S-1014,PT-5,2026-10-01,Math,1,3,Q-0300,Rule  2A - Systems of Equations,C,C,right
+S-1014,PT-5,2026-10-01,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,B,B,right
+S-1014,PT-5,2026-10-01,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1014,PT-5,2026-10-01,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,1,9/8,wrong
+S-1014,PT-5,2026-10-01,Math,2,1,Q-0139,Rule 5B - Function Notation,B,B,right
+S-1014,PT-5,2026-10-01,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,5/4,5/4,right
+S-1014,PT-5,2026-10-01,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1014,PT-5,2026-10-01,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,B,B,right
+S-1014,PT-5,2026-10-01,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1014,PT-5,2026-10-01,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,D,D,right
+S-1016,PT-4,2026-10-01,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,D,D,right
+S-1016,PT-4,2026-10-01,Reading and Writing,1,2,Q-0095,rule 6b - transition words,B,B,right
+S-1016,PT-4,2026-10-01,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1016,PT-4,2026-10-01,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1016,PT-4,2026-10-01,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1016,PT-4,2026-10-01,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,C,A,wrong
+S-1016,PT-4,2026-10-01,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1016,PT-4,2026-10-01,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,B,C,wrong
+S-1016,PT-4,2026-10-01,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1016,PT-4,2026-10-01,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,D,D,right
+S-1016,PT-4,2026-10-01,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1016,PT-4,2026-10-01,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,C,C,right
+S-1016,PT-4,2026-10-01,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,19/8,19/8,right
+S-1016,PT-4,2026-10-01,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,D,C,wrong
+S-1016,PT-4,2026-10-01,Math,1,3,Q-0068,Rule  3A - Percents and Discounts,D,D,right
+S-1016,PT-4,2026-10-01,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1016,PT-4,2026-10-01,Math,1,5,Q-0260,Rule 5B - Function Notation,C,B,wrong
+S-1016,PT-4,2026-10-01,Math,1,6,Q-0241,Rule 2A - Systems of Equations,C,A,wrong
+S-1016,PT-4,2026-10-01,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,A,D,wrong
+S-1016,PT-4,2026-10-01,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1016,PT-4,2026-10-01,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,14,7/5,wrong
+S-1016,PT-4,2026-10-01,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1016,PT-4,2026-10-01,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,C,B,wrong
+S-1016,PT-4,2026-10-01,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1004,PT-4,2026-10-03,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,D,D,right
+S-1004,PT-4,2026-10-03,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1004,PT-4,2026-10-03,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,A,B,wrong
+S-1004,PT-4,2026-10-03,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1004,PT-4,2026-10-03,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1004,PT-4,2026-10-03,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,B,A,wrong
+S-1004,PT-4,2026-10-03,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1004,PT-4,2026-10-03,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1004,PT-4,2026-10-03,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,D,A,wrong
+S-1004,PT-4,2026-10-03,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,B,D,wrong
+S-1004,PT-4,2026-10-03,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1004,PT-4,2026-10-03,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,C,C,right
+S-1004,PT-4,2026-10-03,Math,1,1,Q-0205,rule 4a - solving linear equations,22,19/8,wrong
+S-1004,PT-4,2026-10-03,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,C,C,right
+S-1004,PT-4,2026-10-03,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1004,PT-4,2026-10-03,Math,1,4,Q-0282,rule 3b - area and perimeter,D,A,wrong
+S-1004,PT-4,2026-10-03,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1004,PT-4,2026-10-03,Math,1,6,Q-0241,Rule 2A - Systems of Equations,D,A,wrong
+S-1004,PT-4,2026-10-03,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,A,D,wrong
+S-1004,PT-4,2026-10-03,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,A,A,right
+S-1004,PT-4,2026-10-03,Math,2,3,Q-0309,Rule 4A  - Solving Linear Equations,1.4,7/5,right
+S-1004,PT-4,2026-10-03,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1004,PT-4,2026-10-03,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,C,B,wrong
+S-1004,PT-4,2026-10-03,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1010,PT-3,2026-10-06,Reading and Writing,1,1,Q-0044,rule 1a - pronoun agreement,C,C,right
+S-1010,PT-3,2026-10-06,Reading and Writing,1,2,Q-0065,Rule 1B  - Parallel Comparisons,D,D,right
+S-1010,PT-3,2026-10-06,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1010,PT-3,2026-10-06,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,C,B,wrong
+S-1010,PT-3,2026-10-06,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1010,PT-3,2026-10-06,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1010,PT-3,2026-10-06,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,B,D,wrong
+S-1010,PT-3,2026-10-06,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,D,C,wrong
+S-1010,PT-3,2026-10-06,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,B,C,wrong
+S-1010,PT-3,2026-10-06,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1010,PT-3,2026-10-06,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,C,C,right
+S-1010,PT-3,2026-10-06,Reading and Writing,2,6,Q-0110,Rule 1A -  Pronoun Agreement,C,C,right
+S-1010,PT-3,2026-10-06,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1010,PT-3,2026-10-06,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1,1/8,wrong
+S-1010,PT-3,2026-10-06,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,B,C,wrong
+S-1010,PT-3,2026-10-06,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1010,PT-3,2026-10-06,Math,1,5,Q-0308,Rule 5B - Function Notation,A,A,right
+S-1010,PT-3,2026-10-06,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,D,D,right
+S-1010,PT-3,2026-10-06,Math,2,1,Q-0072,Rule 5B - Function Notation,A,C,wrong
+S-1010,PT-3,2026-10-06,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1010,PT-3,2026-10-06,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,A,B,wrong
+S-1010,PT-3,2026-10-06,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,4,2/5,wrong
+S-1010,PT-3,2026-10-06,Math,2,5,Q-0317,Rule 5A  - Part-to-part Ratios,C,D,wrong
+S-1010,PT-3,2026-10-06,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,C,B,wrong
+S-1009,PT-4,2026-10-07,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,D,D,right
+S-1009,PT-4,2026-10-07,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1009,PT-4,2026-10-07,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1009,PT-4,2026-10-07,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,D,B,wrong
+S-1009,PT-4,2026-10-07,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1009,PT-4,2026-10-07,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,A,A,right
+S-1009,PT-4,2026-10-07,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1009,PT-4,2026-10-07,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,A,C,wrong
+S-1009,PT-4,2026-10-07,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,C,A,wrong
+S-1009,PT-4,2026-10-07,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1009,PT-4,2026-10-07,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1009,PT-4,2026-10-07,Reading and Writing,2,6,Q-0059,Rule  2B - Verb Tense,C,C,right
+S-1009,PT-4,2026-10-07,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,19/8,19/8,right
+S-1009,PT-4,2026-10-07,Math,1,2,Q-0077,Rule  5A - Part-to-part Ratios,C,C,right
+S-1009,PT-4,2026-10-07,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,A,D,wrong
+S-1009,PT-4,2026-10-07,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,C,A,wrong
+S-1009,PT-4,2026-10-07,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1009,PT-4,2026-10-07,Math,1,6,Q-0241,Rule 2A - Systems of Equations,A,A,right
+S-1009,PT-4,2026-10-07,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,C,D,wrong
+S-1009,PT-4,2026-10-07,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1009,PT-4,2026-10-07,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,4,7/5,wrong
+S-1009,PT-4,2026-10-07,Math,2,4,Q-0159,Rule 2A - Systems  of Equations,A,A,right
+S-1009,PT-4,2026-10-07,Math,2,5,Q-0320,Rule 3B - Area and  Perimeter,B,B,right
+S-1009,PT-4,2026-10-07,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1010,PT-4,2026-10-08,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun  Agreement,D,D,right
+S-1010,PT-4,2026-10-08,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1010,PT-4,2026-10-08,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1010,PT-4,2026-10-08,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1010,PT-4,2026-10-08,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1010,PT-4,2026-10-08,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,B,A,wrong
+S-1010,PT-4,2026-10-08,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,B,C,wrong
+S-1010,PT-4,2026-10-08,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1010,PT-4,2026-10-08,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,C,A,wrong
+S-1010,PT-4,2026-10-08,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,D,D,right
+S-1010,PT-4,2026-10-08,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1010,PT-4,2026-10-08,Reading and Writing,2,6,Q-0059,Rule 2B - Verb  Tense,C,C,right
+S-1010,PT-4,2026-10-08,Math,1,1,Q-0205,Rule 4A  - Solving Linear Equations,19/8,19/8,right
+S-1010,PT-4,2026-10-08,Math,1,2,Q-0077,Rule 5A - Part-to-part  Ratios,D,C,wrong
+S-1010,PT-4,2026-10-08,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1010,PT-4,2026-10-08,Math,1,4,Q-0282,Rule 3B -  Area and Perimeter,A,A,right
+S-1010,PT-4,2026-10-08,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1010,PT-4,2026-10-08,Math,1,6,Q-0241,Rule 2A - Systems of Equations,B,A,wrong
+S-1010,PT-4,2026-10-08,Math,2,1,Q-0064,RULE 3A - PERCENTS AND DISCOUNTS,D,D,right
+S-1010,PT-4,2026-10-08,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,A,A,right
+S-1010,PT-4,2026-10-08,Math,2,3,Q-0309,rule 4a - solving linear equations,1.4,7/5,right
+S-1010,PT-4,2026-10-08,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1010,PT-4,2026-10-08,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,B,B,right
+S-1010,PT-4,2026-10-08,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1002,PT-4,2026-10-09,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,A,D,wrong
+S-1002,PT-4,2026-10-09,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1002,PT-4,2026-10-09,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1002,PT-4,2026-10-09,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,C,B,wrong
+S-1002,PT-4,2026-10-09,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1002,PT-4,2026-10-09,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,A,A,right
+S-1002,PT-4,2026-10-09,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1002,PT-4,2026-10-09,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,A,C,wrong
+S-1002,PT-4,2026-10-09,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1002,PT-4,2026-10-09,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,D,D,right
+S-1002,PT-4,2026-10-09,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1002,PT-4,2026-10-09,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,C,C,right
+S-1002,PT-4,2026-10-09,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,2.375,19/8,right
+S-1002,PT-4,2026-10-09,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,C,C,right
+S-1002,PT-4,2026-10-09,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1002,PT-4,2026-10-09,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1002,PT-4,2026-10-09,Math,1,5,Q-0260,Rule 5B - Function Notation,D,B,wrong
+S-1002,PT-4,2026-10-09,Math,1,6,Q-0241,Rule 2A - Systems of Equations,A,A,right
+S-1002,PT-4,2026-10-09,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1002,PT-4,2026-10-09,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1002,PT-4,2026-10-09,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,1.4,7/5,right
+S-1002,PT-4,2026-10-09,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1002,PT-4,2026-10-09,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,A,B,wrong
+S-1002,PT-4,2026-10-09,Math,2,6,Q-0040,Rule 5B - Function Notation,C,B,wrong
+S-1011,PT-4,2026-10-09,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,D,D,right
+S-1011,PT-4,2026-10-09,Reading and Writing,1,2,Q-0095,rule 6b - transition words,B,B,right
+S-1011,PT-4,2026-10-09,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,C,B,wrong
+S-1011,PT-4,2026-10-09,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,A,B,wrong
+S-1011,PT-4,2026-10-09,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1011,PT-4,2026-10-09,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,A,A,right
+S-1011,PT-4,2026-10-09,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,C,C,right
+S-1011,PT-4,2026-10-09,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1011,PT-4,2026-10-09,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1011,PT-4,2026-10-09,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,A,D,wrong
+S-1011,PT-4,2026-10-09,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,A,B,wrong
+S-1011,PT-4,2026-10-09,Reading and Writing,2,6,Q-0059,rule 2b - verb tense,C,C,right
+S-1011,PT-4,2026-10-09,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,38,19/8,wrong
+S-1011,PT-4,2026-10-09,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,C,C,right
+S-1011,PT-4,2026-10-09,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,C,D,wrong
+S-1011,PT-4,2026-10-09,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1011,PT-4,2026-10-09,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1011,PT-4,2026-10-09,Math,1,6,Q-0241,Rule 2A - Systems of Equations,A,A,right
+S-1011,PT-4,2026-10-09,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1011,PT-4,2026-10-09,Math,2,2,Q-0071,rule 5a - part-to-part ratios,A,A,right
+S-1011,PT-4,2026-10-09,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,7/5,7/5,right
+S-1011,PT-4,2026-10-09,Math,2,4,Q-0159,Rule 2A - Systems of Equations,C,A,wrong
+S-1011,PT-4,2026-10-09,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,D,B,wrong
+S-1011,PT-4,2026-10-09,Math,2,6,Q-0040,Rule 5B - Function Notation,B,B,right
+S-1013,PT-3,2026-10-09,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1013,PT-3,2026-10-09,Reading and Writing,1,2,Q-0065,RULE 1B - PARALLEL COMPARISONS,D,D,right
+S-1013,PT-3,2026-10-09,Reading and Writing,1,3,Q-0206,rule 4b - sentence boundaries,A,D,wrong
+S-1013,PT-3,2026-10-09,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1013,PT-3,2026-10-09,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,A,C,wrong
+S-1013,PT-3,2026-10-09,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,C,D,wrong
+S-1013,PT-3,2026-10-09,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,B,D,wrong
+S-1013,PT-3,2026-10-09,Reading and Writing,2,2,Q-0133,RULE 4B - SENTENCE BOUNDARIES,D,C,wrong
+S-1013,PT-3,2026-10-09,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1013,PT-3,2026-10-09,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1013,PT-3,2026-10-09,Reading and Writing,2,5,Q-0103,rule 2b - verb tense,C,C,right
+S-1013,PT-3,2026-10-09,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,C,C,right
+S-1013,PT-3,2026-10-09,Math,1,1,Q-0140,Rule 2A - Systems of Equations,C,B,wrong
+S-1013,PT-3,2026-10-09,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,.125,1/8,right
+S-1013,PT-3,2026-10-09,Math,1,3,Q-0143,RULE 3A - PERCENTS AND DISCOUNTS,C,C,right
+S-1013,PT-3,2026-10-09,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,A,C,wrong
+S-1013,PT-3,2026-10-09,Math,1,5,Q-0308,Rule 5B - Function Notation,A,A,right
+S-1013,PT-3,2026-10-09,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1013,PT-3,2026-10-09,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1013,PT-3,2026-10-09,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1013,PT-3,2026-10-09,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,A,B,wrong
+S-1013,PT-3,2026-10-09,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,4,2/5,wrong
+S-1013,PT-3,2026-10-09,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-3,2026-10-09,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,B,B,right
+S-1006,PT-3,2026-10-11,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1006,PT-3,2026-10-11,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1006,PT-3,2026-10-11,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1006,PT-3,2026-10-11,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1006,PT-3,2026-10-11,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,C,C,right
+S-1006,PT-3,2026-10-11,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1006,PT-3,2026-10-11,Reading and Writing,2,1,Q-0313,rule 6a - agreement,A,D,wrong
+S-1006,PT-3,2026-10-11,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,D,C,wrong
+S-1006,PT-3,2026-10-11,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1006,PT-3,2026-10-11,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,A,C,wrong
+S-1006,PT-3,2026-10-11,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,D,C,wrong
+S-1006,PT-3,2026-10-11,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,D,C,wrong
+S-1006,PT-3,2026-10-11,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1006,PT-3,2026-10-11,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1,1/8,wrong
+S-1006,PT-3,2026-10-11,Math,1,3,Q-0143,rule 3a - percents and discounts,B,C,wrong
+S-1006,PT-3,2026-10-11,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1006,PT-3,2026-10-11,Math,1,5,Q-0308,Rule 5B - Function Notation,D,A,wrong
+S-1006,PT-3,2026-10-11,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,D,D,right
+S-1006,PT-3,2026-10-11,Math,2,1,Q-0072,Rule 5B - Function Notation,B,C,wrong
+S-1006,PT-3,2026-10-11,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1006,PT-3,2026-10-11,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1006,PT-3,2026-10-11,Math,2,4,Q-0093,Rule 4A -  Solving Linear Equations,4,2/5,wrong
+S-1006,PT-3,2026-10-11,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,D,D,right
+S-1006,PT-3,2026-10-11,Math,2,6,Q-0299,Rule 3B - Area  and Perimeter,B,B,right
+S-1005,PT-3,2026-10-13,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1005,PT-3,2026-10-13,Reading and Writing,1,2,Q-0065,Rule 1B - Parallel Comparisons,D,D,right
+S-1005,PT-3,2026-10-13,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,D,D,right
+S-1005,PT-3,2026-10-13,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,D,B,wrong
+S-1005,PT-3,2026-10-13,Reading and Writing,1,5,Q-0167,Rule 6B - Transition Words,A,C,wrong
+S-1005,PT-3,2026-10-13,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1005,PT-3,2026-10-13,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,B,D,wrong
+S-1005,PT-3,2026-10-13,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1005,PT-3,2026-10-13,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1005,PT-3,2026-10-13,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1005,PT-3,2026-10-13,Reading and Writing,2,5,Q-0103,Rule  2B - Verb Tense,C,C,right
+S-1005,PT-3,2026-10-13,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,A,C,wrong
+S-1005,PT-3,2026-10-13,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1005,PT-3,2026-10-13,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,2/16,1/8,right
+S-1005,PT-3,2026-10-13,Math,1,3,Q-0143,Rule 3A - Percents and Discounts,C,C,right
+S-1005,PT-3,2026-10-13,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,C,C,right
+S-1005,PT-3,2026-10-13,Math,1,5,Q-0308,Rule 5B -  Function Notation,D,A,wrong
+S-1005,PT-3,2026-10-13,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1005,PT-3,2026-10-13,Math,2,1,Q-0072,Rule 5B - Function Notation,C,C,right
+S-1005,PT-3,2026-10-13,Math,2,2,Q-0244,rule 2a - systems of equations,D,D,right
+S-1005,PT-3,2026-10-13,Math,2,3,Q-0171,Rule 3A - Percents and Discounts,B,B,right
+S-1005,PT-3,2026-10-13,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,.4,2/5,right
+S-1005,PT-3,2026-10-13,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1005,PT-3,2026-10-13,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,B,B,right
+S-1011,PT-5,2026-10-14,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,D,C,wrong
+S-1011,PT-5,2026-10-14,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1011,PT-5,2026-10-14,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,D,B,wrong
+S-1011,PT-5,2026-10-14,Reading and Writing,1,4,Q-0220,Rule 6A  - Agreement,D,A,wrong
+S-1011,PT-5,2026-10-14,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1011,PT-5,2026-10-14,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,D,D,right
+S-1011,PT-5,2026-10-14,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,C,D,wrong
+S-1011,PT-5,2026-10-14,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1011,PT-5,2026-10-14,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,D,A,wrong
+S-1011,PT-5,2026-10-14,Reading and Writing,2,4,Q-0037,Rule  4B - Sentence Boundaries,A,A,right
+S-1011,PT-5,2026-10-14,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,D,A,wrong
+S-1011,PT-5,2026-10-14,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1011,PT-5,2026-10-14,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1011,PT-5,2026-10-14,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,C,C,right
+S-1011,PT-5,2026-10-14,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1011,PT-5,2026-10-14,Math,1,4,Q-0303,RULE 3B - AREA AND PERIMETER,B,B,right
+S-1011,PT-5,2026-10-14,Math,1,5,Q-0113,Rule 5B - Function Notation,B,C,wrong
+S-1011,PT-5,2026-10-14,Math,1,6,Q-0187,rule 4a - solving linear equations,1.125,9/8,right
+S-1011,PT-5,2026-10-14,Math,2,1,Q-0139,Rule 5B - Function Notation,B,B,right
+S-1011,PT-5,2026-10-14,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,10/8,5/4,right
+S-1011,PT-5,2026-10-14,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1011,PT-5,2026-10-14,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,B,B,right
+S-1011,PT-5,2026-10-14,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1011,PT-5,2026-10-14,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1012,PT-3,2026-10-15,Reading and Writing,1,1,Q-0044,Rule 1A - Pronoun Agreement,C,C,right
+S-1012,PT-3,2026-10-15,Reading and Writing,1,2,Q-0065,rule 1b - parallel comparisons,D,D,right
+S-1012,PT-3,2026-10-15,Reading and Writing,1,3,Q-0206,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1012,PT-3,2026-10-15,Reading and Writing,1,4,Q-0021,Rule 6A - Agreement,B,B,right
+S-1012,PT-3,2026-10-15,Reading and Writing,1,5,Q-0167,Rule 6B - Transition  Words,C,C,right
+S-1012,PT-3,2026-10-15,Reading and Writing,1,6,Q-0323,Rule 2B - Verb Tense,D,D,right
+S-1012,PT-3,2026-10-15,Reading and Writing,2,1,Q-0313,Rule 6A - Agreement,D,D,right
+S-1012,PT-3,2026-10-15,Reading and Writing,2,2,Q-0133,Rule 4B - Sentence Boundaries,C,C,right
+S-1012,PT-3,2026-10-15,Reading and Writing,2,3,Q-0038,Rule 1B - Parallel Comparisons,C,C,right
+S-1012,PT-3,2026-10-15,Reading and Writing,2,4,Q-0047,Rule 6B - Transition Words,C,C,right
+S-1012,PT-3,2026-10-15,Reading and Writing,2,5,Q-0103,Rule 2B - Verb Tense,B,C,wrong
+S-1012,PT-3,2026-10-15,Reading and Writing,2,6,Q-0110,Rule 1A - Pronoun Agreement,B,C,wrong
+S-1012,PT-3,2026-10-15,Math,1,1,Q-0140,Rule 2A - Systems of Equations,B,B,right
+S-1012,PT-3,2026-10-15,Math,1,2,Q-0090,Rule 4A - Solving Linear Equations,1/8,1/8,right
+S-1012,PT-3,2026-10-15,Math,1,3,Q-0143,Rule 3A - Percents  and Discounts,C,C,right
+S-1012,PT-3,2026-10-15,Math,1,4,Q-0046,Rule 3B - Area and Perimeter,B,C,wrong
+S-1012,PT-3,2026-10-15,Math,1,5,Q-0308,Rule 5B - Function Notation,D,A,wrong
+S-1012,PT-3,2026-10-15,Math,1,6,Q-0115,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1012,PT-3,2026-10-15,Math,2,1,Q-0072,rule 5b - function notation,A,C,wrong
+S-1012,PT-3,2026-10-15,Math,2,2,Q-0244,Rule 2A - Systems of Equations,D,D,right
+S-1012,PT-3,2026-10-15,Math,2,3,Q-0171,Rule 3A -  Percents and Discounts,A,B,wrong
+S-1012,PT-3,2026-10-15,Math,2,4,Q-0093,Rule 4A - Solving Linear Equations,.4,2/5,right
+S-1012,PT-3,2026-10-15,Math,2,5,Q-0317,Rule 5A - Part-to-part Ratios,D,D,right
+S-1012,PT-3,2026-10-15,Math,2,6,Q-0299,Rule 3B - Area and Perimeter,B,B,right
+S-1008,PT-4,2026-10-16,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,C,D,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,D,B,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,C,B,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,1,4,Q-0151,rule 4b - sentence boundaries,C,B,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1008,PT-4,2026-10-16,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,C,A,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,D,C,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1008,PT-4,2026-10-16,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1008,PT-4,2026-10-16,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1008,PT-4,2026-10-16,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1008,PT-4,2026-10-16,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,A,C,wrong
+S-1008,PT-4,2026-10-16,Math,1,1,Q-0205,rule 4a - solving linear equations,22,19/8,wrong
+S-1008,PT-4,2026-10-16,Math,1,2,Q-0077,Rule 5A  - Part-to-part Ratios,C,C,right
+S-1008,PT-4,2026-10-16,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,B,D,wrong
+S-1008,PT-4,2026-10-16,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1008,PT-4,2026-10-16,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1008,PT-4,2026-10-16,Math,1,6,Q-0241,Rule 2A - Systems of Equations,B,A,wrong
+S-1008,PT-4,2026-10-16,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1008,PT-4,2026-10-16,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,A,A,right
+S-1008,PT-4,2026-10-16,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,14,7/5,wrong
+S-1008,PT-4,2026-10-16,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1008,PT-4,2026-10-16,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,B,B,right
+S-1008,PT-4,2026-10-16,Math,2,6,Q-0040,Rule 5B - Function Notation,C,B,wrong
+S-1013,PT-4,2026-10-16,Reading and Writing,1,1,Q-0283,Rule 1A  - Pronoun Agreement,C,D,wrong
+S-1013,PT-4,2026-10-16,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1013,PT-4,2026-10-16,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,C,B,wrong
+S-1013,PT-4,2026-10-16,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1013,PT-4,2026-10-16,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1013,PT-4,2026-10-16,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,B,A,wrong
+S-1013,PT-4,2026-10-16,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,B,C,wrong
+S-1013,PT-4,2026-10-16,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1013,PT-4,2026-10-16,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1013,PT-4,2026-10-16,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,D,D,right
+S-1013,PT-4,2026-10-16,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1013,PT-4,2026-10-16,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,A,C,wrong
+S-1013,PT-4,2026-10-16,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,38,19/8,wrong
+S-1013,PT-4,2026-10-16,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,C,C,right
+S-1013,PT-4,2026-10-16,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1013,PT-4,2026-10-16,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,C,A,wrong
+S-1013,PT-4,2026-10-16,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1013,PT-4,2026-10-16,Math,1,6,Q-0241,rule 2a - systems of equations,D,A,wrong
+S-1013,PT-4,2026-10-16,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1013,PT-4,2026-10-16,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1013,PT-4,2026-10-16,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,1.4,7/5,right
+S-1013,PT-4,2026-10-16,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1013,PT-4,2026-10-16,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,C,B,wrong
+S-1013,PT-4,2026-10-16,Math,2,6,Q-0040,Rule 5B - Function Notation,D,B,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,1,1,Q-0283,Rule  1A - Pronoun Agreement,B,D,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,A,B,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1005,PT-4,2026-10-17,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1005,PT-4,2026-10-17,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1005,PT-4,2026-10-17,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,D,A,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,A,C,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1005,PT-4,2026-10-17,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,D,A,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,2,4,Q-0239,Rule 4B  - Sentence Boundaries,A,D,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,D,B,wrong
+S-1005,PT-4,2026-10-17,Reading and Writing,2,6,Q-0059,rule 2b - verb tense,C,C,right
+S-1005,PT-4,2026-10-17,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,2.375,19/8,right
+S-1005,PT-4,2026-10-17,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,D,C,wrong
+S-1005,PT-4,2026-10-17,Math,1,3,Q-0068,Rule 3A - Percents and Discounts,D,D,right
+S-1005,PT-4,2026-10-17,Math,1,4,Q-0282,rule 3b - area and perimeter,A,A,right
+S-1005,PT-4,2026-10-17,Math,1,5,Q-0260,Rule 5B - Function Notation,B,B,right
+S-1005,PT-4,2026-10-17,Math,1,6,Q-0241,Rule 2A - Systems of Equations,A,A,right
+S-1005,PT-4,2026-10-17,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1005,PT-4,2026-10-17,Math,2,2,Q-0071,Rule 5A - Part-to-part Ratios,C,A,wrong
+S-1005,PT-4,2026-10-17,Math,2,3,Q-0309,Rule  4A - Solving Linear Equations,7/5,7/5,right
+S-1005,PT-4,2026-10-17,Math,2,4,Q-0159,Rule  2A - Systems of Equations,C,A,wrong
+S-1005,PT-4,2026-10-17,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,B,B,right
+S-1005,PT-4,2026-10-17,Math,2,6,Q-0040,Rule 5B - Function Notation,C,B,wrong
+S-1014,PT-1,2026-10-20,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1014,PT-1,2026-10-20,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1014,PT-1,2026-10-20,Reading and Writing,1,3,Q-0003,Rule  1B - Parallel Comparisons,B,D,wrong
+S-1014,PT-1,2026-10-20,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1014,PT-1,2026-10-20,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,B,C,wrong
+S-1014,PT-1,2026-10-20,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1014,PT-1,2026-10-20,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,C,C,right
+S-1014,PT-1,2026-10-20,Reading and Writing,2,2,Q-0060,Rule 1A - Pronoun Agreement,A,A,right
+S-1014,PT-1,2026-10-20,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1014,PT-1,2026-10-20,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,A,A,right
+S-1014,PT-1,2026-10-20,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,A,D,wrong
+S-1014,PT-1,2026-10-20,Reading and Writing,2,6,Q-0033,Rule 1B - Parallel Comparisons,C,C,right
+S-1014,PT-1,2026-10-20,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1014,PT-1,2026-10-20,Math,1,2,Q-0199,Rule  5A - Part-to-part Ratios,D,D,right
+S-1014,PT-1,2026-10-20,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,C,A,wrong
+S-1014,PT-1,2026-10-20,Math,1,4,Q-0268,RULE 3B - AREA AND PERIMETER,D,D,right
+S-1014,PT-1,2026-10-20,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1014,PT-1,2026-10-20,Math,1,6,Q-0263,Rule 3A - Percents and Discounts,C,A,wrong
+S-1014,PT-1,2026-10-20,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1014,PT-1,2026-10-20,Math,2,2,Q-0043,RULE 2A - SYSTEMS OF EQUATIONS,A,A,right
+S-1014,PT-1,2026-10-20,Math,2,3,Q-0049,Rule  3B - Area and Perimeter,C,C,right
+S-1014,PT-1,2026-10-20,Math,2,4,Q-0001,Rule 5B - Function Notation,B,B,right
+S-1014,PT-1,2026-10-20,Math,2,5,Q-0099,Rule 3A  - Percents and Discounts,D,D,right
+S-1014,PT-1,2026-10-20,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,D,D,right
+S-1012,PT-4,2026-10-21,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,B,D,wrong
+S-1012,PT-4,2026-10-21,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1012,PT-4,2026-10-21,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1012,PT-4,2026-10-21,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1012,PT-4,2026-10-21,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,D,D,right
+S-1012,PT-4,2026-10-21,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,A,A,right
+S-1012,PT-4,2026-10-21,Reading and Writing,2,1,Q-0261,rule 1b - parallel comparisons,C,C,right
+S-1012,PT-4,2026-10-21,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,A,C,wrong
+S-1012,PT-4,2026-10-21,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1012,PT-4,2026-10-21,Reading and Writing,2,4,Q-0239,rule 4b - sentence boundaries,D,D,right
+S-1012,PT-4,2026-10-21,Reading and Writing,2,5,Q-0083,Rule 1A - Pronoun Agreement,B,B,right
+S-1012,PT-4,2026-10-21,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,C,C,right
+S-1012,PT-4,2026-10-21,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,2.375,19/8,right
+S-1012,PT-4,2026-10-21,Math,1,2,Q-0077,Rule 5A - Part-to-part Ratios,C,C,right
+S-1012,PT-4,2026-10-21,Math,1,3,Q-0068,Rule 3A - Percents and  Discounts,D,D,right
+S-1012,PT-4,2026-10-21,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1012,PT-4,2026-10-21,Math,1,5,Q-0260,Rule 5B - Function Notation,A,B,wrong
+S-1012,PT-4,2026-10-21,Math,1,6,Q-0241,Rule 2A - Systems of Equations,A,A,right
+S-1012,PT-4,2026-10-21,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,B,D,wrong
+S-1012,PT-4,2026-10-21,Math,2,2,Q-0071,RULE 5A - PART-TO-PART RATIOS,C,A,wrong
+S-1012,PT-4,2026-10-21,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,7/5,7/5,right
+S-1012,PT-4,2026-10-21,Math,2,4,Q-0159,Rule 2A - Systems of Equations,D,A,wrong
+S-1012,PT-4,2026-10-21,Math,2,5,Q-0320,rule 3b - area and perimeter,C,B,wrong
+S-1012,PT-4,2026-10-21,Math,2,6,Q-0040,Rule 5B - Function Notation,D,B,wrong
+S-1010,PT-1,2026-10-23,Reading and Writing,1,1,Q-0061,Rule 6B - Transition Words,B,B,right
+S-1010,PT-1,2026-10-23,Reading and Writing,1,2,Q-0195,Rule 2B - Verb Tense,A,A,right
+S-1010,PT-1,2026-10-23,Reading and Writing,1,3,Q-0003,Rule 1B - Parallel Comparisons,D,D,right
+S-1010,PT-1,2026-10-23,Reading and Writing,1,4,Q-0285,Rule 4B - Sentence Boundaries,A,A,right
+S-1010,PT-1,2026-10-23,Reading and Writing,1,5,Q-0298,Rule 6A - Agreement,B,C,wrong
+S-1010,PT-1,2026-10-23,Reading and Writing,1,6,Q-0080,Rule 1A - Pronoun Agreement,C,C,right
+S-1010,PT-1,2026-10-23,Reading and Writing,2,1,Q-0042,Rule 6A - Agreement,B,C,wrong
+S-1010,PT-1,2026-10-23,Reading and Writing,2,2,Q-0060,RULE 1A - PRONOUN AGREEMENT,A,A,right
+S-1010,PT-1,2026-10-23,Reading and Writing,2,3,Q-0087,Rule 2B - Verb Tense,D,D,right
+S-1010,PT-1,2026-10-23,Reading and Writing,2,4,Q-0274,Rule 4B - Sentence Boundaries,A,A,right
+S-1010,PT-1,2026-10-23,Reading and Writing,2,5,Q-0013,Rule 6B - Transition Words,D,D,right
+S-1010,PT-1,2026-10-23,Reading and Writing,2,6,Q-0033,rule 1b - parallel comparisons,C,C,right
+S-1010,PT-1,2026-10-23,Math,1,1,Q-0304,Rule 2A - Systems of Equations,D,D,right
+S-1010,PT-1,2026-10-23,Math,1,2,Q-0199,rule 5a - part-to-part ratios,D,D,right
+S-1010,PT-1,2026-10-23,Math,1,3,Q-0118,Rule 4A - Solving Linear Equations,A,A,right
+S-1010,PT-1,2026-10-23,Math,1,4,Q-0268,Rule 3B - Area and Perimeter,D,D,right
+S-1010,PT-1,2026-10-23,Math,1,5,Q-0210,Rule 5B - Function Notation,A,A,right
+S-1010,PT-1,2026-10-23,Math,1,6,Q-0263,Rule 3A - Percents  and Discounts,A,A,right
+S-1010,PT-1,2026-10-23,Math,2,1,Q-0137,Rule 4A - Solving Linear Equations,B,B,right
+S-1010,PT-1,2026-10-23,Math,2,2,Q-0043,Rule 2A - Systems of Equations,A,A,right
+S-1010,PT-1,2026-10-23,Math,2,3,Q-0049,Rule  3B - Area and Perimeter,C,C,right
+S-1010,PT-1,2026-10-23,Math,2,4,Q-0001,rule 5b - function notation,B,B,right
+S-1010,PT-1,2026-10-23,Math,2,5,Q-0099,Rule 3A - Percents and Discounts,A,D,wrong
+S-1010,PT-1,2026-10-23,Math,2,6,Q-0189,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1016,PT-5,2026-10-24,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,C,C,right
+S-1016,PT-5,2026-10-24,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1016,PT-5,2026-10-24,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,B,B,right
+S-1016,PT-5,2026-10-24,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,C,A,wrong
+S-1016,PT-5,2026-10-24,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1016,PT-5,2026-10-24,Reading and Writing,1,6,Q-0085,rule 1b - parallel comparisons,D,D,right
+S-1016,PT-5,2026-10-24,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1016,PT-5,2026-10-24,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1016,PT-5,2026-10-24,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1016,PT-5,2026-10-24,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1016,PT-5,2026-10-24,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,C,A,wrong
+S-1016,PT-5,2026-10-24,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1016,PT-5,2026-10-24,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,D,D,right
+S-1016,PT-5,2026-10-24,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,B,C,wrong
+S-1016,PT-5,2026-10-24,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1016,PT-5,2026-10-24,Math,1,4,Q-0303,Rule 3B - Area and  Perimeter,A,B,wrong
+S-1016,PT-5,2026-10-24,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1016,PT-5,2026-10-24,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,1.125,9/8,right
+S-1016,PT-5,2026-10-24,Math,2,1,Q-0139,Rule 5B - Function Notation,C,B,wrong
+S-1016,PT-5,2026-10-24,Math,2,2,Q-0238,Rule 4A - Solving  Linear Equations,10/8,5/4,right
+S-1016,PT-5,2026-10-24,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,B,D,wrong
+S-1016,PT-5,2026-10-24,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,C,B,wrong
+S-1016,PT-5,2026-10-24,Math,2,5,Q-0148,Rule 2A - Systems of Equations,A,C,wrong
+S-1016,PT-5,2026-10-24,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,D,D,right
+S-1005,PT-5,2026-10-25,Reading and Writing,1,1,Q-0201,rule 2b - verb tense,C,C,right
+S-1005,PT-5,2026-10-25,Reading and Writing,1,2,Q-0050,Rule 1A  - Pronoun Agreement,A,D,wrong
+S-1005,PT-5,2026-10-25,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,B,B,right
+S-1005,PT-5,2026-10-25,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,B,A,wrong
+S-1005,PT-5,2026-10-25,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1005,PT-5,2026-10-25,Reading and Writing,1,6,Q-0085,rule 1b - parallel comparisons,D,D,right
+S-1005,PT-5,2026-10-25,Reading and Writing,2,1,Q-0166,rule 6b - transition words,D,D,right
+S-1005,PT-5,2026-10-25,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,C,A,wrong
+S-1005,PT-5,2026-10-25,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1005,PT-5,2026-10-25,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1005,PT-5,2026-10-25,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1005,PT-5,2026-10-25,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,C,A,wrong
+S-1005,PT-5,2026-10-25,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1005,PT-5,2026-10-25,Math,1,2,Q-0288,Rule 3A - Percents  and Discounts,C,C,right
+S-1005,PT-5,2026-10-25,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1005,PT-5,2026-10-25,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,B,B,right
+S-1005,PT-5,2026-10-25,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1005,PT-5,2026-10-25,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,18/16,9/8,right
+S-1005,PT-5,2026-10-25,Math,2,1,Q-0139,RULE 5B - FUNCTION NOTATION,A,B,wrong
+S-1005,PT-5,2026-10-25,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,5/4,5/4,right
+S-1005,PT-5,2026-10-25,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1005,PT-5,2026-10-25,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,A,B,wrong
+S-1005,PT-5,2026-10-25,Math,2,5,Q-0148,Rule 2A - Systems  of Equations,C,C,right
+S-1005,PT-5,2026-10-25,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,D,D,right
+S-1004,PT-5,2026-10-27,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,C,C,right
+S-1004,PT-5,2026-10-27,Reading and Writing,1,2,Q-0050,rule 1a - pronoun agreement,D,D,right
+S-1004,PT-5,2026-10-27,Reading and Writing,1,3,Q-0252,RULE 4B - SENTENCE BOUNDARIES,B,B,right
+S-1004,PT-5,2026-10-27,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,A,A,right
+S-1004,PT-5,2026-10-27,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1004,PT-5,2026-10-27,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1004,PT-5,2026-10-27,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1004,PT-5,2026-10-27,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1004,PT-5,2026-10-27,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,D,A,wrong
+S-1004,PT-5,2026-10-27,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1004,PT-5,2026-10-27,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1004,PT-5,2026-10-27,Reading and Writing,2,6,Q-0025,rule 1a - pronoun agreement,A,A,right
+S-1004,PT-5,2026-10-27,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1004,PT-5,2026-10-27,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,C,C,right
+S-1004,PT-5,2026-10-27,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1004,PT-5,2026-10-27,Math,1,4,Q-0303,Rule 3B  - Area and Perimeter,C,B,wrong
+S-1004,PT-5,2026-10-27,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1004,PT-5,2026-10-27,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9/8,9/8,right
+S-1004,PT-5,2026-10-27,Math,2,1,Q-0139,Rule 5B - Function Notation,A,B,wrong
+S-1004,PT-5,2026-10-27,Math,2,2,Q-0238,Rule 4A  - Solving Linear Equations,10/8,5/4,right
+S-1004,PT-5,2026-10-27,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,B,D,wrong
+S-1004,PT-5,2026-10-27,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,B,B,right
+S-1004,PT-5,2026-10-27,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1004,PT-5,2026-10-27,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,D,D,right
+S-1006,PT-5,2026-10-27,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,D,C,wrong
+S-1006,PT-5,2026-10-27,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1006,PT-5,2026-10-27,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,B,B,right
+S-1006,PT-5,2026-10-27,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,A,A,right
+S-1006,PT-5,2026-10-27,Reading and Writing,1,5,Q-0248,rule 6b - transition words,B,C,wrong
+S-1006,PT-5,2026-10-27,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,D,D,right
+S-1006,PT-5,2026-10-27,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1006,PT-5,2026-10-27,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,B,A,wrong
+S-1006,PT-5,2026-10-27,Reading and Writing,2,3,Q-0186,RULE 1B - PARALLEL COMPARISONS,A,A,right
+S-1006,PT-5,2026-10-27,Reading and Writing,2,4,Q-0037,Rule  4B - Sentence Boundaries,C,A,wrong
+S-1006,PT-5,2026-10-27,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1006,PT-5,2026-10-27,Reading and Writing,2,6,Q-0025,rule 1a - pronoun agreement,A,A,right
+S-1006,PT-5,2026-10-27,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1006,PT-5,2026-10-27,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,C,C,right
+S-1006,PT-5,2026-10-27,Math,1,3,Q-0300,Rule 2A - Systems of Equations,B,C,wrong
+S-1006,PT-5,2026-10-27,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,C,B,wrong
+S-1006,PT-5,2026-10-27,Math,1,5,Q-0113,Rule 5B - Function Notation,B,C,wrong
+S-1006,PT-5,2026-10-27,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9,9/8,wrong
+S-1006,PT-5,2026-10-27,Math,2,1,Q-0139,Rule 5B - Function Notation,C,B,wrong
+S-1006,PT-5,2026-10-27,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,2,5/4,wrong
+S-1006,PT-5,2026-10-27,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,B,D,wrong
+S-1006,PT-5,2026-10-27,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,A,B,wrong
+S-1006,PT-5,2026-10-27,Math,2,5,Q-0148,Rule 2A - Systems of Equations,A,C,wrong
+S-1006,PT-5,2026-10-27,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1009,PT-5,2026-10-27,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,C,C,right
+S-1009,PT-5,2026-10-27,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1009,PT-5,2026-10-27,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,D,B,wrong
+S-1009,PT-5,2026-10-27,Reading and Writing,1,4,Q-0220,RULE 6A - AGREEMENT,B,A,wrong
+S-1009,PT-5,2026-10-27,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1009,PT-5,2026-10-27,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1009,PT-5,2026-10-27,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1009,PT-5,2026-10-27,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,C,A,wrong
+S-1009,PT-5,2026-10-27,Reading and Writing,2,3,Q-0186,rule 1b - parallel comparisons,C,A,wrong
+S-1009,PT-5,2026-10-27,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1009,PT-5,2026-10-27,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1009,PT-5,2026-10-27,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1009,PT-5,2026-10-27,Math,1,1,Q-0194,Rule 5A  - Part-to-part Ratios,C,D,wrong
+S-1009,PT-5,2026-10-27,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,D,C,wrong
+S-1009,PT-5,2026-10-27,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1009,PT-5,2026-10-27,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,D,B,wrong
+S-1009,PT-5,2026-10-27,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1009,PT-5,2026-10-27,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,1,9/8,wrong
+S-1009,PT-5,2026-10-27,Math,2,1,Q-0139,Rule 5B - Function Notation,B,B,right
+S-1009,PT-5,2026-10-27,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,5/4,5/4,right
+S-1009,PT-5,2026-10-27,Math,2,3,Q-0134,Rule 3B - Area  and Perimeter,D,D,right
+S-1009,PT-5,2026-10-27,Math,2,4,Q-0311,Rule 3A -  Percents and Discounts,C,B,wrong
+S-1009,PT-5,2026-10-27,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1009,PT-5,2026-10-27,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1002,PT-5,2026-10-28,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,C,C,right
+S-1002,PT-5,2026-10-28,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1002,PT-5,2026-10-28,Reading and Writing,1,3,Q-0252,RULE 4B - SENTENCE BOUNDARIES,C,B,wrong
+S-1002,PT-5,2026-10-28,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,B,A,wrong
+S-1002,PT-5,2026-10-28,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1002,PT-5,2026-10-28,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,D,D,right
+S-1002,PT-5,2026-10-28,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1002,PT-5,2026-10-28,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1002,PT-5,2026-10-28,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1002,PT-5,2026-10-28,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1002,PT-5,2026-10-28,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1002,PT-5,2026-10-28,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,B,A,wrong
+S-1002,PT-5,2026-10-28,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1002,PT-5,2026-10-28,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,C,C,right
+S-1002,PT-5,2026-10-28,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1002,PT-5,2026-10-28,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,B,B,right
+S-1002,PT-5,2026-10-28,Math,1,5,Q-0113,Rule 5B - Function Notation,D,C,wrong
+S-1002,PT-5,2026-10-28,Math,1,6,Q-0187,Rule 4A -  Solving Linear Equations,1.125,9/8,right
+S-1002,PT-5,2026-10-28,Math,2,1,Q-0139,Rule 5B - Function Notation,C,B,wrong
+S-1002,PT-5,2026-10-28,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,1.25,5/4,right
+S-1002,PT-5,2026-10-28,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,B,D,wrong
+S-1002,PT-5,2026-10-28,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,B,B,right
+S-1002,PT-5,2026-10-28,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1002,PT-5,2026-10-28,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1008,PT-5,2026-10-28,Reading and Writing,1,1,Q-0201,rule 2b - verb tense,C,C,right
+S-1008,PT-5,2026-10-28,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1008,PT-5,2026-10-28,Reading and Writing,1,3,Q-0252,RULE 4B - SENTENCE BOUNDARIES,B,B,right
+S-1008,PT-5,2026-10-28,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,A,A,right
+S-1008,PT-5,2026-10-28,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1008,PT-5,2026-10-28,Reading and Writing,1,6,Q-0085,rule 1b - parallel comparisons,A,D,wrong
+S-1008,PT-5,2026-10-28,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1008,PT-5,2026-10-28,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1008,PT-5,2026-10-28,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,B,A,wrong
+S-1008,PT-5,2026-10-28,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1008,PT-5,2026-10-28,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,D,A,wrong
+S-1008,PT-5,2026-10-28,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1008,PT-5,2026-10-28,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,D,D,right
+S-1008,PT-5,2026-10-28,Math,1,2,Q-0288,rule 3a - percents and discounts,A,C,wrong
+S-1008,PT-5,2026-10-28,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1008,PT-5,2026-10-28,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,A,B,wrong
+S-1008,PT-5,2026-10-28,Math,1,5,Q-0113,Rule 5B - Function Notation,A,C,wrong
+S-1008,PT-5,2026-10-28,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9/8,9/8,right
+S-1008,PT-5,2026-10-28,Math,2,1,Q-0139,Rule 5B - Function Notation,B,B,right
+S-1008,PT-5,2026-10-28,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,1.25,5/4,right
+S-1008,PT-5,2026-10-28,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,C,D,wrong
+S-1008,PT-5,2026-10-28,Math,2,4,Q-0311,rule 3a - percents and discounts,A,B,wrong
+S-1008,PT-5,2026-10-28,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1008,PT-5,2026-10-28,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,D,D,right
+S-1001,PT-5,2026-10-29,Reading and Writing,1,1,Q-0201,Rule 2B -  Verb Tense,C,C,right
+S-1001,PT-5,2026-10-29,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1001,PT-5,2026-10-29,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,C,B,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,A,A,right
+S-1001,PT-5,2026-10-29,Reading and Writing,1,5,Q-0248,rule 6b - transition words,B,C,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,4,Q-0037,RULE 4B - SENTENCE BOUNDARIES,C,A,wrong
+S-1001,PT-5,2026-10-29,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1001,PT-5,2026-10-29,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,D,A,wrong
+S-1001,PT-5,2026-10-29,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1001,PT-5,2026-10-29,Math,1,2,Q-0288,RULE 3A - PERCENTS AND DISCOUNTS,C,C,right
+S-1001,PT-5,2026-10-29,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1001,PT-5,2026-10-29,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,C,B,wrong
+S-1001,PT-5,2026-10-29,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1001,PT-5,2026-10-29,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9/8,9/8,right
+S-1001,PT-5,2026-10-29,Math,2,1,Q-0139,Rule 5B  - Function Notation,B,B,right
+S-1001,PT-5,2026-10-29,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,10/8,5/4,right
+S-1001,PT-5,2026-10-29,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1001,PT-5,2026-10-29,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,B,B,right
+S-1001,PT-5,2026-10-29,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1001,PT-5,2026-10-29,Math,2,6,Q-0057,RULE 5A - PART-TO-PART RATIOS,D,D,right
+S-1015,PT-5,2026-10-29,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,C,C,right
+S-1015,PT-5,2026-10-29,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1015,PT-5,2026-10-29,Reading and Writing,1,3,Q-0252,Rule  4B - Sentence Boundaries,A,B,wrong
+S-1015,PT-5,2026-10-29,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,B,A,wrong
+S-1015,PT-5,2026-10-29,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,C,C,right
+S-1015,PT-5,2026-10-29,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,A,D,wrong
+S-1015,PT-5,2026-10-29,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1015,PT-5,2026-10-29,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,A,A,right
+S-1015,PT-5,2026-10-29,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1015,PT-5,2026-10-29,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,C,A,wrong
+S-1015,PT-5,2026-10-29,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1015,PT-5,2026-10-29,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1015,PT-5,2026-10-29,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1015,PT-5,2026-10-29,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,C,C,right
+S-1015,PT-5,2026-10-29,Math,1,3,Q-0300,Rule 2A - Systems  of Equations,D,C,wrong
+S-1015,PT-5,2026-10-29,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,A,B,wrong
+S-1015,PT-5,2026-10-29,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1015,PT-5,2026-10-29,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9/8,9/8,right
+S-1015,PT-5,2026-10-29,Math,2,1,Q-0139,Rule 5B  - Function Notation,A,B,wrong
+S-1015,PT-5,2026-10-29,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,10,5/4,wrong
+S-1015,PT-5,2026-10-29,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1015,PT-5,2026-10-29,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,B,B,right
+S-1015,PT-5,2026-10-29,Math,2,5,Q-0148,Rule 2A - Systems of Equations,B,C,wrong
+S-1015,PT-5,2026-10-29,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,B,D,wrong
+S-1007,PT-5,2026-10-30,Reading and Writing,1,1,Q-0201,Rule 2B - Verb  Tense,C,C,right
+S-1007,PT-5,2026-10-30,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,A,D,wrong
+S-1007,PT-5,2026-10-30,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,C,B,wrong
+S-1007,PT-5,2026-10-30,Reading and Writing,1,4,Q-0220,Rule 6A - Agreement,A,A,right
+S-1007,PT-5,2026-10-30,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,A,C,wrong
+S-1007,PT-5,2026-10-30,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,A,D,wrong
+S-1007,PT-5,2026-10-30,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1007,PT-5,2026-10-30,Reading and Writing,2,2,Q-0231,Rule 2B  - Verb Tense,A,A,right
+S-1007,PT-5,2026-10-30,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1007,PT-5,2026-10-30,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1007,PT-5,2026-10-30,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1007,PT-5,2026-10-30,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1007,PT-5,2026-10-30,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,A,D,wrong
+S-1007,PT-5,2026-10-30,Math,1,2,Q-0288,rule 3a - percents and discounts,C,C,right
+S-1007,PT-5,2026-10-30,Math,1,3,Q-0300,Rule 2A - Systems of Equations,C,C,right
+S-1007,PT-5,2026-10-30,Math,1,4,Q-0303,Rule 3B -  Area and Perimeter,B,B,right
+S-1007,PT-5,2026-10-30,Math,1,5,Q-0113,Rule 5B -  Function Notation,C,C,right
+S-1007,PT-5,2026-10-30,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9,9/8,wrong
+S-1007,PT-5,2026-10-30,Math,2,1,Q-0139,Rule 5B - Function Notation,B,B,right
+S-1007,PT-5,2026-10-30,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,10,5/4,wrong
+S-1007,PT-5,2026-10-30,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1007,PT-5,2026-10-30,Math,2,4,Q-0311,Rule 3A - Percents and Discounts,A,B,wrong
+S-1007,PT-5,2026-10-30,Math,2,5,Q-0148,Rule 2A - Systems of Equations,C,C,right
+S-1007,PT-5,2026-10-30,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,C,D,wrong
+S-1011,PT-2,2026-10-31,Reading and Writing,1,1,Q-0075,Rule 4B - Sentence Boundaries,C,D,wrong
+S-1011,PT-2,2026-10-31,Reading and Writing,1,2,Q-0292,Rule 2B - Verb Tense,C,A,wrong
+S-1011,PT-2,2026-10-31,Reading and Writing,1,3,Q-0086,Rule 1A - Pronoun Agreement,D,D,right
+S-1011,PT-2,2026-10-31,Reading and Writing,1,4,Q-0125,Rule 6B -  Transition Words,A,A,right
+S-1011,PT-2,2026-10-31,Reading and Writing,1,5,Q-0175,Rule 1B - Parallel Comparisons,B,B,right
+S-1011,PT-2,2026-10-31,Reading and Writing,1,6,Q-0155,Rule 6A - Agreement,A,C,wrong
+S-1011,PT-2,2026-10-31,Reading and Writing,2,1,Q-0269,Rule 1B - Parallel Comparisons,B,B,right
+S-1011,PT-2,2026-10-31,Reading and Writing,2,2,Q-0226,Rule 2B - Verb Tense,C,C,right
+S-1011,PT-2,2026-10-31,Reading and Writing,2,3,Q-0089,Rule 4B - Sentence Boundaries,D,D,right
+S-1011,PT-2,2026-10-31,Reading and Writing,2,4,Q-0204,Rule 1A - Pronoun Agreement,C,C,right
+S-1011,PT-2,2026-10-31,Reading and Writing,2,5,Q-0114,Rule 6A - Agreement,B,A,wrong
+S-1011,PT-2,2026-10-31,Reading and Writing,2,6,Q-0132,Rule 6B - Transition Words,B,B,right
+S-1011,PT-2,2026-10-31,Math,1,1,Q-0243,Rule 5A - Part-to-part Ratios,D,D,right
+S-1011,PT-2,2026-10-31,Math,1,2,Q-0031,Rule 3B - Area and Perimeter,C,C,right
+S-1011,PT-2,2026-10-31,Math,1,3,Q-0198,Rule 4A - Solving Linear Equations,5/2,5/2,right
+S-1011,PT-2,2026-10-31,Math,1,4,Q-0104,Rule 5B - Function Notation,B,B,right
+S-1011,PT-2,2026-10-31,Math,1,5,Q-0120,Rule 2A - Systems of Equations,C,C,right
+S-1011,PT-2,2026-10-31,Math,1,6,Q-0257,Rule 3A - Percents and Discounts,C,C,right
+S-1011,PT-2,2026-10-31,Math,2,1,Q-0184,Rule 5B - Function Notation,C,C,right
+S-1011,PT-2,2026-10-31,Math,2,2,Q-0146,Rule 5A - Part-to-part Ratios,B,A,wrong
+S-1011,PT-2,2026-10-31,Math,2,3,Q-0097,Rule 2A - Systems of Equations,A,A,right
+S-1011,PT-2,2026-10-31,Math,2,4,Q-0004,RULE 4A - SOLVING LINEAR EQUATIONS,C,C,right
+S-1011,PT-2,2026-10-31,Math,2,5,Q-0262,Rule 3A - Percents and Discounts,B,B,right
+S-1011,PT-2,2026-10-31,Math,2,6,Q-0138,Rule 3B - Area and Perimeter,D,D,right
+S-1003,PT-4,2026-11-01,Reading and Writing,1,1,Q-0283,Rule 1A - Pronoun Agreement,A,D,wrong
+S-1003,PT-4,2026-11-01,Reading and Writing,1,2,Q-0095,Rule 6B - Transition Words,B,B,right
+S-1003,PT-4,2026-11-01,Reading and Writing,1,3,Q-0256,Rule 1B - Parallel Comparisons,B,B,right
+S-1003,PT-4,2026-11-01,Reading and Writing,1,4,Q-0151,Rule 4B - Sentence Boundaries,B,B,right
+S-1003,PT-4,2026-11-01,Reading and Writing,1,5,Q-0131,Rule 2B - Verb Tense,C,D,wrong
+S-1003,PT-4,2026-11-01,Reading and Writing,1,6,Q-0196,Rule 6A - Agreement,B,A,wrong
+S-1003,PT-4,2026-11-01,Reading and Writing,2,1,Q-0261,Rule 1B - Parallel Comparisons,B,C,wrong
+S-1003,PT-4,2026-11-01,Reading and Writing,2,2,Q-0230,Rule 6B - Transition Words,C,C,right
+S-1003,PT-4,2026-11-01,Reading and Writing,2,3,Q-0213,Rule 6A - Agreement,A,A,right
+S-1003,PT-4,2026-11-01,Reading and Writing,2,4,Q-0239,Rule 4B - Sentence Boundaries,D,D,right
+S-1003,PT-4,2026-11-01,Reading and Writing,2,5,Q-0083,rule 1a - pronoun agreement,A,B,wrong
+S-1003,PT-4,2026-11-01,Reading and Writing,2,6,Q-0059,Rule 2B - Verb Tense,A,C,wrong
+S-1003,PT-4,2026-11-01,Math,1,1,Q-0205,Rule 4A - Solving Linear Equations,19/8,19/8,right
+S-1003,PT-4,2026-11-01,Math,1,2,Q-0077,rule 5a - part-to-part ratios,C,C,right
+S-1003,PT-4,2026-11-01,Math,1,3,Q-0068,rule 3a - percents and discounts,D,D,right
+S-1003,PT-4,2026-11-01,Math,1,4,Q-0282,Rule 3B - Area and Perimeter,A,A,right
+S-1003,PT-4,2026-11-01,Math,1,5,Q-0260,Rule 5B - Function  Notation,A,B,wrong
+S-1003,PT-4,2026-11-01,Math,1,6,Q-0241,Rule 2A - Systems of Equations,A,A,right
+S-1003,PT-4,2026-11-01,Math,2,1,Q-0064,Rule 3A - Percents and Discounts,D,D,right
+S-1003,PT-4,2026-11-01,Math,2,2,Q-0071,Rule 5A -  Part-to-part Ratios,A,A,right
+S-1003,PT-4,2026-11-01,Math,2,3,Q-0309,Rule 4A - Solving Linear Equations,14/10,7/5,right
+S-1003,PT-4,2026-11-01,Math,2,4,Q-0159,Rule 2A - Systems of Equations,A,A,right
+S-1003,PT-4,2026-11-01,Math,2,5,Q-0320,Rule 3B - Area and Perimeter,A,B,wrong
+S-1003,PT-4,2026-11-01,Math,2,6,Q-0040,Rule 5B - Function Notation,C,B,wrong
+S-1013,PT-5,2026-11-01,Reading and Writing,1,1,Q-0201,Rule 2B - Verb Tense,C,C,right
+S-1013,PT-5,2026-11-01,Reading and Writing,1,2,Q-0050,Rule 1A - Pronoun Agreement,D,D,right
+S-1013,PT-5,2026-11-01,Reading and Writing,1,3,Q-0252,Rule 4B - Sentence Boundaries,D,B,wrong
+S-1013,PT-5,2026-11-01,Reading and Writing,1,4,Q-0220,Rule 6A -  Agreement,B,A,wrong
+S-1013,PT-5,2026-11-01,Reading and Writing,1,5,Q-0248,Rule 6B - Transition Words,A,C,wrong
+S-1013,PT-5,2026-11-01,Reading and Writing,1,6,Q-0085,Rule 1B - Parallel Comparisons,B,D,wrong
+S-1013,PT-5,2026-11-01,Reading and Writing,2,1,Q-0166,Rule 6B - Transition Words,D,D,right
+S-1013,PT-5,2026-11-01,Reading and Writing,2,2,Q-0231,Rule 2B - Verb Tense,B,A,wrong
+S-1013,PT-5,2026-11-01,Reading and Writing,2,3,Q-0186,Rule 1B - Parallel Comparisons,A,A,right
+S-1013,PT-5,2026-11-01,Reading and Writing,2,4,Q-0037,Rule 4B - Sentence Boundaries,A,A,right
+S-1013,PT-5,2026-11-01,Reading and Writing,2,5,Q-0081,Rule 6A - Agreement,A,A,right
+S-1013,PT-5,2026-11-01,Reading and Writing,2,6,Q-0025,Rule 1A - Pronoun Agreement,A,A,right
+S-1013,PT-5,2026-11-01,Math,1,1,Q-0194,Rule 5A - Part-to-part Ratios,D,D,right
+S-1013,PT-5,2026-11-01,Math,1,2,Q-0288,Rule 3A - Percents and Discounts,B,C,wrong
+S-1013,PT-5,2026-11-01,Math,1,3,Q-0300,rule 2a - systems of equations,A,C,wrong
+S-1013,PT-5,2026-11-01,Math,1,4,Q-0303,Rule 3B - Area and Perimeter,D,B,wrong
+S-1013,PT-5,2026-11-01,Math,1,5,Q-0113,Rule 5B - Function Notation,C,C,right
+S-1013,PT-5,2026-11-01,Math,1,6,Q-0187,Rule 4A - Solving Linear Equations,9/8,9/8,right
+S-1013,PT-5,2026-11-01,Math,2,1,Q-0139,Rule 5B - Function  Notation,A,B,wrong
+S-1013,PT-5,2026-11-01,Math,2,2,Q-0238,Rule 4A - Solving Linear Equations,10,5/4,wrong
+S-1013,PT-5,2026-11-01,Math,2,3,Q-0134,Rule 3B - Area and Perimeter,D,D,right
+S-1013,PT-5,2026-11-01,Math,2,4,Q-0311,rule 3a - percents and discounts,B,B,right
+S-1013,PT-5,2026-11-01,Math,2,5,Q-0148,Rule 2A - Systems of Equations,B,C,wrong
+S-1013,PT-5,2026-11-01,Math,2,6,Q-0057,Rule 5A - Part-to-part Ratios,D,D,right

@@ -68,3 +68,45 @@ export function answerTableProblem(
   }
   return null;
 }
+
+/** A token without the punctuation that ends a sentence or a field after it. */
+function trimmed(token: string): string {
+  return token.replace(/[./:-]+$/, '');
+}
+
+/** Values one organization's files hold that a change set may hold before it is a table of them. */
+const ORG_FACTS_MAX = 2;
+
+/**
+ * Why a change set would write one organization's facts into the harness, or null (decision 068):
+ * a file that holds more than a couple of the ids, labels with a digit or long numbers that only
+ * that organization's files hold. A heuristic beside the dev measurement, which spans several
+ * organizations: it catches a table keyed by one organization's values, not every way to favor one.
+ */
+export function orgFactsProblem(
+  edits: readonly FileEdit[],
+  orgs: readonly { org: string; text: string }[],
+): string | null {
+  if (orgs.length < 2) return null;
+  const own = orgs.map(({ org, text }) => ({
+    org,
+    values: [...new Set((text.match(/[A-Za-z0-9][A-Za-z0-9_./:-]*/g) ?? []).map(trimmed))].filter(
+      (value) =>
+        specific(value) && !orgs.some((other) => other.org !== org && holds(other.text, value)),
+    ),
+  }));
+  for (const edit of edits) {
+    if (edit.op !== 'write') continue;
+    for (const { org, values } of own) {
+      const held = values.filter((value) => holds(edit.content, value));
+      if (held.length > ORG_FACTS_MAX) {
+        return `${edit.path} holds ${held.length} values only ${org}'s files have (${held
+          .slice(0, 3)
+          .join(
+            ', ',
+          )}). The agent serves several organizations: teach it to read each one's facts from data/.`;
+      }
+    }
+  }
+  return null;
+}

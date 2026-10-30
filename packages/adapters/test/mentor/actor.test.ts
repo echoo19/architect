@@ -6,9 +6,9 @@ import {
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createMentorActor } from '../../src/mentor/actor';
-import { deltaChunk, textReply, usageChunk } from '../helpers/chat';
+import { answer, deltaChunk, textReply, usageChunk } from '../helpers/chat';
 import { mentorConfig } from '../helpers/configs';
-import { routeTo, sendEventStream, startServer, stopServers } from '../helpers/server';
+import { routeTo, startServer, stopServers } from '../helpers/server';
 
 afterEach(stopServers);
 
@@ -31,9 +31,9 @@ const REQUEST: StudentChatRequest = {
 };
 
 describe('the mentor acting as the agent', () => {
-  it("asks the mentor's provider with the student's tools, and streams the calls back", async () => {
-    const server = await startServer((_request, res) =>
-      sendEventStream(res, [
+  it("asks the mentor's provider with the student's tools, and hands the calls back", async () => {
+    const server = await startServer((request, res) =>
+      answer(request, res, [
         deltaChunk({
           role: 'assistant',
           tool_calls: [
@@ -67,7 +67,8 @@ describe('the mentor acting as the agent', () => {
     const body = server.requests[0]?.json() as Record<string, unknown>;
     expect(body).toMatchObject({
       model: mentorPreset('meta-spark').model,
-      stream: true,
+      // Meta is asked for whole replies, since its stream can end without the usage.
+      stream: false,
       max_completion_tokens: 16_000,
       reasoning_effort: 'medium',
       tools: [{ type: 'function', function: { name: 'read' } }],
@@ -82,8 +83,8 @@ describe('the mentor acting as the agent', () => {
   });
 
   it('streams text like any student, and counts what the reply used', async () => {
-    const server = await startServer((_request, res) =>
-      sendEventStream(res, textReply('ANSWER: {"refund_cents":4500}')),
+    const server = await startServer((request, res) =>
+      answer(request, res, textReply('ANSWER: {"refund_cents":4500}')),
     );
     const actor = createMentorActor(mentorConfig('meta-spark'), {
       apiKey: API_KEY,

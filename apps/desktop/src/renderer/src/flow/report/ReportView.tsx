@@ -30,6 +30,8 @@ import {
   type RuntimeFigures,
 } from './evidence';
 import { LocalTest } from './LocalTest';
+import { Organizations } from './Organizations';
+import { organizationGrid, type OrgGrid } from './org-grid';
 import { RuleNotes } from './RuleNotes';
 import { ScoreNotes } from './ScoreNotes';
 import { testSourceNote } from './test-source';
@@ -92,6 +94,20 @@ function beforeTraining(
   const now = percent(report.test.score);
   const change = now > before ? 'Up from' : now < before ? 'Down from' : 'Same as';
   return `${change} ${before}% before training`;
+}
+
+/**
+ * What the final test covered, said once: its new tasks, and for a job with organizations, how
+ * many came from the ones it trained with and how many from the ones it never saw.
+ */
+function testedOn(report: ReportCard, grid: OrgGrid | null): string {
+  const unseen = grid?.groups.filter((group) => group.group !== 'seen').flatMap((g) => g.columns);
+  if (!unseen || unseen.length === 0) {
+    return `Tested on ${report.test.score.total} tasks it had never seen`;
+  }
+  const tasks = unseen.reduce((sum, column) => sum + column.score.total, 0);
+  const places = unseen.length === 1 ? 'an organization' : `${unseen.length} organizations`;
+  return `Tested on ${report.test.score.total} new tasks from the organizations it trained with and ${tasks} from ${places} it never saw`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -179,6 +195,7 @@ export function ReportView({
   const size = graduate?.manifest.student.sizeBytes;
   const memory = memoryFact(figures);
   const source = testSourceNote(report.tasks, names.mentor);
+  const grid = organizationGrid(test.perOrg);
 
   return (
     <Stagger className="flex flex-col gap-12">
@@ -188,8 +205,7 @@ export function ReportView({
             {verdict.title}
           </Heading>
           <p className="m-0 max-w-[660px] text-body text-pretty">
-            Tested on {test.score.total} tasks it had never seen, {where}, with {names.mentor}{' '}
-            disconnected.
+            {testedOn(report, grid)}, {where}, with {names.mentor} disconnected.
           </p>
           {verdict.because.length > 0 && (
             <p className="m-0 max-w-[620px] text-pretty">{verdict.because.join(' ')}</p>
@@ -235,6 +251,12 @@ export function ReportView({
           />
         )}
       </StaggerItem>
+
+      {grid && (
+        <StaggerItem>
+          <Organizations grid={grid} />
+        </StaggerItem>
+      )}
 
       <StaggerItem>
         <Capabilities evidence={capabilities} installation={installation} names={names} />

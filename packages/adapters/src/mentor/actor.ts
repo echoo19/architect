@@ -14,6 +14,7 @@ import { createHttpClient } from '../http/client';
 import { connectionFailure } from '../http/errors';
 import { isLoopbackUrl } from '../loopback';
 import { toWireMessages, toWireTools } from '../openai/messages';
+import { openUnstreamed } from '../openai/unstreamed';
 import { readChatCompletionStream } from '../openai/stream';
 import { countToolCalls } from '../tool-calls';
 import { chatTraits, type ModelMentorConfig } from './providers';
@@ -89,11 +90,13 @@ export function createMentorActor(config: MentorConfig, deps: MentorDeps = {}): 
   ): AsyncGenerator<StudentStreamEvent> {
     const stream = await http.withRetries(
       () =>
-        http.openStream(CHAT_PATH, body(request), {
-          signal,
-          model: model.model,
-          accept: 'text/event-stream',
-        }),
+        traits.unstreamed
+          ? openUnstreamed(http, CHAT_PATH, body(request), { signal, model: model.model })
+          : http.openStream(CHAT_PATH, body(request), {
+              signal,
+              model: model.model,
+              accept: 'text/event-stream',
+            }),
       signal,
     );
     try {

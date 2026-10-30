@@ -176,6 +176,24 @@ export const TaskTypeInfoSchema = z.object({
 });
 export type TaskTypeInfo = z.infer<typeof TaskTypeInfoSchema>;
 
+/** An organization id becomes a folder name (`orgs/<id>/data/`), so only plain ones are taken. */
+export const ORG_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+
+/**
+ * One organization a job serves (decision 068). Its files sit at `orgs/<id>/data/` in the job
+ * folder, under the names the job's data declares. A `train` organization is practiced on; a
+ * `transfer` one is never seen in training: its files and tasks are sealed apart and opened only
+ * for the locked test.
+ */
+export const OrganizationSchema = z.object({
+  id: z.string().regex(ORG_ID),
+  name: z.string().min(1),
+  /** Generated from seeds, or a real organization's records. */
+  synthetic: z.boolean(),
+  role: z.enum(['train', 'transfer']),
+});
+export type Organization = z.infer<typeof OrganizationSchema>;
+
 export const JobSchema = z.object({
   format: z.literal(JOB_FORMAT),
   id: z.string().min(1),
@@ -218,8 +236,33 @@ export const JobSchema = z.object({
    * the mentor and the budget, so a graduate's contract and package don't carry it.
    */
   interventions: AllowedInterventionsSchema.optional(),
+  /**
+   * The organizations the job serves, each with its own files (decision 068). Absent: one
+   * organization, whose files are the job's `data/`. A job in the library lists only the ones it
+   * trains on; a transfer organization is taken out when the job is made and kept sealed.
+   */
+  organizations: z
+    .array(OrganizationSchema)
+    .min(1)
+    .refine(
+      (orgs) => new Set(orgs.map((org) => org.id)).size === orgs.length,
+      'Each organization needs its own id.',
+    )
+    .optional(),
 });
 export type Job = z.infer<typeof JobSchema>;
+
+/**
+ * The sample jobs shipped with the app: the service desk, and Phil, a tutor taught at three
+ * academies and tested at one it never sees.
+ */
+export const SampleJobSchema = z.enum(['home-services', 'academy']);
+export type SampleJob = z.infer<typeof SampleJobSchema>;
+
+/** The organizations a job trains on: every listed one whose role is `train`. */
+export function trainOrganizations(job: Pick<Job, 'organizations'>): Organization[] {
+  return (job.organizations ?? []).filter((org) => org.role === 'train');
+}
 
 /**
  * The teacher and the agent's model a new job starts with, as the sample jobs ship them: Muse

@@ -2,7 +2,19 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { FIRST, PER_TYPE, REPAIR, SECOND, SOURCES, TEST_SIZE } from '../src/evidence';
+import {
+  FIELD_ARMS,
+  FIELD_PAIRS,
+  FIELD_TEST_SIZE,
+  FIRST,
+  GROUPS,
+  PER_TYPE,
+  REPAIR,
+  SECOND,
+  SKILL_ROWS,
+  SOURCES,
+  TEST_SIZE,
+} from '../src/evidence';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -39,6 +51,29 @@ describe('the results page', () => {
     expect(FIRST.arms.map((arm) => arm.passed)).toEqual([43, 47, 45, 60]);
     expect(`${REPAIR.checkBefore} of ${REPAIR.checkTotal}`).toBe('22 of 30');
     expect(`${REPAIR.finalPassed} of ${REPAIR.finalTotal}`).toBe('40 of 40');
+  });
+
+  it('adds up the field run: groups to 120, skills to groups, pairs to their tasks', () => {
+    expect(GROUPS.reduce((sum, group) => sum + group.n, 0)).toBe(FIELD_TEST_SIZE);
+    for (const arm of FIELD_ARMS) {
+      expect(arm.groups.reduce((sum, group) => sum + group.passed, 0)).toBe(arm.all.passed);
+      arm.groups.forEach((group, index) => {
+        const key = GROUPS[index]?.short;
+        const rows = SKILL_ROWS.filter((row) => row.group === key);
+        const field =
+          arm.name === 'Phil' ? 'phil' : arm.name.startsWith('Glimmer') ? 'bare' : 'draft';
+        expect(rows.reduce((sum, row) => sum + row[field], 0)).toBe(group.passed);
+        expect(rows.reduce((sum, row) => sum + row.of, 0)).toBe(GROUPS[index]?.n);
+        expect(group.low).toBeLessThanOrEqual((group.passed / (GROUPS[index]?.n ?? 1)) * 100);
+        expect(group.high).toBeGreaterThanOrEqual((group.passed / (GROUPS[index]?.n ?? 1)) * 100);
+      });
+    }
+    for (const pair of FIELD_PAIRS) {
+      expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(pair.n);
+      expect(((pair.wins - pair.losses) / pair.n) * 100).toBeCloseTo(pair.diff, 0);
+      expect(pair.low).toBeLessThan(pair.diff);
+      expect(pair.high).toBeGreaterThan(pair.diff);
+    }
   });
 
   it('cites documents that exist', () => {

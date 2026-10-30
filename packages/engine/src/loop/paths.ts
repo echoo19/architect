@@ -14,6 +14,9 @@ function safe(id: string): string {
 
 export type VisibleSplit = 'calibration' | 'train' | 'dev';
 
+/** The teacher's study of a field job's organizations, in the job's folder (decision 069). */
+export const STUDY_FILE = 'study.json';
+
 /**
  * Where everything lives in the app's data folder (docs/ARCHITECTURE.md). The database stores
  * paths relative to the folder, with forward slashes, so the folder can move.
@@ -70,6 +73,16 @@ export class DataPaths {
   /** What the person confirmed about a job's rules, and over which records (decision 061). */
   confirmationFile(jobId: string): string {
     return join(this.jobDir(jobId), 'confirmation.json');
+  }
+
+  /** One organization's files in a field job (docs/FIELD.md, the contract). */
+  orgDataDir(jobId: string, orgId: string): string {
+    return join(this.jobDir(jobId), 'orgs', safe(orgId), 'data');
+  }
+
+  /** The teacher's study of the organizations' material, and whether it is confirmed (069). */
+  studyFile(jobId: string): string {
+    return join(this.jobDir(jobId), STUDY_FILE);
   }
 
   tasksFile(jobId: string, split: VisibleSplit): string {

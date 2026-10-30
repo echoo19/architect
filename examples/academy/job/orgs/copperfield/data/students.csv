@@ -1,0 +1,17 @@
+student_id,name,grade,target_score,test_date,tutor_id
+S-1001,Zeno Thorne,11,1390,2027-06-05,T-4
+S-1002,Kaia Thorne,12,1330,2027-05-01,T-4
+S-1003,Gideon Ingram,11,1390,2027-03-13,T-3
+S-1004,Gideon Greaves,11,1290,2027-06-05,T-4
+S-1005,Ilse Quarles,11,1480,2026-12-05,T-4
+S-1006,Niko Brightwater,12,1350,2026-12-05,T-2
+S-1007,Niko Vasquez,12,1470,2027-05-01,T-3
+S-1008,Wren Thorne,10,1440,2027-03-13,T-4
+S-1009,Elin Ellery,11,1300,2027-05-01,T-4
+S-1010,Dario Jessop,10,1430,2027-05-01,T-4
+S-1011,Mira Underhill,10,1450,2027-06-05,T-2
+S-1012,Vito Pemberton,11,1320,2027-06-05,T-2
+S-1013,Fenna Brightwater,10,1380,2026-12-05,T-4
+S-1014,Lio Pemberton,11,1340,2027-06-05,T-3
+S-1015,Wren Calloway,11,1200,2027-03-13,T-4
+S-1016,Lio Ingram,10,1200,2027-05-01,T-3

@@ -2,7 +2,7 @@ import { mentorPreset, type MentorCompletionRequest } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createModelMentor } from '../../src/mentor/model-mentor';
 import type { ModelMentorConfig } from '../../src/mentor/providers';
-import { textReply, usageChunk, deltaChunk, type UsageBody } from '../helpers/chat';
+import { answer, textReply, usageChunk, deltaChunk, type UsageBody } from '../helpers/chat';
 import { mentorConfig } from '../helpers/configs';
 import {
   routeTo,
@@ -41,8 +41,8 @@ async function call(
   request: MentorCompletionRequest = REQUEST,
   apiKey: string | null = API_KEY,
 ) {
-  const server = await startServer((_request, res) =>
-    sendEventStream(res, [
+  const server = await startServer((sent, res) =>
+    answer(sent, res, [
       deltaChunk({ role: 'assistant', content: '' }),
       deltaChunk({ content: replyText }),
       deltaChunk({}, 'stop'),

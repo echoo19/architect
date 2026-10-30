@@ -10,6 +10,7 @@ import {
   type Method,
   type StudentTarget,
 } from '@architect/shared';
+import { isStudied } from '../drafting/study';
 import type { LoopDeps } from '../loop/deps';
 import type { RunProtocol, StoredRun } from '../store/records';
 import type { ComparisonEngine } from './engine';
@@ -148,13 +149,27 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
   });
   switch (arm) {
     case 'bare':
-      return {
-        arm,
-        job: copy({ budget: budget({}) }),
-        method: 'bare',
-        lockedTestOn: 'hosted',
-        protocol,
-      };
+      // Untaught: on a field job the blank harness is imported as it is, so the confirmed study's
+      // procedure, which seeds a blank start, isn't added to it.
+      return isStudied(base)
+        ? {
+            arm,
+            job: copy({
+              budget: budget({}),
+              startingHarness: { kind: 'import' as const, path: 'draft' },
+            }),
+            method: 'bare',
+            lockedTestOn: 'hosted',
+            protocol,
+            startingHarness: context.deps.harness.blankHarness(base.name, base.description),
+          }
+        : {
+            arm,
+            job: copy({ budget: budget({}) }),
+            method: 'bare',
+            lockedTestOn: 'hosted',
+            protocol,
+          };
     case 'draft':
       return {
         arm,

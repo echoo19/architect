@@ -80,6 +80,11 @@ export interface CheckedFiles {
   tables(): Record<string, TableSnapshot>;
   /** Every table as it was when the files were opened. */
   originalTables(): Record<string, TableSnapshot>;
+  /**
+   * The text files the attempt changed or made, a data file by its name and an output file by
+   * its path (`output/report.md`). Tables are compared by their rows instead.
+   */
+  changedTexts(): string[];
 }
 
 /**
@@ -162,7 +167,10 @@ export async function openAgentFiles(options: AgentFilesOptions): Promise<AgentF
   if (twice !== undefined) throw new DataError(`${twice} is declared twice in the job.`);
 
   const states: FileState[] = [];
-  for (const file of options.files) states.push(await openDataFile(options.dataDir, file));
+  for (const file of options.files) {
+    const state = await openDataFile(options.dataDir, file);
+    if (state !== null) states.push(state);
+  }
   for (const [path, text] of Object.entries(options.skills ?? {})) {
     states.push(textState(path, 'skills', text, false));
   }
@@ -172,7 +180,11 @@ export async function openAgentFiles(options: AgentFilesOptions): Promise<AgentF
   return new FolderFiles(options, states);
 }
 
-async function openDataFile(dataDir: string, file: DataFile): Promise<FileState> {
+/**
+ * A declared data file as the folder holds it. One the job marks optional and the folder lacks,
+ * such as an academy export without hints, is simply not there: null.
+ */
+async function openDataFile(dataDir: string, file: DataFile): Promise<FileState | null> {
   const root = resolve(dataDir);
   const disk = resolve(root, file.name);
   const inside = relative(root, disk);
@@ -180,11 +192,11 @@ async function openDataFile(dataDir: string, file: DataFile): Promise<FileState>
     throw new GuardError('permission', `${file.name} is outside the job's data folder.`);
   }
   const info = await lstat(disk).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') {
-      throw new DataError(`${file.name} is declared in the job but missing from its data folder.`);
-    }
-    throw error;
+    if (error.code !== 'ENOENT') throw error;
+    if (file.optional === true) return null;
+    throw new DataError(`${file.name} is declared in the job but missing from its data folder.`);
   });
+  if (info === null) return null;
   if (info.isSymbolicLink() || !info.isFile()) {
     throw new GuardError(
       'permission',
@@ -415,6 +427,13 @@ class FolderFiles implements AgentFiles {
         .filter((state) => state.kind === 'table')
         .map((state) => [state.name ?? state.path, this.table(state.path, state.text)]),
     );
+  }
+
+  changedTexts(): string[] {
+    return [...this.files.values()]
+      .filter((state) => state.kind === 'text' && state.text !== state.initial)
+      .map((state) => state.name ?? state.path)
+      .sort(compare);
   }
 
   originalTables(): Record<string, TableSnapshot> {

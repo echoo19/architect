@@ -109,6 +109,7 @@ function NoAgentsYet() {
             New agent
           </Button>
           <SampleJobButton size="md" />
+          <SampleJobButton size="md" sample="academy" />
           <ReadyMadeAgentButton size="md" />
         </>
       }

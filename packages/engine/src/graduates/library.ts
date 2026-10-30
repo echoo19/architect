@@ -7,6 +7,7 @@ import {
   GrantsSchema,
   GuardError,
   type BindRequest,
+  type FolderFit,
   type GraduateSettings,
   type GraduateSummary,
   type GraduateVersion,
@@ -28,6 +29,8 @@ import { lesserGrant, storedFolder } from './bindings';
 import {
   checkInstallation,
   fitChecks,
+  folderShortfalls,
+  shortfallInWords,
   thisMachine,
   type CheckDeps,
   type FitResult,
@@ -440,6 +443,23 @@ export class GraduateLibrary {
       await this.checkNow(graduateId, { loadModel: false });
       return this.installation(graduateId);
     });
+  }
+
+  /**
+   * What a folder lacks of the files and columns the active version's resource needs, in plain
+   * words, before anything is bound. A fit says the folder is readable, not that the agent was
+   * tested on its records.
+   */
+  async checkFolder(graduateId: string, name: string, folder: string): Promise<FolderFit> {
+    const agent = this.agent(graduateId);
+    const version = this.version(graduateId, agent.activeVersion ?? 1);
+    const resource = version.manifest.resources.find((item) => item.name === name);
+    if (!resource) throw new Error(`${agent.name} has no resource called "${name}".`);
+    const absolute = resolve(folder);
+    if (!(await stat(absolute).catch(() => null))?.isDirectory()) {
+      return { problems: [`${absolute} isn't a folder.`] };
+    }
+    return { problems: (await folderShortfalls(resource.files, absolute)).map(shortfallInWords) };
   }
 
   /** Runs the active version's installation checks again. */

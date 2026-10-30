@@ -14,6 +14,22 @@ export const TypeResultSchema = z.object({
 });
 export type TypeResult = z.infer<typeof TypeResultSchema>;
 
+/**
+ * A task type's locked-test result at one organization (decision 068): `seen` when the agent
+ * trained on that organization, `synthetic` when its records were generated rather than real.
+ */
+export const OrgTypeResultSchema = z.object({
+  type: z.string(),
+  label: z.string(),
+  org: z.string(),
+  orgName: z.string(),
+  seen: z.boolean(),
+  synthetic: z.boolean(),
+  pass: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+export type OrgTypeResult = z.infer<typeof OrgTypeResultSchema>;
+
 export const ReportCardSchema = z.object({
   jobId: z.string(),
   runId: z.string(),
@@ -50,6 +66,12 @@ export const ReportCardSchema = z.object({
       .array(z.object({ seed: z.number().int(), score: ScoreSchema }))
       .min(2)
       .optional(),
+    /**
+     * For a job with organizations: each task type's result at each organization. The score,
+     * `perType`, latency and the requirements above count only the organizations it trained on;
+     * one it never saw is reported here alone (decision 070).
+     */
+    perOrg: z.array(OrgTypeResultSchema).optional(),
   }),
   dev: z.object({
     baseline: ScoreSchema.nullable(),

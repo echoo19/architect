@@ -20,6 +20,7 @@ import {
   ExportResultSchema,
   ExportReviewSchema,
   FileDiffSchema,
+  FolderFitSchema,
   GraduateSettingsSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
@@ -55,7 +56,9 @@ import {
   RunStartOptionsSchema,
   RuntimeMeasurementSchema,
   SampleAgentSchema,
+  SampleJobSchema,
   StudentTargetSchema,
+  StudyStateSchema,
   TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
@@ -107,7 +110,9 @@ export const ENGINE_ROUTES = {
   'jobs.list': route(z.tuple([]), z.array(JobSummarySchema), (api) => api.jobs.list()),
   'jobs.get': route(z.tuple([id]), JobSchema, (api, [jobId]) => api.jobs.get(jobId)),
   'jobs.save': route(z.tuple([JobSchema]), JobSchema, (api, [job]) => api.jobs.save(job)),
-  'jobs.createSample': route(z.tuple([]), JobSchema, (api) => api.jobs.createSample()),
+  'jobs.createSample': route(z.tuple([SampleJobSchema.optional()]), JobSchema, (api, [sample]) =>
+    api.jobs.createSample(sample),
+  ),
   'jobs.importFile': route(z.tuple([path]), JobSchema, (api, [file]) => api.jobs.importFile(file)),
   'jobs.exportFile': route(z.tuple([id, path]), z.void(), (api, [jobId, file]) =>
     api.jobs.exportFile(jobId, file),
@@ -127,6 +132,10 @@ export const ENGINE_ROUTES = {
     z.tuple([id, id]),
     RuleConfirmationStateSchema,
     (api, [jobId, token]) => api.jobs.confirmRules(jobId, token),
+  ),
+  'jobs.study': route(z.tuple([id]), StudyStateSchema, (api, [jobId]) => api.jobs.study(jobId)),
+  'jobs.confirmStudy': route(z.tuple([id, id]), StudyStateSchema, (api, [jobId, token]) =>
+    api.jobs.confirmStudy(jobId, token),
   ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),
@@ -274,6 +283,12 @@ export const ENGINE_ROUTES = {
     z.tuple([id, BindRequestSchema]),
     InstallationSchema,
     (api, [graduateId, request]) => api.graduates.bind(graduateId, request),
+  ),
+  'graduates.checkFolder': route(
+    z.tuple([id, z.string().min(1), path]),
+    FolderFitSchema,
+    (api, [graduateId, resource, folder]) =>
+      api.graduates.checkFolder(graduateId, resource, folder),
   ),
   'graduates.verify': route(
     z.tuple([id, z.object({ loadModel: z.boolean().optional() }).strict()]),

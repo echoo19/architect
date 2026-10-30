@@ -119,6 +119,10 @@ export function registerGraduateHandlers(
         await reopen(graduateId);
         return installation;
       },
+      checkFolder: (graduateId, resource, folder) => {
+        const chosen = picked.check(folder);
+        return call((api) => api.graduates.checkFolder(graduateId, resource, chosen));
+      },
       verify: async (graduateId, options) => {
         const installation = await call((api) => api.graduates.verify(graduateId, options));
         await reopen(graduateId);
@@ -196,6 +200,7 @@ export function registerGraduateHandlers(
       promote: z.tuple([text, version]),
       rollback: z.tuple([text, version]),
       bind: z.tuple([text, BindRequestSchema]),
+      checkFolder: z.tuple([text, text, text]),
       exportPackage: z.tuple([text, ExportRequestSchema]),
       exportFolder: z.tuple([text, text]),
       exportPart: z.tuple([text, ExportPartRequestSchema]),

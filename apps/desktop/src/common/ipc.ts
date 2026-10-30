@@ -65,6 +65,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     draftReply: true,
     taskPlan: true,
     confirmRules: true,
+    study: true,
+    confirmStudy: true,
   },
   runs: {
     start: true,
@@ -114,6 +116,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     rollback: true,
     installation: true,
     bind: true,
+    checkFolder: true,
     verify: true,
     reviewExport: true,
     exportPackage: true,

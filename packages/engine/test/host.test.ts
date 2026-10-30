@@ -1,5 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseReportJson } from '@architect/harness';
 import {
   AdapterError,
@@ -104,11 +105,14 @@ describe('the engine host', () => {
 
     const devAttempt = detail.recentAttempts[0];
     expect((await client.runs.trace(devAttempt?.id ?? '')).taskId).toBe(devAttempt?.taskId);
-    const testAttempt = events.find(
-      (event) => event.type === 'attempt.finished' && event.attempt.split === 'test',
-    );
-    if (testAttempt?.type !== 'attempt.finished') throw new Error('No test attempt was streamed.');
-    await expect(client.runs.trace(testAttempt.attempt.id)).rejects.toThrow(
+    expect(
+      events.some((event) => event.type === 'attempt.finished' && event.attempt.split === 'test'),
+    ).toBe(false);
+    const store = openEngineStore(new DataPaths(world.dataDir).database);
+    const [testAttempt] = store.attempts.list({ runId: run.id, split: 'test' });
+    store.close();
+    if (testAttempt === undefined) throw new Error('No test attempt was recorded.');
+    await expect(client.runs.trace(testAttempt.id)).rejects.toThrow(
       'Locked-test traces are not kept',
     );
 
@@ -129,6 +133,27 @@ describe('the engine host', () => {
     expect(events.every((event) => RunEventSchema.safeParse(event).success)).toBe(true);
     const types = events.map((event) => event.type);
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
+  });
+
+  it("makes the tutor's sample job with its train academies, and seals the one it never sees", async () => {
+    world.deps.academyJobFile = fileURLToPath(
+      new URL('../../../examples/academy/job/job.json', import.meta.url),
+    );
+    const { client } = await connect();
+    const job = await client.jobs.createSample('academy');
+    expect(job.name).toBe('Phil');
+    expect(job.organizations?.map((org) => org.id)).toEqual([
+      'copperfield',
+      'thistlewood',
+      'bramble',
+    ]);
+    expect(await client.jobs.createSample('academy')).toEqual(job);
+    const jobDir = new DataPaths(world.dataDir).jobDir(job.id);
+    expect(await readdir(join(jobDir, 'orgs'))).toEqual(['bramble', 'copperfield', 'thistlewood']);
+    // The job the library keeps doesn't name the academy kept for the final test.
+    expect(await readFile(join(jobDir, 'job.json'), 'utf8')).not.toMatch(/juniper/i);
+    // The service desk is still the sample job when none is named.
+    expect((await client.jobs.createSample()).name).toBe('Service desk');
   });
 
   it('says on the report card that the final test of a drafted job was generated, and what drafting cost', async () => {
@@ -203,14 +228,13 @@ describe('the engine host', () => {
     expect(kept.length).toBeGreaterThanOrEqual(seen.length);
     expect(kept.slice(0, seen.length)).toEqual(seen);
     expect(kept.every((event) => event.runId === run.id)).toBe(true);
-    // A locked-test attempt's request text is never streamed, so it is never kept either.
-    const test = kept.filter(
-      (event) => event.type === 'attempt.finished' && event.attempt.split === 'test',
-    );
-    expect(test.length).toBeGreaterThan(0);
+    // A locked-test attempt is never streamed, so it is never kept either.
     expect(
-      test.every((event) => event.type === 'attempt.finished' && event.prompt === undefined),
-    ).toBe(true);
+      kept.some((event) => event.type === 'attempt.finished' && event.attempt.split === 'test'),
+    ).toBe(false);
+    expect(kept.some((event) => event.type === 'eval.progress' && event.split === 'test')).toBe(
+      true,
+    );
   });
 
   it('rejects malformed requests with a typed error instead of acting on them', async () => {

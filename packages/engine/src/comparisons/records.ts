@@ -12,9 +12,11 @@ import {
   ProjectionSchema,
   RuntimeIdentitySchema,
   StudentTargetSchema,
+  StudyRecordSchema,
   UsageSchema,
   type ComparisonReport,
   type PinnedInputs,
+  type StudyRecord,
 } from '@architect/shared';
 import { z } from 'zod';
 import { writeFileAtomic } from '../data/atomic-write';
@@ -178,6 +180,16 @@ export class ComparisonFiles {
       this.pinnedJob,
       `${JSON.stringify(PinnedInputsSchema.parse(pinned), null, 2)}\n`,
     );
+  }
+
+  /** Spark's brief of a field job's organizations, for the person to read and confirm. */
+  get study(): string {
+    return join(this.out, 'study.json');
+  }
+
+  writeStudy(record: StudyRecord): void {
+    mkdirSync(this.out, { recursive: true });
+    writeFileAtomic(this.study, `${JSON.stringify(StudyRecordSchema.parse(record), null, 2)}\n`);
   }
 
   staging(arm: string): string {

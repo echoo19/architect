@@ -97,6 +97,18 @@ describe('the words that put a rule in front of the person', () => {
     expect(trainingWait({ status: 'success', data: confirmed })).toBeNull();
   });
 
+  it("holds a field job's training back until its brief is confirmed, before any rule", () => {
+    const studied = (state: 'unstudied' | 'needed' | 'confirmed' | 'changed'): PlanQuery => ({
+      status: 'success',
+      data: { ...plan({ state: 'needed', token: 'abc' }), study: { state, token: 'def' } },
+    });
+    expect(trainingWait(studied('unstudied'))).toBe('study');
+    expect(trainingWait(studied('needed'))).toBe('study');
+    expect(trainingWait(studied('changed'))).toBe('study');
+    expect(trainingWait(studied('confirmed'))).toBe('confirm');
+    expect(waitLine('study')).toBe('Confirm the brief first');
+  });
+
   it('says in the footer why training waits', () => {
     expect(waitLine(null)).toBeNull();
     expect(waitLine('reading')).toBe('Checking the job');

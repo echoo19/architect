@@ -2,13 +2,21 @@ import { Fragment, type ReactNode } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { REPORTS } from './content';
 import {
+  FIELD_ARMS,
+  FIELD_MONEY,
+  FIELD_PAIRS,
+  FIELD_TEST_SIZE,
   FIRST,
+  GROUPS,
   MONEY,
   PER_TYPE,
   REPAIR,
+  ROUNDS_FIELD,
   ROUNDS_FIRST,
   ROUNDS_SECOND,
   SECOND,
+  SKILL_ROWS,
+  SKILLS,
   sourceUrl,
   SOURCES,
   TARGET_PASSES,
@@ -16,6 +24,8 @@ import {
   TYPES,
   type Arm,
   type Comparison,
+  type FieldPair,
+  type GroupKey,
   type Pair,
   type Round,
   type SourceKey,
@@ -48,6 +58,7 @@ const PAPERS: Partial<Record<RefKey, string>> = {
 };
 
 const REFERENCES: readonly { key: RefKey; what: string }[] = [
+  { key: 'phil', what: "The tutor run's report." },
   { key: 'plan', what: "The second comparison's plan, published before it ran." },
   { key: 'second', what: "The second comparison's report." },
   { key: 'first', what: "The first comparison's report." },
@@ -217,7 +228,7 @@ function Table({
   );
 }
 
-const armLabel = (arm: Arm) => (
+const armLabel = (arm: { name: string }) => (
   <span className="text-pretty">
     <Actors text={arm.name} />
   </span>
@@ -328,8 +339,9 @@ function RoundList({ rounds, label }: { rounds: readonly Round[]; label: string 
           <span className="flex flex-col gap-1">
             <span className="font-medium text-pretty">{round.change}</span>
             <span className="t-small tabular-nums">
-              Check tasks {round.before} to {round.after} of 45
-              {round.again && `, measured again ${round.again[0]} to ${round.again[1]} of 90`}
+              Check tasks {round.before} to {round.after} of {round.total ?? 45}
+              {round.again &&
+                `, measured again ${round.again[0]} to ${round.again[1]} of ${round.againTotal ?? 90}`}
               {round.why && `. ${round.why}.`}
             </span>
           </span>
@@ -344,7 +356,144 @@ function RoundList({ rounds, label }: { rounds: readonly Round[]; label: string 
   );
 }
 
+const groupName = (key: GroupKey | 'all') =>
+  key === 'all' ? 'All groups' : (GROUPS.find((group) => group.short === key)?.name ?? key);
+
+const pairName = (pair: FieldPair) => `${pair.label}, ${groupName(pair.group)}`;
+
+/** The pass rate of each arm in one group of organizations, with its 95% interval. */
+function FieldPassRates({ index }: { index: number }) {
+  const group = GROUPS[index];
+  if (group === undefined) throw new Error(`There is no group ${index}.`);
+  const rows: ForestRow[] = FIELD_ARMS.map((each) => {
+    const result = each.groups[index];
+    if (result === undefined) throw new Error(`${each.name} has no result for ${group.name}.`);
+    return {
+      label: armLabel(each),
+      value: (result.passed / group.n) * 100,
+      low: result.low,
+      high: result.high,
+      tone: each.tone,
+      figure: (
+        <span className="flex flex-col items-end">
+          <span className="font-display text-h2 font-semibold">
+            {result.passed}
+            <span className="t-body ml-1.5"> of {group.n}</span>
+          </span>
+          <span className="t-small">
+            {result.low.toFixed(1)}% to {result.high.toFixed(1)}%
+          </span>
+        </span>
+      ),
+      summary: `${group.name}, ${each.name}: ${result.passed} of ${group.n}, 95% interval ${result.low} to ${result.high} percent.`,
+    };
+  });
+  return (
+    <div className="flex flex-col gap-2">
+      <h4 className="m-0 font-display text-h2 font-semibold">{group.name}</h4>
+      <Forest
+        name={`Final-test pass rate by arm, ${group.name}`}
+        rows={rows}
+        min={0}
+        max={100}
+        ticks={[0, 25, 50, 75, 100]}
+        formatTick={(value) => `${value}%`}
+      />
+    </div>
+  );
+}
+
+/** Phil against each other arm, group by group: the difference in points with its interval. */
+function FieldPairForest() {
+  const shown = FIELD_PAIRS.filter((each) => each.label.startsWith('Phil') && each.group !== 'all');
+  const rows: ForestRow[] = shown.map((each) => ({
+    label: <span className="text-pretty">{pairName(each)}</span>,
+    value: each.diff,
+    low: each.low,
+    high: each.high,
+    tone: each.low > 0 ? 'student' : 'plain',
+    figure: <span className="font-display text-h2 font-semibold">{signed(each.diff)}</span>,
+    summary: `${pairName(each)}: ${signed(each.diff)} points, 95% interval ${signed(each.low)} to ${signed(each.high)}.`,
+  }));
+  return (
+    <Forest
+      name="Difference in final-test pass rate, in percentage points, Phil against the other setups"
+      rows={rows}
+      min={-40}
+      max={70}
+      ticks={[-40, -20, 0, 20, 40, 60]}
+      formatTick={(value) => `${value > 0 ? '+' : ''}${value}`}
+      zero="No difference"
+    />
+  );
+}
+
+/** Every pairing, task by task, with the difference and its interval. */
+function FieldPairTable() {
+  return (
+    <Table
+      label="Task by task, the field run"
+      left={[0, 1]}
+      columns={['', 'Group', 'Won', 'Lost', 'Both passed', 'Neither', 'Difference, 95% interval']}
+      rows={FIELD_PAIRS.map((each) => [
+        each.label,
+        `${groupName(each.group)} (${each.n})`,
+        each.wins,
+        each.losses,
+        each.both,
+        each.neither,
+        `${signed(each.diff)}, ${interval(each)}`,
+      ])}
+    />
+  );
+}
+
+/** Passes by skill and organization, for each setup. */
+function SkillTable() {
+  return (
+    <Table
+      label="Passes by skill and organization, the field run"
+      left={[0, 1]}
+      columns={['Skill', 'Group', 'Blank setup', 'One-shot setup', 'Phil']}
+      rows={SKILLS.flatMap((skill) =>
+        SKILL_ROWS.filter((row) => row.skill === skill).map((row) => [
+          skill,
+          groupName(row.group),
+          `${row.bare} of ${row.of}`,
+          `${row.draft} of ${row.of}`,
+          `${row.phil} of ${row.of}`,
+        ]),
+      )}
+    />
+  );
+}
+
 const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
+  {
+    title: 'Hosted Glimmer, one seed, for the tutor.',
+    text: 'Every figure in section 1 is from hosted Glimmer at full precision under seed 101. The build set to run on your computer was not measured. A second seed was declared and not run.',
+    from: 'phil',
+  },
+  {
+    title: 'A small real sample.',
+    text: 'The Real academy gave 24 tasks, 8 for each of 3 skills, from one snapshot of 16 students. The tasks share students and files, so they are not independent. Its records have no question text, so hint, solve and the tutoring turn were not tested there. No gain is shown on it.',
+    from: 'phil',
+  },
+  {
+    title: 'A policy written for the test.',
+    text: "The Real academy's policy was drafted for this test and awaits the academy's confirmation. Its follow-up and history numbers came from the generated academies, so transfer to it is weaker evidence than Harborview's, which uses numbers no taught academy has.",
+    from: 'phil',
+  },
+  {
+    title: 'Settings differ by arm.',
+    text: 'The blank setup ran at temperature 1 with a 16-turn limit and low reasoning. The one-shot setup and Phil ran at temperature 0 with 30 turns and medium reasoning. Each row compares a whole configuration.',
+    from: 'phil',
+  },
+  {
+    title: 'A scripted study and a patched runner.',
+    text: 'A script confirmed the study brief, not a person. The comparisons runner was a patched copy outside the repository.',
+    from: 'phil',
+  },
   {
     title: 'Two desks of one kind.',
     text: 'Both are returns desks, made by the same generator for a made-up shop. They test one kind of job, not other businesses.',
@@ -374,12 +523,18 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
 
 /** The headline figures under the abstract. */
 const HEADLINE: readonly { figure: string; text: string }[] = [
-  { figure: '44 to 58', text: 'of 60 requests Glimmer had never seen, on a new returns desk.' },
   {
-    figure: '+23.3 points',
-    text: 'against Glimmer on its own, with a 95% interval of +10.9 to +35.9.',
+    figure: '24 to 43',
+    text: 'of 48 tasks on a generated academy that Phil, the tutor, had never seen. Difference +39.6 points, 95% interval +22.9 to +53.7.',
   },
-  { figure: '42 cents', text: "of Spark's money paid for the teaching." },
+  {
+    figure: '9 to 12',
+    text: 'of 24 tasks on a real academy, anonymized. Difference +12.5 points, 95% interval -17.9 to +40.2: no gain shown.',
+  },
+  {
+    figure: '44 to 58',
+    text: 'of 60 requests on a new returns desk, the earlier one-job result, for 42 cents of Spark.',
+  },
 ];
 
 const TAUGHT = "Glimmer after Spark's teaching";
@@ -418,7 +573,7 @@ export function ResultsPage() {
           <h2 className="m-0 mt-10 font-display text-h2 font-semibold">Abstract</h2>
           <p className="t-read mt-3">
             <Actors
-              text={`A large model, Spark, taught a small one, Glimmer, a returns desk's job by changing its instructions and small tools, and kept a change only if it raised the score on check tasks Spark never sees. On a sealed final test of ${TEST_SIZE} requests Glimmer had never seen, the taught Glimmer passed ${second.taught.passed}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with a one-shot setup from Spark. The teaching cost 42 cents. On an earlier desk, where teaching was held to two rounds, the gain was not distinguishable from zero. Both desks are made up, each final test ran under one seed, and Glimmer was served online.`}
+              text={`Architect turns an organization's own material into a specialist that runs on its own computer. A large model, Spark, studies the material and teaches a small one, Glimmer, by changing its instructions and small tools. A change is kept only if it raises the score on check tasks Spark never sees. In the run on test-prep academies, Spark taught Glimmer to be Phil, a tutor that answers after a student's wrong answer, on three generated academies. A sealed test of ${FIELD_TEST_SIZE} tasks then included a fourth generated academy and a real one that neither model had seen. On the fourth, Phil passed 43 of 48 tasks and Glimmer on a blank setup 24. On the real academy, Phil passed 12 of 24 and the blank setup 9, a difference whose interval includes zero, so no gain is shown there. In an earlier run on one job, a returns desk, teaching took Glimmer from ${second.alone.passed} to ${second.taught.passed} of ${TEST_SIZE} requests for 42 cents of Spark. Every figure is from Glimmer served online under one seed.`}
             />
           </p>
           <ul className="m-0 mt-8 grid list-none gap-x-8 gap-y-5 border-y border-line p-0 py-6 sm:grid-cols-3">
@@ -433,9 +588,120 @@ export function ResultsPage() {
           </ul>
         </section>
 
-        <Section id="setup" number={1} title="Setup">
+        <Section id="field" number={1} title="A tutor for test-prep academies">
+          <Subsection number="1.1" title="The run" />
           <Text>
-            <Actors text="Glimmer, a small open-weight model, took the same final test three ways: on its own, with a one-shot setup written by Spark, and after Spark watched it fail and taught it" />
+            <Actors text="Phil is Glimmer with the instructions and small tools Spark built for it. A student has just missed a practice question, and someone asks Phil what to do. Phil answers from the academy's own files: its topic labels, question bank, practice tests, student answers, hints, videos and tutoring policy. A program checks facts and file changes, never wording" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Text>
+            <Actors text="Spark studied the files of three generated academies, which differ in topic labels, id formats, question wording and policy numbers. Glimmer practiced on them, and Spark changed its setup over three rounds. Then everything was frozen and a sealed test of 120 tasks was opened once. It has three groups: held-out tasks from the three academies Phil was taught on (48), a fourth generated academy, Harborview Prep, that neither model had seen (48), and a real tutoring academy, anonymized, that neither had seen (24). Harborview's policy uses numbers no taught academy has" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Text>
+            <Actors text="The real academy's records give topic labels, right and chosen answers and history, but no question text. Only three skills could be checked there: diagnose (the topic and the right answer), history and assign. Its records are not published" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Text>
+            <Actors text="Three setups took the same test: Glimmer on a blank setup, Spark's one-shot setup, written once from the study and kept without a check, and Phil, which starts from that setup and gets up to three rounds of teaching" />
+            <Cite to={['phil']} />.
+          </Text>
+
+          <Subsection number="1.2" title="Final-test results" />
+          <Text>
+            <Actors
+              text={`Across all ${FIELD_TEST_SIZE} tasks Phil passed ${FIELD_ARMS[2]?.all.passed}, the blank setup ${FIELD_ARMS[0]?.all.passed} and the one-shot setup ${FIELD_ARMS[1]?.all.passed} (Figure 1, Table 1).`}
+            />
+          </Text>
+          <Exhibit
+            label="Figure 1"
+            caption="Final-test passes by setup in each group of organizations, with 95% intervals."
+          >
+            <div className="flex flex-col gap-8">
+              {GROUPS.map((group, index) => (
+                <FieldPassRates key={group.short} index={index} />
+              ))}
+            </div>
+          </Exhibit>
+          <Text>
+            <Actors text="On Harborview Prep, which Phil never saw, it passed 43 of 48 and the blank setup 24. Matched task by task, Phil won 20 tasks the blank setup failed and lost 1, a difference of +39.6 points with a 95% interval of +22.9 to +53.7. A gain is shown on that one generated academy. The wins came from assign (7), the tutoring turn (6), hint (3) and history (3). Solve was 8 of 8 for every setup" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Text>
+            <Actors text="On the real academy, Phil passed 12 of 24 and the blank setup 9. The difference is +12.5 points with an interval from -17.9 to +40.2, so no gain is shown (Figure 2, Table 2). By skill, assign went from 0 of 8 to 7 of 8, history fell from 5 to 3 and diagnose from 4 to 2. Eight tasks of a skill, from 16 students, are too few to call any of these a difference in either direction" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Text>
+            <Actors text="The one-shot setup showed no gain over the blank setup in any group. Its intervals all include zero" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Exhibit
+            table
+            label="Table 1"
+            caption="Passes by skill and organization, out of the tasks in each cell. The Real academy had no tasks for solve, hint and the tutoring turn."
+          >
+            <SkillTable />
+          </Exhibit>
+          <Exhibit
+            label="Figure 2"
+            caption="Differences in final-test pass rate for Phil, matched task by task, in percentage points with 95% intervals."
+          >
+            <FieldPairForest />
+          </Exhibit>
+          <Exhibit
+            table
+            label="Table 2"
+            caption="Tasks the first setup passed and the second failed (won), the reverse (lost), and where they agreed. The two comparisons that were planned as primary are Phil against a blank setup on Harborview Prep and on the Real academy."
+          >
+            <FieldPairTable />
+          </Exhibit>
+
+          <Subsection number="1.3" title="The three rounds" />
+          <Text>
+            <Actors
+              text={`Teaching took about 15 minutes and 31 cents of Spark. Two changes were kept and one was reverted (Table 3). The whole run cost Spark about ${dollars(FIELD_MONEY.spark)}, including about 8 cents of estimates, and the hosted Glimmer ${dollars(FIELD_MONEY.glimmer)}`}
+            />
+            <Cite to={['phil']} />.
+          </Text>
+          <Exhibit
+            table
+            label="Table 3"
+            caption="Each round of teaching for Phil: the change, check tasks before and after, the same change measured again on new seeds, and the result."
+          >
+            <RoundList rounds={ROUNDS_FIELD} label="Rounds of teaching for Phil" />
+          </Exhibit>
+
+          <Subsection number="1.4" title="Where Phil missed on the real academy" />
+          <Text>
+            <Actors text="The stored records keep pass or fail and the checker's reason, not Phil's replies. So these causes come from replaying Phil's own tools against the real academy's files, with no model, after the test was retired" />
+            <Cite to={['phil']} />.
+          </Text>
+          <Text>
+            <span className="font-semibold">Diagnose.</span> Six of eight tasks ended at the step
+            limit. The question lookup tool finds a test by its section. In 11 of the 19 practice
+            tests the records list the section as Full, so the tool answered that it could not find
+            the position for seven of the eight requests. Glimmer on a blank setup, which has no
+            rule against reading the files whole, passed all four Reading and Writing tasks. Phil
+            passed two.
+          </Text>
+          <Text>
+            <span className="font-semibold">History.</span> One task failed because the helper
+            counts an answer right only when the picked text equals the key, and the academy marks
+            11 answers right that were written another way. Three failed on the date: the agent was
+            told it was Nov 16, and the real academy's requests said Oct 30. The date cause fits the
+            records and is not confirmed by them.
+          </Text>
+
+          <Subsection number="1.5" title="Direction" />
+          <Text>
+            <Actors text="The larger idea is that the same loop, run over many organizations of one field, would give verified curricula and checkable rewards, which models built for a field need. This run does not show that. It covers one field, three taught academies, one unseen generated academy and one real academy with 24 tasks" />
+            <Cite to={['phil']} />.
+          </Text>
+        </Section>
+
+        <Section id="setup" number={2} title="Setup">
+          <Text>
+            <Actors text="The earlier returns desk runs used one job and no organizations. Glimmer, a small open-weight model, took the same final test three ways: on its own, with a one-shot setup written by Spark, and after Spark watched it fail and taught it" />
             <Cite to={['plan']} />.
           </Text>
           <Text>
@@ -453,97 +719,97 @@ export function ResultsPage() {
             runs offline.
           </Text>
           <Text>
-            <Actors text="Teaching runs in rounds (Figure 1). Spark reads Glimmer's failed practice attempts and makes one change to its instructions or small tools. The change is kept only if check-task passes rise by at least 2 a run, measured again on new seeds over 2 runs, and no kind of task loses more than 1. Spark sees the check-task score, never the tasks" />
+            <Actors text="Teaching runs in rounds (Figure 3). Spark reads Glimmer's failed practice attempts and makes one change to its instructions or small tools. The change is kept only if check-task passes rise by at least 2 a run, measured again on new seeds over 2 runs, and no kind of task loses more than 1. Spark sees the check-task score, never the tasks" />
             <Cite to={['plan', 'second']} />.
           </Text>
           <Exhibit
-            label="Figure 1"
+            label="Figure 3"
             caption="The job's tasks, cut once into four sets, and the five steps of a round of teaching. The final test stays sealed until every setup is frozen."
           >
             <RoundDiagram />
           </Exhibit>
         </Section>
 
-        <Section id="results" number={2} title="Final-test results">
-          <Subsection number="2.1" title="A new returns desk" />
+        <Section id="results" number={3} title="Final-test results">
+          <Subsection number="3.1" title="A new returns desk" />
           <Text>
             <Actors
-              text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 2, Table 1)`}
+              text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 4, Table 4)`}
             />
             <Cite to={['second']} />.
           </Text>
           <Exhibit
-            label="Figure 2"
+            label="Figure 4"
             caption="Final-test passes by arm on the new returns desk, with 95% intervals. The dashed line is the job's target."
           >
             <PassRates comparison={SECOND} />
           </Exhibit>
-          <Exhibit table label="Table 1" caption="Passes by kind of request, of 20 each.">
+          <Exhibit table label="Table 4" caption="Passes by kind of request, of 20 each.">
             <ArmTable comparison={SECOND} />
           </Exhibit>
           <Text>
             <Actors
-              text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 3, Table 2).`}
+              text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 5, Table 5).`}
             />
           </Text>
           <Exhibit
-            label="Figure 3"
+            label="Figure 5"
             caption="Differences in final-test pass rate between arms, matched request by request, in percentage points with 95% intervals."
           >
             <PairForest comparison={SECOND} />
           </Exhibit>
           <Exhibit
             table
-            label="Table 2"
+            label="Table 5"
             caption="Requests each arm passed and the other failed (won), the reverse (lost), and where they agreed."
           >
             <PairTable comparison={SECOND} />
           </Exhibit>
 
-          <Subsection number="2.2" title="The first returns desk" />
+          <Subsection number="3.2" title="The first returns desk" />
           <Text>
             <Actors
-              text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 4, Table 3)`}
+              text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 6, Table 6)`}
             />
             <Cite to={['first']} />.
           </Text>
           <Exhibit
-            label="Figure 4"
+            label="Figure 6"
             caption="Final-test passes by arm on the first returns desk, with 95% intervals, and Spark answering the requests itself as a fourth arm."
           >
             <PassRates comparison={FIRST} />
           </Exhibit>
-          <Exhibit table label="Table 3" caption="Passes by kind of request, of 20 each.">
+          <Exhibit table label="Table 6" caption="Passes by kind of request, of 20 each.">
             <ArmTable comparison={FIRST} />
           </Exhibit>
           <Text>
             <Actors
-              text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 5, Table 4). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
+              text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 7, Table 7). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
             />
             <Cite to={['plan']} />.
           </Text>
           <Exhibit
-            label="Figure 5"
+            label="Figure 7"
             caption="Differences in final-test pass rate between arms on the first returns desk, in percentage points with 95% intervals."
           >
             <PairForest comparison={FIRST} />
           </Exhibit>
           <Exhibit
             table
-            label="Table 4"
-            caption="Requests won and lost in each pairing, as in Table 2."
+            label="Table 7"
+            caption="Requests won and lost in each pairing, as in Table 5."
           >
             <PairTable comparison={FIRST} />
           </Exhibit>
         </Section>
 
-        <Section id="rounds" number={3} title="Teaching, round by round">
+        <Section id="rounds" number={4} title="Teaching, round by round">
           <Text>
-            <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 6, Table 5)" />
+            <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 8, Table 8)" />
             <Cite to={['second']} />.
           </Text>
           <Exhibit
-            label="Figure 6"
+            label="Figure 8"
             caption="Check tasks passed on the new returns desk after each round. Hollow points are changes that were measured and reverted; the line follows what was kept."
           >
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -556,20 +822,20 @@ export function ResultsPage() {
           </Exhibit>
           <Exhibit
             table
-            label="Table 5"
+            label="Table 8"
             caption="Each round on the new returns desk: the change, check tasks before and after, the same change measured again on new seeds, and the result."
           >
             <RoundList rounds={ROUNDS_SECOND} label="Rounds of teaching on the new returns desk" />
           </Exhibit>
           <Text>
             On the first returns desk, teaching was held to 2 rounds after the draft and stopped
-            there, with the cap reached. One change was kept (Table 6)
+            there, with the cap reached. One change was kept (Table 9)
             <Cite to={['first']} />.
           </Text>
           <Exhibit
             table
-            label="Table 6"
-            caption="Each round on the first returns desk, as in Table 5."
+            label="Table 9"
+            caption="Each round on the first returns desk, as in Table 8."
           >
             <RoundList rounds={ROUNDS_FIRST} label="Rounds of teaching on the first returns desk" />
           </Exhibit>
@@ -581,15 +847,15 @@ export function ResultsPage() {
           </Text>
         </Section>
 
-        <Section id="time" number={4} title="Speed and cost">
+        <Section id="time" number={5} title="Speed and cost">
           <Text>
             <Actors
-              text={`After teaching, Glimmer's median answer took ${second.taught.p50} s, and its slowest 5% finished within ${second.taught.p95} s. On its own, its median answer took ${second.alone.p50} s (Figure 7)`}
+              text={`After teaching, Glimmer's median answer took ${second.taught.p50} s, and its slowest 5% finished within ${second.taught.p95} s. On its own, its median answer took ${second.alone.p50} s (Figure 9)`}
             />
             <Cite to={['second']} />.
           </Text>
           <Exhibit
-            label="Figure 7"
+            label="Figure 9"
             caption="Time to answer on the new returns desk. The dot is the median answer; the line runs to the slowest 5%."
           >
             <Forest
@@ -620,10 +886,10 @@ export function ResultsPage() {
           <Text>
             Teaching cost 42 cents of Spark: 34 for the rounds and 8 for its first setup. The whole
             run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
-            {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 7)
+            {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 10)
             <Cite to={['second', 'readme']} />.
           </Text>
-          <Exhibit table label="Table 7" caption="What each arm cost on the new returns desk.">
+          <Exhibit table label="Table 10" caption="What each arm cost on the new returns desk.">
             <Table
               fit
               label="What each arm cost on the new returns desk"
@@ -637,9 +903,9 @@ export function ResultsPage() {
           </Exhibit>
         </Section>
 
-        <Section id="limits" number={5} title="Limitations">
+        <Section id="limits" number={6} title="Limitations">
           <Text>
-            <Actors text="Two made-up businesses, one seed, and a build of Glimmer that is not the one on your computer." />
+            <Actors text="Glimmer served online and one seed throughout, a small real sample, and made-up businesses elsewhere." />
           </Text>
           {LIMITS.map((limit) => (
             <Text key={limit.title}>

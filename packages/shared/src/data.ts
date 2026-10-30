@@ -5,6 +5,8 @@ export const DataFileSchema = z.object({
   name: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._ -]{0,119}$/),
   kind: z.enum(['table', 'text']),
   access: z.enum(['read', 'write']),
+  /** A file some organizations' records lack; a folder without it still fits. */
+  optional: z.boolean().optional(),
   description: z.string().optional(),
 });
 export type DataFile = z.infer<typeof DataFileSchema>;

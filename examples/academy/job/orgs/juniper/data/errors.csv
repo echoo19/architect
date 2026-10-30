@@ -1,0 +1,44 @@
+error_id,topic,name
+ERR-101,Rule 5A - Two-equation Systems,Solved for the other variable
+ERR-102,Rule 3B - Percent Change,Took the percent off as dollars
+ERR-103,Rule 1B - Parallel Comparisons,Did not match one thing or many
+ERR-104,Rule 1A - Function Notation,Added before multiplying
+ERR-105,Rule 4A - Perimeter and Area of Rectangles,Used the perimeter as a side
+ERR-106,Rule 5A - Two-equation Systems,Forgot to halve after adding
+ERR-107,Rule 1A - Function Notation,Added the input instead of multiplying
+ERR-108,Rule 4B - Verb Tense,Used the present perfect with a finished time
+ERR-109,Rule 6A - Part-to-part Ratios,Divided the total by one number of the ratio
+ERR-110,Rule 1B - Parallel Comparisons,Compared a thing with a place
+ERR-111,Rule 2B - Sentence Boundaries,Ran two sentences together with no punctuation
+ERR-112,Rule 5A - Two-equation Systems,Took the sum as the value of x
+ERR-113,Rule 4B - Verb Tense,Used the future for a past event
+ERR-114,Rule 2A - Transitions,Chose a cause-and-effect transition
+ERR-115,Rule 3A - One-variable Equations,Subtracted the coefficient instead of dividing
+ERR-116,Rule 2B - Sentence Boundaries,Used a semicolon and a conjunction together
+ERR-117,Rule 2B - Sentence Boundaries,Joined two sentences with only a comma
+ERR-118,Rule 3B - Percent Change,"Gave the discount, not the price"
+ERR-119,Rule 6A - Part-to-part Ratios,Found the other group
+ERR-120,Rule 5B - Pronoun Agreement,Used a pronoun for a person to stand for a thing
+ERR-121,Rule 6A - Part-to-part Ratios,Stopped at one share
+ERR-122,Rule 3A - One-variable Equations,Divided only the first term
+ERR-123,Rule 4A - Perimeter and Area of Rectangles,Stopped at the width
+ERR-124,Rule 5B - Pronoun Agreement,Used a contraction where a possessive belongs
+ERR-125,Rule 6B - Subject-Verb Agreement,Made the verb agree with the nearer noun
+ERR-126,Rule 1A - Function Notation,Left out the constant
+ERR-127,Rule 2A - Transitions,Chose an example transition
+ERR-128,Rule 6A - Part-to-part Ratios,Multiplied the total by the ratio
+ERR-129,Rule 4A - Perimeter and Area of Rectangles,Added the sides instead of multiplying
+ERR-130,Rule 6B - Subject-Verb Agreement,Shifted the tense
+ERR-131,Rule 5A - Two-equation Systems,Subtracted the equations and stopped
+ERR-132,Rule 6B - Subject-Verb Agreement,Left the sentence without a main verb
+ERR-133,Rule 2A - Transitions,Chose an adding-on transition
+ERR-134,Rule 3B - Percent Change,Took the discount off twice
+ERR-135,Rule 5B - Pronoun Agreement,Used a plural pronoun for a singular group
+ERR-136,Rule 4B - Verb Tense,Used the present for a past event
+ERR-137,Rule 4A - Perimeter and Area of Rectangles,Forgot to halve the perimeter
+ERR-138,Rule 3B - Percent Change,Added the discount instead of subtracting it
+ERR-139,Rule 1A - Function Notation,Swapped the slope and the constant
+ERR-140,Rule 3A - One-variable Equations,Moved the constant with the wrong sign
+ERR-141,Rule 2A - Transitions,Chose a contrast transition
+ERR-142,Rule 1B - Parallel Comparisons,Doubled the possessive
+ERR-143,Rule 3A - One-variable Equations,Stopped before dividing by the coefficient

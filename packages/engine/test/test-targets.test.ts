@@ -487,7 +487,7 @@ describe('re-testing a frozen graduate', () => {
     const events = engine.events.slice(from);
     const done = events.findIndex((e) => e.type === 'graduate.ready' && e.runId === busy.id);
     const retested = events.findIndex(
-      (e) => e.type === 'attempt.started' && e.runId === first.run.id && e.split === 'test',
+      (e) => e.type === 'eval.progress' && e.runId === first.run.id && e.split === 'test',
     );
     expect(done).toBeGreaterThanOrEqual(0);
     expect(retested).toBeGreaterThan(done);

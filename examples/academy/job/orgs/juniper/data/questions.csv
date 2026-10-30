@@ -1,0 +1,253 @@
+question_id,section,topic,difficulty_pct,stem,choice_a,choice_b,choice_c,choice_d,correct
+M102,Math,Rule 6A - Part-to-part Ratios,17,"A collection has red marbles and blue marbles in the ratio 5:3, 104 items in total. How many blue marbles are there?",65,13,312,39,D
+M103,Math,Rule 3B - Percent Change,69,"The regular price of a lamp is $280. During a sale the price is reduced by 30%. What is the sale price of the lamp, in dollars?",196,250,84,112,A
+M105,Math,Rule 5A - Two-equation Systems,70,"In the system x + y = 14 and x - y = 6, what is the value of x?",10,20,4,8,A
+M106,Math,Rule 3B - Percent Change,91,"The regular price of a backpack is $180. During a sale the price is reduced by 40%. What is the sale price of the backpack, in dollars?",108,140,36,252,A
+M109,Math,Rule 3A - One-variable Equations,78,Solve 3x + 3 = 12 for x.,1,9,3,6,C
+M110,Math,Rule 1A - Function Notation,35,The function f is defined by f(x) = 4x + 10. What is f(4)?,16,26,56,44,B
+M111,Math,Rule 3B - Percent Change,32,"The regular price of a backpack is $140. During a sale the price is reduced by 20%. What is the sale price of the backpack, in dollars?",120,168,84,112,D
+M114,Math,RULE 6A - PART-TO-PART RATIOS,73,"A collection has red marbles and blue marbles in the ratio 5:2, 77 items in total. How many blue marbles are there?",11,55,154,22,D
+M117,Math,Rule 3B - Percent Change,65,"The regular price of a lamp is $360. During a sale the price is reduced by 40%. What is the sale price of the lamp, in dollars?",72,216,320,144,B
+M120,Math,Rule 6A - Part-to-part Ratios,28,"A collection has cats and dogs in the ratio 7:5, 168 items in total. How many dogs are there?",14,98,840,70,D
+M124,Math,Rule 1A Function Notation,38,The function f is defined by f(x) = 8x + 7. What is f(5)?,47,20,40,43,A
+M125,Math,Rule 3B - Percent Change,23,"The regular price of a jacket is $300. During a sale the price is reduced by 35%. What is the sale price of the jacket, in dollars?",195,405,105,90,A
+M126,Math,Rule 1A - Function Notation,81,The function f is defined by f(x) = 6x + 8. What is f(2)?,12,22,16,20,D
+M128,Math,Rule 3A - One-variable Equations,40,Solve 4x + 16 = 24 for x.,8,10,4,2,D
+M129,Math,Rule 1A - Function Notation,52,The function f is defined by f(x) = 7x + 5. What is f(8)?,20,61,91,47,B
+M130,Math,Rule 3B - Percent Change,41,"The regular price of a jacket is $220. During a sale the price is reduced by 25%. What is the sale price of the jacket, in dollars?",275,55,165,110,C
+M132,Math,Rule 4A - Perimeter and Area of Rectangles,74,"The perimeter of a rectangular garden is 18 meters and its length is 7 meters. What is its area, in square meters?",14,77,126,9,A
+M133,Math,Rule 3B-Percent Change,68,"The regular price of a backpack is $220. During a sale the price is reduced by 30%. What is the sale price of the backpack, in dollars?",66,286,88,154,D
+M134,Math,Rule 1A - Function Notation,58,The function f is defined by f(x) = 5x + 6. What is f(6)?,36,30,17,60,A
+M135,Math,Rule 5A - Two-equation Systems,21,"In the system x + y = 28 and x - y = 6, what is the value of x?",22,17,11,28,B
+M140,Math,Rule 4A Perimeter and Area of Rectangles,56,"The perimeter of a rectangular garden is 38 meters and its length is 15 meters. What is its area, in square meters?",60,570,19,345,A
+M150,Math,Rule 1A - Function Notation,34,The function f is defined by f(x) = 3x + 8. What is f(7)?,59,45,29,21,C
+M151,Math,Rule 3A - One-variable Equations,39,Solve 5x + 7 = 21 for x.,,,,,14/5
+M152,Math,Rule 5A - Two-equation Systems,40,"In the system x + y = 24 and x - y = 16, what is the value of x?",40,4,24,20,D
+M155,Math,Rule 3A - One-variable Equations,58,Solve 5x + 25 = 95 for x.,70,24,14,65,C
+M158,Math,Rule 3B: Percent Change,58,"The regular price of a bike is $100. During a sale the price is reduced by 35%. What is the sale price of the bike, in dollars?",30,135,35,65,D
+M159,Math,Rule 3A - One-variable Equations,63,Solve 8x + 48 = 120 for x.,72,21,64,9,D
+M162,Math,Rule 1A: Function Notation,38,The function f is defined by f(x) = 3x + 4. What is f(7)?,25,33,31,14,A
+M163,Math,Rule 3A - One-variable Equations,25,Solve 5x + 30 = 75 for x.,40,21,45,9,D
+M164,Math,Rule 4A - Perimeter and Area of Rectangles,66,"The perimeter of a rectangular garden is 14 meters and its length is 4 meters. What is its area, in square meters?",12,3,56,7,A
+M166,Math,Rule 3B - Percent Change,70,"The regular price of a backpack is $260. During a sale the price is reduced by 25%. What is the sale price of the backpack, in dollars?",65,195,235,130,B
+M167,Math,rule 1a - function notation,86,The function f is defined by f(x) = 9x + 5. What is f(8)?,72,77,22,49,B
+M168,Math,Rule 6A - Part-to-part Ratios,85,"A collection has red marbles and blue marbles in the ratio 2:4, 42 items in total. How many blue marbles are there?",28,14,168,7,A
+M172,Math,Rule 1A - Function Notation,25,The function f is defined by f(x) = 9x + 8. What is f(2)?,18,90,19,26,D
+M173,Math,rule 4a - perimeter and area of rectangles,15,"The perimeter of a rectangular garden is 48 meters and its length is 14 meters. What is its area, in square meters?",672,476,140,10,C
+M174,Math,Rule 6A - Part-to-part Ratios,81,"A collection has red marbles and blue marbles in the ratio 7:5, 156 items in total. How many blue marbles are there?",65,13,91,780,A
+M175,Math,Rule 3B - Percent Change,41,"The regular price of a jacket is $140. During a sale the price is reduced by 15%. What is the sale price of the jacket, in dollars?",21,125,161,119,D
+M176,Math,Rule 5A - Two-equation Systems,68,"In the system x + y = 22 and x - y = 18, what is the value of x?",20,4,22,40,A
+M177,Math,Rule 3A - One-variable Equations,61,Solve 10x + 6 = 14 for x.,,,,,4/5
+M180,Math,Rule 6A - Part-to-part Ratios,16,"A collection has cats and dogs in the ratio 3:5, 56 items in total. How many dogs are there?",7,21,35,280,C
+M182,Math,Rule 3A - One-variable Equations,52,Solve 8x + 40 = 96 for x.,17,56,48,7,D
+M185,Math,rule 3b - percent change,73,"The regular price of a backpack is $200. During a sale the price is reduced by 30%. What is the sale price of the backpack, in dollars?",60,80,140,260,C
+M186,Math,Rule 4A - Perimeter and Area of Rectangles,70,"The perimeter of a rectangular garden is 34 meters and its length is 11 meters. What is its area, in square meters?",374,17,66,253,C
+M187,Math,Rule 6A - Part-to-part Ratios,27,"A collection has fiction books and nonfiction books in the ratio 4:3, 84 items in total. How many nonfiction books are there?",252,28,12,36,D
+M188,Math,Rule 4A - Perimeter and Area of Rectangles,55,"The perimeter of a rectangular garden is 20 meters and its length is 6 meters. What is its area, in square meters?",120,24,84,10,B
+M189,Math,Rule 4A - Perimeter and Area of Rectangles,73,"The perimeter of a rectangular garden is 38 meters and its length is 10 meters. What is its area, in square meters?",280,90,19,380,B
+M190,Math,Rule 4A - Perimeter and Area of Rectangles,81,"The perimeter of a rectangular garden is 22 meters and its length is 9 meters. What is its area, in square meters?",2,11,18,198,C
+M194,Math,Rule 1A - Function Notation,21,The function f is defined by f(x) = 4x + 4. What is f(7)?,15,32,44,28,B
+M197,Math,Rule 5A - Two-equation Systems,50,"In the system x + y = 17 and x - y = 9, what is the value of x?",26,13,8,17,B
+M199,Math,Rule 3B - Percent Change,26,"The regular price of a backpack is $40. During a sale the price is reduced by 40%. What is the sale price of the backpack, in dollars?",24,16,8,56,A
+M201,Math,Rule 1A - Function Notation,84,The function f is defined by f(x) = 2x + 2. What is f(9)?,18,20,22,13,B
+M203,Math,Rule 5A: Two-equation Systems,91,"In the system x + y = 15 and x - y = 1, what is the value of x?",14,16,8,15,C
+M207,Math,Rule 4A - Perimeter and Area of Rectangles,43,"The perimeter of a rectangular garden is 38 meters and its length is 17 meters. What is its area, in square meters?",34,357,646,2,A
+M209,Math,Rule 3A One-variable Equations,68,Solve 6x + 12 = 48 for x.,30,10,6,36,C
+M214,Math,Rule 6A: Part-to-part Ratios,83,"A collection has juniors and seniors in the ratio 2:6, 64 items in total. How many seniors are there?",48,8,16,384,A
+M215,Math,Rule 6A - Part-to-part Ratios,58,"A collection has red marbles and blue marbles in the ratio 3:7, 40 items in total. How many blue marbles are there?",280,12,28,4,C
+M216,Math,Rule 3A - One-variable Equations,91,Solve 4x + 24 = 76 for x.,48,52,25,13,D
+M219,Math,Rule 3B - Percent Change,40,"The regular price of a lamp is $300. During a sale the price is reduced by 35%. What is the sale price of the lamp, in dollars?",265,90,405,195,D
+M223,Math,Rule 5A - Two-equation Systems,92,"In the system x + y = 30 and x - y = 2, what is the value of x?",14,16,32,30,B
+M226,Math,Rule 4A - Perimeter and Area of Rectangles,51,"The perimeter of a rectangular garden is 22 meters and its length is 6 meters. What is its area, in square meters?",96,11,5,30,D
+M230,Math,Rule 6A - Part-to-part Ratios,48,"A collection has cats and dogs in the ratio 4:6, 70 items in total. How many dogs are there?",28,42,420,7,B
+M231,Math,Rule 1A - Function Notation,52,The function f is defined by f(x) = 8x + 4. What is f(2)?,48,16,20,14,C
+M232,Math,rule 4a - perimeter and area of rectangles,45,"The perimeter of a rectangular garden is 24 meters and its length is 7 meters. What is its area, in square meters?",12,119,35,5,C
+M233,Math,Rule 3B - Percent Change,79,"The regular price of a lamp is $160. During a sale the price is reduced by 25%. What is the sale price of the lamp, in dollars?",200,80,135,120,D
+M236,Math,Rule 6A - Part-to-part Ratios,20,"A collection has juniors and seniors in the ratio 3:2, 15 items in total. How many seniors are there?",3,30,9,6,D
+M237,Math,Rule 4A - Perimeter and Area of Rectangles,19,"The perimeter of a rectangular garden is 40 meters and its length is 16 meters. What is its area, in square meters?",64,4,384,20,A
+M239,Math,Rule 6A-Part-to-part Ratios,92,"A collection has juniors and seniors in the ratio 6:4, 130 items in total. How many seniors are there?",78,52,520,13,B
+M245,Math,Rule 1A - Function Notation,83,The function f is defined by f(x) = 2x + 10. What is f(9)?,38,21,28,92,C
+M248,Math,Rule 6A - Part-to-part Ratios,29,"A collection has juniors and seniors in the ratio 3:7, 150 items in total. How many seniors are there?",15,45,1050,105,D
+M249,Math,Rule 3A - One-variable Equations,45,Solve 4x + 12 = 36 for x.,20,12,6,24,C
+M250,Math,Rule 3B - Percent Change,78,"The regular price of a bike is $260. During a sale the price is reduced by 20%. What is the sale price of the bike, in dollars?",156,52,208,312,C
+M251,Math,Rule 4A - Perimeter and Area of Rectangles,20,"The perimeter of a rectangular garden is 60 meters and its length is 18 meters. What is its area, in square meters?",756,30,12,216,D
+M253,Math,Rule 3A - One-variable Equations,26,Solve 4x + 6 = 16 for x.,,,,,5/2
+M255,Math,Rule 6A - Part-to-part Ratios,87,"A collection has cats and dogs in the ratio 5:6, 55 items in total. How many dogs are there?",30,25,5,330,A
+M256,Math,Rule 6A Part-to-part Ratios,25,"A collection has red marbles and blue marbles in the ratio 5:2, 35 items in total. How many blue marbles are there?",10,25,5,70,A
+M260,Math,Rule 1A - Function Notation,31,The function f is defined by f(x) = 7x + 8. What is f(9)?,119,79,71,24,C
+M261,Math,Rule 4A - Perimeter and Area of Rectangles,43,"The perimeter of a rectangular garden is 28 meters and its length is 11 meters. What is its area, in square meters?",33,3,187,308,A
+M262,Math,Rule 5A - Two-equation Systems,20,"In the system x + y = 20 and x - y = 4, what is the value of x?",12,16,8,20,A
+M263,Math,Rule 4A - Perimeter and Area of Rectangles,22,"The perimeter of a rectangular garden is 44 meters and its length is 12 meters. What is its area, in square meters?",10,22,120,528,C
+M264,Math,Rule 6A Part-to-part Ratios,37,"A collection has red marbles and blue marbles in the ratio 4:2, 78 items in total. How many blue marbles are there?",52,156,13,26,D
+M269,Math,Rule 3A - One-variable Equations,73,Solve 5x + 15 = 65 for x.,45,16,50,10,D
+M272,Math,Rule 5A - Two-equation Systems,55,"In the system x + y = 15 and x - y = 9, what is the value of x?",3,15,12,24,C
+M273,Math,Rule 5A: Two-equation Systems,20,"In the system x + y = 8 and x - y = 2, what is the value of x?",6,10,3,5,D
+M275,Math,rule 3a - one-variable equations,35,Solve 3x + 9 = 42 for x.,33,17,11,30,C
+M277,Math,Rule 1A - Function Notation,44,The function f is defined by f(x) = 3x + 6. What is f(3)?,27,15,9,21,B
+M278,Math,Rule 4A - Perimeter and Area of Rectangles,83,"The perimeter of a rectangular garden is 20 meters and its length is 7 meters. What is its area, in square meters?",21,3,10,140,A
+M279,Math,Rule 6A - Part-to-part Ratios,39,"A collection has red marbles and blue marbles in the ratio 7:4, 165 items in total. How many blue marbles are there?",60,660,105,15,A
+M280,Math,Rule 3B - Percent Change,86,"The regular price of a backpack is $100. During a sale the price is reduced by 35%. What is the sale price of the backpack, in dollars?",35,65,135,30,B
+M281,Math,Rule 6A Part-to-part Ratios,62,"A collection has juniors and seniors in the ratio 2:7, 126 items in total. How many seniors are there?",18,98,14,882,B
+M282,Math,Rule 5A - Two-equation Systems,92,"In the system x + y = 7 and x - y = 5, what is the value of x?",7,2,6,1,C
+M287,Math,Rule 3A One-variable Equations,15,Solve 9x + 36 = 90 for x.,6,45,54,14,A
+M288,Math,Rule 3A - One-variable Equations,30,Solve 8x + 3 = 18 for x.,,,,,15/8
+M289,Math,Rule 4A Perimeter and Area of Rectangles,79,"The perimeter of a rectangular garden is 48 meters and its length is 16 meters. What is its area, in square meters?",512,8,768,128,D
+M293,Math,Rule 3B - Percent Change,51,"The regular price of a lamp is $260. During a sale the price is reduced by 20%. What is the sale price of the lamp, in dollars?",52,156,208,240,C
+M295,Math,Rule 5A: Two-equation Systems,88,"In the system x + y = 33 and x - y = 5, what is the value of x?",33,19,14,28,B
+M297,Math,Rule 5A - Two-equation Systems,28,"In the system x + y = 14 and x - y = 4, what is the value of x?",9,5,18,14,A
+M298,Math,Rule 3A - One-variable Equations,38,Solve 8x + 8 = 14 for x.,,,,,3/4
+M299,Math,rule 6a - part-to-part ratios,20,"A collection has red marbles and blue marbles in the ratio 5:3, 72 items in total. How many blue marbles are there?",216,9,45,27,D
+M305,Math,Rule 5A Two-equation Systems,58,"In the system x + y = 18 and x - y = 10, what is the value of x?",4,14,18,28,B
+M308,Math,Rule 4A - Perimeter and Area of Rectangles,24,"The perimeter of a rectangular garden is 22 meters and its length is 7 meters. What is its area, in square meters?",154,4,105,28,D
+M309,Math,Rule 4A - Perimeter and Area of Rectangles,30,"The perimeter of a rectangular garden is 46 meters and its length is 14 meters. What is its area, in square meters?",23,448,126,644,C
+M310,Math,Rule 6A - Part-to-part Ratios,78,"A collection has cats and dogs in the ratio 7:5, 144 items in total. How many dogs are there?",720,84,60,12,C
+M311,Math,Rule 3B - Percent Change,33,"The regular price of a jacket is $60. During a sale the price is reduced by 40%. What is the sale price of the jacket, in dollars?",84,20,24,36,D
+M312,Math,Rule 3A: One-variable Equations,48,Solve 9x + 45 = 135 for x.,10,81,90,20,A
+M314,Math,Rule 3B - Percent Change,16,"The regular price of a bike is $240. During a sale the price is reduced by 40%. What is the sale price of the bike, in dollars?",336,48,144,200,C
+M315,Math,Rule 5A - Two-equation Systems,91,"In the system x + y = 16 and x - y = 4, what is the value of x?",6,20,10,12,C
+M317,Math,Rule 3B - Percent Change,81,"The regular price of a lamp is $140. During a sale the price is reduced by 40%. What is the sale price of the lamp, in dollars?",84,100,28,196,A
+M318,Math,Rule 1A-Function Notation,57,The function f is defined by f(x) = 9x + 2. What is f(6)?,17,72,56,54,C
+M323,Math,Rule 5A - Two-equation Systems,75,"In the system x + y = 23 and x - y = 9, what is the value of x?",7,16,23,14,B
+M324,Math,Rule 1A - Function Notation,51,The function f is defined by f(x) = 7x + 10. What is f(5)?,45,57,22,105,A
+M325,Math,Rule 5A - Two-equation Systems,55,"In the system x + y = 21 and x - y = 5, what is the value of x?",8,13,21,16,B
+M326,Math,Rule 5A - Two-equation Systems,75,"In the system x + y = 25 and x - y = 1, what is the value of x?",26,25,13,12,C
+M328,Math,Rule 5A - Two-equation Systems,19,"In the system x + y = 25 and x - y = 11, what is the value of x?",14,7,18,36,C
+M334,Math,Rule 1A - Function Notation,29,The function f is defined by f(x) = 3x + 11. What is f(6)?,20,29,51,69,B
+M336,Math,Rule 1A - Function Notation,80,The function f is defined by f(x) = 5x + 12. What is f(6)?,90,23,30,42,D
+M337,Math,Rule 4A - Perimeter and Area of Rectangles,41,"The perimeter of a rectangular garden is 36 meters and its length is 13 meters. What is its area, in square meters?",5,65,468,18,B
+M338,Math,Rule 3B - Percent Change,58,"The regular price of a backpack is $120. During a sale the price is reduced by 15%. What is the sale price of the backpack, in dollars?",138,102,18,105,B
+M339,Math,Rule 3A - One-variable Equations,57,Solve 3x + 3 = 42 for x.,13,11,36,15,A
+M341,Math,Rule 3A - One-variable Equations,90,Solve 2x + 4 = 9 for x.,,,,,5/2
+M343,Math,Rule 1A - Function Notation,32,The function f is defined by f(x) = 4x + 3. What is f(9)?,31,39,36,16,B
+M344,Math,Rule 4A - Perimeter and Area of Rectangles,25,"The perimeter of a rectangular garden is 26 meters and its length is 7 meters. What is its area, in square meters?",6,133,13,42,D
+M345,Math,Rule 5A - Two-equation Systems,30,"In the system x + y = 13 and x - y = 1, what is the value of x?",6,13,7,12,C
+M347,Math,Rule 5A - Two-equation Systems,32,"In the system x + y = 17 and x - y = 5, what is the value of x?",17,11,6,12,B
+M348,Math,Rule 1A - Function Notation,15,The function f is defined by f(x) = 9x + 3. What is f(8)?,20,33,72,75,D
+M349,Math,rule 3a - one-variable equations,57,Solve 7x + 7 = 105 for x.,16,14,8,98,B
+M352,Math,Rule 6A - Part-to-part Ratios,58,"A collection has red marbles and blue marbles in the ratio 5:3, 112 items in total. How many blue marbles are there?",14,42,70,336,B
+RW101,Reading and Writing,Rule 5B - Pronoun Agreement,71,Last week the council announced ___ decision.,his or her,its,it's,their,B
+RW104,Reading and Writing,Rule 5B - Pronoun Agreement,90,Last week the jury changed ___ rules for new members.,his or her,its,it's,their,B
+RW107,Reading and Writing,Rule 5B - Pronoun Agreement,89,Last week the committee announced ___ decision.,their,its,it's,his or her,B
+RW108,Reading and Writing,Rule 2B - Sentence Boundaries,71,"By evening, the market ___ stalls sold out by ten.","opened, its",opened its,opened; its,opened; and its,C
+RW112,Reading and Writing,Rule 5B - Pronoun Agreement,30,Last week the committee celebrated ___ tenth anniversary.,his or her,it's,its,their,C
+RW113,Reading and Writing,Rule 6B - Subject-Verb Agreement,22,Today the folder of photos ___ a new label.,need,needed,needing,needs,D
+RW115,Reading and Writing,Rule 2A - Transitions,86,"The bakery doubled its prices. ___, many regulars started baking at home.",For example,However,Therefore,In addition,C
+RW116,Reading and Writing,Rule 6B - Subject-Verb Agreement,85,Today the stack of photos ___ on the front desk.,was,are,being,is,D
+RW118,Reading and Writing,Rule 2B - Sentence Boundaries,72,"By evening, the garden ___ tomatoes did not survive.","flooded, the",flooded; the,flooded; and the,flooded the,B
+RW119,Reading and Writing,Rule 6B - Subject-Verb Agreement,75,Today the basket of maps ___ a torn cover.,had,have,has,having,C
+RW121,Reading and Writing,Rule 6B - Subject-Verb Agreement,84,Today the list of photos ___ near the window.,sitting,sit,sat,sits,D
+RW122,Reading and Writing,Rule 5B - Pronoun Agreement,20,Last week the band moved ___ office across town.,it's,his or her,their,its,D
+RW123,Reading and Writing,Rule 5B - Pronoun Agreement,32,Last week the jury posted ___ schedule for the spring.,his or her,their,its,it's,C
+RW127,Reading and Writing,Rule 4B-Verb Tense,64,"Back in 2011, the town ___ a new stage.",built,will build,has built,builds,A
+RW131,Reading and Writing,Rule 6B - Subject-Verb Agreement,64,Today the collection of photos ___ near the window.,sits,sat,sitting,sit,A
+RW136,Reading and Writing,Rule 2B - Sentence Boundaries,76,"Late that week, the shop ___ second floor now sells books.","expanded, its",expanded; its,expanded its,expanded; and its,B
+RW137,Reading and Writing,Rule 6B - Subject-Verb Agreement,82,Today the basket of notes ___ a new label.,needs,needing,needed,need,A
+RW138,Reading and Writing,Rule 5B-Pronoun Agreement,49,Last week the council celebrated ___ tenth anniversary.,their,its,his or her,it's,B
+RW139,Reading and Writing,Rule 2B - Sentence Boundaries,62,"By evening, the printer ___ flyers were late for the fair.","jammed, the",jammed; and the,jammed the,jammed; the,D
+RW141,Reading and Writing,RULE 1B - PARALLEL COMPARISONS,41,"According to the guidebook, the parks of Harlow are more varied than ___.",Corran,those of Corran's,those of Corran,that of Corran,C
+RW142,Reading and Writing,Rule 2B - Sentence Boundaries,48,"By evening, the rain finally ___ crowd returned to the field.",stopped the,stopped; and the,stopped; the,"stopped, the",C
+RW143,Reading and Writing,Rule 1B - Parallel Comparisons,43,"According to the guidebook, the museums of Delford are more varied than ___.",those of Kessington,Kessington,that of Kessington,those of Kessington's,A
+RW144,Reading and Writing,Rule 5B - Pronoun Agreement,51,Last week the club moved ___ office across town.,his or her,its,their,it's,B
+RW145,Reading and Writing,Rule 1B - Parallel Comparisons,63,"According to the guidebook, the rainfall of Elmont is more varied than ___.",that of Corran,Corran,those of Corran,that of Corran's,A
+RW146,Reading and Writing,Rule 2A - Transitions,69,"The town keeps old traditions. ___, it still rings the noon bell by hand.",For example,However,Therefore,In addition,A
+RW147,Reading and Writing,Rule 2A - Transitions,52,"Our library lends more than books. ___, members can borrow telescopes and tools.",However,Therefore,In addition,For example,D
+RW148,Reading and Writing,Rule 4B - Verb Tense,74,"Back in 1999, the robotics team ___ a new name.",has chosen,will choose,chose,chooses,C
+RW149,Reading and Writing,Rule 2A - Transitions,32,"The roads iced over before dawn. ___, the schools opened two hours late.",In addition,Therefore,For example,However,B
+RW153,Reading and Writing,Rule 6B - Subject-Verb Agreement,18,Today the box of photos ___ a new label.,need,needing,needs,needed,C
+RW154,Reading and Writing,Rule 6B - Subject-Verb Agreement,73,Today the list of supplies ___ a torn cover.,had,have,has,having,C
+RW156,Reading and Writing,Rule 6B - Subject-Verb Agreement,45,Today the list of maps ___ on the front desk.,are,was,being,is,D
+RW157,Reading and Writing,Rule 4B - Verb Tense,23,"Back in 2017, the drama club ___ the old record.",will break,broke,has broken,breaks,B
+RW160,Reading and Writing,Rule 2B - Sentence Boundaries,87,"Late that week, the bell ___ hallway filled at once.",rang; every,rang every,"rang, every",rang; and every,A
+RW161,Reading and Writing,Rule 5B - Pronoun Agreement,81,Last week the jury announced ___ decision.,his or her,their,its,it's,C
+RW165,Reading and Writing,Rule 2A - Transitions,37,"Most critics praised the film. ___, it sold few tickets.",For example,Therefore,However,In addition,C
+RW169,Reading and Writing,Rule 6B - Subject-Verb Agreement,23,Today the list of receipts ___ in the main office.,stayed,stays,stay,staying,B
+RW170,Reading and Writing,Rule 4B - Verb Tense,80,"Back in 2017, the robotics team ___ a new name.",chooses,chose,will choose,has chosen,B
+RW171,Reading and Writing,Rule 1B - Parallel Comparisons,84,"According to the guidebook, the streets of Marlow are more varied than ___.",Harlow,that of Harlow,those of Harlow,those of Harlow's,C
+RW178,Reading and Writing,Rule 1B - Parallel Comparisons,88,"According to the guidebook, the population of Kessington is more varied than ___.",that of Fenwick,those of Fenwick,Fenwick,that of Fenwick's,A
+RW179,Reading and Writing,Rule 4B - Verb Tense,81,"Back in 2001, the town ___ a short history of the town.",will write,has written,wrote,writes,C
+RW181,Reading and Writing,Rule 6B - Subject-Verb Agreement,32,Today the folder of receipts ___ near the window.,sit,sitting,sits,sat,C
+RW183,Reading and Writing,Rule 5B - Pronoun Agreement,31,Last week the council changed ___ rules for new members.,its,their,it's,his or her,A
+RW184,Reading and Writing,Rule 4B - Verb Tense,82,"Back in 2006, the drama club ___ a short history of the town.",writes,will write,wrote,has written,C
+RW191,Reading and Writing,Rule 5B - Pronoun Agreement,77,Last week the committee posted ___ schedule for the spring.,its,their,his or her,it's,A
+RW192,Reading and Writing,Rule 6B-Subject-Verb Agreement,54,Today the basket of maps ___ near the window.,sit,sat,sits,sitting,C
+RW193,Reading and Writing,Rule 1B - Parallel Comparisons,73,"According to the guidebook, the climate of Delford is more varied than ___.",those of Marlow,that of Marlow,that of Marlow's,Marlow,B
+RW195,Reading and Writing,rule 4b - verb tense,16,"Back in 2008, the school band ___ a record crowd.",will draw,draws,drew,has drawn,C
+RW196,Reading and Writing,RULE 2A - TRANSITIONS,47,"Some birds use tools. ___, crows bend wire into hooks to reach food.",For example,Therefore,However,In addition,A
+RW198,Reading and Writing,Rule 4B - Verb Tense,40,"Back in 2019, the school band ___ a weekly podcast.",began,will begin,begins,has begun,A
+RW200,Reading and Writing,Rule 1B - Parallel Comparisons,62,"According to the guidebook, the streets of Kessington are more varied than ___.",that of Elmont,those of Elmont,those of Elmont's,Elmont,B
+RW202,Reading and Writing,rule 6b - subject-verb agreement,51,Today the stack of maps ___ on the front desk.,are,is,being,was,B
+RW204,Reading and Writing,Rule 2B - Sentence Boundaries,48,"Late that week, the ferry ___ passengers hurried down the ramp.","arrived, the",arrived; and the,arrived; the,arrived the,C
+RW205,Reading and Writing,Rule 5B - Pronoun Agreement,15,Last week the company celebrated ___ tenth anniversary.,it's,their,its,his or her,C
+RW206,Reading and Writing,Rule 5B - Pronoun Agreement,15,Last week the jury celebrated ___ tenth anniversary.,their,its,it's,his or her,B
+RW208,Reading and Writing,Rule 1B - Parallel Comparisons,62,"According to the guidebook, the rainfall of Delford is more varied than ___.",that of Ashby's,that of Ashby,Ashby,those of Ashby,B
+RW210,Reading and Writing,Rule 4B - Verb Tense,65,"Back in 2000, the drama club ___ the old record.",broke,will break,breaks,has broken,A
+RW211,Reading and Writing,RULE 1B - PARALLEL COMPARISONS,34,"According to the guidebook, the parks of Elmont are more varied than ___.",those of Fenwick,that of Fenwick,those of Fenwick's,Fenwick,A
+RW212,Reading and Writing,Rule 2B - Sentence Boundaries,78,"Late that week, the snow ___ river rose by noon.",melted the,"melted, the",melted; the,melted; and the,C
+RW213,Reading and Writing,Rule 5B - Pronoun Agreement,31,Last week the team moved ___ office across town.,its,his or her,it's,their,A
+RW217,Reading and Writing,RULE 1B - PARALLEL COMPARISONS,79,"According to the guidebook, the rainfall of Corran is more varied than ___.",that of Kessington,that of Kessington's,those of Kessington,Kessington,A
+RW218,Reading and Writing,Rule 2B - Sentence Boundaries,71,"Late that week, the power ___ students kept reading by window light.","failed, most",failed most,failed; most,failed; and most,C
+RW220,Reading and Writing,Rule 2B - Sentence Boundaries,88,"By evening, the power ___ students kept reading by window light.",failed; most,failed most,"failed, most",failed; and most,A
+RW221,Reading and Writing,Rule 1B - Parallel Comparisons,20,"According to the guidebook, the museums of Kessington are more varied than ___.",those of Fenwick,that of Fenwick,Fenwick,those of Fenwick's,A
+RW222,Reading and Writing,Rule 1B - Parallel Comparisons,49,"According to the guidebook, the population of Marlow is more varied than ___.",Harlow,that of Harlow's,that of Harlow,those of Harlow,C
+RW224,Reading and Writing,rule 6b - subject-verb agreement,79,Today the box of notes ___ a new label.,need,needed,needs,needing,C
+RW225,Reading and Writing,Rule 5B - Pronoun Agreement,45,Last week the council posted ___ schedule for the spring.,their,it's,his or her,its,D
+RW227,Reading and Writing,Rule 1B - Parallel Comparisons,49,"According to the guidebook, the population of Elmont is more varied than ___.",Harlow,that of Harlow,those of Harlow,that of Harlow's,B
+RW228,Reading and Writing,Rule 2A - Transitions,31,"The new bus line runs every ten minutes. ___, it stops at both high schools.",For example,In addition,However,Therefore,B
+RW229,Reading and Writing,Rule 4B - Verb Tense,65,"Back in 2004, the town ___ its first regional prize.",has won,won,will win,wins,B
+RW234,Reading and Writing,Rule 6B - Subject-Verb Agreement,72,Today the basket of receipts ___ a torn cover.,had,having,have,has,D
+RW235,Reading and Writing,Rule 1B - Parallel Comparisons,58,"According to the guidebook, the museums of Fenwick are more varied than ___.",those of Ashby,Ashby,that of Ashby,those of Ashby's,A
+RW238,Reading and Writing,Rule 1B - Parallel Comparisons,85,"According to the guidebook, the climate of Fenwick is more varied than ___.",those of Ashby,that of Ashby's,that of Ashby,Ashby,C
+RW240,Reading and Writing,Rule 4B - Verb Tense,49,"Back in 2008, the school band ___ a weekly podcast.",begins,began,has begun,will begin,B
+RW241,Reading and Writing,Rule 5B - Pronoun Agreement,51,Last week the club posted ___ schedule for the spring.,his or her,their,it's,its,D
+RW242,Reading and Writing,Rule 1B - Parallel Comparisons,38,"According to the guidebook, the parks of Fenwick are more varied than ___.",those of Harlow's,that of Harlow,Harlow,those of Harlow,D
+RW243,Reading and Writing,Rule 5B - Pronoun Agreement,76,Last week the company announced ___ decision.,their,his or her,it's,its,D
+RW244,Reading and Writing,Rule 2A - Transitions,38,"The museum added evening hours. ___, it opened a cafe on the roof.",For example,Therefore,In addition,However,C
+RW246,Reading and Writing,Rule 2B - Sentence Boundaries,86,The class ___ trip will be to the science center.,voted; and the,voted the,"voted, the",voted; the,D
+RW247,Reading and Writing,Rule 2A-Transitions,52,"Some metals resist rust. ___, stainless steel stays bright for decades.",However,Therefore,For example,In addition,C
+RW252,Reading and Writing,Rule 2A Transitions,17,"The bridge was closed for repairs. ___, the bus took the long road around the lake.",In addition,For example,However,Therefore,D
+RW254,Reading and Writing,Rule 2B - Sentence Boundaries,72,"By evening, the shop ___ second floor now sells books.",expanded; its,expanded; and its,"expanded, its",expanded its,A
+RW257,Reading and Writing,Rule 2A - Transitions,57,"The trail looked short on the map. ___, it took us four hours to finish.",However,Therefore,In addition,For example,A
+RW258,Reading and Writing,Rule 1B - Parallel Comparisons,33,"According to the guidebook, the streets of Elmont are more varied than ___.",those of Delford,Delford,those of Delford's,that of Delford,A
+RW259,Reading and Writing,Rule 4B: Verb Tense,85,"Back in 2009, the robotics team ___ a new stage.",has built,will build,builds,built,D
+RW265,Reading and Writing,Rule 2B-Sentence Boundaries,47,The printer ___ flyers were late for the fair.,jammed; the,jammed; and the,"jammed, the",jammed the,A
+RW266,Reading and Writing,Rule 2B - Sentence Boundaries,46,"By evening, the bus ___ riders walked the last mile.","broke down, most",broke down; most,broke down most,broke down; and most,B
+RW267,Reading and Writing,Rule 2A - Transitions,32,"Many desert plants store water. ___, the barrel cactus can go months without rain.",In addition,For example,However,Therefore,B
+RW268,Reading and Writing,RULE 6B - SUBJECT-VERB AGREEMENT,73,Today the folder of supplies ___ a torn cover.,have,has,had,having,B
+RW270,Reading and Writing,Rule 2A - Transitions,76,"The first draft ran to ten pages. ___, the final essay fit on one.",Therefore,For example,However,In addition,C
+RW271,Reading and Writing,Rule 5B Pronoun Agreement,92,Last week the club celebrated ___ tenth anniversary.,it's,its,their,his or her,B
+RW274,Reading and Writing,Rule 2B - Sentence Boundaries,31,"Late that week, the printer ___ flyers were late for the fair.",jammed; and the,jammed the,"jammed, the",jammed; the,D
+RW276,Reading and Writing,Rule 4B - Verb Tense,62,"Back in 2017, the school band ___ a record crowd.",draws,will draw,has drawn,drew,D
+RW283,Reading and Writing,Rule 6B - Subject-Verb Agreement,17,Today the collection of supplies ___ a torn cover.,having,had,have,has,D
+RW284,Reading and Writing,Rule 1B - Parallel Comparisons,92,"According to the guidebook, the population of Ashby is more varied than ___.",that of Marlow's,that of Marlow,Marlow,those of Marlow,B
+RW285,Reading and Writing,rule 4b - verb tense,69,"Back in 2000, the town ___ its first regional prize.",will win,has won,won,wins,C
+RW286,Reading and Writing,Rule 2A - Transitions,69,"The old bridge seemed fragile. ___, it carried trucks for ninety years.",For example,In addition,Therefore,However,D
+RW290,Reading and Writing,rule 2b - sentence boundaries,35,The market ___ stalls sold out by ten.,"opened, its",opened; its,opened its,opened; and its,B
+RW291,Reading and Writing,Rule 2A - Transitions,33,"The museum offers free programs. ___, it hosts a drawing class every Saturday.",Therefore,In addition,However,For example,D
+RW292,Reading and Writing,Rule 6B - Subject-Verb Agreement,26,Today the basket of old letters ___ a new label.,needing,needs,need,needed,B
+RW294,Reading and Writing,Rule 6B - Subject-Verb Agreement,37,Today the stack of photos ___ a torn cover.,has,had,have,having,A
+RW296,Reading and Writing,Rule 2B - Sentence Boundaries,40,The bus ___ riders walked the last mile.,broke down most,broke down; and most,"broke down, most",broke down; most,D
+RW300,Reading and Writing,Rule 2A - Transitions,37,"The town repaved Main Street. ___, it planted trees along both sidewalks.",However,In addition,Therefore,For example,B
+RW301,Reading and Writing,Rule 5B - Pronoun Agreement,84,Last week the band announced ___ decision.,his or her,their,its,it's,C
+RW302,Reading and Writing,Rule 5B - Pronoun Agreement,48,Last week the band changed ___ rules for new members.,his or her,it's,its,their,C
+RW303,Reading and Writing,Rule 4B - Verb Tense,87,"Back in 2013, the drama club ___ a new name.",chooses,has chosen,will choose,chose,D
+RW304,Reading and Writing,Rule 4B - Verb Tense,22,"Back in 2006, the robotics team ___ a short history of the town.",will write,has written,wrote,writes,C
+RW306,Reading and Writing,RULE 4B - VERB TENSE,90,"Back in 2018, the town ___ a weekly podcast.",will begin,began,has begun,begins,B
+RW307,Reading and Writing,Rule 2B - Sentence Boundaries,83,"By evening, the snow ___ river rose by noon.",melted the,"melted, the",melted; and the,melted; the,D
+RW313,Reading and Writing,Rule 5B - Pronoun Agreement,25,Last week the team changed ___ rules for new members.,it's,their,its,his or her,C
+RW316,Reading and Writing,Rule 2B - Sentence Boundaries,86,"By evening, the river ___ skater in town came out.",froze; and every,"froze, every",froze every,froze; every,D
+RW319,Reading and Writing,rule 4b - verb tense,54,"Back in 2008, the drama club ___ a short history of the town.",has written,writes,wrote,will write,C
+RW320,Reading and Writing,Rule 2B - Sentence Boundaries,30,"Late that week, the bakery ___ owners moved to the coast.",closed; its,closed its,closed; and its,"closed, its",A
+RW321,Reading and Writing,Rule 1B - Parallel Comparisons,50,"According to the guidebook, the climate of Ashby is more varied than ___.",Delford,that of Delford,those of Delford,that of Delford's,B
+RW322,Reading and Writing,Rule 2A - Transitions,45,"The well ran dry in August. ___, the farm bought water by the truckload.",Therefore,However,For example,In addition,A
+RW327,Reading and Writing,Rule 6B - Subject-Verb Agreement,48,Today the box of maps ___ near the window.,sat,sits,sitting,sit,B
+RW329,Reading and Writing,Rule 2A - Transitions,73,"The puzzle looked easy at first. ___, nobody in the class could solve it.",For example,Therefore,In addition,However,D
+RW330,Reading and Writing,Rule 2A - Transitions,27,"The recipe called for an hour of baking. ___, the bread was done in forty minutes.",However,For example,Therefore,In addition,A
+RW331,Reading and Writing,Rule 2A - Transitions,73,"The library extended its hours. ___, more students studied there in the evening.",Therefore,In addition,For example,However,A
+RW332,Reading and Writing,Rule 4B - Verb Tense,34,"Back in 1997, the robotics team ___ a weekly podcast.",begins,has begun,will begin,began,D
+RW333,Reading and Writing,Rule 2A - Transitions,82,"The forecast promised sun. ___, we spent the afternoon under umbrellas.",For example,Therefore,In addition,However,D
+RW335,Reading and Writing,Rule 4B - Verb Tense,86,"Back in 2011, the town ___ the old record.",will break,breaks,has broken,broke,D
+RW340,Reading and Writing,rule 1b - parallel comparisons,21,"According to the guidebook, the streets of Ashby are more varied than ___.",those of Delford's,Delford,those of Delford,that of Delford,C
+RW342,Reading and Writing,Rule 4B-Verb Tense,79,"Back in 2014, the drama club ___ a new stage.",has built,built,will build,builds,B
+RW346,Reading and Writing,Rule 6B - Subject-Verb Agreement,74,Today the folder of maps ___ a new label.,needed,need,needing,needs,D
+RW350,Reading and Writing,Rule 1B - Parallel Comparisons,82,"According to the guidebook, the streets of Delford are more varied than ___.",Kessington,that of Kessington,those of Kessington's,those of Kessington,D
+RW351,Reading and Writing,Rule 2B - Sentence Boundaries,68,"By evening, the storm ___ damage was worse than expected.",passed its,"passed, its",passed; its,passed; and its,C
