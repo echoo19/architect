@@ -237,6 +237,16 @@ describe('practice_assigned', () => {
       'assignments.csv: an existing row',
     );
   });
+
+  it('fails old rows put in another order, even with the right new rows after them', () => {
+    const before = job.table(org, 'assignments.csv');
+    expect(before.length).toBeGreaterThan(1);
+    const swapped = [before[1]!, before[0]!, ...before.slice(2), ...assignments];
+    failsWith(
+      job.check(task, job.contextWith(task, { 'assignments.csv': swapped }, answer)),
+      'assignments.csv: an existing row',
+    );
+  });
 });
 
 describe('tutoring_turn', () => {
@@ -247,6 +257,21 @@ describe('tutoring_turn', () => {
     const { answer, assignments } = reference(escalating);
     failsWith(endState(escalating, answer, assignments, []), 'staff_notes.csv gained 0');
     failsWith(endState(escalating, { ...answer, staff_note: false }, assignments), 'staff_note');
+  });
+
+  it('fails old notes put in another order, even with the right new note after them', () => {
+    const { answer, assignments, notes } = reference(escalating);
+    const before = job.table(orgOf(escalating), 'staff_notes.csv');
+    expect(before.length).toBeGreaterThan(1);
+    const swapped = [before[1]!, before[0]!, ...before.slice(2), ...notes];
+    const context = job.withAppended(escalating, { 'assignments.csv': assignments }, answer);
+    failsWith(
+      job.check(escalating, {
+        ...context,
+        readTable: (name) => (name === 'staff_notes.csv' ? swapped : context.readTable(name)),
+      }),
+      'staff_notes.csv: an existing row',
+    );
   });
 
   it('fails a note the history does not call for', () => {
