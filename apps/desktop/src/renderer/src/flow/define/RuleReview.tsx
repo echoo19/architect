@@ -1,6 +1,15 @@
 import { useRef, useState } from 'react';
 import { type Job, type RuleDetails, type RuleExample, type TaskPlan } from '@architect/shared';
-import { Badge, Button, cn, DetailList, Disclosure, Heading } from '@architect/ui';
+import {
+  Button,
+  cn,
+  Collapse,
+  DetailList,
+  Disclosure,
+  Heading,
+  Reveal,
+  Tooltip,
+} from '@architect/ui';
 import { Check, CircleAlert, Info, ScrollText } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
@@ -11,7 +20,15 @@ import { resetDraft } from '../describe/draft-store';
 import { modelNames } from '../names';
 import { PassageList } from '../PassageList';
 import { RuleSteps } from '../RuleSteps';
-import { confirmedOn, confirmLine, leftOutLine, reviewIntro, ruleTypesOf } from './rule-words';
+import {
+  changeHint,
+  confirmedOn,
+  confirmLine,
+  leftOutLine,
+  reviewIntro,
+  ruleTypesOf,
+} from './rule-words';
+import { SheetRow } from './SheetRow';
 
 /**
  * The rule of a job, put in front of the person before anything is trained: the passages of their
@@ -25,8 +42,10 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
   const heading = useRef<HTMLHeadingElement>(null);
   if (rules.length === 0 || confirmation === undefined) return null;
   const { mentor, student } = modelNames(job);
+  const needed = confirmation.state === 'needed';
   const confirmed = confirmation.state === 'confirmed';
   const changed = confirmation.state === 'changed';
+  const many = rules.length > 1;
 
   const confirm = async () => {
     setConfirming(true);
@@ -37,7 +56,7 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
     if (!state) return;
     setQueryData(queryKeys.taskPlan(job.id), { ...plan, confirmation: state });
     // Confirmed, the rule folds away and takes the button with it, which would leave the person
-    // looking at whatever was below. The heading comes into view instead, with the badge that says
+    // looking at whatever was below. The heading comes into view instead, with the word that says
     // it is confirmed, and takes the focus the button had.
     requestAnimationFrame(() => {
       heading.current?.focus({ preventScroll: true });
@@ -52,78 +71,92 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
     navigate(paths.newAgent());
   };
 
-  const cards = rules.map((type) => (
-    <RuleCard
-      key={type.id}
-      label={type.label}
-      details={type.details}
-      leftOut={leftOutLine(type.details)}
-    />
-  ));
+  const cards = (
+    <div className="flex flex-col gap-5">
+      {rules.map((type) => (
+        <RuleCard
+          key={type.id}
+          label={type.label}
+          details={type.details}
+          leftOut={leftOutLine(type.details)}
+        />
+      ))}
+    </div>
+  );
 
   return (
-    <section aria-labelledby="rule-check" className="flex flex-col gap-[18px]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Heading id="rule-check" ref={heading} tabIndex={-1} className="scroll-mt-6">
-          {rules.length === 1 ? 'Check the rule' : 'Check the rules'}
+    <section aria-labelledby="rule-check" className="flex flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+        <Heading
+          id="rule-check"
+          ref={heading}
+          tabIndex={-1}
+          size="title"
+          className="scroll-mt-6 focus-visible:outline-none"
+        >
+          {many ? 'Check the rules' : 'Check the rule'}
         </Heading>
         {confirmed && (
-          <Badge tone="student" icon={<Check size={14} strokeWidth={2} aria-hidden />}>
+          <Reveal as="span" className="flex items-center gap-1.5 text-small font-medium">
+            <Check size={14} strokeWidth={2} aria-hidden />
             {`Confirmed${confirmedOn(confirmation) === null ? '' : ` on ${confirmedOn(confirmation)}`}`}
-          </Badge>
+          </Reveal>
         )}
         {changed && (
-          <Badge tone="alert" icon={<CircleAlert size={14} strokeWidth={2} aria-hidden />}>
+          <Reveal
+            as="span"
+            className="flex items-center gap-1.5 text-small font-medium text-danger"
+          >
+            <CircleAlert size={14} strokeWidth={2} aria-hidden />
             Changed since you confirmed it
-          </Badge>
+          </Reveal>
         )}
       </div>
-      {confirmation.state === 'needed' && (
-        <p className="m-0 max-w-[620px] text-fg text-pretty">
-          {reviewIntro(mentor, student, rules.length)}
-        </p>
-      )}
+      <Collapse open={needed}>
+        <div className="flex flex-col gap-6 pb-1 pt-1">
+          <p className="m-0 max-w-[620px] text-body text-pretty">
+            {reviewIntro(mentor, student, rules.length)}
+          </p>
+          {cards}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="m-0 font-medium">{confirmLine(rules.length)}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Tooltip content={changeHint(mentor)}>
+                <Button variant="ghost" onClick={describeAgain}>
+                  Change the description
+                </Button>
+              </Tooltip>
+              <Button variant="primary" loading={confirming} onClick={() => void confirm()}>
+                <Check size={16} strokeWidth={2} aria-hidden />
+                {many ? 'Confirm the rules' : 'Confirm the rule'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Collapse>
       {changed && (
         <div
           role="alert"
-          className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
+          className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
         >
           <p className="m-0 max-w-[560px] text-pretty">{confirmation.problem}</p>
           <Button onClick={describeAgain}>Describe the job again</Button>
         </div>
       )}
-      {confirmation.state === 'needed' ? (
-        <div className="flex flex-col gap-5">{cards}</div>
-      ) : (
+      {!needed && (
         <Disclosure
           label={
             confirmed
-              ? rules.length === 1
-                ? 'Show the rule'
-                : 'Show the rules'
-              : rules.length === 1
-                ? 'Show the rule it was confirmed with'
-                : 'Show the rules they were confirmed with'
+              ? many
+                ? 'Show the rules'
+                : 'Show the rule'
+              : many
+                ? 'Show the rules they were confirmed with'
+                : 'Show the rule it was confirmed with'
           }
         >
-          <div className="flex flex-col gap-5">{cards}</div>
+          {cards}
         </Disclosure>
-      )}
-      {confirmation.state === 'needed' && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-field px-6 py-5">
-          <p className="m-0 max-w-[520px] text-fg text-pretty">
-            {confirmLine(mentor, rules.length)}
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" onClick={describeAgain}>
-              Change the description
-            </Button>
-            <Button variant="primary" loading={confirming} onClick={() => void confirm()}>
-              <Check size={16} strokeWidth={2} aria-hidden />
-              {rules.length === 1 ? 'Confirm the rule' : 'Confirm the rules'}
-            </Button>
-          </div>
-        </div>
       )}
     </section>
   );
@@ -142,49 +175,46 @@ function RuleCard({
   return (
     <article
       aria-label={label}
-      className="flex flex-col gap-6 rounded-card bg-card px-7 py-[26px] shadow-edge"
+      className="flex flex-col overflow-hidden rounded-card bg-card px-6 pb-2 pt-5 shadow-edge"
     >
-      <header>
-        <h3 className="m-0 flex items-center gap-2.5 text-body font-medium">
-          <ScrollText size={18} strokeWidth={1.7} className="shrink-0 text-fg" aria-hidden />
-          {label}
-        </h3>
-      </header>
+      <h3 className="m-0 flex items-center gap-2.5 pb-5 font-display text-h2 font-semibold">
+        <ScrollText size={18} strokeWidth={1.7} className="shrink-0" aria-hidden />
+        {label}
+      </h3>
 
-      <div className="flex flex-col gap-3">
-        <h4 className="m-0 text-small font-normal text-fg">From your policy</h4>
+      <SheetRow label="From your policy" align="start">
         <PassageList passages={details.passages} />
-      </div>
+      </SheetRow>
 
-      <div className="flex flex-col gap-3">
-        <h4 className="m-0 text-small font-normal text-fg">The rule, in words</h4>
+      <SheetRow label="The rule" align="start">
         <RuleSteps steps={details.steps} statement={details.statement} />
-      </div>
+      </SheetRow>
 
-      <div className="flex flex-col gap-3.5">
-        <h4 className="m-0 text-small font-normal text-fg">Examples</h4>
-        <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
+      <SheetRow label="Examples" align="start">
+        <ul className="m-0 flex list-none flex-col p-0">
           {details.examples.map((example) => (
             <Example key={`${example.taskId ?? 'made'}:${example.request}`} example={example} />
           ))}
         </ul>
-      </div>
+      </SheetRow>
 
       {notes.length > 0 && (
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
-          {notes.map((note) => (
-            <li key={note} className="flex items-start gap-2">
-              <CircleAlert size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden />
-              <span className="text-pretty">{note}</span>
-            </li>
-          ))}
-        </ul>
+        <SheetRow label="Notes" align="start">
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
+            {notes.map((note) => (
+              <li key={note} className="flex items-start gap-2">
+                <CircleAlert size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden />
+                <span className="text-pretty">{note}</span>
+              </li>
+            ))}
+          </ul>
+        </SheetRow>
       )}
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 border-t border-line py-3">
         {details.excluded.length > 0 && (
           <Disclosure label={leftOut ?? 'Rows left out of the tasks'}>
-            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
               {details.excluded.map((item) => (
                 <li key={item.reason} className="text-pretty">
                   {item.count} {item.count === 1 ? 'row' : 'rows'}: {item.reason}
@@ -194,20 +224,15 @@ function RuleCard({
             </ul>
           </Disclosure>
         )}
-        <Disclosure label="Details">
+        <Disclosure label="How numbers are read">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <h5 className="m-0 text-small font-normal text-fg">
-                How numbers and rounding are read
-              </h5>
-              <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
-                {details.conventions.map((line) => (
-                  <li key={line} className="text-pretty">
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
+              {details.conventions.map((line) => (
+                <li key={line} className="text-pretty">
+                  {line}
+                </li>
+              ))}
+            </ul>
             <DetailList items={[{ label: 'Rule version', value: details.version }]} />
           </div>
         </Disclosure>
@@ -217,37 +242,37 @@ function RuleCard({
 }
 
 /**
- * One worked example. One that is not a record reads like one ("Like T-2144, but with parts cost
- * 0.005" was taken for T-2144 with a new price), so its tag comes first, set apart from the quiet
- * tags beside it, before what the example shows. It is not bad news, so it does not wear the red
- * of a rule that changed since it was confirmed.
+ * One worked example: what is asked and the answer, what it shows, what went in, and every step of
+ * the working. One that is not a record reads like one ("Like T-2144, but with parts cost 0.005"
+ * was taken for T-2144 with a new price), so its tag comes first, set apart by its weight from the
+ * quiet tags beside it, before what the example shows. It is not bad news, so it does not wear the
+ * red of a rule that changed since it was confirmed.
  */
 function Example({ example }: { example: RuleExample }) {
   return (
-    <li className="flex flex-col gap-3.5 rounded-card bg-card px-5 py-[18px] shadow-edge">
+    <li className="flex flex-col gap-3 border-t border-line py-5 first:border-t-0 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="min-w-0 text-body text-pretty">{example.request}</span>
         <span className="font-display text-h2 font-semibold tabular-nums">{example.answer}</span>
       </div>
       {(example.covers.length > 0 || example.madeUp === true) && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-small">
           {example.madeUp === true && (
-            <Badge tone="emphasis" icon={<Info size={14} strokeWidth={2} aria-hidden />}>
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <Info size={14} strokeWidth={2} aria-hidden />
               Not from your records
-            </Badge>
+            </span>
           )}
           {example.covers.map((cover) => (
-            <Badge key={cover} tone="neutral">
-              {cover}
-            </Badge>
+            <span key={cover}>{cover}</span>
           ))}
         </div>
       )}
       <dl className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-small">
         {example.inputs.map((input) => (
           <div key={input.label} className="flex gap-2">
-            <dt className="text-fg">{input.label}</dt>
-            <dd className="m-0 font-mono text-small leading-5 text-fg">{input.value}</dd>
+            <dt>{input.label}</dt>
+            <dd className="m-0 font-mono text-small leading-5">{input.value}</dd>
           </div>
         ))}
       </dl>
@@ -260,7 +285,7 @@ function Example({ example }: { example: RuleExample }) {
               at === example.steps.length - 1 && 'font-medium',
             )}
           >
-            <span className="text-pretty text-fg">{step.text}</span>
+            <span className="text-pretty">{step.text}</span>
             <span className="font-mono tabular-nums">{step.value}</span>
           </li>
         ))}

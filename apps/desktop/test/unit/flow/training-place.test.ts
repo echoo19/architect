@@ -1,16 +1,20 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { Job } from '@architect/shared';
+import { TooltipProvider } from '@architect/ui';
 import { describe, expect, it } from 'vitest';
 import type { HostedAvailability } from '../../../src/renderer/src/flow/define/hosted';
 import {
+  aboutUsd,
   allowingLine,
   capText,
+  estimateNotes,
   estimateTime,
+  expectedMentorUsd,
   minutesForOneRound,
   trainHereLine,
 } from '../../../src/renderer/src/flow/define/estimates';
-import { TrainingPlace } from '../../../src/renderer/src/flow/define/TrainingPlace';
+import { TrainingPlace, TrainingRows } from '../../../src/renderer/src/flow/define/TrainingPlace';
 import { makeJob } from './factories';
 
 const COPY = {
@@ -44,18 +48,35 @@ function jobOf(trainOn: 'local' | 'hosted', minutes = 180): Job {
   return { ...base, student: { ...base.student, trainOn, hosted: COPY } };
 }
 
+const noop = () => undefined;
+
 function render(job: Job, hosted: HostedAvailability = READY): string {
-  const noop = () => undefined;
   return renderToStaticMarkup(
-    createElement(TrainingPlace, {
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(TrainingPlace, {
+        job,
+        hosted,
+        testPlace: 'local',
+        onPlaceChange: noop,
+        onRaiseLimit: noop,
+        onAllowTime: noop,
+        onSetUpOnline: noop,
+      }),
+    ),
+  );
+}
+
+/** The figures under the choice: the estimate, the cap, and the comparison when it is offered. */
+function renderRows(job: Job, withComparison = false): string {
+  return renderToStaticMarkup(
+    createElement(TrainingRows, {
       job,
-      hosted,
+      hosted: READY,
       testPlace: 'local',
-      onPlaceChange: noop,
       onCapChange: noop,
-      onRaiseLimit: noop,
-      onAllowTime: noop,
-      onSetUpOnline: noop,
+      baselines: withComparison ? { checked: false, onCheckedChange: noop } : undefined,
     }),
   );
 }
@@ -71,14 +92,14 @@ function text(html: string): string {
 
 const TITLE = 'Not even one round of teaching fits in 3 hours on this computer';
 const BODY =
-  "Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching. That doesn't fit in the 3 hours allowed, so Spark would run out of time before it changed anything.";
+  'Scoring the check tasks once takes about 1 h 40 min, then 3 h 50 min to 7 h 10 min for each round of teaching.';
 /** What the button that sets a longer limit gives: the limit `minutesForOneRound` found. */
 const GIVES = 'Allowing 9 hours leaves room for one round of teaching.';
 
-/** The words of the callout alone, apart from the cards and the plan around it. */
+/** The words of the callout alone, apart from the cards around it. */
 function callout(html: string): string {
   const at = html.indexOf('role="status"');
-  return text(html.slice(html.lastIndexOf('<div', at), html.indexOf('Estimated time')));
+  return text(html.slice(html.lastIndexOf('<div', at)));
 }
 
 describe('a place that cannot fit a round', () => {
@@ -92,9 +113,9 @@ describe('a place that cannot fit a round', () => {
     expect(html.match(/>Allow 9 hours</g)).toHaveLength(1);
     expect(html).not.toContain('Allow more time');
     expect(html).toContain('>Train online instead</button>');
-    // It sits right under the choice, before the plan's figures.
+    // It sits right under the choice, and nothing but the way out of it follows.
     expect(html.indexOf('Train online instead')).toBeGreaterThan(html.indexOf('Train on this'));
-    expect(html.indexOf('Train online instead')).toBeLessThan(html.indexOf('Estimated time'));
+    expect(html.indexOf(TITLE)).toBeGreaterThan(html.indexOf('Only what Spark reads'));
   });
 
   it('does not leave the reader asking what is taught: it says rounds of teaching', () => {
@@ -103,10 +124,11 @@ describe('a place that cannot fit a round', () => {
     expect(words).toContain('Not even one round of teaching');
   });
 
-  it('says what the time button gives, in the limit that button sets', () => {
+  it('keeps what the time button gives for when it is asked, in the limit that button sets', () => {
     const job = jobOf('local');
     const html = render(job);
-    expect(callout(html)).toContain(GIVES);
+    // The line is the button's tooltip, so the callout itself says no more than its figures.
+    expect(callout(html)).not.toContain('leaves room');
     // It is the limit the button names, found once: the line and the label cannot differ.
     const minutes = minutesForOneRound(job, 'local') ?? 0;
     expect(minutes).toBe(540);
@@ -122,8 +144,11 @@ describe('a place that cannot fit a round', () => {
   });
 
   it('says it in the unit the time is in, for a job that trains online', () => {
-    const html = render(jobOf('hosted', 20));
-    expect(callout(html)).toContain('Allowing 1 hour leaves room for one round of teaching.');
+    const job = jobOf('hosted', 20);
+    expect(render(job)).toContain('>Allow 1 hour<');
+    expect(allowingLine(minutesForOneRound(job, 'hosted') ?? 0)).toBe(
+      'Allowing 1 hour leaves room for one round of teaching.',
+    );
   });
 
   it('is loud: a tinted box with an alert mark, not a pale line', () => {
@@ -132,17 +157,16 @@ describe('a place that cannot fit a round', () => {
   });
 
   it('offers training online only when it is possible, and says what it needs when not', () => {
-    // No online service chosen: a button sets it up, and the sentence next to it is short.
+    // No online service chosen: a button sets it up, which says all there is to say.
     const none = render(jobOf('local'), NO_SERVICE);
     expect(none).not.toContain('Train online instead');
-    expect(callout(none)).toContain("Online training isn't set up yet.");
-    expect(callout(none)).not.toContain("Online training isn't ready.");
+    expect(callout(none)).not.toContain("Online training isn't");
     expect(callout(none)).not.toContain("Pick an online service under Agent's model");
     expect(none).toContain('Set up online training');
     // Its key isn't saved: the same, and the card says which key.
     const key = render(jobOf('local'), NO_KEY);
     expect(key).not.toContain('Train online instead');
-    expect(callout(key)).toContain("Online training isn't set up yet.");
+    expect(callout(key)).not.toContain("Online training isn't");
     expect(callout(key)).not.toContain('Add an OpenRouter key');
     expect(text(key)).toContain('Add an OpenRouter key in Advanced settings');
     expect(key).toContain('Set up online training');
@@ -166,7 +190,9 @@ describe('a place that cannot fit a round', () => {
   it("says online can't fit a round when online is where it trains, with nothing else to offer", () => {
     const html = render(jobOf('hosted', 20));
     expect(text(html)).toContain('Not even one round of teaching fits in 20 minutes online');
-    expect(text(html)).toContain('Glimmer takes about 15 seconds a task online');
+    expect(text(html)).toContain(
+      'Scoring the check tasks once takes about 10 min, then 23 min to 43 min for each round of teaching.',
+    );
     expect(html).toContain('>Allow 1 hour</button>');
     expect(html).not.toContain('instead');
   });
@@ -224,15 +250,18 @@ describe('the card of the place that is chosen', () => {
     expect(chosen).toContain('group-data-[state=unchecked]:text-fg-dim');
     expect(chosen).not.toMatch(/(?:^|[\s"])text-fg-dim/);
   });
+
+  it('says how fast the place practices and what that costs, in a line each', () => {
+    const html = render(jobOf('hosted'));
+    expect(text(card(html, 'Train on this computer'))).toMatch(/About 2\.5 minutes a task Free/);
+    expect(text(card(html, 'Train online'))).toMatch(/About 15 seconds a task About \$\d+(\.\d+)?/);
+  });
 });
 
 describe('what leaves this computer when training here', () => {
-  /** The card of the place that trains on this computer: its title down to its last line. */
-  const here = (job: Job) => {
-    const html = render(job);
-    const at = html.indexOf('Train on this computer');
-    return text(html.slice(html.lastIndexOf('<button', at), html.indexOf('</button>', at)));
-  };
+  const names = { mentor: 'Spark', student: 'Glimmer' };
+  /** The note under the choice, which is about the place chosen. */
+  const note = (job: Job) => text(render(job));
   const withTeacher = (mentor: Job['mentor']): Job => ({ ...jobOf('local', 2000), mentor });
   const ollama = {
     kind: 'model',
@@ -246,68 +275,139 @@ describe('what leaves this computer when training here', () => {
   it('says nothing leaves it only when the teacher runs here too', () => {
     // Training always sends the teacher its view of the practice attempts, so this is the one
     // case in which the claim is true.
-    expect(here(withTeacher(ollama))).toContain('Free. Nothing leaves this computer.');
+    expect(note(withTeacher(ollama))).toContain('Nothing leaves this computer.');
     for (const baseUrl of ['http://localhost:1234/v1', 'http://[::1]:11434/v1']) {
-      expect(here(withTeacher({ ...ollama, baseUrl }))).toContain(
-        'Free. Nothing leaves this computer.',
-      );
+      expect(note(withTeacher({ ...ollama, baseUrl }))).toContain('Nothing leaves this computer.');
     }
   });
 
   it('says what goes online when the teacher is online, which is what it reads to teach', () => {
     // The default teacher is Meta's online API.
-    const words = here(jobOf('local', 2000));
-    expect(words).toContain('Free. Glimmer runs here; only what Spark reads to teach goes online.');
+    const words = note(jobOf('local', 2000));
+    expect(words).toContain('Only what Spark reads to teach goes online.');
     expect(words).not.toContain('Nothing leaves');
   });
 
   it('counts a coding agent as online, and a local runtime at another machine as online', () => {
     const agent = withTeacher({ kind: 'coding_agent', agent: 'claude_code', label: 'Claude Code' });
-    expect(here(agent)).toContain(
-      'Free. Glimmer runs here; only what Claude Code reads to teach goes online.',
-    );
+    expect(note(agent)).toContain('Only what Claude Code reads to teach goes online.');
     // A runtime that is local by kind, pointed at another machine's address, is not this computer.
     const lan = withTeacher({ ...ollama, baseUrl: 'http://192.168.1.20:11434/v1' });
-    expect(here(lan)).toContain('only what');
-    expect(here(lan)).not.toContain('Nothing leaves');
+    expect(note(lan)).toContain('Only what');
+    expect(note(lan)).not.toContain('Nothing leaves');
   });
 
-  it("says where the teacher works in the estimate's notes, and says it as the card does", () => {
-    expect(text(render(jobOf('local', 2000)))).toContain(
+  it('says the tasks and files go online when training happens online', () => {
+    const words = note(jobOf('hosted'));
+    expect(words).toContain('Tasks and files go online.');
+    expect(words).not.toContain('Only what Spark reads');
+  });
+
+  it('says the same on a Mac, where the choice is named for it', () => {
+    expect(trainHereLine(jobOf('local'), names, 'this Mac')).toBe(
+      'Only what Spark reads to teach goes online.',
+    );
+    expect(trainHereLine(withTeacher(ollama), names, 'this Mac')).toBe('Nothing leaves this Mac.');
+  });
+
+  it("says where the teacher works in the estimate's notes, and says it as the note does", () => {
+    const notes = (job: Job) =>
+      estimateNotes(job, {
+        names,
+        device: { inSentence: 'this computer', label: 'This computer' },
+        local: estimateTime(job, 'local'),
+        remote: estimateTime(job, 'hosted'),
+        baselines: false,
+      }).join(' ');
+    expect(notes(jobOf('local', 2000))).toContain(
       'Spark works in the cloud and sees the practice attempts',
     );
-    const words = text(render(withTeacher(ollama)));
-    expect(words).toContain('Spark Open runs on this computer and sees the practice attempts');
+    const words = notes(withTeacher(ollama));
+    expect(words).toContain('Spark runs on this computer and sees the practice attempts');
     expect(words).not.toContain('works in the cloud');
   });
+});
 
-  it('says the same on a Mac, where the card is named for it', () => {
-    expect(trainHereLine(jobOf('local'), { mentor: 'Spark', student: 'Glimmer' }, 'this Mac')).toBe(
-      'Free. Glimmer runs here; only what Spark reads to teach goes online.',
+describe('what the estimate assumes', () => {
+  const names = { mentor: 'Spark', student: 'Glimmer' };
+  const input = (job: Job, extra: { remote?: boolean; baselines?: boolean } = {}) => ({
+    names,
+    device: { inSentence: 'this computer', label: 'This computer' },
+    local: estimateTime(job, 'local'),
+    remote: extra.remote === false ? null : estimateTime(job, 'hosted'),
+    baselines: extra.baselines === true,
+  });
+
+  it('says when training stops, how many rounds fit at each place, and what has a hard cap', () => {
+    const job = jobOf('local');
+    const notes = estimateNotes(job, input(job));
+    expect(notes[0]).toBe(
+      "Training stops at the 90% target, after 12 rounds or after 3 hours, or sooner once changes stop helping. Paused time doesn't count.",
     );
-    expect(
-      trainHereLine(withTeacher(ollama), { mentor: 'Spark', student: 'Glimmer' }, 'this Mac'),
-    ).toBe('Free. Nothing leaves this Mac.');
+    expect(notes.some((line) => line.startsWith('This computer: '))).toBe(true);
+    expect(notes.some((line) => line.startsWith('Online: '))).toBe(true);
+    expect(notes.at(-1)).toBe("Only Spark's bill has a hard cap.");
+  });
+
+  it('leaves out the online place when there is no copy to train on, and the simpler versions unless offered', () => {
+    const job = jobOf('local');
+    const notes = estimateNotes(job, input(job, { remote: false })).join(' ');
+    expect(notes).not.toContain('Online:');
+    expect(notes).not.toContain('simpler versions');
+    const compared = estimateNotes(job, input(job, { baselines: true })).join(' ');
+    expect(compared).toContain(
+      'The three simpler versions are Glimmer on its own, a setup Spark writes in one go, and Glimmer revising its own. They run after this agent.',
+    );
+  });
+});
+
+describe('the rows of the plan', () => {
+  it('says what it all takes and costs as two figures, with the lines behind a fold', () => {
+    const html = renderRows(jobOf('hosted'));
+    expect(html).toContain('aria-label="Estimate"');
+    // The time is a figure; the cost is one a screen reader hears whole, and a button opens the rest.
+    expect(text(html)).toMatch(/Estimate\s*[\d.]+ h/);
+    expect(html).toMatch(/role="img" aria-label="\$\d+(?:\.\d{2})?"/);
+    expect(html).toMatch(/aria-expanded="false"[^>]*>[\s\S]*?Breakdown/);
+    expect(text(html)).not.toContain('Final test');
+  });
+
+  it("says the teacher's cap and what is expected of it, in the teacher's name", () => {
+    const job = jobOf('hosted');
+    const html = renderRows(job);
+    expect(text(html)).toContain('Spark spending cap');
+    const expected = expectedMentorUsd(job, estimateTime(job, 'hosted')) ?? 0;
+    expect(text(html)).toContain(`${aboutUsd(expected)} expected`);
+    expect(html).toContain('aria-valuetext="$5"');
+  });
+
+  it('offers the comparison only when comparison mode is on, and says what it adds', () => {
+    expect(text(renderRows(jobOf('hosted')))).not.toMatch(/comparison|simpler versions/i);
+    const html = renderRows(jobOf('hosted'), true);
+    expect(text(html)).toContain('Also train three simpler versions to compare');
+    expect(text(html)).toMatch(
+      /Adds [\d.]+ h · \$[\d.]+ Online practice · \$[\d.]+ Spark teaching/,
+    );
   });
 });
 
 describe('the online place', () => {
-  it('says what is sent, and what it costs where a service is chosen, even before its key is saved', () => {
+  it('says how fast it is and what it costs where a service is chosen, even before its key is saved', () => {
     for (const hosted of [READY, NO_KEY]) {
       const words = text(render(jobOf('hosted'), hosted));
-      expect(words).toMatch(/Faster: about 15 seconds a task/);
-      expect(words).toMatch(/About \$\d+(\.\d+)? · sends tasks and files online/);
+      expect(words).toMatch(/About 15 seconds a task/);
+      expect(words).toMatch(/About \$\d+(\.\d+)?/);
+      expect(words).toContain('Tasks and files go online.');
     }
     expect(text(render(jobOf('hosted'), NO_KEY))).toContain(
       'Add an OpenRouter key in Advanced settings',
     );
   });
 
-  it('says what is sent before a service is chosen, and asks for one in plain words', () => {
+  it('asks for a service in plain words before one is chosen', () => {
     const base = makeJob();
     const { hosted: _none, ...student } = jobOf('local').student;
     const words = text(render({ ...base, student: { ...student, trainOn: 'local' } }, NO_SERVICE));
-    expect(words).toContain('Sends tasks and files online');
     expect(words).toContain("Pick an online service under Agent's model in Advanced settings");
     expect(words).not.toMatch(/\bhost\b/i);
   });

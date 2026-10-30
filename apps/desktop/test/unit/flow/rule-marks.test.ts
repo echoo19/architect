@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { RuleDetails, TaskPlan } from '@architect/shared';
+import { TooltipProvider } from '@architect/ui';
 import { describe, expect, it } from 'vitest';
 import { RuleReview } from '../../../src/renderer/src/flow/define/RuleReview';
 import { leftOutLine } from '../../../src/renderer/src/flow/define/rule-words';
@@ -82,7 +83,9 @@ function review(details: RuleDetails = DETAILS): string {
     notes: [],
     confirmation: { state: 'needed', token: 'abc' },
   };
-  return renderToStaticMarkup(createElement(RuleReview, { job: makeJob(), plan }));
+  return renderToStaticMarkup(
+    createElement(TooltipProvider, null, createElement(RuleReview, { job: makeJob(), plan })),
+  );
 }
 
 /** What a person reads: no tags, one space between words. */
@@ -98,7 +101,7 @@ describe('a mark that counts as zero, as Define puts it in front of the person',
   const html = review();
 
   it('shows each answer beside the question it answered, under the lines from the policy', () => {
-    const policy = html.slice(html.indexOf('From your policy'), html.indexOf('The rule, in words'));
+    const policy = html.slice(html.indexOf('From your policy'), html.indexOf('>The rule<'));
     const lines = [...policy.matchAll(/<li[\s\S]*?<\/li>/g)].map((item) => text(item[0]).trim());
     expect(lines).toEqual([
       'Labor is billed at $65 an hour, in half-hour steps. policy.md',
@@ -111,7 +114,7 @@ describe('a mark that counts as zero, as Define puts it in front of the person',
   });
 
   it('says in the step that adds the column what counts as zero in it, as a sentence after the step', () => {
-    const rule = html.slice(html.indexOf('The rule, in words'), html.indexOf('>Examples<'));
+    const rule = html.slice(html.indexOf('>The rule<'), html.indexOf('>Examples<'));
     const steps = [...rule.matchAll(/<li[\s\S]*?<\/li>/g)].map((item) => text(item[0]).trim());
     expect(steps).toEqual([
       '1. Round labor hours up to a multiple of 0.5.',

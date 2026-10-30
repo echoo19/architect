@@ -10,6 +10,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  changeHint,
   confirmedOn,
   confirmLine,
   leftOutLine,
@@ -127,25 +128,28 @@ describe('the words that put a rule in front of the person', () => {
     expect(passageOrigin({ file: 'answers', question: both })).toBe(`your answer to "${both}"`);
   });
 
-  it('says who read the policy and what rests on the rule, one rule or several', () => {
+  it('says who wrote the rule and what rests on it, one rule or several', () => {
     expect(reviewIntro('Spark', 'Glimmer', 1)).toBe(
-      'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+      'Spark wrote this rule from your policy. Architect grades Glimmer against the answers it gives.',
     );
     expect(reviewIntro('Spark', 'Glimmer', 2)).toBe(
-      'Spark turned your policy into these rules. Architect works out the right answer to every task from these rules and grades Glimmer against those answers, so if the rules are wrong, the grades are wrong too.',
+      'Spark wrote these rules from your policy. Architect grades Glimmer against the answers they give.',
     );
-    expect(confirmLine('Spark', 1)).toContain("Training can't start until you confirm it.");
-    expect(confirmLine('Spark', 2)).toContain('until you confirm them.');
+  });
+
+  it('asks the one question, beside the button that answers it', () => {
+    expect(confirmLine(1)).toBe('Is this the rule you meant?');
+    expect(confirmLine(2)).toBe('Are these the rules you meant?');
   });
 
   it('names the agent by its short name, once, and the teacher and Architect as who did what', () => {
     for (const count of [1, 2]) {
       const intro = reviewIntro('Spark', 'Glimmer', count);
-      // Three things are named, each where it acts: the teacher read, Architect worked out and graded.
+      // Three things are named, each where it acts: the teacher wrote, Architect graded.
       expect(intro.match(/Spark/g)).toHaveLength(1);
       expect(intro.match(/Architect/g)).toHaveLength(1);
       expect(intro.match(/Glimmer/g)).toHaveLength(1);
-      expect(intro).not.toMatch(/the agent|expected answer|tested on/);
+      expect(intro).not.toMatch(/the agent|expected answer|tested on|passage/);
       // A student with another name is called by it.
       expect(reviewIntro('Spark Open', 'Gleam', count)).toContain('grades Gleam against');
     }
@@ -154,19 +158,11 @@ describe('the words that put a rule in front of the person', () => {
   it("says what changing the description keeps, and what it does not, in the screen's own words", () => {
     // Changing the description puts the words and the attached files back, and drafts again: the
     // conversation, with the answers in it, starts over.
-    expect(confirmLine('Spark', 1)).toBe(
-      "Check that the lines from your policy are the right ones, and that the rule and the examples match them. Training can't start until you confirm it. If it isn't right, change the description. Your words and files come back as you left them, and Spark may ask its questions again.",
+    expect(changeHint('Spark')).toBe(
+      'Your words and files come back as you left them, and Spark may ask its questions again.',
     );
-    // The section is called "From your policy" and its items are never called passages.
-    for (const count of [1, 2]) {
-      expect(confirmLine('Spark', count)).toContain('the lines from your policy');
-      expect(confirmLine('Spark', count)).not.toMatch(/passage/i);
-    }
-    expect(confirmLine('Spark Open', 2)).toContain('and Spark Open may ask its questions again.');
-    expect(confirmLine('Spark', 2)).toContain("If they aren't right, change the description.");
-    for (const count of [1, 2]) {
-      expect(confirmLine('Spark', count)).not.toMatch(/describe the job again/i);
-    }
+    expect(changeHint('Spark Open')).toContain('and Spark Open may ask its questions again.');
+    expect(changeHint('Spark')).not.toMatch(/describe the job again|passage/i);
   });
 
   it('names the day it was confirmed and the rows that could not be worked out', () => {

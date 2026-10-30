@@ -26,7 +26,7 @@ import {
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
-const DEFINE_HEIGHT = 2800;
+const DEFINE_HEIGHT = 3100;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -289,13 +289,14 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   // Define puts the rule first: the passages, the rule in words, the examples and their working.
   const section = page.getByRole('region', { name: 'Check the rule' });
   await expect(section).toBeVisible();
-  // What rests on the rule is said in the names the screen uses: Spark read the policy, and
-  // Architect grades Glimmer against the answers the rule gives. The lines it quotes are the
-  // section "From your policy", and the screen calls them nothing else.
+  // What rests on the rule is said in the names the screen uses: Spark wrote it from the policy,
+  // and Architect grades Glimmer against the answers the rule gives. The lines it quotes are the
+  // row "From your policy", and the screen calls them nothing else. The person is asked one
+  // question, beside the button that answers it.
   await expect(section).toContainText(
-    'Spark turned your policy into this rule. Architect works out the right answer to every task from this rule and grades Glimmer against those answers, so if the rule is wrong, the grades are wrong too.',
+    'Spark wrote this rule from your policy. Architect grades Glimmer against the answers it gives.',
   );
-  await expect(section).toContainText('Check that the lines from your policy are the right ones');
+  await expect(section).toContainText('Is this the rule you meant?');
   await expect(section.getByText('From your policy', { exact: true })).toBeVisible();
   await expect(section).not.toContainText(/passage/i);
   const card = section.getByRole('article', { name: 'Ticket totals' });
@@ -371,12 +372,13 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   expect(tagBox!.x).toBeLessThan(showsBox!.x);
   const weight = (tag: Locator) => tag.evaluate((node) => getComputedStyle(node).fontWeight);
   expect(Number(await weight(notRecord))).toBeGreaterThan(Number(await weight(shows)));
-  // The version is not beside the title: it waits under Details, for whoever wants to quote it.
+  // The version is not beside the title: it waits under how the numbers are read, for whoever
+  // wants to quote it.
   await expect(card.getByText(/^version [0-9a-f]{12}$/)).toHaveCount(0);
-  await card.getByRole('button', { name: 'Details' }).click();
+  await card.getByRole('button', { name: 'How numbers are read' }).click();
   await expect(card.getByText('Rule version')).toBeVisible();
   await expect(card.getByText(/^[0-9a-f]{12}$/)).toBeVisible();
-  await card.getByRole('button', { name: 'Details' }).click();
+  await card.getByRole('button', { name: 'How numbers are read' }).click();
   // One example is a ticket with no parts cost, shown as nothing and counted as 0, and one is a
   // ticket whose parts cost says N/A, shown as the file wrote it and counted as 0.
   await expect(card.getByText('An empty parts cost counts as 0', { exact: true })).toBeVisible();
@@ -411,13 +413,20 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await expect(start).toBeDisabled();
   await expect(page.getByText('Confirm the rule first')).toBeVisible();
   // A rule that isn't right has a way out: change the description, which comes back as it was
-  // with its files, and the line beside the button says so.
-  await expect(section.getByRole('button', { name: 'Change the description' })).toBeVisible();
+  // with its files, and the button says so when it is asked.
+  const change = section.getByRole('button', { name: 'Change the description' });
+  await expect(change).toBeVisible();
   await expect(section.getByRole('button', { name: 'Describe the job again' })).toHaveCount(0);
-  await expect(section).toContainText(
-    'Your words and files come back as you left them, and Spark may ask its questions again.',
-  );
   await capture(page, 'rule-define-dark');
+  await change.hover();
+  await expect(
+    page
+      .getByRole('tooltip')
+      .getByText(
+        'Your words and files come back as you left them, and Spark may ask its questions again.',
+      ),
+  ).toBeVisible();
+  await page.mouse.move(0, 0);
 
   // The examples are practice or starting tasks: none is a ticket of the final test.
   const test = await finalTest(page, jobId);
@@ -448,7 +457,7 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await expect(ruleHeading).toBeInViewport();
   await expect(section.getByText(/^Confirmed on /)).toBeInViewport();
   await expect(ruleHeading).toBeFocused();
-  await resize(DEFINE_HEIGHT);
+  await resize(1300);
   // The rule is no longer what holds training back. Time is: this computer can't fit a round in
   // four hours, so one callout by the choice says so, with the way out, and Start training waits.
   await expect(page.getByText('Confirm the rule first')).toHaveCount(0);
@@ -457,17 +466,33 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await expect(slow).toContainText(
     'Not even one round of teaching fits in 4 hours on this computer',
   );
-  await expect(slow.getByRole('button', { name: 'Allow 7 hours' })).toBeVisible();
-  await expect(slow).toContainText('Allowing 7 hours leaves room for one round of teaching.');
+  const allow = slow.getByRole('button', { name: 'Allow 7 hours' });
+  await expect(allow).toBeVisible();
   // The round's time is said as a range, which the limit the button names is made from.
   await expect(slow).toContainText(
-    /to score the check tasks once, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
+    /Scoring the check tasks once takes about \d+ h( \d+ min)?, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
   );
   await capture(page, 'rule-confirmed-dark');
+  // What the button gives is said when it is asked.
+  await allow.hover();
+  await expect(
+    page.getByRole('tooltip').getByText('Allowing 7 hours leaves room for one round of teaching.'),
+  ).toBeVisible();
+  await page.mouse.move(0, 0);
   await allowMoreTime(page);
   await expect(slow).toHaveCount(0);
   await expect(start).toBeEnabled();
   await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  // The longer limit is saved as it is allowed; the models below are saved after it, not before.
+  const jobAt = jobIdOf(page);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (id) => window.architect.jobs.get(id).then((saved) => saved.budget.maxWallMinutes),
+        jobAt,
+      ),
+    )
+    .toBeGreaterThan(240);
 
   // The app puts the person's own models on a new job when it arrives; this stands in for that.
   const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);

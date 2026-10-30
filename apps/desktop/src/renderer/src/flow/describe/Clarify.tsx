@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
-import { Button, cn, ReplyComposer, Spinner } from '@architect/ui';
+import { Button, cn, Collapse, Reveal, ReplyComposer, Spinner } from '@architect/ui';
 import { CodedError } from '@architect/shared';
 import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
@@ -24,6 +24,9 @@ const DRAFTED = "That's everything I need. I've drafted the job for you to revie
 /** After this long, the waiting line says the mentor is still working. */
 const SLOW_MS = 8000;
 
+/** How near the end of the conversation counts as following it: a new line brings it into view. */
+const FOLLOW_PX = 120;
+
 /** The mentor's clarifying questions, answered by picking an option or typing a reply. */
 export function Clarify() {
   const conversation = useDraftStore((state) => state.conversation);
@@ -33,6 +36,7 @@ export function Clarify() {
   const [reply, setReply] = useState('');
   const [saving, setSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLOListElement>(null);
   const replyRef = useRef<HTMLInputElement>(null);
   const reviewRef = useRef<HTMLButtonElement>(null);
 
@@ -47,6 +51,20 @@ export function Clarify() {
     const scroller = scrollRef.current;
     scroller?.scrollTo({ top: scroller.scrollHeight });
   }, [entries.length, waiting, failure]);
+
+  // A line that opens or grows at the end of the conversation keeps the end in view while it
+  // moves, for whoever is following it.
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const list = listRef.current;
+    if (!scroller || !list) return;
+    const observer = new ResizeObserver(() => {
+      const left = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+      if (left < FOLLOW_PX) scroller.scrollTo({ top: scroller.scrollHeight });
+    });
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, []);
 
   // When the mentor answers, put the cursor where the next step is.
   useEffect(() => {
@@ -81,18 +99,19 @@ export function Clarify() {
     <div className="flex h-full flex-col">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-12">
         <ol
+          ref={listRef}
           aria-label="Conversation with the mentor"
-          className="m-0 mx-auto flex max-w-[720px] list-none flex-col gap-7 p-0"
+          className="m-0 mx-auto flex max-w-[720px] list-none flex-col p-0"
         >
           {entries.map((entry, at) =>
             entry.kind === 'user' ? (
               !entry.viaOption && (
-                <li key={entry.id} className="flex flex-col">
+                <Reveal as="li" key={entry.id} className={cn('flex flex-col', at > 0 && 'pt-7')}>
                   <UserMessage entry={entry} />
-                </li>
+                </Reveal>
               )
             ) : (
-              <li key={entry.id} className="flex flex-col">
+              <Reveal as="li" key={entry.id} className={cn('flex flex-col', at > 0 && 'pt-7')}>
                 <MentorMessage
                   entry={entry}
                   speaker={speakerOf(entries, at, mentor)}
@@ -105,42 +124,50 @@ export function Clarify() {
                   }
                   onStartAgain={entry === last && entry.ended ? startAgain : undefined}
                 />
-              </li>
+              </Reveal>
             ),
           )}
-          {waiting && (
-            <li>
-              <Waiting
-                since={waiting.startedAt}
-                text={
-                  sessionId
-                    ? `${mentor} is thinking`
-                    : waiting.files.length > 0
-                      ? `${mentor} is reading your description and ${plural(waiting.files.length, 'file')}`
-                      : `${mentor} is reading your description`
-                }
-                slowText="Still working. This can take a minute."
-              />
-            </li>
-          )}
-          {failure && (
-            <li className="flex flex-col gap-3">
-              <ProblemState
-                layout="inline"
-                error={failure.error}
-                title={`${mentor} couldn't answer`}
-                onRetry={retryLastMessage}
-              />
-              {(!sessionId || lost(failure.error)) && (
-                <Button size="sm" className="self-start" onClick={startAgain}>
-                  Edit the description
-                </Button>
+          <li>
+            <Collapse open={waiting !== null}>
+              {waiting && (
+                <div className="pt-7">
+                  <Waiting
+                    since={waiting.startedAt}
+                    text={
+                      sessionId
+                        ? `${mentor} is thinking`
+                        : waiting.files.length > 0
+                          ? `${mentor} is reading your description and ${plural(waiting.files.length, 'file')}`
+                          : `${mentor} is reading your description`
+                    }
+                    slowText="Still working. This can take a minute."
+                  />
+                </div>
               )}
-            </li>
-          )}
+            </Collapse>
+          </li>
+          <li>
+            <Collapse open={failure !== null}>
+              {failure && (
+                <div className="flex flex-col gap-3 pt-7">
+                  <ProblemState
+                    layout="inline"
+                    error={failure.error}
+                    title={`${mentor} couldn't answer`}
+                    onRetry={retryLastMessage}
+                  />
+                  {(!sessionId || lost(failure.error)) && (
+                    <Button size="sm" className="self-start" onClick={startAgain}>
+                      Edit the description
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Collapse>
+          </li>
         </ol>
       </div>
-      {sessionId && !finished && (
+      <Collapse open={sessionId !== null && !finished}>
         <div className="px-6 pb-6">
           <ReplyComposer
             className="mx-auto"
@@ -153,7 +180,7 @@ export function Clarify() {
             inputRef={replyRef}
           />
         </div>
-      )}
+      </Collapse>
     </div>
   );
 }
@@ -188,7 +215,7 @@ function UserMessage({ entry }: { entry: UserEntry }) {
 
 function StepLine({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex h-[22px] items-center gap-2 text-small text-fg">
+    <div className="flex h-[22px] items-center gap-2 text-small">
       {icon}
       <span>{children}</span>
     </div>
@@ -293,7 +320,7 @@ function Waiting({ since, text, slowText }: { since: number; text: string; slowT
     return () => window.clearTimeout(timer);
   }, [since, slow]);
   return (
-    <div role="status" className="flex h-[22px] items-center gap-2 text-small text-fg">
+    <div role="status" className="flex h-[22px] items-center gap-2 text-small">
       <Spinner tone="mentor" size={14} />
       <span>{slow ? slowText : text}</span>
     </div>

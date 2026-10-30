@@ -152,20 +152,58 @@ export function placePhrase(place: TrainPlace, device: string): string {
 }
 
 /**
- * What the card for training on this computer says about what leaves it. Training always sends
- * the teacher its view of the practice attempts (`DataSharingSchema`), so "nothing leaves" is only
- * true when the teacher runs on this computer as well. Any other teacher, a coding agent included,
- * is online, and the line says what goes there.
+ * What the note under the choice says about what leaves this computer when training here. Training
+ * always sends the teacher its view of the practice attempts (`DataSharingSchema`), so "nothing
+ * leaves" is only true when the teacher runs on this computer as well. Any other teacher, a coding
+ * agent included, is online, and the line says what goes there.
  */
 export function trainHereLine(job: Job, names: ModelNames, device: string): string {
   return mentorIsLocal(job.mentor)
-    ? `Free. Nothing leaves ${device}.`
-    : `Free. ${names.student} runs here; only what ${names.mentor} reads to teach goes online.`;
+    ? `Nothing leaves ${device}.`
+    : `Only what ${names.mentor} reads to teach goes online.`;
 }
+
+/** What the note says when training happens online: the host gets the tasks and the files. */
+export const TRAIN_ONLINE_LINE = 'Tasks and files go online.';
 
 /** Where the teacher works, as the start of a sentence about what it sees. */
 export function teacherWorks(job: Job, device: string): string {
   return mentorIsLocal(job.mentor) ? `runs on ${device}` : 'works in the cloud';
+}
+
+export interface EstimateNotesInput {
+  names: ModelNames;
+  /** This computer as the middle of a sentence ("this Mac") and as the start of one ("This Mac"). */
+  device: { inSentence: string; label: string };
+  local: TimeEstimate;
+  /** The online copy's estimate, when there is a copy to train on. */
+  remote: TimeEstimate | null;
+  /** Whether the three simpler versions are offered, which the notes then explain. */
+  baselines: boolean;
+}
+
+/**
+ * What the estimate assumes, one line each, for whoever wants to know: when training stops, how
+ * many rounds fit at each place, what is measured twice, what the teacher sees, and what has a
+ * hard cap.
+ */
+export function estimateNotes(job: Job, input: EstimateNotesInput): string[] {
+  const { names, device, local, remote, baselines } = input;
+  const { maxRounds, maxWallMinutes } = job.budget;
+  const { mentor, student } = names;
+  return [
+    `Training stops at the ${Math.round(job.requirements.passRate * 100)}% target, after ${maxRounds} rounds or after ${capText(maxWallMinutes)}, or sooner once changes stop helping. Paused time doesn't count.`,
+    `${device.label}: ${roundsLine(job, local)}.`,
+    ...(remote === null ? [] : [`Online: ${roundsLine(job, remote)}.`]),
+    'A promising change is measured twice, so its round takes longer.',
+    `${mentor} ${teacherWorks(job, device.inSentence)} and sees the practice attempts and the file samples it needs.`,
+    ...(baselines
+      ? [
+          `The three simpler versions are ${student} on its own, a setup ${mentor} writes in one go, and ${student} revising its own. They run after this agent.`,
+        ]
+      : []),
+    `Only ${mentor}'s bill has a hard cap.`,
+  ];
 }
 
 /**
@@ -199,9 +237,9 @@ export function wontTeachTitle(job: Job, place: TrainPlace, device: string): str
 }
 
 /**
- * What the button that sets a longer time limit gives, said beside it: the limit it sets is the
- * one `minutesForOneRound` found, so one round does fit in it, the longest it can take included.
- * A round is called a round of teaching throughout the callout, as its title does.
+ * What the button that sets a longer time limit gives: the limit it sets is the one
+ * `minutesForOneRound` found, so one round does fit in it, the longest it can take included. A
+ * round is called a round of teaching throughout the callout, as its title does.
  */
 export function allowingLine(minutes: number): string {
   return `Allowing ${capText(minutes)} leaves room for one round of teaching.`;
@@ -213,30 +251,18 @@ function toTheMinute(seconds: number): string {
 }
 
 /**
- * Said plainly for a place where not one round fits the time limit: the starting measurement and
- * a round take longer than the limit, so the teacher would run out of time before it changed
- * anything. A round comes with its time, from the shortest it takes to the longest, which is the
- * one the button's limit is made from, so the line under the body adds up. The times are to the
- * minute, since two figures rounded to the half hour can add up to the limit that the sentence
- * says they pass.
+ * The figures behind the callout's title, for a place where not one round fits the time limit: the
+ * starting measurement and a round, from the shortest it takes to the longest, which is the one the
+ * button's limit is made from, so the figures add up to it. The times are to the minute, since two
+ * figures rounded to the half hour can add up to the limit that the title says they pass.
  */
-export function wontTeachBody(
-  job: Job,
-  place: TrainPlace,
-  estimate: TimeEstimate,
-  names: ModelNames,
-): string {
-  const { mentor, student } = names;
-  const cap = capText(job.budget.maxWallMinutes);
-  const task = `${student} takes ${taskTimeText(place)} a task ${place === 'hosted' ? 'online' : 'here'}`;
-  const start = toTheMinute(estimate.startSeconds);
-  if (estimate.startSeconds >= job.budget.maxWallMinutes * 60) {
-    return `${task}, so scoring the check tasks once takes about ${start}. That doesn't fit in the ${cap} allowed, so ${mentor} would never get to teach.`;
-  }
+export function wontTeachBody(job: Job, estimate: TimeEstimate): string {
+  const start = `Scoring the check tasks once takes about ${toTheMinute(estimate.startSeconds)}`;
+  if (estimate.startSeconds >= job.budget.maxWallMinutes * 60) return `${start}.`;
   const { least, most } = estimate.roundSeconds;
   const round =
     least === most ? toTheMinute(least) : `${toTheMinute(least)} to ${toTheMinute(most)}`;
-  return `${task}: about ${start} to score the check tasks once, then ${round} for each round of teaching. That doesn't fit in the ${cap} allowed, so ${mentor} would run out of time before it changed anything.`;
+  return `${start}, then ${round} for each round of teaching.`;
 }
 
 /** Rough size of one task for the student: the request, its tool results and an answer. */

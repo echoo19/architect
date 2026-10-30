@@ -31,7 +31,7 @@ import { job, trainedJob } from './story';
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
 /** Tall enough for each screen's whole page, so a screenshot shows everything on it. */
-const DEFINE_HEIGHT = 1580;
+const DEFINE_HEIGHT = 1320;
 const TRAIN_HEIGHT = 1420;
 const REPORT_HEIGHT = 2060;
 /** The results with a rule's whole expression open, which runs a hundred lines down the page. */
@@ -118,14 +118,22 @@ test('walks from a description to a graduate', async () => {
   await resize(900);
   await goTo(page, '/new');
   await expect(page.getByRole('heading', { name: 'What should your agent do?' })).toBeVisible();
-  // Before anything is attached, one quiet line says what drafting reads and the least it needs.
-  const needs = page.getByText(
-    'CSV, text and Markdown files, with at least 30 rows of records in all',
-  );
-  await expect(needs).toBeVisible();
+  // The screen is the question, the box and the files: what drafting reads and the least it
+  // needs is said by the paperclip when it is asked, and the teacher is a mark by the send button.
+  const attach = page.getByRole('button', { name: 'Attach files' });
+  await attach.hover();
+  await expect(
+    page
+      .getByRole('tooltip')
+      .getByText('CSV, text or Markdown files with at least 30 rows of records in all', {
+        exact: false,
+      }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('img', { name: /^Teacher: Spark\. Reads what you send/ }),
+  ).toBeVisible();
   await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
-  await page.getByRole('button', { name: 'Attach files' }).click();
-  await expect(needs).toHaveCount(0);
+  await attach.click();
   const chips = page.getByRole('list', { name: 'Attached files' }).getByRole('listitem');
   await expect(chips).toHaveCount(6);
   await expect(chips.first()).toHaveText('jobs.csv');
@@ -173,20 +181,20 @@ test('walks from a description to a graduate', async () => {
   await expect(page.getByText('Opening files outside the job')).toHaveCount(0);
 
   // With the teacher's key saved and the model on this computer, nothing is missing.
-  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
 
-  // Each place says how fast it practices and where the files go; this computer is too slow.
+  // Each place says how fast it practices and what it costs; this computer is too slow.
   const local = page.getByRole('radio', { name: /Train on this computer/ });
   const hosted = page.getByRole('radio', { name: /Train online/ });
   await expect(local).toBeChecked();
   await expect(local).toBeDisabled();
-  await expect(local).toContainText('Slower: about 2.5 minutes a task');
+  await expect(local).toContainText('About 2.5 minutes a task');
+  await expect(local).toContainText('Free');
   // Training always sends the teacher what it reads to teach, and the story's teacher is
-  // Spark through Meta's API, so the card says what goes online instead of that nothing does.
-  await expect(local).toContainText(
-    'Free. Glimmer runs here; only what Spark reads to teach goes online.',
-  );
-  await expect(local).not.toContainText('Nothing leaves');
+  // Spark through Meta's API, so the note under the choice says what goes online instead of
+  // that nothing does.
+  await expect(page.getByText('Only what Spark reads to teach goes online.')).toBeVisible();
+  await expect(page.getByText(/Nothing leaves/)).toHaveCount(0);
   // The place chosen can't fit a round, so one callout by the choice says so in plain words,
   // Start training waits, and the footer says why. The card does not say it again right above.
   await expect(local).not.toContainText('Too slow');
@@ -195,11 +203,8 @@ test('walks from a description to a graduate', async () => {
   // A round is said as a range, from the shortest it takes to the longest, so that the limit the
   // button names adds up: 1 h 40 min of check tasks and a round of at most 7 h 10 min is 8 h 50.
   await expect(callout).toContainText(
-    'Glimmer takes about 2.5 minutes a task here: about 1 h 40 min to score the check tasks once, then 3 h 50 min to 7 h 10 min for each round of teaching.',
+    'Scoring the check tasks once takes about 1 h 40 min, then 3 h 50 min to 7 h 10 min for each round of teaching.',
   );
-  await expect(callout).toContainText("That doesn't fit in the 4 hours allowed");
-  // What the time button gives is said beside it, and it is the limit the button names.
-  await expect(callout).toContainText('Allowing 9 hours leaves room for one round of teaching.');
   // A round has one name in the box, the one its title has.
   await expect(callout).not.toContainText('practice and fixing');
   // The chosen card keeps its title in the normal color, so it does not look switched off.
@@ -214,35 +219,49 @@ test('walks from a description to a graduate', async () => {
   await capture(page, 'flow-define-slow-dark');
   // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h
   // 40 min of check tasks and a round of at most 7 h 10 min. Clicking it is in `allowMoreTime`.
-  await expect(callout.getByRole('button', { name: 'Allow 9 hours' })).toBeVisible();
+  const allow = callout.getByRole('button', { name: 'Allow 9 hours' });
+  await expect(allow).toBeVisible();
+  // What the button gives is said when it is asked, and it is the limit the button names.
+  await allow.hover();
+  await expect(
+    page.getByRole('tooltip').getByText('Allowing 9 hours leaves room for one round of teaching.'),
+  ).toBeVisible();
+  await page.mouse.move(0, 0);
   await expect(hosted).toBeEnabled();
-  await expect(hosted).toContainText('Faster: about 15 seconds a task');
-  await expect(hosted).toContainText('About $3 · sends tasks and files online');
+  await expect(hosted).toContainText('About 15 seconds a task');
+  await expect(hosted).toContainText('About $3');
 
-  // The plan keeps training apart from the final test, and each dollar under whoever bills it.
+  // The estimate is one time and one cost, and the lines they add up from are a click away:
+  // training kept apart from the final test, and each dollar under whoever bills it.
+  const estimate = page.getByRole('region', { name: 'Estimate', exact: true });
+  await expect(estimate).toContainText('6.5 h');
+  await expect(estimate.getByRole('img', { name: '$0.70' })).toBeVisible();
+  await estimate.getByRole('button', { name: 'Breakdown' }).click();
   const time = page.getByRole('region', { name: 'Estimated time' });
   const cost = page.getByRole('region', { name: 'Estimated cost' });
   await expect(time).toContainText('No round fits the 4-hour limit');
   await expect(time).toContainText('60 new tasks on this computer');
-  await expect(time).toContainText(/In all\s*6\.5 h/);
   await expect(cost).not.toContainText('Online practice');
-  await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.70/);
+  await expect(cost).toContainText(/Spark teaching\s*\$0\.70/);
   // The choices the run below starts with, so every later screen agrees with this one. Its
   // second button trains online instead, and with that the callout is gone.
   await callout.getByRole('button', { name: 'Train online instead' }).click();
   await expect(hosted).toBeChecked();
   await expect(callout).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
+  await expect(page.getByText('Tasks and files go online.')).toBeVisible();
   await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
-  await expect(time).toContainText(/In all\s*6\.5 h/);
-  await expect(cost).toContainText(/Online practice\s*Glimmer practicing online\s*\$3/);
-  await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.60/);
-  // The total is the figures above it added up.
-  await expect(cost).toContainText(/In all\s*\$3\.60/);
+  await expect(estimate).toContainText('6.5 h');
+  await expect(cost).toContainText(/Online practice\s*\$3/);
+  await expect(cost).toContainText(/Spark teaching\s*\$0\.60/);
+  // The total is the figures under it added up.
+  await expect(estimate.getByRole('img', { name: '$3.60' })).toBeVisible();
   await expect(page.getByText('About $0.60 expected', { exact: true })).toBeVisible();
   await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
   // Comparison mode is off, so nothing on the screen offers or mentions a comparison.
   await expect(page.getByText(/comparison|simpler versions/i)).toHaveCount(0);
+  await estimate.getByRole('button', { name: 'Breakdown' }).click();
+  await expect(time).toHaveCount(0);
   await capture(page, 'flow-define-dark');
 
   await page.getByRole('button', { name: 'Advanced settings' }).click();
@@ -743,21 +762,23 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   });
   await expect(compare).not.toBeChecked();
   await expect(
-    page.getByText('Adds 11.5 h · $3 Online practice · $0.06 Spark', { exact: true }),
+    page.getByText('Adds 11.5 h · $3 Online practice · $0.06 Spark teaching', { exact: true }),
   ).toBeVisible();
+  const estimate = page.getByRole('region', { name: 'Estimate', exact: true });
+  await estimate.getByRole('button', { name: 'Breakdown' }).click();
   const time = page.getByRole('region', { name: 'Estimated time' });
   const cost = page.getByRole('region', { name: 'Estimated cost' });
   await expect(time).not.toContainText('Comparison');
-  await expect(time).toContainText(/In all\s*6\.5 h/);
-  await expect(cost).toContainText(/In all\s*\$3\.60/);
+  await expect(estimate).toContainText('6.5 h');
+  await expect(estimate.getByRole('img', { name: '$3.60' })).toBeVisible();
 
   // Ticked, the plan adds the comparison to the time and to each bill.
   await compare.click();
   await expect(time).toContainText(/Comparison\s*Three simpler versions\s*11\.5 h/);
-  await expect(time).toContainText(/In all\s*18 h/);
-  await expect(cost).toContainText(/Online practice\s*Glimmer practicing online\s*\$6/);
-  await expect(cost).toContainText(/Spark\s*Teaching\s*\$0\.65/);
-  await expect(cost).toContainText(/In all\s*\$6\.65/);
+  await expect(estimate).toContainText('18 h');
+  await expect(cost).toContainText(/Online practice\s*\$6/);
+  await expect(cost).toContainText(/Spark teaching\s*\$0\.65/);
+  await expect(estimate.getByRole('img', { name: '$6.65' })).toBeVisible();
 
   // The baselines reuse the agent's seed, so the four runs compare like for like.
   await page.getByRole('button', { name: 'Start training' }).click();
@@ -812,7 +833,7 @@ test('says what a run needs before it starts, with one action for each', async (
   await expect(needs.getByRole('button', { name: 'Download · 17 GB' })).toBeVisible();
   await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
   await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
-  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
   await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
 });
@@ -831,7 +852,7 @@ test('says when Ollama is not running, and looks again when asked', async () => 
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
   await stubEngine(app, { 'connections:detectLocal': FLOW_LOCAL });
   await needs.getByRole('button', { name: 'Check again' }).click();
-  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 });
 
@@ -852,7 +873,7 @@ test('asks the online copy before it starts, and stays when it does not answer',
 
   // Everything saved is in place, so nothing is listed until the copy is asked.
   await expect(page.getByRole('radio', { name: /Train online/ })).toBeChecked();
-  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Start training' }).click();
   const needs = page.getByRole('region', { name: 'Before it can start' });
   await expect(needs).toContainText("OpenRouter didn't answer");
@@ -863,7 +884,7 @@ test('asks the online copy before it starts, and stays when it does not answer',
   // Once it answers, one press of Try again clears the list and the run can start.
   await stubEngine(app, { 'connections:testStudent': COPY_ANSWERS });
   await needs.getByRole('button', { name: 'Try again' }).click();
-  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
   expect(await recordedCalls(app, 'runs:start')).toEqual([
@@ -906,7 +927,7 @@ test('still asks for the model on this computer when practice and the final test
   // With the model downloaded the list is gone, and the run starts with both ends online.
   await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
   await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
-  await expect(page.getByRole('heading', { name: 'Before it can start' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
   await start.click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
@@ -924,6 +945,10 @@ test('takes the final test on the online copy when asked', async () => {
   await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
 
   // By default the final test is taken on this computer, which the plan shows.
+  await page
+    .getByRole('region', { name: 'Estimate', exact: true })
+    .getByRole('button', { name: 'Breakdown' })
+    .click();
   const time = page.getByRole('region', { name: 'Estimated time' });
   const cost = page.getByRole('region', { name: 'Estimated cost' });
   await expect(time).toContainText(/Final test\s*60 new tasks on this computer\s*2\.5 h/);
@@ -950,9 +975,7 @@ test('takes the final test on the online copy when asked', async () => {
 
   // The plan follows the choice: a quarter of an hour, and a line on the host's bill.
   await expect(time).toContainText(/Final test\s*60 new tasks online\s*15 min/);
-  await expect(cost).toContainText(
-    /Online final test\s*Glimmer taking the final test online\s*\$0\.20/,
-  );
+  await expect(cost).toContainText(/Online final test\s*\$0\.20/);
 
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FLOW.runId}/train$`));
@@ -1072,18 +1095,15 @@ test('cannot take the final test online without an online copy to take it on', a
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
 
   // Training here can't fit a round, and there is no online copy to offer instead: the callout
-  // says online isn't set up in a few words, and its button goes to where that is done. The
-  // card for training online says what it needs.
+  // has one button for it, which goes to where that is done, and no sentence about it. The card
+  // for training online says what it needs.
   const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
-  await expect(callout).toContainText("Online training isn't set up yet.");
+  await expect(callout).not.toContainText("Online training isn't");
   await expect(callout).not.toContainText("Pick an online service under Agent's model");
   await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(
     "Pick an online service under Agent's model in Advanced settings",
   );
   await expect(callout.getByRole('button', { name: 'Train online instead' })).toHaveCount(0);
-  await expect(page.getByRole('radio', { name: /Train online/ })).toContainText(
-    'Sends tasks and files online',
-  );
   await callout.getByRole('button', { name: 'Set up online training' }).click();
   const advanced = page.getByRole('dialog', { name: 'Advanced settings' });
   await expect(advanced.getByRole('heading', { name: "Agent's model" })).toBeVisible();

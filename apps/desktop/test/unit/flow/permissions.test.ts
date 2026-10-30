@@ -60,7 +60,7 @@ describe('the permissions Define shows', () => {
     expect(html).not.toContain('Saving files');
     // And not the line that said there was no file while asking what to do about files.
     expect(text(html)).not.toContain('No file it can change');
-    expect(text(html)).toBe('Permissions Files it can change None');
+    expect(text(html)).toBe('Files it can change None');
   });
 
   it('offers the choice where a file can change, with the files it covers', () => {
