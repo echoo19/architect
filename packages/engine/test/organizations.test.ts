@@ -188,8 +188,9 @@ describe('a run of a job with organizations', () => {
   it('reports each type at each organization, seen or unseen, synthetic or real', async () => {
     const { run } = await graduated();
     const report = engine.store.reports.get(run.id, 'local');
-    expect(report?.test.score).toEqual({ pass: 12, total: 12 });
-    expect(report?.test.perType.map((type) => type.total)).toEqual([4, 4, 4]);
+    // The score is the organizations it trained on; the unseen one is reported on its own.
+    expect(report?.test.score).toEqual({ pass: 6, total: 6 });
+    expect(report?.test.perType.map((type) => type.total)).toEqual([2, 2, 2]);
     expect(report?.test.perOrg?.filter((row) => row.type === 'invoice')).toEqual([
       expect.objectContaining({ org: 'north', seen: true, synthetic: true, pass: 1, total: 1 }),
       expect.objectContaining({ org: 'south', seen: true, synthetic: true, pass: 1, total: 1 }),

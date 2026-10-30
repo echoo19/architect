@@ -135,13 +135,27 @@ function orgResults(
 const RATE_EPSILON = 1e-9;
 
 /**
+ * The locked-test results the job's requirements are judged on: for a job with organizations,
+ * those of the organizations it trained on. An organization it never saw is reported on its own
+ * in `perOrg` and never mixed into the score (decision 070).
+ */
+function judgedResults(
+  organizations: readonly Organization[],
+  test: readonly TestResult[],
+): TestResult[] {
+  const unseen = new Set(organizations.filter((org) => org.role === 'transfer').map((org) => org.id));
+  return test.filter((result) => result.org === undefined || !unseen.has(result.org));
+}
+
+/**
  * The graduate's report card, from its locked test and the run's record. Refusals on task types
  * the graduate doesn't refuse count as failures; refused types are flagged with the reason from
  * the frozen guardrails. Overclaim is true when the author claimed "ready" during training and
  * the test missed the requirement, and null when it never claimed.
  */
 export function computeReportCard(input: ReportCardInput): ReportCard {
-  const { job, run, test } = input;
+  const { job, run } = input;
+  const test = judgedResults(input.organizations ?? [], input.test);
   const refused = refusedTypes(input.guardrails, job);
   const refusedIds = new Set(refused.map((type) => type.type));
 
@@ -158,7 +172,7 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     })
     .filter((type) => type.total > 0);
 
-  const perOrg = orgResults(job, input.organizations ?? [], test);
+  const perOrg = orgResults(job, input.organizations ?? [], input.test);
   const score = { pass: test.filter((result) => result.pass).length, total: test.length };
   const latencies = test.map((result) => result.latencyMs);
   const p95 = percentile(latencies, 95);

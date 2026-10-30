@@ -209,4 +209,33 @@ describe('computeReportCard', () => {
     const noLatency = computeReportCard(input({ job: defaultJob() }));
     expect(noLatency.requirements.p95LatencyMs).toBeUndefined();
   });
+
+  it('judges the requirement on the organizations it trained on and reports an unseen one apart', () => {
+    const card = computeReportCard(
+      input({
+        test: [
+          { taskType: 'invoice', org: 'north', pass: true, latencyMs: 1_000, refused: false },
+          { taskType: 'invoice', org: 'south', pass: false, latencyMs: 1_000, refused: false },
+          { taskType: 'invoice', org: 'east', pass: false, latencyMs: 9_000, refused: false },
+          { taskType: 'invoice', org: 'east', pass: false, latencyMs: 9_000, refused: false },
+        ],
+        organizations: [
+          { id: 'north', name: 'North', synthetic: true, role: 'train' },
+          { id: 'south', name: 'South', synthetic: true, role: 'train' },
+          { id: 'east', name: 'East', synthetic: false, role: 'transfer' },
+        ],
+      }),
+    );
+    expect(card.test.score).toEqual({ pass: 1, total: 2 });
+    expect(card.test.perType).toEqual([
+      { type: 'invoice', label: 'Invoices', pass: 1, total: 2, refused: false },
+    ]);
+    expect(card.requirements.passRate).toEqual({ target: 0.5, actual: 0.5, met: true });
+    expect(card.requirements.p95LatencyMs?.actual).toBe(1_000);
+    expect(card.test.perOrg?.map((row) => [row.org, row.seen, row.pass, row.total])).toEqual([
+      ['north', true, 1, 1],
+      ['south', true, 0, 1],
+      ['east', false, 0, 2],
+    ]);
+  });
 });
