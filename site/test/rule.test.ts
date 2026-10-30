@@ -1,12 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CHAPTERS, FOOTER } from '../src/content';
+import { FOOTER } from '../src/content';
 import { EXAMPLE, RULE_STEPS, stepPieces } from '../src/mock/repair-rule';
-import { REPAIR_RUN } from '../src/results';
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 /** Numbers are held as whole ten-thousandths, so the working is exact and no float is involved. */
 const SCALE = 10_000n;
@@ -53,13 +47,6 @@ function input(label: string): string {
 }
 
 describe('the rule chapter', () => {
-  it('comes after the questions about the job and before training it', () => {
-    const order = CHAPTERS.map((chapter) => chapter.id);
-    expect(order.indexOf('ask')).toBe(order.indexOf('describe') + 1);
-    expect(order.indexOf('rule')).toBe(order.indexOf('ask') + 1);
-    expect(order.indexOf('train')).toBe(order.indexOf('rule') + 1);
-  });
-
   it('sets only the file a step names in brackets apart, and loses none of its words', () => {
     for (const step of RULE_STEPS) {
       const pieces = stepPieces(step);
@@ -96,15 +83,5 @@ describe('what the page says about the repair shop', () => {
   it('tells that both shops are made up, and which of their parts are real', () => {
     expect(FOOTER.note).toContain('Both shops are made up.');
     expect(FOOTER.note).toContain("repair shop's rule and its run");
-  });
-
-  it("gives the run's figures as the README gives them, and says it was one run", () => {
-    const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
-    for (const figure of ['22 of 30', '40 of 40']) {
-      expect(readme).toContain(figure);
-      expect(REPAIR_RUN).toContain(figure);
-    }
-    expect(REPAIR_RUN).toContain('a single run, not a planned comparison');
-    expect(REPAIR_RUN).toContain('online copy of Glimmer');
   });
 });
