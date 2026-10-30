@@ -2,7 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
-## 2026-10-30 (Fri), field specialists: Phil, the academy tutor, built and measured (start the next session here)
+## 2026-10-30 (Fri, evening), field specialists on main, Phil 2 waiting on budget (start the next session here)
+
+**Where things stand**
+- *On main.* PR #1 merged `field/main` into `main` (`87bd090a`) after Linux CI passed; the site redeployed with the new claim ("Turn your organization's files into a specialist that runs on your computer.") and the results paper leads with the first field run. The one-job product stays at `base/one-job` / `base-one-job`. `field/main` is level with `main` and stays the integration branch.
+- *Since the entry below:* the run's workarounds were made proper (`field/run-fixes`: Meta replies unstreamed so usage is always known, with a conservative charge if a provider still omits it; the comparisons runner prices and runs transfer tasks, carries sealed organizations into each arm, and studies once per comparison with `--confirm-study`; record-tasks takes `--per-skill` and blank modules), the generated academies were made realistically messy (each academy its own date, test layout, grid-in forms, label quirks and policy style; four fresh academies: Copperfield, Thistlewood, Bramble Hill, and Juniper never seen), a fresh real cohort was pulled (`architect-runs/academy-real-2`: 40 attempts, Sep 19 to Oct 2, no overlap with the first), the write-up and the misses are in `docs/comparisons/phil-1*.md`, and the README, results paper and home claim were rewritten. 76 hidden stand-in e2e specs pass; the guide PDF is rebuilt from the recaptured screens.
+- *Phil 2 is blocked on money.* `architect-runs/phil-2` is prepared and preregistered (126 locked tasks: 48 seen, 48 Juniper, 30 Real academy; study confirmed, token in its PLAN.md), but the OpenRouter key's workspace budget ($25, separate from the key's $50 cap and the account's credit) is used up, so student calls get 403. $0.57 was spent before the stop; no arm froze and no locked test opened, so it resumes with the command in PLAN.md's second amendment.
+
+**Next**
+- Owner: raise the OpenRouter workspace budget (about $10 more covers Phil 2), confirm or correct the real academy's drafted policy, and say whether question text can be exported. New film narration needs the owner too: the film still shows the returns desk.
+- After Phil 2: its write-up into `docs/comparisons/phil-2.md` and the README's marked spot and the results paper; ship its frozen tutor as a ready-made agent so Phil can be tried without training; then a release.
+
+## 2026-10-30 (Fri), field specialists: Phil, the academy tutor, built and measured
 
 **Where things stand**
 - *Direction.* The owner asked for a more ambitious Architect ("not a little party trick that produces a small agent"), based on `docs/SPEC_FIELD_SPECIALIZATION.md`, useful in the real world, with a real business anonymized, and with the base kept as a fallback. The one-job product is frozen at branch `base/one-job` and tag `base-one-job` (`0b592784`, what `main` was). The plan and contract are `docs/FIELD.md`, amended after a GPT-6 Astra reading. Work goes to `field/main`; `main` is unchanged since `0b592784`.
