@@ -1,0 +1,177 @@
+import type { ReactNode } from 'react';
+import type { Score } from '@architect/shared';
+import { AgentAvatar, DataTable, Tooltip, type DataColumn } from '@architect/ui';
+import { CircleAlert } from 'lucide-react';
+import { shortDate } from '../flow/format';
+import { formatPercent } from '../lib/format';
+import {
+  baseModelOf,
+  fieldOf,
+  runtimeName,
+  scoresOf,
+  shortHash,
+  sortScore,
+  statusOf,
+  STATUS_WORDS,
+  type ModelRow,
+  type RowScores,
+} from './registry';
+
+const FINAL_TEST = 'Final test';
+
+/** A score as its share passed; null, which the table shows as absent, when it wasn't measured. */
+function scoreCell(score: Score | null): ReactNode {
+  return score === null || score.total === 0 ? null : (
+    <span aria-label={`${formatPercent(score)}, ${score.pass} of ${score.total}`}>
+      {formatPercent(score)}
+    </span>
+  );
+}
+
+const scoreColumn = (
+  key: keyof RowScores,
+  header: string,
+  group?: string,
+): DataColumn<ModelRow> => ({
+  key,
+  header,
+  align: 'end',
+  ...(group === undefined ? {} : { group }),
+  sortValue: (row) => sortScore(scoresOf(row)[key]),
+  cell: (row) =>
+    key === 'seen' && row.reportError ? (
+      <Tooltip content="Its report card couldn't be read" side="top">
+        <span className="inline-flex text-danger">
+          <CircleAlert size={15} strokeWidth={1.8} aria-label="Report unreadable" />
+        </span>
+      </Tooltip>
+    ) : (
+      scoreCell(scoresOf(row)[key])
+    ),
+});
+
+/** A cell of two lines: the value, and a small line under it. */
+function TwoLines({ top, under }: { top: ReactNode; under: ReactNode }) {
+  return (
+    <span className="flex flex-col whitespace-nowrap leading-5">
+      {top}
+      <span className="text-small">{under}</span>
+    </span>
+  );
+}
+
+const NAME: DataColumn<ModelRow> = {
+  key: 'name',
+  header: 'Agent',
+  sortValue: (row) => `${row.agent.name}\u0000${String(row.version.version).padStart(5, '0')}`,
+  cell: (row) => (
+    <span className="flex items-center gap-3 whitespace-nowrap">
+      <AgentAvatar name={row.agent.name} />
+      <TwoLines
+        top={
+          <span className="flex items-center gap-2">
+            {row.agent.name}
+            <span aria-hidden className="font-mono text-small font-normal">
+              v{row.version.version}
+            </span>
+            <span className="sr-only">version {row.version.version}</span>
+          </span>
+        }
+        under={<span className="font-normal">{fieldOf(row.version)}</span>}
+      />
+    </span>
+  ),
+};
+
+const STATUS: DataColumn<ModelRow> = {
+  key: 'status',
+  header: 'Status',
+  sortValue: (row) => STATUS_WORDS[statusOf(row.version)],
+  cell: (row) => STATUS_WORDS[statusOf(row.version)],
+};
+
+const SCORES = [
+  scoreColumn('seen', 'Seen', FINAL_TEST),
+  scoreColumn('unseen', 'Unseen', FINAL_TEST),
+  scoreColumn('real', 'Real', FINAL_TEST),
+  scoreColumn('check', 'Check tasks'),
+];
+
+const COLUMNS: DataColumn<ModelRow>[] = [
+  NAME,
+  {
+    key: 'base',
+    header: 'Base model',
+    sortValue: (row) => baseModelOf(row.version),
+    cell: (row) => (
+      <TwoLines
+        top={baseModelOf(row.version)}
+        under={runtimeName(row.version.manifest.model.runtime.compatible[0])}
+      />
+    ),
+  },
+  {
+    key: 'method',
+    header: 'Method',
+    sortValue: (row) => (row.version.manifest.model.adapter ? 1 : 0),
+    cell: (row) => {
+      const adapter = row.version.manifest.model.adapter;
+      return adapter ? (
+        <TwoLines
+          top="Adapter"
+          under={<span className="font-mono">{shortHash(adapter.sha256)}</span>}
+        />
+      ) : (
+        'Harness'
+      );
+    },
+  },
+  {
+    key: 'harness',
+    header: 'Harness',
+    sortValue: (row) => row.version.manifest.harness.hash,
+    cell: (row) => (
+      <span className="font-mono text-small">{shortHash(row.version.manifest.harness.hash)}</span>
+    ),
+  },
+  ...SCORES,
+  STATUS,
+  {
+    key: 'created',
+    header: 'Created',
+    align: 'end',
+    sortValue: (row) => row.version.createdAt,
+    cell: (row) => (
+      <span className="whitespace-nowrap">{shortDate(row.version.createdAt) ?? undefined}</span>
+    ),
+  },
+];
+
+/** Beside an open panel, which shows the rest: the agent, its scores and its status. */
+const NARROW: DataColumn<ModelRow>[] = [NAME, ...SCORES, STATUS];
+
+/** Every agent and version: what it runs on, how it was made, and how its final test went. */
+export function RegistryTable({
+  rows,
+  openKey,
+  onOpen,
+  empty,
+}: {
+  rows: readonly ModelRow[];
+  openKey: string | null;
+  onOpen: (row: ModelRow) => void;
+  empty: string;
+}) {
+  return (
+    <DataTable
+      aria-label="Models"
+      rows={rows}
+      rowKey={(row) => row.key}
+      columns={openKey === null ? COLUMNS : NARROW}
+      onRowClick={onOpen}
+      initialSort={{ key: 'name', direction: 'ascending' }}
+      empty={empty}
+      {...(openKey === null ? {} : { selectedKey: openKey })}
+    />
+  );
+}
