@@ -52,8 +52,10 @@ export class Vault {
 
   /**
    * Seals a job's test tasks. `otherTasks` are every task outside the test split and `data` the
-   * text of the job's data files: wording and values they share with test tasks (templates,
-   * records every attempt reads) are left out of the fingerprint. `transfer` are organizations
+   * text of the job's data files, or of the organizations it trains on, with each table's rows as
+   * the mentor is shown them: wording and values they share with test tasks (templates, records
+   * every attempt reads, rows the mentor sees) are left out of the fingerprint (decision 082). A
+   * sealed organization's files are never `data`: they hold test content. `transfer` are organizations
    * the job never trains on: their files are kept here, hashed, and each one's name and id count
    * as test content in the fingerprint of its tasks. `certify` is a certified job's calibration
    * split (decision 077), sealed beside the test and held to the same leak detector.
@@ -104,16 +106,28 @@ export class Vault {
         return org === undefined ? [] : [org.id, org.name];
       },
     );
+    const lines = `${calibration.map((task) => JSON.stringify(task)).join('\n')}\n`;
+    // Its prints leave out only what the splits the mentor sees hold, as the test's do.
+    const certified: Fingerprint['certify'] =
+      calibration.length === 0
+        ? undefined
+        : {
+            fileSha256: sha256(lines),
+            tasks: fingerprintTests(jobId, calibration, otherTasks, data, sha256(lines)).tasks,
+          };
+    // A task with nothing of its own left to recognize it by could leak without the gate seeing.
+    const blank = [...fingerprint.tasks, ...(certified?.tasks ?? [])].find(
+      (print) => print.prompt === null && print.grams.length === 0 && print.values.length === 0,
+    );
+    if (blank !== undefined) {
+      throw new GuardError(
+        'split',
+        `Task ${blank.id} can't be sealed: everything it says is also in the data or in other tasks, so a leak of it couldn't be recognized. Give it some wording or a value of its own, such as an id with digits.`,
+      );
+    }
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(join(dir, TEST_FILE), content);
-    let certified: Fingerprint['certify'];
-    if (calibration.length > 0) {
-      const lines = `${calibration.map((task) => JSON.stringify(task)).join('\n')}\n`;
-      // Its prints leave out only what the splits the mentor sees hold, as the test's do.
-      const prints = fingerprintTests(jobId, calibration, otherTasks, data, sha256(lines));
-      writeFileAtomic(join(dir, CERTIFY_FILE), lines);
-      certified = { fileSha256: sha256(lines), tasks: prints.tasks };
-    }
+    if (certified !== undefined) writeFileAtomic(join(dir, CERTIFY_FILE), lines);
     const kept = transfer.map(({ org, files }) => {
       const folder = this.transferDir(jobId, org.id);
       return {

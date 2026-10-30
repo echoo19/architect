@@ -45,22 +45,35 @@ export async function describeDataFiles(
       if (content === null) return null;
       const base = { name: file.name, kind: file.kind, access: file.access };
       if (file.kind === 'text') return { ...base, text: clip(content, TEXT_MAX) };
-      const table = Papa.parse<Record<string, unknown>>(content, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: true,
-      });
+      const table = parseTable(content, SAMPLE_ROWS);
       return {
         ...base,
-        columns: table.meta.fields ?? [],
-        rowCount: table.data.length,
-        sampleRows: table.data
-          .slice(0, SAMPLE_ROWS)
-          .map((row) => JsonRowSchema.parse(JSON.parse(JSON.stringify(row)))),
+        columns: table.columns,
+        rowCount: table.rowCount,
+        sampleRows: table.rows,
       };
     }),
   );
   return described.filter((file) => file !== null);
+}
+
+/** A table's columns, its row count and its first `limit` rows, each as the mentor is shown it. */
+export function parseTable(
+  content: string,
+  limit = Number.POSITIVE_INFINITY,
+): { columns: string[]; rowCount: number; rows: z.infer<typeof JsonRowSchema>[] } {
+  const table = Papa.parse<Record<string, unknown>>(content, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+  });
+  return {
+    columns: table.meta.fields ?? [],
+    rowCount: table.data.length,
+    rows: table.data
+      .slice(0, limit)
+      .map((row) => JsonRowSchema.parse(JSON.parse(JSON.stringify(row)))),
+  };
 }
 
 /**
