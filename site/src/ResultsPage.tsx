@@ -984,7 +984,7 @@ export function ResultsPage() {
             <Cite to={['scale']} />.
           </Text>
           <Text>
-            <Actors text="From a model's own configuration on Hugging Face, Architect sizes a training job: the memory for weights, gradients, optimizer state and activations, then the GPUs and nodes. For a Slurm cluster or Kubernetes it writes a launch bundle and shows the command to run with your own tools. Architect never holds cluster credentials" />
+            <Actors text="From a model's own configuration on Hugging Face, Architect sizes a training job: the memory for weights, their updates, optimizer state and activations, then the GPUs and nodes. For a Slurm cluster or Kubernetes it writes a launch bundle and shows the command to run with your own tools. Architect never holds cluster credentials" />
             <Cite to={['scale']} />.
           </Text>
           <Text>
