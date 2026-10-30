@@ -482,7 +482,10 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await allowMoreTime(page);
   await expect(slow).toHaveCount(0);
   await expect(start).toBeEnabled();
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  // One round fits now, and the footer says the limit still cuts training short, with the fix.
+  await expect(
+    page.getByText('The 7-hour limit fits 1 of 8 rounds', { exact: true }),
+  ).toBeVisible();
   // The longer limit is saved as it is allowed; the models below are saved after it, not before.
   const jobAt = jobIdOf(page);
   await expect
