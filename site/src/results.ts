@@ -74,5 +74,5 @@ export const RESULTS: Results = {
       text: 'An earlier comparison, with teaching held to two rounds on another returns desk, showed no clear gain.',
     },
   ],
-  reports: 'Read the full reports',
+  reports: 'All the results',
 };
