@@ -25,7 +25,8 @@ export interface WrongAnswer {
   student: string;
   test_name: string;
   section: string;
-  module: number;
+  /** Null when the records leave the module blank: the request then names none. */
+  module: number | null;
   number: number;
   chosen: string;
 }
@@ -107,7 +108,7 @@ export class Records {
       student: cell(this.student(cell(attempt, 'student_id')), 'name'),
       test_name: cell(test, 'test_name'),
       section: cell(attempt, 'section'),
-      module: Number(attempt.module),
+      module: attempt.module === '' ? null : Number(attempt.module),
       number: Number(attempt.number),
       chosen: cell(attempt, 'selected'),
     };
@@ -177,7 +178,10 @@ export class Records {
 }
 
 export const where = (w: WrongAnswer) =>
-  `question ${w.number} of ${w.section} module ${w.module} on ${w.test_name}`;
+  `question ${w.number} of ${w.section}${w.module === null ? '' : ` module ${w.module}`} on ${w.test_name}`;
+
+/** A wrong answer's module as the records hold it: blank when they give none. */
+export const moduleCell = (w: WrongAnswer): string => (w.module === null ? '' : String(w.module));
 
 /** Wrong answers spread over students and topics, half from each section, not yet used. */
 export function pickWrong(random: Random, records: Records, count: number): CodeRow[] {
@@ -245,7 +249,7 @@ export function diagnoseTasks(
   });
 }
 
-export function historyTasks(random: Random, records: Records): Task[] {
+export function historyTasks(random: Random, records: Records, perSkill = PER_SKILL): Task[] {
   const earlier = addDays(records.today, -32);
   const candidates = random
     .shuffle(
@@ -261,12 +265,12 @@ export function historyTasks(random: Random, records: Records): Task[] {
       ),
     )
     .filter((c) => c.history.attempts > 0);
-  // Half that call for escalation, half that don't, and three of the eight as of an earlier date.
+  // Of the first eight: half that call for escalation, half that don't, three as of an earlier date.
   const picked: typeof candidates = [];
   const seen = new Set<string>();
   const take = (c: (typeof candidates)[number]) => {
     const key = `${c.student.student_id} ${c.topic}`;
-    if (seen.has(key) || picked.length === PER_SKILL) return false;
+    if (seen.has(key) || picked.length === perSkill) return false;
     seen.add(key);
     picked.push(c);
     return true;
@@ -312,7 +316,7 @@ export function historyTasks(random: Random, records: Records): Task[] {
   });
 }
 
-export function assignTasks(random: Random, records: Records): Task[] {
+export function assignTasks(random: Random, records: Records, perSkill = PER_SKILL): Task[] {
   const candidates = random.shuffle(
     records.students().flatMap((student) => records.topics().map((topic) => ({ student, topic }))),
   );
@@ -325,7 +329,7 @@ export function assignTasks(random: Random, records: Records): Task[] {
     ...practiced.filter((c) => c.eligible.length === count),
   ];
   const picked = [...short.slice(0, 2)];
-  picked.push(...plenty.slice(0, PER_SKILL - picked.length));
+  picked.push(...plenty.slice(0, perSkill - picked.length));
   return picked.map((c, i) => {
     const name = cell(c.student, 'name');
     const tutor = records.tutorName(c.student);
@@ -349,21 +353,25 @@ export interface RecordTaskOptions {
   seed: number;
   /** The date the requests are made on; attempts after it are not asked about. */
   asOf: string;
+  /** Tasks of each skill at most; eight when not given. */
+  perSkill?: number;
 }
 
 /**
  * Tasks for an existing academy folder in this schema that has no question text, errors or
  * hints, such as a real academy's anonymized export: `diagnose` (topic and right choice),
- * `history` and `assign`, up to eight of each. The same files, seed and date give the same tasks.
+ * `history` and `assign`, up to `perSkill` of each (eight by default). The same files, seed, date
+ * and count give the same tasks.
  */
 export function buildRecordTasks(files: ReadonlyMap<string, string>, options: RecordTaskOptions) {
+  const perSkill = options.perSkill ?? PER_SKILL;
   const random = new Random(options.seed);
   const records = new Records(new JobFiles(files), options.org, options.asOf);
-  const wrong = pickWrong(random.fork('diagnose'), records, PER_SKILL);
+  const wrong = pickWrong(random.fork('diagnose'), records, perSkill);
   return [
     ...diagnoseTasks(random.fork('diagnose prompts'), records, wrong),
-    ...historyTasks(random.fork('history'), records),
-    ...assignTasks(random.fork('assign'), records),
+    ...historyTasks(random.fork('history'), records, perSkill),
+    ...assignTasks(random.fork('assign'), records, perSkill),
   ].map((task) => TaskSchema.parse(task));
 }
 

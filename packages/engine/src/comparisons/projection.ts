@@ -13,6 +13,7 @@ import {
 } from '@architect/shared';
 import { percentile } from '../report/report-card';
 import { MAX_FINDINGS } from '../loop/intervene';
+import { lockedTestsOf } from './field';
 import type { ProbeReading, SweepAttempt } from './records';
 
 /** Decision 037's arms, in its order. */
@@ -64,6 +65,11 @@ export interface ComparisonConfig {
   studentCaps?: Partial<Record<ArmId, number>>;
   /** Attempts in flight at once within a hosted evaluation. */
   concurrency: number;
+  /**
+   * The locked test's tasks per run, which the runner sets from the job's folder: more than the
+   * test split when the job has organizations it never trains on (`fieldOf`).
+   */
+  lockedTests?: number;
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
@@ -291,7 +297,7 @@ interface Need {
 
 function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: ReadonlySet<ArmId>): Need {
   const dev = job.splits.dev * job.evaluation.devRepeats;
-  const test = job.splits.test;
+  const test = lockedTestsOf(job, config);
   const trainBatch = job.evaluation.trainBatch;
   // A refinement round at its most: the train batch, then both versions twice for a confirmation.
   const round = trainBatch + 4 * dev;
@@ -430,17 +436,24 @@ function prerequisite(
  * order, an arm is funded when every budget it draws on still has room for it after the arms
  * before it; one that doesn't fit, or whose prerequisites aren't there, is not run, with the
  * reason. Spark is funded at each arm's own cap, which the engine holds it to; the student's
- * credit at its projection times the headroom, which the runner holds it to.
+ * credit at its projection times the headroom, which the runner holds it to. `committedUsd` is
+ * the student's credit already spent, and `committedSparkUsd` Spark's, such as its study of a
+ * field job's organizations, which every arm shares.
  */
 export function project(
   job: Job,
   config: ComparisonConfig,
   inputs: ModelInputs,
   committedUsd = 0,
+  committedSparkUsd = 0,
 ): Projection {
   const requested = new Set(config.arms);
   const funded = new Set<ArmId>();
-  const left = { ...config.caps, studentUsd: config.caps.studentUsd - committedUsd };
+  const left = {
+    ...config.caps,
+    studentUsd: config.caps.studentUsd - committedUsd,
+    sparkUsd: config.caps.sparkUsd - committedSparkUsd,
+  };
   const arms: ArmProjection[] = [];
   const total = { studentUsd: 0, sparkUsd: 0, computeUsd: 0, localMinutes: 0 };
   const sum = { studentUsd: 0, sparkUsd: 0, computeUsd: 0, localMinutes: 0, wallMinutes: 0 };

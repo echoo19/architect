@@ -29,6 +29,7 @@ import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
 import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
+import { readDataFile } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
@@ -107,27 +108,31 @@ async function readJobFile(file: string): Promise<Job> {
 
 /**
  * The files of each organization the job never trains on, read from `orgs/<id>/data/` next to
- * the job file, for the vault. None for a job without such organizations.
+ * the job file, for the vault: every file the job declares, less an optional one it lacks. None
+ * for a job without such organizations.
  */
 async function readTransfer(job: Job, source: string): Promise<TransferOrganization[]> {
   const transfer = (job.organizations ?? []).filter((org) => org.role === 'transfer');
   return Promise.all(
     transfer.map(async (org) => ({
       org,
-      files: await Promise.all(
-        job.data.files.map(async (file) => {
-          const path = join(orgDataDir(source, org.id), file.name);
-          try {
-            return { name: file.name, content: await readFile(path) };
-          } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-            throw new Error(
-              `A data file of a sealed organization is missing; each organization the job never trains on needs the job's data files in its own orgs/<id>/data folder next to the job file.`,
-              { cause: error },
-            );
-          }
-        }),
-      ),
+      files: (
+        await Promise.all(
+          job.data.files.map(async (file) => {
+            const path = join(orgDataDir(source, org.id), file.name);
+            try {
+              return [{ name: file.name, content: await readFile(path) }];
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+              if (file.optional === true) return [];
+              throw new Error(
+                `A data file of a sealed organization is missing; each organization the job never trains on needs the job's data files in its own orgs/<id>/data folder next to the job file.`,
+                { cause: error },
+              );
+            }
+          }),
+        )
+      ).flat(),
     })),
   );
 }
@@ -152,12 +157,19 @@ async function readTasks(file: string): Promise<Task[]> {
   });
 }
 
-async function copyInto(from: string, to: string, missing: string): Promise<void> {
+/** Copies a file, saying `missing` when it isn't there; an `optional` file that isn't is skipped. */
+async function copyInto(
+  from: string,
+  to: string,
+  missing: string,
+  optional = false,
+): Promise<void> {
   await mkdir(dirname(to), { recursive: true });
   try {
     await copyFile(from, to);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (optional) return;
       throw new Error(missing, { cause: error });
     }
     throw error;
@@ -314,6 +326,7 @@ export class JobLibrary {
             join(source, 'data', data.name),
             join(this.paths.dataDir(job.id), data.name),
             `The data file "${data.name}" is missing; it belongs in a data folder next to the job file.`,
+            data.optional === true,
           );
         }
         for (const org of orgs) {
@@ -321,6 +334,7 @@ export class JobLibrary {
             join(orgDataDir(source, org.id), data.name),
             join(orgDataDir(this.paths.jobDir(job.id), org.id), data.name),
             `The data file "${data.name}" of ${org.name} is missing; it belongs in orgs/${org.id}/data next to the job file.`,
+            data.optional === true,
           );
         }
       }
@@ -766,11 +780,11 @@ export class JobLibrary {
       orgs.length === 0
         ? [this.paths.dataDir(job.id)]
         : orgs.map((org) => orgDataDir(this.paths.jobDir(job.id), org.id));
-    const data = await Promise.all(
-      folders.flatMap((folder) =>
-        job.data.files.map((file) => readFile(join(folder, file.name), 'utf8')),
-      ),
-    );
+    const data = (
+      await Promise.all(
+        folders.flatMap((folder) => job.data.files.map((file) => readDataFile(folder, file))),
+      )
+    ).filter((text) => text !== null);
     await this.deps.vault.seal(
       job.id,
       [...splits.test, ...sealed],

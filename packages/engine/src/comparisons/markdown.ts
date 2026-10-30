@@ -155,6 +155,35 @@ function rowCells(row: ArmRow, adapters: boolean): string[] {
   ];
 }
 
+/**
+ * Each arm at each organization, for a job with organizations: the organizations it trained on,
+ * then each one it never saw, labeled synthetic or real; a cell is the organization's total and
+ * each skill's. Null for a one-organization job.
+ */
+function orgTable(rows: readonly ArmRow[]): string | null {
+  const orgs = new Map<string, string>();
+  for (const result of rows.flatMap((row) => row.perOrg ?? [])) {
+    orgs.set(
+      result.org,
+      `${result.orgName} (${result.seen ? 'trained on' : 'never seen'}, ${result.synthetic ? 'synthetic' : 'real'})`,
+    );
+  }
+  if (orgs.size === 0) return null;
+  return table(
+    ['By organization', ...orgs.values()],
+    rows.map((row) => [
+      row.label,
+      ...[...orgs.keys()].map((org) => {
+        const here = (row.perOrg ?? []).filter((result) => result.org === org);
+        if (here.length === 0) return '-';
+        const pass = here.reduce((sum, result) => sum + result.pass, 0);
+        const total = here.reduce((sum, result) => sum + result.total, 0);
+        return `${pass}/${total} (${here.map((result) => `${result.label} ${result.pass}/${result.total}`).join(', ')})`;
+      }),
+    ]),
+  );
+}
+
 function backendSection(backend: BackendTable, adapters: boolean): string {
   const seed = backend.rows[0]?.seed ?? '-';
   const parts = [`### ${backend.label}`, identity(backend.identity)];
@@ -179,6 +208,8 @@ function backendSection(backend: BackendTable, adapters: boolean): string {
       backend.rows.map((row) => rowCells(row, adapters)),
     ),
   );
+  const orgs = orgTable(backend.rows);
+  if (orgs !== null) parts.push(orgs);
   if (backend.paired.length > 0) {
     parts.push(
       table(

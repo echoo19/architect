@@ -87,6 +87,7 @@ export function chatPayloadText(
 const SpentSchema = z.object({
   usage: UsageSchema,
   costUsd: z.number().nonnegative().nullable(),
+  uncounted: z.boolean().optional(),
 });
 
 /** What a correction message adds when an adapter asks the mentor to repair malformed JSON. */
@@ -176,9 +177,12 @@ export class MentorGate {
     } catch (error) {
       const spent = SpentSchema.safeParse(error);
       if (spent.success) {
-        const { usage, costUsd } = spent.data;
-        admission.learn(usage);
-        options.onSpent?.({ model: adapter.model, usage, costUsd: charge(usage, costUsd) });
+        const { usage, costUsd, uncounted } = spent.data;
+        // A call that ran without saying what it used is charged the most it was allowed to
+        // cost, so the dollar cap still holds.
+        if (!uncounted) admission.learn(usage);
+        const charged = uncounted ? admission.authorizedUsd : charge(usage, costUsd);
+        options.onSpent?.({ model: adapter.model, usage, costUsd: charged });
       }
       throw error;
     }

@@ -40,7 +40,8 @@ function checkerPath(job: Job): string | null {
 
 /**
  * The job folder as the comparison will measure on it: the sha256 of `job.json`, of the tasks
- * file, of every file under `data/` together, and of the checker module.
+ * file, of every file under `data/` and each organization's `orgs/<id>/data/` together, and of
+ * the checker module.
  */
 export function pinInputs(dir: string, job: Job): PinnedInputs {
   const checker = checkerPath(job);
@@ -53,7 +54,10 @@ export function pinInputs(dir: string, job: Job): PinnedInputs {
     name: job.name,
     job: sha256(readFileSync(join(dir, 'job.json'))),
     tasks: sha256(readFileSync(tasks)),
-    data: digestOf(dir, filesUnder(dir, join(dir, 'data'))),
+    data: digestOf(dir, [
+      ...filesUnder(dir, join(dir, 'data')),
+      ...filesUnder(dir, join(dir, 'orgs')),
+    ]),
     checker: checker === null ? null : sha256(readFileSync(join(dir, checker))),
   });
 }

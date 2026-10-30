@@ -16,6 +16,18 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Positioning (README, the results paper, the site's claim) once phil-2 is in; the film needs the owner for new narration.
 - Owner: confirm or correct the real academy's drafted policy; say whether question text can be exported.
 
+## 2026-10-30 (Fri), fixes from the first field run (branch `field/run-fixes`)
+
+**Done** (fakes only: no model was called, no GPU, no spend). The first Phil run (`architect-runs/phil-1`) patched copies of the code around four problems; these are the fixes in the repo.
+- *Meta's usage.* Meta's streamed replies end without token usage about one time in three, and Meta still bills them. Meta's mentor and actor calls now ask for whole replies, which always carry usage. A reply from any provider that still lacks usage is refused as uncounted, and the mentor gate charges it the most it authorized, so the dollar cap holds (`docs/GOTCHAS.md`).
+- *Comparisons on a job with organizations.* The locked test is priced and counted as the test split plus every sealed organization's task; each arm's copy lists the sealed organizations again; the pin covers `orgs/`. Spark studies the organizations once for the comparison: the brief goes to `study.json`, `--confirm-study <token>` confirms it, the same confirmed brief sits beside every arm's copy, and the bare arm imports the blank harness so the procedure isn't added. Each report row has its results by organization (trained on or never seen, synthetic or real), the target is judged on the trained organizations, and the study's cost is counted once.
+- *record-tasks.* A wrong answer whose module is blank is asked about without a module (it said "module 0"); `--per-skill N` replaces the fixed eight.
+- *Optional files.* An organization's folder may lack the files the job marks optional: import, the seal, the mentor's data view and the agent's folder all take it. A policy without the escalation-days row counts wrong answers over the history window; one without the first-hint row builds every records-only task.
+
+**Open issues**
+- Nothing here was run against a live model; the next hosted run should use the repo's runner instead of the patched copies.
+- A blank-module answer is asked about by test, section and number; a test that numbers questions per module but leaves the module blank in its records would make that ambiguous.
+
 ## 2026-10-30 (Fri), field lane "Sample": Phil as a ready-made job (branch `field/sample`)
 
 **Done** (no model was called, no GPU, no spend)

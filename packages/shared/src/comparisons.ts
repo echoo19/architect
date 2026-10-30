@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { DecodingSchema } from './harness';
 import { ScoreSchema } from './lineage';
+import { OrgTypeResultSchema } from './report';
 
 /*
  * The comparisons report (decisions 037 and 045): every number the README and the demo claim,
@@ -191,8 +192,14 @@ export const ArmRowSchema = z.object({
   seed: z.number().int(),
   /** Scenarios: each test task once. */
   scenarios: CountedSchema,
+  /** For a job with organizations, judged on the organizations it trained on alone (decision 070). */
   passTarget: PassTargetSchema,
   perType: z.array(CountedSchema.extend({ type: z.string(), label: z.string() })),
+  /**
+   * For a job with organizations: each task type at each organization, seen (trained on) or
+   * never seen, synthetic or real. Absent for a one-organization job.
+   */
+  perOrg: z.array(OrgTypeResultSchema).optional(),
   /** Tasks it refused; each counts as a failure, since the contract supports every type. */
   refusals: z.number().int().nonnegative(),
   latencyMs: latency.nullable(),
