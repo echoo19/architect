@@ -1943,7 +1943,7 @@
             src="agent-export-dark.png"
             span="text"
             x="0.222 0.778"
-            y="0.16 0.8"
+            y="0.16 0.84"
             alt="The Export tab: what is in the package, the scan result and what stays on this computer."
           />
         </div>
@@ -1994,7 +1994,7 @@
             src="agent-publish-dark.png"
             span="text"
             x="0.222 0.778"
-            y="0.16 0.8"
+            y="0.16 0.84"
             alt="The Hugging Face publishing tab: repository name, Private visibility, the token source and the files to be sent."
           />
         </div>
@@ -2214,7 +2214,7 @@
             <code>verify</code>, <code>export</code> and <code>publish</code> for output a script
             can read.
           </p>
-          <pre><code>architect install ./desk.architect.zip --bind data=./records --grant data=read
+          <pre><code>architect install ./desk.architect.zip --bind data=./files
 architect install hf://jake/service-desk --revision 3f1c9e2a
 architect export service-desk --output ./desk.architect.zip
 architect publish service-desk --repo jake/service-desk --private</code></pre>
