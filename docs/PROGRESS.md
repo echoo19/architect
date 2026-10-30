@@ -19,6 +19,14 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - *The third tutor run is on hold before spending anything:* its agent found that the vault's leak fingerprint keeps text the taught academies' own files show (bank questions that test tasks quote), so every mentor call on the academy job is refused. The second run's "draft" arm was therefore the blank setup plus the study's procedure. Branch `vault/fingerprint-data` fixes it (decision 082, Sol review before merge); then rebuild `architect-runs/runtree` and run the plan in `architect-runs/phil-3/PLAN.md` ($9 OpenRouter at 1.5x headroom, safe with decision 081's pause rule), then certify its frozen tutor with decision 079 (about $5).
 - *The platform audit's gaps, in order:* (1) make a field from several organizations' folders in the app (`lab/own-field`, decision 083, plus `docs/JOB_FORMAT.md`); (2) experiments on library fields and a hypothesis in the preregistration (`lab/experiments-from-fields`); then a task and split browser on the Field page (train and dev only), an attempts browser behind "Show all", a read-only harness viewer in Models and the round drawer, adding a sealed organization later and qualifying on it, per-organization check scores while training, bringing a model trained elsewhere back as a local OpenAI-compatible student, candidates in Models, and the organization word taken from the job instead of "academy". Keep all of it Lab-only and additive; the personal edition's specs are the guard.
 
+## 2026-10-31 (Sat), `architect serve` (branch `cli/serve`)
+
+**Done** (no model was called, no GPU, no spend)
+- `architect serve <agent> [--port N] [--version N] [--token-file F]`: an installed agent as an OpenAI-compatible Chat Completions endpoint (`POST /v1/chat/completions`, non-streaming; `GET /v1/models`) on 127.0.0.1 only, behind a bearer token printed once. Each request runs through the same agent host as `run` and the workspace, under the same network guard; a certified version answers with the agreed answer or hands off, and the response's `architect` object says which. It never writes: a change comes back as `proposedChange`. Ctrl+C exits 130. Decision 080, `docs/CLI.md`.
+
+**Next**
+- Streaming, if a client needs it.
+
 ## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
 
 **Done** (no model was called, no GPU, no spend)

@@ -7,6 +7,7 @@ export type CommandName =
   | 'list'
   | 'install'
   | 'run'
+  | 'serve'
   | 'inspect'
   | 'verify'
   | 'export'
@@ -81,6 +82,22 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --non-interactive       never ask: a change that needs approval fails the run',
       '  --save                  keep the conversation in the app, as a chat',
       '  --timeout <seconds>     stop the run after this long',
+    ],
+  },
+  serve: {
+    usage: 'architect serve <agent> [--port N] [--version N] [--token-file <file>]',
+    summary: 'Serve an agent to other apps on this computer, as a chat completions endpoint.',
+    args: 1,
+    options: {
+      port: { type: 'string' },
+      version: { type: 'string' },
+      'token-file': { type: 'string' },
+      host: { type: 'string' },
+    },
+    help: [
+      '  --port <n>              the port on 127.0.0.1 (default 8420; 0 picks a free one)',
+      '  --version <n>           serve only while this is the active version',
+      '  --token-file <file>     the bearer token callers send, instead of a new one',
     ],
   },
   inspect: {
