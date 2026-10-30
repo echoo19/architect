@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
+import { useInstantMotion } from './provider';
 import { springs } from './springs';
 
 /** Which way the person is moving: on to the next page or step, or back to the one before. */
@@ -35,7 +36,8 @@ export interface StepTransitionProps {
 /**
  * A page or flow step. When its key changes, the new one slides in 24px from the side the person
  * is moving toward and fades in; the old one fades out and does the reverse. The old one is gone
- * before the new one starts, so the two are never on screen together.
+ * before the new one starts, so the two are never on screen together. When every transition is
+ * instant (tests, screenshots, reduced motion) the page changes at once, with nothing in between.
  */
 export function StepTransition({
   transitionKey,
@@ -43,6 +45,14 @@ export function StepTransition({
   className,
   children,
 }: StepTransitionProps) {
+  const instant = useInstantMotion();
+  if (instant) {
+    return (
+      <div key={transitionKey} className={className}>
+        {children}
+      </div>
+    );
+  }
   return (
     <AnimatePresence mode="wait" custom={direction} initial={false}>
       <motion.div

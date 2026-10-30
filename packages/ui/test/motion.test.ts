@@ -6,8 +6,10 @@ import {
   Collapse,
   FLOAT_SCALE,
   MotionProvider,
+  NumberTicker,
   PRESS_SCALE,
   Reveal,
+  StepTransition,
   durationParts,
   motionSettings,
   numberDisplay,
@@ -143,5 +145,77 @@ describe('the wrappers', () => {
     const html = renderToStaticMarkup(createElement(Button, { children: 'Start training' }));
     expect(html).toMatch(/^<button type="button"/);
     expect(html).toContain('Start training');
+  });
+
+  it('draws the element it is given with its styles when asked to, as a link or a close button', () => {
+    const html = renderToStaticMarkup(
+      createElement(Button, {
+        asChild: true,
+        variant: 'primary',
+        children: createElement('a', { href: '#/new' }, 'New agent'),
+      }),
+    );
+    expect(html).toMatch(/^<a /);
+    expect(html).toContain('href="#/new"');
+    expect(html).toContain('bg-primary');
+    expect(html).not.toContain('<button');
+  });
+});
+
+describe('when every transition is instant', () => {
+  const instant = (child: ReturnType<typeof createElement>) =>
+    renderToStaticMarkup(createElement(MotionProvider, { instant: true, children: child }));
+
+  it('puts a reveal at its end state in its first frame, so a capture never finds it half in', () => {
+    const html = instant(createElement(Reveal, { children: 'hello' }));
+    expect(html).toContain('hello');
+    expect(html).not.toContain('opacity:0');
+    expect(html).not.toContain('translateY(12px)');
+  });
+
+  it('opens a collapse at its full height at once', () => {
+    const html = instant(createElement(Collapse, { open: true, children: 'shown' }));
+    expect(html).toContain('shown');
+    expect(html).not.toContain('height:0');
+  });
+
+  it('changes a page at once, in a plain element, with nothing to wait for', () => {
+    const html = instant(
+      createElement(StepTransition, {
+        transitionKey: 'define',
+        className: 'page',
+        children: 'Define',
+      }),
+    );
+    expect(html).toBe('<div class="page">Define</div>');
+  });
+});
+
+describe('NumberTicker', () => {
+  /** What a screen reader hears of each ticker: the server markup names the number it shows. */
+  const heard = (props: Parameters<typeof NumberTicker>[0]) =>
+    [
+      ...renderToStaticMarkup(
+        createElement(MotionProvider, {
+          instant: true,
+          children: createElement(NumberTicker, props),
+        }),
+      ).matchAll(/aria-label="([^"]*)"/g),
+    ].map((match) => match[1]);
+
+  it('writes the numbers the way the app does, ready before any script runs', () => {
+    expect(heard({ value: 12 })).toEqual(['12']);
+    expect(heard({ value: 91, kind: 'percent' })).toEqual(['91%']);
+    expect(heard({ value: 5, kind: 'currency' })).toEqual(['$5']);
+    expect(heard({ value: 2.4, kind: 'currency' })).toEqual(['$2.40']);
+  });
+
+  it('writes a length of time in the units a person says it in', () => {
+    expect(heard({ value: 2 * 3_600_000 + 38 * 60_000, kind: 'duration' })).toEqual([
+      '2 h',
+      '38 min',
+    ]);
+    expect(heard({ value: 14 * 60_000, kind: 'duration' })).toEqual(['14 min']);
+    expect(heard({ value: 40_000, kind: 'duration' })).toEqual(['40 s']);
   });
 });

@@ -2,7 +2,9 @@ import { useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CircleAlert, X } from 'lucide-react';
 import { Toast as RadixToast } from 'radix-ui';
-import { FLOAT_SCALE, springs } from '../motion/springs';
+import { useFloatingMotion } from '../motion/floating';
+import { useEnterFrom } from '../motion/provider';
+import { FLOAT_SCALE } from '../motion/springs';
 import { Button } from './button';
 import { IconButton } from './icon-button';
 
@@ -42,6 +44,9 @@ function dismiss(id: number) {
 
 export function Toaster() {
   const list = useSyncExternalStore(subscribe, () => entries);
+  const floating = useFloatingMotion();
+  // A toast also rises a little as it comes in.
+  const enter = useEnterFrom({ opacity: 0, scale: FLOAT_SCALE, y: 12 });
   return (
     <RadixToast.Provider swipeDirection="right" duration={6000}>
       <AnimatePresence>
@@ -56,9 +61,9 @@ export function Toaster() {
           >
             <motion.li
               layout
-              initial={{ opacity: 0, scale: FLOAT_SCALE, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0, transition: springs.smooth }}
-              exit={{ opacity: 0, scale: FLOAT_SCALE, transition: springs.exit }}
+              initial={enter}
+              animate={{ ...floating.animate, y: 0 }}
+              exit={floating.exit}
               className="flex items-start gap-3 rounded-card bg-raised py-4 pl-5 pr-3 shadow-float data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
             >
               {entry.tone === 'danger' && (

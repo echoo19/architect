@@ -3,7 +3,8 @@ import { Command } from 'cmdk';
 import { AnimatePresence, motion } from 'motion/react';
 import { Search } from 'lucide-react';
 import { Dialog as RadixDialog } from 'radix-ui';
-import { DialogBackdrop, floatingMotion } from './dialog';
+import { useFloatingMotion } from '../motion/floating';
+import { DialogBackdrop } from './dialog';
 
 export interface CommandPaletteProps {
   open: boolean;
@@ -23,6 +24,7 @@ export function CommandPalette({
   emptyText = 'Nothing matches that.',
   children,
 }: CommandPaletteProps) {
+  const floating = useFloatingMotion({ origin: 'top center' });
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal forceMount>
@@ -31,8 +33,7 @@ export function CommandPalette({
           {open && (
             <RadixDialog.Content key="content" forceMount asChild aria-describedby={undefined}>
               <motion.div
-                {...floatingMotion}
-                style={{ transformOrigin: 'top center' }}
+                {...floating}
                 className="fixed left-1/2 top-[18vh] z-50 w-[calc(100%-48px)] max-w-[640px] -translate-x-1/2 overflow-hidden rounded-card bg-raised shadow-float outline-none"
               >
                 <RadixDialog.Title className="sr-only">Command palette</RadixDialog.Title>

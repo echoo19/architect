@@ -3,7 +3,9 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { useOpenState } from '../lib/open-state';
-import { FLOAT_SCALE, springs } from '../motion/springs';
+import { useFloatingMotion } from '../motion/floating';
+import { useEnterFrom } from '../motion/provider';
+import { springs } from '../motion/springs';
 
 const DialogOpen = createContext(false);
 
@@ -38,10 +40,11 @@ export const DialogClose = RadixDialog.Close;
 
 /** The dimmed window behind a dialog, a drawer or the palette. */
 export function DialogBackdrop() {
+  const enter = useEnterFrom({ opacity: 0 });
   return (
     <RadixDialog.Overlay forceMount asChild>
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={enter}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, transition: springs.exit }}
         className="fixed inset-0 z-50 bg-backdrop"
@@ -49,13 +52,6 @@ export function DialogBackdrop() {
     </RadixDialog.Overlay>
   );
 }
-
-/** What a dialog, a drawer or the palette does as it opens and closes: scale from 0.97 and fade. */
-export const floatingMotion = {
-  initial: { opacity: 0, scale: FLOAT_SCALE },
-  animate: { opacity: 1, scale: 1, transition: springs.smooth },
-  exit: { opacity: 0, scale: FLOAT_SCALE, transition: springs.exit },
-} as const;
 
 export interface DialogContentProps {
   /** Always required for assistive tech; hide it visually when the layout shows its own. */
@@ -82,6 +78,7 @@ export function DialogContent({
   className,
 }: DialogContentProps) {
   const open = useDialogOpen();
+  const floating = useFloatingMotion();
   return (
     <RadixDialog.Portal forceMount>
       <AnimatePresence>
@@ -94,7 +91,7 @@ export function DialogContent({
             {...(description ? {} : { 'aria-describedby': undefined })}
           >
             <motion.div
-              {...floatingMotion}
+              {...floating}
               className={cn(
                 'fixed left-1/2 top-1/2 z-50 w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2',
                 'overflow-hidden rounded-card bg-raised shadow-float outline-none',

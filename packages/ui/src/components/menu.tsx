@@ -3,20 +3,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import { DropdownMenu as RadixMenu, Popover as RadixPopover } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { useOpenState } from '../lib/open-state';
-import { FLOAT_SCALE, springs } from '../motion/springs';
+import { useFloatingMotion } from '../motion/floating';
 
 const MenuOpen = createContext(false);
 const PopoverOpen = createContext(false);
-
-/** What a menu or popover does as it opens and closes: scale from 0.97 and fade, leaving faster. */
-export function floatingMenuMotion(origin: string) {
-  return {
-    initial: { opacity: 0, scale: FLOAT_SCALE },
-    animate: { opacity: 1, scale: 1, transition: springs.smooth },
-    exit: { opacity: 0, scale: FLOAT_SCALE, transition: springs.exit },
-    style: { transformOrigin: origin },
-  } as const;
-}
 
 const surface = 'z-50 bg-raised shadow-float';
 
@@ -53,6 +43,9 @@ export function DropdownMenuContent({
   className,
 }: DropdownMenuContentProps) {
   const open = useContext(MenuOpen);
+  const floating = useFloatingMotion({
+    origin: 'var(--radix-dropdown-menu-content-transform-origin)',
+  });
   return (
     <RadixMenu.Portal forceMount>
       <AnimatePresence>
@@ -66,7 +59,7 @@ export function DropdownMenuContent({
             sideOffset={6}
           >
             <motion.div
-              {...floatingMenuMotion('var(--radix-dropdown-menu-content-transform-origin)')}
+              {...floating}
               className={cn(surface, 'min-w-48 rounded-control p-1', className)}
             >
               {children}
@@ -174,6 +167,7 @@ export function PopoverContent({
   ...aria
 }: PopoverContentProps) {
   const open = useContext(PopoverOpen);
+  const floating = useFloatingMotion({ origin: 'var(--radix-popover-content-transform-origin)' });
   return (
     <RadixPopover.Portal forceMount>
       <AnimatePresence>
@@ -188,7 +182,7 @@ export function PopoverContent({
             {...aria}
           >
             <motion.div
-              {...floatingMenuMotion('var(--radix-popover-content-transform-origin)')}
+              {...floating}
               className={cn(surface, 'w-72 rounded-card p-4 outline-none', className)}
             >
               {children}

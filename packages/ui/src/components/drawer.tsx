@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, X } from 'lucide-react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { cn } from '../lib/cn';
-import { Dialog, DialogBackdrop, floatingMotion, useDialogOpen } from './dialog';
+import { useFloatingMotion } from '../motion/floating';
+import { Dialog, DialogBackdrop, useDialogOpen } from './dialog';
 import { IconButton } from './icon-button';
 
 export const Drawer = Dialog;
@@ -37,6 +38,7 @@ export function DrawerContent({
   className,
 }: DrawerContentProps) {
   const open = useDialogOpen();
+  const floating = useFloatingMotion({ origin: 'right center' });
   // Drawers open from rows rather than a DialogTrigger, so remember where focus came from.
   const opener = useRef<HTMLElement | null>(null);
   return (
@@ -59,8 +61,7 @@ export function DrawerContent({
             }}
           >
             <motion.div
-              {...floatingMotion}
-              style={{ transformOrigin: 'right center' }}
+              {...floating}
               className={cn(
                 'fixed bottom-3 right-3 top-3 z-50 flex w-[min(600px,calc(100vw-24px))] flex-col',
                 'overflow-hidden rounded-card bg-raised shadow-float outline-none',

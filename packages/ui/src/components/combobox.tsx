@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { Popover as RadixPopover } from 'radix-ui';
 import { cn } from '../lib/cn';
-import { floatingMenuMotion } from './menu';
+import { useFloatingMotion } from '../motion/floating';
 
 export interface ComboboxOption {
   /** Unique within the menu. */
@@ -64,6 +64,7 @@ export function Combobox({
   children,
   ...props
 }: ComboboxProps) {
+  const floating = useFloatingMotion({ origin: 'var(--radix-popover-content-transform-origin)' });
   const [ownOpen, setOwnOpen] = useState(false);
   const open = controlled ?? ownOpen;
   const [search, setSearch] = useState('');
@@ -132,7 +133,7 @@ export function Combobox({
               collisionPadding={16}
             >
               <motion.div
-                {...floatingMenuMotion('var(--radix-popover-content-transform-origin)')}
+                {...floating}
                 className="z-50 w-[min(440px,calc(100vw-48px))] overflow-hidden rounded-card bg-raised shadow-float outline-none"
               >
                 <Command loop label={props['aria-label']}>

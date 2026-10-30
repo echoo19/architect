@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '../lib/cn';
+import { useEnterFrom } from './provider';
 import { springs } from './springs';
 
 export interface CollapseProps {
@@ -16,13 +17,14 @@ export interface CollapseProps {
  * nothing; one that starts open appears open, without the entrance.
  */
 export function Collapse({ open, id, className, children }: CollapseProps) {
+  const enter = useEnterFrom({ height: 0, opacity: 0 });
   return (
     <AnimatePresence initial={false}>
       {open && (
         <motion.div
           key="collapse"
           id={id}
-          initial={{ height: 0, opacity: 0 }}
+          initial={enter}
           animate={{ height: 'auto', opacity: 1, transition: springs.smooth }}
           exit={{ height: 0, opacity: 0, transition: springs.exit }}
           className={cn('min-w-0 overflow-hidden', className)}

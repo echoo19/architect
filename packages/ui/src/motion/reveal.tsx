@@ -1,5 +1,6 @@
 import { Children, createContext, useContext, type ReactNode } from 'react';
 import { motion } from 'motion/react';
+import { useEnterFrom } from './provider';
 import { springs } from './springs';
 
 /** How far an item rises as it appears. */
@@ -41,10 +42,11 @@ export interface RevealProps {
 /** Fades in and rises 12px as it mounts: what a section or a row does on its first appearance. */
 export function Reveal({ children, className, delay = 0, as = 'div' }: RevealProps) {
   const Tag = tags[as];
+  const enter = useEnterFrom({ opacity: 0, y: REVEAL_RISE });
   return (
     <Tag
       className={className}
-      initial={{ opacity: 0, y: REVEAL_RISE }}
+      initial={enter}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...springs.smooth, delay }}
     >

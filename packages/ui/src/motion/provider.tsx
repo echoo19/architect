@@ -9,6 +9,14 @@ export function useInstantMotion(): boolean {
   return useContext(InstantMotion);
 }
 
+/**
+ * Where something starts from as it enters. Nowhere when every transition is instant, so it is
+ * there in its first frame and a capture never finds it halfway in.
+ */
+export function useEnterFrom<T extends object>(from: T): T | false {
+  return useInstantMotion() ? false : from;
+}
+
 export interface MotionProviderProps {
   /**
    * The app runs for tests and screenshots (ARCHITECT_HIDDEN=1): every transition completes
