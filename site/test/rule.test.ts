@@ -53,10 +53,11 @@ function input(label: string): string {
 }
 
 describe('the rule chapter', () => {
-  it('comes between describing the job and training it', () => {
+  it('comes after the questions about the job and before training it', () => {
     const order = CHAPTERS.map((chapter) => chapter.id);
-    expect(order.indexOf('check')).toBe(order.indexOf('describe') + 1);
-    expect(order.indexOf('train')).toBe(order.indexOf('check') + 1);
+    expect(order.indexOf('ask')).toBe(order.indexOf('describe') + 1);
+    expect(order.indexOf('rule')).toBe(order.indexOf('ask') + 1);
+    expect(order.indexOf('train')).toBe(order.indexOf('rule') + 1);
   });
 
   it('sets only the file a step names in brackets apart, and loses none of its words', () => {

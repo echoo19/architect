@@ -1,185 +1,90 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { cn } from '@architect/ui';
-import { Bullets, DataCard, KeepIds, P, Prose, Reply, UserBubble, WorkedFor } from './chat';
+import { KeepIds, Ledger, P, Reply, UserBubble, WorkedFor } from './chat';
 import { AppWindow, ChatHeader, Sidebar } from './frame';
-import { JOBS, sidebarFor, type JobChat } from './jobs';
+import { CHATS, deskSidebar } from './jobs';
 import { at } from './motion';
 import { Stage } from './stage';
 
-/** How long a job stays on screen before the window hands over to the next, in ms. */
-const HOLD = 7600;
-/** How long the old job's lines take to leave, in ms. */
-const HAND_OVER = 1100;
-
-type Phase = 'in' | 'out';
-
 /**
- * One element's turn in the roll. Going out, the lines leave in order from the top; coming in,
- * each arrives from below just after the one above it, so the new job resolves down the page.
+ * The window over the page's first screen: the returns desk agent answering one request, from the
+ * shop's own policy and records. It plays once when the page opens and holds its last frame, and
+ * all of its motion is CSS, so it can be played to any moment. The window is near its real size and
+ * cropped by the band's bottom edge.
  */
-function turn(phase: Phase, order: number): { className: string; style: CSSProperties } {
-  return phase === 'in'
-    ? { className: 'a a-up', style: at(420 + order * 100, { dur: 600, dy: 18 }) }
-    : { className: 'a a-exit-up', style: at(order * 55, { dur: 300, dy: 18 }) };
-}
 
-function Lead({ job, phase }: { job: JobChat; phase: Phase }) {
-  const { className, style } = turn(phase, 3);
-  return (
-    <P className={className} style={style}>
-      {job.lead.map((part, index) =>
-        typeof part === 'string' ? (
-          part
-        ) : (
-          <strong key={index} className="font-semibold">
-            {part.b}
-          </strong>
-        ),
-      )}
-    </P>
-  );
-}
+const ASK =
+  "Nico Mbeki wants to return the Two-Person Backpacking Tent from order ORD-10506. It's opened. Can it come back, and what does he get?";
 
-/** One job's conversation, as a layer the roll can bring in or take out. */
-function Conversation({ job, phase }: { job: JobChat; phase: Phase }) {
-  const ask = turn(phase, 1);
-  const worked = turn(phase, 2);
-  const intro = turn(phase, 6);
-  const card = turn(phase, 7);
-  return (
-    <div className="mx-auto flex max-w-[720px] flex-col gap-10 text-body">
-      <UserBubble className={ask.className} style={ask.style}>
-        <KeepIds text={job.ask} />
-      </UserBubble>
-      <Reply>
-        <WorkedFor className={worked.className} style={worked.style}>
-          {job.worked}
-        </WorkedFor>
-        <Prose>
-          <Lead job={job} phase={phase} />
-          <div className="narrow:hidden">
-            <Bullets
-              items={job.bullets.map((bullet) => (
-                <KeepIds text={bullet} />
-              ))}
-              itemClassName={turn(phase, 4).className}
-              itemStyle={(index) => turn(phase, 4 + index).style}
-            />
-          </div>
-          <P className={intro.className} style={intro.style}>
-            {job.intro}
-          </P>
-        </Prose>
-        <DataCard
-          label={job.table.label}
-          columns={job.table.columns}
-          rows={job.table.rows}
-          hideOnNarrow={job.table.hideOnNarrow}
-          note={job.table.note}
-          className={card.className}
-          style={card.style}
-        />
-      </Reply>
-    </div>
-  );
-}
+const BULLETS = [
+  'An opened tent has a 15% restocking fee.',
+  'Nico is not a member, so he pays the $6.95 return label.',
+] as const;
 
-/** The chat's title, which rolls to the next one inside its own line. */
-function Title({ job, phase }: { job: JobChat; phase: Phase }) {
-  const { className, style } = turn(phase, 0);
-  return (
-    <span
-      className={cn('block truncate', phase === 'out' && 'absolute inset-0', className)}
-      style={style}
-    >
-      {job.title}
-    </span>
-  );
-}
+const REFUND: readonly (readonly [string, string])[] = [
+  ['Two-Person Backpacking Tent', '$311.96'],
+  ['Restocking fee, 15%', '-$46.79'],
+  ['Return label', '-$6.95'],
+  ['Refund to card', '$258.22'],
+];
 
-/**
- * The window over the page's first screen, near its real size and cropped by the band's bottom
- * edge. It is the one thing on the page that cycles: every few seconds the returns desk's next
- * finished chat takes its turn in the same frame, and only what is inside the conversation changes.
- */
+/** When things arrive, in ms from the start. */
+const BUBBLE = 350;
+const WORKED = 1250;
+const LEAD = 1750;
+const BULLET = 3300;
+const INTRO = 4150;
+const LEDGER = 4550;
+const ROW = 4900;
+const ROW_STEP = 330;
+
 export function HeroWindow() {
-  const stage = useRef<HTMLDivElement>(null);
-  const [turnState, setTurnState] = useState<{ index: number; previous: number | null }>({
-    index: 0,
-    previous: null,
-  });
-  const [onScreen, setOnScreen] = useState(true);
-  const [tabShown, setTabShown] = useState(true);
-
-  useEffect(() => {
-    const node = stage.current;
-    if (!node || typeof IntersectionObserver === 'undefined') return;
-    const watcher = new IntersectionObserver(
-      (entries) => setOnScreen(entries.some((entry) => entry.isIntersecting)),
-      { threshold: 0.1 },
-    );
-    watcher.observe(node);
-    return () => watcher.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const update = () => setTabShown(document.visibilityState === 'visible');
-    document.addEventListener('visibilitychange', update);
-    return () => document.removeEventListener('visibilitychange', update);
-  }, []);
-
-  const cycling = onScreen && tabShown;
-  useEffect(() => {
-    // Reduced motion pins the window to its first job, still.
-    if (!cycling || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const timer = window.setInterval(() => {
-      setTurnState((state) => ({ index: (state.index + 1) % JOBS.length, previous: state.index }));
-    }, HOLD);
-    return () => window.clearInterval(timer);
-  }, [cycling]);
-
-  const { index, previous } = turnState;
-  useEffect(() => {
-    if (previous === null) return;
-    const timer = window.setTimeout(
-      () => setTurnState((state) => ({ ...state, previous: null })),
-      HAND_OVER,
-    );
-    return () => window.clearTimeout(timer);
-  }, [previous]);
-
-  const job = JOBS[index] ?? JOBS[0];
-  const before = previous === null ? undefined : JOBS[previous];
-  if (!job) return null;
-
   return (
     <Stage
-      ref={stage}
       id="hero"
-      label="The Architect window with the returns desk agent of an outdoor-gear shop, showing three finished chats in turn: a tent return refunded with its fees, a customer's spending on tents, and a return that was denied. Each has the agent's answer and a table of figures."
-      heightWide={692}
-      heightCompact={620}
+      label="The Architect window with the returns desk agent of an outdoor-gear shop answering a request. A customer wants to return an opened tent. The agent says it can come back, inside the 30 day window, and works out the refund in a short table: the tent at $311.96, a 15% restocking fee, the return label, and $258.22 back to the card."
+      heightWide={650}
       playback="playing"
     >
       <AppWindow className="inset-x-3 top-3 flex h-[800px] wide:inset-x-7 wide:top-7">
-        <Sidebar agents={sidebarFor(index)} className="narrow:hidden" />
+        <Sidebar agents={deskSidebar(CHATS, 0)} className="narrow:hidden" />
         <div className="flex min-w-0 flex-1 flex-col">
-          <ChatHeader
-            title={
-              <span className="relative block h-6 overflow-hidden">
-                {before && <Title key={`out-${previous}`} job={before} phase="out" />}
-                <Title key={`in-${index}`} job={job} phase="in" />
-              </span>
-            }
-          />
-          <div className="relative min-h-0 flex-1 overflow-hidden px-8 pt-8 narrow:px-4 narrow:pt-5">
-            <div className="relative">
-              {before && (
-                <div key={`out-${previous}`} className="absolute inset-x-0 top-0">
-                  <Conversation job={before} phase="out" />
-                </div>
-              )}
-              <Conversation key={`in-${index}`} job={job} phase="in" />
+          <ChatHeader title={CHATS[0]} />
+          <div className="min-h-0 flex-1 overflow-hidden px-8 pt-6 narrow:px-4 narrow:pt-4">
+            <div className="mx-auto flex max-w-[720px] flex-col gap-7 text-body">
+              <UserBubble className="a a-up" style={at(BUBBLE, { dy: 28, dur: 800 })}>
+                <KeepIds text={ASK} />
+              </UserBubble>
+              <Reply>
+                <WorkedFor className="a a-up" style={at(WORKED, { dy: 10 })}>
+                  Worked for 1 min 31 s, 4 steps
+                </WorkedFor>
+                <P className="a a-wipe" style={at(LEAD, { dur: 1300 })}>
+                  Yes. The tent was delivered 23 days ago, inside the 30 day window, and Nico gets{' '}
+                  <strong className="font-semibold">$258.22</strong> back on his card.
+                </P>
+                <ul className="m-0 flex list-none flex-col gap-1.5 p-0 narrow:hidden">
+                  {BULLETS.map((bullet, index) => (
+                    <li
+                      key={bullet}
+                      className="a a-up flex gap-3"
+                      style={at(BULLET + index * 220, { dy: 10 })}
+                    >
+                      <span aria-hidden className="mt-[0.7em] size-1 shrink-0 rounded-full bg-fg" />
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+                <P className="a a-up" style={at(INTRO, { dy: 10 })}>
+                  Here is how the refund adds up:
+                </P>
+                <Ledger
+                  title="Refund for order ORD-10506"
+                  rows={REFUND}
+                  className="a a-up"
+                  style={at(LEDGER, { dy: 14, dur: 600 })}
+                  rowClassName="a a-up"
+                  rowStyle={(index) => at(ROW + index * ROW_STEP, { dy: 8, dur: 500 })}
+                />
+              </Reply>
             </div>
           </div>
         </div>

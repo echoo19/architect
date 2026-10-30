@@ -12,9 +12,11 @@ export function Header() {
           aria-label="Architect, top of the page"
         >
           <LogoMark size={22} />
-          <span className="text-[19px] font-bold tracking-[-0.02em]">Architect</span>
+          <span className="font-display text-[20px] font-semibold tracking-[-0.02em]">
+            Architect
+          </span>
         </a>
-        <nav aria-label="Main" className="flex items-center gap-5">
+        <nav aria-label="Main" className="flex items-center gap-6">
           <a className="link-quiet" href={REPO}>
             GitHub
           </a>

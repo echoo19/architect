@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { AgentAvatar, Badge, cn, Composer, IconButton, LogoMark } from '@architect/ui';
+import { AgentAvatar, cn, Composer, IconButton, LogoMark } from '@architect/ui';
 import {
   ChevronDown,
   Ellipsis,
@@ -29,7 +29,10 @@ export function AppWindow({
 }) {
   return (
     <div
-      className={cn('absolute overflow-hidden rounded-control bg-ground shadow-float', className)}
+      className={cn(
+        'absolute overflow-hidden rounded-[14px] bg-ground shadow-float narrow:relative narrow:inset-auto narrow:m-3 narrow:h-auto',
+        className,
+      )}
       style={style}
     >
       {children}
@@ -69,7 +72,9 @@ export function Sidebar({
     >
       <div className="-mx-3 flex h-12 shrink-0 items-center gap-2.5 px-5.5 pt-5">
         <LogoMark size={20} />
-        <span className="text-body font-semibold">Architect</span>
+        <span className="font-display text-[17px] font-semibold tracking-[-0.012em]">
+          Architect
+        </span>
       </div>
       <div className="flex items-center gap-0.5">
         <span className={cn(navRow, 'min-w-0 flex-1')}>
@@ -129,10 +134,11 @@ export function ChatHeader({ title, className }: { title: ReactNode; className?:
         className,
       )}
     >
-      <h3 className="m-0 min-w-0 max-w-full truncate text-body font-medium">{title}</h3>
-      <Badge icon={<Laptop size={14} strokeWidth={1.6} aria-hidden />}>
+      <h3 className="m-0 min-w-0 max-w-full truncate font-sans text-body font-medium">{title}</h3>
+      <span className="flex shrink-0 items-center gap-2 text-small">
+        <Laptop size={14} strokeWidth={1.6} aria-hidden />
         Running on this computer
-      </Badge>
+      </span>
     </header>
   );
 }

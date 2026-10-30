@@ -4,12 +4,12 @@ import { Closing } from './components/Closing';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { RepairRun } from './components/RepairRun';
-import { ResultsSlot } from './components/ResultsSlot';
+import { MeasuredResults } from './components/MeasuredResults';
 import { CHAPTERS, type ChapterId } from './content';
-import { CheckMock } from './mock/check';
+import { AskMock } from './mock/ask';
 import { DescribeMock } from './mock/describe';
-import { ReportMock } from './mock/report';
+import { ResultMock } from './mock/result';
+import { RuleMock } from './mock/rule';
 import { ShareMock } from './mock/share';
 import { TeachMock } from './mock/teach';
 import { TrainMock } from './mock/train';
@@ -17,22 +17,18 @@ import { UseMock } from './mock/use';
 
 const MOCKS: Record<ChapterId, ReactNode> = {
   describe: <DescribeMock />,
-  check: (
-    <>
-      <CheckMock />
-      <RepairRun />
-    </>
-  ),
+  ask: <AskMock />,
+  rule: <RuleMock />,
   train: <TrainMock />,
   test: (
     <>
-      <ReportMock />
-      <ResultsSlot />
+      <ResultMock />
+      <MeasuredResults />
     </>
   ),
+  use: <UseMock />,
   teach: <TeachMock />,
   share: <ShareMock />,
-  use: <UseMock />,
 };
 
 export function App() {

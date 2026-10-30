@@ -7,26 +7,8 @@
  */
 
 export const JOB_NAME = 'Repair ticket cost helper';
-/** The kind of task the rule is for, as the card is titled. */
+/** The kind of task the rule is for, as the screen titles it. */
 export const RULE_LABEL = 'Ticket costs';
-/** When the rule was confirmed, as the Confirmed mark says it. */
-export const CONFIRMED_ON = 'Oct 29';
-
-/** What the bar under the rule says, as two sentences, and its two buttons. */
-export const CONFIRM = {
-  says: [
-    "Training can't start until you confirm it.",
-    "If it isn't right, change the description.",
-  ],
-  change: 'Change the description',
-  confirm: 'Confirm the rule',
-} as const;
-
-/** What the line beside Start training says while the rule waits to be confirmed, and after. */
-export const FOOTER_WAIT = {
-  waiting: 'Confirm the rule first',
-  ready: 'Keep Architect open while it trains',
-} as const;
 
 /** A step of the rule: its words, the files it names in brackets, and what the person said. */
 export interface RuleStep {
