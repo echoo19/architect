@@ -457,7 +457,7 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await expect(ruleHeading).toBeInViewport();
   await expect(section.getByText(/^Confirmed on /)).toBeInViewport();
   await expect(ruleHeading).toBeFocused();
-  await resize(DEFINE_HEIGHT);
+  await resize(1300);
   // The rule is no longer what holds training back. Time is: this computer can't fit a round in
   // four hours, so one callout by the choice says so, with the way out, and Start training waits.
   await expect(page.getByText('Confirm the rule first')).toHaveCount(0);

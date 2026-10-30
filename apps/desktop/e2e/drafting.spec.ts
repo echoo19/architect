@@ -24,7 +24,7 @@ import { shop, type Shop } from './shop';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const WIDTH = 1440;
-const DEFINE_HEIGHT = 1580;
+const DEFINE_HEIGHT = 1320;
 
 test.describe.configure({ mode: 'serial' });
 
