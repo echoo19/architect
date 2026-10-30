@@ -24,12 +24,7 @@ export function EditionStep({ edition, onChoose }: EditionStepProps) {
         className="w-full max-w-[720px] gap-3.5"
       >
         {ORDER.map((option) => (
-          <RadioCard
-            key={option}
-            value={option}
-            title={EDITIONS[option].name}
-            className="min-h-[112px]"
-          >
+          <RadioCard key={option} value={option} title={EDITIONS[option].name}>
             {EDITIONS[option].says}
           </RadioCard>
         ))}
