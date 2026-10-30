@@ -1,7 +1,7 @@
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { EngineApi } from '@architect/engine';
-import type { DraftTurn, Job } from '@architect/shared';
+import { DraftOrganizationSchema, type DraftTurn, type Job } from '@architect/shared';
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
@@ -77,6 +77,14 @@ export function registerEngineHandlers(
           ),
         );
       },
+      draftField: async (description, organizations) => {
+        const chosen = organizations.map((org) => ({ ...org, folder: picked.check(org.folder) }));
+        return draftedWith(
+          await call((api) =>
+            api.jobs.draftField(description, chosen, settings.get().defaultMentor),
+          ),
+        );
+      },
       draftReply: async (sessionId, reply) =>
         draftedWith(
           await call((api) => api.jobs.draftReply(sessionId, reply, settings.get().defaultMentor)),
@@ -97,6 +105,7 @@ export function registerEngineHandlers(
       exportFile: z.tuple([text, text]),
       exportField: z.tuple([text, text]),
       draftStart: z.tuple([text, z.array(text)]),
+      draftField: z.tuple([text, z.array(DraftOrganizationSchema).min(1)]),
     },
   );
 
