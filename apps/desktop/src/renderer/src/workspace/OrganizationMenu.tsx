@@ -22,7 +22,7 @@ import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import {
   currentOrganization,
-  orgOfFolder,
+  folderProblem,
   organizationsOf,
   type AgentOrganization,
 } from './organizations';
@@ -52,8 +52,8 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
         directory: true,
       });
       if (!picked) return null;
-      const other = orgs.find((item) => item.org === orgOfFolder(picked) && item.org !== org.org);
-      if (other) throw new Error(`That folder holds ${other.name}'s records, not ${org.name}'s.`);
+      const problem = folderProblem(orgs, org, picked);
+      if (problem !== null) throw new Error(problem);
       const bound = await graduatesApi.bind(agent.id, { bindings: { data: picked } });
       await refreshAgent(agent.id);
       return bound;
