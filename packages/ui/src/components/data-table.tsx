@@ -152,7 +152,7 @@ export function DataTable<R>({
                   key={run.key}
                   scope={run.group ? 'colgroup' : undefined}
                   colSpan={run.span}
-                  className="bg-card px-4 pt-3 text-center text-small font-normal first:pl-6 last:pr-6"
+                  className="bg-card px-3 pt-3 text-center text-small font-normal first:pl-6 last:pr-6"
                 >
                   {run.group && (
                     <span className="block border-b border-line pb-1.5">{run.group}</span>
@@ -172,7 +172,7 @@ export function DataTable<R>({
                   aria-sort={active ?? (column.sortValue ? 'none' : undefined)}
                   style={column.width ? { width: column.width } : undefined}
                   className={cn(
-                    'h-11 border-b border-line bg-card px-4 font-medium',
+                    'h-11 whitespace-nowrap border-b border-line bg-card px-3 font-medium',
                     'first:pl-6 last:pr-6',
                     column.align === 'end' ? 'text-right' : 'text-left',
                   )}
@@ -233,7 +233,7 @@ export function DataTable<R>({
                   <td
                     key={column.key}
                     className={cn(
-                      'h-12 border-t border-line px-4 first:pl-6 last:pr-6',
+                      'h-12 border-t border-line px-3 first:pl-6 last:pr-6',
                       'group-first/row:border-t-0',
                       index === 0 && 'font-medium',
                       column.align === 'end' && 'text-right',
