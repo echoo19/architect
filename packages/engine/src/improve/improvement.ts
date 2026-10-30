@@ -375,16 +375,27 @@ export async function improvementsOf(
         })),
         ...(candidate === null ? {} : { candidateVersion: candidate.version }),
         promotion: promotionOf(record, candidate, agent.activeVersion),
-        lessons: isTerminal(run.status)
-          ? lessonOutcomes(
-              experiments,
-              improves.corrections.flatMap((id) => store.corrections.get(id) ?? []),
-              job,
-            )
-          : [],
+        // An improvement from before decision 066 never checked what the student learned, so it
+        // gives no verdict: it measured rounds, and none recorded the student's checks.
+        lessons:
+          isTerminal(run.status) && !beforeLearnedChecks(experiments)
+            ? lessonOutcomes(
+                experiments,
+                improves.corrections.flatMap((id) => store.corrections.get(id) ?? []),
+                job,
+              )
+            : [],
       };
     }),
   );
+}
+
+/** Rounds were measured, and none recorded the student's checks: kept by the rule before 066. */
+function beforeLearnedChecks(experiments: readonly Experiment[]): boolean {
+  const measured = experiments.filter(({ disposition }) =>
+    ['kept', 'reverted', 'rejected'].includes(disposition),
+  );
+  return measured.length > 0 && measured.every(({ learned }) => learned === undefined);
 }
 
 function promotionOf(

@@ -97,9 +97,11 @@ export function ImprovementView({
             {heading}
           </Heading>
           <p className="m-0 max-w-[660px] text-body text-pretty">
-            {made
+            {made && improvement.lessons.some(({ verdict }) => verdict === 'learned')
               ? `Its change was kept: ${name} passed tasks it had failed and held on its check tasks. Scored on the ${job.splits.dev} check tasks against version ${improvement.fromVersion}. It hasn't taken a final test.`
-              : `No change was kept. Version ${improvement.fromVersion} stays as it was, and its lessons are back in the queue.`}
+              : made
+                ? `Scored on the ${job.splits.dev} check tasks against version ${improvement.fromVersion}. It hasn't taken a final test.`
+                : `No change was kept. Version ${improvement.fromVersion} stays as it was, and its lessons are back in the queue.`}
           </p>
         </header>
         <div role="status" className="flex items-start gap-3">

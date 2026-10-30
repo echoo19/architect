@@ -11,7 +11,7 @@ import {
   type TrainedAdapter,
   type TypeScore,
 } from '@architect/shared';
-import { improvementHarness, improvementLessons } from '../improve/improvement';
+import { improvementHarness, improvementLessons, returnLessons } from '../improve/improvement';
 import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, LLAMA_CPP, llamaCppConfig, type AttemptConfig } from './configuration';
@@ -1184,7 +1184,18 @@ export function finishTraining(
   }
   const kept = state.rounds().some(({ round }) => round.decision === 'kept');
   if (reason === 'user' && !kept) {
-    state.saveRun({ status: 'stopped', phase: 'done', stopReason: 'user', endedAt: state.now() });
+    const at = state.now();
+    const { improves } = state.record;
+    const run = state.ctx.store.transaction(() => {
+      // A stopped improvement hands its lessons back, saying why, as one that kept nothing does.
+      if (improves !== undefined) {
+        const note = 'Stopped: it was stopped before a change was kept.';
+        const notes = new Map(improves.corrections.map((id) => [id, note]));
+        returnLessons(state.ctx.store, improves, state.ctx.runId, at, notes);
+      }
+      return state.writeRun({ status: 'stopped', phase: 'done', stopReason: 'user', endedAt: at });
+    });
+    state.emit({ type: 'run.updated', run });
     state.log('info', 'Stopped before any change was kept, so there is no graduate to test.');
     return;
   }

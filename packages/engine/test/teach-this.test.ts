@@ -581,6 +581,22 @@ describe('Improve agent', () => {
     expect(improvement?.lessons.map(({ verdict }) => verdict)).toEqual(['learned', 'not_verified']);
   });
 
+  it('gives no learning verdict for an improvement made before the student was checked', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    improvingMentor();
+    await queued(engine);
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+    // As its records read when the keep rule asked only for a gain on dev.
+    for (const experiment of engine.store.experiments.list(start.runId)) {
+      const { learned: _checked, ...before } = experiment;
+      engine.store.experiments.put(before);
+    }
+
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement).toMatchObject({ candidateVersion: 2, lessons: [] });
+  });
+
   it('gives an agent already at its target on dev a round to learn its lessons in', async () => {
     const { engine, graduateId } = await graduateWithChat();
     await engine.jobs.save({
@@ -781,7 +797,12 @@ describe('Improve agent', () => {
       stopReason: 'user',
     });
     expect(engine.store.versions.list(graduateId)).toHaveLength(1);
-    expect(engine.store.corrections.get(lesson.id)?.status).toBe('queued');
+    const back = engine.store.corrections.get(lesson.id);
+    expect(back).toMatchObject({
+      status: 'queued',
+      note: 'Stopped: it was stopped before a change was kept.',
+    });
+    expect(back?.runId).toBeUndefined();
     expect(teachThis(engine).discard(lesson.id).status).toBe('discarded');
   });
 
