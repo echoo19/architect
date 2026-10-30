@@ -20,7 +20,7 @@ export const HERO = {
   /** Two sentences, each on its own line where there is room. */
   line: [
     'Spark, a large model, studies your files and teaches Glimmer, a small one.',
-    'Glimmer is tested on organizations it never saw, then runs offline on your files.',
+    'Glimmer is tested on work it never saw, then runs offline on your files.',
   ],
 } as const;
 
