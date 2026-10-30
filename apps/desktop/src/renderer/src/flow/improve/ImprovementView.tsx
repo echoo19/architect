@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
-import type { Correction, Improvement, Job, Run, Score } from '@architect/shared';
-import { Heading, Meter, Stagger, StaggerItem, Stat, StatusMark } from '@architect/ui';
+import type { Correction, Improvement, Job, LessonVerdict, Run, Score } from '@architect/shared';
+import {
+  Heading,
+  Meter,
+  Stagger,
+  StaggerItem,
+  Stat,
+  StatusMark,
+  type MarkState,
+} from '@architect/ui';
 import { formatDuration, formatUsd } from '../../lib/format';
 import { KIND_LABELS, lessonCount } from '../../workspace/teach/lessons';
 import { formatRate, percent, rate } from '../format';
@@ -36,6 +44,13 @@ export function fromBefore(before: Score, after: Score): string {
   return 'Same as before';
 }
 
+/** Whether the student learned a lesson, as a mark and a word or two. */
+const VERDICTS: Record<LessonVerdict, { mark: MarkState; label: string }> = {
+  learned: { mark: 'ok', label: 'Learned' },
+  not_learned: { mark: 'off', label: 'Not learned' },
+  not_verified: { mark: 'attention', label: 'Not verified' },
+};
+
 function cents(amount: number): string {
   return formatUsd(Math.round(amount * 100) / 100);
 }
@@ -52,9 +67,10 @@ interface ImprovementViewProps {
 }
 
 /**
- * What an improvement changed: its new version's score on the check tasks against the version it
- * started from, per task type what got better and what didn't, what it spent, the lessons it was
- * taught, and whether the new version may be used. It never takes the final test, and says so.
+ * What an improvement changed: whether its change was kept, its new version's score on the check
+ * tasks against the version it started from, per task type what got better and what didn't, what
+ * it spent, whether the agent learned each lesson (decision 066), and whether the new version may
+ * be used. It never takes the final test, and says so.
  */
 export function ImprovementView({
   improvement,
@@ -82,8 +98,8 @@ export function ImprovementView({
           </Heading>
           <p className="m-0 max-w-[660px] text-body text-pretty">
             {made
-              ? `Scored on the ${job.splits.dev} check tasks against version ${improvement.fromVersion}. It hasn't taken a final test.`
-              : `Version ${improvement.fromVersion} stays as it was, and its lessons are back in the queue.`}
+              ? `Its change was kept: ${name} passed tasks it had failed and held on its check tasks. Scored on the ${job.splits.dev} check tasks against version ${improvement.fromVersion}. It hasn't taken a final test.`
+              : `No change was kept. Version ${improvement.fromVersion} stays as it was, and its lessons are back in the queue.`}
           </p>
         </header>
         <div role="status" className="flex items-start gap-3">
@@ -165,16 +181,33 @@ export function ImprovementView({
       {lessons.length > 0 && (
         <StaggerItem>
           <Section title={`${lessonCount(lessons.length)} from your flagged answers`} id="lessons">
-            <ul className="m-0 list-none border-b border-line p-0">
-              {lessons.map((lesson) => (
-                <li
-                  key={lesson.id}
-                  className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 border-t border-line py-2.5"
-                >
-                  <span className="text-pretty">{lesson.proposal.lesson}</span>
-                  <span className="text-small">{KIND_LABELS[lesson.proposal.kind]}</span>
-                </li>
-              ))}
+            <ul aria-label="Lessons" className="m-0 list-none border-b border-line p-0">
+              {lessons.map((lesson) => {
+                const outcome = improvement.lessons.find(
+                  ({ correctionId }) => correctionId === lesson.id,
+                );
+                const verdict = outcome && VERDICTS[outcome.verdict];
+                return (
+                  <li
+                    key={lesson.id}
+                    aria-label={lesson.proposal.lesson}
+                    className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t border-line py-2.5"
+                  >
+                    <span className="text-pretty">{lesson.proposal.lesson}</span>
+                    {verdict ? (
+                      <span className="flex items-center gap-2 font-medium">
+                        <StatusMark state={verdict.mark} size={16} />
+                        {verdict.label}
+                      </span>
+                    ) : (
+                      <span className="text-small">{KIND_LABELS[lesson.proposal.kind]}</span>
+                    )}
+                    {outcome && (
+                      <span className="col-span-2 text-small text-pretty">{outcome.reason}</span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </Section>
         </StaggerItem>
