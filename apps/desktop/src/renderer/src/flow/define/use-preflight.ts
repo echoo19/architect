@@ -34,7 +34,7 @@ function copyKey(job: Job): string | null {
 export function usePreflight(
   job: Job,
   testPlace: StudentTarget,
-  openSettings: (tab: 'mentor' | 'student') => void,
+  openSettings: (tab: 'teacher' | 'student' | 'teaching') => void,
 ) {
   const secrets = useSecretsStatus();
   const local = useLocalRuntimes();

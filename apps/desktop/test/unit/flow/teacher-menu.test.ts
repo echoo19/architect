@@ -2,11 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JobSchema, type InterventionType, type Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import {
-  advancedTabs,
-  tabLabel,
-  tabWithIssue,
-} from '../../../src/renderer/src/flow/define/AdvancedDialog';
+import { tabLabel, tabWithIssue } from '../../../src/renderer/src/flow/define/inspector-tabs';
 import { TeacherMenu } from '../../../src/renderer/src/flow/define/TeacherMenu';
 import {
   agentChanges,
@@ -32,12 +28,12 @@ function menu(job: Job, facts: WeightsFacts = READY, onAddKey?: () => void): str
   );
 }
 
-/** The markup of one row: from its label to the end of its switch. */
+/** The markup of one row: from its switch, which comes first, to the end of its label. */
 function row(html: string, label: string): string {
   const at = html.indexOf(`>${label}<`);
   expect(at, `a row named ${label}`).toBeGreaterThan(-1);
-  const end = html.indexOf('</button>', at);
-  return html.slice(at, end);
+  const start = html.lastIndexOf('<button', at);
+  return html.slice(start, at + label.length + 2);
 }
 
 describe('choosing what the teacher may change', () => {
@@ -121,7 +117,7 @@ describe('what keeps weights from being trained here, as far as the app can tell
 });
 
 describe("the Teacher tab's section", () => {
-  it('names the teacher and gives each kind of change an icon, a name and a switch', () => {
+  it('names the teacher and gives each kind of change a switch, a name and what it is made of', () => {
     const html = menu(makeJob({ budget: FUNDED }));
     expect(html).toContain('What Spark may change');
     for (const label of [
@@ -133,12 +129,15 @@ describe("the Teacher tab's section", () => {
     ]) {
       const one = row(html, label);
       expect(one).toContain('role="switch"');
-      expect(one).toContain(`aria-label="${label}"`);
+      // The label names the switch, and clicking it flips the switch too.
+      expect(one).toMatch(/<button[^>]*id="([^"]+)"[\s\S]*<label for="\1"/);
       expect(one).toContain('aria-checked="true"');
       expect(one).not.toContain('disabled=""');
     }
-    // An icon each, drawn by the design's icon set and hidden from a screen reader.
-    expect(html.match(/<svg[^>]*lucide[^>]*aria-hidden="true"/g)).toHaveLength(5);
+    // What each kind is made of, at the right of its row.
+    for (const type of ['Text', 'Notes', 'Code', 'Weights', 'Question']) {
+      expect(html).toContain(`>${type}</span>`);
+    }
     expect(html).toContain('Rules and step-by-step procedures it follows');
     expect(html).toContain('Spark may stop and ask you one question');
   });
@@ -281,33 +280,21 @@ describe('what each kind of change is called', () => {
   });
 });
 
-describe("the teacher's tab", () => {
-  it('is named for the teacher, wherever the rail lists it, and wherever a line sends the person to it', () => {
-    const named = (teacher: string) =>
-      advancedTabs(teacher).find((tab) => tab.value === 'mentor')?.label;
-    expect(named('Spark')).toBe('Spark');
-    expect(named('Spark Open')).toBe('Spark Open');
-    expect(tabLabel('mentor', 'Spark')).toBe('Spark');
-    // The other tabs keep their names, in the same order, whoever teaches.
-    expect(advancedTabs('Spark').map((tab) => tab.label)).toEqual([
-      'Example tasks',
-      'Ready when',
-      'Time and budget',
-      'Spark',
-      "Agent's model",
-      'Starting instructions',
-      'Grading',
-      'Task sets',
-      'When a change stays',
-    ]);
-    expect(tabLabel('budget', 'Spark')).toBe('Time and budget');
+describe("the inspector's tabs", () => {
+  it("names the teacher's and the agent's tabs for their models, and the rest for what they hold", () => {
+    const job = makeJob();
+    expect(tabLabel('teacher', job)).toBe('Spark');
+    expect(tabLabel('student', job)).toBe('Glimmer');
+    expect(tabLabel('teaching', job)).toBe('Teaching');
+    expect(tabLabel('evaluation', job)).toBe('Evaluation');
+    expect(tabLabel('budget', job)).toBe('Budget');
   });
 });
 
 describe('a choice the engine would refuse', () => {
-  it("is marked in the teacher's tab, which Start training opens", () => {
+  it('is marked in the Teaching tab, which Start training opens', () => {
     const issues = validateJob({ ...makeJob(), interventions: ['clarification'] }, 170);
     expect(Object.keys(issues)).toEqual(['interventions']);
-    expect(tabWithIssue(issues)).toBe('mentor');
+    expect(tabWithIssue(issues)).toBe('teaching');
   });
 });

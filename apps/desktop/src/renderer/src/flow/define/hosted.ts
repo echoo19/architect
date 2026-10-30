@@ -6,6 +6,7 @@ import {
   type StudentEndpoint,
   type StudentPreset,
 } from '@architect/shared';
+import { shortModelName } from '../../lib/names';
 
 export function presetOf(endpoint: StudentEndpoint): StudentPreset | undefined {
   return STUDENT_PRESETS.find(
@@ -49,7 +50,7 @@ export function hostedAvailability(student: StudentConfig, keys: KeyStatus): Hos
   if (!hosted) {
     return {
       available: false,
-      reason: "Pick an online service under Agent's model in Advanced settings",
+      reason: `Pick an online service under ${shortModelName(student.label)} in Advanced settings`,
       why: 'no_host',
     };
   }

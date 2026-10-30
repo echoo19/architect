@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, toast, Tooltip } from '@architect/ui';
+import { IconButton, Spinner, toast, Tooltip } from '@architect/ui';
 import { FileDown } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { attempt } from '../../lib/notify';
@@ -53,14 +53,15 @@ export function ExportJobFile({ editor }: { editor: JobEditor }) {
   };
 
   return (
-    <Tooltip
-      content="Saves this job's settings as a file. Its tasks and data files stay on this computer."
-      side="top"
-    >
-      <Button size="md" variant="ghost" loading={exporting} onClick={() => void exportJob()}>
-        {!exporting && <FileDown size={15} strokeWidth={1.7} aria-hidden />}
-        Export the job file
-      </Button>
+    <Tooltip content="Export the job file. Its tasks and data files stay on this computer.">
+      <IconButton
+        label="Export the job file"
+        disabled={exporting}
+        aria-busy={exporting || undefined}
+        onClick={() => void exportJob()}
+      >
+        {exporting ? <Spinner size={16} /> : <FileDown size={18} strokeWidth={1.8} aria-hidden />}
+      </IconButton>
     </Tooltip>
   );
 }

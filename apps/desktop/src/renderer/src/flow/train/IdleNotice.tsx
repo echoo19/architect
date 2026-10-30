@@ -33,7 +33,7 @@ export function IdleNotice({ live }: { live: LiveRun }) {
       teacher={modelNames(live.job).mentor}
       reason={run.error}
       onOpenTeacher={() => {
-        askForAdvanced(run.jobId, 'mentor');
+        askForAdvanced(run.jobId, 'teaching');
         navigate(paths.define(run.jobId));
       }}
       onAddKey={() => {
