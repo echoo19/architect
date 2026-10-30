@@ -1,6 +1,6 @@
 import type { TypeScore } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
-import { confirmKeep, decideKeep } from '../src/loop/keep';
+import { confirmKeep, decideKeep, decideLearned } from '../src/loop/keep';
 
 const types = (invoice: number, overdue: number, scheduling: number): TypeScore[] => [
   { type: 'invoice', pass: invoice, total: 10 },
@@ -230,5 +230,52 @@ describe('confirmKeep', () => {
       reason:
         'Dev 14/60 → 18/60 over 2 runs, measured again on new seeds: 28/120 → 36/120 over 4 runs, no type lost more than four',
     });
+  });
+});
+
+describe('decideLearned', () => {
+  const evaluation = { minDevGain: 2, maxTypeRegression: 1 };
+  const learn = (before: TypeScore[], after: TypeScore[], passes: boolean[]) =>
+    decideLearned({
+      before: sum(before),
+      after: sum(after),
+      beforePerType: before,
+      afterPerType: after,
+      evaluation,
+      runs: 1,
+      learned: passes.map((pass, n) => ({ taskId: `train-overdue-${n}`, type: 'overdue', pass })),
+    });
+
+  it('keeps a change the student learned from at its ceiling, with no gain on dev', () => {
+    expect(learn(types(10, 9, 10), types(10, 9, 10), [true, true, true])).toEqual({
+      keep: true,
+      reason: 'Learned: passed 3 of 3 tasks it had failed; check tasks held 29/30 → 29/30',
+    });
+  });
+
+  it("keeps no change the student didn't learn from, whatever dev gained", () => {
+    expect(learn(types(4, 5, 5), types(9, 5, 9), [true, false])).toEqual({
+      keep: false,
+      reason: 'Not learned: passed 1 of 2 tasks it had failed; check tasks 14/30 → 23/30',
+    });
+  });
+
+  it('keeps nothing when no task could check the lessons', () => {
+    expect(learn(types(4, 5, 5), types(9, 5, 9), [])).toEqual({
+      keep: false,
+      reason:
+        "Not verified: it failed no task of its lessons' types in this round; check tasks 14/30 → 23/30",
+    });
+  });
+
+  it('keeps no change that did harm on dev, as isHarmful judges it', () => {
+    expect(learn(types(10, 8, 10), types(10, 10, 8), [true])).toEqual({
+      keep: false,
+      reason:
+        'Learned: passed 1 of 1 task it had failed, but scheduling lost 2 passes; check tasks 28/30 → 28/30',
+    });
+    expect(learn(types(10, 9, 10), types(9, 9, 10), [true]).reason).toBe(
+      'Learned: passed 1 of 1 task it had failed, but check tasks fell 29/30 → 28/30',
+    );
   });
 });

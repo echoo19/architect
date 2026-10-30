@@ -366,6 +366,14 @@ export const ExperimentSchema = z.object({
     z.object({ type: z.string(), before: z.number().int(), after: z.number().int() }),
   ),
   gates: z.array(GateResultSchema),
+  /**
+   * An improvement's check that the student learned its lessons (decision 066): the student's
+   * attempts, with the changed harness, at the round's train tasks of the lessons' task types that
+   * it had failed. Absent outside an improvement.
+   */
+  learned: z
+    .array(z.object({ taskId: z.string(), type: z.string(), pass: z.boolean() }))
+    .optional(),
   budget: ExperimentBudgetSchema,
   disposition: ExperimentDispositionSchema,
   reason: z.string().min(1),

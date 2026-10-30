@@ -100,6 +100,8 @@ export const CorrectionSchema = z.object({
   candidateVersion: z.number().int().positive().optional(),
   /** The improvement run that has taken it, or took it. */
   runId: z.string().optional(),
+  /** Why the last improvement that took it handed it back to the queue. */
+  note: z.string().min(1).optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -136,6 +138,22 @@ export const ImprovementStartSchema = z.object({
 });
 export type ImprovementStart = z.infer<typeof ImprovementStartSchema>;
 
+/**
+ * Whether the student learned a lesson an improvement held: it passed the tasks of the lesson's
+ * type it had failed, in a round whose change was kept; it was checked and didn't; or no task
+ * could check it, so it never counts as learned.
+ */
+export const LessonVerdictSchema = z.enum(['learned', 'not_learned', 'not_verified']);
+export type LessonVerdict = z.infer<typeof LessonVerdictSchema>;
+
+export const LessonOutcomeSchema = z.object({
+  correctionId: z.string(),
+  verdict: LessonVerdictSchema,
+  /** One line a person can read, e.g. "Passed 3 of 3 overdue tasks it had failed, in round 1". */
+  reason: z.string().min(1),
+});
+export type LessonOutcome = z.infer<typeof LessonOutcomeSchema>;
+
 /** What an improvement changed and what it didn't, on dev, against the version it started from. */
 export const ImprovementSchema = z.object({
   runId: z.string(),
@@ -151,6 +169,8 @@ export const ImprovementSchema = z.object({
   ),
   candidateVersion: z.number().int().positive().optional(),
   promotion: z.object({ allowed: z.boolean(), reason: z.string() }),
+  /** What each lesson it held came to (decision 066), once it has ended. */
+  lessons: z.array(LessonOutcomeSchema),
 });
 export type Improvement = z.infer<typeof ImprovementSchema>;
 

@@ -1,9 +1,12 @@
 import { join } from 'node:path';
 import type {
   Correction,
+  Experiment,
   Harness,
   Improvement,
   ImproveOptions,
+  Job,
+  LessonOutcome,
   Run,
   RunImprovement,
   TrainedAdapter,
@@ -132,27 +135,102 @@ export function improvementLessons(state: RunState): Correction[] {
 
 /**
  * Puts the lessons an improvement took back in the teaching queue, as they were before it took
- * them: only those still queued under it. Joins the caller's transaction.
+ * them, with why when `notes` says: only those still queued under it and not in `keep`. Joins
+ * the caller's transaction.
  */
 export function returnLessons(
   store: EngineStore,
   improves: RunImprovement,
   runId: string,
   at: string,
+  notes: ReadonlyMap<string, string> = new Map(),
 ): void {
   for (const id of improves.corrections) {
     const lesson = store.corrections.get(id);
     if (lesson?.status !== 'queued' || lesson.runId !== runId) continue;
-    const { runId: _taken, ...rest } = lesson;
-    store.corrections.put({ ...rest, updatedAt: at });
+    const { runId: _taken, note: _before, ...rest } = lesson;
+    const note = notes.get(id);
+    store.corrections.put({ ...rest, ...(note === undefined ? {} : { note }), updatedAt: at });
   }
 }
 
+/** A task type in the job's words. */
+function typeLabel(job: Job, type: string): string {
+  return job.taskTypes.find((item) => item.id === type)?.label ?? type;
+}
+
 /**
- * Ends an improvement: a candidate version of the same agent from its last kept change, its
- * lessons marked used, the run finished, in one transaction once the folder is written. The
- * active version is never touched. With no change kept there is no candidate, and the lessons
- * go back to the queue.
+ * What each lesson came to (decision 066), from the student's checks the run's experiments
+ * recorded: learned when it passed every task of the lesson's type it had failed in a round whose
+ * change was kept; not learned when a round checked it and it didn't; not verified when nothing
+ * could check it, as for a lesson that names no task type.
+ */
+export function lessonOutcomes(
+  experiments: readonly Experiment[],
+  lessons: readonly Correction[],
+  job: Job,
+): LessonOutcome[] {
+  return lessons.map((lesson): LessonOutcome => {
+    const type = lesson.proposal.taskType;
+    const correctionId = lesson.id;
+    if (type === undefined) {
+      return {
+        correctionId,
+        verdict: 'not_verified',
+        reason: 'It names no task type, so no task could check it.',
+      };
+    }
+    const checks = experiments.flatMap((experiment) => {
+      const tasks = (experiment.learned ?? []).filter((task) => task.type === type);
+      if (tasks.length === 0) return [];
+      const passed = tasks.filter((task) => task.pass).length;
+      const what = `${passed} of ${tasks.length} ${typeLabel(job, type)} ${tasks.length === 1 ? 'task' : 'tasks'}`;
+      return [{ experiment, what, all: passed === tasks.length }];
+    });
+    const learned = checks.find(({ experiment }) => experiment.disposition === 'kept');
+    if (learned !== undefined) {
+      return {
+        correctionId,
+        verdict: 'learned',
+        reason: `Passed ${learned.what} it had failed, in round ${learned.experiment.round}, and the change was kept.`,
+      };
+    }
+    const last = checks.at(-1);
+    if (last === undefined) {
+      return {
+        correctionId,
+        verdict: 'not_verified',
+        reason: `It failed no ${typeLabel(job, type)} task while it was improved, so no task could check it.`,
+      };
+    }
+    return {
+      correctionId,
+      verdict: 'not_learned',
+      reason: last.all
+        ? `Passed ${last.what} it had failed, in round ${last.experiment.round}, but the change wasn't kept.`
+        : `Passed ${last.what} it had failed, in round ${last.experiment.round}.`,
+    };
+  });
+}
+
+/** Why each lesson the student didn't learn goes back to the queue, by its id. */
+function notesOf(outcomes: readonly LessonOutcome[]): Map<string, string> {
+  return new Map(
+    outcomes
+      .filter(({ verdict }) => verdict !== 'learned')
+      .map(({ correctionId, verdict, reason }) => [
+        correctionId,
+        `${verdict === 'not_learned' ? 'Not learned' : 'Not verified'}: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}`,
+      ]),
+  );
+}
+
+/**
+ * Ends an improvement: a candidate version of the same agent from its last kept change, the
+ * lessons the student learned marked used, the run finished, in one transaction once the folder
+ * is written. The active version is never touched. Lessons it didn't learn, or that nothing
+ * could check, go back to the queue with why; with no change kept there is no candidate, and
+ * every lesson goes back.
  */
 export async function proposeVersion(state: RunState): Promise<void> {
   const { store, runId } = state.ctx;
@@ -160,8 +238,11 @@ export async function proposeVersion(state: RunState): Promise<void> {
   const kept = state.rounds().filter(({ round }) => round.decision === 'kept').length;
   if (kept === 0) {
     const at = state.now();
+    const notes = notesOf(
+      lessonOutcomes(store.experiments.list(runId), improvementLessons(state), state.job),
+    );
     const ended = store.transaction(() => {
-      returnLessons(store, improves, runId, at);
+      returnLessons(store, improves, runId, at, notes);
       return state.writeRun({ status: 'finished', phase: 'done', endedAt: at });
     });
     state.emit({ type: 'run.updated', run: ended });
@@ -180,6 +261,10 @@ async function writeCandidate(state: RunState, kept: number): Promise<void> {
   const improves = must(state.record.improves, 'The improvement');
   const frozen = must(state.record.freeze, 'The frozen candidate');
   const lessons = improvementLessons(state);
+  const outcomes = lessonOutcomes(store.experiments.list(runId), lessons, state.job);
+  const learned = new Set(
+    outcomes.filter(({ verdict }) => verdict === 'learned').map(({ correctionId }) => correctionId),
+  );
   const at = state.now();
   const agent = must(store.graduates.get(improves.graduateId), 'The agent');
   const installation = must(store.installations.get(agent.id), "The agent's installation");
@@ -228,14 +313,11 @@ async function writeCandidate(state: RunState, kept: number): Promise<void> {
       installation,
       at,
     });
-    for (const lesson of lessons) {
-      store.corrections.put({
-        ...lesson,
-        status: 'used',
-        candidateVersion: version,
-        updatedAt: at,
-      });
+    for (const lesson of lessons.filter(({ id }) => learned.has(id))) {
+      const { note: _before, ...rest } = lesson;
+      store.corrections.put({ ...rest, status: 'used', candidateVersion: version, updatedAt: at });
     }
+    returnLessons(store, improves, runId, at, notesOf(outcomes));
     return state.writeRun({ status: 'finished', phase: 'done', endedAt: at, graduateId: agent.id });
   });
   state.emit({ type: 'run.updated', run: finished });
@@ -263,7 +345,8 @@ export async function improvementsOf(
     records.map(async (record): Promise<Improvement> => {
       const improves = must(record.improves, 'The improvement');
       const { run } = record;
-      const { budget } = await jobs.forRun(record);
+      const job = await jobs.forRun(record);
+      const { budget } = job;
       const experiments = store.experiments.list(run.id);
       // A harness round measures `incumbent` and `candidate`; a weights round H0/A0 and H1/A1.
       const first = experiments[0]?.measurements.find((item) =>
@@ -292,6 +375,13 @@ export async function improvementsOf(
         })),
         ...(candidate === null ? {} : { candidateVersion: candidate.version }),
         promotion: promotionOf(record, candidate, agent.activeVersion),
+        lessons: isTerminal(run.status)
+          ? lessonOutcomes(
+              experiments,
+              improves.corrections.flatMap((id) => store.corrections.get(id) ?? []),
+              job,
+            )
+          : [],
       };
     }),
   );

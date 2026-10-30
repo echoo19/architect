@@ -461,6 +461,16 @@ describe('Improve agent', () => {
       candidateVersion: 2,
       runId: start.runId,
     });
+    // Kept because the student passed the overdue tasks it had failed and held its check tasks.
+    const [experiment] = engine.store.experiments.list(start.runId);
+    const learned = [...(experiment?.learned ?? [])].sort((a, b) => (a.taskId < b.taskId ? -1 : 1));
+    expect(learned).toEqual([
+      { taskId: 'train-overdue-1', type: 'overdue', pass: true },
+      { taskId: 'train-overdue-2', type: 'overdue', pass: true },
+    ]);
+    expect(experiment?.reason).toBe(
+      'Learned: passed 2 of 2 tasks it had failed; check tasks held 3/9 → 6/9',
+    );
 
     const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
     expect(improvement).toMatchObject({
@@ -468,8 +478,16 @@ describe('Improve agent', () => {
       fromVersion: 1,
       status: 'finished',
       budget: { maxRounds: 1, maxMentorUsd: 2 },
-      dev: { before: { pass: 6, total: 18 }, after: { pass: 12, total: 18 } },
+      dev: { before: { pass: 3, total: 9 }, after: { pass: 6, total: 9 } },
       candidateVersion: 2,
+      lessons: [
+        {
+          correctionId: lesson.id,
+          verdict: 'learned',
+          reason:
+            'Passed 2 of 2 Overdue balances tasks it had failed, in round 1, and the change was kept.',
+        },
+      ],
       promotion: {
         allowed: true,
         reason:
@@ -551,6 +569,83 @@ describe('Improve agent', () => {
       allowed: false,
       reason: 'No change was kept, so there is nothing to promote.',
     });
+  });
+
+  it("keeps no change the student didn't learn from, even one that gains on dev", async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    world.mentor.script = (request) =>
+      request.json?.name === 'correction'
+        ? reading('weakness')
+        : hypothesis('Teach scheduling', 'Service desk.\nfix:invoice\nfix:scheduling');
+    const lesson = await queued(engine);
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    expect(engine.errors).toEqual([]);
+    const [experiment] = engine.store.experiments.list(start.runId);
+    expect(experiment).toMatchObject({
+      disposition: 'reverted',
+      reason: 'Not learned: passed 0 of 2 tasks it had failed; check tasks 3/9 → 6/9',
+    });
+    expect(engine.store.versions.list(graduateId)).toHaveLength(1);
+    expect(engine.store.corrections.get(lesson.id)).toMatchObject({
+      status: 'queued',
+      note: 'Not learned: passed 0 of 2 Overdue balances tasks it had failed, in round 1.',
+    });
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement?.lessons).toEqual([
+      {
+        correctionId: lesson.id,
+        verdict: 'not_learned',
+        reason: 'Passed 0 of 2 Overdue balances tasks it had failed, in round 1.',
+      },
+    ]);
+  });
+
+  it('counts a lesson as learned only when its own tasks showed it, and never one nothing could check', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    const teach = teachThis(engine);
+    world.mentor.script = () => reading('weakness');
+    const overdue = teach.queue((await teach.propose('cht_1', 'msg_2', correction)).id);
+    world.mentor.script = () => reading('weakness', { taskType: '' });
+    const vague = teach.queue(
+      (await teach.propose('cht_1', 'msg_2', { ...correction, wrong: 'It was curt.' })).id,
+    );
+    improvingMentor();
+    const start = await engine.controller.improve(graduateId, { maxRounds: 1, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.corrections.get(overdue.id)).toMatchObject({
+      status: 'used',
+      candidateVersion: 2,
+    });
+    const back = engine.store.corrections.get(vague.id);
+    expect(back).toMatchObject({
+      status: 'queued',
+      note: 'Not verified: it names no task type, so no task could check it.',
+    });
+    expect(back?.runId).toBeUndefined();
+    const [improvement] = await improvementsOf(engine.store, engine.jobs, graduateId);
+    expect(improvement?.runId).toBe(start.runId);
+    expect(improvement?.lessons.map(({ verdict }) => verdict)).toEqual(['learned', 'not_verified']);
+  });
+
+  it('gives an agent already at its target on dev a round to learn its lessons in', async () => {
+    const { engine, graduateId } = await graduateWithChat();
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk')),
+      requirements: { passRate: 0.3 },
+    });
+    improvingMentor();
+    const lesson = await queued(engine);
+    const start = await engine.controller.improve(graduateId, { maxRounds: 3, maxMentorUsd: 2 });
+    await engine.controller.idle();
+
+    expect(engine.errors).toEqual([]);
+    expect(engine.store.rounds.list(start.runId)).toHaveLength(1);
+    expect(engine.store.versions.get(graduateId, 2)?.state).toBe('candidate');
+    expect(engine.store.corrections.get(lesson.id)?.status).toBe('used');
   });
 
   it('ends an improvement whose mentor may change nothing, with its lessons still queued', async () => {

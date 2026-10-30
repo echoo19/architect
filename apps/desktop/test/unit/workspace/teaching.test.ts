@@ -59,6 +59,7 @@ function improvement(patch: Partial<Improvement>): Improvement {
     dev: { before: { pass: 37, total: 40 }, after: { pass: 39, total: 40 } },
     perType: [],
     promotion: { allowed: true, reason: 'Accept it, then promote it.' },
+    lessons: [],
     ...patch,
   };
 }
