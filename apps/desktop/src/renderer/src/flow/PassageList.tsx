@@ -4,7 +4,7 @@ import { cn } from '@architect/ui';
 /**
  * The passages a rule rests on, each quoted beside where it came from: the file, or "your answer"
  * for the person's own words, set apart at the right of the quote so it never runs into it. An
- * answer comes with the question it was to, in the secondary text color, so it reads as one.
+ * answer comes with the question it was to, in a heavier weight, so it reads as one.
  * Define and the report show them the same way.
  */
 export function PassageList({

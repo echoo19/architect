@@ -10,7 +10,7 @@ const badgeTone: Record<BadgeTone, string> = {
   neutral: 'bg-hover',
   /**
    * What must not be missed but is not bad news, such as an example made up to show a step: a
-   * stronger edge and a heavier weight, so it stands out among quiet tags without the red of a
+   * stronger edge and a heavier weight, so it stands out among plain tags without the red of a
    * warning.
    */
   emphasis: 'font-medium shadow-edge-strong',

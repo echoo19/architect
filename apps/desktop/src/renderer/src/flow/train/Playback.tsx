@@ -56,7 +56,7 @@ export interface PlaybackProps {
 /**
  * An attempt step by step, from the keyboard (Up and Down, or K and J) as well as the mouse:
  * each step's line, and under the current one what the agent wrote, each call's evidence and the
- * raw call. Steps Spark took as the agent carry its color; replayed ones are muted.
+ * raw call. Steps Spark took as the agent carry its color; replayed ones have a plain hairline.
  */
 export function Playback({
   title,

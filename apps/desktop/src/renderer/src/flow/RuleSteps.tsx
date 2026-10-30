@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { RuleStep } from '@architect/shared';
 import { cn } from '@architect/ui';
 
-/** A piece of a step's words: plain, or a file's name in brackets that is set quietly. */
+/** A piece of a step's words: plain, or a file's name in brackets that is set in mono. */
 export interface StepPiece {
   text: string;
   file: boolean;
@@ -10,7 +10,7 @@ export interface StepPiece {
 
 /**
  * A step's words cut around the files it names in brackets, "(customers.csv)", so the screen can
- * set each of them quietly beside the sentence instead of giving it the sentence's weight.
+ * set each of them in mono beside the sentence instead of giving it the sentence's face.
  */
 export function stepPieces(text: string, files: readonly string[] = []): StepPiece[] {
   if (files.length === 0) return [{ text, file: false }];
@@ -52,7 +52,7 @@ interface RuleStepsProps {
 
 /**
  * The rule in words, as numbered steps: what is done to the amount, one thing at a time. The files
- * a step names are set quietly and what the person said it rests on follows it. A rule without
+ * a step names are set in mono and what the person said it rests on follows it. A rule without
  * steps is said as its one sentence.
  */
 export function RuleSteps({ steps, statement, size = 'md', className }: RuleStepsProps) {

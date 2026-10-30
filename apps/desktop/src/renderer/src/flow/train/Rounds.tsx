@@ -155,9 +155,6 @@ function RoundRow({
   asked: Intervention | undefined;
   onOpen: () => void;
 }) {
-  const disposition = experiment?.disposition ?? round.decision;
-  // A change that isn't in the agent reads quieter than one that is, and is never struck out.
-  const quiet = disposition !== undefined && disposition !== 'kept';
   // A draft is the whole first setup, so it says how it came about; a question, what was asked.
   const note = draft
     ? 'Written from the job'
@@ -175,12 +172,9 @@ function RoundRow({
       className={cn(
         'grid min-h-[62px] w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3.5 border-t border-line px-7 py-2 text-left',
         'transition-colors duration-150 hover:bg-hover',
-        quiet && 'text-fg',
       )}
     >
-      <span className={cn('font-mono', !quiet && 'text-fg')}>
-        {String(round.index).padStart(2, '0')}
-      </span>
+      <span className="font-mono">{String(round.index).padStart(2, '0')}</span>
       <span className="flex min-w-0 flex-col gap-1">
         <span className="truncate">{round.title ?? untitled(round)}</span>
         {note && <span className="truncate text-small text-fg">{note}</span>}

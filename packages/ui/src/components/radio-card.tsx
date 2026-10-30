@@ -41,7 +41,7 @@ export interface RadioCardProps {
   /** Locked for now, such as while a test runs: the whole card fades. */
   disabled?: boolean;
   /**
-   * Can't be chosen, and its lines say why: they stay readable, the title goes quiet, and an
+   * Can't be chosen, and its lines say why: they stay readable, the title is dimmed, and an
    * unchosen card loses the mark that invites a click. A card that is chosen keeps its title as
    * it was: it is the one in use, and whatever is wrong with it is said beside the choice.
    */

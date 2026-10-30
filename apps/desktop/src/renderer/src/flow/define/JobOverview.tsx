@@ -34,7 +34,7 @@ export function JobHeader({ job }: { job: Job }) {
   );
 }
 
-/** What the agent will and won't do, side by side under quiet headings. */
+/** What the agent will and won't do, side by side under small headings. */
 export function Capabilities({ job }: { job: Job }) {
   if (job.does.length === 0 && job.doesNot.length === 0) return null;
   return (
@@ -167,7 +167,7 @@ function PermissionRow({
   children,
 }: {
   label: string;
-  /** A quiet line under the label, such as the files the setting covers. */
+  /** A line under the label, such as the files the setting covers. */
   detail?: ReactNode;
   /** What is on the right: the choice, or the one fact there is when there is no choice. */
   children: ReactNode;

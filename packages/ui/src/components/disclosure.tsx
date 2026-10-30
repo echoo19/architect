@@ -14,7 +14,7 @@ export interface DisclosureProps {
 }
 
 /**
- * Something a person rarely needs, folded under a quiet line until they ask for it: the ids,
+ * Something a person rarely needs, folded under a line until they ask for it: the ids,
  * hashes and settings behind a result, or the raw call behind a step.
  */
 export function Disclosure({ label, defaultOpen = false, children, className }: DisclosureProps) {

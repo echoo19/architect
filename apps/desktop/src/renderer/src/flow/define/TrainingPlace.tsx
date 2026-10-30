@@ -56,7 +56,7 @@ interface TrainingPlaceProps {
   baselines?: { checked: boolean; onCheckedChange: (checked: boolean) => void } | undefined;
 }
 
-/** One line of the plan: what it is, a quiet detail under it, and its figure on the right. */
+/** One line of the plan: what it is, a detail under it, and its figure on the right. */
 interface PlanLine {
   label: string;
   detail: ReactNode;
