@@ -45,4 +45,18 @@
 
   /* The one soft shadow, under things that float: menus, dialogs, toasts. */
   --ui-shadow-float: 0 24px 60px -12px rgb(0 0 0 / 0.6);
+
+  /*
+   * Material. A card is lit faintly from above: a top light that fades out within its first
+   * 120px, whatever the card's height, a soft rim, and a brighter hairline along its top edge.
+   * The light is fixed; it never moves or brightens. Hover brightens the rim only.
+   */
+  --ui-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0) 120px);
+  --ui-rim: inset 0 0 0 1px rgb(255 255 255 / 0.07);
+  --ui-rim-hover: inset 0 0 0 1px rgb(255 255 255 / 0.13);
+  --ui-rim-top: inset 0 1px 0 rgb(255 255 255 / 0.06);
+
+  /* What floats (menus, the inspector, toasts, dialogs) is slightly see-through, with a light blur. */
+  --ui-float: rgb(24 24 24 / 0.8);
+  --ui-float-blur: blur(20px) saturate(1.2);
 }

@@ -11,7 +11,7 @@ export function Panel({ padded = false, className, children, ...props }: PanelPr
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col overflow-hidden rounded-card bg-card shadow-edge',
+        'flex min-w-0 flex-col overflow-hidden rounded-card surface-card',
         padded && 'gap-6 p-6',
         className,
       )}
