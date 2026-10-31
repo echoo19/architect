@@ -11,7 +11,7 @@ import {
 } from '../../../src/renderer/src/models/model-change';
 
 /*
- * Carrying a field to another model (decision 094) on screen: what the new model gains and loses
+ * Carrying a field to another model (decision 095) on screen: what the new model gains and loses
  * at each organization, each organization and skill before and after, the field's timeline in
  * both directions, and the newest version as the only one that moves on.
  */

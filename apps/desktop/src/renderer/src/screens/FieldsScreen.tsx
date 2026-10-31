@@ -211,7 +211,7 @@ function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
           <Button size="md" onClick={() => navigate(paths.define(job.id))}>
             Edit field
           </Button>
-          {/* A field's next version is made from its newest one (decisions 089 and 094). */}
+          {/* A field's next version is made from its newest one (decisions 089 and 095). */}
           {view.nextVersion === undefined && (
             <Button size="md" onClick={() => setMoving(true)}>
               <ArrowRightLeft size={16} strokeWidth={1.8} aria-hidden />

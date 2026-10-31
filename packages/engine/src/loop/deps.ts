@@ -257,7 +257,7 @@ export interface VaultDeps {
   releaseOrganization(jobId: string, orgId: string): Awaitable<SealedOrganization>;
   /**
    * Seals that new version: this job's final test without the moved organization (none for a
-   * version carried to another model, decision 094), its
+   * version carried to another model, decision 095), its
    * calibration split, and every other sealed organization again, fingerprinted against the new
    * version's visible tasks and taught files (decision 082).
    */

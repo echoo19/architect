@@ -32,7 +32,7 @@ Every field is checked against `JobSchema` in `packages/shared/src/job.ts` when 
 | `checker` | `{ "kind": "builtin" }` when every task expects an answer or facts; `{ "kind": "module", "path": "checker.js" }` when some expect an end state. |
 | `requirements` | `passRate` (0 to 1) the agent must reach on the final test; optional `p95LatencyMs`. |
 | `budget` | Hard caps: `maxRounds`, `maxMentorUsd`, `maxWallMinutes`. |
-| `mentor`, `student` | The teacher and the agent's model. Copy them from a sample job; importing in the app replaces them with the ones you chose in Settings. |
+| `mentor`, `student` | The teacher and the agent's model, with an optional `student.hosted` copy it practices on (a hosted API, or a vLLM, SGLang, TGI or llama-server address on a cluster node). Copy them from a sample job or name your own. Importing in the app keeps each one that is connected on that computer (its key saved, or its address added in Settings, or a runtime on the computer itself) and replaces the others with the ones chosen in Settings, saying which. The agent's own model must run on the computer itself. |
 | `startingHarness` | `{ "kind": "blank" }`, or `{ "kind": "import", "path": "harness" }` for a harness folder beside the job file. |
 | `splits` | `seed`, and how many tasks go to `calibration`, `train` (practice), `dev` (check tasks) and `test` (the final test). They must add up to the tasks of the organizations it is taught on. |
 | `evaluation` | `trainBatch`, `minDevGain`, `maxTypeRegression`, optional `devRepeats` and `patience`, optional `certify` (decision 077). |

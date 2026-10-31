@@ -7,7 +7,12 @@ import {
   type Job,
 } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
-import { applyChoices, currentChoices, type JobChoices } from '../../../src/main/jobs/choices';
+import {
+  applyChoices,
+  applyFileModels,
+  currentChoices,
+  type JobChoices,
+} from '../../../src/main/jobs/choices';
 import { defaultSettings } from '../../../src/main/settings/schema';
 import { makeJob } from '../flow/factories';
 
@@ -20,6 +25,7 @@ function choices(overrides: Partial<JobChoices> = {}): JobChoices {
     mentor: settings.defaultMentor,
     student: { ...settings.defaultStudent, model: IQ2 },
     keys: {},
+    endpoints: [],
     ...overrides,
   };
 }
@@ -167,6 +173,7 @@ describe('applyChoices', () => {
       mentor: settings.defaultMentor,
       student: settings.defaultStudent,
       keys: {},
+      endpoints: [],
     };
     const job = sample();
     expect(applyChoices(job, wanted)).toEqual(job);
@@ -209,5 +216,103 @@ describe('currentChoices', () => {
     expect(read.keys).toEqual({});
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+
+  it('reads the addresses of the endpoints the person added', () => {
+    const read = currentChoices(
+      settings({ customEndpoints: [{ baseUrl: CLUSTER, label: 'gpu-node-7:8000' }] }),
+      { status: () => ({}) },
+    );
+    expect(read.endpoints).toEqual([CLUSTER]);
+  });
+});
+
+const CLUSTER = 'http://gpu-node-7:8000/v1';
+
+describe('applyFileModels', () => {
+  const luna = mentorPreset('openai-gpt-6-luna');
+  const fileMentor = {
+    kind: 'model',
+    provider: luna.provider,
+    label: luna.label,
+    baseUrl: luna.baseUrl,
+    model: luna.model,
+    reasoningEffort: 'high',
+    secretRef: luna.secretRef,
+  } as const;
+  const onCluster = {
+    runtime: 'openai_compatible',
+    baseUrl: CLUSTER,
+    model: 'qwen3-32b',
+    contextLength: 16_384,
+  } as const;
+  /** A job file from a team on a cluster: their teacher, their model here, a copy on a node. */
+  const theirs = (): Job => {
+    const base = sample();
+    return {
+      ...base,
+      mentor: fileMentor,
+      student: {
+        label: 'Qwen',
+        local: { ...base.student.local, model: 'qwen3:32b' },
+        trainOn: 'hosted',
+        hosted: onCluster,
+      },
+    };
+  };
+
+  it('keeps every model the file names when each is connected here, and replaces none', () => {
+    const imported = applyFileModels(
+      theirs(),
+      choices({ keys: { openai: true }, endpoints: [CLUSTER] }),
+    );
+    expect(imported.job).toEqual(theirs());
+    expect(imported.replaced).toEqual([]);
+  });
+
+  it("replaces what isn't connected with the person's choices, and says what was replaced", () => {
+    const imported = applyFileModels(theirs(), choices());
+    expect(imported.job.mentor).toEqual(choices().mentor);
+    // The model here stays, as it runs on this computer; the cluster copy wasn't added here.
+    expect(imported.job.student.local.model).toBe('qwen3:32b');
+    expect(imported.job.student.hosted).toBeUndefined();
+    expect(imported.job.student.trainOn).toBe('local');
+    expect(imported.replaced).toEqual([
+      { role: 'mentor', from: luna.label, to: choices().mentor.label },
+      { role: 'hosted', from: 'qwen3-32b', to: null },
+    ]);
+  });
+
+  it('never sends a saved key to an address that is not its own', () => {
+    const job = theirs();
+    const stolen = { ...fileMentor, baseUrl: 'https://keys.example.com/v1' };
+    const imported = applyFileModels(
+      { ...job, mentor: stolen },
+      choices({ keys: { openai: true }, endpoints: [CLUSTER] }),
+    );
+    expect(imported.job.mentor).toEqual(choices().mentor);
+    expect(imported.replaced).toEqual([
+      { role: 'mentor', from: luna.label, to: choices().mentor.label },
+    ]);
+  });
+
+  it("runs the agent only on this computer: a model elsewhere is replaced with the person's", () => {
+    const job = theirs();
+    const elsewhere: Job = {
+      ...job,
+      student: { ...job.student, local: { ...onCluster, model: 'qwen3:32b' } },
+    };
+    const imported = applyFileModels(
+      elsewhere,
+      choices({ keys: { openai: true }, endpoints: [CLUSTER] }),
+    );
+    expect(imported.job.student.local).toMatchObject({ baseUrl: OLLAMA_BASE_URL, model: IQ2 });
+    expect(imported.replaced).toContainEqual({ role: 'student', from: 'qwen3:32b', to: IQ2 });
+  });
+
+  it('says nothing when the file already names what the person chose', () => {
+    const imported = applyFileModels(sample(), choices({ keys: { meta: true } }));
+    expect(imported.replaced).toEqual([]);
+    expect(imported.job).toEqual(sample());
   });
 });

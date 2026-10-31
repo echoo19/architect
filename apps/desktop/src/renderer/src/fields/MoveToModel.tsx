@@ -13,7 +13,7 @@ import { ModelPicker } from '../settings/models/ModelPicker';
 import { nextVersionName } from './TeachOn';
 
 /*
- * Carrying a field to another model (decision 094): the person picks any model connected here,
+ * Carrying a field to another model (decision 095): the person picks any model connected here,
  * and the field's next version starts on it from everything the field has. The agent in use
  * keeps its model until the person switches it.
  */

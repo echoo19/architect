@@ -13,7 +13,7 @@ export function nextVersionName(name: string, versionOf: FieldView['versionOf'])
 
 /**
  * The version made from this one, if any: by teaching on one of its sealed organizations or by
- * moving to another model (decision 094). Only the newest version of a field moves on.
+ * moving to another model (decision 095). Only the newest version of a field moves on.
  */
 export function newerVersion(view: FieldView): { jobId: string; name: string } | null {
   const next = view.nextVersion ?? view.sealed.find((org) => org.taughtIn !== undefined)?.taughtIn;

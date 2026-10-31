@@ -19,7 +19,7 @@ import { plural } from './parts';
 
 /*
  * A field's life as one timeline (decision 091): the version it was made from and any later one,
- * by teaching on an organization (decision 089) or moving to another model (decision 094), what
+ * by teaching on an organization (decision 089) or moving to another model (decision 095), what
  * it was studied from, each training, each final test, each certificate, each experiment and this session's export, every entry read from
  * a stored record and linked to the place that holds it. A stage with no record has no entry; one
  * next step, worked out from what is missing, closes the line.

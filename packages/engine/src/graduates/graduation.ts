@@ -41,7 +41,7 @@ export interface RunGraduation {
   lineage: readonly LineageEntry[];
   /**
    * The agent already here that the graduate becomes a version of, as a version carried to
-   * another model does (decision 094): its name, the version number it takes and the version it
+   * another model does (decision 095): its name, the version number it takes and the version it
    * was made from. Absent for version 1 of a new agent.
    */
   agent?: { name: string; version: number; parent: VersionRef };

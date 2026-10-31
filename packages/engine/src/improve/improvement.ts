@@ -67,7 +67,7 @@ function versionAdapter(
  * here from a job, its active version, and every lesson in its queue. One improvement at a time.
  * It teaches on the newest version of the agent's job on the same model, which may teach on
  * organizations its own job never saw (decision 089), and never on a version carried to another
- * model unless the active version came from it (decision 094).
+ * model unless the active version came from it (decision 095).
  */
 export function improvementPlan(
   store: EngineStore,
@@ -86,7 +86,7 @@ export function improvementPlan(
     `${agent.name} has no active version to improve.`,
   );
   // The newest version on the model the active version runs on: one carried to another model
-  // teaches that model, and a version made there improves from there (decision 094).
+  // teaches that model, and a version made there improves from there (decision 095).
   const made = active.runId === undefined ? null : store.runs.get(active.runId);
   const jobId = newestOnSameModel(store, made?.run.jobId ?? origin.run.jobId);
   if (

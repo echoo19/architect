@@ -6,7 +6,7 @@ import { organizationGrid } from './org-grid';
  * "Before and after" on a later version's report: each organization's final test, then each of
  * its skills, in the earlier version and in this one. The version is either taught on a
  * never-seen organization (decision 089), whose after comes from its check tasks since it has no
- * final test there any more, or carried to another model (decision 094), measured on the same
+ * final test there any more, or carried to another model (decision 095), measured on the same
  * sealed final test.
  */
 

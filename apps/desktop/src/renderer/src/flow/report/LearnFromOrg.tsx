@@ -15,7 +15,7 @@ import { Organizations } from './Organizations';
 /*
  * Later versions of a field in the Lab: the report's grid offers to teach on each never-seen
  * organization in a new version (decision 089), and a version made that way, or by carrying the
- * field to another model (decision 094), shows each organization and its skills before and
+ * field to another model (decision 095), shows each organization and its skills before and
  * after: against the best version of the field it came from, or the version it carried.
  */
 

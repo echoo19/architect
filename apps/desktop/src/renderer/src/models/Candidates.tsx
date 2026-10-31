@@ -7,7 +7,7 @@ import { comparable, imported, rowKey, scoresOf, type ModelRow } from './registr
 
 /**
  * Where a candidate came from, in a few words: a run here, an improvement of a version, the
- * field carried to another model from a version (decision 094), or another computer.
+ * field carried to another model from a version (decision 095), or another computer.
  */
 export function originOf(row: ModelRow, rows: readonly ModelRow[]): string {
   const { version } = row;

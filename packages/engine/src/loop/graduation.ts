@@ -160,7 +160,7 @@ export async function freeze(state: RunState): Promise<void> {
   }
   const frozen: GraduateFreeze = {
     // An improvement makes a version of the agent it improves, never a new agent, and so does a
-    // version of a field carried to another model, of the agent it carried (decision 094).
+    // version of a field carried to another model, of the agent it carried (decision 095).
     graduateId:
       state.record.improves?.graduateId ??
       carriedFrom(state.ctx.store, state.run.jobId)?.graduateId ??
@@ -460,7 +460,7 @@ async function graduate(
     lineage: await state.lineage.read(),
   };
   // Carried to another model, it becomes the next version of the agent it carried, beside the
-  // one in use (decision 094): the agent keeps answering on that one until the person switches.
+  // one in use (decision 095): the agent keeps answering on that one until the person switches.
   const carried = carriedFrom(store, job.id);
   const parent =
     carried?.graduateId === frozen.graduateId

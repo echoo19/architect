@@ -152,7 +152,7 @@ export const FieldViewSchema = z.object({
    * Set on a later version of a field: the field it came from and this one's version number, with
    * why it was made. Teaching on one of its never-seen organizations names the organization moved
    * (decision 089); moving it to another model names both models by their short names and the
-   * version whose harness it carried, when one did (decision 094).
+   * version whose harness it carried, when one did (decision 095).
    */
   versionOf: z
     .object({
@@ -199,7 +199,7 @@ export const AddOrganizationRequestSchema = z
 export type AddOrganizationRequest = z.infer<typeof AddOrganizationRequestSchema>;
 
 /**
- * Carries a field to another model in its next version (decision 094): the model the agent runs
+ * Carries a field to another model in its next version (decision 095): the model the agent runs
  * on here, chosen from the models connected, its short name, and the version whose harness it
  * starts from, else the newest version of the field an agent holds.
  */

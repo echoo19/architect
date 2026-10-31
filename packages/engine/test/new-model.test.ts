@@ -12,7 +12,7 @@ import { createWorld, type World } from './fakes/world';
 import { orgJob, orgTasks, writeOrgJobFolder } from './support/organizations';
 
 /*
- * Carrying a field to another model (decision 094): the next version is a new job on the chosen
+ * Carrying a field to another model (decision 095): the next version is a new job on the chosen
  * model that starts from the field's harness and keeps its tasks, checker and sealed set as they
  * are; its trainings become versions of the agent it carried, and the agent switches models only
  * when the person makes one of them the version in use, which can be undone.

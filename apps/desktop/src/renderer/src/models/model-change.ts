@@ -4,7 +4,7 @@ import { shortModelName } from '../lib/names';
 import { compareCards, formatPoints, type OrgGroup } from './registry';
 
 /*
- * Switching an agent to a version on another model (decision 094): what the new model gains and
+ * Switching an agent to a version on another model (decision 095): what the new model gains and
  * loses at each organization, from the two versions' own final tests where both took the same
  * one. The agent switches only when the person says so, and can go back.
  */

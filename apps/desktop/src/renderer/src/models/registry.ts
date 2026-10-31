@@ -249,7 +249,7 @@ export function compareScores(a: ModelRow, b: ModelRow): Comparison {
 /**
  * Two cards side by side, cell by cell, where both measured the same skill at the same
  * organization on as many tasks: for cards of one job, or of a field and its version carried to
- * another model, whose final test is the same sealed one (decision 094).
+ * another model, whose final test is the same sealed one (decision 095).
  */
 export function compareCards(earlier: ReportCard, later: ReportCard): Comparison {
   const before = measuredCells(earlier);

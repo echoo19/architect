@@ -29,7 +29,7 @@ export function Change({ icon, children }: { icon: ReactNode; children: ReactNod
 
 /**
  * What a version on another model gains and loses against the one in use, at each organization
- * both took the same final test at (decision 094). Nothing while the cards load, and a plain
+ * both took the same final test at (decision 095). Nothing while the cards load, and a plain
  * line when no organization compares.
  */
 function Gains({
@@ -92,7 +92,7 @@ function Gains({
 /**
  * Asks before the version chats run on changes, and says what changes: which version answers
  * from the next reply, what moves with it, and that the one it replaces stays. A version on
- * another model is a switch of models (decision 094): the dialog names both and shows what the
+ * another model is a switch of models (decision 095): the dialog names both and shows what the
  * new one gains and loses at each organization, and the switch can be undone from its toast.
  */
 export function MoveDialog({

@@ -297,8 +297,8 @@ test('shows a llama-server too old for Glimmer as too old, with how to fix it', 
 test('adds a key its provider accepts, and says why when one is refused', async () => {
   await open('/', { secrets: { meta: true }, local: OLLAMA_READY });
   await openModelsTab();
-  await page.getByRole('button', { name: 'Add API key' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Add an API key' });
+  await page.getByRole('button', { name: 'Add provider or endpoint' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a provider or endpoint' });
   await dialog.getByLabel('API key').fill('refused-key');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText(

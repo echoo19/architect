@@ -10,6 +10,7 @@ import {
   GraduateSummarySchema,
   HarnessFileSchema,
   HubTokenStatusSchema,
+  ImportedJobSchema,
   JobSchema,
   JobSummarySchema,
   LlamaServerStatusSchema,
@@ -167,7 +168,8 @@ export const flowApi = {
   transcribe: (jobId: string, request: TranscribeRequest) =>
     read('jobs.transcribe', TaskPlanSchema, bridge().jobs.transcribe(jobId, request)),
   /** Imports a job file picked in a dialog, as a new job. */
-  importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
+  importJob: (path: string) =>
+    read('jobs.importFile', ImportedJobSchema, bridge().jobs.importFile(path)),
   /** Writes the job's settings to a file chosen in a save dialog. */
   exportJob: (jobId: string, path: string) => bridge().jobs.exportFile(jobId, path),
   /** The system's save dialog: the file chosen, or null when the person cancels. */

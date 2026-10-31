@@ -5,7 +5,7 @@ import type { JobRecord } from '../store/records';
 /*
  * The versions of a job: a later version is a job of its own, made by teaching on one of the
  * earlier one's never-seen organizations (decision 089) or by carrying it to another model
- * (decision 094), and it records the job it came from and why. Each version has at most one next
+ * (decision 095), and it records the job it came from and why. Each version has at most one next
  * version, so they read as one line from the first.
  */
 
@@ -46,7 +46,7 @@ export function newestVersion(store: EngineStore, jobId: string): string {
 
 /**
  * The newest version of the job that runs on the same model: an improvement teaches there, and
- * never past a version that moved the field to another model (decision 094).
+ * never past a version that moved the field to another model (decision 095).
  */
 export function newestOnSameModel(store: EngineStore, jobId: string): string {
   let newest = jobId;
@@ -58,7 +58,7 @@ export function newestOnSameModel(store: EngineStore, jobId: string): string {
 }
 
 /**
- * The agent version a version carried to another model started from (decision 094), while its
+ * The agent version a version carried to another model started from (decision 095), while its
  * agent is still here: its trainings become versions of that agent. Null for any other job.
  */
 export function carriedFrom(

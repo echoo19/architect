@@ -13,12 +13,23 @@ import { FIELD_ORGS, FIELD_REPORT } from './fixtures-field';
 import { stubByKey, taskPlan } from './fixtures-flow';
 import { LAB, LAB_AGENTS, LAB_JOBS, ACADEMY_DESK_ID, stubLab } from './fixtures-lab';
 import { MODEL_VERSIONS } from './fixtures-models';
+import {
+  ASSAY_FIELD,
+  ASSAY_PLAN,
+  SWEEP,
+  SWEEP_EARLIER_REPORT,
+  SWEEP_FIELD,
+  SWEEP_PLAN,
+  SWEEP_REPORT,
+  SWEEP_RUNS,
+} from './fixtures-science';
 import { at, makeRun, storyReport } from './story';
 
 /*
  * The Fields place against the stand-in engine, on the Lab's jobs: Academy desk's field, taught on three
- * generated academies and sealed from a generated one and a real one, with two candidates; and
- * the one-organization jobs, each a field of its own records. Every score is one the Lab's
+ * generated academies and sealed from a generated one and a real one, with two candidates; the
+ * science lab's Sweep desk with two candidates and Assay desk not taught yet (fixtures-science);
+ * and the one-organization jobs, each a field of its own records. Every score is one the Lab's
  * screens already show.
  */
 
@@ -97,8 +108,16 @@ const EARLIER_REPORT: ReportCard = {
 const runOf = (key: string, overrides: Partial<Run>): Run =>
   makeRun({ id: `run_${key}`, jobId: `job_${key}`, updatedAt: at(120), ...overrides });
 
+/** Fields with runs of their own from the science lab's fixtures. */
+const SCIENCE_RUNS: Record<string, Run[]> = {
+  [SWEEP.job]: SWEEP_RUNS,
+  [LAB.assayDeskJob]: [],
+};
+
 export const RUNS: Record<string, Run[]> = Object.fromEntries(
   LAB_JOBS.map((summary) => {
+    const science = SCIENCE_RUNS[summary.id];
+    if (science) return [summary.id, science];
     const key = summary.id.replace(/^job_/, '');
     const latest = summary.latestRun;
     const run = runOf(key, {
@@ -222,7 +241,13 @@ export const ACADEMY_DESK_ASSETS: FieldExportManifest = {
 export const FIELD_VIEWS: Record<string, FieldView> = Object.fromEntries(
   LAB_JOBS.map((job) => [
     job.id,
-    job.id === LAB.academyDeskJob ? ACADEMY_DESK_FIELD : oneOrg(job.id),
+    job.id === LAB.academyDeskJob
+      ? ACADEMY_DESK_FIELD
+      : job.id === SWEEP.job
+        ? SWEEP_FIELD
+        : job.id === LAB.assayDeskJob
+          ? ASSAY_FIELD
+          : oneOrg(job.id),
   ]),
 );
 
@@ -235,6 +260,8 @@ export const FIELD_REPORTS: Record<string, ReportCard> = {
     name: 'Academy desk',
   },
   [EARLIER_RUN]: EARLIER_REPORT,
+  [SWEEP.run]: SWEEP_REPORT,
+  [SWEEP.earlierRun]: SWEEP_EARLIER_REPORT,
   run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
 };
 
@@ -246,10 +273,10 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
   await stubByKey(app, 'reports:list', REPORT_TARGETS);
   await stubByKey(app, 'reports:get', FIELD_REPORTS);
   await stubByKey(app, 'jobs:taskPlan', {
+    ...Object.fromEntries(LAB_JOBS.map((job) => [job.id, taskPlan])),
     [LAB.academyDeskJob]: ACADEMY_DESK_PLAN,
-    ...Object.fromEntries(
-      LAB_JOBS.filter((job) => job.id !== LAB.academyDeskJob).map((job) => [job.id, taskPlan]),
-    ),
+    [SWEEP.job]: SWEEP_PLAN,
+    [LAB.assayDeskJob]: ASSAY_PLAN,
   });
   await stubByKey(app, 'jobs:fieldAssets', { [LAB.academyDeskJob]: ACADEMY_DESK_ASSETS });
   // The timeline's reads: each agent's versions, none certified after the fact, and no model

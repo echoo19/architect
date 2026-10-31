@@ -28,7 +28,7 @@ import { ACADEMY_DESK_ID, DETAILS, JOBS, LAB } from './fixtures-lab';
 import { installModelsFake, MODEL_REPORTS, MODEL_VERSIONS } from './fixtures-models';
 
 /*
- * Carrying a field to another model (decision 094), against the stand-in engine: Move to another
+ * Carrying a field to another model (decision 095), against the stand-in engine: Move to another
  * model from the field's page, the confirm that says what carries over and what stays sealed,
  * the new version and its timeline, each organization and skill before and after on its report,
  * and the switch in Models that shows what the new model gains and loses and can be undone.

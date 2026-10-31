@@ -55,7 +55,7 @@ import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
 import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
 
-/** Where a version carried to another model keeps the harness it starts from (decision 094). */
+/** Where a version carried to another model keeps the harness it starts from (decision 095). */
 const CARRIED_HARNESS = 'carried-harness';
 
 /** A field's id and name without a version's suffix: "academy-desk", "Academy desk". */
@@ -1003,7 +1003,7 @@ export class JobLibrary {
   }
 
   /**
-   * Carries the field to another model in a new version (decision 094), never in place: a new
+   * Carries the field to another model in a new version (decision 095), never in place: a new
    * job, recorded as this one's next version for a new model, whose student is the model chosen
    * and which starts from what the field has. Its harness is the chosen version's, or else the
    * version of the field an agent holds, copied whole (instructions, skills, helpers, examples
