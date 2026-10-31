@@ -233,16 +233,19 @@ async function start(): Promise<void> {
     async () => currentChoices(settings, secrets),
   );
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
+  const inLab = () => settings.get().edition === 'lab';
   registerTeamHandlers(
     router,
     (request) => engine.call(request),
     (request) => agentHost.call(request),
+    inLab,
   );
   registerWorkspaceHandlers(
     router,
     (request) => agentHost.call(request),
     graduates,
     () => engine.call((api) => api.teams.list()),
+    inLab,
   );
   engine.start();
   stopOnQuit([agentHost, engine]);

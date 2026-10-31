@@ -12,7 +12,7 @@ const TEAM: Team = {
   updatedAt: '2026-11-05T09:00:00.000Z',
 };
 
-function setup(failures: Record<string, string> = {}) {
+function setup(failures: Record<string, string> = {}, edition: 'lab' | 'personal' = 'lab') {
   const { router, call } = routerHarness();
   let settle: () => void = () => undefined;
   const opening = new Promise<void>((resolve) => {
@@ -29,6 +29,7 @@ function setup(failures: Record<string, string> = {}) {
     (request) => request(host as unknown as AgentHostClient),
     { settled: () => opening, failure: (graduateId) => failures[graduateId] },
     async () => [TEAM],
+    () => edition === 'lab',
   );
   return { host, call, settle };
 }
@@ -70,6 +71,20 @@ describe('workspace handlers', () => {
       ok: false,
       error: { message: reason },
     });
+    errors.mockRestore();
+    expect(host.createTeamChat).not.toHaveBeenCalled();
+  });
+
+  it('refuse team chats in the personal edition, which has no teams', async () => {
+    const { host, call, settle } = setup({}, 'personal');
+    settle();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    for (const method of ['listTeamChats', 'createTeamChat']) {
+      expect(await call(`workspace:${method}`, 'team_1')).toMatchObject({
+        ok: false,
+        error: { code: 'lab_only' },
+      });
+    }
     errors.mockRestore();
     expect(host.createTeamChat).not.toHaveBeenCalled();
   });

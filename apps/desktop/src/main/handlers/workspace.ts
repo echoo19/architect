@@ -2,6 +2,7 @@ import type { AgentHostClient } from '@architect/engine/agent-host';
 import type { Team } from '@architect/shared';
 import type { IpcRouter } from '../ipc/router';
 import type { WorkspaceGraduates } from '../workspace/graduates';
+import { requireLab, type InLab } from './teams';
 
 /** Sends one request to the agent host. */
 export type AgentHostCall = <T>(request: (host: AgentHostClient) => Promise<T>) => Promise<T>;
@@ -17,6 +18,7 @@ export function registerWorkspaceHandlers(
   call: AgentHostCall,
   graduates: Pick<WorkspaceGraduates, 'settled' | 'failure'>,
   teams: () => Promise<Team[]>,
+  inLab: InLab,
 ): void {
   const whenOpen = async <T>(request: (host: AgentHostClient) => Promise<T>): Promise<T> => {
     await graduates.settled();
@@ -30,8 +32,12 @@ export function registerWorkspaceHandlers(
       if (failure !== undefined) throw new Error(failure);
       return call((host) => host.createChat(graduateId));
     },
-    listTeamChats: (teamId) => whenOpen((host) => host.listTeamChats(teamId)),
+    listTeamChats: (teamId) => {
+      requireLab(inLab);
+      return whenOpen((host) => host.listTeamChats(teamId));
+    },
     createTeamChat: async (teamId) => {
+      requireLab(inLab);
       await graduates.settled();
       const team = (await teams()).find((each) => each.id === teamId);
       for (const member of team?.members ?? []) {

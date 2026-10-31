@@ -83,6 +83,10 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     cause: 'This team is still answering.',
     next: 'Stop its replies, then try again.',
   },
+  lab_only: {
+    cause: 'Teams are part of Architect Lab.',
+    next: 'Choose Architect Lab in Settings, then try again.',
+  },
 };
 
 /** The plain words for a failure that carries a code, or null for every other failure. */
