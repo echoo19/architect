@@ -5,10 +5,11 @@ import type {
   Improvement,
   JobSummary,
   RunPhase,
+  Team,
   WorkspaceChat,
 } from '@architect/shared';
 import { formatPercent } from '../lib/format';
-import { paths } from '../lib/router';
+import { chatPath, paths } from '../lib/router';
 
 /*
  * What the Lab shows, read from records the engine already keeps: the jobs' newest runs, the
@@ -97,6 +98,22 @@ export function approvalNeeds(graduate: GraduateSummary, chats: readonly Workspa
       title: chat.title,
       detail: `${graduate.name} waits for your approval`,
       target: { path: paths.chat(graduate.id, chat.id) },
+    }));
+}
+
+/**
+ * Team chats where an agent of the team waits for the person to approve a change: the lead's own
+ * or a teammate's, each asking for its own files (decision 100).
+ */
+export function teamApprovalNeeds(team: Team, chats: readonly WorkspaceChat[]): Need[] {
+  return chats
+    .filter((chat) => chat.waiting)
+    .map((chat) => ({
+      key: `approval:${chat.id}`,
+      kind: 'approval' as const,
+      title: chat.title,
+      detail: `${team.name} waits for your approval`,
+      target: { path: chatPath(chat) },
     }));
 }
 

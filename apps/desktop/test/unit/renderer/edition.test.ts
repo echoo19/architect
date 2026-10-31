@@ -27,6 +27,8 @@ describe('editions', () => {
       '/experiments/new',
       '/experiments/exp_1',
       '/models',
+      '/models/teams',
+      '/teams/team_1/chats/cht_1',
       '/compute',
       '/compute/fields/job_1',
     ]) {

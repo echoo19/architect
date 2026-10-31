@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { Team } from '@architect/shared';
 import {
   Button,
   EmptyState,
@@ -9,7 +10,8 @@ import {
   Skeleton,
   type PageTab,
 } from '@architect/ui';
-import { Boxes, Plug, Plus, Search } from 'lucide-react';
+import { Boxes, Plug, Plus, Search, Users } from 'lucide-react';
+import { useGraduates } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { navigate, paths } from '../lib/router';
 import { Candidates } from '../models/Candidates';
@@ -18,6 +20,8 @@ import { ConnectionsView } from '../models/Connections';
 import { useRegistry } from '../models/load';
 import { ModelPanel } from '../models/ModelPanel';
 import { RegistryTable } from '../models/RegistryTable';
+import { TeamDialog } from '../models/TeamDialog';
+import { TeamsView } from '../models/Teams';
 import {
   matchesFilter,
   matchesSearch,
@@ -35,26 +39,44 @@ const FILTERS: readonly { value: RegistryFilter; label: string }[] = [
   { value: 'imported', label: 'Imported' },
 ];
 
-type View = 'versions' | 'connections';
+type View = 'versions' | 'teams' | 'connections';
 
 const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
 const VIEWS: readonly PageTab<View>[] = [
   { value: 'versions', label: 'Versions', icon: <Boxes {...tabIcon} /> },
+  { value: 'teams', label: 'Teams', icon: <Users {...tabIcon} /> },
   { value: 'connections', label: 'Connections', icon: <Plug {...tabIcon} /> },
 ];
 
 /**
  * Models: every agent and every version of it on this computer, in one registry. A row opens its
  * panel at the right; two versions open side by side to compare. Another place opens a version's
- * panel by naming it in the path (`open`). Beside the registry, every connection models come from
- * and the roles each can fill.
+ * panel by naming it in the path (`open`). Beside the registry, the teams agents work in
+ * (decision 100), and every connection models come from and the roles each can fill.
  */
-export function ModelsScreen({ open: asked }: { open?: string | undefined }) {
+export function ModelsScreen({
+  open: asked,
+  tab,
+}: {
+  open?: string | undefined;
+  tab?: 'teams' | undefined;
+}) {
   const registry = useRegistry();
+  const graduates = useGraduates();
   const [openKey, setOpenKey] = useState<string | null>(asked ?? null);
   const [comparing, setComparing] = useState<[string, string] | null>(null);
-  const [view, setView] = useState<View>('versions');
+  const [view, setView] = useState<View>(tab ?? 'versions');
+  // The team the dialog shows, or a new one; each opening starts from the team as saved.
+  const [editing, setEditing] = useState<{ team?: Team; open: boolean; count: number }>({
+    open: false,
+    count: 0,
+  });
+  const editTeam = (team?: Team) =>
+    setEditing((current) => ({ ...(team ? { team } : {}), open: true, count: current.count + 1 }));
+  useEffect(() => {
+    if (tab !== undefined) setView(tab);
+  }, [tab]);
   const openSettings = useUi((state) => state.openSettings);
   const rows = registry.data;
   useEffect(() => {
@@ -110,12 +132,19 @@ export function ModelsScreen({ open: asked }: { open?: string | undefined }) {
                 <Plus size={16} aria-hidden />
                 Add provider or endpoint
               </Button>
+            ) : view === 'teams' ? (
+              <Button size="md" onClick={() => editTeam()}>
+                <Plus size={16} aria-hidden />
+                New team
+              </Button>
             ) : undefined
           }
         >
           <PageTabs aria-label="Models" tabs={VIEWS} value={view} onValueChange={setView}>
             {view === 'connections' ? (
               <ConnectionsView />
+            ) : view === 'teams' ? (
+              <TeamsView onOpen={(team) => editTeam(team)} onNew={() => editTeam()} />
             ) : rows.length === 0 ? (
               <EmptyState
                 icon={<Boxes aria-hidden />}
@@ -164,6 +193,13 @@ export function ModelsScreen({ open: asked }: { open?: string | undefined }) {
           />
         )}
       </SidePresence>
+      <TeamDialog
+        key={editing.count}
+        open={editing.open}
+        onOpenChange={(open) => setEditing((current) => ({ ...current, open }))}
+        {...(editing.team ? { team: editing.team } : {})}
+        graduates={graduates.data ?? []}
+      />
     </div>
   );
 }

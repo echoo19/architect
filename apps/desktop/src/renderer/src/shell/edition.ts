@@ -16,9 +16,10 @@ export function placesOf(edition: Edition): readonly Place[] {
 
 /**
  * A route the personal edition doesn't have: a Lab place other than home, which both editions
- * have (the Lab in one, the agents' home in the other).
+ * have (the Lab in one, the agents' home in the other), and a team's chat (decision 100).
  */
 export function isLabOnly(route: Route): boolean {
+  if (route.name === 'team-chat') return true;
   const place = placeOf(route);
   return place !== null && place !== 'lab';
 }

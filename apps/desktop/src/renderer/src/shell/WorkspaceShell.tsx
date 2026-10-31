@@ -10,6 +10,7 @@ import { Sidebar } from './Sidebar';
 function transitionKey(route: Route): string {
   switch (route.name) {
     case 'chat':
+    case 'team-chat':
       return route.chatId;
     case 'field':
       return `field:${route.jobId}`;

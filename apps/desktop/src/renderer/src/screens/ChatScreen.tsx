@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { GraduateSummary, WorkspaceMessage } from '@architect/shared';
+import type {
+  Consultation,
+  GraduateSummary,
+  Team,
+  WorkspaceChat,
+  WorkspaceMessage,
+} from '@architect/shared';
 import { Badge, Button, Drawer, EmptyState, IconButton, Skeleton, Tooltip } from '@architect/ui';
-import { Bot, CircleX, Info, Plus } from 'lucide-react';
+import { Bot, CircleX, Info, Plus, Users } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
+import { useTeams } from '../api/teams';
 import { ProblemState } from '../components/ProblemState';
 import { activeVersionName, agentModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
@@ -16,7 +23,13 @@ import { EmptyChat } from '../workspace/EmptyChat';
 import { AgentMessage, Thinking, UserMessage } from '../workspace/messages';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { SidePanel, type PanelContent } from '../workspace/SidePanel';
-import { sendMessage, useAgentChats, useChatMessages } from '../workspace/store';
+import {
+  sendMessage,
+  useAgentChats,
+  useChatMessages,
+  useTeamChats,
+  type ListState,
+} from '../workspace/store';
 import { TeachSheet } from '../workspace/teach/TeachSheet';
 import { OrganizationMenu } from '../workspace/OrganizationMenu';
 import { useBottomPin } from '../workspace/useBottomPin';
@@ -29,6 +42,21 @@ function requestOf(messages: readonly WorkspaceMessage[], reply: WorkspaceMessag
       .slice(0, Math.max(0, index))
       .reverse()
       .find((message) => message.role === 'user')?.text ?? ''
+  );
+}
+
+/** A team in a chat: its record, the lead that answers, and the teammates it may ask. */
+interface ChatTeam {
+  team: Team;
+  teammates: readonly GraduateSummary[];
+}
+
+function BlockedBadge({ agent, named }: { agent: GraduateSummary; named: boolean }) {
+  const device = deviceInSentence(currentPlatform());
+  return (
+    <Badge tone="danger" icon={<CircleX size={14} strokeWidth={1.6} aria-hidden />}>
+      {named ? `${agent.name} can't run on ${device}` : `Can't run on ${device}`}
+    </Badge>
   );
 }
 
@@ -50,11 +78,7 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
   ].filter(Boolean);
   return (
     <div className="flex items-center gap-1">
-      {agent.status === 'blocked' && (
-        <Badge tone="danger" icon={<CircleX size={14} strokeWidth={1.6} aria-hidden />}>
-          Can&apos;t run on {device}
-        </Badge>
-      )}
+      {agent.status === 'blocked' && <BlockedBadge agent={agent} named={false} />}
       <OrganizationMenu agent={agent} />
       <Tooltip content={facts.join(' · ')} side="bottom">
         <IconButton label={`About ${agent.name}`} size="sm" onClick={() => showSettings(agent.id)}>
@@ -65,44 +89,129 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
   );
 }
 
+/**
+ * A team chat's header side: each agent of the team on the records it works on, and a quiet icon
+ * naming who is in the team at which version, which opens the team in Models.
+ */
+function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }) {
+  const members = [agent, ...team.teammates];
+  const facts = [
+    ...members.map((member) => `${member.name}, ${activeVersionName(member).toLowerCase()}`),
+    'Not certified as a team',
+    `Runs on ${deviceInSentence(currentPlatform())}`,
+  ];
+  return (
+    <div className="flex items-center gap-1">
+      {members
+        .filter((member) => member.status === 'blocked')
+        .map((member) => (
+          <BlockedBadge key={member.id} agent={member} named />
+        ))}
+      {members.map((member) => (
+        <OrganizationMenu key={member.id} agent={member} named />
+      ))}
+      <Tooltip content={facts.join(' · ')} side="bottom">
+        <IconButton
+          label={`About ${team.team.name}`}
+          size="sm"
+          onClick={() => navigate(paths.teams())}
+        >
+          <Info size={16} strokeWidth={1.8} aria-hidden />
+        </IconButton>
+      </Tooltip>
+    </div>
+  );
+}
+
+/** A page in place of a chat: loading, a failed read, or what is gone. */
+function ChatPlaceholder({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <WorkspaceHeader />
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-8 pb-14">
+        {children}
+      </div>
+    </>
+  );
+}
+
 /** A chat with one graduated agent, running on this computer. */
 export function ChatScreen({ graduateId, chatId }: { graduateId: string; chatId: string }) {
   const graduates = useGraduates();
   const agent = graduates.data?.find((graduate) => graduate.id === graduateId);
 
-  if (agent) return <Chat agent={agent} chatId={chatId} />;
+  if (agent) return <AgentChat agent={agent} chatId={chatId} />;
   return (
-    <>
-      <WorkspaceHeader />
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-8 pb-14">
-        {graduates.status === 'error' ? (
-          <ProblemState
-            error={graduates.error}
-            title="Couldn't load your agents"
-            onRetry={graduates.reload}
-          />
-        ) : graduates.status === 'success' ? (
-          <EmptyState
-            icon={<Bot aria-hidden />}
-            title="This agent was deleted."
-            actions={
-              graduates.data.length > 0 ? (
-                <Button variant="primary" size="md" onClick={() => navigate(paths.home())}>
-                  Go to your agents
-                </Button>
-              ) : (
-                <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
-                  <Plus size={16} aria-hidden />
-                  New agent
-                </Button>
-              )
-            }
-          />
-        ) : (
-          <ChatSkeleton />
-        )}
-      </div>
-    </>
+    <ChatPlaceholder>
+      {graduates.status === 'error' ? (
+        <ProblemState
+          error={graduates.error}
+          title="Couldn't load your agents"
+          onRetry={graduates.reload}
+        />
+      ) : graduates.status === 'success' ? (
+        <EmptyState
+          icon={<Bot aria-hidden />}
+          title="This agent was deleted."
+          actions={
+            graduates.data.length > 0 ? (
+              <Button variant="primary" size="md" onClick={() => navigate(paths.home())}>
+                Go to your agents
+              </Button>
+            ) : (
+              <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
+                <Plus size={16} aria-hidden />
+                New agent
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <ChatSkeleton />
+      )}
+    </ChatPlaceholder>
+  );
+}
+
+/**
+ * A chat with a team (decision 100): its lead answers, asking its teammates for their parts, and
+ * each agent works on its own records on this computer.
+ */
+export function TeamChatScreen({ teamId, chatId }: { teamId: string; chatId: string }) {
+  const graduates = useGraduates();
+  const teams = useTeams();
+  const team = teams.data?.find((item) => item.id === teamId);
+  const members = team?.members.map((member) =>
+    graduates.data?.find((graduate) => graduate.id === member.graduateId),
+  );
+  const [lead, ...teammates] = members ?? [];
+
+  if (team && lead && teammates.every((member): member is GraduateSummary => !!member)) {
+    return <TeamChat agent={lead} team={{ team, teammates }} chatId={chatId} />;
+  }
+  const failed = graduates.status === 'error' ? graduates : teams.status === 'error' ? teams : null;
+  return (
+    <ChatPlaceholder>
+      {failed?.error ? (
+        <ProblemState
+          error={failed.error}
+          title={failed === teams ? "Couldn't load your teams" : "Couldn't load your agents"}
+          onRetry={failed.reload}
+        />
+      ) : graduates.status === 'success' && teams.status === 'success' ? (
+        <EmptyState
+          icon={<Users aria-hidden />}
+          title="This team was deleted."
+          actions={
+            <Button variant="primary" size="md" onClick={() => navigate(paths.teams())}>
+              Go to your teams
+            </Button>
+          }
+        />
+      ) : (
+        <ChatSkeleton />
+      )}
+    </ChatPlaceholder>
   );
 }
 
@@ -124,8 +233,34 @@ function ChatSkeleton() {
   );
 }
 
-function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
-  const chats = useAgentChats(agent.id);
+interface ChatProps {
+  /** The agent that answers: in a team chat, the team's lead. */
+  agent: GraduateSummary;
+  chatId: string;
+}
+
+function AgentChat(props: ChatProps) {
+  return <Chat {...props} chats={useAgentChats(props.agent.id)} />;
+}
+
+function TeamChat(props: ChatProps & { team: ChatTeam }) {
+  return <Chat {...props} chats={useTeamChats(props.team.team.id)} />;
+}
+
+/** What Teach this opens on: a reply, or a teammate's answer inside one. */
+interface Flagged {
+  reply: WorkspaceMessage;
+  consultation?: Consultation;
+  open: boolean;
+  count: number;
+}
+
+function Chat({
+  agent,
+  team,
+  chatId,
+  chats,
+}: ChatProps & { team?: ChatTeam; chats: ListState<WorkspaceChat[]> }) {
   const messages = useChatMessages(chatId);
   const settings = useSettings();
   const chat = chats.entry.data?.find((item) => item.id === chatId);
@@ -172,16 +307,17 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [panel, closePanel]);
 
-  // The reply being taught from. It stays set while the sheet animates closed, and each flag
-  // starts a fresh sheet, even on a reply flagged before.
-  const [flagged, setFlagged] = useState<{
-    reply: WorkspaceMessage;
-    open: boolean;
-    count: number;
-  } | null>(null);
+  // The answer being taught from. It stays set while the sheet animates closed, and each flag
+  // starts a fresh sheet, even on an answer flagged before.
+  const [flagged, setFlagged] = useState<Flagged | null>(null);
   const flag = useCallback(
-    (reply: WorkspaceMessage) =>
-      setFlagged((current) => ({ reply, open: true, count: (current?.count ?? 0) + 1 })),
+    (reply: WorkspaceMessage, consultation?: Consultation) =>
+      setFlagged((current) => ({
+        reply,
+        ...(consultation ? { consultation } : {}),
+        open: true,
+        count: (current?.count ?? 0) + 1,
+      })),
     [],
   );
   const closeSheet = useCallback(
@@ -226,7 +362,13 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
         <ChatSkeleton />
       );
   } else if (list.length === 0) {
-    body = <EmptyChat agent={agent} onPick={pick} />;
+    body = (
+      <EmptyChat
+        agent={agent}
+        {...(team ? { team: { name: team.team.name, teammates: team.teammates } } : {})}
+        onPick={pick}
+      />
+    );
   } else {
     body = (
       <>
@@ -241,6 +383,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
               stepsStartOpen={stepsStartOpen}
               onOpenPanel={openPanel}
               onFlag={flag}
+              {...(team ? { teammates: team.teammates, onFlagConsultation: flag } : {})}
             />
           ),
         )}
@@ -256,7 +399,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
           chat?.title ??
           (chats.entry.status === 'loading' ? <Skeleton className="h-3.5 w-44" /> : 'Chat')
         }
-        actions={<AgentDetails agent={agent} />}
+        actions={team ? <TeamDetails agent={agent} team={team} /> : <AgentDetails agent={agent} />}
       />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
@@ -267,6 +410,7 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
           </div>
           <ChatComposer
             agent={agent}
+            {...(team ? { team: team.team.name } : {})}
             draft={draft}
             onDraftChange={changeDraft}
             onSend={(text) => void send(text)}
@@ -284,15 +428,63 @@ function Chat({ agent, chatId }: { agent: GraduateSummary; chatId: string }) {
       </div>
       <Drawer open={flagged?.open ?? false} onOpenChange={(open) => !open && closeSheet()}>
         {flagged && (
-          <TeachSheet
+          <Teach
             key={flagged.count}
+            flagged={flagged}
             agent={agent}
-            reply={flagged.reply}
+            team={team}
             request={requestOf(list ?? [], flagged.reply)}
             onClose={closeSheet}
           />
         )}
       </Drawer>
     </>
+  );
+}
+
+/**
+ * Teach this for what was flagged. A teammate's answer teaches the teammate, at the version that
+ * gave it; a team reply teaches the lead. Either way, every agent whose work the exchange holds
+ * must allow sharing it: the teammate and the lead, or the lead and each teammate it asked.
+ */
+function Teach({
+  flagged,
+  agent,
+  team,
+  request,
+  onClose,
+}: {
+  flagged: Flagged;
+  agent: GraduateSummary;
+  team: ChatTeam | undefined;
+  request: string;
+  onClose: () => void;
+}) {
+  const { reply, consultation } = flagged;
+  const teammate = (id: string) => team?.teammates.find((member) => member.id === id);
+  const answered = consultation && teammate(consultation.graduateId);
+  if (consultation && answered) {
+    return (
+      <TeachSheet
+        agent={answered}
+        reply={reply}
+        request={consultation.request}
+        consultation={{ consultation, lead: agent }}
+        alsoSharing={[agent]}
+        onClose={onClose}
+      />
+    );
+  }
+  const asked = [...new Set((reply.consultations ?? []).map((c) => c.graduateId))]
+    .map(teammate)
+    .filter((member) => member !== undefined);
+  return (
+    <TeachSheet
+      agent={agent}
+      reply={reply}
+      request={request}
+      alsoSharing={asked}
+      onClose={onClose}
+    />
   );
 }
