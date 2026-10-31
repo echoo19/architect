@@ -3,9 +3,7 @@ import type {
   GraduateSummary,
   Improvement,
   JobSummary,
-  OrgTypeResult,
   RunPhase,
-  Score,
   WorkspaceChat,
 } from '@architect/shared';
 import { formatPercent } from '../lib/format';
@@ -175,30 +173,4 @@ export function runWord(run: Pick<LatestRun, 'status' | 'phase'>): string {
   return words[run.phase];
 }
 
-export interface OrgScores {
-  /** Organizations it trained on. */
-  seen: Score | null;
-  /** Generated organizations it never saw. */
-  unseen: Score | null;
-  /** Real organizations it never saw. */
-  real: Score | null;
-}
-
-function add(total: Score | null, result: OrgTypeResult): Score {
-  return { pass: (total?.pass ?? 0) + result.pass, total: (total?.total ?? 0) + result.total };
-}
-
-/**
- * A final test's results by kind of organization: the ones it trained on, generated ones it
- * never saw, and real ones it never saw. A kind with no tasks is null: not measured. An
- * organization added to the field later is left out, so candidates compare on the same ones.
- */
-export function orgScores(perOrg: readonly OrgTypeResult[]): OrgScores {
-  const scores: OrgScores = { seen: null, unseen: null, real: null };
-  for (const result of perOrg) {
-    if (result.total === 0 || result.addedLater === true) continue;
-    const kind = result.seen ? 'seen' : result.synthetic ? 'unseen' : 'real';
-    scores[kind] = add(scores[kind], result);
-  }
-  return scores;
-}
+export { orgScores, type OrgScores } from '@architect/shared';

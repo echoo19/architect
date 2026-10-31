@@ -1,5 +1,6 @@
 import {
   ArmIdSchema,
+  defaultExperimentSettings,
   ExperimentInputSchema,
   type ArmId,
   type ArmReport,
@@ -107,9 +108,7 @@ export function defaultInput(
     name,
     ...source,
     arms: [{ arm: 'bare' }, { arm: 'draft' }, { arm: 'targeted' }, { arm: 'reference' }],
-    seeds: { mentoring: 1, lockedTest: [101] },
-    rounds: 4,
-    caps: { studentUsd: 15, sparkUsd: 10, computeUsd: 0, wallMinutes: 720 },
+    ...defaultExperimentSettings(),
   };
 }
 

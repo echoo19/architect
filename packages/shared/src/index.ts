@@ -22,6 +22,7 @@ export * from './interventions';
 export * from './ipc';
 export * from './ipc-schemas';
 export * from './job';
+export * from './lab-cli';
 export * from './json';
 export * from './lineage';
 export * from './measurements';
