@@ -60,7 +60,7 @@ function run(args, ctx) {
 }
 ```
 
-Helpers run in a QuickJS sandbox with no network, no clock and no randomness. `ctx` exposes only the job's declared data files, read-only, by name (`jobs.csv`, or `data/jobs.csv`). A helper returns JSON-serializable data; a thrown error comes back to the agent as a tool error. A helper can't have the name of a built-in tool.
+Helpers run in a QuickJS sandbox with no network, no clock and no randomness. `ctx` exposes only the job's declared data files, read-only, by name (`jobs.csv`, or `data/jobs.csv`). A helper returns JSON-serializable data; a thrown error comes back to the agent as a tool error. A helper can't have the name of a built-in tool, nor `ask_teammate`, the tool a team's lead asks its teammates with (decision 100). That name is refused when a mentor's edit or a starting harness would add it; a harness that already had such a helper still opens and runs, but its agent can't join a team.
 
 ### examples/<slug>.json
 

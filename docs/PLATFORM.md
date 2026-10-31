@@ -25,6 +25,12 @@ The platform is the product; the specialists are what it makes. They are shown a
 
 Every set uses the same places, words and checks; no set gets screens of its own.
 
+## Teams (owner, Oct 31; decision 100)
+
+The owner: "agent teams are allowed. the agent teams you make can work together yes, add that as a smoothly integrated functional feature." In the Lab, agents can work as a team. A team is a saved list of two to four agents, made in Models, Teams: a name, a lead, and teammates, each with a line on what the lead may ask it for. The sidebar lists each team under the agents, with its chats. In a team chat the lead answers and can ask a teammate for part of the request. The teammate works on its own files, in its own organization, and sees only what the lead asked; only text comes back. Every write is still approved by the person, on a card that names the agent whose files it changes, and a flagged answer teaches the agent that gave it. A team isn't certified as a team, and a teammate can't ask anyone in turn. The personal edition has no teams.
+
+The demo is in the science set: **Screening logistics** at Fenwick Screening Core. Inventory desk (`examples/inventory-desk`) leads and Assay desk is its teammate. Asked to reserve stock for plate FW-0418's re-tests, Inventory desk asks Assay desk which compounds need one; Assay desk reads the plate and queues FWC-13399 and FWC-13444; Inventory desk finds FWC-13399 too low to draw and reserves 20 µL of FWC-13444 from lot FL-04159 (HOLD-0163). Each write waits on its own card. The values are the examples' own (`examples/inventory-desk/README.md`). What comes next is a team check (decision 100's phase 2), so routing can be measured and taught.
+
 ## Any model, any cluster, every setting (owner, Nov 1)
 
 The owner: "this whole thing should connect smoothly and be versatile (for demos its muse models tho). should show the strength by highlighting compatibility with any models and gpu clusters and the true customizability like real enterprise r&d science and ml tools." The demos run on Muse Spark and Muse Glimmer; the product works with whatever a team uses. What that means, each item small:
@@ -45,9 +51,9 @@ Describe a field → Study and define it → Teach → Qualify → Use. Everythi
 | Lab | `/` | What is running, what needs you, what just finished, what it cost | "Needs you" and the running experiments |
 | Fields | `/fields`, `/fields/:jobId` | Each field: its skills, organizations (taught on, sealed, real), study brief, candidates, assets | The skill by organization grid of the best candidate |
 | Experiments | `/experiments`, `/experiments/new`, `/experiments/:id` | Design a comparison (arms, seeds, caps), preregister it, run it, read it like a paper | The interval plot of each arm on each group |
-| Models | `/models` | Every agent and version: base model, method, harness, adapter, scores seen / unseen / real, status; compare two | The registry table |
+| Models | `/models`, `/models/teams` | Every agent and version: base model, method, harness, adapter, scores seen / unseen / real, status; compare two. Its Teams tab: every team, its lead, teammates and chats | The registry table |
 | Compute | `/compute`, `/compute/fields/:jobId[/:model]` | Where training runs: this computer, Hugging Face Jobs, a Slurm, Kubernetes or SkyPilot cluster; training plans with sizing and bundles | The plan's memory breakdown |
-| Agents | `/agents/...` (existing chats) | Use a specialist | The chat |
+| Agents | `/agents/...` (existing chats), `/teams/:teamId/chats/:chatId` | Use a specialist, or a team of them | The chat |
 
 The guided flow screens (Describe, Define, Train, Results, Improvement) keep their routes and their top stepper.
 

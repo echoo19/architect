@@ -1,5 +1,5 @@
 import type { GraduateLibrary } from '@architect/engine/graduates';
-import { slugify, type GraduateSummary } from '@architect/shared';
+import { slugify, type GraduateSummary, type Team } from '@architect/shared';
 import { CliError } from './exit';
 
 /** The name the command line knows an agent by: its name, lowercased with dashes. */
@@ -35,5 +35,33 @@ export function pickAgent(agents: readonly GraduateSummary[], named: string): Gr
     'unknown_agent',
     `There is no agent called ${named} here.`,
     '`architect list` shows the agents on this computer.',
+  );
+}
+
+/**
+ * The team a person named (decision 100): by its id, or by its name, lowercased with dashes as
+ * agents are. A name two teams share is refused, with their ids, rather than guessed.
+ */
+export function resolveTeam(teams: readonly Team[], named: string): Team {
+  const byId = teams.find((team) => team.id === named);
+  if (byId) return byId;
+  const slug = slugify(named);
+  const matches = teams.filter((team) => slugify(team.name) === slug);
+  if (matches.length === 1 && matches[0]) return matches[0];
+  if (matches.length > 1) {
+    throw new CliError(
+      'invalid_input',
+      'ambiguous_team',
+      `${matches.length} teams are called ${named}: ${matches.map((team) => team.id).join(', ')}.`,
+      'Name one by its id.',
+    );
+  }
+  throw new CliError(
+    'invalid_input',
+    'unknown_team',
+    teams.length === 0 ? 'There are no teams here.' : `There is no team called ${named} here.`,
+    teams.length === 0
+      ? 'Make one in the app, in Models, Teams.'
+      : `The teams here: ${teams.map((team) => team.name).join(', ')}.`,
   );
 }

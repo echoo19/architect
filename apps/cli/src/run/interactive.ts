@@ -1,27 +1,50 @@
 import { createInterface } from 'node:readline';
 import type { CliOutcome } from '@architect/shared';
-import { flag, type Parsed } from '../args';
+import { flag, stringOption, type Parsed } from '../args';
 import type { CliContext } from '../context';
 import { failureOf } from '../exit';
-import { line, sayFailure, stepLine } from '../render';
+import { line, sayFailure, stepLines } from '../render';
 import {
   answerOf,
-  APPROVAL_QUESTION,
+  approvalQuestion,
   describeChange,
   isTerminalStream,
   writableOf,
 } from './approvals';
 import { outcomeOf } from './result';
-import { ask, openSession, type ApprovalAnswer, type ApprovalBlock } from './session';
+import {
+  ask,
+  openSession,
+  openTeamSession,
+  type AgentSession,
+  type ApprovalAnswer,
+  type ApprovalBlock,
+  type SessionAgent,
+} from './session';
 
 const END_KEY = process.platform === 'win32' ? 'Ctrl+Z then Enter' : 'Ctrl+D';
 /** What the conversation prints, on its own line, when the model's reply is asked for again. */
 const ASKED_AGAIN = '(asked again)';
 
+/** Who answers, as the session starts: the agent, or the team with each member. */
+function openingLines(session: AgentSession): string[] {
+  const about = ({ agent, version, installation }: SessionAgent) =>
+    `${agent.name}, version ${version.version}, on ${installation.model.model} (${installation.model.runtime})`;
+  if (session.team === undefined) return [`${about(session)}.`];
+  const { team, members } = session.team;
+  return [
+    `${team.name}, led by ${session.agent.name}:`,
+    ...members.map((member) => `  ${about(member)}.`),
+  ];
+}
+
 /**
  * `architect run <agent>` with no request file: a conversation, one request per line, in one
- * chat, each answered in turn. The answer streams to stdout and the steps to stderr. On a
- * terminal a write that needs approval is asked about there; without one (or with
+ * chat, each answered in turn. With --team the team's lead answers in a team chat and asks its
+ * teammates as it needs them (decision 100); each consultation prints with the teammate's own
+ * steps, and each write that needs approval names the agent whose write it is. The answer
+ * streams to stdout and the steps to stderr. On a terminal a write that needs approval is asked
+ * about there; without one (or with
  * --non-interactive) it fails that reply. Ctrl+C stops a reply; at the prompt, or without a
  * terminal, it ends the session. The exit code is the last reply's, or 0 when there was none.
  */
@@ -33,12 +56,14 @@ export async function runInteractive(
   const { io } = ctx;
   const save = flag(parsed.values, 'save');
   const canAsk = io.terminal && !flag(parsed.values, 'non-interactive');
-  const session = await openSession(ctx, parsed.args[0] ?? '', { save });
-  const { agent, version, installation } = session;
-  line(
-    io.stderr,
-    `${agent.name}, version ${version.version}, on ${installation.model.model} (${installation.model.runtime}).`,
-  );
+  const team = stringOption(parsed.values, 'team');
+  const session =
+    team === undefined
+      ? await openSession(ctx, parsed.args[0] ?? '', { save })
+      : await openTeamSession(ctx, team, { save });
+  // In a team, a change the lead wants is named as the lead's, as a teammate's is as its own.
+  const lead = session.team === undefined ? undefined : session.agent.name;
+  for (const text of openingLines(session)) line(io.stderr, text);
   line(
     io.stderr,
     canAsk
@@ -94,8 +119,8 @@ export async function runInteractive(
           // Waiting for the answer starts before the question shows: it may come at once.
           answering = resolveAnswer;
           if (!atLineStart) write('\n');
-          for (const text of describeChange(block)) line(io.stderr, text);
-          io.stderr.write(APPROVAL_QUESTION);
+          for (const text of describeChange(block, lead)) line(io.stderr, text);
+          io.stderr.write(approvalQuestion(block, lead));
         });
 
       /** Answers the next request waiting, or ends the session once input has ended. */
@@ -118,7 +143,7 @@ export async function runInteractive(
           ...(canAsk ? { approve } : {}),
           onStep: (step) => {
             if (!atLineStart) write('\n');
-            line(io.stderr, stepLine(step));
+            for (const text of stepLines(step)) line(io.stderr, text);
           },
           onText: write,
           onRetract: askedAgain,

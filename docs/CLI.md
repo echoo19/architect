@@ -68,6 +68,7 @@ A package asks for access; nothing is granted that the command doesn't name. An 
 ```bash
 architect run service-desk
 architect run service-desk --input request.json --output result.json --non-interactive
+architect run --team "Screening logistics"
 ```
 
 **Without `--input`**, `run` is a conversation: one request per line, each answered in turn in one chat, with history. The answer streams to stdout and the steps to stderr:
@@ -96,6 +97,7 @@ On a terminal, a change that needs approval is asked about there; `always` allow
 
 | Option | Meaning |
 | --- | --- |
+| `--team <name>` | Talks to a team instead of one agent (below). It takes no agent and no `--input`. |
 | `--input <file>` | The request (format below); `-` reads it from stdin. |
 | `--output <file>` | Where the result goes, written whole or not at all; stdout when absent. |
 | `--non-interactive` | Never asks: a change that needs approval fails the run. |
@@ -103,6 +105,33 @@ On a terminal, a change that needs approval is asked about there; `always` allow
 | `--timeout <seconds>` | Stops a run that takes longer, as a runtime error. At most 2147483 (about 24 days). |
 
 The agent runs on its active version, with this computer's folders and permissions, exactly as a chat in the app would.
+
+**With `--team`**, `run` holds the same conversation with a team you made in the app (Models, Teams; decision 100), named by its name or its id. Every member's active version is checked first, as above, so nothing loads unless all of them can run here; then each opens in one agent host, under the same network guard. The team's lead answers, and asks a teammate when it needs one. A teammate works in its own folder on what the lead asked and nothing else, and only its answer comes back. Each ask prints as a step, with the first line of the answer, or how it ended without one, and the teammate's own steps under it. A change that needs approval says whose it is, and `always` is for that agent only:
+
+```
+$ architect run --team "Screening logistics"
+Screening logistics, led by Inventory desk:
+  Inventory desk, version 1, on muse-glimmer:30b (ollama).
+  Assay desk, version 1, on muse-glimmer:30b (ollama).
+Changes to files are asked about here. Ctrl+C stops a reply; Ctrl+D ends.
+> It's Wednesday, October 14, 2026. Reserve stock for FW-0418's re-tests.
+Assay desk: Add 2 rows to data/retests.csv:
+  + RT-0006, FW-0418, FWC-13399, INCONCLUSIVE, 2026-10-14
+  + RT-0007, FW-0418, FWC-13444, BORDERLINE, 2026-10-14
+Allow this change? [y]es, [n]o, [a]lways for Assay desk: y
+  asked Assay desk (FW-0418 passes QC; re-test FWC-13399 and FWC-13444.)
+    read data/plates.csv (8 rows)
+    run data/lumen_export.csv (Z′ 0.7689)
+    append data/retests.csv (2 rows added)
+  run data/inventory.csv, data/policy.md (FWC-13444: FL-04159, 20 µL)
+Inventory desk: Add 1 row to data/reservations.csv:
+  + HOLD-0163, FWC-13444, FL-04159, 20 µL, 2026-10-14
+Allow this change? [y]es, [n]o, [a]lways for Inventory desk: y
+  append data/reservations.csv (1 row added)
+Reserved 20 µL of FWC-13444 from FL-04159 as HOLD-0163. FWC-13399 has too little stock to draw.
+```
+
+Without a terminal, or with `--non-interactive`, a teammate's change fails its reply as `approval_required` like the lead's, naming the teammate, and nothing is written. A team conversation can be kept with `--save`, and shows under the team in the app. A JSON request (`--input`) runs one agent, and `serve` serves one agent; neither takes a team.
 
 ### serve
 
