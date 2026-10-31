@@ -33,7 +33,7 @@ describe('architect certify', () => {
 
   it('refuses a share that is not between 0 and 1', async () => {
     const result = await cli(
-      ['certify', 'grd_desk', '--version', '1', '--job', 'Phil', '--epsilon', '10'],
+      ['certify', 'grd_desk', '--version', '1', '--job', 'Tutor', '--epsilon', '10'],
       { env: machine.env },
     );
     expect(result.code).toBe(2);
@@ -49,7 +49,7 @@ describe('architect certify', () => {
   });
 
   it('refuses a version installed from a package: its run is not known here', async () => {
-    const result = await cli(['certify', 'grd_desk', '--version', '1', '--job', 'Phil'], {
+    const result = await cli(['certify', 'grd_desk', '--version', '1', '--job', 'Tutor'], {
       env: machine.env,
     });
     expect(result.code, result.stderr).toBe(2);

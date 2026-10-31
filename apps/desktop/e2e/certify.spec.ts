@@ -78,7 +78,7 @@ test('states the certificate, its curve and whether it held where it was not cal
   await openReport();
   const section = page.getByRole('region', { name: 'Certified answers' });
   await expect(section).toContainText(
-    'When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
+    'When Tutor answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
   );
   await expect(section).toContainText(
     'Measured on 77 calibration tasks it was never taught on, 5 attempts each: it answers when 4 of 5 agree; target 10% at 95% confidence.',
@@ -127,27 +127,27 @@ test('a report without a certificate has no certificate section', async () => {
 test('shows each version’s certificate in Models', async () => {
   await installModelsFake(launched.app);
   await launched.app.evaluate(
-    ({ ipcMain }, { philId, report }) => {
+    ({ ipcMain }, { tutorId, report }) => {
       ipcMain.removeHandler('graduates:report');
       ipcMain.handle('graduates:report', (_event, id: string, number: number) =>
-        id === philId && number === 2
+        id === tutorId && number === 2
           ? { ok: true, value: report }
           : { ok: false, error: { message: `No locked test measured version ${number}.` } },
       );
     },
-    { philId: MODELS.philId, report: CERTIFIED_REPORT },
+    { tutorId: MODELS.tutorId, report: CERTIFIED_REPORT },
   );
   await reloadAt('/models');
   const table = page.getByRole('table', { name: 'Models' });
   await expect(table.getByRole('columnheader', { name: /Certified/ })).toBeVisible();
-  const phil = table.getByRole('row', { name: /^Phil\s+version 2/ });
-  await expect(phil).toContainText('≤ 8%');
+  const tutor = table.getByRole('row', { name: /^Tutor\s+version 2/ });
+  await expect(tutor).toContainText('≤ 8%');
 });
 
 test('shows a recent graduate’s certificate in the Lab', async () => {
   await stubLab(launched.app);
   await stubByKey(launched.app, 'reports:get', {
-    [LAB.philRun]: { ...CERTIFIED_REPORT, runId: LAB.philRun },
+    [LAB.tutorRun]: { ...CERTIFIED_REPORT, runId: LAB.tutorRun },
     run_clinic: storyReport,
   });
   await reloadAt('/');
@@ -224,6 +224,6 @@ test('in the personal edition, hands a request it is unsure of to a person, atte
   // The report says the certificate in the same words in this edition.
   await openReport();
   await expect(page.getByRole('region', { name: 'Certified answers' })).toContainText(
-    'When Phil answers, it is wrong on at most 8%',
+    'When Tutor answers, it is wrong on at most 8%',
   );
 });

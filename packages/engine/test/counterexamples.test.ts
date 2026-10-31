@@ -36,7 +36,7 @@ const taskOf = (id: string): Task => {
   return found;
 };
 
-/** Phil's first lookup: one row per test, section, module and number, as one-section tests have. */
+/** Tutor's first lookup: one row per test, section, module and number, as one-section tests have. */
 const LOOKUP = `function run(args, ctx) {
   var hit = ctx.readTable('tests.csv').filter(function (row) {
     return row.test_name === args.test_name && row.section === args.section &&
@@ -94,8 +94,8 @@ const helper = (name: string, code: string): HarnessTool => ({
 
 function harnessWith(tools: HarnessTool[]): Harness {
   return HarnessSchema.parse({
-    meta: { format: 2, name: 'Phil', version: 4, hash: 'sha256-phil-4' },
-    system: 'You are Phil, a tutor.',
+    meta: { format: 2, name: 'Tutor', version: 4, hash: 'sha256-tutor-4' },
+    system: 'You are Tutor, a tutor.',
     retrieval: {},
     decoding: {},
     guardrails: {},

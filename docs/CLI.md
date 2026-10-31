@@ -254,7 +254,7 @@ Architect never submits a bundle and never holds cluster credentials. Experiment
 ### certify
 
 ```bash
-architect certify Phil --version 2 --job tutor --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
+architect certify Tutor --version 2 --job tutor --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
 ```
 
 Certifies a version that is already frozen, without training it again (decision 079). The calibration tasks come from the taught organizations of the job you name, and none of them is a task, or of a family, that the version's own run (or a run it was improved from) saw or was tested on; a family whose name differs only in case or punctuation, or a request worded the same, counts as seen. If fewer than `--calibration-size` are left, it says how many there are. The tasks are sealed in the vault, then the version makes k attempts at each with no teacher, and the certificate is filed on that version for good. `--check` names an organization of the job to test the certified bound at: one it never saw, or one it was taught on, with tasks new to it; one its run was already tested on is refused.

@@ -18,10 +18,10 @@ const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.
 const WIDTH = 1440;
 const HEIGHT = 1900;
 
-const phil: Job = {
+const tutor: Job = {
   ...job,
-  id: 'phil',
-  name: 'Phil',
+  id: 'tutor',
+  name: 'Tutor',
   summary: 'Helps a student right after a wrong answer.',
   does: [
     "Names the topic and the right choice from the academy's own labels",
@@ -171,15 +171,15 @@ test('shows what the teacher understood, and trains only once the person confirm
   const { app, page } = launched;
   await stubEngine(app, {
     ...FLOW_ENGINE,
-    'jobs:get': phil,
-    'jobs:save': phil,
+    'jobs:get': tutor,
+    'jobs:save': tutor,
     'jobs:taskPlan': plan,
     'jobs:confirmStudy': confirmed,
   });
   await updateSettings(page, { onboarded: true, comparisonMode: false });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await goTo(page, `/jobs/${phil.id}/define`);
+  await goTo(page, `/jobs/${tutor.id}/define`);
 
   const section = page.getByRole('region', { name: 'What Spark understood' });
   await expect(section).toBeVisible();

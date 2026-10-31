@@ -996,7 +996,7 @@ Tests: engine `experiments-library.test.ts` (a library field planned, refused wi
 
 ## 079. An existing version can be certified after the fact, on tasks its own run never touched
 
-**Context.** Decision 077 certifies a graduate inside its run, on a calibration split sealed when the job was imported. Versions made before it (Phil v1 and v2, trained on the tutor's job before it had spare tasks) have none, and the only way to certify one was to train it again. The owner asked for a frozen version to be calibrated and certified as it is, without retraining, on tasks it can be shown never to have met.
+**Context.** Decision 077 certifies a graduate inside its run, on a calibration split sealed when the job was imported. Versions made before it (Tutor v1 and v2, trained on the tutor's job before it had spare tasks) have none, and the only way to certify one was to train it again. The owner asked for a frozen version to be calibrated and certified as it is, without retraining, on tasks it can be shown never to have met.
 
 **Decision.**
 - *What the version saw.* The run that made it and, for an improvement, the runs of the versions it improved, back to the first. From each: every task of its job's train, dev and calibration splits, its locked test and sealed calibration split (opened on a release proof issued with no mentor ever made), and every task id any of those runs attempted. Seen is by task id, by family name with case, spacing and punctuation set aside ("Invoice 12" is "invoice-12"), and by the request's words normalized as agreement normalizes a reply. A family with any member seen is left out whole.
@@ -1040,7 +1040,7 @@ Tests: engine `experiments-library.test.ts` (a library field planned, refused wi
 
 ## 082. The leak fingerprint leaves out what the taught organizations' files already show
 
-**Context.** On the academy job every mentor call was refused: "payload matched 3 locked test tasks, in data file errors.csv of copperfield and data file questions.csv of bramble". The mentor is shown each taught academy's tables as columns and a few sample rows. Some locked test tasks expect an answer that is one of those rows, such as an error's topic and name. The fingerprint left out of a test task's 8-grams only what other tasks held, not what the data held, so a sample row the mentor is allowed to see matched the test. The run that found it (phil-3) could not run at all.
+**Context.** On the academy job every mentor call was refused: "payload matched 3 locked test tasks, in data file errors.csv of copperfield and data file questions.csv of bramble". The mentor is shown each taught academy's tables as columns and a few sample rows. Some locked test tasks expect an answer that is one of those rows, such as an error's topic and name. The fingerprint left out of a test task's 8-grams only what other tasks held, not what the data held, so a sample row the mentor is allowed to see matched the test. The run that found it (the third tutor run) could not run at all.
 
 **Decision.**
 - *What is left out.* When a job is sealed, the 8-grams found in the data of the organizations the job trains on (or in `data/`, for a job without organizations) are left out of every test task's fingerprint, as the ids and amounts in that data already were. The data is read two ways: each file's text, and each table's rows written out as the mentor is shown them, keys and all, with the same parser. A test answer that only repeats those rows gives away nothing the mentor can't already see.

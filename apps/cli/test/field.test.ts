@@ -24,8 +24,8 @@ let answer: string;
 beforeAll(async () => {
   env = await testEnv();
   await importJobInto(env['ARCHITECT_USER_DATA'] ?? '');
-  out = join(await tempDir('field'), 'phil');
-  const exported = await cli(['field', 'export', 'Phil', '--out', out], { env });
+  out = join(await tempDir('field'), 'tutor');
+  const exported = await cli(['field', 'export', 'Tutor', '--out', out], { env });
   expect(exported.code, exported.stderr).toBe(0);
   task = readFileSync(join(out, 'env', 'tasks.jsonl'), 'utf8')
     .split('\n')
@@ -47,7 +47,7 @@ describe('architect field export', () => {
     const manifest = FieldExportManifestSchema.parse(
       JSON.parse(readFileSync(join(out, 'MANIFEST.json'), 'utf8')),
     );
-    expect(manifest.job.name).toBe('Phil');
+    expect(manifest.job.name).toBe('Tutor');
     expect(manifest.counts.sealed_organizations).toBe(1);
     expect(existsSync(join(out, 'env', 'score_client.py'))).toBe(true);
     expect(existsSync(join(out, 'eval', 'manifest.json'))).toBe(true);
@@ -57,8 +57,10 @@ describe('architect field export', () => {
     expect((await cli(['field', 'export', 'nobody', '--out', join(out, 'x')], { env })).code).toBe(
       2,
     );
-    expect((await cli(['field', 'export', 'Phil', '--out', out], { env })).code).toBe(2);
-    expect((await cli(['field', 'import', 'Phil', '--out', join(out, 'x')], { env })).code).toBe(2);
+    expect((await cli(['field', 'export', 'Tutor', '--out', out], { env })).code).toBe(2);
+    expect((await cli(['field', 'import', 'Tutor', '--out', join(out, 'x')], { env })).code).toBe(
+      2,
+    );
   });
 });
 

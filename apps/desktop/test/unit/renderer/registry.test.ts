@@ -28,7 +28,7 @@ interface RowSpec {
 }
 
 function rowOf(spec: RowSpec): ModelRow {
-  const agent = spec.agent ?? 'grd_phil';
+  const agent = spec.agent ?? 'grd_tutor';
   const version = {
     graduateId: agent,
     version: spec.version,
@@ -38,7 +38,7 @@ function rowOf(spec: RowSpec): ModelRow {
     ...(spec.imported ? { origin: { agentId: 'elsewhere', version: 1 } } : {}),
     createdAt: spec.createdAt ?? '2026-10-29T12:00:00.000Z',
     manifest: {
-      contract: { jobId: spec.jobId ?? 'job_phil', name: 'Phil' },
+      contract: { jobId: spec.jobId ?? 'job_tutor', name: 'Tutor' },
       model: {
         label: 'Muse Glimmer',
         base: { name: 'muse-glimmer:30b', quantization: spec.quantization ?? 'Q4_K_M' },
@@ -51,7 +51,7 @@ function rowOf(spec: RowSpec): ModelRow {
   } as unknown as GraduateVersion;
   return {
     key: `${agent}:${spec.version}`,
-    agent: { id: agent, name: spec.name ?? 'Phil' } as ModelRow['agent'],
+    agent: { id: agent, name: spec.name ?? 'Tutor' } as ModelRow['agent'],
     version,
     report: spec.report ?? null,
     reportError: null,
@@ -78,7 +78,7 @@ const SEEN = { seen: true, synthetic: true };
 const UNSEEN = { seen: false, synthetic: true };
 const REAL = { seen: false, synthetic: false };
 
-function report(perOrg: OrgTypeResult[], jobId = 'job_phil', check = { pass: 64, total: 80 }) {
+function report(perOrg: OrgTypeResult[], jobId = 'job_tutor', check = { pass: 64, total: 80 }) {
   return {
     jobId,
     test: { score: { pass: 0, total: 0 }, perType: [], perOrg },
@@ -105,7 +105,7 @@ describe('the registry of models', () => {
     expect(matchesFilter(imported, 'candidates')).toBe(true);
     expect(matchesFilter(imported, 'imported')).toBe(true);
     expect(matchesFilter(imported, 'active')).toBe(false);
-    const mini = rowOf({ version: 1, name: 'Phil Mini', quantization: 'Q8_0' });
+    const mini = rowOf({ version: 1, name: 'Tutor Mini', quantization: 'Q8_0' });
     expect(matchesSearch(mini, '8-bit mini')).toBe(true);
     expect(matchesSearch(mini, 'v1 61b8a9d')).toBe(true);
     expect(matchesSearch(mini, 'adapter')).toBe(false);
