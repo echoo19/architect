@@ -92,7 +92,7 @@ test('starts Academy desk from a fresh install and reaches the brief to confirm'
   const offer = page.getByRole('button', { name: 'Try the Academy desk' });
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await offer.hover();
-  await expect(page.getByRole('tooltip')).toContainText('a desk for test-prep academies');
+  await expect(page.getByRole('tooltip')).toContainText('for the staff of test-prep academies');
   await settle(page);
   await page.screenshot({
     path: join(OUT_DIR, 'start-academy-desk-dark.png'),
