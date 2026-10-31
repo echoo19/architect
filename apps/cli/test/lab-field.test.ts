@@ -109,7 +109,7 @@ describe('architect field add-org', () => {
     expect(used.stderr).toContain('already has an organization');
   });
 
-  it('seals a never-seen organization beside the final test', async () => {
+  it('adds a never-seen organization to the final test', async () => {
     const run = await cli(
       [
         'field',

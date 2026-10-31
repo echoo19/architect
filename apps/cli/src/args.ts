@@ -179,7 +179,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
     help: [
       '  --folder <dir>          add-org: the folder with its records and tasks.jsonl',
       '  --name <name>           add-org: what to call the organization',
-      '  --never-seen            add-org: confirm it is sealed with the final test, never taught on',
+      '  --never-seen            add-org: confirm it is kept for the final test, never taught on',
       '  --generated             add-org: its records were generated; real by default',
       '  --out <folder>          export: the folder to write, new or empty',
       JSON_HELP,

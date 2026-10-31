@@ -60,9 +60,10 @@ export const FieldRowSchema = z.object({
   name: z.string(),
   organizations: z.object({
     taughtOn: z.number().int().nonnegative(),
+    /** Generated organizations it never sees. */
     neverSeen: z.number().int().nonnegative(),
-    /** Null when the job doesn't say whether an organization is real. */
-    real: z.number().int().nonnegative().nullable(),
+    /** Real organizations it never sees. */
+    real: z.number().int().nonnegative(),
   }),
   /** Frozen versions that took the final test, each a finished run with a report card. */
   versions: z.number().int().nonnegative(),

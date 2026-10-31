@@ -8,7 +8,6 @@ import {
   FIELD_STATUS_FORMAT,
   FieldListSchema,
   FieldStatusSchema,
-  orgCounts,
   reportScores,
   type CliOutcome,
   type FieldCandidate,
@@ -70,7 +69,6 @@ async function readField(api: Api, job: Pick<JobSummary, 'id' | 'name'>): Promis
   }
   tested.sort((a, b) => (a.card.createdAt < b.card.createdAt ? 1 : -1));
   const best = bestCandidate(tested);
-  const counts = orgCounts(view);
   const candidates: FieldCandidate[] = tested.map((item) => ({
     runId: item.run.id,
     createdAt: item.card.createdAt,
@@ -86,7 +84,11 @@ async function readField(api: Api, job: Pick<JobSummary, 'id' | 'name'>): Promis
   return {
     jobId: job.id,
     name: job.name,
-    organizations: { taughtOn: counts.taughtOn, neverSeen: counts.sealed, real: counts.real },
+    organizations: {
+      taughtOn: view.organizations.length,
+      neverSeen: view.sealed.filter((org) => org.synthetic).length,
+      real: view.sealed.filter((org) => !org.synthetic).length,
+    },
     versions: candidates.length,
     best: best === null ? null : best.scores,
     certificates: candidates.filter((item) => item.certificate === 'issued').length,
@@ -121,7 +123,7 @@ async function fieldList(ctx: CliContext, parsed: Parsed): Promise<CliOutcome> {
         item.name,
         String(item.organizations.taughtOn),
         String(item.organizations.neverSeen),
-        item.organizations.real === null ? '-' : String(item.organizations.real),
+        String(item.organizations.real),
         String(item.versions),
         cell(item.best?.seen ?? null),
         cell(item.best?.unseen ?? null),
@@ -139,7 +141,7 @@ function sayStatus(ctx: CliContext, status: Status): void {
   line(out, `${status.name} (${status.jobId})`);
   line(
     out,
-    `${counts.taughtOn} taught on, ${counts.neverSeen} never seen${counts.real === null ? '' : `, ${counts.real} real`}. ${status.versions} versions took the final test, ${status.certificates} certified.`,
+    `${counts.taughtOn} taught on, ${counts.neverSeen} never seen, ${counts.real} real. ${status.versions} versions took the final test, ${status.certificates} certified.`,
   );
   line(out);
   line(out, 'Taught on:');
@@ -186,8 +188,8 @@ async function fieldStatus(
 }
 
 /**
- * `architect field add-org <field> --folder <dir> --name <n> --never-seen`: seals a never-seen
- * organization beside the field's final test (decision 085), through the call the Fields place
+ * `architect field add-org <field> --folder <dir> --name <n> --never-seen`: adds a never-seen
+ * organization to the field's final test (decision 085), through the call the Fields place
  * makes, so whatever the app refuses is refused here.
  */
 async function addOrganization(
@@ -209,7 +211,7 @@ async function addOrganization(
     throw new CliError(
       'invalid_input',
       'usage',
-      'An organization added later is sealed with the final test and never taught on. Say so with --never-seen.',
+      'An organization added later is kept for the final test and never taught on. Say so with --never-seen.',
     );
   }
   const { api } = await ctx.engine();
@@ -228,10 +230,10 @@ async function addOrganization(
   if (flag(values, 'json')) {
     printDoc(ctx.io.stdout, FieldStatusSchema, { format: FIELD_STATUS_FORMAT, ...status });
   } else {
-    line(ctx.io.stdout, `Sealed ${request.name} beside ${job.name}'s final test.`);
+    line(ctx.io.stdout, `Added ${request.name} to ${job.name} as an organization it never sees.`);
     line(
       ctx.io.stdout,
-      `${job.name} now has ${status.organizations.neverSeen} never-seen organizations.`,
+      `${job.name} now has ${status.organizations.neverSeen + status.organizations.real} never-seen organizations.`,
     );
   }
   return 'succeeded';
