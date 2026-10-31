@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { cn } from '@architect/ui';
-import { Download } from 'lucide-react';
 import { WINDOWS_INSTALLER } from '../content';
 import { addresses } from './Header';
+import { AppleMark, WindowsMark } from './OsMarks';
 
 /** The download page, which the home page's buttons go to when they can't go straight to a file. */
 const DOWNLOAD_PAGE = addresses('home').download;
@@ -21,19 +21,20 @@ function useWindowsAddress(): string {
 }
 
 /**
- * The two downloads. The button for the computer the page is open on is the solid one; macOS goes
- * to the download page, where a Mac with Apple silicon and an Intel Mac each have their own.
+ * The two downloads, each under its system's mark. The button for the computer the page is open
+ * on is the solid one; macOS goes to the download page, where a Mac with Apple silicon and an
+ * Intel Mac each have their own.
  */
-export function Downloads({ className }: { className?: string }) {
+export function Downloads({ className, style }: { className?: string; style?: CSSProperties }) {
   const windows = useWindowsAddress();
   return (
-    <div className={cn('flex flex-col gap-3 sm:flex-row', className)}>
+    <div className={cn('flex flex-col gap-3 sm:flex-row', className)} style={style}>
       <a className="btn btn-os" data-for="windows" href={windows}>
-        <Download size={17} strokeWidth={2} aria-hidden />
+        <WindowsMark size={16} />
         Download for Windows
       </a>
       <a className="btn btn-os" data-for="mac" href={DOWNLOAD_PAGE}>
-        <Download size={17} strokeWidth={2} aria-hidden />
+        <AppleMark size={18} />
         Download for macOS
       </a>
     </div>
