@@ -9,7 +9,7 @@ import {
 import { parseAnswerLine } from '../agent/answer';
 import { runAgent } from '../agent/loop';
 import { matchGuardrail } from '../agent/retrieval';
-import { agreementSeeds, canonicalAnswer, vote } from '../certify/agreement';
+import { agreementSeeds, canonicalAnswer, gaveAnswer, vote } from '../certify/agreement';
 import type { AgentFiles } from '../files/agent-files';
 import { LocalRuntimeError, type GpuHold } from '../local-runtime';
 import type { Sandbox } from '../sandbox/types';
@@ -164,9 +164,9 @@ interface Attempt {
   files: AgentFiles;
   /**
    * The canonical answer: its ANSWER line and its file changes, or, with neither, its reply in
-   * words normalized (decision 077).
+   * words normalized (decision 077). Null when it gave no answer (decision 099).
    */
-  key: string;
+  key: string | null;
 }
 
 /**
@@ -198,14 +198,14 @@ async function byAgreement(input: ReplyRequest, agreement: Agreement): Promise<S
     });
     if (trace.stopReason === 'aborted' || trace.stopReason === 'error') return trace;
     const { answer } = parseAnswerLine(trace.finalText);
+    const outcome = { answer, stopReason: trace.stopReason };
     attempts.push({
       trace,
       files,
-      key: canonicalAnswer(
-        { answer, stopReason: trace.stopReason },
-        trace.changes,
-        trace.finalText,
-      ),
+      // An attempt with no answer agrees with nothing (decision 099).
+      key: gaveAnswer(outcome, trace.changes, trace.finalText)
+        ? canonicalAnswer(outcome, trace.changes, trace.finalText)
+        : null,
     });
   }
   const best = vote(attempts, (attempt) => attempt.key);

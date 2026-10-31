@@ -203,6 +203,25 @@ describe('architect serve: an agent as a chat completions endpoint on this compu
     }
   });
 
+  it('hands a request off when none of a certified version’s attempts gave an answer', async () => {
+    const machine = await machineWith([{ text: '' }, { text: '' }, { text: '' }], {
+      certificate: CERTIFICATE,
+    });
+    const serve = await serving(machine);
+    try {
+      const reply = await completion(await chat(serve, ask('What does Ruiz, Ben owe?')));
+      // Identical empty outcomes are not an agreed answer (decision 099).
+      expect(reply.architect).toMatchObject({
+        agreement: { agreed: 0, attempts: 3, required: 2 },
+        handedOff: true,
+        answer: null,
+        certificate: { standing: 'handed_off' },
+      });
+    } finally {
+      await serve.stop();
+    }
+  });
+
   it('answers with the agreed answer when enough of a certified version’s attempts agree', async () => {
     const machine = await machineWith([answer(5000), answer(4000), answer(5000)], {
       certificate: CERTIFICATE,
