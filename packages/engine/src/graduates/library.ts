@@ -566,7 +566,8 @@ export class GraduateLibrary {
       .list()
       .find((each) => each.members.some((member) => member.graduateId === record.id));
     if (team) {
-      throw new Error(
+      throw new CodedError(
+        'agent_in_team',
         team.members[0]?.graduateId === record.id
           ? `${record.name} leads ${team.name}. Remove the team in Models, Teams, first.`
           : `${record.name} is in ${team.name}. Take it out of the team in Models, Teams, first.`,

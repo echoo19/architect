@@ -119,9 +119,10 @@ describe('teams', () => {
 
   it('refuses to remove an agent that is in a team, with the way out', async () => {
     teams.create(LAB_REVIEW);
-    await expect(computer.library.remove('grd_sweep')).rejects.toThrow(
-      'Sweep desk is in Lab review. Take it out of the team in Models, Teams, first.',
-    );
+    await expect(computer.library.remove('grd_sweep')).rejects.toMatchObject({
+      code: 'agent_in_team',
+      message: 'Sweep desk is in Lab review. Take it out of the team in Models, Teams, first.',
+    });
     await expect(computer.library.remove('grd_assay')).rejects.toThrow(
       'Assay desk leads Lab review. Remove the team in Models, Teams, first.',
     );
