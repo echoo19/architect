@@ -390,7 +390,7 @@ Anything else in the request is refused. A request that isn't valid JSON or does
   "started_at": "2026-11-05T18:00:00.000Z",
   "finished_at": "2026-11-05T18:00:09.412Z",
   "duration_ms": 9412,
-  "architect": { "cli_version": "0.6.1", "request_format": "architect.run-request/1" }
+  "architect": { "cli_version": "0.7.0", "request_format": "architect.run-request/1" }
 }
 ```
 

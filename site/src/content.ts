@@ -7,7 +7,7 @@ export const RELEASES = `${REPO}/releases/latest`;
  * The Windows installer, which a visitor on Windows is sent to directly. Its name carries the
  * app's version, and a test keeps this one in step with it.
  */
-export const APP_VERSION = '0.6.1';
+export const APP_VERSION = '0.7.0';
 export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VERSION}.exe`;
 /** The Mac disk images, one for Apple silicon and one for Intel, named by the same version. */
 export const MAC_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-arm64.dmg`;
