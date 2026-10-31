@@ -213,6 +213,23 @@ and the wordmark reads "Architect" instead of "Architect Lab".
 - **RiskCoveragePlot.** A certificate's curve (decision 077): the share answered across, the error
   up; the bound as a white line, the error measured as small dots, the target as a stronger
   hairline, the certified point in the student's blue, with a three-item key under it.
+- **Teams** (decision 100, the Lab edition only). The sidebar lists each team under the agents,
+  with a `Users` icon in the row icon column and its chats nested under it, like an agent's; it
+  shows nothing while teams load and nothing when there are none. A team chat's header is its
+  title, one organization menu per agent (each led by its avatar) and an info icon that lists the
+  agents with their versions and says the team isn't certified. The composer asks the lead and
+  has no write setting, since each agent keeps its own. Models has a Teams tab, between Versions
+  and Connections: a table of teams (name, lead, teammates, chats) and New team, a dialog with the name, the lead, up to three
+  teammates and a line for each on what the lead may ask it.
+- **The consultation step.** A lead asking a teammate is a step in the reply's Steps, read as
+  "Asking Assay desk" while it runs and "Asked Assay desk" once it is done, with the first line of
+  the answer beside it, or how it ended without one ("Doesn't handle this", "Gave no answer",
+  "Stopped with an error", "Stopped", "Ran out of steps"). It opens to the request, the
+  teammate's own steps indented under a hairline of their own, its whole answer without its
+  ANSWER line, the version that answered and a flag that teaches the teammate. An approval in a
+  team reply names the agent whose files it changes.
+- **Team words.** "Team" for the saved list, "lead" for the agent that answers, "teammate" for the
+  others, "Asked" for a consultation. Never "orchestrator", "sub-agent", "delegate" or "swarm".
 - **DataTable.** A table of records on the card surface: sortable headers with an arrow on the
   sorted one, a header that stays in place while the body scrolls, rows that open on click or
   Enter. An empty cell is a dash read out as "None", never a zero.
