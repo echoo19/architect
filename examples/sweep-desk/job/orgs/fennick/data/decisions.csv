@@ -1,0 +1,4 @@
+decision_id,sweep_id,decided_on,lr,warmup_steps,decision
+log-010,FS-050,2026-09-07,0.0006,0,keep
+log-011,FS-060,2026-10-01,0.0006,0,keep
+log-012,FS-062,2026-10-07,0.0006,0,keep

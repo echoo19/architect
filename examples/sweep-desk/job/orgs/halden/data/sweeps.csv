@@ -1,0 +1,9 @@
+sweep_id,name,model,grid,baseline,started_on
+sw-11,1.3B lr x warmup (rerun),1.3B,lr=3e-4/6e-4/1e-3/2e-3; warmup=0/500/1000,lr=6e-4; warmup=0,2026-09-11
+sw-13,350M lr x warmup v2,350M,lr=6e-4/1e-3/2e-3/3e-3; warmup=0/250/1000,lr=1e-3; warmup=0,2026-09-17
+sw-15,350M lr x warmup v2,350M,lr=3e-4/6e-4/1e-3/2e-3; warmup=0/500/2000,lr=6e-4; warmup=0,2026-09-21
+sw-17,1.3B lr x warmup,1.3B,lr=3e-4/6e-4/1e-3/2e-3; warmup=0/500/2000,lr=6e-4; warmup=0,2026-09-27
+sw-19,1.3B lr x warmup (rerun),1.3B,lr=2e-4/3e-4/6e-4/1e-3; warmup=0/250/1000,lr=3e-4; warmup=0,2026-10-01
+sw-21,350M lr x warmup (rerun),350M,lr=6e-4/1e-3/2e-3/3e-3; warmup=0/250/2000,lr=1e-3; warmup=0,2026-10-07
+sw-23,350M lr x warmup,350M,lr=1e-3/2e-3/3e-3/6e-3; warmup=0/250/1000,lr=2e-3; warmup=0,2026-10-14
+sw-25,1.3B lr x warmup v2,1.3B,lr=6e-4/1e-3/2e-3/3e-3; warmup=0/1000/2000,lr=1e-3; warmup=0,2026-10-19

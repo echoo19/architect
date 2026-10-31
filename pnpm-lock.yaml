@@ -306,6 +306,16 @@ importers:
         specifier: workspace:*
         version: link:../../packages/engine
 
+  examples/sweep-desk:
+    dependencies:
+      '@architect/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      '@architect/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+
   packages/adapters:
     dependencies:
       '@architect/shared':
