@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CertifySettings, Job } from '@architect/shared';
 import { Disclosure, Input, Segmented, ToggleRow } from '@architect/ui';
 import { Lock } from 'lucide-react';
+import { useEdition } from '../../shell/edition';
 import { modelNames } from '../names';
 import { calibrationTasks, finalTestAttempts, formatAbout, testSeconds } from './estimates';
 import { Group, InspectorRow, Issue, NumberField, PathField } from './fields';
@@ -31,6 +32,9 @@ interface EvaluationTabProps extends InspectorTabProps {
 export function EvaluationTab({ editor, change, taskCount, finalTest }: EvaluationTabProps) {
   const { job, issues } = editor;
   const { p95LatencyMs } = job.requirements;
+  // The personal edition offers certified answers only to a job that already had them.
+  const edition = useEdition();
+  const [hadCertify] = useState(job.evaluation.certify !== undefined);
   const typed = (what: string, recipe: (current: Job) => Job) =>
     change(what, recipe, TYPING_PAUSE_MS);
   return (
@@ -90,7 +94,9 @@ export function EvaluationTab({ editor, change, taskCount, finalTest }: Evaluati
         <SeedsField editor={editor} change={change} />
       </div>
       <Sets editor={editor} change={change} taskCount={taskCount} />
-      <Certification editor={editor} change={change} taskCount={taskCount} />
+      {(edition === 'lab' || hadCertify) && (
+        <Certification editor={editor} change={change} taskCount={taskCount} />
+      )}
       <Organizations job={job} />
       <Group title="Grading">
         <InspectorRow label="Graded by">
@@ -169,7 +175,7 @@ function SeedsField({ editor, change }: InspectorTabProps) {
       <Input
         aria-label={label}
         aria-invalid={error ? true : undefined}
-        placeholder="One, from the run"
+        placeholder="One, from the training"
         value={text}
         onChange={(event) => {
           const next = event.target.value;
@@ -352,7 +358,7 @@ function Certification({
             onChange={(percent) => set('Confidence', { delta: 1 - percent / 100 })}
           />
           {split ? (
-            <InspectorRow label="Calibration, sealed">
+            <InspectorRow label="Calibration, held back">
               <span className="text-ui tabular-nums">
                 {certify.calibration === undefined ? 'Set aside' : tasksText(certify.calibration)}
               </span>
@@ -392,8 +398,8 @@ function Organizations({ job }: { job: Job }) {
         </InspectorRow>
       ))}
       <InspectorRow
-        label={sealed === 0 ? 'Any it never trains on' : `${sealed} it never trains on`}
-        note={`Sealed with the final test: ${mentor} never sees them.`}
+        label={sealed === 0 ? 'Any it has never seen' : `${sealed} it has never seen`}
+        note={`Kept with the final test: ${mentor} never sees them.`}
       >
         <span className="flex items-center gap-1.5 text-ui">
           <Lock size={14} strokeWidth={1.8} aria-hidden />
