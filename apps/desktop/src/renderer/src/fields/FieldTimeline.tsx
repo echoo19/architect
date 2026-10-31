@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { StudyState } from '@architect/shared';
-import { Card, CardRow, Skeleton } from '@architect/ui';
+import { Card, CardRow, RowIcon, Skeleton } from '@architect/ui';
 import {
   ArrowRight,
   BookOpen,
@@ -25,7 +25,6 @@ import { navigate } from '../lib/router';
 import { loadRegistry } from '../models/load';
 import { useFieldExports } from './exports';
 import type { FieldSummary } from './model';
-import { Tile } from './parts';
 import {
   fieldTimeline,
   STAGE_WORDS,
@@ -95,7 +94,7 @@ function Lead({ at, icon }: { at: string | null; icon: ReactNode }) {
   return (
     <span className="flex items-center gap-4">
       <span className="w-12 text-ui tabular-nums">{at}</span>
-      <Tile>{icon}</Tile>
+      <RowIcon>{icon}</RowIcon>
     </span>
   );
 }
