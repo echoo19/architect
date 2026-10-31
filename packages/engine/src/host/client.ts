@@ -119,6 +119,8 @@ export function connectEngine(
       resume: (runId) => request('runs.resume', [runId]),
       stop: (runId) => request('runs.stop', [runId]),
       retest: (runId, target) => request('runs.retest', [runId, target]),
+      qualify: (qualify) => request('runs.qualify', [qualify]),
+      qualifications: (jobId) => request('runs.qualifications', [jobId]),
       get: (runId) => request('runs.get', [runId]),
       list: (jobId) => request('runs.list', [jobId ?? null]),
       attempt: (attemptId) => request('runs.attempt', [attemptId]),

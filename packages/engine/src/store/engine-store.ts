@@ -38,6 +38,7 @@ import {
   LineageIndexSchema,
   StoredAttemptSchema,
   StoredCertificationSchema,
+  StoredQualificationSchema,
   StoredChecksSchema,
   StoredContractSchema,
   StoredInstallationSchema,
@@ -55,6 +56,7 @@ import {
   type RetestStatus,
   type StoredAttempt,
   type StoredCertification,
+  type StoredQualification,
   type StoredChecks,
   type StoredContract,
   type StoredInstallation,
@@ -270,6 +272,16 @@ export interface EngineStore {
     list(runId: string): ReferenceRecord[];
     /** Oldest first, so interrupted references resume in the order they started. */
     withStatus(status: ReferenceRecord['status']): ReferenceRecord[];
+  };
+  /** Trained models brought back and qualified on a finished run's locked test (decision 086). */
+  qualifications: {
+    insert(record: StoredQualification): void;
+    /** Refused once finished: its card is evidence. */
+    update(record: StoredQualification): void;
+    get(id: string): StoredQualification | null;
+    /** A field's qualifications, newest first. */
+    ofJob(jobId: string): StoredQualification[];
+    withStatus(status: StoredQualification['status']): StoredQualification[];
   };
   /** Versions certified after the fact (decision 079). */
   certifications: {
@@ -908,6 +920,17 @@ function certificationParams(record: StoredCertification): Params {
   };
 }
 
+function qualificationParams(record: StoredQualification): Params {
+  return {
+    id: record.id,
+    run_id: record.runId,
+    job_id: record.jobId,
+    status: record.status,
+    body: json(record),
+    created_at: record.startedAt,
+  };
+}
+
 function bodyOf<T>(schema: { parse(value: unknown): T }, row: Row): T {
   return schema.parse(fromJson(row.body));
 }
@@ -1507,6 +1530,40 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             { status },
           )
           .map((row) => bodyOf(StoredCertificationSchema, row)),
+    },
+
+    qualifications: {
+      insert: (record) => {
+        const parsed = StoredQualificationSchema.parse(record);
+        sql.insert('qualifications', qualificationParams(parsed));
+      },
+      update: (record) => {
+        const parsed = StoredQualificationSchema.parse(record);
+        const row = sql.one('SELECT status FROM qualifications WHERE id = :id', { id: parsed.id });
+        if (!row) throw new Error(`There is no qualification "${parsed.id}".`);
+        if (row.status === 'finished') {
+          throw new Error('A finished qualification is evidence, and evidence never changes.');
+        }
+        sql.insert('qualifications', qualificationParams(parsed), 'replace');
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM qualifications WHERE id = :id', { id });
+        return row ? bodyOf(StoredQualificationSchema, row) : null;
+      },
+      ofJob: (jobId) =>
+        sql
+          .all(
+            'SELECT body FROM qualifications WHERE job_id = :job_id ORDER BY created_at DESC, rowid DESC',
+            { job_id: jobId },
+          )
+          .map((row) => bodyOf(StoredQualificationSchema, row)),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT body FROM qualifications WHERE status = :status ORDER BY created_at, rowid',
+            { status },
+          )
+          .map((row) => bodyOf(StoredQualificationSchema, row)),
     },
 
     corrections: {
