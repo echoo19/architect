@@ -33,8 +33,8 @@ function evidenceLine(manifest: PackageManifest): string {
   const { evidence } = manifest;
   const summary = evidence.summary;
   const result = summary
-    ? `${summary.score.pass} of ${summary.score.total} locked-test tasks passed (the contract asks for ${Math.round(summary.passRate.target * 100)}%)`
-    : 'no locked test measured it';
+    ? `${summary.score.pass} of ${summary.score.total} final-test tasks passed (the contract asks for ${Math.round(summary.passRate.target * 100)}%)`
+    : 'no final test measured it';
   return `${evidence.label}, version ${manifest.identity.version}: ${result}; status ${evidence.status}.`;
 }
 

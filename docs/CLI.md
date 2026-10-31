@@ -214,11 +214,11 @@ architect field export "Academy desk" --out ./academy-desk-field [--json]
 Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
 
 - `sft/demonstrations.jsonl`: worked examples from train tasks that the job's checker passed, in chat format, each with where it came from, the verdict and what it may be used for. One whose data may not leave this computer is left out.
-- `env/`: the train tasks, the files of the organizations the job trains on, the checker, and `score_client.py` (below).
-- `eval/manifest.json`: the locked test and the organizations the job never trains on, by hash only. A trained model is qualified on them through Architect's runner.
+- `env/`: the train tasks, the files of the organizations the job is taught on, the checker, and `score_client.py` (below).
+- `eval/manifest.json`: the final test and the organizations the job has never seen, by hash only. A trained model is qualified on them through Architect's runner.
 - `MANIFEST.json`: the job and its version, counts, every file's sha256, permitted uses, and what was left out and why.
 
-Nothing of the locked test or of an organization the job never trains on goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
+Nothing of the final test or of an organization the job has never seen goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
 
 ### reward score
 
@@ -257,9 +257,9 @@ Architect never submits a bundle and never holds cluster credentials. Experiment
 architect certify "Academy desk" --version 2 --job "Academy desk" --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
 ```
 
-Certifies a version that is already frozen, without training it again (decision 079). The calibration tasks come from the taught organizations of the job you name, and none of them is a task, or of a family, that the version's own run (or a run it was improved from) saw or was tested on; a family whose name differs only in case or punctuation, or a request worded the same, counts as seen. If fewer than `--calibration-size` are left, it says how many there are. The tasks are sealed in the vault, then the version makes k attempts at each with no teacher, and the certificate is filed on that version for good. `--check` names an organization of the job to test the certified bound at: one it never saw, or one it was taught on, with tasks new to it; one its run was already tested on is refused.
+Certifies a version that is already frozen, without training it again (decision 079). The calibration tasks come from the taught organizations of the job you name, and none of them is a task, or of a family, that the version's own run (or a run it was improved from) saw or was tested on; a family whose name differs only in case or punctuation, or a request worded the same, counts as seen. If fewer than `--calibration-size` are left, it says how many there are. The tasks are locked in the vault, then the version makes k attempts at each with no Spark, and the certificate is filed on that version for good. `--check` names an organization of the job to test the certified bound at: one it never saw, or one it was taught on, with tasks new to it; one its run was already tested on is refused.
 
-It prints what it will do and cost before anything spends, and stops before an attempt that could take it past `--max-usd` or `--max-minutes`. On this computer it costs nothing; `--student` runs a hosted copy, whose key comes from `<PROVIDER>_API_KEY` (for example `OPENROUTER_API_KEY`). Stopped or paused, the same command again resumes it. The certificate goes to stdout, or the whole record with `--json`.
+It prints what it will do and cost before anything spends, and stops before an attempt that could take it past `--max-usd` or `--max-minutes`. On this computer it costs nothing; `--student` runs a hosted copy of Glimmer, whose key comes from `<PROVIDER>_API_KEY` (for example `OPENROUTER_API_KEY`). Stopped or paused, the same command again resumes it. The certificate goes to stdout, or the whole record with `--json`.
 
 ## Run requests and results
 

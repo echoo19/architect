@@ -56,7 +56,7 @@ export async function field(ctx: CliContext, parsed: Parsed): Promise<CliOutcome
   );
   line(
     ctx.io.stdout,
-    `  eval/  the locked test and ${counts.sealed_organizations} sealed organizations, by hash only`,
+    `  eval/  the final test and ${counts.sealed_organizations} never-seen organizations, by hash only`,
   );
   line(ctx.io.stdout, 'Left out:');
   for (const entry of manifest.left_out) line(ctx.io.stdout, `  ${entry.what}: ${entry.why}`);

@@ -65,7 +65,7 @@ describe('the commands', () => {
     const inspected = await cli(['inspect', 'grd_desk'], { env: machine.env });
     expect(inspected.code).toBe(0);
     expect(inspected.stdout).toContain(
-      "Evaluated on the author's configuration, version 1: 17 of 20 locked-test tasks passed",
+      "Evaluated on the author's configuration, version 1: 17 of 20 final-test tasks passed",
     );
     expect(inspected.stdout).toContain('Installation checks on this computer');
   });

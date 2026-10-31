@@ -162,7 +162,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   field: {
     usage: 'architect field export <job> --out <folder> [--json]',
     summary:
-      "Export a field's verified demonstrations, outcome scorer and sealed-evaluation manifest.",
+      "Export a field's verified demonstrations, outcome scorer and final-test manifest.",
     args: 2,
     options: { out: { type: 'string' }, ...json },
     help: ['  --out <folder>          the folder to write, new or empty', JSON_HELP],
@@ -240,7 +240,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --delta <share>         the chance the bound is wrong (default 0.05)',
       '  --calibration-size <n>  calibration tasks (default 60)',
       '  --check <org>           an organization to check the bound at; repeat for more',
-      "  --student <preset>      a hosted student preset instead of this computer's model",
+      "  --student <preset>      a hosted Glimmer preset instead of this computer's model",
       '  --max-usd <dollars>     the most it may spend (default 0)',
       '  --max-minutes <n>       the longest it may take (default 1440)',
       JSON_HELP,
