@@ -14,7 +14,7 @@ import {
   Select,
   Textarea,
 } from '@architect/ui';
-import { MessagesSquare, Trash2 } from 'lucide-react';
+import { CircleAlert, MessagesSquare, Trash2 } from 'lucide-react';
 import { useVersions } from '../api/graduates';
 import { toError } from '../api/query';
 import { refreshTeams, removeTeam, teamsApi } from '../api/teams';
@@ -188,6 +188,17 @@ function TeamForm({
             title={team ? `Couldn't save ${team.name}` : "Couldn't make the team"}
           />
         )}
+        {/* An empty name speaks for itself; anything else that holds the team back is said. */}
+        {problem !== null && name.trim() !== '' && (
+          <p
+            id={`${id}-problem`}
+            role="status"
+            className="m-0 flex items-center gap-2 text-small text-pretty"
+          >
+            <CircleAlert size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />
+            {problem}
+          </p>
+        )}
       </div>
       <DialogFooter>
         {team && (
@@ -204,6 +215,7 @@ function TeamForm({
           size="md"
           loading={saving}
           disabled={problem !== null}
+          aria-describedby={problem !== null && name.trim() !== '' ? `${id}-problem` : undefined}
           onClick={() => void save()}
         >
           {team ? 'Save' : 'Make team'}

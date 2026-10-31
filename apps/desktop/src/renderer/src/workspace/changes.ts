@@ -20,17 +20,15 @@ export function changeVerb(change: ChangeShape): string {
   return VERBS[change.op];
 }
 
+/** An agent as a change names it: enough to say whose files it writes and to answer for them. */
+export type Writer = Pick<GraduateSummary, 'id' | 'name'>;
+
 /**
- * Whose files a change writes: in a team reply, the teammate the change names, else the agent
- * that answers (decision 100).
+ * Whose files a change writes (decision 100): the teammate the change itself names, as it was
+ * when it asked, whoever is in the team now; the agent that answers when it names none.
  */
-export function writerOf<Agent extends Pick<GraduateSummary, 'id'>>(
-  change: Pick<ApprovalBlock, 'agent'>,
-  answering: Agent,
-  teammates: readonly Agent[],
-): Agent {
-  const named = change.agent?.graduateId;
-  return teammates.find((teammate) => teammate.id === named) ?? answering;
+export function writerOf(change: Pick<ApprovalBlock, 'agent'>, answering: Writer): Writer {
+  return change.agent ? { id: change.agent.graduateId, name: change.agent.name } : answering;
 }
 
 /** True when a change makes something new: a new file, or rows or lines added at the end. */

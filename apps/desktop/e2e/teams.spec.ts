@@ -86,6 +86,11 @@ test('a team is made in Models, from a lead and a teammate', async () => {
   await dialog.getByLabel('Name').fill(TEAM.name);
   await dialog.getByRole('combobox', { name: 'Lead' }).click();
   await page.getByRole('option', { name: lead.name }).click();
+  // Named and led, it says what it still needs, and Save says so too.
+  const make = dialog.getByRole('button', { name: 'Make team' });
+  await expect(dialog.getByRole('status')).toHaveText('Choose a teammate');
+  await expect(make).toBeDisabled();
+  await expect(make).toHaveAccessibleDescription('Choose a teammate');
   await dialog.getByRole('checkbox', { name: teammate.name }).click();
   const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks it for` });
   await expect(role).toHaveValue("Reads a screening lab's plate exports by the lab's own rules.");
@@ -126,11 +131,17 @@ test('in the team’s chat the lead asks its teammate, whose own work opens unde
   await sidebar().getByRole('button', { name: TEAM_CHAT.title }).click();
   await expect(page).toHaveURL(new RegExp(`#/teams/${TEAM.id}/chats/${TEAM_CHAT.id}$`));
   const header = page.locator('header').first();
-  for (const agent of [lead, teammate]) {
-    await expect(
-      header.getByRole('button', { name: `${agent.name}'s organization: Fenwick Screening Core` }),
-    ).toBeVisible();
-  }
+  // Both work at Fenwick, so the header names it once, and its menu moves each on its own.
+  const shared = header.getByRole('button', {
+    name: `Organization of ${lead.name} and ${teammate.name}: Fenwick Screening Core`,
+  });
+  await expect(shared).toBeVisible();
+  await expect(header.getByRole('button', { name: /'s organization:/ })).toHaveCount(0);
+  await shared.click();
+  const menu = page.getByRole('menu');
+  for (const agent of [lead, teammate]) await expect(menu).toContainText(agent.name);
+  await expect(menu.getByRole('menuitem', { name: 'Fenwick Screening Core' })).toHaveCount(2);
+  await page.keyboard.press('Escape');
   // Each agent asks before writing as its own setting says, so the team's composer has none.
   await expect(page.getByRole('button', { name: /^Saving files/ })).toHaveCount(0);
 
@@ -188,6 +199,14 @@ test("Teach this on the teammate's answer goes to the teammate", async () => {
   await page.keyboard.press('Escape');
 });
 
+test("a team's address shows only that team's chats", async () => {
+  await openAt(`/teams/${TEAM.id}/chats/cht_someone_else`);
+  await expect(
+    page.getByRole('heading', { name: `This chat isn't in ${TEAM.name}.` }),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox', { name: `Message ${TEAM.name}` })).toHaveCount(0);
+});
+
 test('an agent in a team stays until it is taken out, and the way out opens Teams', async () => {
   await sidebar()
     .getByRole('button', { name: `${teammate.name} settings` })
@@ -215,4 +234,18 @@ test('the personal edition has no teams', async () => {
   expect((await teamCallsTo(launched.app, 'teams:list')).length).toBe(before);
   await goTo(page, `/teams/${TEAM.id}/chats/${TEAM_CHAT.id}`);
   await expect(page).toHaveURL(/#\/$/);
+
+  // Started at a team's chat, it goes home before anything asks for teams or their chats.
+  const asked = async () =>
+    (await teamCallsTo(launched.app, 'teams:list')).length +
+    (await teamCallsTo(launched.app, 'workspace:listTeamChats')).length;
+  const earlier = await asked();
+  await page.evaluate((hash) => {
+    window.location.hash = hash;
+  }, `/teams/${TEAM.id}/chats/${TEAM_CHAT.id}`);
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page).toHaveURL(/#\/$/);
+  await settle(page);
+  expect(await asked()).toBe(earlier);
 });

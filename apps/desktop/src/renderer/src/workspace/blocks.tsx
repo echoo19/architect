@@ -28,7 +28,7 @@ import {
 import { architect } from '../api/client';
 import { PatchLines } from '../components/PatchLines';
 import { attempt } from '../lib/notify';
-import { addsToFile, changeCounts, changeVerb, previewSize } from './changes';
+import { addsToFile, changeCounts, changeVerb, previewSize, type Writer } from './changes';
 import { refreshGraduateSettings } from './graduateSettings';
 import {
   cellText,
@@ -146,7 +146,7 @@ function Outcome({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 export interface ApprovalCardProps {
   block: ApprovalBlockData;
   /** The agent whose files the change writes: in a team reply, the lead or a teammate. */
-  agent: GraduateSummary;
+  agent: Writer;
   /**
    * In a team reply, the card leads with the agent whose files it writes, since each agent of the
    * team asks on its own and only for its own files.

@@ -103,7 +103,7 @@ export const AgentMessage = memo(function AgentMessage({
                 <ApprovalCard
                   key={key}
                   block={block}
-                  agent={writerOf(block, agent, teammates ?? [])}
+                  agent={writerOf(block, agent)}
                   named={teammates !== undefined}
                   answerable={answerable}
                   onOpenPanel={onOpenPanel}

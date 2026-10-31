@@ -1,4 +1,6 @@
 import {
+  type Consultation,
+  type WorkspaceMessage,
   CodedError,
   TEACHABLE_KINDS,
   type Budget,
@@ -20,6 +22,39 @@ export const KIND_LABELS: Record<CorrectionKind, string> = {
 };
 
 /** A lesson that can join the teaching queue. */
+/** What Teach this teaches, for a reply or for a teammate's answer inside one (decision 100). */
+export type TeachTarget<Agent> =
+  | { kind: 'reply'; agent: Agent; alsoSharing: Agent[] }
+  | { kind: 'consultation'; agent: Agent; consultation: Consultation; alsoSharing: Agent[] }
+  | { kind: 'gone'; name: string };
+
+/**
+ * Who learns from a flag. A teammate's answer teaches the agent that gave it, found by its own
+ * record among every agent here, not among the team as it is now; when that agent is gone, the
+ * answer can't be taught, and nothing else takes its place. A reply teaches the agent that
+ * answered. Every other agent whose work the exchange holds must allow sharing it too.
+ */
+export function teachTarget<Agent extends { id: string }>(
+  reply: Pick<WorkspaceMessage, 'steps' | 'consultations'>,
+  consultation: Consultation | undefined,
+  answering: Agent,
+  agents: readonly Agent[],
+): TeachTarget<Agent> {
+  const find = (id: string) => agents.find((agent) => agent.id === id);
+  if (consultation) {
+    const agent = find(consultation.graduateId);
+    if (!agent) {
+      const step = reply.steps.find((item) => item.id === consultation.stepId);
+      return { kind: 'gone', name: step?.name ?? 'This teammate' };
+    }
+    return { kind: 'consultation', agent, consultation, alsoSharing: [answering] };
+  }
+  const asked = [...new Set((reply.consultations ?? []).map((item) => item.graduateId))]
+    .filter((id) => id !== answering.id)
+    .flatMap((id) => find(id) ?? []);
+  return { kind: 'reply', agent: answering, alsoSharing: asked };
+}
+
 export function canQueue(kind: CorrectionKind): boolean {
   return TEACHABLE_KINDS.includes(kind);
 }

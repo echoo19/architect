@@ -6,8 +6,17 @@ import type {
   WorkspaceChat,
   WorkspaceMessage,
 } from '@architect/shared';
-import { Badge, Button, Drawer, EmptyState, IconButton, Skeleton, Tooltip } from '@architect/ui';
-import { Bot, CircleX, Info, Plus, Users } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Drawer,
+  DrawerContent,
+  EmptyState,
+  IconButton,
+  Skeleton,
+  Tooltip,
+} from '@architect/ui';
+import { Bot, CircleX, Info, Plus, Users, UserX } from 'lucide-react';
 import { architect } from '../api/client';
 import { useGraduates, useSettings } from '../api/hooks';
 import { useTeams } from '../api/teams';
@@ -30,8 +39,9 @@ import {
   useTeamChats,
   type ListState,
 } from '../workspace/store';
+import { teachTarget } from '../workspace/teach/lessons';
 import { TeachSheet } from '../workspace/teach/TeachSheet';
-import { OrganizationMenu } from '../workspace/OrganizationMenu';
+import { OrganizationMenu, TeamOrganizationMenu } from '../workspace/OrganizationMenu';
 import { useBottomPin } from '../workspace/useBottomPin';
 
 /** The request a reply answered: the person's message before it in the chat. */
@@ -107,9 +117,7 @@ function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }
         .map((member) => (
           <BlockedBadge key={member.id} agent={member} named />
         ))}
-      {members.map((member) => (
-        <OrganizationMenu key={member.id} agent={member} named />
-      ))}
+      <TeamOrganizationMenu agents={members} />
       <Tooltip content={facts.join(' · ')} side="bottom">
         <IconButton
           label={`About ${team.team.name}`}
@@ -243,8 +251,47 @@ function AgentChat(props: ChatProps) {
   return <Chat {...props} chats={useAgentChats(props.agent.id)} />;
 }
 
+/**
+ * A team's chat, once the team's own list holds it: a chat of another team or of an agent never
+ * shows, or takes a message, under this team's name. A chat started elsewhere may be missing from
+ * a list read earlier, so the list is read once more before the chat is called missing.
+ */
 function TeamChat(props: ChatProps & { team: ChatTeam }) {
-  return <Chat {...props} chats={useTeamChats(props.team.team.id)} />;
+  const { team, chatId } = props;
+  const chats = useTeamChats(team.team.id);
+  const ours = chats.entry.data?.some((chat) => chat.id === chatId && chat.teamId === team.team.id);
+  const [reread, setReread] = useState(false);
+  const { status } = chats.entry;
+  const { reload } = chats;
+  useEffect(() => {
+    if (status !== 'ready' || ours || reread) return;
+    setReread(true);
+    reload();
+  }, [status, ours, reread, reload]);
+  if (ours) return <Chat {...props} chats={chats} />;
+  return (
+    <ChatPlaceholder>
+      {chats.entry.status === 'error' ? (
+        <ProblemState
+          error={chats.entry.error}
+          title={`Couldn't load ${team.team.name}'s chats`}
+          onRetry={chats.reload}
+        />
+      ) : reread && chats.entry.status === 'ready' ? (
+        <EmptyState
+          icon={<Users aria-hidden />}
+          title={`This chat isn't in ${team.team.name}.`}
+          actions={
+            <Button variant="primary" size="md" onClick={() => navigate(paths.teams())}>
+              Go to your teams
+            </Button>
+          }
+        />
+      ) : (
+        <ChatSkeleton />
+      )}
+    </ChatPlaceholder>
+  );
 }
 
 /** What Teach this opens on: a reply, or a teammate's answer inside one. */
@@ -432,7 +479,6 @@ function Chat({
             key={flagged.count}
             flagged={flagged}
             agent={agent}
-            team={team}
             request={requestOf(list ?? [], flagged.reply)}
             onClose={closeSheet}
           />
@@ -450,40 +496,53 @@ function Chat({
 function Teach({
   flagged,
   agent,
-  team,
   request,
   onClose,
 }: {
   flagged: Flagged;
   agent: GraduateSummary;
-  team: ChatTeam | undefined;
   request: string;
   onClose: () => void;
 }) {
-  const { reply, consultation } = flagged;
-  const teammate = (id: string) => team?.teammates.find((member) => member.id === id);
-  const answered = consultation && teammate(consultation.graduateId);
-  if (consultation && answered) {
+  const graduates = useGraduates();
+  const target = teachTarget(flagged.reply, flagged.consultation, agent, graduates.data ?? []);
+  if (target.kind === 'gone') {
+    return (
+      <DrawerContent
+        title="Teach this"
+        footer={
+          <Button size="md" onClick={onClose}>
+            Close
+          </Button>
+        }
+      >
+        <EmptyState
+          icon={<UserX aria-hidden />}
+          title={`${target.name} is gone`}
+          description={`${target.name} was deleted after this answer, so there is no agent to teach from it.`}
+          className="min-h-[50vh]"
+        />
+      </DrawerContent>
+    );
+  }
+  if (target.kind === 'consultation') {
     return (
       <TeachSheet
-        agent={answered}
-        reply={reply}
-        request={consultation.request}
-        consultation={{ consultation, lead: agent }}
-        alsoSharing={[agent]}
+        agent={target.agent}
+        reply={flagged.reply}
+        request={target.consultation.request}
+        consultation={{ consultation: target.consultation, lead: agent }}
+        alsoSharing={target.alsoSharing}
         onClose={onClose}
       />
     );
   }
-  const asked = [...new Set((reply.consultations ?? []).map((c) => c.graduateId))]
-    .map(teammate)
-    .filter((member) => member !== undefined);
   return (
     <TeachSheet
       agent={agent}
-      reply={reply}
+      reply={flagged.reply}
       request={request}
-      alsoSharing={asked}
+      alsoSharing={target.alsoSharing}
       onClose={onClose}
     />
   );

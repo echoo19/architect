@@ -66,12 +66,16 @@ describe('a change the agent asks to make', () => {
 
 describe('writerOf', () => {
   const lead = { id: 'grd_lead', name: 'Inventory desk' };
-  const teammate = { id: 'grd_mate', name: 'Assay desk' };
 
   it("names the teammate a team reply's write is for, and the lead otherwise", () => {
     const named = { agent: { graduateId: 'grd_mate', name: 'Assay desk' } };
-    expect(writerOf(named, lead, [teammate])).toBe(teammate);
-    expect(writerOf({}, lead, [teammate])).toBe(lead);
-    expect(writerOf(named, lead, [])).toBe(lead);
+    expect(writerOf(named, lead)).toEqual({ id: 'grd_mate', name: 'Assay desk' });
+    expect(writerOf({}, lead)).toBe(lead);
+  });
+
+  it('keeps naming a teammate taken out of the team since it asked, never the lead', () => {
+    // The team now has no teammate by that id; the write is still that teammate's.
+    const named = { agent: { graduateId: 'grd_gone', name: 'Sweep desk' } };
+    expect(writerOf(named, lead)).toEqual({ id: 'grd_gone', name: 'Sweep desk' });
   });
 });

@@ -24,7 +24,7 @@ import { TrainScreen } from '../screens/TrainScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { SettingsModal } from '../settings/SettingsModal';
 import { CommandMenu } from '../shell/CommandMenu';
-import { EDITIONS, isLabOnly, useEdition } from '../shell/edition';
+import { EDITIONS, isLabOnly, readsTeams, useEdition } from '../shell/edition';
 import { WorkspaceShell } from '../shell/WorkspaceShell';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -33,6 +33,7 @@ function Screen({ route }: { route: Route }) {
   const edition = useEdition();
   // The personal edition has none of the Lab's places; it is sent home (useEditionShell).
   if (edition === 'personal' && isLabOnly(route)) return null;
+  if (readsTeams(route) && edition !== 'lab') return null;
   switch (route.name) {
     case 'home':
       return (

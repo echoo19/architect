@@ -18,6 +18,7 @@ import {
   proposeFailure,
   runningImprovement,
   shortRequest,
+  teachTarget,
 } from '../../../src/renderer/src/workspace/teach/lessons';
 import { makeJob, makeRun } from '../flow/factories';
 
@@ -231,5 +232,56 @@ describe('Improve', () => {
     expect(fromBefore({ pass: 37, total: 40 }, { pass: 39, total: 40 })).toBe('Up from 93%');
     expect(fromBefore({ pass: 13, total: 13 }, { pass: 12, total: 13 })).toBe('Down from 100%');
     expect(fromBefore({ pass: 13, total: 14 }, { pass: 13, total: 14 })).toBe('Same as before');
+  });
+});
+
+describe('teachTarget', () => {
+  const lead = { id: 'grd_lead', name: 'Inventory desk' };
+  const mate = { id: 'grd_mate', name: 'Assay desk' };
+  const consultation = {
+    stepId: 'step-2',
+    graduateId: mate.id,
+    version: 1,
+    request: 'Which compounds on FW-0418 need a re-test?',
+    work: [],
+    text: 'FWC-13399 and FWC-13444.',
+    outcome: 'answered' as const,
+  };
+  const reply = {
+    steps: [
+      {
+        id: 'step-2',
+        kind: 'consult' as const,
+        name: 'Assay desk',
+        detail: consultation.request,
+        status: 'done' as const,
+      },
+    ],
+    consultations: [consultation],
+  };
+
+  it("teaches the teammate that gave an answer, found among every agent, with the lead's leave", () => {
+    // The teammate is no longer in the team, but it is still an agent here.
+    expect(teachTarget(reply, consultation, lead, [lead, mate])).toEqual({
+      kind: 'consultation',
+      agent: mate,
+      consultation,
+      alsoSharing: [lead],
+    });
+  });
+
+  it('says a deleted teammate can’t be taught, and never teaches the lead in its place', () => {
+    expect(teachTarget(reply, consultation, lead, [lead])).toEqual({
+      kind: 'gone',
+      name: 'Assay desk',
+    });
+  });
+
+  it('teaches the lead for its reply, with the leave of each teammate it asked', () => {
+    expect(teachTarget(reply, undefined, lead, [lead, mate])).toEqual({
+      kind: 'reply',
+      agent: lead,
+      alsoSharing: [mate],
+    });
   });
 });
