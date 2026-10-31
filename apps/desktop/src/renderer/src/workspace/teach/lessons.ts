@@ -210,9 +210,3 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
   }
   return { title: "Couldn't propose a lesson", text: error.message, retry: true };
 }
-
-/** A request shortened to fit one line of a subtitle. */
-export function shortRequest(text: string, limit = 64): string {
-  const line = text.replace(/\s+/g, ' ').trim();
-  return line.length <= limit ? line : `${line.slice(0, limit - 1).trimEnd()}…`;
-}

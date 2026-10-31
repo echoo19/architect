@@ -125,7 +125,7 @@ test('opens every practice and check attempt of a run from Latest attempts, filt
   const latest = page.getByRole('region', { name: 'Latest attempts' });
   await latest.getByRole('button', { name: 'Show all' }).click();
   const sheet = page.getByRole('dialog', { name: 'Attempts' });
-  await expect(sheet).toContainText('60 practice and check attempts');
+  await expect(sheet).toContainText('60 attempts');
   const rows = sheet.getByRole('list', { name: 'Attempts' }).getByRole('listitem');
   await expect(rows).toHaveCount(50);
   await sheet.getByRole('button', { name: 'Show more' }).click();
@@ -138,7 +138,7 @@ test('opens every practice and check attempt of a run from Latest attempts, filt
   await sheet.getByRole('combobox', { name: 'Round' }).click();
   await page.getByRole('option', { name: 'Round 4' }).click();
   await expect(rows).toHaveCount(5);
-  await expect(sheet).toContainText('5 practice and check attempts');
+  await expect(sheet).toContainText('5 attempts');
   await capture('attempts-sheet-dark.png');
 
   // A row opens the attempt's trace, and Back returns to the list as it was.

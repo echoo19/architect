@@ -233,10 +233,10 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               key={item.id}
               icon={<StatusMark state="ok" />}
               label={item.label}
-              meta={
+              info={
                 weights
-                  ? 'Setup, trained weights, job and test results'
-                  : 'Setup, model name, job and test results'
+                  ? 'Its setup, trained weights, job and test results.'
+                  : 'Its setup, model name, job and test results.'
               }
             >
               <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>

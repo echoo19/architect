@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import {
   AGENT,
   CHATS,
@@ -327,7 +327,9 @@ test('changes what the agent may write and opens its settings', async () => {
     'aria-checked',
     'true',
   );
-  await expect(dialog.getByText('Shows each change and waits for your OK')).toBeVisible();
+  expect(await infoTipText(page, dialog, 'Saving files')).toBe(
+    'Shows each change and waits for your OK',
+  );
   await expect(dialog.getByText('Never, by design')).toBeVisible();
   await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
   // Each folder it works in, with the one this computer bound and a way to choose another.
@@ -342,7 +344,7 @@ test('changes what the agent may write and opens its settings', async () => {
 
   await dialog.getByRole('tab', { name: 'Permissions' }).click();
   await dialog.getByRole('radio', { name: 'Never' }).click();
-  await expect(dialog.getByText("Can't change your files")).toBeVisible();
+  expect(await infoTipText(page, dialog, 'Saving files')).toBe("Can't change your files");
   await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toBeHidden();
   await page.getByRole('button', { name: 'Saving files: Never' }).click();

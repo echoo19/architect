@@ -31,7 +31,7 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
         aria-label="Setup"
         className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
-        <SettingsRow label={student.name} meta="The model your agents run on">
+        <SettingsRow label={student.name} info="The model your agents run on.">
           {student.state === 'ready' ? (
             <StatusValue done>Ready</StatusValue>
           ) : student.state === 'downloading' ? (
@@ -43,7 +43,7 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
             <StatusValue done={false}>Not downloaded</StatusValue>
           )}
         </SettingsRow>
-        <SettingsRow label={mentor.name} meta="Teaches it while an agent trains">
+        <SettingsRow label={mentor.name} info="Teaches it while an agent trains.">
           {mentor.state === 'connected' ? (
             <StatusValue done>Connected</StatusValue>
           ) : mentor.state === 'ready' ? (

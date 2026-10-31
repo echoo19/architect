@@ -7,6 +7,7 @@ import {
   _electron as electron,
   expect,
   type ElectronApplication,
+  type Locator,
   type Page,
 } from '@playwright/test';
 import type { AppSettings } from '@architect/shared';
@@ -123,6 +124,30 @@ export async function allowMoreTime(page: Page): Promise<void> {
   const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
   await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
   await expect(callout).toHaveCount(0);
+}
+
+/**
+ * The sentence behind an InfoTip ("About {about}") inside `scope`: focusing the icon opens its
+ * tooltip, and the tooltip's text is returned closed again so it covers nothing after.
+ */
+export async function infoTipText(
+  page: Page,
+  scope: Locator | Page,
+  about: string | RegExp,
+): Promise<string> {
+  const tip = scope.getByRole(
+    'button',
+    typeof about === 'string'
+      ? { name: `About ${about}`, exact: true }
+      : { name: new RegExp(`^About ${about.source}`) },
+  );
+  await tip.focus();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  const text = (await tooltip.textContent()) ?? '';
+  await tip.blur();
+  await expect(tooltip).toBeHidden();
+  return text;
 }
 
 /** Navigates by hash and waits until nothing on screen is still loading. */

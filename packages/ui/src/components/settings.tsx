@@ -6,6 +6,7 @@ import { cn } from '../lib/cn';
 import { springs } from '../motion/springs';
 import { Dialog, DialogContent } from './dialog';
 import { IconButton } from './icon-button';
+import { InfoTip } from './info-tip';
 
 export interface SettingsTab<T extends string> {
   value: T;
@@ -120,8 +121,10 @@ export interface SettingsRowProps {
   label: string;
   /** A mark before the label, such as a provider's tile. */
   icon?: ReactNode;
-  /** A short line under the label: what the setting does, or a fact such as a model id. */
+  /** A fact under the label, on one line: an id, a count, a date. Never an explanation. */
   meta?: ReactNode;
+  /** What the setting does, in one sentence, behind an info icon after the label. */
+  info?: ReactNode;
   /** `code` sets the meta in mono, for a model id, a path or a web address. */
   metaFont?: 'text' | 'code';
   /** Why the row's value couldn't load. Replaces the meta line; pair it with a retry control. */
@@ -137,6 +140,7 @@ export function SettingsRow({
   label,
   icon,
   meta,
+  info,
   metaFont = 'text',
   error,
   tone = 'default',
@@ -152,7 +156,14 @@ export function SettingsRow({
     >
       {icon && <div className="-mr-2 flex shrink-0 items-center">{icon}</div>}
       <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
-        <span className={cn('text-ui', tone === 'danger' && 'text-danger')}>{label}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          <span className={cn('text-ui', tone === 'danger' && 'text-danger')}>{label}</span>
+          {info && (
+            <InfoTip about={label} className="-my-1.5">
+              {info}
+            </InfoTip>
+          )}
+        </span>
         {error ? (
           <span role="alert" className="flex items-start gap-1.5 text-small">
             <CircleAlert size={14} className="mt-[3px] shrink-0 text-danger" aria-hidden />
@@ -161,10 +172,8 @@ export function SettingsRow({
         ) : (
           meta && (
             <span
-              className={cn(
-                'text-small',
-                metaFont === 'code' ? 'break-all font-mono' : 'text-pretty',
-              )}
+              title={typeof meta === 'string' ? meta : undefined}
+              className={cn('truncate text-small', metaFont === 'code' && 'font-mono')}
             >
               {meta}
             </span>

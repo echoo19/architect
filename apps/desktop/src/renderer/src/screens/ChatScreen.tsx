@@ -44,17 +44,6 @@ import { TeachSheet } from '../workspace/teach/TeachSheet';
 import { OrganizationMenu, TeamOrganizationMenu } from '../workspace/OrganizationMenu';
 import { useBottomPin } from '../workspace/useBottomPin';
 
-/** The request a reply answered: the person's message before it in the chat. */
-function requestOf(messages: readonly WorkspaceMessage[], reply: WorkspaceMessage): string {
-  const index = messages.findIndex((message) => message.id === reply.id);
-  return (
-    messages
-      .slice(0, Math.max(0, index))
-      .reverse()
-      .find((message) => message.role === 'user')?.text ?? ''
-  );
-}
-
 /** A team in a chat: its record, the lead that answers, and the teammates it may ask. */
 interface ChatTeam {
   team: Team;
@@ -475,13 +464,7 @@ function Chat({
       </div>
       <Drawer open={flagged?.open ?? false} onOpenChange={(open) => !open && closeSheet()}>
         {flagged && (
-          <Teach
-            key={flagged.count}
-            flagged={flagged}
-            agent={agent}
-            request={requestOf(list ?? [], flagged.reply)}
-            onClose={closeSheet}
-          />
+          <Teach key={flagged.count} flagged={flagged} agent={agent} onClose={closeSheet} />
         )}
       </Drawer>
     </>
@@ -496,12 +479,10 @@ function Chat({
 function Teach({
   flagged,
   agent,
-  request,
   onClose,
 }: {
   flagged: Flagged;
   agent: GraduateSummary;
-  request: string;
   onClose: () => void;
 }) {
   const graduates = useGraduates();
@@ -530,7 +511,6 @@ function Teach({
       <TeachSheet
         agent={target.agent}
         reply={flagged.reply}
-        request={target.consultation.request}
         consultation={{ consultation: target.consultation, lead: agent }}
         alsoSharing={target.alsoSharing}
         onClose={onClose}
@@ -541,7 +521,6 @@ function Teach({
     <TeachSheet
       agent={agent}
       reply={flagged.reply}
-      request={request}
       alsoSharing={target.alsoSharing}
       onClose={onClose}
     />

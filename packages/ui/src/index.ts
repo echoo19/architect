@@ -169,6 +169,7 @@ export {
   type FileChipProps,
   type ToggleChipProps,
 } from './components/file-chip';
+export { InfoTip, type InfoTipProps } from './components/info-tip';
 export {
   IconButton,
   type IconButtonProps,

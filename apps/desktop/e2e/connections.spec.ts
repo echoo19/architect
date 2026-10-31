@@ -7,7 +7,7 @@ import {
   type PullProgress,
 } from '@architect/shared';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, LOCAL_WITH_GLIMMER, OLLAMA_READY } from './fixtures';
 
 /*
@@ -260,9 +260,9 @@ test('picks the model for new agents on this computer, with whether it fits the 
   await page.getByRole('button', { name: 'Model for new agents' }).click();
   await page.getByRole('option', { name: /Muse Glimmer · 4-bit/ }).click();
   await expect(page.getByText('Not downloaded yet')).toBeVisible();
-  await expect(
-    page.getByText(`Runs entirely on the ${GPU_12GB.name}, several times faster`),
-  ).toBeVisible();
+  expect(await infoTipText(page, page, /.* fits your GPU$/)).toBe(
+    `Runs entirely on the ${GPU_12GB.name}, several times faster.`,
+  );
   await page.getByRole('button', { name: 'Use it' }).click();
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
   await page.keyboard.press('Escape');

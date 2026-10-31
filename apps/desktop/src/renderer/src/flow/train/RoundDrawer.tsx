@@ -32,13 +32,7 @@ import { FilePatch } from '../../components/FilePatch';
 import { HarnessFiles } from '../../components/HarnessFiles';
 import { useEdition } from '../../shell/edition';
 import { changeSummary } from './diff';
-import {
-  checkMeasurements,
-  DISPOSITIONS,
-  FIRST_DRAFT,
-  INTERVENTIONS,
-  sentence,
-} from './evidence-words';
+import { checkMeasurements, DISPOSITIONS, INTERVENTIONS, sentence } from './evidence-words';
 import {
   CheckTasks,
   ExperimentDetails,
@@ -62,38 +56,6 @@ const STATUS_TEXT: Record<Round['status'], string> = {
   decided: 'Decided',
   failed: 'Failed',
 };
-
-/** What the drawer is about: the intervention's type, and how many files the change touched. */
-function subtitleOf(
-  mentor: string,
-  lineage: LineageEntry | undefined,
-  intervention: Intervention | undefined,
-  draft: boolean,
-): ReactNode {
-  const { label, icon: Icon } = draft
-    ? FIRST_DRAFT
-    : intervention
-      ? INTERVENTIONS[intervention.type]
-      : FIRST_DRAFT;
-  const count = lineage?.files.length ?? 0;
-  const files =
-    count === 0 ? null : `${mentor} changed ${count === 1 ? 'one file' : `${count} files`}`;
-  if (!draft && !intervention) return files ?? `${mentor}'s change`;
-  return (
-    <span className="inline-flex flex-wrap items-center gap-x-2">
-      <span className="inline-flex items-center gap-1.5">
-        <Icon size={13} strokeWidth={1.8} aria-hidden className="text-mentor" />
-        {label}
-      </span>
-      {files && (
-        <>
-          <span aria-hidden>·</span>
-          <span>{files}</span>
-        </>
-      )}
-    </span>
-  );
-}
 
 /** A round's records from mentoring, as the drawer reads them. */
 export interface RoundEvidence {
@@ -160,11 +122,7 @@ export function RoundDrawerContent({
   // A question tries no change, so there is nothing to measure, no file to show and no gate to pass.
   const question = intervention?.type === 'clarification' ? intervention : undefined;
   return (
-    <DrawerContent
-      title={title}
-      onBack={onBack}
-      subtitle={subtitleOf(names.mentor, lineage, intervention, draft)}
-    >
+    <DrawerContent title={title} onBack={onBack}>
       <div className="flex flex-col gap-7">
         {draft ? (
           <DraftDecision round={round} names={names} />

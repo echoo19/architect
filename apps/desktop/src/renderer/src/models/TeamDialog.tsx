@@ -132,11 +132,7 @@ function TeamForm({
             onChange={(event) => setName(event.target.value)}
           />
         </Field>
-        <Field
-          label="Lead"
-          hint={team ? 'Stays for the team’s life' : 'Answers the team’s chats'}
-          htmlFor={`${id}-lead`}
-        >
+        <Field label="Lead" htmlFor={`${id}-lead`}>
           <Select
             aria-label="Lead"
             value={lead}

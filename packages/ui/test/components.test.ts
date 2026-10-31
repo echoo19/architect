@@ -8,6 +8,8 @@ import {
   EvidenceMark,
   EvidenceMeter,
   evidenceLabel,
+  Field,
+  IntervalPlot,
   Meter,
   PageTabs,
   ProgressStepper,
@@ -23,6 +25,7 @@ import {
   StepList,
   StepListItem,
   Switch,
+  TooltipProvider,
 } from '../src';
 
 describe('Combobox', () => {
@@ -107,16 +110,61 @@ describe('Meter', () => {
 });
 
 describe('SettingsRow', () => {
-  it('sets an explanation in the body face and a model id or path in mono', () => {
-    const explained = renderToStaticMarkup(
-      createElement(SettingsRow, { label: 'Rounds', meta: 'Each round tries one change' }),
-    );
-    expect(explained).toContain('Each round tries one change');
-    expect(explained).not.toContain('font-mono');
+  it('sets a fact on one line in the body face and a model id or path in mono', () => {
+    const fact = renderToStaticMarkup(createElement(SettingsRow, { label: 'Rounds', meta: '12' }));
+    expect(fact).toMatch(/truncate[^>]*>12</);
+    expect(fact).not.toContain('font-mono');
     const code = renderToStaticMarkup(
       createElement(SettingsRow, { label: 'Mentor', meta: 'muse-spark-1.3', metaFont: 'code' }),
     );
     expect(code).toMatch(/font-mono[^>]*>muse-spark-1\.3/);
+  });
+
+  it('puts what the setting does behind an info icon named for the setting', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(SettingsRow, { label: 'Rounds', info: 'Each round tries one change' }),
+      ),
+    );
+    expect(html).toContain('aria-label="About Rounds"');
+    // The sentence waits in the tooltip, never on the row.
+    expect(html).not.toContain('Each round tries one change');
+  });
+});
+
+describe('IntervalPlot', () => {
+  it("sets a group's measured difference at its header's right", () => {
+    const html = renderToStaticMarkup(
+      createElement(IntervalPlot, {
+        'aria-label': 'By organization',
+        groups: [
+          {
+            label: 'Harborview Prep',
+            end: '+39.6 points',
+            rows: [{ id: 'a', label: 'Taught', estimate: 0.8, low: 0.7, high: 0.9 }],
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('+39.6 points');
+    expect(html.indexOf('Harborview Prep')).toBeLessThan(html.indexOf('+39.6 points'));
+    expect(html.indexOf('+39.6 points')).toBeLessThan(html.indexOf('Taught'));
+  });
+});
+
+describe('Field', () => {
+  it('marks an optional field after its label, and nothing else', () => {
+    const html = renderToStaticMarkup(
+      createElement(Field, { label: 'Notes', htmlFor: 'notes', optional: true, children: null }),
+    );
+    expect(html).toContain('Optional');
+    expect(
+      renderToStaticMarkup(
+        createElement(Field, { label: 'Notes', htmlFor: 'notes', children: null }),
+      ),
+    ).not.toContain('Optional');
   });
 });
 

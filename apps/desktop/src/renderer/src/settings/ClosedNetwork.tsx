@@ -41,7 +41,7 @@ export function ClosedNetworkRows({ settings, update }: TabProps) {
     <SettingsSection title="Closed network">
       <SettingsRow
         label="Teaching reaches only these hosts"
-        meta="And this computer. Any other is refused before anything is sent."
+        info="And this computer. Any other is refused before anything is sent."
         error={settings.closedNetworkProblem}
       >
         <div className="flex items-center gap-3">

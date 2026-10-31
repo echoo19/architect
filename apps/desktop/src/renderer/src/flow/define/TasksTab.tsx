@@ -41,12 +41,12 @@ function Plan({ job, plan }: { job: Job; plan: TaskPlan }) {
   const total = totalOf(plan.counts);
   return (
     <>
-      <SettingsRow label="Example tasks" meta={sourceText(plan.source, mentor)}>
+      <SettingsRow label="Example tasks" info={sourceText(plan.source, mentor)}>
         <SettingsValue>{tasksText(total)}</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="How they are used"
-        meta={`${mentor} teaches from the practice tasks, sees only the score on the check tasks, and never sees the final test.`}
+        info={`${mentor} teaches from the practice tasks, sees only the score on the check tasks, and never sees the final test.`}
       >
         <SettingsValue>{splitsText(plan.counts)}</SettingsValue>
       </SettingsRow>

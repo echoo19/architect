@@ -81,7 +81,7 @@ export function LessonsSection({ agent }: { agent: GraduateSummary }) {
           </Tile>
         }
         label="Can't be taught on this computer"
-        meta={overview.data.unavailable.message}
+        info={overview.data.unavailable.message}
       />
     );
   } else if (overview.data) {
@@ -147,7 +147,7 @@ function TeachingRows({ agent, overview }: { agent: GraduateSummary; overview: T
           </Tile>
         }
         label="Teach it something new"
-        meta="Ask it in a new chat, then flag its answer"
+        info="Ask it in a new chat, then flag its answer."
       >
         <Button size="xs" loading={creating} onClick={() => void startChat()}>
           New chat

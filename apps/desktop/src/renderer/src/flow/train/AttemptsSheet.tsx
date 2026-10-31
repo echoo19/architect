@@ -101,7 +101,7 @@ export function AttemptsSheet({
       onBack={onBack}
       subtitle={
         first.data
-          ? `${first.data.total.toLocaleString('en-US')} practice and check ${first.data.total === 1 ? 'attempt' : 'attempts'}`
+          ? `${first.data.total.toLocaleString('en-US')} ${first.data.total === 1 ? 'attempt' : 'attempts'}`
           : undefined
       }
     >

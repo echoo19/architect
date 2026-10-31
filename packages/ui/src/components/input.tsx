@@ -25,20 +25,20 @@ export interface FieldProps {
   label: string;
   /** The id of the control the label names. */
   htmlFor: string;
-  /** A word after the label, such as "Optional". */
-  hint?: string;
+  /** Marks the field "Optional" after its label. */
+  optional?: boolean;
   /** The control, and anything that belongs under it. */
   children: ReactNode;
   className?: string;
 }
 
 /** A form control with its label above it, for a form laid out in a column. */
-export function Field({ label, htmlFor, hint, children, className }: FieldProps) {
+export function Field({ label, htmlFor, optional = false, children, className }: FieldProps) {
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <label htmlFor={htmlFor} className="flex items-baseline gap-2 text-ui font-medium">
         {label}
-        {hint && <span className="text-small font-normal">{hint}</span>}
+        {optional && <span className="text-small font-normal">Optional</span>}
       </label>
       {children}
     </div>
