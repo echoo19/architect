@@ -151,3 +151,57 @@ export function ollamaRegistryOf(name: string): string {
   const parts = (colon > slash ? name.slice(0, colon) : name).split('/');
   return parts.length === 3 ? (parts[0] ?? OLLAMA_REGISTRY).toLowerCase() : OLLAMA_REGISTRY;
 }
+
+/**
+ * A closed network as read from a settings file, failing closed (decision 098): `problem` says
+ * what couldn't be read, and then the network is on with whatever hosts could be.
+ */
+export interface StoredClosedNetwork {
+  network?: ClosedNetwork;
+  problem?: string;
+}
+
+function failedClosed(hosts: readonly string[], damage: string): StoredClosedNetwork {
+  const kept = hosts.length === 0 ? 'this computer alone' : hosts.join(', ');
+  return {
+    network: { on: true, hosts: [...hosts] },
+    problem: `The saved closed network couldn't be read in full (${damage}), so it stays on with ${kept}. Check it in Settings, Privacy, and save it again.`,
+  };
+}
+
+/**
+ * The closed network a settings file holds. Absent, there is none. Present but damaged (an
+ * unreadable switch, a host that isn't one, more hosts than it may name), it is on with the hosts
+ * that read, and says what was wrong, rather than silently off.
+ */
+export function readClosedNetwork(raw: unknown): StoredClosedNetwork {
+  if (raw === undefined) return {};
+  const parsed = ClosedNetworkSchema.safeParse(raw);
+  if (parsed.success) return { network: parsed.data };
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return failedClosed([], 'it is not a setting');
+  }
+  const record = raw as Record<string, unknown>;
+  const damage: string[] = [];
+  if (typeof record['on'] !== 'boolean') damage.push('whether it is on');
+  const listed = Array.isArray(record['hosts']) ? (record['hosts'] as unknown[]) : null;
+  if (listed === null) damage.push('its hosts');
+  const hosts: string[] = [];
+  let unreadable = 0;
+  for (const entry of listed ?? []) {
+    const host = typeof entry === 'string' ? normalizeNetworkHost(entry) : '';
+    if (typeof entry !== 'string' || networkHostProblem(host) !== null) unreadable += 1;
+    else if (!hosts.includes(host)) hosts.push(host);
+  }
+  if (unreadable > 0) damage.push(unreadable === 1 ? '1 host' : `${unreadable} hosts`);
+  if (hosts.length > MAX_NETWORK_HOSTS) {
+    damage.push(`more than ${MAX_NETWORK_HOSTS} hosts`);
+    hosts.length = MAX_NETWORK_HOSTS;
+  }
+  return failedClosed(hosts, damage.join(', ') || 'its shape');
+}
+
+/** A settings file that couldn't be read at all, though it may hold a closed network: on, with none. */
+export function unreadableClosedNetwork(): StoredClosedNetwork {
+  return failedClosed([], 'the settings file could not be read');
+}

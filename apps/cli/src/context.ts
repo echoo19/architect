@@ -11,7 +11,8 @@ import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub'
 import { appDataDir, type LocalRuntimeSettings } from '@architect/engine/local-runtime';
 import { CliError } from './exit';
 import type { CliIo } from './io';
-import { appAllowedHosts, appRuntimeSettings } from './runtime-settings';
+import { line } from './render';
+import { appAllowedHosts, appClosedNetworkProblem, appRuntimeSettings } from './runtime-settings';
 import { trainerDir } from './trainer';
 
 /** What one command works with, opened when first needed and closed when it ends. */
@@ -21,6 +22,7 @@ export class CliContext {
   private hubClient: HubClient | null = null;
   private runtimeSettings: LocalRuntimeSettings | null = null;
   private engineHost: EngineHost | null = null;
+  private networkChecked = false;
 
   constructor(readonly io: CliIo) {
     this.dataDir = appDataDir(io.env);
@@ -84,6 +86,7 @@ export class CliContext {
     this.library();
     const { env } = this.io;
     // Teaching from here is held to the app's closed network, read as each adapter asks.
+    this.sayClosedNetworkProblem();
     const allowedHosts = () => appAllowedHosts(this.dataDir);
     // An experiment calls hosted models with keys from the environment and uses no GPU here.
     this.engineHost = await createEngineHost({
@@ -123,12 +126,24 @@ export class CliContext {
    * the app's closed network while it is on (decision 098).
    */
   hub(): HubClient {
+    this.sayClosedNetworkProblem();
     this.hubClient ??= new HubClient({
       endpoint: this.io.env['HF_ENDPOINT'] || HF_ENDPOINT,
       token: hubTokenResolver({ env: this.io.env }),
       allowedHosts: () => appAllowedHosts(this.dataDir),
     });
     return this.hubClient;
+  }
+
+  /**
+   * Says once, on stderr, when the app's closed network couldn't be read in full: it then stays on
+   * with the hosts that could (decision 098), and the person should know why a host is refused.
+   */
+  private sayClosedNetworkProblem(): void {
+    if (this.networkChecked) return;
+    this.networkChecked = true;
+    const problem = appClosedNetworkProblem(this.dataDir);
+    if (problem !== undefined) line(this.io.stderr, problem);
   }
 
   /** Stops this command's llama-server, if it started, so none outlives it; closes the store. */
