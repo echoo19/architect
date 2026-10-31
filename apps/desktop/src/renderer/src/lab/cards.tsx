@@ -14,6 +14,7 @@ import {
   cn,
   IconButton,
   Meter,
+  NumberTicker,
   Skeleton,
   Spinner,
   Tooltip,
@@ -35,9 +36,10 @@ import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
 import { fetchQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
+import { Counted } from '../flow/counted';
 import { formatCost, shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
-import { formatPercent } from '../lib/format';
+import { formatPercent, percentOf } from '../lib/format';
 import { activeVersionName, agentModelName, mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
@@ -267,7 +269,9 @@ function RunningRow({ row }: { row: RunRow }) {
               side="left"
             >
               <span className="font-display text-h2 font-semibold tabular-nums">
-                {formatPercent(dev)}
+                <Counted said={formatPercent(dev)}>
+                  <NumberTicker value={percentOf(dev)} kind="percent" />
+                </Counted>
               </span>
             </Tooltip>
           )}
