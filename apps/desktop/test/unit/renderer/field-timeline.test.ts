@@ -13,7 +13,11 @@ import { describe, expect, it } from 'vitest';
 import type { Candidate } from '../../../src/renderer/src/fields/model';
 import { fieldTimeline, type TimelineRecords } from '../../../src/renderer/src/fields/timeline';
 
-const job = { id: 'job_desk', name: 'Academy desk' } as Job;
+const job = {
+  id: 'job_desk',
+  name: 'Academy desk',
+  createdAt: '2026-10-27T09:00:00.000Z',
+} as Job;
 
 const VIEW: FieldView = {
   jobId: job.id,
@@ -141,6 +145,7 @@ const NONE: TimelineRecords = {
   certifications: [],
   qualifications: [],
   experiments: [],
+  laterVersions: [],
   exported: undefined,
 };
 
@@ -251,5 +256,48 @@ describe('fieldTimeline', () => {
     expect(certified?.at).toBe('2026-10-30T12:00:00.000Z');
     expect(result.entries.at(-1)?.sentence).toBe('Training, 3 rounds so far');
     expect(result.next).toBeNull();
+  });
+
+  it('shows the version it was made from and the later version that learned from it', () => {
+    const version = fieldTimeline(
+      {
+        job: { ...job, id: 'job_desk_v2', name: 'Academy desk v2' },
+        view: {
+          ...VIEW,
+          versionOf: { jobId: job.id, name: 'Academy desk', version: 2, org: 'Harbor Learning' },
+        },
+        runs: [],
+        candidates: [],
+      },
+      NONE,
+    );
+    expect(version.entries[0]).toMatchObject({
+      stage: 'learned',
+      at: '2026-10-27T09:00:00.000Z',
+      sentence:
+        'Made as version 2 from Academy desk by teaching on Harbor Learning, which it had never seen',
+      link: { place: 'Field', to: { path: `/fields/${job.id}` } },
+    });
+
+    const earlier = fieldTimeline(
+      { job, view: VIEW, runs: [first], candidates: [tested] },
+      {
+        ...NONE,
+        laterVersions: [
+          {
+            jobId: 'job_desk_v2',
+            name: 'Academy desk v2',
+            org: 'Harbor Learning',
+            at: '2026-10-30T09:00:00.000Z',
+          },
+        ],
+      },
+    );
+    expect(earlier.entries.at(-1)).toMatchObject({
+      stage: 'learned',
+      sentence:
+        'Academy desk v2, a later version, was taught on Harbor Learning, which this one never saw',
+      link: { place: 'Field', to: { path: '/fields/job_desk_v2' } },
+    });
   });
 });

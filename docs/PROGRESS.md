@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun), `lab/timeline-learned` (from `field/main`): the timeline shows Learned from
+
+- *Done:* the field timeline (091) has a "Learned from" stage (089). A version made by teaching on a never-seen organization opens with a row for the version it was made from; the earlier field gets a row for each later version taught on one of its never-seen organizations. Each row opens the other field. Read from `jobs.field` (`versionOf`, `taughtIn`) and, for a later version's date, `jobs.get`; no new engine call, `FieldSummary` unchanged.
+- *Tests:* `test/unit/renderer/field-timeline.test.ts`. The e2e stand-in has no versions, so `e2e/field-timeline.spec.ts` is unchanged. Not merged or pushed.
+
 ## 2026-10-31 (Sat, evening), status (start the next session here)
 
 - *The pitch* (owner): **"The training system for your own AI."** The specialists are examples of what it makes, shown as sets: business (Returns desk, Service desk, a drafted pricing desk), academies (Academy desk, staff-facing, never a student chatbot), science lab (Sweep desk for ML research groups, Assay desk for screening labs). See `docs/PLATFORM.md` "The pitch" and "Demo sets". The academy agent's public name is "Academy desk"; the judging gate disqualifies education chatbots, so it is always described by what it does for staff.

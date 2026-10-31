@@ -8,10 +8,12 @@ import {
   ClipboardCheck,
   FlaskConical,
   FolderOutput,
+  GitFork,
   GraduationCap,
   History,
   ShieldCheck,
 } from 'lucide-react';
+import { api } from '../api/client';
 import { computeApi } from '../api/compute';
 import { experimentsApi } from '../api/experiments';
 import { graduatesApi } from '../api/graduates';
@@ -36,6 +38,7 @@ import {
 export type FieldTabTarget = 'organizations' | 'assets';
 
 const STAGE_ICONS: Record<Stage, ReactNode> = {
+  learned: <GitFork strokeWidth={1.8} aria-hidden />,
   studied: <BookOpen strokeWidth={1.8} aria-hidden />,
   taught: <GraduationCap strokeWidth={1.8} aria-hidden />,
   tested: <ClipboardCheck strokeWidth={1.8} aria-hidden />,
@@ -50,12 +53,20 @@ async function readRecords(
 ): Promise<Omit<TimelineRecords, 'study' | 'exported'>> {
   const jobId = field.job.id;
   const runIds = new Set(field.runs.map((run) => run.id));
-  const [counterexamples, qualifications, experiments, registry] = await Promise.all([
-    mentoringApi.fieldCounterexamples(jobId),
-    computeApi.qualifications(jobId),
-    experimentsApi.list(),
-    loadRegistry(),
-  ]);
+  const taught = field.view.sealed.flatMap((org) =>
+    org.taughtIn ? [{ ...org.taughtIn, org: org.name }] : [],
+  );
+  const [counterexamples, qualifications, experiments, registry, laterVersions] = await Promise.all(
+    [
+      mentoringApi.fieldCounterexamples(jobId),
+      computeApi.qualifications(jobId),
+      experimentsApi.list(),
+      loadRegistry(),
+      Promise.all(
+        taught.map(async (later) => ({ ...later, at: (await api.job(later.jobId)).createdAt })),
+      ),
+    ],
+  );
   const rows = registry.filter(
     (row) => row.version.runId !== undefined && runIds.has(row.version.runId),
   );
@@ -73,6 +84,7 @@ async function readRecords(
     experiments: experiments.filter((item) => item.input.jobId === jobId),
     versions,
     certifications: certifications.flat(),
+    laterVersions,
   };
 }
 
@@ -89,8 +101,9 @@ function Lead({ at, icon }: { at: string | null; icon: ReactNode }) {
 }
 
 /**
- * The field's life, oldest first: studied, taught, tested, certified, compared and exported, each
- * entry a stored record with the place that holds it, then one next step when something is missing.
+ * The field's life, oldest first: learned from, studied, taught, tested, certified, compared and
+ * exported, each entry a stored record with the place that holds it, then one next step when
+ * something is missing.
  */
 export function Timeline({
   field,
