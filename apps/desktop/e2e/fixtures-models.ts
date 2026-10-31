@@ -13,6 +13,13 @@ import {
 import type { ElectronApplication } from '@playwright/test';
 import { FIELD_JOB, FIELD_REPORT } from './fixtures-field';
 import { LAB_AGENTS, MINI_ID, ACADEMY_DESK_ID, stubLab } from './fixtures-lab';
+import {
+  SWEEP,
+  SWEEP_DESK_ID,
+  SWEEP_DESK_JOB,
+  SWEEP_EARLIER_REPORT,
+  SWEEP_REPORT,
+} from './fixtures-science';
 import { hex, manifestFor } from './fixtures-versions';
 import { at, FINAL_TEST, job, STORY, storyReport } from './story';
 
@@ -20,7 +27,8 @@ import { at, FINAL_TEST, job, STORY, storyReport } from './story';
  * The registry of models against a stand-in engine: the service desk with four versions (its
  * first, the active one with trained weights, a candidate below its target, and one imported from
  * another computer), Academy desk with two versions taught on three academies and tested on one it never
- * saw and on a real one, and Academy desk Mini, a second agent for Academy desk's job on a larger build. Promoting
+ * saw and on a real one, Academy desk Mini, a second agent for Academy desk's job on a larger build, and
+ * Sweep desk with a version from each of its two runs. Promoting
  * moves the active version, so the registry reads what the real engine would.
  */
 
@@ -182,6 +190,38 @@ const MINI_VERSIONS: GraduateVersion[] = [
   }),
 ];
 
+const sweepDesk = (spec: Omit<VersionSpec, 'graduateId' | 'job'>) =>
+  makeVersion({ ...spec, graduateId: SWEEP_DESK_ID, job: SWEEP_DESK_JOB });
+
+/** Sweep desk's versions, one from each run, each with the final test its run's card holds. */
+const SWEEP_VERSIONS: GraduateVersion[] = [
+  {
+    ...sweepDesk({
+      version: 1,
+      state: 'accepted',
+      active: false,
+      status: 'experimental',
+      score: SWEEP_EARLIER_REPORT.test.score,
+      day: -1,
+      harness: '5d0a93e',
+    }),
+    runId: SWEEP.earlierRun,
+  },
+  {
+    ...sweepDesk({
+      version: 2,
+      state: 'accepted',
+      active: true,
+      parent: 1,
+      status: 'ready',
+      score: SWEEP_REPORT.test.score,
+      day: 0,
+      harness: 'a7e214c',
+    }),
+    runId: SWEEP.run,
+  },
+];
+
 /** A field report with some cells moved by a few tasks, all at the same organizations. */
 function shifted(base: ReportCard, change: (result: OrgTypeResult) => number): ReportCard {
   const perOrg = (base.test.perOrg ?? []).map((result) => ({
@@ -247,6 +287,8 @@ const REPORTS: Record<string, ReportCard> = {
   [`${ACADEMY_DESK_ID}:1`]: ACADEMY_DESK_REPORTS[1],
   [`${ACADEMY_DESK_ID}:2`]: ACADEMY_DESK_REPORTS[2],
   [`${MINI_ID}:1`]: MINI_REPORT,
+  [`${SWEEP_DESK_ID}:1`]: SWEEP_EARLIER_REPORT,
+  [`${SWEEP_DESK_ID}:2`]: SWEEP_REPORT,
 };
 
 const AGENTS: GraduateSummary[] = LAB_AGENTS;
@@ -273,6 +315,16 @@ const PATCH = {
     '+4. Write that many rows to assignments.csv; nothing else.',
     '+5. Fewer eligible than asked: assign them all and say how many.',
   ].join('\n'),
+  sweep: [
+    '@@ -3,5 +3,8 @@',
+    " Work from the group's own files: its sweeps, runs, configs, metrics and policy.",
+    '-A run diverged if its status says it failed.',
+    '+A run diverged if its training loss is ever NaN or infinite, or crosses the factor in policy.md.',
+    '+Never read divergence from status.',
+    '+Pair runs by seed before saying whether a change helped.',
+    ' ',
+    ' Ask before writing to proposed_runs.csv or decisions.csv.',
+  ].join('\n'),
   desk: [
     '@@ -2,5 +2,6 @@',
     ' Close out the day for a home-services office.',
@@ -289,6 +341,7 @@ const DIFFS: Record<string, FileDiff[]> = {
     { path: 'skills/assign/SKILL.md', status: 'added', patch: PATCH.skill },
   ],
   desk: [{ path: 'AGENTS.md', status: 'modified', patch: PATCH.desk }],
+  sweep: [{ path: 'AGENTS.md', status: 'modified', patch: PATCH.sweep }],
 };
 
 const HISTORY: Record<string, VersionEvent[]> = {
@@ -302,6 +355,10 @@ const HISTORY: Record<string, VersionEvent[]> = {
     { graduateId: ACADEMY_DESK_ID, kind: 'promoted', version: 2, from: 1, at: at(180 + 2905) },
   ],
   [MINI_ID]: [],
+  [SWEEP_DESK_ID]: [
+    { graduateId: SWEEP_DESK_ID, kind: 'accepted', version: 2, at: at(130) },
+    { graduateId: SWEEP_DESK_ID, kind: 'promoted', version: 2, from: 1, at: at(135) },
+  ],
 };
 
 export const MODELS = { academyDeskId: ACADEMY_DESK_ID, miniId: MINI_ID, deskId: STORY.graduateId };
@@ -311,6 +368,7 @@ export const MODEL_VERSIONS: Record<string, GraduateVersion[]> = {
   [STORY.graduateId]: DESK_VERSIONS,
   [ACADEMY_DESK_ID]: ACADEMY_DESK_VERSIONS,
   [MINI_ID]: MINI_VERSIONS,
+  [SWEEP_DESK_ID]: SWEEP_VERSIONS,
 };
 
 /**
@@ -367,7 +425,9 @@ export async function installModelsFake(app: ElectronApplication): Promise<void>
     handle('graduates:harnessDiff', (from: { graduateId: string }, to: { graduateId: string }) =>
       from.graduateId === 'grd_servicedesk' && to.graduateId === 'grd_servicedesk'
         ? data.diffs.desk
-        : data.diffs.academy_desk,
+        : from.graduateId === 'grd_sweep_desk' && to.graduateId === 'grd_sweep_desk'
+          ? data.diffs.sweep
+          : data.diffs.academy_desk,
     );
     handle('graduates:acceptVersion', (id: string, number: number) => {
       const found = versions[id]?.find((item) => item.version === number);

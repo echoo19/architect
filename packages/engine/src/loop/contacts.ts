@@ -2,7 +2,7 @@ import type { ContactRecorder, LoopDeps } from './deps';
 
 /**
  * The loop's dependencies with every adapter they make telling `record` where its requests go
- * (decision 094), so a run's own records say which hosts it contacted and how often.
+ * (decision 095), so a run's own records say which hosts it contacted and how often.
  */
 export function recordingContacts(deps: LoopDeps, record: ContactRecorder): LoopDeps {
   const { adapters } = deps;

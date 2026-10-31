@@ -160,7 +160,7 @@ function PanelHeader({
   const [packing, setPacking] = useState(false);
   const others = rows.filter((other) => comparable(row, other));
 
-  // One folder for a security reviewer and an offline install, every file hashed (decision 094).
+  // One folder for a security reviewer and an offline install, every file hashed (decision 095).
   const exportEvidence = async () => {
     setPacking(true);
     const written = await attempt("Couldn't export the evidence", async () => {

@@ -12,7 +12,7 @@ import { installModelsFake } from './fixtures-models';
 import { job } from './story';
 
 /*
- * A closed network and an evidence pack (decision 094), against the stand-in engine: the Lab
+ * A closed network and an evidence pack (decision 095), against the stand-in engine: the Lab
  * setting that names the hosts teaching may reach, the inspector saying a teacher is outside it
  * and where to fix that, a run's report saying in one line where it went, and a version's
  * evidence exported from Models into a folder the person picks.

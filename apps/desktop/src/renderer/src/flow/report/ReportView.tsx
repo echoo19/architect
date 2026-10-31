@@ -79,7 +79,7 @@ interface ReportViewProps {
   here: ReportCard | null;
   /** The grid by organization as the Lab shows it, with what can be done there; else the plain grid. */
   organizations?: (grid: OrgGrid) => ReactNode;
-  /** Every host the run contacted (decision 094), when it recorded any. */
+  /** Every host the run contacted (decision 095), when it recorded any. */
   contacts?: readonly RunContact[] | undefined;
 }
 

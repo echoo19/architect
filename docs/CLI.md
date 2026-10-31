@@ -192,7 +192,7 @@ Checks an evidence pack (see `pack`) where it is, with the network guard on. It 
 architect pack service-desk --out ./reviews [--version 2] [--with-weights] [--json]
 ```
 
-Writes `<name>-v<n>-evidence/` into the folder (decision 094): one folder for a security reviewer and an offline install. It holds:
+Writes `<name>-v<n>-evidence/` into the folder (decision 095): one folder for a security reviewer and an offline install. It holds:
 
 - `package/`: the version byte for byte. `architect install <pack>/package` installs it on a computer with no network.
 - `evidence.json`: the harness and model hashes, the tools with their permissions and the sandbox they run in, the graduates' network guard checked against every host teaching reached, those hosts with their request counts, the changes kept and reverted, the final test per organization (taught on, never seen, real), the locked test's score and the certificate if there is one.
@@ -441,7 +441,7 @@ The command takes the GPU in turns with the open app (decision 046). A run holds
 
 ## A closed network
 
-When the app's Lab has a closed network on (Settings, Privacy; decision 094), the commands that teach (`experiment`, `certify` and the engine work behind `field`) follow it too: they read it from the app's `settings.json` at every request, and a teacher or student outside it is refused with exit 1 (`model_outside_network`) and a message that names the host. Graduates are held to less whatever it says: `run` and `serve` reach only the model on this computer.
+When the app's Lab has a closed network on (Settings, Privacy; decision 095), the commands that teach (`experiment`, `certify` and the engine work behind `field`) follow it too: they read it from the app's `settings.json` at every request, and a teacher or student outside it is refused with exit 1 (`model_outside_network`) and a message that names the host. Graduates are held to less whatever it says: `run` and `serve` reach only the model on this computer.
 
 ## What it doesn't do yet
 

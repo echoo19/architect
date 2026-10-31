@@ -518,7 +518,7 @@ export const MIGRATIONS: readonly Migration[] = [
     name: 'run_hosts',
     sql: `
       -- Every host a run's adapters contacted, with how many requests went there and whether a
-      -- closed network admitted all of them (decision 094). Never a path, a body or a key.
+      -- closed network admitted all of them (decision 095). Never a path, a body or a key.
       CREATE TABLE run_hosts (
         run_id TEXT NOT NULL,
         host TEXT NOT NULL,

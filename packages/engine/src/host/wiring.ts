@@ -97,7 +97,7 @@ export interface EngineWiringOptions {
    */
   adapterRuntime?: AdapterServing;
   /**
-   * The closed network's hosts right now (decision 094), or undefined while none is on. Every
+   * The closed network's hosts right now (decision 095), or undefined while none is on. Every
    * adapter made here refuses any other host, this computer aside, before it sends anything.
    */
   allowedHosts?: () => readonly string[] | undefined;

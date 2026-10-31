@@ -122,7 +122,7 @@ export interface EngineStore {
     withStatus(statuses: readonly RunStatus[]): StoredRun[];
     /**
      * Counts one request from the run to `host`; it stays inside only while every request there
-     * was inside a closed network (decision 094).
+     * was inside a closed network (decision 095).
      */
     recordContact(runId: string, host: string, inside: boolean): void;
     /** The hosts the run contacted, in the order it first reached them. */

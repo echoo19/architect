@@ -29,7 +29,12 @@ import {
   type ExperimentStart,
   type Job,
 } from '@architect/shared';
-import { comparisonJob, DEFAULT_MODELS } from '../comparisons/arms';
+import {
+  comparisonJob,
+  DEFAULT_MODELS,
+  fieldModels,
+  type ComparisonModels,
+} from '../comparisons/arms';
 import { fieldOf } from '../comparisons/field';
 import { inputsChanged, pinInputs } from '../comparisons/inputs';
 import {
@@ -193,6 +198,17 @@ function preregistrationProblem(input: ExperimentInput, job: Job): string | null
   return null;
 }
 
+/**
+ * The models an experiment runs: those frozen when it was preregistered; before then, or for one
+ * preregistered before they were kept, the field's own as they are now. One frozen before the
+ * models were kept ran on the defaults, and goes on with them.
+ */
+function modelsOf(record: ExperimentRecord, job: Job): ComparisonModels {
+  const frozen = record.preregistration;
+  if (frozen === null) return fieldModels(job);
+  return frozen.models ?? DEFAULT_MODELS;
+}
+
 /** What a preregistration's hash covers: the input as stored and the job's pinned files. */
 function hashOf(input: ExperimentInput, pinned: unknown): string {
   return createHash('sha256').update(JSON.stringify({ input, pinned })).digest('hex');
@@ -303,16 +319,18 @@ export class ExperimentService {
         `It is ${record.status}, so it can't be preregistered.`,
       );
     }
-    const pinned = await this.reading(id, record.input, (dir) => {
+    const { pinned, models } = await this.reading(id, record.input, (dir) => {
       const job = readJob(dir);
       const problem = preregistrationProblem(record.input, job);
       if (problem !== null) throw new CodedError('experiment_state', problem);
-      return pinInputs(dir, job);
+      return { pinned: pinInputs(dir, job), models: fieldModels(job) };
     });
+    // The models are frozen with the plan, so a rerun names the same ones (decision 094).
     const preregistration = {
       at: isoNow(this.options.clock),
       sha256: hashOf(record.input, pinned),
       pinned,
+      models,
     };
     // Kept apart as well, written once: the frozen plan as it was, beside the record.
     writeFileSync(
@@ -470,7 +488,7 @@ export class ExperimentService {
             jobDir: source.dir,
             out,
             config: configOf(record.input),
-            models: DEFAULT_MODELS,
+            models: modelsOf(record, job),
             confirm: options.confirm === true,
             planOnly: kind === 'calibrate',
             ...(options.studyToken === undefined ? {} : { studyToken: options.studyToken }),
@@ -597,7 +615,7 @@ export class ExperimentService {
       lockedTests: field.lockedTests,
       certifyAttempts: field.certifyAttempts,
     };
-    const base = comparisonJob(source, config, DEFAULT_MODELS);
+    const base = comparisonJob(source, config, modelsOf(record, source));
     const plan = files.readPlan();
     const calibration = files.readSweep('calibration');
     const study = this.study(record.id);
@@ -617,6 +635,7 @@ export class ExperimentService {
     const released = (plan?.releasedAt ?? null) !== null;
     return {
       experiment: record,
+      names: { mentor: base.mentor.label, student: base.student.label },
       projection,
       calibration: {
         tasks: base.splits.calibration,

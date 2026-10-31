@@ -97,6 +97,7 @@ import {
   type ArchitectApi,
   type DraftOrganization,
   type DraftTurn,
+  type Job,
   type MentorConfig,
 } from '@architect/shared';
 import { z } from 'zod';
@@ -105,13 +106,15 @@ import { HubError, type HubErrorCode } from '../hub';
 /**
  * The part of the app's API the engine host serves. The conversation that drafts a job also takes
  * the teacher the person chose in Settings, which only the main process knows, so the renderer's
- * three calls gain a last argument on their way to the engine.
+ * three calls gain a last argument on their way to the engine. An imported job file comes back as
+ * the engine made it; the main process then keeps or replaces its models and says which.
  */
 export type EngineApi = Pick<
   ArchitectApi,
   'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates'
 > & {
-  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply' | 'draftField'> & {
+  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply' | 'draftField' | 'importFile'> & {
+    importFile(path: string): Promise<Job>;
     draftStart(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
     draftField(
       description: string,

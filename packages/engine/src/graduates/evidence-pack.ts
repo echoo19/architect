@@ -63,7 +63,7 @@ import type { GraduateLibrary } from './library';
 import { exists } from './versions';
 
 /*
- * The evidence pack (decision 094): records that already exist about one version, put in one
+ * The evidence pack (decision 095): records that already exist about one version, put in one
  * folder a security reviewer can read and an offline computer can install from, every file hashed.
  * The locked test's tasks and a never-seen organization's files never come into it: the version's
  * package holds none (it is what an export ships), and everything else here is a score, a hash or

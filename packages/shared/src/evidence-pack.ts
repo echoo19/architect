@@ -6,7 +6,7 @@ import { ScoreSchema } from './lineage';
 import { CertificateSchema } from './report';
 
 /*
- * An evidence pack (decision 094): one folder about one version, for a security reviewer and an
+ * An evidence pack (decision 095): one folder about one version, for a security reviewer and an
  * offline install. The version's package as it is, `evidence.json` assembled from records that
  * already exist, a short README, and MANIFEST.json with the SHA-256 of every other file. Nothing
  * from the locked test's tasks or a never-seen organization's files: scores only (invariant 1).

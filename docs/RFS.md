@@ -22,8 +22,8 @@ The request names on-prem models, deployment tooling and security accreditation.
 | The ask | Today | Next |
 | --- | --- | --- |
 | runs inside the walls | Graduates make no network calls except to the local runtime (invariant 3, tested) | |
-| teaching inside the walls too | Any OpenAI-compatible teacher and student, including self-hosted Spark Open and cluster endpoints. A closed network (094): a Lab setting names the hosts teaching may reach, every adapter refuses any other before sending anything, and each run records every host it contacted, shown on its report in one line | |
-| deployment tooling, accreditation | Installation checks (`architect verify`), packages. An evidence pack (094): `architect pack` or Export evidence in Models writes one folder for a reviewer and an offline install (the version, its harness and model hashes, tool permissions and the sandbox, the graduates' network guard, the hosts teaching contacted, lineage, results per organization and the certificate, all hashed), and `architect verify --pack` checks it on a computer with no network | |
+| teaching inside the walls too | Any OpenAI-compatible teacher and student, including self-hosted Spark Open and cluster endpoints. A closed network (095): a Lab setting names the hosts teaching may reach, every adapter refuses any other before sending anything, and each run records every host it contacted, shown on its report in one line | |
+| deployment tooling, accreditation | Installation checks (`architect verify`), packages. An evidence pack (095): `architect pack` or Export evidence in Models writes one folder for a reviewer and an offline install (the version, its harness and model hashes, tool permissions and the sandbox, the graduates' network guard, the hosts teaching contacted, lineage, results per organization and the certificate, all hashed), and `architect verify --pack` checks it on a computer with no network | |
 
 ## Vertical Foundation Models (Diana Hu)
 
@@ -41,6 +41,6 @@ The request also asks for "a typed decision and a probability instead of generat
 
 1. Carry a field to a new model (it also makes "any model" concrete).
 2. The teacher alone as an arm, and served answers that carry their certificate.
-3. A closed network and the evidence pack (done, 094).
+3. A closed network and the evidence pack (done, 095).
 
 Each stays small: built from records and runs that already exist, no new orchestration.

@@ -38,22 +38,26 @@ export type ReasoningEffort = z.infer<typeof ReasoningEffortSchema>;
 
 export const ProviderIdSchema = z.enum(PROVIDER_IDS);
 
+/** A mentor that is a model at an address: a preset, an added endpoint or a runtime here. */
+export const ModelMentorSchema = z.object({
+  kind: z.literal('model'),
+  provider: ProviderIdSchema,
+  label: z.string().min(1),
+  baseUrl: z.url(),
+  model: z.string().min(1),
+  reasoningEffort: ReasoningEffortSchema.default('medium'),
+  /** Name of the key in the app's secret store. Never the key itself. None for a local model. */
+  secretRef: z.string().min(1).optional(),
+  /**
+   * The price the cap is kept with, when no preset knows it: OpenRouter's listed price when the
+   * model was chosen, or what the user entered for an endpoint they added.
+   */
+  pricing: TokenPricingSchema.optional(),
+});
+export type ModelMentor = z.infer<typeof ModelMentorSchema>;
+
 export const MentorConfigSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('model'),
-    provider: ProviderIdSchema,
-    label: z.string().min(1),
-    baseUrl: z.url(),
-    model: z.string().min(1),
-    reasoningEffort: ReasoningEffortSchema.default('medium'),
-    /** Name of the key in the app's secret store. Never the key itself. None for a local model. */
-    secretRef: z.string().min(1).optional(),
-    /**
-     * The price the cap is kept with, when no preset knows it: OpenRouter's listed price when the
-     * model was chosen, or what the user entered for an endpoint they added.
-     */
-    pricing: TokenPricingSchema.optional(),
-  }),
+  ModelMentorSchema,
   z.object({
     kind: z.literal('coding_agent'),
     agent: z.literal('claude_code'),
