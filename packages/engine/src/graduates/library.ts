@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { readFile, rm, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { isLoopbackUrl } from '@architect/adapters';
@@ -6,6 +7,7 @@ import {
   CodedError,
   GrantsSchema,
   GuardError,
+  JobSchema,
   type BindRequest,
   type FolderFit,
   type GraduateSettings,
@@ -351,14 +353,21 @@ export class GraduateLibrary {
           `Version ${version} isn't earlier than the active version, so that would be a promotion.`,
         );
       }
+      const before =
+        agent.activeVersion === null ? null : this.version(graduateId, agent.activeVersion);
       store.graduates.update({ ...agent, activeVersion: version });
       const installation = store.installations.get(graduateId);
-      if (stored.origin !== undefined && installation?.grants.writes === 'allow') {
-        store.installations.put({
-          ...installation,
-          grants: { ...installation.grants, writes: 'ask' },
-          updatedAt: this.now(),
-        });
+      if (installation !== null) {
+        const model = this.modelOf(stored, before, installation.model);
+        const asks = stored.origin !== undefined && installation.grants.writes === 'allow';
+        if (model !== null || asks) {
+          store.installations.put({
+            ...installation,
+            ...(model === null ? {} : { model }),
+            ...(asks ? { grants: { ...installation.grants, writes: 'ask' as const } } : {}),
+            updatedAt: this.now(),
+          });
+        }
       }
       store.versionEvents.insert({
         graduateId,
@@ -369,6 +378,27 @@ export class GraduateLibrary {
       });
     });
     return this.summary(graduateId);
+  }
+
+  /**
+   * What the agent answers on once a version runs on another base model than the one it replaces
+   * (decision 095): that model, where the run that made the version ran it on this computer.
+   * Null when both run on the same model, so a binding the person changed stays as it is.
+   */
+  private modelOf(
+    stored: StoredVersion,
+    before: StoredVersion | null,
+    current: ModelBinding,
+  ): ModelBinding | null {
+    const model = stored.manifest.model.base.name;
+    if (before === null || before.manifest.model.base.name === model) return null;
+    const made = stored.runId === undefined ? null : this.ctx.store.runs.get(stored.runId);
+    if (made === null) return { ...current, model };
+    const job = JobSchema.parse(
+      JSON.parse(readFileSync(this.ctx.paths.jobFile(made.run.jobId), 'utf8')),
+    );
+    const { runtime, baseUrl } = job.student.local;
+    return { runtime, baseUrl, model };
   }
 
   /** This computer's installation of the agent, with a version's last checks: the active one's by default. */

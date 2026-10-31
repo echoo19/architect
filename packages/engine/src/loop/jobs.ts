@@ -15,6 +15,7 @@ import {
   ORG_ID,
   slugify,
   type AddOrganizationRequest,
+  type MoveToModelRequest,
   type DraftRecord,
   type Job,
   type Organization,
@@ -42,17 +43,28 @@ import { isStudied, materialFiles, studyStateOf, transferDetector } from '../dra
 import { ContractBook } from '../graduates/contracts';
 import { mentorDataTexts } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
-import type { JobRecord, StoredRun } from '../store/records';
+import type { JobRecord, StoredRun, StoredVersion } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
-import type { Clock, LoopDeps } from './deps';
+import type { Clock, HarnessDeps, LoopDeps } from './deps';
 import { normalizedReply } from '../certify/agreement';
 import { must } from './errors';
 import { readJsonFile, readJsonLines, writeJsonFile, writeJsonLines } from './files';
-import { nextVersion } from './job-versions';
+import { nextVersion, versionLine } from './job-versions';
 import { familyKey } from './posthoc';
 import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
 import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
+
+/** Where a version carried to another model keeps the harness it starts from (decision 095). */
+const CARRIED_HARNESS = 'carried-harness';
+
+/** A field's id and name without a version's suffix: "academy-desk", "Academy desk". */
+function baseOf(job: Job): { id: string; name: string } {
+  return {
+    id: job.id.replace(/-v\d+$/, ''),
+    name: job.name.replace(/ v\d+( \(\d+\))?$/, ''),
+  };
+}
 
 function sha256Of(content: Uint8Array): string {
   return createHash('sha256').update(content).digest('hex');
@@ -235,7 +247,9 @@ export class JobLibrary {
   constructor(
     private readonly store: EngineStore,
     private readonly paths: DataPaths,
-    private readonly deps: Pick<LoopDeps, 'runtime' | 'vault'>,
+    private readonly deps: Pick<LoopDeps, 'runtime' | 'vault'> & {
+      harness: Pick<HarnessDeps, 'readPackaged'>;
+    },
     private readonly clock: Clock,
     private readonly contracts: ContractBook = new ContractBook(store, clock),
   ) {}
@@ -935,17 +949,10 @@ export class JobLibrary {
     const split = this.practiceAndChecks(job, orgName, released.tasks);
     const { train, dev } = job.splits;
     const version = (record.versionOf?.version ?? 1) + 1;
-    const base = {
-      id: job.id.replace(/-v\d+$/, ''),
-      name: job.name.replace(/ v\d+( \(\d+\))?$/, ''),
-    };
-    const names = new Set(this.store.jobs.list().map((item) => item.name));
-    let name = `${base.name} v${version}`;
-    for (let n = 2; names.has(name); n += 1) name = `${base.name} v${version} (${n})`;
     const next: Job = {
       ...job,
-      id: await this.freshId(`${base.id}-v${version}`),
-      name,
+      id: await this.freshId(`${baseOf(job).id}-v${version}`),
+      name: this.versionName(job, version),
       createdAt: isoNow(this.clock),
       organizations: [...taught, moved],
       splits: { ...job.splits, train: train + split.train.length, dev: dev + split.dev.length },
@@ -988,10 +995,177 @@ export class JobLibrary {
       this.record(next, record.taskCount, {
         jobId,
         version,
+        reason: 'organization',
         org: { id: moved.id, name: moved.name },
       });
       return next;
     });
+  }
+
+  /**
+   * Carries the field to another model in a new version (decision 095), never in place: a new
+   * job, recorded as this one's next version for a new model, whose student is the model chosen
+   * and which starts from what the field has. Its harness is the chosen version's, or else the
+   * version of the field an agent holds, copied whole (instructions, skills, helpers, examples
+   * with the verified lessons among them, retrieval); its counterexamples are the field's; its
+   * practice, check and calibration tasks, checker, study, rules and budget are this job's.
+   * Nothing moves out of the vault, so the final test and every never-seen organization are
+   * sealed again as they are, with their prints made afresh against the same visible tasks and
+   * files. This job, its runs and the agent in use stay as they were.
+   */
+  async moveToModel(jobId: string, request: MoveToModelRequest): Promise<Job> {
+    if (this.moving.has(jobId)) {
+      throw new Error('A new version of this field is being made already. Wait for it.');
+    }
+    this.moving.add(jobId);
+    try {
+      return await this.carryToModel(jobId, request);
+    } finally {
+      this.moving.delete(jobId);
+    }
+  }
+
+  private async carryToModel(jobId: string, request: MoveToModelRequest): Promise<Job> {
+    const job = await this.get(jobId);
+    const record = must(this.store.jobs.get(jobId), `The job "${jobId}"`);
+    this.requireNewest(job);
+    const { local } = job.student;
+    if (request.student.model === local.model && request.student.baseUrl === local.baseUrl) {
+      throw new Error(`${job.name} already runs on ${request.label}. Choose another model.`);
+    }
+    if (!(await this.deps.vault.isSealed(jobId))) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} has no final test sealed yet, so a version on another model would have nothing to be measured on.`,
+      );
+    }
+    const carried = this.carriedVersion(jobId, request.from);
+    const version = (record.versionOf?.version ?? 1) + 1;
+    const next: Job = {
+      ...job,
+      id: await this.freshId(`${baseOf(job).id}-v${version}`),
+      name: this.versionName(job, version),
+      createdAt: isoNow(this.clock),
+      // The online copy was the earlier model's; the new one practices here until one is chosen.
+      student: {
+        label: request.label,
+        local: request.student,
+        trainOn: 'local',
+      },
+      ...(carried === null
+        ? {}
+        : { startingHarness: { kind: 'import' as const, path: CARRIED_HARNESS } }),
+    };
+    return this.finalize(next, async () => {
+      const from = this.paths.jobDir(jobId);
+      // A harness carried before is replaced by the one carried now, when there is one.
+      const own = ['runs', 'tasks', 'job.json', 'finalizing'];
+      const skipped = new Set(
+        [...own, ...(carried === null ? [] : [CARRIED_HARNESS])].map((name) => join(from, name)),
+      );
+      await cp(from, this.paths.jobDir(next.id), {
+        recursive: true,
+        filter: (path) => !skipped.has(path),
+      });
+      if (carried !== null) {
+        // Read and held to its hash first, so only the harness that version shipped is carried.
+        const folder = this.paths.fromStored(carried.path);
+        await this.deps.harness.readPackaged(folder, carried.manifest);
+        await cp(join(folder, 'harness'), join(this.paths.jobDir(next.id), CARRIED_HARNESS), {
+          recursive: true,
+        });
+      }
+      const visible = {
+        calibration: await this.tasks(jobId, 'calibration'),
+        train: await this.tasks(jobId, 'train'),
+        dev: await this.tasks(jobId, 'dev'),
+      };
+      for (const [name, tasks] of Object.entries(visible)) {
+        await writeJsonLines(this.paths.tasksFile(next.id, name as VisibleSplit), tasks);
+      }
+      const data = await mentorDataTexts(
+        next.data.files,
+        trainOrganizations(next).map((org) => this.paths.orgDataDir(next.id, org.id)),
+      );
+      await this.deps.vault.sealVersion(
+        jobId,
+        next.id,
+        null,
+        [...visible.calibration, ...visible.train, ...visible.dev],
+        data,
+      );
+      await writeJsonFile(this.paths.jobFile(next.id), next);
+      this.record(next, record.taskCount, {
+        jobId,
+        version,
+        reason: 'model',
+        model: {
+          from: { model: local.model, label: job.student.label },
+          to: { model: request.student.model, label: request.label },
+          ...(carried === null
+            ? {}
+            : { carried: { graduateId: carried.graduateId, version: carried.version } }),
+        },
+      });
+      // The regression suite travels with the field: each counterexample, as found, under the
+      // new version, so a helper the new model's teacher changes must still pass it.
+      const suite = this.store.counterexamples.list({ jobId });
+      this.store.transaction(() => {
+        for (const counterexample of suite) {
+          this.store.counterexamples.put({ ...counterexample, id: newId('cex'), jobId: next.id });
+        }
+      });
+      return next;
+    });
+  }
+
+  /**
+   * The agent version whose harness a move to another model carries: the one named, which a
+   * training of this field or an earlier version of it must have made, or else the version in
+   * use that one made, else the newest such version not set aside. Null when none was made.
+   */
+  private carriedVersion(jobId: string, named: MoveToModelRequest['from']): StoredVersion | null {
+    const line = new Set(versionLine(this.store, jobId).map((item) => item.id));
+    const ours = (version: StoredVersion | null): version is StoredVersion => {
+      const made = version?.runId === undefined ? null : this.store.runs.get(version.runId);
+      return made !== null && line.has(made.run.jobId);
+    };
+    if (named !== undefined) {
+      const version = this.store.versions.get(named.graduateId, named.version);
+      if (!ours(version)) {
+        throw new Error(`Version ${named.version} of that agent wasn't made by this field.`);
+      }
+      return version;
+    }
+    const agents = this.store.graduates.list();
+    const newest = (versions: StoredVersion[]) =>
+      versions.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
+    const inUse = agents.flatMap((agent) => {
+      const version =
+        agent.activeVersion === null
+          ? null
+          : this.store.versions.get(agent.id, agent.activeVersion);
+      return ours(version) ? [version] : [];
+    });
+    return (
+      newest(inUse) ??
+      newest(
+        agents.flatMap((agent) =>
+          this.store.versions
+            .list(agent.id)
+            .filter((version) => version.state !== 'rejected' && ours(version)),
+        ),
+      )
+    );
+  }
+
+  /** The name a new version of the field takes, never another job's: "Academy desk v3 (2)". */
+  private versionName(job: Job, version: number): string {
+    const names = new Set(this.store.jobs.list().map((item) => item.name));
+    const base = baseOf(job).name;
+    let name = `${base} v${version}`;
+    for (let n = 2; names.has(name); n += 1) name = `${base} v${version} (${n})`;
+    return name;
   }
 
   /** Refuses a field that has a newer version: organizations are added and taught on there. */

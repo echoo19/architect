@@ -11,7 +11,7 @@ Y Combinator's Requests for Startups for Winter 2027 came out after Architect wa
 | workflows into evals | Study and Define turn an organization's material into tasks and a deterministic checker; sealed organizations it never saw | |
 | expertise into training data | Field export: checker-verified demonstrations, the outcome scorer (071) | |
 | production failures into improvements | Teach this (048, 066), counterexamples that become regression tests (078), lineage | |
-| carry it forward with each new base model | A person can change the student and teach again from nothing | **Carry a field to a new model**: start a new version on another base model from everything the field has (harness, lessons, regression suite, check tasks), teach briefly, take the same final test and never-seen organizations, and show old against new. The agent in use changes only when the person switches it, and the switch shows what the new model gains and loses ("decide for themselves when they change"). |
+| carry it forward with each new base model | **Carry a field to a new model** (095): "Move to another model" makes the field's next version on any connected model from everything it has (harness, lessons, counterexamples, tasks, checker), sealed as it was; a short training takes the same final test and never-seen organizations, and its report shows each organization and skill before and after. The agent switches only when the person makes the new version the one in use, which shows what the new model gains and loses and can be undone | |
 
 ## AI for the Air-Gapped Economy (Brad Flora)
 
@@ -39,7 +39,7 @@ The request also asks for "a typed decision and a probability instead of generat
 
 ## Order
 
-1. Carry a field to a new model (it also makes "any model" concrete).
+1. ~~Carry a field to a new model (it also makes "any model" concrete).~~ Decision 095.
 2. The teacher alone as an arm, and served answers that carry their certificate.
 3. A closed network and the evidence pack.
 

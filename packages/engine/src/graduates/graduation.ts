@@ -9,6 +9,7 @@ import type {
   ReportCard,
   Round,
   Run,
+  VersionRef,
 } from '@architect/shared';
 import type { DataPaths } from '../loop/paths';
 import type { EngineStore } from '../store/engine-store';
@@ -38,6 +39,12 @@ export interface RunGraduation {
   report: ReportCard;
   rounds: readonly Round[];
   lineage: readonly LineageEntry[];
+  /**
+   * The agent already here that the graduate becomes a version of, as a version carried to
+   * another model does (decision 095): its name, the version number it takes and the version it
+   * was made from. Absent for version 1 of a new agent.
+   */
+  agent?: { name: string; version: number; parent: VersionRef };
 }
 
 /**
@@ -104,7 +111,10 @@ export function packagedReport(report: ReportCard): ReportCard {
   };
 }
 
-/** What a finished run's frozen graduate becomes: version 1 of a new agent. */
+/**
+ * What a finished run's frozen graduate becomes: version 1 of a new agent, or the next version
+ * of the agent it was carried from.
+ */
 export async function graduationFacts(
   paths: DataPaths,
   input: RunGraduation,
@@ -112,8 +122,9 @@ export async function graduationFacts(
   const { job, freeze, report, contract, harness } = input;
   return {
     agentId: freeze.graduateId,
-    name: job.name,
-    version: 1,
+    name: input.agent?.name ?? job.name,
+    version: input.agent?.version ?? 1,
+    ...(input.agent === undefined ? {} : { parent: input.agent.parent }),
     createdAt: report.createdAt,
     method: input.run.method,
     contract,

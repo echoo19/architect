@@ -410,7 +410,8 @@ export class Vault {
 
   /**
    * Seals the next version of a job in `toJobId`'s vault (decision 089): its final test is this
-   * job's without the tasks of `movedOrgId`, now taught on, its calibration split is this job's,
+   * job's without the tasks of `movedOrgId`, now taught on (none moves when the field is carried
+   * to another model, decision 095), its calibration split is this job's,
    * and every other sealed organization, those added later among them, is sealed again as never
    * seen with its files and tasks. The prints are made afresh by decision 082's rules: against
    * `others`, the new version's visible tasks, and `data`, its taught organizations' files with
@@ -420,7 +421,7 @@ export class Vault {
   sealVersion(
     fromJobId: string,
     toJobId: string,
-    movedOrgId: string,
+    movedOrgId: string | null,
     others: readonly Task[],
     data: readonly string[],
   ): void {

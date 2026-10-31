@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import {
   DecodingSchema,
   ExampleSchema,
@@ -205,7 +205,23 @@ export async function readPackaged(
   dir: string,
   manifest: Pick<PackageManifest, 'harness' | 'identity'>,
 ): Promise<Harness> {
-  const root = join(dir, 'harness');
+  const harness = await readHarnessFolder(join(dir, 'harness'), manifest.identity.name);
+  return {
+    ...harness,
+    meta: { ...harness.meta, version: manifest.harness.version, hash: manifest.harness.hash },
+  };
+}
+
+/**
+ * A harness folder of the files `harnessToFiles` writes, as a fresh starting point: a version's
+ * harness carried to another model is one (decision 094).
+ */
+export async function importFolder(dir: string): Promise<Harness> {
+  const harness = await readHarnessFolder(dir, basename(dir));
+  return { ...harness, meta: { ...harness.meta, version: 0, hash: contentHash(harness) } };
+}
+
+async function readHarnessFolder(root: string, name: string): Promise<Harness> {
   const read = async (path: string): Promise<string | undefined> => {
     try {
       return await readFile(join(root, path), 'utf8');
@@ -213,7 +229,7 @@ export async function readPackaged(
       return undefined;
     }
   };
-  const harness = withSystem(manifest.identity.name, (await read('AGENTS.md')) ?? '');
+  const harness = withSystem(name, (await read('AGENTS.md')) ?? '');
   for (const name of await folders(join(root, 'skills'))) {
     const body = await read(`skills/${name}/SKILL.md`);
     if (body !== undefined) harness.skills.push({ name, description: name, body });
@@ -226,10 +242,7 @@ export async function readPackaged(
   if (guardrails !== undefined) harness.guardrails = GuardrailsSchema.parse(JSON.parse(guardrails));
   const retrieval = await read('retrieval.yaml');
   if (retrieval !== undefined) harness.retrieval = RetrievalSchema.parse(JSON.parse(retrieval));
-  return {
-    ...harness,
-    meta: { ...harness.meta, version: manifest.harness.version, hash: manifest.harness.hash },
-  };
+  return harness;
 }
 
 async function folders(dir: string): Promise<string[]> {

@@ -74,6 +74,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     field: true,
     addOrganization: true,
     teachOn: true,
+    moveToModel: true,
     fieldAssets: true,
     exportField: true,
     tasks: true,

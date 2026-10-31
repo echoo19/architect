@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import { Button, DataTable, EmptyState, PageTabs, Skeleton } from '@architect/ui';
-import { Boxes, Building2, LayoutGrid, Library, ListChecks, Package, Plus } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Boxes,
+  Building2,
+  LayoutGrid,
+  Library,
+  ListChecks,
+  Package,
+  Plus,
+} from 'lucide-react';
 import { useJobs } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { Assets } from '../fields/Assets';
 import { Candidates } from '../fields/Candidates';
+import { MoveToModelDialog } from '../fields/MoveToModel';
 import { newField } from '../fields/new-field';
 import {
   bestCandidate,
@@ -190,7 +200,8 @@ export function FieldScreen({ jobId, tab }: { jobId: string; tab?: FieldTab }) {
 
 function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
   const [tab, setTab] = useState<FieldTab>(opensOn);
-  const { job } = field;
+  const [moving, setMoving] = useState(false);
+  const { job, view } = field;
   return (
     <PlacePage
       title={job.name}
@@ -200,6 +211,13 @@ function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
           <Button size="md" onClick={() => navigate(paths.define(job.id))}>
             Edit field
           </Button>
+          {/* A field's next version is made from its newest one (decisions 089 and 095). */}
+          {view.nextVersion === undefined && (
+            <Button size="md" onClick={() => setMoving(true)}>
+              <ArrowRightLeft size={16} strokeWidth={1.8} aria-hidden />
+              Move to another model
+            </Button>
+          )}
           <Button variant="primary" size="md" onClick={() => navigate(paths.newExperiment(job.id))}>
             <Plus size={16} aria-hidden />
             New experiment
@@ -214,6 +232,14 @@ function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
         {tab === 'versions' && <Candidates field={field} />}
         {tab === 'assets' && <Assets jobId={job.id} />}
       </PageTabs>
+      {moving && (
+        <MoveToModelDialog
+          view={view}
+          job={job}
+          trained={field.candidates.length > 0}
+          onClose={() => setMoving(false)}
+        />
+      )}
     </PlacePage>
   );
 }

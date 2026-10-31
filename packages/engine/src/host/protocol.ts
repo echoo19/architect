@@ -36,6 +36,7 @@ import {
   FieldExportManifestSchema,
   FieldViewSchema,
   AddOrganizationRequestSchema,
+  MoveToModelRequestSchema,
   FileDiffSchema,
   FolderFitSchema,
   GraduateSettingsSchema,
@@ -203,6 +204,11 @@ export const ENGINE_ROUTES = {
   ),
   'jobs.teachOn': route(z.tuple([id, id]), FieldViewSchema, (api, [jobId, org]) =>
     api.jobs.teachOn(jobId, org),
+  ),
+  'jobs.moveToModel': route(
+    z.tuple([id, MoveToModelRequestSchema]),
+    FieldViewSchema,
+    (api, [jobId, request]) => api.jobs.moveToModel(jobId, request),
   ),
   'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>
     api.jobs.fieldAssets(jobId),

@@ -435,7 +435,7 @@ export class FakeVault implements VaultDeps {
   sealVersion(
     fromJobId: string,
     toJobId: string,
-    movedOrgId: string,
+    movedOrgId: string | null,
     others: Task[],
     data: string[],
   ): void {

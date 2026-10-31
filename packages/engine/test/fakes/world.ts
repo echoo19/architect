@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -23,6 +23,7 @@ import {
   diffHarness,
   FileVersions,
   harnessToFiles,
+  importFolder,
   readPackaged,
   templateHarness,
 } from './harness';
@@ -97,7 +98,9 @@ export async function createWorld(
       blankHarness,
       templateHarness,
       importHarness: async (dir) =>
-        HarnessSchema.parse(JSON.parse(await readFile(join(dir, 'harness.json'), 'utf8'))),
+        existsSync(join(dir, 'harness.json'))
+          ? HarnessSchema.parse(JSON.parse(await readFile(join(dir, 'harness.json'), 'utf8')))
+          : importFolder(dir),
       readPackaged,
     },
     adapters: {
