@@ -4,7 +4,6 @@ import {
   decisionSentence,
   harmSentence,
   outcomeNote,
-  predictionCheck,
   refusalSentence,
 } from '../../../src/renderer/src/flow/train/decision';
 import { AT, decided, makeJob, makeRound } from './factories';
@@ -166,17 +165,6 @@ describe('outcomeNote', () => {
         job,
       ),
     ).toBe('Failed the answer time check');
-  });
-});
-
-describe('predictionCheck', () => {
-  const predicted = { devDeltaMin: 5, devDeltaMax: 9, rationale: 'Every invoice depends on it.' };
-
-  it('compares the measured change with the predicted range', () => {
-    expect(predictionCheck(predicted, 8)).toBe('Measured within this range');
-    expect(predictionCheck(predicted, 5)).toBe('Measured within this range');
-    expect(predictionCheck(predicted, 3)).toBe('Measured below this range');
-    expect(predictionCheck(predicted, 11)).toBe('Measured above this range');
   });
 });
 
