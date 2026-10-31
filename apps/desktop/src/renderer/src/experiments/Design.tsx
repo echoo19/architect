@@ -35,6 +35,7 @@ import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery, setQueryData, toError } from '../api/query';
 import { fileName, formatCost } from '../flow/format';
 import { shortPath } from '../lib/format';
+import { modelTabsFit } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
@@ -65,11 +66,15 @@ type Tab = 'teacher' | 'student' | 'teaching' | 'evaluation' | 'budget';
 
 const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
-/** The inspector's tabs, the first two named after the models the experiment runs. */
-function tabsFor({ mentor, student }: ModelNames): readonly InspectorTab<Tab>[] {
+/**
+ * The inspector's tabs, the first two named after the models the experiment runs: by their icons
+ * when the names are too long to sit beside the others uncut.
+ */
+function tabsFor(names: ModelNames): readonly InspectorTab<Tab>[] {
+  const iconOnly = !modelTabsFit(names);
   return [
-    { value: 'teacher', label: mentor, icon: <GraduationCap {...tabIcon} /> },
-    { value: 'student', label: student, icon: <User {...tabIcon} /> },
+    { value: 'teacher', label: names.mentor, icon: <GraduationCap {...tabIcon} />, iconOnly },
+    { value: 'student', label: names.student, icon: <User {...tabIcon} />, iconOnly },
     { value: 'teaching', label: 'Teaching', icon: <Repeat2 {...tabIcon} /> },
     { value: 'evaluation', label: 'Evaluation', icon: <ClipboardCheck {...tabIcon} /> },
     { value: 'budget', label: 'Budget', icon: <Wallet {...tabIcon} /> },

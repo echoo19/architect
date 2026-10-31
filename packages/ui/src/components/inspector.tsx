@@ -13,6 +13,11 @@ export interface InspectorTab<T extends string> {
   label: string;
   /** A 16px Lucide icon; the only mark a tab has while the inspector is folded. */
   icon: ReactNode;
+  /**
+   * Shows the icon in the strip, with the label as its name and tooltip: for a label too long to
+   * sit beside the others uncut, such as a model's name.
+   */
+  iconOnly?: boolean;
 }
 
 export interface InspectorProps<T extends string> {
@@ -185,26 +190,41 @@ export function Inspector<T extends string>({
               aria-label={props['aria-label']}
               className="flex min-w-0 flex-1 rounded-full bg-field p-1 shadow-edge"
             >
-              {tabs.map((t) => (
-                <Tabs.Trigger
-                  key={t.value}
-                  value={t.value}
-                  className={cn(
-                    'relative h-8 min-w-0 flex-auto rounded-full px-[5px] text-small font-medium',
-                    'transition-colors duration-150 hover:bg-hover',
-                  )}
-                >
-                  {t.value === tab && (
-                    <motion.span
-                      layoutId={indicator}
-                      transition={springs.snappy}
-                      aria-hidden
-                      className="absolute inset-0 rounded-full bg-raised shadow-edge-strong"
-                    />
-                  )}
-                  <span className="relative block truncate">{t.label}</span>
-                </Tabs.Trigger>
-              ))}
+              {tabs.map((t) => {
+                const trigger = (
+                  <Tabs.Trigger
+                    key={t.value}
+                    value={t.value}
+                    aria-label={t.iconOnly ? t.label : undefined}
+                    className={cn(
+                      'relative h-8 min-w-0 rounded-full text-small font-medium',
+                      t.iconOnly ? 'w-10 shrink-0' : 'flex-auto px-[5px]',
+                      'transition-colors duration-150 hover:bg-hover',
+                    )}
+                  >
+                    {t.value === tab && (
+                      <motion.span
+                        layoutId={indicator}
+                        transition={springs.snappy}
+                        aria-hidden
+                        className="absolute inset-0 rounded-full bg-raised shadow-edge-strong"
+                      />
+                    )}
+                    {t.iconOnly ? (
+                      <span className="relative flex justify-center">{t.icon}</span>
+                    ) : (
+                      <span className="relative block truncate">{t.label}</span>
+                    )}
+                  </Tabs.Trigger>
+                );
+                return t.iconOnly ? (
+                  <Tooltip key={t.value} content={t.label} side="bottom">
+                    {trigger}
+                  </Tooltip>
+                ) : (
+                  trigger
+                );
+              })}
             </Tabs.List>
             <Tooltip content="Fold" side="left">
               <IconButton
