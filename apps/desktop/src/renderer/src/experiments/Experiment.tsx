@@ -461,8 +461,8 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
       status === 'waiting' ||
       status === 'needs_funding' ? (
       <div className="flex items-center gap-2">
-        <Button size="md" variant="danger" disabled={acting} onClick={() => setConfirming('stop')}>
-          <Square size={14} aria-hidden />
+        <Button size="md" disabled={acting} onClick={() => setConfirming('stop')}>
+          <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
           Stop
         </Button>
         {status === 'running' ? (
@@ -544,8 +544,8 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
       <ConfirmDialog
         open={confirming === 'stop'}
         onOpenChange={(open) => !open && setConfirming(null)}
-        title="Stop it for good?"
-        confirm="Stop"
+        title="Stop the experiment?"
+        confirm="Stop the experiment"
         tone="danger"
         onConfirm={() => act("Couldn't stop it", () => experimentsApi.stop(id))}
         lines={[

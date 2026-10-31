@@ -42,13 +42,13 @@ What we can show by Nov 4, stated plainly in the product and the submission: Arc
 
 ## Where it shows
 
-- **The app:** on a field job, a Scale page (behind Advanced on Results) with three parts: the field's assets with counts and the export button; and Train a model (model id, method, target, the plan with GPUs, nodes, memory terms and the estimate, the bundle and its command). Untested paths say so, in the amendments' words.
+- **The app:** in two places of the Lab. Fields → a field → Assets holds the field's assets with their counts and the export button. Compute holds the rest: where training runs, the training plan (model id, method, target, GPUs, nodes, memory terms and the estimate), the bundle and its command, and Qualify a trained model. Untested paths say so, in the amendments' words.
 - **The CLI:** `architect field export`, `architect reward score`, `architect train plan`, `architect train bundle --target slurm|kubernetes`.
 - **The submission:** README, the results paper's direction section and the film describe the path from a specialist to a field model, and say plainly which parts are measured (harness), built and tested on stand-ins (single-GPU adapter, cluster launch), and future (a trained field model).
 
 ## Rules
 
-- Invariant 1 holds: nothing from a sealed organization or the locked test enters an export, a dataset, the reward environment or a bundle. Tests check each.
+- Invariant 1 holds: nothing from a never-seen organization or the final test enters an export, a dataset, the reward environment or a bundle. Tests check each.
 - Data permissions carry through: a demonstration whose source may not be used for training is left out, and the manifest says so.
 - No cloud credit and no GPU in development or tests. Schedulers, SSH and kubectl are stand-ins in tests.
 - Keep it small: generated files and a sizing function, not an orchestration platform.

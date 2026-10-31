@@ -10,6 +10,16 @@ export function formatPercent(score: Score): string {
   return `${percentOf(score)}%`;
 }
 
+/** A score in a row or a sentence, the one way every screen writes it: "83% · 30 of 36". */
+export function formatScore(score: Score): string {
+  return `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+}
+
+/** A score inside a grid, where the columns already say what it is: "30/36". */
+export function formatTally(score: Score): string {
+  return `${score.pass}/${score.total}`;
+}
+
 /** "$5" for whole amounts, "$2.40" otherwise. */
 export function formatUsd(amount: number): string {
   return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(2)}`;

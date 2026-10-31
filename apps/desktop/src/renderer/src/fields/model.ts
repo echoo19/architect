@@ -1,7 +1,14 @@
-import type { FieldView, Job, ReportCard, Run, Score } from '@architect/shared';
+import {
+  reportScores,
+  type FieldView,
+  type Job,
+  type OrgScores,
+  type ReportCard,
+  type Run,
+  type Score,
+} from '@architect/shared';
 import { api } from '../api/client';
 import { rate } from '../flow/format';
-import { orgScores, type OrgScores } from '../lab/items';
 
 /*
  * A field as its pages show it, read from records the engine keeps: the job, what it is made of,
@@ -25,22 +32,7 @@ export interface FieldSummary {
   lastActivity: string;
 }
 
-export interface OrgCounts {
-  taughtOn: number;
-  sealed: number;
-  /** Null when the job doesn't say whether its one organization is real. */
-  real: number | null;
-}
-
-/**
- * A final test's scores by kind of organization. Seen is the card's own score, which for a job
- * with organizations counts only those it trained on (decision 070).
- */
-export function scoresOf(report: ReportCard): OrgScores {
-  const perOrg = report.test.perOrg ?? [];
-  const { unseen, real } = orgScores(perOrg);
-  return { seen: report.test.score.total === 0 ? null : report.test.score, unseen, real };
-}
+export { bestCandidate, orgCounts } from '@architect/shared';
 
 const newer = (a: string, b: string) => (a > b ? a : b);
 
@@ -56,7 +48,7 @@ async function candidatesOf(jobId: string): Promise<{ runs: Run[]; candidates: C
       .filter((run): run is Run => run !== null)
       .map(async (run) => {
         const report = await api.report(run.id);
-        return { run, report, scores: scoresOf(report) };
+        return { run, report, scores: reportScores(report) };
       }),
   );
   candidates.sort((a, b) => (a.report.createdAt < b.report.createdAt ? 1 : -1));
@@ -75,33 +67,6 @@ export async function readField(jobId: string): Promise<FieldSummary> {
 }
 
 export const fieldKey = (jobId: string) => `field:${jobId}`;
-
-/**
- * The candidate that did best on the organizations it trained on; on a tie, the newest. Null
- * before any run took its final test.
- */
-export function bestCandidate(candidates: readonly Candidate[]): Candidate | null {
-  let best: Candidate | null = null;
-  for (const candidate of candidates) {
-    const seen = candidate.scores.seen;
-    if (seen === null) continue;
-    if (!best?.scores.seen || rate(seen) > rate(best.scores.seen)) best = candidate;
-  }
-  return best;
-}
-
-/** How many organizations it trains on, how many are sealed, and how many of all are real. */
-export function orgCounts(view: FieldView): OrgCounts {
-  const kinds = [
-    ...view.organizations.map((org) => org.synthetic),
-    ...view.sealed.map((org) => org.synthetic),
-  ];
-  return {
-    taughtOn: view.organizations.length,
-    sealed: view.sealed.length,
-    real: kinds.includes(null) ? null : kinds.filter((synthetic) => synthetic === false).length,
-  };
-}
 
 /** Pass rate for sorting, or null for a kind not tested. */
 export const rateOf = (score: Score | null | undefined): number | null =>

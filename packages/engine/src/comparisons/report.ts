@@ -1,5 +1,6 @@
 import {
   ARM_LABELS,
+  armInSentence,
   ARM_PRIORITY,
   COMPARISON_REPORT_FORMAT,
   ComparisonReportSchema,
@@ -771,7 +772,7 @@ function weightsNotes(input: ReportInput, arm: ArmId, run: StoredRun | null): st
   const reduced = run?.protocol?.oneShotAdapter?.smokeTasks !== undefined;
   const notes = [
     reduced
-      ? `Reduced adapter protocol: it starts from the targeted arm's frozen harness (H1), trains one adapter on it, checks it on ${run?.protocol?.oneShotAdapter?.smokeTasks ?? input.config.smokeTasks} train tasks on llama-server, and takes its locked test with and without the adapter (H1/A1 against H1/A0) on that llama-server, on the same scenarios, seed and GGUF. The four-configuration dev evaluation is skipped. It measures only this adapter's added effect given the frozen targeted harness: not the harness's own effect, how the two interact, or what iterative mentoring adds.`
+      ? `Reduced adapter protocol: it starts from the targeted arm's frozen harness (H1), trains one adapter on it, checks it on ${run?.protocol?.oneShotAdapter?.smokeTasks ?? input.config.smokeTasks} train tasks on llama-server, and takes its final test with and without the adapter (H1/A1 against H1/A0) on that llama-server, on the same scenarios, seed and GGUF. The four-configuration check-task evaluation is skipped. It measures only this adapter's added effect given the frozen targeted harness: not the harness's own effect, how the two interact, or what iterative mentoring adds.`
       : "Its H0 is the blank harness the bare arm runs; its H1 is the targeted arm's frozen harness, adopted whole in round 1 and kept whatever it scored.",
     arm === 'weights-one-shot'
       ? pilotRecipe(input)
@@ -802,18 +803,18 @@ function weightsNotes(input: ReportInput, arm: ArmId, run: StoredRun | null): st
     const smoke = measured.filter((cell) => cell.split === 'train').length;
     notes.push(
       smoke > 0
-        ? `Its adapter was checked on train tasks (the smoke check), in round ${experiments.map((item) => item.round).join(', ')}, and measured on no dev task.`
-        : `Its adapters were measured on dev in round ${experiments.map((item) => item.round).join(', ')}; dev picks what is kept, and only the locked test is claimed.`,
+        ? `Its adapter was checked on train tasks (the smoke check), in round ${experiments.map((item) => item.round).join(', ')}, and measured on no check task.`
+        : `Its adapters were measured on the check tasks in round ${experiments.map((item) => item.round).join(', ')}; the check tasks pick what is kept, and only the final test is claimed.`,
     );
   }
   const tested = store.attempts.list({ runId: run.run.id, split: 'test' }).length > 0;
   const adapter = run.freeze?.configuration?.adapter ?? null;
   notes.push(
     !tested
-      ? "Its locked test hasn't run."
+      ? "Its final test hasn't run."
       : adapter !== null
-        ? 'Adapters run only on this computer, so its locked test ran here, on llama-server with its adapter.'
-        : 'It kept no adapter, so its locked test ran on this computer on Ollama, as a graduate without one runs.',
+        ? 'Adapters run only on this computer, so its final test ran here, on llama-server with its adapter.'
+        : 'It kept no adapter, so its final test ran on this computer on Ollama, as a graduate without one runs.',
   );
   return notes;
 }
@@ -825,12 +826,12 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
   switch (arm) {
     case 'bare':
       notes.push(
-        'The student on the blank starting harness, with no mentoring: the baseline the other arms are compared with.',
+        'Glimmer on the blank starting harness, with no mentoring: the baseline the other arms are compared with.',
       );
       break;
     case 'draft': {
       notes.push(
-        'Spark wrote the whole harness once, from the job alone, without seeing the student attempt anything. It is kept whatever it scores.',
+        'Spark wrote the whole harness once, from the job alone, without seeing Glimmer attempt anything. It is kept whatever it scores.',
       );
       const kept =
         run !== null &&
@@ -847,7 +848,7 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
     case 'targeted':
     case 'fixed':
       notes.push(
-        "Each round Spark reads the student's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on dev.",
+        "Each round Spark reads Glimmer's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on the check tasks.",
       );
       if (job?.startingHarness.kind === 'import' && draft !== null) {
         notes.push(
@@ -868,7 +869,7 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
       break;
     case 'reference':
       notes.push(
-        "The primary reference: Spark acted as the agent with the bare arm's frozen harness (blank), so it saw no lesson, with the same tools and limits, on the same locked-test tasks under the first seed. It is a reference, not an arm: nothing it did reached mentoring, and the same checker graded it.",
+        "The primary reference: Spark acted as the agent with the bare arm's frozen harness (blank), so it saw no lesson, with the same tools and limits, on the same final-test tasks under the first seed. It is a reference, not an arm: nothing it did reached mentoring, and the same checker graded it.",
       );
       break;
     case 'reference-targeted':
@@ -878,7 +879,7 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
       break;
     case 'repeat':
       notes.push(
-        `The frozen bare, draft and targeted graduates took the locked test again under seed ${declared(input).testSeeds.slice(1).join(' and ')}, declared before any run. Repeats are reported as repeats, never as more scenarios.`,
+        `The frozen bare, draft and targeted graduates took the final test again under seed ${declared(input).testSeeds.slice(1).join(' and ')}, declared before any run. Repeats are reported as repeats, never as more scenarios.`,
       );
       break;
     default:
@@ -890,7 +891,7 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
 /** Why training ended, in a few words, by the run's stop reason. */
 const TRAINING_ENDED_SHORT: Record<RunStopReason | 'complete', string> = {
   complete: 'done',
-  target_met: 'done, the dev target was reached',
+  target_met: 'done, the check-task target was reached',
   rounds: 'cap reached',
   patience: 'patience ran out',
   usd: 'money ran out',
@@ -1050,7 +1051,7 @@ function seedsDisclosure(plan: ComparisonReport['plan']): string {
   const sentences = [`Every arm ran with one mentoring seed (${plan.mentoringSeed}).`];
   if (first !== undefined) {
     sentences.push(
-      ran(first) ? `The locked test ran under seed ${first}.` : 'No locked test has run.',
+      ran(first) ? `The final test ran under seed ${first}.` : 'No final test has run.',
     );
   }
   for (const seed of repeats) {
@@ -1077,7 +1078,7 @@ function fieldDisclosures(input: ReportInput): string[] {
       .map((org) => `${org.name} (${org.synthetic ? 'synthetic' : 'real'})`)
       .join(', ');
     lines.push(
-      `Each locked test holds ${lockedTestsOf(input.base, input.config)} tasks: the test split of the organizations the arms trained on (${input.base.splits.test}), and every task of the organizations no arm ever saw: ${named}. The target is judged on the trained organizations alone; each organization never seen is reported on its own, by skill, and never averaged in.`,
+      `Each final test holds ${lockedTestsOf(input.base, input.config)} tasks: the test split of the organizations the arms were taught on (${input.base.splits.test}), and every task of the organizations no arm ever saw: ${named}. The target is judged on the organizations they were taught on alone; each organization never seen is reported on its own, by skill, and never averaged in.`,
     );
   }
   if (input.study !== null) {
@@ -1103,12 +1104,12 @@ function disclosures(
     );
   }
   lines.push(
-    'Claims rest on the locked test alone. Dev gains were picked by the keep rule, so they lean upward and are not claimed.',
+    'Claims rest on the final test alone. Check-task gains were picked by the keep rule, so they lean upward and are not claimed.',
   );
   lines.push(seedsDisclosure(plan));
   for (const amendment of plan.amendments) {
     lines.push(
-      `Before any locked test was released, the hosted student's cap was raised from $${amendment.fromUsd.toFixed(2)} to $${amendment.toUsd.toFixed(2)} (${amendment.at}), when an attempt had cost $${amendment.priceUsd.toFixed(4)}${amendment.arm === null ? '' : `, to pay for ${ARM_LABELS[amendment.arm].toLowerCase()}`}${amendment.armToUsd === null ? '' : `, whose own cap went from $${(amendment.armFromUsd ?? 0).toFixed(2)} to $${amendment.armToUsd.toFixed(2)}`}.`,
+      `Before any final test was released, hosted Glimmer's cap was raised from $${amendment.fromUsd.toFixed(2)} to $${amendment.toUsd.toFixed(2)} (${amendment.at}), when an attempt had cost $${amendment.priceUsd.toFixed(4)}${amendment.arm === null ? '' : `, to pay for ${armInSentence(ARM_LABELS[amendment.arm])}`}${amendment.armToUsd === null ? '' : `, whose own cap went from $${(amendment.armFromUsd ?? 0).toFixed(2)} to $${amendment.armToUsd.toFixed(2)}`}.`,
     );
   }
   lines.push(...fieldDisclosures(input));
@@ -1126,7 +1127,7 @@ function disclosures(
     .filter((arm) => arm.status !== 'not_run')
     .map(
       (arm) =>
-        `${arm.label}: Spark ${money(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, student ${money(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, compute ${money(arm.spent.computeUsd)} of ${cap(arm.caps.computeUsd)}${arm.spent.examples > 0 ? `, ${arm.spent.examples} examples and ${arm.spent.trainedTokens} trained tokens` : ''}`,
+        `${arm.label}: Spark ${money(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, Glimmer ${money(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, compute ${money(arm.spent.computeUsd)} of ${cap(arm.caps.computeUsd)}${arm.spent.examples > 0 ? `, ${arm.spent.examples} examples and ${arm.spent.trainedTokens} trained tokens` : ''}`,
     );
   if (budgets.length > 0) {
     lines.push(
@@ -1136,7 +1137,7 @@ function disclosures(
   const built = arms.filter((arm) => (arm.cumulative?.builtOn.length ?? 0) > 0);
   if (built.length > 0) {
     lines.push(
-      `The totals count each dollar once. A graduate's cumulative cost adds what it builds on: ${built.map((arm) => `${arm.label} includes the ${(arm.cumulative?.builtOn ?? []).map((other) => ARM_LABELS[other].toLowerCase()).join(' and ')} arm's development (Spark ${money(arm.cumulative?.sparkUsd ?? null)}, student ${money(arm.cumulative?.studentUsd ?? null)}, compute ${money(arm.cumulative?.computeUsd ?? null)} in all)`).join('; ')}.`,
+      `The totals count each dollar once. A graduate's cumulative cost adds what it builds on: ${built.map((arm) => `${arm.label} includes the ${(arm.cumulative?.builtOn ?? []).map((other) => armInSentence(ARM_LABELS[other])).join(' and ')} arm's development (Spark ${money(arm.cumulative?.sparkUsd ?? null)}, Glimmer ${money(arm.cumulative?.studentUsd ?? null)}, compute ${money(arm.cumulative?.computeUsd ?? null)} in all)`).join('; ')}.`,
     );
   }
   if (arms.some((arm) => !arm.spent.computeSettled)) {
@@ -1153,13 +1154,13 @@ function disclosures(
   if (billing !== null) {
     lines.push(
       billing.billedCalls === 0
-        ? "The provider reported no charges during calibration, so the student's costs are at the listed price."
+        ? "The provider reported no charges during calibration, so Glimmer's costs are at the listed price."
         : `Calibration against the provider's billing: it billed ${money(billing.billedUsd)} where the listed price of the same usage is ${money(billing.listedUsd)}${billing.ratio === null ? '' : ` (${billing.ratio.toFixed(3)} times)`}, for ${billing.billedCalls} of ${billing.calls} calls. Costs are what it billed wherever it said.`,
     );
   }
   if (!adapterTested(arms, backends)) {
     lines.push(
-      `Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. ${declared(input).realCompute ? 'A01 is not met: no adapter a real training job made took the locked test.' : 'A01 is not met: this comparison ran no training job.'}`,
+      `Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. ${declared(input).realCompute ? 'A01 is not met: no adapter a real training job made took the final test.' : 'A01 is not met: this comparison ran no training job.'}`,
     );
   } else {
     lines.push(
@@ -1171,7 +1172,7 @@ function disclosures(
   }
   if (adapters.length > 0) {
     lines.push(
-      'The adapter configurations table is development only: dev measurements the keep rule picked from, and smoke checks on train tasks. Only the locked-test tables carry results.',
+      'The adapter configurations table is development only: check-task measurements the keep rule picked from, and smoke checks on train tasks. Only the final-test tables carry results.',
     );
   }
   // The build each frozen agent is set to run on once installed: named, never measured unless a
@@ -1183,7 +1184,7 @@ function disclosures(
     )
   ) {
     lines.push(
-      `Local evaluation incomplete: no locked test ran on this computer, so no result here describes ${build === undefined ? 'the build the agents are set to run on' : `${build}, the build the agents are set to run on`}.`,
+      `Local evaluation incomplete: no final test ran on this computer, so no result here describes ${build === undefined ? 'the build the agents are set to run on' : `${build}, the build the agents are set to run on`}.`,
     );
   }
   const hosted = backends.find((table) => table.backend === 'hosted');
@@ -1199,7 +1200,7 @@ function disclosures(
     )
   ) {
     lines.push(
-      'A row or repeat marked partial ran fewer scenarios than the locked test holds; its counts cover only what ran, and it meets no target.',
+      'A row or repeat marked partial ran fewer scenarios than the final test holds; its counts cover only what ran, and it meets no target.',
     );
   }
   if (arms.some((arm) => REFERENCE_ON[arm.arm] !== undefined && arm.status !== 'not_run')) {
@@ -1211,7 +1212,7 @@ function disclosures(
   const regression = input.regression;
   if (regression !== null) {
     lines.push(
-      `The runtime regression check ran only the bare student, on ${regression.attempts.length} dev tasks of ${regression.job.name}: it checks the runtime on a second job. It is not evidence that mentoring caused no regression there, since no mentored graduate was tested on that job.`,
+      `The runtime regression check ran Glimmer alone, on ${regression.attempts.length} check tasks of ${regression.job.name}: it checks the runtime on a second job. It is not evidence that mentoring caused no regression there, since no mentored graduate was tested on that job.`,
     );
   }
   return lines;

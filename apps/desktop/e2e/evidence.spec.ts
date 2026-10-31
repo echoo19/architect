@@ -313,7 +313,7 @@ test('shows the memory a meter read over the final test, and nothing where it re
   expect(others).toEqual([]);
   expect(reading?.peakProcessBytes).not.toBeNull();
   // The figures are for whoever asks: behind the run's details.
-  await page.getByRole('button', { name: 'Run details' }).click();
+  await page.getByRole('button', { name: 'Training details' }).click();
   await expect(
     page.getByText(/^Up to [\d.]+ GB of RAM and [\d.]+ GB of GPU memory$/),
   ).toBeVisible();

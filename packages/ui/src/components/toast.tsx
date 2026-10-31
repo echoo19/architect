@@ -100,7 +100,8 @@ export function Toaster() {
           </RadixToast.Root>
         ))}
       </AnimatePresence>
-      <RadixToast.Viewport className="fixed bottom-4 right-4 z-[60] flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none" />
+      {/* Over a pinned action bar (a page's <footer>), toasts sit above it, clear of its buttons. */}
+      <RadixToast.Viewport className="fixed bottom-4 right-4 z-[60] [body:has(footer)_&]:bottom-24 flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none" />
     </RadixToast.Provider>
   );
 }

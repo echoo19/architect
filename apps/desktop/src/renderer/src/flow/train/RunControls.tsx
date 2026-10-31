@@ -148,7 +148,7 @@ export function StopDialog({
     : {
         title: 'Stop training?',
         description:
-          'Training ends after the step in progress. No change is kept yet, so this run makes no agent.',
+          'Training ends after the step in progress. No change is kept yet, so this training makes no agent.',
         confirm: 'Stop training',
       };
 

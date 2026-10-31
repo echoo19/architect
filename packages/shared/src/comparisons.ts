@@ -29,7 +29,7 @@ export const ArmIdSchema = z.enum([
 export type ArmId = z.infer<typeof ArmIdSchema>;
 
 export const ARM_LABELS: Record<ArmId, string> = {
-  bare: 'Bare student',
+  bare: 'Glimmer alone',
   draft: 'One-shot draft',
   targeted: 'Targeted mentoring',
   reference: 'Spark reference, blank harness',
@@ -39,6 +39,11 @@ export const ARM_LABELS: Record<ArmId, string> = {
   'weights-one-shot': 'One-shot adapter',
   'weights-targeted': 'Failure-specific adapter',
 };
+
+/** An arm's name inside a sentence: lower case, except where it starts with a model's name. */
+export function armInSentence(label: string): string {
+  return /^(Spark|Glimmer)\b/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1);
+}
 
 /**
  * Decision 037's place of each arm; both weights arms are its seventh. Spark with the targeted
@@ -543,7 +548,7 @@ export function fundingMessage(pause: FundingPause): string {
     pause.stage === 'start'
       ? `${ARM_LABELS[pause.arm]} can't be paid for`
       : `${ARM_LABELS[pause.arm]}'s final test can't be paid for`;
-  return `${what} at what an attempt has really cost ($${pause.priceUsd.toFixed(4)}): it needs ${usd(pause.needUsd)} of the hosted student's budget, and ${usd(Math.max(0, pause.leftUsd))} is left under the ${usd(pause.capUsd)} cap. It waits for you, and no final test is released: raise the cap to at least ${usd(capToFund(pause))}, or drop the arm.`;
+  return `${what} at what an attempt has really cost ($${pause.priceUsd.toFixed(4)}): it needs ${usd(pause.needUsd)} of hosted Glimmer's budget, and ${usd(Math.max(0, pause.leftUsd))} is left under the ${usd(pause.capUsd)} cap. It waits for you, and no final test is released: raise the cap to at least ${usd(capToFund(pause))}, or drop the arm.`;
 }
 
 /** The person raised the student cap before any locked test was released (decision 081). */

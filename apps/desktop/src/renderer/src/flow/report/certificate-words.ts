@@ -38,13 +38,12 @@ export function certificateBasis(certificate: Certificate): string {
   const tasks = `${certificate.n} calibration ${certificate.n === 1 ? 'task' : 'tasks'}`;
   const attempts = `${certificate.k} ${certificate.k === 1 ? 'attempt' : 'attempts'} each`;
   const target = `target ${share(certificate.epsilon)}% at ${confidence(certificate.delta)}`;
-  if (!certificate.issued)
-    return `Measured on ${tasks} it was never taught on, ${attempts}; ${target}.`;
+  if (!certificate.issued) return `Measured on ${tasks} it had never seen, ${attempts}; ${target}.`;
   const rule =
     certificate.k === 1
       ? 'it answers every request'
       : `it answers when ${certificate.threshold.votes} of ${certificate.k} agree`;
-  return `Measured on ${tasks} it was never taught on, ${attempts}: ${rule}; ${target}.`;
+  return `Measured on ${tasks} it had never seen, ${attempts}: ${rule}; ${target}.`;
 }
 
 /** Why no certificate was issued, and what would change that. */

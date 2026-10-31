@@ -40,6 +40,7 @@ describe('parsePath', () => {
       experimentId: 'exp_1',
     });
     expect(parsePath(paths.models())).toEqual({ name: 'models' });
+    expect(parsePath(paths.models('grd_1:2'))).toEqual({ name: 'models', open: 'grd_1:2' });
     expect(parsePath(paths.compute())).toEqual({ name: 'compute' });
   });
 
@@ -60,7 +61,7 @@ describe('parsePath', () => {
       '/agents/g/chats',
       '/%E0%A4%A',
       '/fields/job_1/extra',
-      '/models/m_1',
+      '/models/m_1/extra',
       '/compute/x',
     ]) {
       expect(parsePath(path)).toEqual({ name: 'not-found', path });

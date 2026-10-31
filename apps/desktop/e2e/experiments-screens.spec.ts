@@ -157,9 +157,9 @@ test('designs an experiment on a field of the library and shows its estimate bef
   await expect(page.getByRole('button', { name: 'Preregister' })).toBeDisabled();
   await hypothesis.getByRole('combobox', { name: 'Arm A' }).click();
   await page.getByRole('option', { name: 'Targeted mentoring' }).click();
-  await expect(hypothesis.getByRole('combobox', { name: 'Arm B' })).toHaveText('Bare student');
+  await expect(hypothesis.getByRole('combobox', { name: 'Arm B' })).toHaveText('Glimmer alone');
   await hypothesis.getByRole('combobox', { name: 'Part of the final test' }).click();
-  await page.getByRole('option', { name: 'the organizations it never sees' }).click();
+  await page.getByRole('option', { name: 'the organizations it has never seen' }).click();
   await expect(page.getByRole('button', { name: 'Preregister' })).toBeEnabled();
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });
@@ -214,7 +214,7 @@ test('preregisters, saying what freezes, then starts and runs without a locked r
     'Returns desk, in your library',
   );
   await expect(page.getByRole('region', { name: 'Hypothesis' })).toContainText(
-    'Targeted mentoring minus Bare student, on the organizations it never sees',
+    'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
   );
 
   await page.getByRole('button', { name: 'Start' }).click();
@@ -258,11 +258,11 @@ test('lists every experiment with its status, field, arms, spend and caps', asyn
 
 test('reads the released results like a short paper', async () => {
   await expect(page.getByText('Finished', { exact: true })).toBeVisible();
-  await expect(page.getByText(/Task by task, the difference is \+23\.3 points/)).toBeVisible();
+  await expect(page.getByText(/Task by task, the difference is \+23 points/)).toBeVisible();
   // The hypothesis leads, with what was measured on the part of the test it named.
   const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
   expect(await above(hypothesis, page.getByRole('figure').first())).toBe(true);
-  await expect(hypothesis).toContainText(/Targeted mentoring \d+\.\d% of \d+, bare student/);
+  await expect(hypothesis).toContainText(/Targeted mentoring \d+% · \d+ of \d+, Glimmer alone/);
   const plot = page.getByRole('figure', { name: /Final-test pass rate, Hosted/ });
   await expect(plot.getByRole('group', { name: 'Organizations it was taught on' })).toBeVisible();
   await expect(plot.getByRole('group', { name: 'Ridgeline Gear, never seen' })).toBeVisible();
@@ -282,5 +282,5 @@ test('reads the released results like a short paper', async () => {
   await expect(
     page.getByRole('figure', { name: /Final-test pass rate, This computer/ }),
   ).toBeVisible();
-  await expect(pairs).toContainText('Failure-specific adapter vs Bare student');
+  await expect(pairs).toContainText('Failure-specific adapter vs Glimmer alone');
 });

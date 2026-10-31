@@ -11,7 +11,8 @@ export type Route =
   /** Designing an experiment, on a field of the library when one is named. */
   | { name: 'experiment-new'; jobId?: string }
   | { name: 'experiment'; experimentId: string }
-  | { name: 'models' }
+  /** Models, with one version's panel open when `open` names it (`graduateId:version`). */
+  | { name: 'models'; open?: string }
   | { name: 'compute' }
   | { name: 'welcome' }
   | { name: 'chat'; graduateId: string; chatId: string }
@@ -35,7 +36,7 @@ export const paths = {
   newExperiment: (jobId?: string) =>
     jobId === undefined ? '/experiments/new' : `/experiments/new/${segment(jobId)}`,
   experiment: (experimentId: string) => `/experiments/${segment(experimentId)}`,
-  models: () => '/models',
+  models: (open?: string) => (open === undefined ? '/models' : `/models/${segment(open)}`),
   compute: () => '/compute',
   welcome: () => '/welcome',
   chat: (graduateId: string, chatId: string) =>
@@ -81,6 +82,7 @@ export function parsePath(path: string): Route {
     return { name: 'experiment', experimentId: id };
   }
   if (first === 'models' && exactly(1)) return { name: 'models' };
+  if (first === 'models' && id && exactly(2)) return { name: 'models', open: id };
   if (first === 'compute' && exactly(1)) return { name: 'compute' };
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };

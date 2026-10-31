@@ -12,6 +12,7 @@ export * from './hub';
 export * from './training-plan';
 export { createEngineDeps, type EngineWiringOptions } from './host/wiring';
 export { realEnvironment, type RealEnvironmentOptions } from './comparisons/environment';
+export { renderMarkdown as renderComparisonMarkdown } from './comparisons/markdown';
 export {
   ExperimentService,
   type ExperimentEnvironment,

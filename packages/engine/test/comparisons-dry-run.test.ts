@@ -101,7 +101,7 @@ describe('a dry run of every arm on fakes', () => {
 
     // The dropped arm never started; the stopped one says why and kept to its cap.
     expect(arm('fixed')?.runId).toBeNull();
-    expect(arm('fixed')?.reason).toMatch(/^It needs \$\d+\.\d\d of the hosted student's budget/);
+    expect(arm('fixed')?.reason).toMatch(/^It needs \$\d+\.\d\d of hosted Glimmer's budget/);
     // It kept its adopted harness, then stopped at round 2's start, before paying for it.
     expect(arm('weights-targeted')?.reason).toMatch(
       /^Before round 2 it had spent \$\d+\.\d\d, and one more round with its final test could cost \$\d+\.\d\d more \(at \$\d\.\d{4} an attempt\), past its \$1\.00 cap, so it stopped there with what it had kept\.$/,
@@ -260,7 +260,7 @@ describe('a dry run of every arm on fakes', () => {
     expect(arm('fixed')?.measuredOn).toEqual([]);
     expect(arm('bare')?.frozen?.localModel).toBe('muse-glimmer:30b-iq2');
     expect(markdown).toContain(
-      'Its locked test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
+      'Its final test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
     );
 
     // The money: the journal's total is its settled and uncertain charges together, and the

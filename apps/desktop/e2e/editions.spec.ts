@@ -93,7 +93,7 @@ test('switches in Settings without a restart, and the personal edition has no La
   );
   await choice.getByRole('radio', { name: 'Architect', exact: true }).click();
   await expect.poll(edition).toBe('personal');
-  await expect(settings.getByText('Your agents and runs stay in both.')).toBeVisible();
+  await expect(settings.getByText('Your agents and their training stay in both.')).toBeVisible();
   await capture('settings-edition-dark.png');
   await page.keyboard.press('Escape');
 

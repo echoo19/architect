@@ -13,6 +13,8 @@ import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
+import { navigate, paths } from '../lib/router';
+import { useFieldExports } from './exports';
 import { count, plural, Quiet, Tile } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
@@ -105,6 +107,7 @@ function AssetsView({
   counterexamples: readonly Counterexample[];
 }) {
   const [exporting, setExporting] = useState(false);
+  const record = useFieldExports((state) => state.record);
   const { counts } = manifest;
 
   const exportTo = async () => {
@@ -118,9 +121,12 @@ function AssetsView({
         flowApi.exportField(jobId, folder),
       );
       if (written) {
+        // Compute's bundle offers it as this field's latest export.
+        record({ jobId, name: written.job.name, dir: folder });
         toast({
           title: 'Field exported',
-          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the sealed manifest.`,
+          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the final test's manifest, by hash only.`,
+          action: { label: 'Open Compute', onClick: () => navigate(paths.compute()) },
         });
       }
     }

@@ -1,37 +1,46 @@
 import { METHOD_LABELS } from '@architect/shared';
-import { Badge, Button, DataTable } from '@architect/ui';
+import { Badge, DataTable } from '@architect/ui';
 import { useGraduates } from '../api/hooks';
 import { shortDate } from '../flow/format';
 import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
-import { bestCandidate, rateOf, type FieldSummary } from './model';
+import { useRegistry, versionOfRun } from '../models/load';
+import { bestCandidate, rateOf, type Candidate, type FieldSummary } from './model';
 import { scoreCell } from './parts';
 
 /**
- * Every run of the field that took its final test, with its scores on the organizations it was
- * taught on, generated ones it never saw and real ones it never saw. A row opens its report.
+ * Every version of the field that took its final test, with its scores on the organizations it
+ * was taught on, generated ones it never saw and real ones it never saw. A row opens the version
+ * in Models with its panel open, or the run's results while no agent holds it.
  */
 export function Candidates({ field }: { field: FieldSummary }) {
   const graduates = useGraduates();
+  const registry = useRegistry();
+  const versionOf = (candidate: Candidate) =>
+    registry.data ? versionOfRun(registry.data, candidate.run.id) : undefined;
+  const open = (candidate: Candidate) => {
+    const version = versionOf(candidate);
+    navigate(version ? paths.models(version.key) : paths.report(candidate.run.id));
+  };
   const best = bestCandidate(field.candidates);
-  const agentName = (id: string | undefined) =>
-    id === undefined
-      ? null
-      : (graduates.data?.find((graduate) => graduate.id === id)?.name ?? null);
+  /** The agent that holds it, with the version it is there: "Academy desk v2". */
+  const agentName = (candidate: Candidate) => {
+    const id = candidate.run.graduateId;
+    const name =
+      id === undefined ? null : graduates.data?.find((graduate) => graduate.id === id)?.name;
+    if (!name) return null;
+    const version = versionOf(candidate);
+    return version ? `${name} v${version.version.version}` : name;
+  };
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <Button variant="ghost" size="sm" onClick={() => navigate(paths.models())}>
-          Open Models
-        </Button>
-      </div>
       <DataTable
-        aria-label="Candidates"
+        aria-label="Versions"
         rows={field.candidates}
         rowKey={(candidate) => candidate.run.id}
-        onRowClick={(candidate) => navigate(paths.report(candidate.run.id))}
+        onRowClick={open}
         initialSort={{ key: 'tested', direction: 'descending' }}
-        empty="No candidate has taken its final test yet"
+        empty="No version has taken its final test yet"
         columns={[
           {
             key: 'tested',
@@ -57,10 +66,10 @@ export function Candidates({ field }: { field: FieldSummary }) {
             sortValue: (candidate) => candidate.report.student.label,
           },
           {
-            key: 'version',
-            header: 'Version',
+            key: 'harness',
+            header: 'Harness',
             align: 'end',
-            cell: (candidate) => candidate.run.currentVersion,
+            cell: (candidate) => `v${candidate.run.currentVersion}`,
             sortValue: (candidate) => candidate.run.currentVersion,
           },
           {
@@ -87,8 +96,8 @@ export function Candidates({ field }: { field: FieldSummary }) {
           {
             key: 'agent',
             header: 'Agent',
-            cell: (candidate) => agentName(candidate.run.graduateId),
-            sortValue: (candidate) => agentName(candidate.run.graduateId),
+            cell: agentName,
+            sortValue: agentName,
           },
         ]}
       />

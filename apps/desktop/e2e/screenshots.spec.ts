@@ -404,7 +404,7 @@ test.describe('the evidence screens of a recorded run', () => {
       page.getByRole('heading', { name: "Returns desk can't run on this computer" }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: "See what's wrong" })).toBeVisible();
-    await expect(page.getByText('graduated')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: / is ready$/ })).toHaveCount(0);
     await shoot('evidence-report-blocked-dark.png');
 
     // The same agent where its checks pass: what a finished run reads like.
@@ -415,7 +415,7 @@ test.describe('the evidence screens of a recorded run', () => {
     await stubEngine(app, { 'graduates:installation': installation(agent.id) });
     await page.reload();
     await goTo(page, `/runs/${targeted.runId}/report`);
-    await expect(page.getByRole('heading', { name: 'Returns desk graduated' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Returns desk is ready' })).toBeVisible();
     await expect(page.getByText('Dry run on fakes')).toHaveCount(0);
     await shoot('evidence-report-comparison-dark.png');
 

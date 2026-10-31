@@ -196,7 +196,7 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
 /** A sealed split by its count, with a lock: nothing else of it leaves the vault. */
 function Sealed({ label, count: tasks }: { label: string; count: number }) {
   return (
-    <Tooltip content="Sealed: only the count is shown" side="bottom">
+    <Tooltip content="Kept for the final test: only the count is shown" side="bottom">
       <span tabIndex={0} className="inline-flex items-center gap-1.5 tabular-nums">
         <Lock size={14} strokeWidth={1.8} aria-hidden />
         {label} {plural(tasks, 'task')}

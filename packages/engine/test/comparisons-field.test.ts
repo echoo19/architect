@@ -123,7 +123,7 @@ describe('a comparison on a job with organizations', () => {
     }
     const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
     expect(markdown).toContain('Hillcrest Outlet (never seen, real)');
-    expect(markdown).toContain('North Desk (trained on, synthetic)');
+    expect(markdown).toContain('North Desk (taught on, synthetic)');
     // The study's cost is counted once, beside the arms'.
     const armsSpark = done.report.arms.reduce((sum, arm) => sum + arm.spent.sparkUsd, 0);
     expect(done.report.totals.sparkUsd).toBeCloseTo(armsSpark + brief.cost.usd, 10);

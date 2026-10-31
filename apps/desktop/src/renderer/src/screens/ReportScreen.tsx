@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReportCard } from '@architect/shared';
 import { Button, Skeleton } from '@architect/ui';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Boxes, Library } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
 import {
@@ -30,6 +30,7 @@ import { reportVerdict } from '../flow/report/verdict';
 import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
+import { useRegistry, versionOfRun } from '../models/load';
 import { useEdition } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
@@ -56,6 +57,7 @@ export function ReportScreen({ runId }: { runId: string }) {
     <FlowShell
       title={report.data?.name ?? 'Results'}
       step="Results"
+      field={report.data?.jobId}
       footer={
         report.status === 'success' && (
           <ReportFooter
@@ -124,8 +126,10 @@ function ReportFooter({
 }) {
   const { graduate, verdict } = useReportAgent(report);
   const showSettings = useAgentSettingsUi((state) => state.show);
+  const edition = useEdition();
   return (
     <div className="mx-auto flex max-w-[1120px] flex-wrap justify-end gap-2">
+      {edition === 'lab' && <LabLinks report={report} />}
       <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
       {verdict.usable || !graduate ? (
         <Button variant="primary" loading={accepting} onClick={onAccept}>
@@ -142,6 +146,29 @@ function ReportFooter({
         >
           {verdict.state === 'blocked' ? "See what's wrong" : 'Finish setting up'}
           <ArrowRight size={16} strokeWidth={2} aria-hidden />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Where the results lead in the Lab: the field the run taught, and the version it made in
+ * Models with its panel open, once that version is on this computer.
+ */
+function LabLinks({ report }: { report: ReportCard }) {
+  const registry = useRegistry();
+  const version = registry.data ? versionOfRun(registry.data, report.runId) : undefined;
+  return (
+    <div className="mr-auto flex flex-wrap gap-2">
+      <Button variant="ghost" onClick={() => navigate(paths.field(report.jobId))}>
+        <Library size={16} strokeWidth={1.8} aria-hidden />
+        Open field
+      </Button>
+      {version && (
+        <Button variant="ghost" onClick={() => navigate(paths.models(version.key))}>
+          <Boxes size={16} strokeWidth={1.8} aria-hidden />
+          Open in Models
         </Button>
       )}
     </div>

@@ -1,5 +1,7 @@
 import {
+  armInSentence,
   ArmIdSchema,
+  defaultExperimentSettings,
   ExperimentInputSchema,
   type ArmId,
   type ArmReport,
@@ -14,6 +16,7 @@ import {
   type PassDifference,
   type PrimaryComparison,
 } from '@architect/shared';
+import { formatScore } from '../lib/format';
 
 /*
  * What the experiment screens say about an experiment, worked out from its stored records only:
@@ -54,7 +57,7 @@ export function armStatusWord(arm: ArmReport, experiment: ExperimentStatus): str
 
 /** Every arm the runner takes, in its order, under the names the tiles use. */
 export const ARM_NAMES: Record<ArmId, string> = {
-  bare: 'Bare student',
+  bare: 'Glimmer alone',
   draft: 'One-shot draft',
   targeted: 'Targeted mentoring',
   reference: 'Spark reference',
@@ -107,9 +110,7 @@ export function defaultInput(
     name,
     ...source,
     arms: [{ arm: 'bare' }, { arm: 'draft' }, { arm: 'targeted' }, { arm: 'reference' }],
-    seeds: { mentoring: 1, lockedTest: [101] },
-    rounds: 4,
-    caps: { studentUsd: 15, sparkUsd: 10, computeUsd: 0, wallMinutes: 720 },
+    ...defaultExperimentSettings(),
   };
 }
 
@@ -134,7 +135,7 @@ export function withArms(input: ExperimentInput, arms: readonly ArmId[]): Experi
 export const GROUP_WORDS: Record<ExperimentGroup, string> = {
   all: 'the whole final test',
   seen: 'the organizations it is taught on',
-  unseen: 'the organizations it never sees',
+  unseen: 'the organizations it has never seen',
 };
 
 /** The primary comparison in one line: "Targeted mentoring minus Bare student, on …". */
@@ -352,8 +353,6 @@ export const VERDICT_WORDS: Record<Verdict, string> = {
   none: 'No gain shown',
 };
 
-const percent = (pass: number, total: number) => `${((pass / total) * 100).toFixed(1)}%`;
-
 /**
  * What the released results say about the primary comparison, in a sentence, where the student
  * ran first: on the whole test, the paired difference with its interval and the gain rule; on a
@@ -376,13 +375,13 @@ export function primaryResult(report: ComparisonReport, primary: PrimaryComparis
   const countB = b === undefined ? null : countIn(b, group);
   if (countA === null || countB === null) return null;
   const rate = countA.pass / countA.total - countB.pass / countB.total;
-  return `${ARM_NAMES[primary.a]} ${percent(countA.pass, countA.total)} of ${countA.total}, ${ARM_NAMES[primary.b].toLowerCase()} ${percent(countB.pass, countB.total)} of ${countB.total}: ${points(rate)} points.`;
+  return `${ARM_NAMES[primary.a]} ${formatScore(countA)}, ${armInSentence(ARM_NAMES[primary.b])} ${formatScore(countB)}: ${points(rate)} points.`;
 }
 
-/** A share as signed percentage points, one decimal, with a true minus: "+23.3", "−1.3". */
+/** A share as signed whole percentage points, with a true minus: "+23", "−1". */
 export function points(rate: number): string {
-  const text = Math.abs(rate * 100).toFixed(1);
-  if (text === '0.0') return text;
+  const text = String(Math.round(Math.abs(rate * 100)));
+  if (text === '0') return text;
   return `${rate > 0 ? '+' : '−'}${text}`;
 }
 

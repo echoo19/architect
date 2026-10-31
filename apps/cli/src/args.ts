@@ -13,6 +13,7 @@ export type CommandName =
   | 'export'
   | 'publish'
   | 'field'
+  | 'experiment'
   | 'reward'
   | 'train'
   | 'certify';
@@ -22,6 +23,8 @@ interface CommandSpec {
   summary: string;
   /** How many arguments it takes besides its options. */
   args: number;
+  /** The most it takes, for a command whose last arguments depend on its action. */
+  maxArgs?: number;
   options: Options;
   /** One line per option, for its help. */
   help: string[];
@@ -160,12 +163,70 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
     ],
   },
   field: {
-    usage: 'architect field export <job> --out <folder> [--json]',
-    summary:
-      "Export a field's verified demonstrations, outcome scorer and sealed-evaluation manifest.",
-    args: 2,
-    options: { out: { type: 'string' }, ...json },
-    help: ['  --out <folder>          the folder to write, new or empty', JSON_HELP],
+    usage:
+      'architect field list | status <field> | add-org <field> --folder <dir> --name <n> --never-seen | export <field> --out <folder> [--json]',
+    summary: 'List fields, show one, add a never-seen organization to it, or export it.',
+    args: 1,
+    maxArgs: 2,
+    options: {
+      out: { type: 'string' },
+      folder: { type: 'string' },
+      name: { type: 'string' },
+      'never-seen': { type: 'boolean' },
+      generated: { type: 'boolean' },
+      ...json,
+    },
+    help: [
+      '  --folder <dir>          add-org: the folder with its records and tasks.jsonl',
+      '  --name <name>           add-org: what to call the organization',
+      '  --never-seen            add-org: confirm it is kept for the final test, never taught on',
+      '  --generated             add-org: its records were generated; real by default',
+      '  --out <folder>          export: the folder to write, new or empty',
+      JSON_HELP,
+    ],
+  },
+  experiment: {
+    usage:
+      'architect experiment plan <field> --arms a,b --hypothesis "..." --primary a-b:group [options] | preregister|start|resume|pause|stop|status|report <id> | list',
+    summary: 'Plan, preregister, run and read an experiment on a field.',
+    args: 1,
+    maxArgs: 2,
+    options: {
+      name: { type: 'string' },
+      arms: { type: 'string' },
+      hypothesis: { type: 'string' },
+      primary: { type: 'string' },
+      seeds: { type: 'string' },
+      'mentoring-seed': { type: 'string' },
+      rounds: { type: 'string' },
+      'student-usd': { type: 'string' },
+      'spark-usd': { type: 'string' },
+      'compute-usd': { type: 'string' },
+      'wall-minutes': { type: 'string' },
+      confirm: { type: 'boolean' },
+      'confirm-study': { type: 'string' },
+      'student-cap-usd': { type: 'string' },
+      'drop-arm': { type: 'string', multiple: true },
+      ...json,
+    },
+    help: [
+      '  --name <name>           plan: a name for it (the field name by default)',
+      '  --arms <a,b,...>        plan: the arms to compare, such as bare,draft,targeted',
+      '  --hypothesis "<text>"   plan: what you expect and why, in your words',
+      '  --primary <a-b:group>   plan: arm a less arm b, on all, seen (taught on) or unseen (never seen); all by default',
+      '  --seeds <n,n,...>       plan: decoding seeds of the final test (101 by default)',
+      '  --mentoring-seed <n>    plan: the mentoring seed (1 by default)',
+      '  --rounds <n>            plan: refinement rounds at most (4 by default)',
+      '  --student-usd <n>       plan: the most hosted Glimmer may cost (15 by default)',
+      '  --spark-usd <n>         plan: the most Spark may cost (10 by default)',
+      '  --compute-usd <n>       plan: the most training compute may cost (0 by default)',
+      '  --wall-minutes <n>      plan: the longest it may run (720 by default)',
+      '  --confirm               start, resume: go ahead with the arms the caps leave room for',
+      '  --confirm-study <token> start, resume: confirm the brief you read, by its token',
+      "  --student-cap-usd <n>   resume: raise Glimmer's cap, the answer to needs_funding",
+      '  --drop-arm <arm>        resume: drop an arm, the other answer; repeat for more',
+      JSON_HELP,
+    ],
   },
   reward: {
     usage: 'architect reward score [--env <folder>]',
@@ -240,7 +301,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --delta <share>         the chance the bound is wrong (default 0.05)',
       '  --calibration-size <n>  calibration tasks (default 60)',
       '  --check <org>           an organization to check the bound at; repeat for more',
-      "  --student <preset>      a hosted student preset instead of this computer's model",
+      "  --student <preset>      a hosted Glimmer preset instead of this computer's model",
       '  --max-usd <dollars>     the most it may spend (default 0)',
       '  --max-minutes <n>       the longest it may take (default 1440)',
       JSON_HELP,
@@ -253,7 +314,7 @@ export function isCommand(name: string): name is CommandName {
 }
 
 export function usage(): string {
-  const width = 9;
+  const width = 12;
   return [
     'Usage: architect <command> [options]',
     '',
@@ -299,13 +360,14 @@ export function parseCommand(name: CommandName, argv: readonly string[]): Parsed
     );
   }
   const help = parsed.values.help === true;
-  if (!help && parsed.positionals.length !== spec.args) {
+  const most = spec.maxArgs ?? spec.args;
+  if (!help && (parsed.positionals.length < spec.args || parsed.positionals.length > most)) {
     throw new CliError(
       'invalid_input',
       'usage',
       parsed.positionals.length < spec.args
         ? `architect ${name} needs ${spec.args === 1 ? 'an argument' : `${spec.args} arguments`}.`
-        : `architect ${name} takes ${spec.args === 0 ? 'no arguments' : 'one argument'}.`,
+        : `architect ${name} takes ${most === 0 ? 'no arguments' : most === 1 ? 'one argument' : `at most ${most} arguments`}.`,
       `Usage: ${spec.usage}`,
     );
   }

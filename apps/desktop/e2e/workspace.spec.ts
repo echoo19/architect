@@ -303,7 +303,7 @@ test('changes what the agent may write and opens its settings', async () => {
   // The setup is named by its version, as the Teaching tab and the status line name it, and its
   // final test is the score the Results tab and the versions list give for it.
   await expect(dialog.getByText('Version 1', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
+  await expect(dialog.getByText('Passed: 92% · 55 of 60')).toBeVisible();
   // The model this computer runs it on, in a picker of the models here, with its tag beside.
   await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
     'Muse Glimmer · 4-bit',

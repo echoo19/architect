@@ -81,7 +81,7 @@ test('states the certificate, its curve and whether it held where it was not cal
     'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
   );
   await expect(section).toContainText(
-    'Measured on 77 calibration tasks it was never taught on, 5 attempts each: it answers when 4 of 5 agree; target 10% at 95% confidence.',
+    'Measured on 77 calibration tasks it had never seen, 5 attempts each: it answers when 4 of 5 agree; target 10% at 95% confidence.',
   );
   await expect(section).toContainText('An organization it never saw tests this assumption');
   await expect(

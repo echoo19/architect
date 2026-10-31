@@ -217,7 +217,7 @@ export function buildFieldExport(source: FieldSource): {
     if ((dataFiles.has(path) ? detectors.orgs : detectors.all).scan(content).leaked) {
       throw new GuardError(
         'split',
-        `${path} holds locked-test content or names an organization the job never trains on, so nothing was exported.`,
+        `${path} holds final-test content or names an organization the job has never seen, so nothing was exported.`,
       );
     }
   }
@@ -244,19 +244,19 @@ export function buildFieldExport(source: FieldSource): {
     permitted_uses: { sft: SFT_USES, env: ENV_USES, eval: EVAL_USES },
     left_out: [
       {
-        what: `the locked test (${sealed.lockedTest.tasks} tasks)`,
+        what: `the final test (${sealed.lockedTest.tasks} tasks)`,
         why: 'it stays in the vault; eval/manifest.json gives its hash only',
       },
       ...(sealed.organizations.length === 0
         ? []
         : [
             {
-              what: `${sealed.organizations.length} organization${sealed.organizations.length === 1 ? '' : 's'} the job never trains on`,
-              why: 'sealed in the vault with their files and tasks; eval/manifest.json gives a hash of each',
+              what: `${sealed.organizations.length} organization${sealed.organizations.length === 1 ? '' : 's'} the job has never seen`,
+              why: 'kept in the vault with their files and tasks; eval/manifest.json gives a hash of each',
             },
           ]),
       {
-        what: 'the calibration and dev tasks',
+        what: 'the calibration and check tasks',
         why: 'they stay for measuring and choosing changes, not for training',
       },
       ...leftOut,

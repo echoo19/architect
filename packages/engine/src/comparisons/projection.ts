@@ -1,5 +1,6 @@
 import {
   ARM_LABELS,
+  armInSentence,
   ArmIdSchema,
   MENTOR_PRESETS,
   type AdapterProtocol,
@@ -180,7 +181,7 @@ export function modelInputs(
   const costs = calibration.flatMap((attempt) => (attempt.usd === null ? [] : [attempt.usd]));
   if (costs.length < calibration.length) {
     throw new Error(
-      `${calibration.length - costs.length} of ${calibration.length} calibration attempts have no known cost: the provider reported neither a charge nor usage for some of their calls, and nothing else can price them. The plan can't be held to the student's credit, so nothing beyond calibration spends.`,
+      `${calibration.length - costs.length} of ${calibration.length} calibration attempts have no known cost: the provider reported neither a charge nor usage for some of their calls, and nothing else can price them. The plan can't be held to Glimmer's credit, so nothing beyond calibration spends.`,
     );
   }
   const measured = calibration.length > 0;
@@ -190,7 +191,7 @@ export function modelInputs(
   const usdOf = (tokens: { inputTokens: number; outputTokens: number }) =>
     (tokens.inputTokens * spark.inputPerM + tokens.outputTokens * spark.outputPerM) / 1_000_000;
   const localLatencies = probe.attempts.map((attempt) => attempt.latencyMs);
-  const calibrationNote = `${calibration.length} calibration attempts on the hosted student`;
+  const calibrationNote = `${calibration.length} calibration attempts on hosted Glimmer`;
   return {
     studentUsd: measured
       ? {
@@ -255,7 +256,7 @@ export function modelInputs(
       unit: 'USD',
       source: 'assumed',
       note: measured
-        ? "the student's measured tokens per attempt at Spark's price"
+        ? "Glimmer's measured tokens per attempt at Spark's price"
         : "30,000 tokens in and 2,000 out at Spark's price",
     },
     localSeconds:
@@ -404,7 +405,7 @@ function prerequisite(
   const needs = (other: ArmId) =>
     funded.has(other)
       ? null
-      : `It starts from the ${ARM_LABELS[other].toLowerCase()} arm, which isn't funded.`;
+      : `It starts from the ${armInSentence(ARM_LABELS[other])} arm, which isn't funded.`;
   switch (arm) {
     case 'targeted':
     case 'fixed':
@@ -490,7 +491,7 @@ export function project(
     // Decision 037 runs the fixed arm only with $5 of student credit left after the repeat.
     const studentFloor = arm === 'fixed' ? Math.max(5, studentReserve) : studentReserve;
     if (reason === null && studentFloor > left.studentUsd + 1e-9) {
-      reason = `It needs $${studentFloor.toFixed(2)} of the hosted student's budget, and $${left.studentUsd.toFixed(2)} is left after the comparisons before it.`;
+      reason = `It needs $${studentFloor.toFixed(2)} of hosted Glimmer's budget, and $${left.studentUsd.toFixed(2)} is left after the comparisons before it.`;
     }
     if (reason === null && need.sparkCap > left.sparkUsd + 1e-9) {
       reason = `It needs $${need.sparkCap.toFixed(2)} for Spark, and $${left.sparkUsd.toFixed(2)} of Spark's budget is left after the comparisons before it.`;

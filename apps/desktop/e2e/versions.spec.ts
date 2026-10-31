@@ -188,12 +188,12 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   // One score for the agent wherever it shows: the versions list agrees with its settings.
   await expect(row(2)).toContainText('In use');
   await expect(row(2)).toContainText('95%');
-  await expect(row(2)).toContainText('57 of 60 passed');
+  await expect(row(2)).toContainText('57 of 60');
   await expect(row(3)).toContainText('New, not in use yet');
   await expect(row(3)).toContainText('Below its 90% target · from version 2');
   await expect(row(4)).toContainText('No final test yet · from version 2, imported');
   await expect(row(1)).toContainText('Earlier version');
-  await expect(row(1)).toContainText('55 of 60 passed');
+  await expect(row(1)).toContainText('55 of 60');
   await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
   await expect(row(1).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
   await expect(row(2).getByRole('button')).toHaveCount(0);
@@ -335,7 +335,7 @@ test('imports a package through its folders and permissions to a ready install',
   await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
   await expect(page.getByText('returns-desk-v1.architect.zip')).toBeVisible();
   await expect(page.getByText('Tested by its author')).toBeVisible();
-  await expect(page.getByText('Passed: 55 of 60 (92%)')).toBeVisible();
+  await expect(page.getByText('Passed: 92% · 55 of 60')).toBeVisible();
   await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
   await capture('import-check-dark.png');
 

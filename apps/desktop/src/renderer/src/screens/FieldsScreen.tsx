@@ -1,19 +1,12 @@
 import { useState } from 'react';
 import { Button, DataTable, EmptyState, PageTabs, Skeleton } from '@architect/ui';
-import {
-  Boxes,
-  Building2,
-  FlaskConical,
-  LayoutGrid,
-  Library,
-  ListChecks,
-  Package,
-} from 'lucide-react';
+import { Boxes, Building2, LayoutGrid, Library, ListChecks, Package, Plus } from 'lucide-react';
 import { useJobs } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { Assets } from '../fields/Assets';
 import { Candidates } from '../fields/Candidates';
+import { newField } from '../fields/new-field';
 import {
   bestCandidate,
   fieldKey,
@@ -26,17 +19,9 @@ import { Organizations } from '../fields/Organizations';
 import { Overview } from '../fields/Overview';
 import { Tasks } from '../fields/Tasks';
 import { scoreCell } from '../fields/parts';
-import { useDraftStore } from '../flow/describe/draft-store';
 import { shortDate } from '../flow/format';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
-
-/** A new field opens Describe ready for its organizations' folders. */
-const newField = () => {
-  const { organizations, setOrganizations } = useDraftStore.getState();
-  if (organizations === null) setOrganizations([]);
-  navigate(paths.newAgent());
-};
 
 /** Fields: every job, each a field of one or several organizations, with its best candidate. */
 export function FieldsScreen() {
@@ -46,6 +31,7 @@ export function FieldsScreen() {
       title="Fields"
       action={
         <Button variant="primary" size="md" onClick={newField}>
+          <Plus size={16} aria-hidden />
           New field
         </Button>
       }
@@ -57,7 +43,7 @@ export function FieldsScreen() {
           <FieldList ids={jobs.data.map((job) => job.id)} />
         )
       ) : jobs.status === 'error' ? (
-        <ProblemState error={jobs.error} title="Couldn't load your jobs" onRetry={jobs.reload} />
+        <ProblemState error={jobs.error} title="Couldn't load your fields" onRetry={jobs.reload} />
       ) : (
         <Skeleton className="h-48 rounded-card" />
       )}
@@ -117,7 +103,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'sealed',
           header: 'Never seen',
           group: ORGANIZATIONS,
-          hint: 'Organizations kept from teaching for the final test, real ones included',
+          hint: 'Generated organizations kept from teaching for the final test',
           align: 'end',
           cell: (row) => row.counts.sealed,
           sortValue: (row) => row.counts.sealed,
@@ -126,7 +112,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'realOrgs',
           header: 'Real',
           group: ORGANIZATIONS,
-          hint: 'Real organizations among the ones it never sees',
+          hint: 'Real organizations kept from teaching for the final test',
           align: 'end',
           cell: (row) => row.counts.real,
           sortValue: (row) => row.counts.real,
@@ -170,17 +156,17 @@ function FieldList({ ids }: { ids: readonly string[] }) {
 const ORGANIZATIONS = 'Organizations';
 const BEST = 'Best final test';
 
-type FieldTab = 'overview' | 'organizations' | 'tasks' | 'candidates' | 'assets';
+type FieldTab = 'overview' | 'organizations' | 'tasks' | 'versions' | 'assets';
 
 const TABS = [
   { value: 'overview', label: 'Overview', icon: <LayoutGrid strokeWidth={1.8} /> },
   { value: 'organizations', label: 'Organizations', icon: <Building2 strokeWidth={1.8} /> },
   { value: 'tasks', label: 'Tasks', icon: <ListChecks strokeWidth={1.8} /> },
-  { value: 'candidates', label: 'Candidates', icon: <Boxes strokeWidth={1.8} /> },
+  { value: 'versions', label: 'Versions', icon: <Boxes strokeWidth={1.8} /> },
   { value: 'assets', label: 'Assets', icon: <Package strokeWidth={1.8} /> },
 ] as const;
 
-/** One field: its overview, organizations, tasks, candidates and assets, a tab each. */
+/** One field: its overview, organizations, tasks, versions and assets, a tab each. */
 export function FieldScreen({ jobId, tab }: { jobId: string; tab?: FieldTab }) {
   const read = useQuery(fieldKey(jobId), () => readField(jobId));
   if (!read.data) {
@@ -208,13 +194,14 @@ function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
   return (
     <PlacePage
       title={job.name}
+      back={{ label: 'Fields', onClick: () => navigate(paths.fields()) }}
       action={
         <div className="flex items-center gap-2">
           <Button size="md" onClick={() => navigate(paths.define(job.id))}>
-            Open the job
+            Edit field
           </Button>
           <Button variant="primary" size="md" onClick={() => navigate(paths.newExperiment(job.id))}>
-            <FlaskConical size={16} aria-hidden />
+            <Plus size={16} aria-hidden />
             New experiment
           </Button>
         </div>
@@ -224,7 +211,7 @@ function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
         {tab === 'overview' && <Overview field={field} />}
         {tab === 'organizations' && <Organizations field={field} />}
         {tab === 'tasks' && <Tasks job={job} />}
-        {tab === 'candidates' && <Candidates field={field} />}
+        {tab === 'versions' && <Candidates field={field} />}
         {tab === 'assets' && <Assets jobId={job.id} />}
       </PageTabs>
     </PlacePage>

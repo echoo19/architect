@@ -83,6 +83,7 @@ const oneOrg = (jobId: string): FieldView => ({
 const EARLIER_RUN = 'run_academy_desk_earlier';
 const EARLIER_REPORT: ReportCard = {
   ...FIELD_REPORT,
+  jobId: LAB.academyDeskJob,
   runId: EARLIER_RUN,
   createdAt: at(-1_440),
   test: {
@@ -198,15 +199,15 @@ export const ACADEMY_DESK_ASSETS: FieldExportManifest = {
   },
   left_out: [
     {
-      what: `the locked test (${ACADEMY_DESK_FIELD.lockedTestTasks ?? 0} tasks)`,
+      what: `the final test (${ACADEMY_DESK_FIELD.lockedTestTasks ?? 0} tasks)`,
       why: 'it stays in the vault; eval/manifest.json gives its hash only',
     },
     {
-      what: '2 organizations the job never trains on',
-      why: 'sealed in the vault with their files and tasks; eval/manifest.json gives a hash of each',
+      what: '2 organizations the job has never seen',
+      why: 'kept in the vault with their files and tasks; eval/manifest.json gives a hash of each',
     },
     {
-      what: 'the calibration and dev tasks',
+      what: 'the calibration and check tasks',
       why: 'they stay for measuring and choosing changes, not for training',
     },
     {
@@ -226,7 +227,12 @@ export const FIELD_VIEWS: Record<string, FieldView> = Object.fromEntries(
 
 /** The cards the Fields place reads, by run. */
 export const FIELD_REPORTS: Record<string, ReportCard> = {
-  [LAB.academyDeskRun]: { ...FIELD_REPORT, runId: LAB.academyDeskRun, name: 'Academy desk' },
+  [LAB.academyDeskRun]: {
+    ...FIELD_REPORT,
+    jobId: LAB.academyDeskJob,
+    runId: LAB.academyDeskRun,
+    name: 'Academy desk',
+  },
   [EARLIER_RUN]: EARLIER_REPORT,
   run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
 };

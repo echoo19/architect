@@ -12,6 +12,7 @@ import {
 } from '@architect/ui';
 import { Check, CircleAlert, Info, ScrollText } from 'lucide-react';
 import { flowApi } from '../../api/client';
+import { ProblemState } from '../../components/ProblemState';
 import { queryKeys } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
 import { attempt } from '../../lib/notify';
@@ -135,13 +136,14 @@ export function RuleReview({ job, plan }: { job: Job; plan: TaskPlan }) {
         </div>
       </Collapse>
       {changed && (
-        <div
-          role="alert"
-          className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
-        >
-          <p className="m-0 max-w-[560px] text-pretty">{confirmation.problem}</p>
-          <Button onClick={describeAgain}>Describe the job again</Button>
-        </div>
+        <ProblemState
+          error={
+            new Error(confirmation.problem ?? 'The records changed after the rule was confirmed.')
+          }
+          title="The records changed"
+          exit={{ label: 'Describe the job again', onClick: describeAgain }}
+          className="mb-4 py-8"
+        />
       )}
       {!needed && (
         <Disclosure
