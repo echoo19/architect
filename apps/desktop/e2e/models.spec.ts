@@ -136,7 +136,8 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await expect(finalTest).toContainText('67/72');
   await expect(panel()).toContainText('Check tasks');
   await expect(panel()).toContainText('71/80');
-  await expect(panel().getByRole('button', { name: 'Export' })).toBeVisible();
+  await expect(panel().getByRole('button', { name: 'Export', exact: true })).toBeVisible();
+  await expect(panel().getByRole('button', { name: 'Export evidence' })).toBeVisible();
   await capture('model-panel-dark.png');
 
   await panel().getByRole('tab', { name: 'Lineage' }).click();
