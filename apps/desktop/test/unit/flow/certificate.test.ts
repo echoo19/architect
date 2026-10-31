@@ -77,6 +77,10 @@ describe('a certificate in words (decision 077)', () => {
     expect(checkPlace({ ...check, seen: true, org: 'summit', orgName: 'Summit Tutoring' })).toBe(
       'New tasks at Summit Tutoring',
     );
+    // Taught on since in a later version of the field, it reads as measured before (089).
+    expect(checkPlace({ ...check, orgName: 'Real academy', taughtLater: true })).toBe(
+      'Real academy, measured before it was taught on',
+    );
     expect(checkCounts(check)).toBe('Answered 21 of 30, 3 wrong');
     expect(checkCounts({ ...check, answered: 0, errors: 0 })).toBe('Handed all 30 to a person');
   });

@@ -32,6 +32,7 @@ import type {
 import type {
   CertificationSets,
   OpenedTransfer,
+  SealedOrganization,
   TransferOrganization,
 } from '../../src/vault/vault';
 
@@ -413,6 +414,44 @@ export class FakeVault implements VaultDeps {
 
   addedOrganizations(jobId: string): Organization[] {
     return (this.added.get(jobId) ?? []).map(({ org }) => org);
+  }
+
+  /** Each organization released to be taught on in a new version, as `<job>:<org>`. */
+  readonly released: string[] = [];
+
+  releaseOrganization(jobId: string, orgId: string): SealedOrganization {
+    const sealed = this.transfer.get(jobId)?.find(({ org }) => org.id === orgId);
+    if (sealed !== undefined) {
+      this.released.push(`${jobId}:${orgId}`);
+      const tasks = (this.sealed.get(jobId) ?? []).filter((task) => task.org === orgId);
+      return { ...sealed, tasks: structuredClone(tasks) };
+    }
+    const added = this.added.get(jobId)?.find(({ org }) => org.id === orgId);
+    if (added === undefined) throw new GuardError('split', `${orgId} isn't sealed in ${jobId}.`);
+    this.released.push(`${jobId}:${orgId}`);
+    return { org: added.org, files: [], tasks: structuredClone(added.tasks) };
+  }
+
+  sealVersion(
+    fromJobId: string,
+    toJobId: string,
+    movedOrgId: string,
+    others: Task[],
+    data: string[],
+  ): void {
+    const tests = (this.sealed.get(fromJobId) ?? []).filter((task) => task.org !== movedOrgId);
+    const added = (this.added.get(fromJobId) ?? []).filter(({ org }) => org.id !== movedOrgId);
+    this.seal(
+      toJobId,
+      [...tests, ...added.flatMap(({ tasks }) => tasks)],
+      others,
+      data,
+      [
+        ...(this.transfer.get(fromJobId) ?? []).filter(({ org }) => org.id !== movedOrgId),
+        ...added.map(({ org }) => ({ org, files: [] })),
+      ],
+      this.calibration.get(fromJobId) ?? [],
+    );
   }
 
   openAdded(jobId: string, orgId: string, proof: unknown): Task[] {

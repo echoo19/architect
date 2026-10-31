@@ -191,13 +191,15 @@ export function orgCounts(view: FieldView): {
   sealed: number;
   real: number | null;
 } {
-  const real = view.sealed.filter((org) => !org.synthetic).length;
+  // A fresh cohort is new work of an organization it is taught on, not an organization of its own
+  // it never saw (decision 089), so it isn't counted among them.
+  const own = view.sealed.filter((org) => org.cohortOf === undefined);
+  const real = own.filter((org) => !org.synthetic).length;
   // A field of one organization that doesn't say whether it is real has no real count to give.
-  const unsaid =
-    view.sealed.length === 0 && view.organizations.some((org) => org.synthetic === null);
+  const unsaid = own.length === 0 && view.organizations.some((org) => org.synthetic === null);
   return {
     taughtOn: view.organizations.length,
-    sealed: view.sealed.length - real,
+    sealed: own.length - real,
     real: unsaid ? null : real,
   };
 }

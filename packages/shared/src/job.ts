@@ -226,6 +226,11 @@ export const OrganizationSchema = z.object({
   /** Generated from seeds, or a real organization's records. */
   synthetic: z.boolean(),
   role: z.enum(['train', 'transfer']),
+  /**
+   * A fresh cohort (decision 089): new work of the taught organization of this name, sealed as
+   * never seen, which is not an organization of its own.
+   */
+  cohortOf: z.string().min(1).optional(),
 });
 export type Organization = z.infer<typeof OrganizationSchema>;
 

@@ -3,6 +3,7 @@ import { copyFile, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'nod
 import { basename, dirname, extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   CodedError,
+  GuardError,
   DraftRecordSchema,
   isBaselineMethod,
   JobSchema,
@@ -37,17 +38,25 @@ import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../dra
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
 import { recordingsView } from '../drafting/recordings';
-import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
+import { isStudied, materialFiles, studyStateOf, transferDetector } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
 import { mentorDataTexts } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
-import type { StoredRun } from '../store/records';
+import type { JobRecord, StoredRun } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
 import type { Clock, LoopDeps } from './deps';
+import { normalizedReply } from '../certify/agreement';
+import { must } from './errors';
 import { readJsonFile, readJsonLines, writeJsonFile, writeJsonLines } from './files';
+import { nextVersion } from './job-versions';
+import { familyKey } from './posthoc';
 import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
 import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
+
+function sha256Of(content: Uint8Array): string {
+  return createHash('sha256').update(content).digest('hex');
+}
 
 /** A relative path that stays inside its folder. */
 function insidePath(path: string): string {
@@ -220,6 +229,8 @@ export class JobLibrary {
   private readonly taskCache = new Map<string, Task[]>();
   /** The jobs being made now in this process, which an interrupted one is told apart from. */
   private readonly finalizing = new Set<string>();
+  /** The fields a new version is being made of now (decision 089). */
+  private readonly moving = new Set<string>();
 
   constructor(
     private readonly store: EngineStore,
@@ -725,7 +736,7 @@ export class JobLibrary {
     );
   }
 
-  private record(job: Job, taskCount: number): void {
+  private record(job: Job, taskCount: number, versionOf?: JobRecord['versionOf']): void {
     this.store.transaction(() => {
       this.store.jobs.insert({
         id: job.id,
@@ -735,6 +746,7 @@ export class JobLibrary {
         taskCount,
         createdAt: job.createdAt,
         updatedAt: isoNow(this.clock),
+        ...(versionOf === undefined ? {} : { versionOf }),
       });
       this.contracts.ensure(job);
     });
@@ -801,6 +813,13 @@ export class JobLibrary {
         `${job.name} has no sealed final test yet, so nothing can be sealed beside it.`,
       );
     }
+    this.requireNewest(job);
+    const cohortOf = request.cohortOf?.trim();
+    if (cohortOf !== undefined && !taught.some((org) => org.name === cohortOf)) {
+      throw new Error(
+        `${job.name} isn't taught on ${cohortOf}, so there is no cohort of it to keep testing on.`,
+      );
+    }
     const name = request.name.trim();
     const id = slugify(name);
     if (!ORG_ID.test(id)) {
@@ -825,7 +844,13 @@ export class JobLibrary {
         `That folder doesn't hold what ${job.name}'s organizations hold. ${shortfalls.map(shortfallInWords).join(' ')}`,
       );
     }
-    const org: Organization = { id, name, synthetic: request.synthetic, role: 'transfer' };
+    const org: Organization = {
+      id,
+      name,
+      synthetic: request.synthetic,
+      role: 'transfer',
+      ...(cohortOf === undefined ? {} : { cohortOf }),
+    };
     const tasks = await this.addedTasks(job, org, folder);
     const files = (
       await Promise.all(
@@ -843,11 +868,239 @@ export class JobLibrary {
       ...(await this.tasks(jobId, 'train')),
       ...(await this.tasks(jobId, 'dev')),
     ];
+    await this.requireFresh(job, org, files, tasks, others);
     const data = await mentorDataTexts(
       job.data.files,
       taught.map((item) => orgDataDir(this.paths.jobDir(jobId), item.id)),
     );
     await this.deps.vault.addOrganization(jobId, { org, files }, tasks, others, data);
+  }
+
+  /**
+   * Teaches on a never-seen organization in a new version of the field (decision 089), never in
+   * place: a new job, recorded as this one's next version, whose taught organizations take the
+   * moved one with its files, and whose practice and check tasks take its tasks, split in the
+   * job's own proportion with families whole. Everything else is this job's: its practice, check
+   * and calibration tasks, its final test without the moved organization, and every other sealed
+   * organization, sealed again with prints made afresh for what the new version's teacher may
+   * see (decision 082). This job, its vault, its runs and what they measured stay as they were;
+   * a job that already has a newer version is taught on there instead.
+   */
+  async teachOn(jobId: string, orgName: string): Promise<Job> {
+    // One move at a time per field, so two quick asks can't both make a next version.
+    if (this.moving.has(jobId)) {
+      throw new Error('A new version of this field is being made already. Wait for it.');
+    }
+    this.moving.add(jobId);
+    try {
+      return await this.moveOrganization(jobId, orgName);
+    } finally {
+      this.moving.delete(jobId);
+    }
+  }
+
+  private async moveOrganization(jobId: string, orgName: string): Promise<Job> {
+    const job = await this.get(jobId);
+    const record = must(this.store.jobs.get(jobId), `The job "${jobId}"`);
+    this.requireNewest(job);
+    const taught = trainOrganizations(job);
+    if (taught.length === 0 || !(await this.deps.vault.isSealed(jobId))) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} has no sealed organization to teach on. Make a field of several organizations first.`,
+      );
+    }
+    const identifiers = await this.deps.vault.transferIdentifiers(jobId);
+    const sealed = identifiers.find((org) => org.name === orgName);
+    if (sealed === undefined) {
+      throw new Error(`${job.name} has no never-seen organization called ${orgName}.`);
+    }
+    const released = await this.deps.vault.releaseOrganization(jobId, sealed.id);
+    // Its files become what the teacher reads, so they must not name one that stays sealed.
+    const others = transferDetector(
+      { organizations: [] },
+      identifiers.filter((org) => org.id !== sealed.id),
+    );
+    const naming = released.files.find(
+      (file) => others.scan(Buffer.from(file.content).toString('utf8')).leaked,
+    );
+    if (naming !== undefined) {
+      throw new GuardError(
+        'split',
+        `${orgName}'s ${naming.name} names an organization that stays never seen, so it can't become material the teacher reads. Take the name out of that file first.`,
+      );
+    }
+    const { cohortOf: _cohortOf, ...plain } = released.org;
+    const moved: Organization = { ...plain, role: 'train' };
+    const split = this.practiceAndChecks(job, orgName, released.tasks);
+    const { train, dev } = job.splits;
+    const version = (record.versionOf?.version ?? 1) + 1;
+    const base = {
+      id: job.id.replace(/-v\d+$/, ''),
+      name: job.name.replace(/ v\d+( \(\d+\))?$/, ''),
+    };
+    const names = new Set(this.store.jobs.list().map((item) => item.name));
+    let name = `${base.name} v${version}`;
+    for (let n = 2; names.has(name); n += 1) name = `${base.name} v${version} (${n})`;
+    const next: Job = {
+      ...job,
+      id: await this.freshId(`${base.id}-v${version}`),
+      name,
+      createdAt: isoNow(this.clock),
+      organizations: [...taught, moved],
+      splits: { ...job.splits, train: train + split.train.length, dev: dev + split.dev.length },
+    };
+    return this.finalize(next, async () => {
+      // The job's own folder, less its runs, its tasks and its job file, which are the new one's.
+      const from = this.paths.jobDir(jobId);
+      const skipped = new Set(
+        ['runs', 'tasks', 'job.json', 'finalizing'].map((name) => join(from, name)),
+      );
+      await cp(from, this.paths.jobDir(next.id), {
+        recursive: true,
+        filter: (path) => !skipped.has(path),
+      });
+      for (const file of released.files) {
+        const target = join(this.paths.orgDataDir(next.id, moved.id), file.name);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.content);
+      }
+      const visible = {
+        calibration: await this.tasks(jobId, 'calibration'),
+        train: [...(await this.tasks(jobId, 'train')), ...split.train],
+        dev: [...(await this.tasks(jobId, 'dev')), ...split.dev],
+      };
+      for (const [name, tasks] of Object.entries(visible)) {
+        await writeJsonLines(this.paths.tasksFile(next.id, name as VisibleSplit), tasks);
+      }
+      const data = await mentorDataTexts(
+        next.data.files,
+        [...taught, moved].map((org) => this.paths.orgDataDir(next.id, org.id)),
+      );
+      await this.deps.vault.sealVersion(
+        jobId,
+        next.id,
+        moved.id,
+        [...visible.calibration, ...visible.train, ...visible.dev],
+        data,
+      );
+      await writeJsonFile(this.paths.jobFile(next.id), next);
+      this.record(next, record.taskCount, {
+        jobId,
+        version,
+        org: { id: moved.id, name: moved.name },
+      });
+      return next;
+    });
+  }
+
+  /** Refuses a field that has a newer version: organizations are added and taught on there. */
+  private requireNewest(job: Job): void {
+    const newer = nextVersion(this.store, job.id);
+    if (newer !== null) {
+      throw new Error(
+        `${job.name} has a newer version, ${newer.name}. Add or teach on organizations there.`,
+      );
+    }
+  }
+
+  /**
+   * A moved organization's tasks as practice and check tasks, in the job's own proportion with
+   * families whole, or why it can't be: it needs at least one of each.
+   */
+  private practiceAndChecks(job: Job, orgName: string, tasks: Task[]) {
+    const count = tasks.length;
+    const { train, dev } = job.splits;
+    const checks = Math.round((count * dev) / Math.max(1, train + dev));
+    const few = `${orgName} has ${count} ${count === 1 ? 'task' : 'tasks'}, too few to give it both practice and check tasks with each family kept whole.`;
+    if (checks === 0 || checks === count) throw new Error(`${few} Add tasks to it first.`);
+    let split;
+    try {
+      split = this.deps.runtime.splitTasks(tasks, {
+        seed: job.splits.seed,
+        calibration: 0,
+        train: count - checks,
+        dev: checks,
+        test: 0,
+      });
+    } catch (error) {
+      throw new Error(`${few} Its families are too large for ${checks} check tasks.`, {
+        cause: error,
+      });
+    }
+    if (split.train.length + split.dev.length !== count) {
+      throw new Error(`${orgName}'s tasks couldn't all be split into practice and check tasks.`);
+    }
+    return split;
+  }
+
+  /**
+   * Refuses tasks of an organization added later that copy a task the teacher may see: the same
+   * request (case, spacing and punctuation aside) or family. A fresh cohort's tables must not be
+   * a taught organization's own, nor its answers a visible task's (a short answer such as a
+   * choice letter repeats by chance, so only longer ones count).
+   */
+  private async requireFresh(
+    job: Job,
+    org: Organization,
+    files: readonly { name: string; content: Uint8Array }[],
+    tasks: readonly Task[],
+    visible: readonly Task[],
+  ): Promise<void> {
+    const prompts = new Map(visible.map((task) => [normalizedReply(task.prompt), task]));
+    const families = new Set(visible.map((task) => familyKey(task.family)));
+    for (const task of tasks) {
+      const copied = prompts.get(normalizedReply(task.prompt));
+      if (copied !== undefined) {
+        throw new Error(
+          `Task "${task.id}" asks what the visible task "${copied.id}" asks, so ${org.name} wouldn't be work it never saw.`,
+        );
+      }
+      if (families.has(familyKey(task.family))) {
+        throw new Error(
+          `Task "${task.id}" is of the family "${task.family}", which the teacher already sees. Give ${org.name}'s tasks families of their own.`,
+        );
+      }
+    }
+    if (org.cohortOf === undefined) return;
+    const answer = (task: Task) => `${task.type}\t${JSON.stringify(task.expected)}`;
+    const what = ({ expected }: Task) =>
+      JSON.stringify(
+        expected.kind === 'answer'
+          ? expected.value
+          : expected.kind === 'facts'
+            ? expected.facts
+            : expected.params,
+      );
+    const answers = new Map(
+      visible
+        .filter((task) => normalizedReply(what(task)).length >= 12)
+        .map((task) => [answer(task), task]),
+    );
+    const same = tasks.find((task) => answers.has(answer(task)));
+    if (same !== undefined) {
+      throw new Error(
+        `Task "${same.id}" expects exactly what the visible task "${answers.get(answer(same))?.id}" expects, so it looks copied from work the teacher sees.`,
+      );
+    }
+    const tables = new Set(
+      job.data.files.filter((file) => file.kind === 'table').map((file) => file.name),
+    );
+    const taught = new Set<string>();
+    for (const item of trainOrganizations(job)) {
+      for (const file of job.data.files) {
+        const content = await readFile(
+          join(this.paths.orgDataDir(job.id, item.id), file.name),
+        ).catch(() => null);
+        if (content !== null) taught.add(sha256Of(content));
+      }
+    }
+    const copy = files.find((file) => tables.has(file.name) && taught.has(sha256Of(file.content)));
+    if (copy !== undefined) {
+      throw new Error(
+        `${copy.name} is the same file as one the teacher was taught on, so it isn't fresh work of ${org.cohortOf}. Seal a later export instead.`,
+      );
+    }
   }
 
   /** An added organization's tasks: its folder's `tasks.jsonl`, or a drafted field's kinds made from its files. */

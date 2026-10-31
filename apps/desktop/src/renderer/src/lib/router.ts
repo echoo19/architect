@@ -5,7 +5,8 @@ export type Route =
   /** The Lab: what needs the person, what runs, what just finished and what it cost. */
   | { name: 'home' }
   | { name: 'fields' }
-  | { name: 'field'; jobId: string }
+  /** A field, on its Organizations tab when asked: where a new version of it opens. */
+  | { name: 'field'; jobId: string; tab?: 'organizations' }
   | { name: 'experiments' }
   /** Designing an experiment, on a field of the library when one is named. */
   | { name: 'experiment-new'; jobId?: string }
@@ -29,7 +30,8 @@ const segment = (value: string) => encodeURIComponent(value);
 export const paths = {
   home: () => '/',
   fields: () => '/fields',
-  field: (jobId: string) => `/fields/${segment(jobId)}`,
+  field: (jobId: string, tab?: 'organizations') =>
+    tab === undefined ? `/fields/${segment(jobId)}` : `/fields/${segment(jobId)}/${tab}`,
   experiments: () => '/experiments',
   newExperiment: (jobId?: string) =>
     jobId === undefined ? '/experiments/new' : `/experiments/new/${segment(jobId)}`,
@@ -68,6 +70,9 @@ export function parsePath(path: string): Route {
   if (first === 'import' && exactly(1)) return { name: 'import' };
   if (first === 'fields' && exactly(1)) return { name: 'fields' };
   if (first === 'fields' && id && exactly(2)) return { name: 'field', jobId: id };
+  if (first === 'fields' && id && third === 'organizations' && exactly(3)) {
+    return { name: 'field', jobId: id, tab: 'organizations' };
+  }
   if (first === 'experiments' && exactly(1)) return { name: 'experiments' };
   if (first === 'experiments' && id === 'new' && exactly(2)) return { name: 'experiment-new' };
   if (first === 'experiments' && id === 'new' && third && exactly(3)) {

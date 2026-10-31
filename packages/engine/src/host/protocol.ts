@@ -198,6 +198,9 @@ export const ENGINE_ROUTES = {
     FieldViewSchema,
     (api, [jobId, request]) => api.jobs.addOrganization(jobId, request),
   ),
+  'jobs.teachOn': route(z.tuple([id, id]), FieldViewSchema, (api, [jobId, org]) =>
+    api.jobs.teachOn(jobId, org),
+  ),
   'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>
     api.jobs.fieldAssets(jobId),
   ),

@@ -22,6 +22,19 @@ describe('organizationGrid', () => {
     expect(organizationGrid([result('a', 'north', SEEN, 1, 2)])).toBeNull();
   });
 
+  it('marks a never-seen organization taught on since, and keeps it where it was measured', () => {
+    const grid = organizationGrid([
+      result('a', 'north', SEEN, 3, 3),
+      { ...result('a', 'east', UNSEEN, 1, 3), taughtLater: true },
+    ]);
+    expect(
+      grid?.groups.map((group) => [group.label, group.columns.map((c) => c.taughtLater)]),
+    ).toEqual([
+      ['Taught on', [false]],
+      ['Never seen', [true]],
+    ]);
+  });
+
   it('keeps an organization added to the field later in a group of its own, last', () => {
     const grid = organizationGrid([
       { ...result('a', 'maple', UNSEEN, 3, 4), addedLater: true },

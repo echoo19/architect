@@ -20,6 +20,7 @@ import { formatUsd } from '../loop/budget';
 import { must } from '../loop/errors';
 import type { JobLibrary } from '../loop/jobs';
 import type { DataPaths } from '../loop/paths';
+import { laterVersions, newestVersion } from '../loop/job-versions';
 import { isTerminal } from '../loop/plan';
 import { TRAINING_ENDED, type RunState } from '../loop/run-state';
 import type { EngineStore } from '../store/engine-store';
@@ -33,9 +34,15 @@ export interface ImprovementPlan extends RunImprovement {
   adapter?: TrainedAdapter;
 }
 
-/** The runs that improve an agent, newest first. */
+/**
+ * The runs that improve an agent, newest first: on its own job and on every later version of it
+ * (decision 089), where an improvement teaches once a version of the field teaches on more.
+ */
 function improvementRuns(store: EngineStore, jobId: string, graduateId: string): StoredRun[] {
-  return store.runs.list(jobId).filter((record) => record.improves?.graduateId === graduateId);
+  return laterVersions(store, jobId)
+    .flatMap((job) => store.runs.list(job.id))
+    .filter((record) => record.improves?.graduateId === graduateId)
+    .sort((a, b) => (a.run.createdAt < b.run.createdAt ? 1 : -1));
 }
 
 /** The adapter a version ships, as a run keeps one on: its file inside the version's folder. */
@@ -58,6 +65,8 @@ function versionAdapter(
 /**
  * Checks that Improve agent can start on an agent and says what it starts from: an agent made
  * here from a job, its active version, and every lesson in its queue. One improvement at a time.
+ * It teaches on the newest version of the agent's job, which may teach on organizations its own
+ * job never saw (decision 089).
  */
 export function improvementPlan(
   store: EngineStore,
@@ -75,8 +84,12 @@ export function improvementPlan(
     agent.activeVersion === null ? null : store.versions.get(graduateId, agent.activeVersion),
     `${agent.name} has no active version to improve.`,
   );
-  const { jobId } = origin.run;
-  if (improvementRuns(store, jobId, graduateId).some((record) => !isTerminal(record.run.status))) {
+  const jobId = newestVersion(store, origin.run.jobId);
+  if (
+    improvementRuns(store, origin.run.jobId, graduateId).some(
+      (record) => !isTerminal(record.run.status),
+    )
+  ) {
     throw new Error(`${agent.name} is already being improved. Wait for it, or stop it first.`);
   }
   const queued = store.corrections.list(graduateId, ['queued']);

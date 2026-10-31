@@ -21,7 +21,11 @@ beforeAll(async () => {
 
 afterAll(cleanUp);
 
-/** A folder a field accepts as a new organization: Bramble Hill's files, its tasks as Maple's. */
+/**
+ * A folder a field accepts as a new organization: Bramble Hill's files, its tasks as Maple's,
+ * each asked in words and a family of its own, since a copy of a task the teacher sees is
+ * refused (decision 089).
+ */
 function mapleFolder(dir: string): string {
   const jobDir = join(ACADEMY_JOB_FILE, '..');
   const target = join(dir, 'maple');
@@ -30,9 +34,14 @@ function mapleFolder(dir: string): string {
   const tasks = readFileSync(join(jobDir, 'tasks.jsonl'), 'utf8')
     .split('\n')
     .filter((text) => text !== '')
-    .map((text) => JSON.parse(text) as { id: string; org: string })
+    .map((text) => JSON.parse(text) as { id: string; org: string; family: string; prompt: string })
     .filter((task) => task.org === 'bramble')
-    .map(({ org: _org, ...task }) => ({ ...task, id: task.id.replace('bramble', 'maple') }));
+    .map(({ org: _org, ...task }) => ({
+      ...task,
+      id: task.id.replace('bramble', 'maple'),
+      family: `maple-${task.family}`,
+      prompt: `At Maple Grove: ${task.prompt}`,
+    }));
   writeFileSync(join(target, 'tasks.jsonl'), tasks.map((task) => JSON.stringify(task)).join('\n'));
   return target;
 }

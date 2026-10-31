@@ -113,6 +113,7 @@ export function connectEngine(
       transcribe: (jobId, transcribing) => request('jobs.transcribe', [jobId, transcribing]),
       field: (jobId) => request('jobs.field', [jobId]),
       addOrganization: (jobId, body) => request('jobs.addOrganization', [jobId, body]),
+      teachOn: (jobId, org) => request('jobs.teachOn', [jobId, org]),
       fieldAssets: (jobId) => request('jobs.fieldAssets', [jobId]),
       exportField: (jobId, directory) => request('jobs.exportField', [jobId, directory]),
       tasks: (jobId, split) => request('jobs.tasks', [jobId, split]),

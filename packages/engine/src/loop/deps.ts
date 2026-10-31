@@ -30,7 +30,12 @@ import type {
 import type { CounterexampleSearch, FoundCounterexample } from '../counterexamples/find';
 import type { SuiteCase, SuiteContext } from '../counterexamples/suite';
 import type { LeakDetector } from '../mentor/gate';
-import type { CertificationSets, OpenedTransfer, TransferOrganization } from '../vault/vault';
+import type {
+  CertificationSets,
+  OpenedTransfer,
+  SealedOrganization,
+  TransferOrganization,
+} from '../vault/vault';
 import type {
   CorrectionContext,
   CorrectionOptions,
@@ -245,6 +250,23 @@ export interface VaultDeps {
   addedOrganizations(jobId: string): Awaitable<Organization[]>;
   /** One of their tasks, on the same proof as the locked test. */
   openAdded(jobId: string, orgId: string, proof: MentorReleased): Awaitable<Task[]>;
+  /**
+   * A never-seen organization's files and tasks, for the new version of the job that teaches on
+   * it at the person's word (decision 089). The job's own vault doesn't change.
+   */
+  releaseOrganization(jobId: string, orgId: string): Awaitable<SealedOrganization>;
+  /**
+   * Seals that new version: this job's final test without the moved organization, its
+   * calibration split, and every other sealed organization again, fingerprinted against the new
+   * version's visible tasks and taught files (decision 082).
+   */
+  sealVersion(
+    fromJobId: string,
+    toJobId: string,
+    movedOrgId: string,
+    others: Task[],
+    data: string[],
+  ): Awaitable<void>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */

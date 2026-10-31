@@ -112,6 +112,7 @@ export function registerEngineHandlers(
         const chosen = { ...request, folder: picked.check(request.folder) };
         return call((api) => api.jobs.addOrganization(jobId, chosen));
       },
+      teachOn: (jobId, org) => call((api) => api.jobs.teachOn(jobId, org)),
       fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
       tasks: (jobId, split) => call((api) => api.jobs.tasks(jobId, split)),
       exportField: (jobId, directory) => {
@@ -124,6 +125,7 @@ export function registerEngineHandlers(
       exportFile: z.tuple([text, text]),
       exportField: z.tuple([text, text]),
       addOrganization: z.tuple([text, AddOrganizationRequestSchema]),
+      teachOn: z.tuple([text, text]),
       draftStart: z.tuple([text, z.array(text)]),
       draftField: z.tuple([text, z.array(DraftOrganizationSchema).min(1)]),
     },

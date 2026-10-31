@@ -19,6 +19,8 @@ export interface OrgColumn {
   group: OrgGroup;
   /** Every final-test task at this organization, all skills together. */
   score: Score;
+  /** Measured as never seen, and taught on since in a later version of the field (decision 089). */
+  taughtLater: boolean;
 }
 
 export interface OrgGrid {
@@ -55,6 +57,7 @@ export function organizationGrid(perOrg: readonly OrgTypeResult[] | undefined): 
         name: result.orgName,
         group: groupOf(result),
         score: { pass: result.pass, total: result.total },
+        taughtLater: result.taughtLater === true,
       });
     }
     if (!rows.some((row) => row.type === result.type)) {

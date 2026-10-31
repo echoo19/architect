@@ -207,6 +207,38 @@ describe('Teach this', () => {
     expect(engine.store.corrections.list(graduateId)).toEqual([]);
   });
 
+  it("checks a lesson against the newest version of the agent's job, which Improve teaches on", async () => {
+    const cohort = { ...task('test', 'overdue', 9), id: 'cohort-overdue-9', org: 'fresh' };
+    const { engine, graduateId } = await graduateWithChat({
+      request: `Please do this: ${cohort.prompt}`,
+    });
+    // A later version of the field, as teaching on an organization makes it (decision 089),
+    // with a fresh cohort sealed in its vault that the agent's own job never had.
+    const first = await engine.jobs.get('service-desk');
+    await engine.jobs.save({ ...first, id: 'service-desk-v2', name: 'Service desk v2' });
+    const record = engine.store.jobs.get('service-desk-v2');
+    if (record === null) throw new Error('No second version.');
+    engine.store.jobs.update({
+      ...record,
+      versionOf: { jobId: 'service-desk', version: 2, org: { id: 'hill', name: 'Hill' } },
+    });
+    world.vault.seal('service-desk-v2', [cohort]);
+    const before = world.mentor.requests.length;
+    await expect(teachThis(engine).propose('cht_1', 'msg_2', correction)).rejects.toThrow(
+      /Refused a mentor call: its payload matched 1 locked test task/,
+    );
+    // Sharing is read from that version too.
+    await engine.jobs.save({
+      ...(await engine.jobs.get('service-desk-v2')),
+      sharing: { remoteTraining: false, corrections: false },
+    });
+    await expect(teachThis(engine).propose('cht_1', 'msg_2', correction)).rejects.toThrow(
+      /Service desk v2 keeps corrections on this computer/,
+    );
+    expect(world.mentor.requests).toHaveLength(before);
+    expect(engine.store.corrections.list(graduateId)).toEqual([]);
+  });
+
   it('queues only what can be taught, and discards on request', async () => {
     const { engine } = await graduateWithChat();
     const teach = teachThis(engine);

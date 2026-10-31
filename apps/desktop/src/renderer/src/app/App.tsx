@@ -50,7 +50,11 @@ function Screen({ route }: { route: Route }) {
     case 'field':
       return (
         <WorkspaceShell route={route}>
-          <FieldScreen key={route.jobId} jobId={route.jobId} />
+          <FieldScreen
+            key={`${route.jobId}/${route.tab ?? ''}`}
+            jobId={route.jobId}
+            {...(route.tab === undefined ? {} : { tab: route.tab })}
+          />
         </WorkspaceShell>
       );
     case 'experiments':

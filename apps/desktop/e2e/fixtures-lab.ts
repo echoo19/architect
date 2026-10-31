@@ -119,7 +119,7 @@ export const LAB_JOBS: JobSummary[] = Object.entries(ENTRIES).map(([key, entry])
   },
 }));
 
-const DETAILS = Object.fromEntries(
+export const DETAILS = Object.fromEntries(
   Object.entries(ENTRIES).map(([key, entry]) => [
     runId(key),
     {
@@ -145,7 +145,7 @@ const REPORTS = Object.fromEntries(
   ),
 );
 
-const JOBS = Object.fromEntries(
+export const JOBS = Object.fromEntries(
   Object.entries(ENTRIES).map(([key, entry]) => [
     jobId(key),
     { ...entry.job, id: jobId(key), name: entry.name },

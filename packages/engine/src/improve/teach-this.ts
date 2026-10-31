@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { formatUsd } from '../loop/budget';
 import type { Clock, EngineHostDeps } from '../loop/deps';
 import { must } from '../loop/errors';
+import { newestVersion } from '../loop/job-versions';
 import type { JobLibrary } from '../loop/jobs';
 import { connectMentor } from '../loop/setup';
 import { isoNow } from '../loop/time';
@@ -196,7 +197,11 @@ export class TeachThis {
     );
   }
 
-  /** The job an agent was made from on this computer; one imported from elsewhere has none. */
+  /**
+   * The job an agent is taught with: the newest version of the one it was made from on this
+   * computer, which Improve agent teaches on (decision 089), so its sharing, mentor and sealed
+   * sets are the ones a lesson is checked against. One imported from elsewhere has none.
+   */
   async jobOf(agent: GraduateRecord): Promise<Job> {
     const origin = agent.runId === null ? null : this.ctx.store.runs.get(agent.runId);
     if (!origin) {
@@ -204,7 +209,7 @@ export class TeachThis {
         `${agent.name} came from a package, so this computer has no job to teach it with. Teach this works on agents made here.`,
       );
     }
-    return this.ctx.jobs.get(origin.run.jobId);
+    return this.ctx.jobs.get(newestVersion(this.ctx.store, origin.run.jobId));
   }
 
   /**

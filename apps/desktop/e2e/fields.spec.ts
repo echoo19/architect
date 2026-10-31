@@ -132,7 +132,7 @@ test('lists the organizations taught on with their files, and the sealed ones by
   for (const name of ['Harbor Learning', 'Real academy']) {
     const row = orgs.getByText(name, { exact: true });
     await expect(row).toBeVisible();
-    await expect(orgs.getByRole('button', { name: new RegExp(name) })).toHaveCount(0);
+    await expect(orgs.getByRole('button', { name: new RegExp(name) })).toContainText('Never seen');
   }
   await expect(orgs).toContainText('Real · 7 files');
   await expect(orgs.getByText('Never seen', { exact: true })).toHaveCount(2);

@@ -215,6 +215,9 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         vault.addOrganization(jobId, organization, tasks, others, data),
       addedOrganizations: (jobId) => vault.addedOrganizations(jobId),
       openAdded: (jobId, orgId, proof) => vault.openAdded(jobId, orgId, proof as MentorReleased),
+      releaseOrganization: (jobId, orgId) => vault.releaseOrganization(jobId, orgId),
+      sealVersion: (fromJobId, toJobId, movedOrgId, others, data) =>
+        vault.sealVersion(fromJobId, toJobId, movedOrgId, others, data),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),
