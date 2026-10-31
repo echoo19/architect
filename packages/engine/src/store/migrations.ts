@@ -468,4 +468,21 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX certifications_by_version ON certifications (graduate_id, version, created_at);
     `,
   },
+  {
+    version: 20,
+    name: 'qualifications',
+    sql: `
+      -- A model trained elsewhere, served on this computer, taking a finished run's locked test
+      -- under the run's frozen harness (decision 086).
+      CREATE TABLE qualifications (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        job_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX qualifications_by_job ON qualifications (job_id, created_at);
+    `,
+  },
 ];

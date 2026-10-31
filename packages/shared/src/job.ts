@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CheckerConfigSchema } from './checker';
 import { DataFileSchema } from './data';
 import { AllowedInterventionsSchema } from './interventions';
+import { loopbackEndpointIssue } from './net';
 import {
   DEFAULT_MENTOR_PRESET,
   DEFAULT_STUDENT,
@@ -85,8 +86,15 @@ export type StudentTarget = z.infer<typeof StudentTargetSchema>;
 
 export const StudentConfigSchema = z.object({
   label: z.string().min(1),
-  /** Where the graduate runs, and where its locked test runs unless the run picks the hosted copy. */
-  local: StudentEndpointSchema,
+  /**
+   * Where the graduate runs, and where its locked test runs unless the run picks the hosted copy.
+   * A graduate makes no call off this computer (invariant 3), so the address must be this
+   * computer's: an OpenAI-compatible server here counts only when it is bound to loopback.
+   */
+  local: StudentEndpointSchema.superRefine((endpoint, context) => {
+    const issue = loopbackEndpointIssue(endpoint.baseUrl);
+    if (issue !== null) context.addIssue({ code: 'custom', path: ['baseUrl'], message: issue });
+  }),
   /** Where training attempts run. `hosted` uses the same weights on a remote endpoint. */
   trainOn: StudentTargetSchema.default('local'),
   hosted: StudentEndpointSchema.optional(),

@@ -32,6 +32,7 @@ import {
   planRequest,
   type PlanSettings,
 } from '../compute/model';
+import { QualifyCard } from '../compute/QualifyCard';
 import { Targets } from '../compute/Targets';
 import { NumberRow } from '../experiments/NumberRow';
 import { attempt } from '../lib/notify';
@@ -122,6 +123,7 @@ export function ComputeScreen() {
           <Breakdown plan={plan} settings={settings} onChangeHardware={() => setTab('hardware')} />
         )}
         {read && <BundleCard read={read} plan={plan} settings={settings} />}
+        <QualifyCard />
       </div>
     </PlacePage>
   );

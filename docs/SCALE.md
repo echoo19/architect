@@ -38,7 +38,7 @@ What we can show by Nov 4, stated plainly in the product and the submission: Arc
    - *Slurm*: an `sbatch` script running `torchrun` across nodes with FSDP.
    - *Kubernetes*: a PyTorchJob manifest (Kubeflow training operator).
    The trainer recipe gains a distributed launch (FSDP, or DeepSpeed ZeRO-3) and LoRA targets for mixture-of-experts layers. A bundle carries the field export's hash, the base model's revision and the recipe, so the trained weights trace back to the field.
-4. **Coming back.** A model trained elsewhere returns as an adapter or a model id, joins the field's candidates and is qualified on the sealed organizations like any other candidate. Serving a large model is the user's own endpoint (OpenAI-compatible); a model that can't run on the user's computer is never sold as an offline graduate.
+4. **Coming back** (built, decision 086). A model trained elsewhere returns as an OpenAI-compatible server the user runs on this computer. The student settings take it as "Server on this computer": an address on this computer (`127.0.0.1`, `localhost` or `[::1]`, with a port; any other is refused with the reason) and a model name. On Compute, "Qualify a trained model" picks a field, one of its tested harness versions (the best is marked) and that server, then runs the version's locked test and its never-seen organizations through the re-test path with that model, with no mentor and no money. The card is filed with the model's name and "Trained elsewhere"; the run it borrowed the harness from is never changed. It uses this computer's GPU, and the card says so before it starts. A model that can't run on this computer is never sold as an offline graduate. Tested against a fake local server, never a real model.
 
 ## Where it shows
 

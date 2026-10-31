@@ -37,6 +37,7 @@ import type { HubClient } from '../hub';
 import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
 import { certificationView, discardCertification, planCertification } from '../loop/posthoc';
+import { qualificationView } from '../loop/qualify';
 import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
@@ -391,6 +392,9 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),
       retest: (runId, target) => controller.retest(runId, target),
+      qualify: async (request) => controller.qualify(request),
+      qualifications: async (jobId) =>
+        store.qualifications.ofJob(jobId).map((item) => qualificationView(item)),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
       attempt,
