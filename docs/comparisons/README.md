@@ -11,6 +11,12 @@ The intervals are 95% intervals for the paired difference (Newcombe's method). C
 
 Both comparisons ran Glimmer online, the full model served through OpenRouter. The agents run on your computer with a smaller build that hasn't taken these tests.
 
+Academy desk, the field runs on test-prep academies, has its own reports. Their sealed tests cover academies neither model saw, one of them real:
+
+- [academy-desk-1.md](academy-desk-1.md): the first field run, with [academy-desk-1-real-academy-misses.md](academy-desk-1-real-academy-misses.md) on its misses at the Real academy, and [academy-desk-1-local.md](academy-desk-1-local.md), the same frozen agent on the 2-bit build that runs on one graphics card.
+- [academy-desk-3.md](academy-desk-3.md): the third field run, which replaced a second run that stopped before any result was read, with [academy-desk-3-misses.md](academy-desk-3-misses.md).
+- [academy-desk-cert-1.md](academy-desk-cert-1.md): the first live certificate run, on the third run's Academy desk. No certificate was issued.
+
 An earlier comparison, on the service desk sample job with the first version of Glimmer's tools, is described in the README's Results section and in [docs/PROGRESS.md](../PROGRESS.md).
 
 `screens/` holds captures of comparison 2's taught agent in the app, made by opening that run's own records in Architect: its training, its first round and its results page.
