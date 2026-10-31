@@ -9,6 +9,7 @@ import { attempt } from '../../lib/notify';
 import { shortDate } from '../format';
 import { modelNames } from '../names';
 import { PassageList } from '../PassageList';
+import { Recordings } from './Recordings';
 import { SheetRow } from './SheetRow';
 
 /**
@@ -82,6 +83,8 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
           </Button>
         </div>
       </Collapse>
+
+      <Recordings job={job} plan={plan} mentor={mentor} />
 
       {state === 'changed' && (
         <div
