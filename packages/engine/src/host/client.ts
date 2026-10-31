@@ -100,6 +100,8 @@ export function connectEngine(
       exportFile: (jobId, file) => request('jobs.exportFile', [jobId, file]),
       draftStart: (description, files, teacher) =>
         request('jobs.draftStart', [description, files, teacher]),
+      draftField: (description, organizations, teacher) =>
+        request('jobs.draftField', [description, organizations, teacher]),
       draftReply: (sessionId, text, teacher) =>
         request('jobs.draftReply', [sessionId, text, teacher]),
       taskPlan: (jobId) => request('jobs.taskPlan', [jobId]),

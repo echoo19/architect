@@ -308,9 +308,10 @@ export class JobLibrary {
   /**
    * Imports a job file with `tasks.jsonl` and a `data/` folder beside it (the sample job ships
    * this way), and the starting harness folder when the job imports one. The tasks are split at
-   * once and the test split is sealed in the vault.
+   * once and the test split is sealed in the vault. `drafting` is what drafting a field from
+   * several organizations' folders left (decision 083), kept beside the job as a drafted job's is.
    */
-  async importFile(file: string): Promise<Job> {
+  async importFile(file: string, drafting?: DraftRecord): Promise<Job> {
     const source = dirname(resolve(file));
     const parsed = await readJobFile(file);
     const job: Job = { ...parsed, id: await this.freshId(parsed.id) };
@@ -356,6 +357,9 @@ export class JobLibrary {
           );
         }
         await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
+      }
+      if (drafting !== undefined) {
+        await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(drafting));
       }
       if (tasks.length > 0) await this.installTasks(kept, tasks, transfer);
 

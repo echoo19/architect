@@ -8,13 +8,17 @@ import {
   slugify,
   type BlankAnswer,
   type ChatMessage,
+  type DraftOrganization,
   type DraftRecord,
   type DraftTurn,
+  type Job,
   type MentorAdapter,
   type MentorCompletionRequest,
   type MentorConfig,
+  type Organization,
   type PlaceholderAnswer,
   type RuleDetails,
+  type SplitConfig,
   type Task,
   type TaskSpec,
 } from '@architect/shared';
@@ -42,6 +46,16 @@ import {
   totalRows,
   type Attached,
 } from './files';
+import {
+  allTaught,
+  describeField,
+  makeFieldTasks,
+  readField,
+  sealedDetector,
+  taughtProblems,
+  writeJobFolder,
+  type FieldSource,
+} from './field';
 import type { RuleCase } from './rule/cases';
 import {
   auditSplits,
@@ -61,6 +75,7 @@ import {
   splitSizes,
   trainable,
   type Generation,
+  type TypeInput,
 } from './generate';
 import {
   answerMessage,
@@ -173,6 +188,8 @@ interface Session {
   markQuestions: number;
   spend: Spend;
   gate: MentorGate;
+  /** A field of several organizations, drafted from their folders (decision 083). */
+  field?: FieldSource;
   busy: boolean;
   touched: number;
 }
@@ -188,6 +205,8 @@ interface Built {
   seed: number;
   /** The tasks divided into the job's sets, or null when they can't be. */
   divided: Extract<Division, { kind: 'divided' }> | null;
+  /** For a field: the kinds of task, which each organization's tasks are made from. */
+  specs?: TypeInput[];
 }
 
 export interface DraftingOptions {
@@ -253,6 +272,61 @@ function modelOf(teacher: MentorConfig): string {
 }
 
 /**
+ * The job a draft describes, with the budget and evaluation the sample jobs ship with. `splits`
+ * holds the seed that divided its tasks safely, which the job divides them with again.
+ */
+function jobOf(
+  drafted: DraftedJob,
+  types: DraftedJob['types'],
+  attached: Attached,
+  made: { createdAt: string; splits: SplitConfig; organizations?: Organization[] },
+): Job {
+  const { splits } = made;
+  return JobSchema.parse({
+    format: 1,
+    id: slugify(drafted.name),
+    name: drafted.name,
+    description: drafted.description,
+    summary: drafted.summary,
+    does: drafted.does,
+    doesNot: drafted.doesNot,
+    createdAt: made.createdAt,
+    ...(drafted.businessDate === undefined ? {} : { businessDate: drafted.businessDate }),
+    taskTypes: types.map((type) => ({
+      id: type.id,
+      label: type.label,
+      ...(type.description === '' ? {} : { description: type.description }),
+    })),
+    data: {
+      files: attached.files.map((file) => {
+        const described = drafted.files.find((item) => item.name === file.name);
+        return {
+          name: file.name,
+          kind: file.kind,
+          access: described?.access ?? 'read',
+          ...(described?.description ? { description: described.description } : {}),
+        };
+      }),
+    },
+    permissions: { writes: 'ask', unseenFiles: 'never' },
+    checker: { kind: 'builtin' },
+    requirements: { passRate: drafted.passRate },
+    budget: BUDGET,
+    ...shippedModels(),
+    startingHarness: { kind: 'blank' },
+    splits,
+    evaluation: {
+      trainBatch: Math.min(12, splits.train),
+      minDevGain: Math.min(2, splits.dev),
+      maxTypeRegression: 1,
+      devRepeats: 1,
+      patience: 4,
+    },
+    ...(made.organizations === undefined ? {} : { organizations: made.organizations }),
+  });
+}
+
+/**
  * The conversation that drafts a job from a description and the person's own files (decision
  * 058). The teacher reads what the files hold and either asks one question or drafts; Architect
  * makes the tasks and every expected answer itself, then records the job so that saving it and
@@ -275,6 +349,43 @@ export class JobDrafting implements JobDrafter {
       openingMessage(description, describeAttached(attached)),
       false,
     );
+  }
+
+  /**
+   * Starts drafting a field of several organizations from their folders (decision 083). The
+   * teacher is told each taught organization's files, and nothing of the others: a request that
+   * names one is refused before it leaves. The first taught organization's files stand for the
+   * files' names and columns, which every organization shares.
+   */
+  async startField(
+    description: string,
+    organizations: readonly DraftOrganization[],
+    teacher: MentorConfig,
+  ): Promise<DraftTurn> {
+    if (description.trim() === '') throw new Error('Describe the job first.');
+    const field = await readField(organizations);
+    const all = allTaught(field);
+    const stop = textTooLong(all) ?? tooLittle(all);
+    if (stop !== null) return { sessionId: newId('drf'), message: stop, options: [], ended: true };
+    const names = field.taught.map((item) => item.org.name).join(', ');
+    const opening = openingMessage(
+      description,
+      [
+        `The agent serves several organizations of one field. Each keeps its own copy of the files below, and the agent reads the files of the organization a request is about. You are shown the files of the organizations it is taught on (${names}), each under its organization's name. Choose kinds of task that every organization's own files can answer. A rule can't be used here, since each organization keeps its own policy.`,
+        describeField(field),
+      ].join('\n\n'),
+    );
+    if (sealedDetector(field).scan(opening).leaked) {
+      return {
+        sessionId: newId('drf'),
+        message:
+          "The taught organizations' files name an organization you kept for the final test, so they can't be sent to the teacher. Take that name out of their files, then describe the field again.",
+        options: [],
+        ended: true,
+      };
+    }
+    const session = this.open(description, field.taught[0]?.attached ?? all, field);
+    return this.run(session, teacher, opening, false);
   }
 
   async reply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn> {
@@ -347,7 +458,7 @@ export class JobDrafting implements JobDrafter {
     return this.run(session, teacher, answerMessage(text, draftNow, mustDraft), mustDraft);
   }
 
-  private open(description: string, attached: Attached): Session {
+  private open(description: string, attached: Attached, field?: FieldSource): Session {
     const now = this.options.clock.now();
     for (const [id, session] of this.sessions) {
       if (!session.busy && now - session.touched > SESSION_IDLE_MS) this.sessions.delete(id);
@@ -372,10 +483,11 @@ export class JobDrafting implements JobDrafter {
       markQuestions: 0,
       spend,
       gate: new MentorGate({
-        leakDetector: NOTHING_SEALED,
+        leakDetector: field === undefined ? NOTHING_SEALED : sealedDetector(field),
         authorize: (maxUsd) => this.authorize(spend, maxUsd),
         onRefusal: () => undefined,
       }),
+      ...(field === undefined ? {} : { field }),
       busy: false,
       touched: now,
     };
@@ -622,6 +734,7 @@ export class JobDrafting implements JobDrafter {
         ? []
         : [{ id: type.id, label: type.label, description: type.description, spec: type.spec }],
     );
+    if (session.field !== undefined) return this.buildField(session.field, job, inputs, final);
     const tables = new Map(
       attached.files.flatMap((file) =>
         file.table === undefined ? [] : ([[file.name, file.table]] as const),
@@ -670,6 +783,42 @@ export class JobDrafting implements JobDrafter {
     };
   }
 
+  /**
+   * Holds a field's kinds of task to each taught organization's files, as `build` holds a job's to
+   * its files; its tasks are made once the draft is accepted (`draftedField`). A rule is sent back:
+   * each organization keeps its own policy, and one rule's numbers can't be right for them all.
+   */
+  private buildField(
+    field: FieldSource,
+    job: DraftedJob,
+    inputs: TypeInput[],
+    final: boolean,
+  ): { built: Built } | { problems: string[]; shown?: string[] } {
+    const rules = inputs.filter((input) => input.spec.template === 'rule');
+    if (rules.length > 0) {
+      return {
+        problems: rules.map(
+          (type) =>
+            `Task type "${type.id}" (${type.label}) is a rule, and a field of several organizations can't hold one: each organization keeps its own policy. Use a lookup, a filtered list or a group total, or leave it out.`,
+        ),
+      };
+    }
+    const found = taughtProblems(field, inputs, job.passRate, final);
+    if (found.problems.length > 0) return found;
+    return {
+      built: {
+        job,
+        source: 'generated',
+        tasks: [],
+        generation: null,
+        dropped: [],
+        seed: 0,
+        divided: null,
+        specs: inputs,
+      },
+    };
+  }
+
   /** The tasks divided into the job's sets, each of them safe from a copy, or what stops that. */
   private divideTasks(
     tasks: readonly Task[],
@@ -696,6 +845,9 @@ export class JobDrafting implements JobDrafter {
     built: Built,
     unasked: readonly MarkAsked[],
   ): Promise<DraftTurn> {
+    if (session.field !== undefined) {
+      return this.draftedField(session, session.field, teacher, built, unasked);
+    }
     const fitted = built.divided;
     if (fitted === null) {
       this.sessions.delete(session.id);
@@ -714,47 +866,9 @@ export class JobDrafting implements JobDrafter {
     const { job: drafted } = built;
     const kept = new Set(tasks.map((task) => task.type));
     const types = drafted.types.filter((type) => built.source === 'attached' || kept.has(type.id));
-    const job = JobSchema.parse({
-      format: 1,
-      id: slugify(drafted.name),
-      name: drafted.name,
-      description: drafted.description,
-      summary: drafted.summary,
-      does: drafted.does,
-      doesNot: drafted.doesNot,
+    const job = jobOf(drafted, types, session.attached, {
       createdAt: isoNow(this.options.clock),
-      ...(drafted.businessDate === undefined ? {} : { businessDate: drafted.businessDate }),
-      taskTypes: types.map((type) => ({
-        id: type.id,
-        label: type.label,
-        ...(type.description === '' ? {} : { description: type.description }),
-      })),
-      data: {
-        files: session.attached.files.map((file) => {
-          const described = drafted.files.find((item) => item.name === file.name);
-          return {
-            name: file.name,
-            kind: file.kind,
-            access: described?.access ?? 'read',
-            ...(described?.description ? { description: described.description } : {}),
-          };
-        }),
-      },
-      permissions: { writes: 'ask', unseenFiles: 'never' },
-      checker: { kind: 'builtin' },
-      requirements: { passRate: drafted.passRate },
-      budget: BUDGET,
-      ...shippedModels(),
-      startingHarness: { kind: 'blank' },
-      // The seed that divided the tasks safely, which is the one the job divides them with again.
       splits: { seed: fitted.seed, ...sizes },
-      evaluation: {
-        trainBatch: Math.min(12, sizes.train),
-        minDevGain: Math.min(2, sizes.dev),
-        maxTypeRegression: 1,
-        devRepeats: 1,
-        patience: 4,
-      },
     });
 
     const notes = [
@@ -806,6 +920,76 @@ export class JobDrafting implements JobDrafter {
     return {
       sessionId: session.id,
       message: this.draftMessage(unresolved, built.dropped),
+      options: [],
+      draft: created,
+    };
+  }
+
+  /**
+   * Records a field drafted from several organizations' folders (decision 083): each
+   * organization's tasks are made from the one specification the teacher drafted and that
+   * organization's own files, then the field is written as a job folder and imported, which seals
+   * the organizations the agent never sees with their tasks. What is kept beside the job names
+   * none of them.
+   */
+  private async draftedField(
+    session: Session,
+    field: FieldSource,
+    teacher: MentorConfig,
+    built: Built,
+    unasked: readonly MarkAsked[],
+  ): Promise<DraftTurn> {
+    const made = makeFieldTasks(field, built.specs ?? [], built.job.passRate, (list, config) =>
+      this.options.deps.runtime.splitTasks(list, config),
+    );
+    if (made.kind === 'ended') {
+      this.sessions.delete(session.id);
+      return { sessionId: session.id, message: made.message, options: [], ended: true };
+    }
+    const kept = new Set(made.types.map((type) => type.id));
+    const { job: drafted } = built;
+    const types = drafted.types.filter((type) => kept.has(type.id));
+    const job = jobOf(drafted, types, session.attached, {
+      createdAt: isoNow(this.options.clock),
+      splits: made.split,
+      organizations: [...field.taught, ...field.sealed].map((item) => item.org),
+    });
+    const { spend } = session;
+    const unresolved = [...drafted.unresolved, ...unasked.map(unaskedLine)];
+    const record: DraftRecord = {
+      format: 1,
+      source: 'generated',
+      createdAt: job.createdAt,
+      seed: made.split.seed,
+      teacher: { label: teacher.label, model: modelOf(teacher) },
+      cost: {
+        calls: spend.calls,
+        inputTokens: spend.inputTokens,
+        outputTokens: spend.outputTokens,
+        usd: spend.usd,
+      },
+      types: made.types,
+      unresolved,
+      notes: made.notes,
+      ...(session.answers.length > 0 ? { answers: session.answers } : {}),
+      files: field.taught.flatMap((item) =>
+        hashesOf(item.attached).map((file) => ({ ...file, name: `${item.org.id}/${file.name}` })),
+      ),
+    };
+    const folder = await writeJobFolder(job, [...made.taught, ...made.sealed], field);
+    let created: Job;
+    try {
+      created = await this.options.jobs.importFile(folder.file, record);
+    } finally {
+      await folder.remove();
+    }
+    this.sessions.delete(session.id);
+    const said = this.draftMessage(unresolved, []);
+    const review =
+      made.told.length > 0 && said === '' ? "I've drafted the job for you to review." : said;
+    return {
+      sessionId: session.id,
+      message: [...made.told, review].filter((part) => part !== '').join('\n\n'),
       options: [],
       draft: created,
     };

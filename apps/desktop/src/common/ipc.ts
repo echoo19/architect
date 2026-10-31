@@ -63,6 +63,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     exportFile: true,
     draftStart: true,
     draftReply: true,
+    draftField: true,
     taskPlan: true,
     confirmRules: true,
     study: true,

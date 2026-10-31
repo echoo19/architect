@@ -26,6 +26,7 @@ import {
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ArchitectApi,
+  type DraftOrganization,
   type Job,
   type ModelSource,
   type RunStartOptions,
@@ -119,6 +120,8 @@ export const flowApi = {
     read('files.pick', z.array(z.string()), bridge().files.pick(options)),
   draftStart: (description: string, files: string[]) =>
     read('jobs.draftStart', DraftTurnSchema, bridge().jobs.draftStart(description, files)),
+  draftField: (description: string, organizations: DraftOrganization[]) =>
+    read('jobs.draftField', DraftTurnSchema, bridge().jobs.draftField(description, organizations)),
   draftReply: (sessionId: string, text: string) =>
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),

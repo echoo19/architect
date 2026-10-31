@@ -3,6 +3,7 @@ import type {
   CheckOutcome,
   CheckResult,
   Decoding,
+  DraftOrganization,
   DraftTurn,
   FileDiff,
   FileEdit,
@@ -358,6 +359,11 @@ export interface LoopDeps {
  */
 export interface JobDrafter {
   start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
+  startField(
+    description: string,
+    organizations: readonly DraftOrganization[],
+    teacher: MentorConfig,
+  ): Promise<DraftTurn>;
   reply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn>;
 }
 

@@ -1,7 +1,12 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BLANK_ANSWERS, type DraftTurn, type MentorConfig } from '@architect/shared';
+import {
+  BLANK_ANSWERS,
+  type DraftOrganization,
+  type DraftTurn,
+  type MentorConfig,
+} from '@architect/shared';
 import { JobDrafting } from '../../src/drafting/drafter';
 import { createEngineDeps } from '../../src/host/wiring';
 import type { EngineHostDeps } from '../../src/loop/deps';
@@ -38,7 +43,7 @@ export interface DraftingWorld {
    * rule did with one before the question was asked, so a test that is about something else reads
    * as it always did. `marks: 'ask'` gives the conversation as it is, question and all.
    */
-  drafting: Pick<JobDrafting, 'start' | 'reply'>;
+  drafting: Pick<JobDrafting, 'start' | 'startField' | 'reply'>;
   /** The teachers the conversation created a mentor for, one per call. */
   teachers: MentorConfig[];
   /** Writes a file the person attaches and returns where it is. */
@@ -56,7 +61,7 @@ export function isMarkQuestion(turn: DraftTurn): boolean {
 }
 
 /** A person who answers each question about a mark the same way, whatever the mark. */
-class AnsweringMarks implements Pick<JobDrafting, 'start' | 'reply'> {
+class AnsweringMarks implements Pick<JobDrafting, 'start' | 'startField' | 'reply'> {
   constructor(
     private readonly real: JobDrafting,
     private readonly answer: string,
@@ -64,6 +69,14 @@ class AnsweringMarks implements Pick<JobDrafting, 'start' | 'reply'> {
 
   async start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn> {
     return this.answered(await this.real.start(description, files, teacher), teacher);
+  }
+
+  async startField(
+    description: string,
+    organizations: readonly DraftOrganization[],
+    teacher: MentorConfig,
+  ): Promise<DraftTurn> {
+    return this.answered(await this.real.startField(description, organizations, teacher), teacher);
   }
 
   async reply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn> {
