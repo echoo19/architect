@@ -2,12 +2,18 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), `examples/inventory-sample` (from `field/main` cf045f0b): the Inventory desk offered as a sample
+
+- *Done:* the Inventory desk is a sample the app offers, registered the way the Assay desk is: `inventory-desk` in `SampleJobSchema`, `inventoryJobFile` through the engine host's deps and wiring, the main process's resources, the engine link and the utility process; electron-builder ships `examples/inventory-desk/job` as `inventory-job`; the Lab's "Try a science lab" menu has it third ("Draws screening labs' compound stock for re-tests", warehouse icon).
+- *Tests:* engine `host.test.ts` (made with its three taught labs, Corvid Hill sealed); desktop `resources.test.ts`, `engine-link.test.ts`; hidden e2e `sample-science-lab.spec.ts` (screenshot `lab-science-dark.png` recaptured with the three choices) and packaged `packaging.spec.ts` (its checker and Corvid Hill's inventory ship).
+- *Open:* not calibrated. Not merged or pushed.
+
 ## 2026-10-31 (Sat), `examples/inventory-desk` (from `field/main` 8d89e93e): the Inventory desk, a compound store that chains with the Assay desk
 
 - *Done:* `examples/inventory-desk`, in the Assay desk's mould: the same four labs (Fenwick, Alder Row, Saltmarsh taught on; Corvid Hill never seen), built through `@architect/example-assay-desk` from its seeds, so the store holds every compound on the Assay desk's plates and its re-test lists are the Assay desk's own expected answers. Each lab has `inventory.csv` (volumes in its unit, some rows in another), `reservations.csv` and a policy.md in one of three styles (stock per re-test, days before expiry, first-expiring or largest lot first, combining lots, most reservations per compound, reason codes). Four skills, 8 per lab (128 tasks): `usable`, `pick_lot`, `allocate`, `reserve` (writes only `reservations.csv`, asked first), all checked by `checker.js`. Seeded generator, reference solver with built-in tools only (replayed through the engine's tools and checker), a hand-worked store. The Assay desk's index now exports the pieces the Inventory desk builds on (seeded stream, CSV, dates, JSON layout, the reference tools, re-test id numbering) instead of the Inventory desk copying them.
 - *The team demo:* the first `allocate` and `reserve` tasks at each lab take the longest list the Assay desk queues whole. Fenwick: FW-0418 sends FWC-13399 and FWC-13444; FWC-13399 has nothing to draw (LOW-VOLUME), FWC-13444 draws 20 µL from FL-04159 (VR-06:E08), reserved as HOLD-0163. The README has the full values and a test keeps them true.
 - *After review (GPT-6 Sol):* every list is now exactly one the Assay desk queues, within its cap per plate (Alder Row's had four where it queues three), and an `allocate` and a `reserve` task share each list; the reservation limit counts the rows a re-test would add, after the draw, worded one way in every policy style (Saltmarsh's two-lot draw for a compound with three rows is now LIMIT); new rows are graded against the lab's stated unit and date form; a compound with nothing to draw needs `draws: []`. Each has a regression test. Fenwick's demo values are unchanged.
-- *Open:* not registered as a sample in the app (that touches `SampleJobSchema`, the host's sample paths, the main process's resources, electron-builder, `ScienceLabButton` and their tests and e2e); import `job/job.json` to try it. Not calibrated. Not merged or pushed.
+- *Open:* not registered as a sample in the app (done in `examples/inventory-sample`, above). Not calibrated. Not merged or pushed.
 
 ## 2026-11-01 (Sun), `fix/cost-table` (from `field/main` 2103e41a): one cost per 1,000 requests, counted one way
 
