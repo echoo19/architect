@@ -1,6 +1,6 @@
 import { studentPricing, type StudentTarget } from '@architect/shared';
 import { ChoiceTiles, type ChoiceTile } from '@architect/ui';
-import { Cloud, Laptop } from 'lucide-react';
+import { Laptop, Server } from 'lucide-react';
 import { currentPlatform, deviceLabel } from '../../lib/platform';
 import {
   hostedFromChoice,
@@ -15,9 +15,13 @@ import type { InspectorTabProps } from './inspector-tabs';
 import { LocalServer } from './LocalServer';
 import { TYPING_PAUSE_MS } from './use-job-editor';
 
+/** Where the student may practice besides this computer: a hosted API or a cluster's server. */
+const HOSTED = 'Hosted or cluster endpoint';
+
 /**
- * The agent's model: the one it runs on here, where it practices, the online copy that practices
- * faster, and how much it reads at once.
+ * The agent's model: the one it runs on here, where it practices (this computer, or a hosted or
+ * cluster endpoint serving the same model: vLLM, SGLang, TGI or llama-server on a node as much as
+ * a hosted API), and how much it reads at once. The agent itself runs only here (invariant 3).
  */
 export function StudentTab({ editor, change }: InspectorTabProps) {
   const { job, issues } = editor;
@@ -29,8 +33,8 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
     { value: 'local', label: deviceLabel(currentPlatform()), icon: <Laptop strokeWidth={1.7} /> },
     {
       value: 'hosted',
-      label: 'Online copy',
-      icon: <Cloud strokeWidth={1.7} />,
+      label: HOSTED,
+      icon: <Server strokeWidth={1.7} />,
       disabled: hosted === undefined,
     },
   ];
@@ -58,10 +62,10 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
         <Issue error={issues['student.local.model']} />
       </section>
       <LocalServer editor={editor} change={change} />
-      <section aria-label="Runs on" className="flex flex-col gap-2">
-        <h3 className="m-0 text-small font-medium">Runs on</h3>
+      <section aria-label="Practices on" className="flex flex-col gap-2">
+        <h3 className="m-0 text-small font-medium">Practices on</h3>
         <ChoiceTiles
-          aria-label="Runs on"
+          aria-label="Practices on"
           columns={2}
           options={places}
           value={trainOn}
@@ -73,22 +77,22 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
           }
         />
       </section>
-      <section aria-label="Online copy" className="flex flex-col gap-2">
-        <h3 className="m-0 text-small font-medium">Online copy</h3>
+      <section aria-label={HOSTED} className="flex flex-col gap-2">
+        <h3 className="m-0 text-small font-medium">{HOSTED}</h3>
         <ModelPicker
           role="hosted"
-          aria-label="Online copy for practice"
+          aria-label={`${HOSTED} for practice`}
           current={hosted ?? null}
           none={{
             label: 'None',
             onChoose: () =>
-              change('Online copy', (current) => {
+              change(HOSTED, (current) => {
                 const { hosted: _previous, ...rest } = current.student;
                 return { ...current, student: { ...rest, trainOn: 'local' } };
               }),
           }}
           onChoose={(choice) =>
-            change('Online copy', (current) => ({
+            change(HOSTED, (current) => ({
               ...current,
               student: {
                 ...current.student,

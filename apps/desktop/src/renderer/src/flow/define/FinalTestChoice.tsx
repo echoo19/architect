@@ -5,11 +5,11 @@ import { modelNames } from '../names';
 import { finalTestFacts, FINAL_TEST_MARKS } from './final-test';
 import { aKey, providerName, type HostedAvailability } from './hosted';
 
-/** Why the online copy can't take the final test, said from inside Advanced settings. */
+/** Why the hosted or cluster endpoint can't take the final test, said from inside Advanced settings. */
 function unavailableReason(job: Job, hosted: Exclude<HostedAvailability, { available: true }>) {
   // The agent's model has its own tab, named for the model.
   const tab = modelNames(job).student;
-  if (hosted.why === 'no_host') return `Choose an online copy under ${tab} first`;
+  if (hosted.why === 'no_host') return `Choose a hosted or cluster endpoint under ${tab} first`;
   if (hosted.why === 'no_key' && job.student.hosted) {
     return `Add ${aKey(providerName(job.student.hosted))} under ${tab} first`;
   }
@@ -41,7 +41,11 @@ export function FinalTestChoice({ job, place, onPlaceChange, hosted }: FinalTest
           <span>{finalTestFacts(job, 'local')}</span>
           <span>{FINAL_TEST_MARKS.local}</span>
         </RadioCard>
-        <RadioCard value="hosted" title="On the online copy" unavailable={!hosted.available}>
+        <RadioCard
+          value="hosted"
+          title="On the hosted or cluster endpoint"
+          unavailable={!hosted.available}
+        >
           {hosted.available ? (
             <>
               <span>{finalTestFacts(job, 'hosted')}</span>

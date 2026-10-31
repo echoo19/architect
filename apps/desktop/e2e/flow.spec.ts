@@ -815,7 +815,7 @@ test('says what a run needs before it starts, with one action for each', async (
 
   // The teacher's key is one dialog away, opened on the teacher's own provider.
   await needs.getByRole('button', { name: 'Add a Meta key' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Add an API key' });
+  const dialog = page.getByRole('dialog', { name: 'Add a provider or endpoint' });
   await expect(dialog.getByRole('combobox', { name: 'Provider' })).toContainText('Meta');
   await stubEngine(app, {
     'connections:add': { secretRef: 'meta', models: 3 },
@@ -907,7 +907,7 @@ test('still asks for the model on this computer when practice and the final test
   const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
-  await where.getByRole('radio', { name: /On the online copy/ }).click();
+  await where.getByRole('radio', { name: /On the hosted or cluster endpoint/ }).click();
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
 
@@ -957,7 +957,7 @@ test('takes the final test on the online copy when asked', async () => {
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   const here = where.getByRole('radio', { name: /On this computer/ });
-  const online = where.getByRole('radio', { name: /On the online copy/ });
+  const online = where.getByRole('radio', { name: /On the hosted or cluster endpoint/ });
   await expect(here).toBeChecked();
   await expect(here).toContainText('About 2.5 hours for 60 tasks · Free');
   await expect(here).toContainText('The agent is marked ready when it passes.');
@@ -1110,9 +1110,9 @@ test('cannot take the final test online without an online copy to take it on', a
 
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
-  const online = where.getByRole('radio', { name: /On the online copy/ });
+  const online = where.getByRole('radio', { name: /On the hosted or cluster endpoint/ });
   await expect(online).toBeDisabled();
-  await expect(online).toContainText('Choose an online copy under Glimmer first');
+  await expect(online).toContainText('Choose a hosted or cluster endpoint under Glimmer first');
   await expect(where.getByRole('radio', { name: /On this computer/ })).toBeChecked();
 });
 

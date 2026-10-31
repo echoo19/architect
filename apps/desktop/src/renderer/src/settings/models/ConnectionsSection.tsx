@@ -84,7 +84,7 @@ export function ConnectionsSection({ connections, detecting }: ConnectionsSectio
         )}
         <Button size="sm" onClick={() => setAdding(true)}>
           <Plus size={14} aria-hidden />
-          Add API key
+          Add provider or endpoint
         </Button>
       </div>
       {signIn.state.phase === 'failed' && (
