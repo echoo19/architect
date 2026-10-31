@@ -1,12 +1,13 @@
 import type {
   AgentBlock,
   AgentStep,
+  Consultation,
   ReplyStep,
   TraceStep,
   WorkspaceMessage,
 } from '@architect/shared';
 import { settleMessage, type ReplyOutcome } from './messages';
-import type { NewStep } from './steps';
+import type { NewStep, StepList } from './steps';
 
 type ApprovalStatus = Extract<AgentBlock, { kind: 'approval' }>['status'];
 
@@ -25,7 +26,7 @@ export type PublishReply = (message: WorkspaceMessage, save: boolean) => void;
  * throttled: the first change at once, later ones together at most every 33 ms. Text from
  * separate model turns is kept, with a blank line between turns.
  */
-export class LiveReply {
+export class LiveReply implements StepList {
   private message: WorkspaceMessage;
   /** The reply's work as the model took it, saved with the reply when it settles. */
   private readonly work: ReplyStep[] = [];
@@ -106,6 +107,35 @@ export class LiveReply {
       true,
     );
     return true;
+  }
+
+  /** Changes the step of a tool call still running, such as a consultation as its teammate works. */
+  updateCall(callId: string, update: (step: AgentStep) => AgentStep): void {
+    const id = this.calls.get(callId);
+    if (id === undefined) return;
+    this.change(
+      { steps: this.message.steps.map((step) => (step.id === id ? update(step) : step)) },
+      true,
+    );
+  }
+
+  /**
+   * Keeps a consultation with the reply as it goes, under the step of the call that asked: its
+   * request, its teammate's work so far and, once it settles, what the lead got back.
+   */
+  recordConsultation(callId: string, consultation: Omit<Consultation, 'stepId'>): void {
+    const stepId = this.calls.get(callId);
+    if (stepId === undefined) return;
+    const kept = this.message.consultations ?? [];
+    const record = { stepId, ...consultation };
+    this.change(
+      {
+        consultations: kept.some((each) => each.stepId === stepId)
+          ? kept.map((each) => (each.stepId === stepId ? record : each))
+          : [...kept, record],
+      },
+      true,
+    );
   }
 
   addBlock(block: AgentBlock): void {
@@ -195,7 +225,7 @@ export class LiveReply {
 }
 
 /** A trace step as a reply keeps it: what was said, called and returned, without timings. */
-function replyStep(step: TraceStep): ReplyStep {
+export function replyStep(step: TraceStep): ReplyStep {
   switch (step.kind) {
     case 'model':
       return {

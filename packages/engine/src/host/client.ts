@@ -197,6 +197,12 @@ export function connectEngine(
       list: (runId) => request('reports.list', [runId]),
       comparisons: (runId) => request('reports.comparisons', [runId]),
     },
+    teams: {
+      list: () => request('teams.list', []),
+      create: (input) => request('teams.create', [input]),
+      update: (teamId, input) => request('teams.update', [teamId, input]),
+      remove: (teamId) => request('teams.remove', [teamId]),
+    },
     graduates: {
       list: () => request('graduates.list', []),
       accept: (runId) => request('graduates.accept', [runId]),

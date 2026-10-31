@@ -82,6 +82,8 @@ import {
   SampleAgentSchema,
   SampleJobSchema,
   StudentTargetSchema,
+  TeamInputSchema,
+  TeamSchema,
   StudyStateSchema,
   TaskListingSchema,
   TaskPlanSchema,
@@ -112,7 +114,7 @@ import { HubError, type HubErrorCode } from '../hub';
  */
 export type EngineApi = Pick<
   ArchitectApi,
-  'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates'
+  'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates' | 'teams'
 > & {
   jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply' | 'draftField' | 'importFile'> & {
     importFile(path: string): Promise<Job>;
@@ -404,6 +406,14 @@ export const ENGINE_ROUTES = {
   'reports.comparisons': route(z.tuple([id]), ComparisonReportSchema.nullable(), (api, [runId]) =>
     api.reports.comparisons(runId),
   ),
+  'teams.list': route(z.tuple([]), z.array(TeamSchema), (api) => api.teams.list()),
+  'teams.create': route(z.tuple([TeamInputSchema]), TeamSchema, (api, [input]) =>
+    api.teams.create(input),
+  ),
+  'teams.update': route(z.tuple([id, TeamInputSchema]), TeamSchema, (api, [teamId, input]) =>
+    api.teams.update(teamId, input),
+  ),
+  'teams.remove': route(z.tuple([id]), z.void(), (api, [teamId]) => api.teams.remove(teamId)),
   'graduates.list': route(z.tuple([]), z.array(GraduateSummarySchema), (api) =>
     api.graduates.list(),
   ),

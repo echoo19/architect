@@ -75,6 +75,10 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     next: 'Try again, or restart Architect if it keeps happening.',
   },
   process_closing: { cause: 'Architect is closing.' },
+  agent_in_team: {
+    cause: 'This agent is in a team.',
+    next: 'Take it out of the team in Models, Teams, first.',
+  },
 };
 
 /** The plain words for a failure that carries a code, or null for every other failure. */

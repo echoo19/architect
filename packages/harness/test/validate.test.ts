@@ -197,6 +197,18 @@ describe('validateHarnessFiles', () => {
       }
     });
 
+    it('refuses the name of the tool a team’s lead asks its teammates with', () => {
+      expect(
+        errorsFor({
+          ...base(),
+          'tools/ask_teammate.json': manifest('ask_teammate'),
+          'tools/ask_teammate.js': code,
+        }),
+      ).toEqual([
+        `tools/ask_teammate.json: "ask_teammate" is the tool a team's lead asks its teammates with. Pick a different name.`,
+      ]);
+    });
+
     it('wants function run( in the code', () => {
       expect(
         errorsFor({

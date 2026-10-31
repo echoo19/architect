@@ -42,6 +42,7 @@ import { improvementsOf } from '../improve/improvement';
 import { certificationView, discardCertification, planCertification } from '../loop/posthoc';
 import { qualificationView } from '../loop/qualify';
 import { TeachThis } from '../improve/teach-this';
+import { TeamLibrary } from '../teams/library';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
 import { JobRecordings } from '../drafting/recordings';
@@ -148,6 +149,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     return graduates.summary(graduateId);
   };
   const teachThis = new TeachThis({ store, jobs, deps, clock: ctx.clock });
+  const teams = new TeamLibrary({ store, clock: ctx.clock });
   const certifying = { store, paths, jobs, deps, clock: ctx.clock };
 
   /** The final tests the run has been put through again, local first. */
@@ -494,6 +496,12 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         await teachThis.shareCorrections(graduateId, allowed);
         return teachThis.overview(graduateId, controller.studentBusy());
       },
+    },
+    teams: {
+      list: async () => teams.list(),
+      create: async (input) => teams.create(input),
+      update: async (teamId, input) => teams.update(teamId, input),
+      remove: async (teamId) => teams.remove(teamId),
     },
     experiments: {
       plan: (input) => experiments.plan(input),

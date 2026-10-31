@@ -48,6 +48,18 @@ export interface ToolboxOptions {
   approveWrite?: ApproveWrite;
   /** Characters a result may take; longer results are cut with a note. */
   resultBudget?: number;
+  /**
+   * Tools this run offers besides the built-in and harness ones, such as `ask_teammate` in a
+   * team reply (decision 100). None may share a name with another tool.
+   */
+  extraTools?: readonly ExtraTool[];
+}
+
+/** A tool the runner offers one run on its own terms, outside the harness and the sandbox. */
+export interface ExtraTool {
+  spec: ToolSpec;
+  /** Runs one call. Mistakes the model can fix throw a `ToolError`. */
+  run(call: ToolCall, signal?: AbortSignal): Promise<ExecutorResult>;
 }
 
 /** What the table tools of the first runtime are called now, for harnesses written for them. */
@@ -69,6 +81,12 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
   }
   const clash = harness.tools.find((tool) => isBuiltinTool(tool.name));
   if (clash) throw new Error(`The harness tool ${clash.name} has the name of a built-in tool.`);
+  const extra = new Map((options.extraTools ?? []).map((tool) => [tool.spec.name, tool]));
+  for (const name of extra.keys()) {
+    if (isBuiltinTool(name) || harness.tools.some((tool) => tool.name === name)) {
+      throw new Error(`The tool ${name} has the name of another tool this run offers.`);
+    }
+  }
 
   const builtins = builtinExecutors({
     files,
@@ -86,6 +104,7 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
       description: tool.description,
       parameters: tool.parameters,
     })),
+    ...[...extra.values()].map((tool) => tool.spec),
   ];
 
   async function runHarnessTool(
@@ -105,6 +124,8 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
     if (isBuiltinTool(call.name) && (offered as readonly BuiltinToolName[]).includes(call.name)) {
       return builtins[call.name](call.arguments, signal);
     }
+    const offeredExtra = extra.get(call.name);
+    if (offeredExtra) return offeredExtra.run(call, signal);
     const tool = harnessTools.get(call.name);
     if (tool) return runHarnessTool(tool, call.arguments);
     const names = specs.map((spec) => spec.name).join(', ');

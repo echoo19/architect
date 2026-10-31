@@ -8,6 +8,7 @@ import {
   HarnessMetaSchema,
   HarnessToolSchema,
   isBuiltinTool,
+  isReservedToolName,
   RetrievalRuleSchema,
   RetrievalSchema,
   SkillSchema,
@@ -225,6 +226,10 @@ export function parseTool(
   const before = problems.length;
   if (isBuiltinTool(stem)) {
     problems.push(`${manifestFile}: "${stem}" is a built-in tool name. Pick a different name.`);
+  } else if (isReservedToolName(stem)) {
+    problems.push(
+      `${manifestFile}: "${stem}" is the tool a team's lead asks its teammates with. Pick a different name.`,
+    );
   }
   if (!RUN_FUNCTION.test(code)) {
     problems.push(`${codeFile}: does not define function run(args, ctx), which every tool needs.`);

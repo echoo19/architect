@@ -35,6 +35,7 @@ export const ERROR_CODES = [
   'process_restarting',
   'process_failed',
   'process_closing',
+  'agent_in_team',
 ] as const;
 
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
