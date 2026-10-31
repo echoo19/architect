@@ -139,6 +139,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           value="local"
           title={`Train on ${device}`}
           unavailable={localSlow !== null}
+          info={trainHereLine(job, { mentor, student }, device)}
           className="px-5 py-4"
         >
           <span>{perTask('local')}</span>
@@ -150,6 +151,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           value="hosted"
           title="Train online"
           unavailable={!hosted.available || remoteSlow !== null}
+          info={TRAIN_ONLINE_LINE}
           className="px-5 py-4"
         >
           <span>{perTask('hosted')}</span>
@@ -161,9 +163,6 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           )}
         </RadioCard>
       </RadioCardGroup>
-      <p className="m-0 text-small text-pretty">
-        {onHost ? TRAIN_ONLINE_LINE : trainHereLine(job, { mentor, student }, device)}
-      </p>
       <Collapse open={!fits}>
         {!fits && (
           <WontTeach

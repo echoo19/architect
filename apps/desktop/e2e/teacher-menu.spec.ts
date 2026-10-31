@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, MentorConfig } from '@architect/shared';
-import { goTo, launchApp, settle, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, startHeldBy, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, stubEngine } from './fixtures';
 import {
   startFakeStudent,
@@ -192,9 +192,11 @@ test("a kind switched off in the teacher's tab is still off when the job is open
   } satisfies Job);
 
   await goTo(page, `/jobs/${jobId}/define`);
-  // The teacher runs on this computer as well, so the note under the choice of a place can say
-  // that nothing leaves it; with an online teacher it says what goes online (`flow.spec.ts`).
-  await expect(page.getByText('Nothing leaves this computer.')).toBeVisible();
+  // The teacher runs on this computer as well, so the card for training here can say that
+  // nothing leaves it; with an online teacher it says what goes online (`flow.spec.ts`).
+  await page.getByRole('radio', { name: /Train on this computer/ }).hover();
+  await expect(page.getByRole('tooltip')).toContainText('Nothing leaves this computer.');
+  await page.mouse.move(0, 0);
   const { section } = await openTeacherTab(page);
   const small = section.getByRole('switch', { name: 'Small tools' });
   const questions = section.getByRole('switch', { name: 'Questions for you' });
@@ -247,9 +249,9 @@ test('the last switch that changes the agent stays on, and Start training says w
   await expect(needs).toContainText(
     'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
-  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-  // The footer says the same, beside the button that is held.
-  await expect(page.getByText("Spark can't change anything yet")).toHaveCount(2);
+  // The button that is held says the same when asked.
+  expect(await startHeldBy(page)).toBe("Spark can't change anything yet");
+  await expect(page.getByText("Spark can't change anything yet")).toHaveCount(1);
   // Nowhere does it say that nothing is permitted: the switch for the weights is on, and held.
   await expect(page.getByText('has nothing it may change')).toHaveCount(0);
 });

@@ -150,6 +150,23 @@ export async function infoTipText(
   return text;
 }
 
+/**
+ * Why Start training is held, from the tooltip on what wraps the disabled button, or null when
+ * it isn't held. The footer holds only its buttons, so a held one says why in its tooltip.
+ */
+export async function startHeldBy(page: Page): Promise<string | null> {
+  const start = page.getByRole('button', { name: 'Start training' });
+  if (await start.isEnabled()) return null;
+  const wrap = start.locator('xpath=..');
+  await wrap.focus();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  const text = (await tooltip.textContent()) ?? '';
+  await wrap.blur();
+  await expect(tooltip).toBeHidden();
+  return text;
+}
+
 /** Navigates by hash and waits until nothing on screen is still loading. */
 export async function goTo(page: Page, path: string): Promise<void> {
   await page.evaluate((hash) => {

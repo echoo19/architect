@@ -107,6 +107,16 @@ function capAmount(minutes: number): { amount: string; unit: 'hour' | 'minute' }
   return { amount: (minutes / 60).toFixed(1), unit: 'hour' };
 }
 
+/**
+ * A span of minutes in hours, as a figure: "96", "22.5", "0.8". Under a hundred hours it keeps a
+ * tenth, so a short limit never reads as zero.
+ */
+export function hoursFigure(minutes: number): string {
+  const hours = minutes / 60;
+  const rounded = hours >= 100 ? Math.round(hours) : Math.round(hours * 10) / 10;
+  return rounded.toLocaleString('en-US');
+}
+
 /** A time cap as people say it: "4 hours", "90 minutes", "2.5 hours". */
 export function capText(minutes: number): string {
   const { amount, unit } = capAmount(minutes);
@@ -177,7 +187,7 @@ export function placePhrase(place: TrainPlace, device: string): string {
 }
 
 /**
- * What the note under the choice says about what leaves this computer when training here. Training
+ * What the card for training here says, behind its info mark, about what leaves this computer. Training
  * always sends the teacher its view of the practice attempts (`DataSharingSchema`), so "nothing
  * leaves" is only true when the teacher runs on this computer as well. Any other teacher, a coding
  * agent included, is online, and the line says what goes there.
@@ -188,7 +198,7 @@ export function trainHereLine(job: Job, names: ModelNames, device: string): stri
     : `Only what ${names.mentor} reads to teach goes online.`;
 }
 
-/** What the note says when training happens online: the host gets the tasks and the files. */
+/** What the card for training online says: the host gets the tasks and the files. */
 export const TRAIN_ONLINE_LINE = 'Tasks and files go online.';
 
 /** Where the teacher works, as the start of a sentence about what it sees. */

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { Info } from 'lucide-react';
 import { RadioGroup } from 'radix-ui';
 import { cn } from '../lib/cn';
+import { Tooltip } from './tooltip';
 
 export interface RadioCardGroupProps<T extends string> {
   value: T;
@@ -46,6 +48,11 @@ export interface RadioCardProps {
    * it was: it is the one in use, and whatever is wrong with it is said beside the choice.
    */
   unavailable?: boolean;
+  /**
+   * One sentence about the choice, such as what goes online. An info mark follows the title, and
+   * the sentence shows when the card is hovered or focused, as an InfoTip's does.
+   */
+  info?: ReactNode;
   className?: string;
 }
 
@@ -55,9 +62,10 @@ export function RadioCard({
   children,
   disabled,
   unavailable,
+  info,
   className,
 }: RadioCardProps) {
-  return (
+  const card = (
     <RadioGroup.Item
       value={value}
       disabled={disabled || unavailable}
@@ -76,7 +84,10 @@ export function RadioCard({
           unavailable && 'group-data-[state=unchecked]:text-fg-dim',
         )}
       >
-        {title}
+        <span className="flex min-w-0 items-center gap-1.5">
+          {title}
+          {info && <Info size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />}
+        </span>
         <span
           aria-hidden
           className={cn(
@@ -88,5 +99,13 @@ export function RadioCard({
       </span>
       {children && <span className="flex flex-col gap-1.5 text-ui">{children}</span>}
     </RadioGroup.Item>
+  );
+  if (!info) return card;
+  // The tooltip hangs on a wrapper, so its open state never takes the radio's data-state; the
+  // radio's focus reaches it, so a keyboard opens it as a pointer does.
+  return (
+    <Tooltip content={<span className="block max-w-72 text-pretty">{info}</span>}>
+      <div className="grid">{card}</div>
+    </Tooltip>
   );
 }

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { JobSchema, type Job, type StudyBrief, type StudyState } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, startHeldBy, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { FLOW_ENGINE, recordedCalls, stubRecorded, taskPlan } from './fixtures-flow';
 
@@ -105,10 +105,8 @@ test('starts Academy desk from a fresh install and reaches the brief to confirm'
 
   const section = page.getByRole('region', { name: 'What Spark understood' });
   await expect(section).toBeVisible();
-  const start = page.getByRole('button', { name: 'Start training' });
-  await expect(start).toBeDisabled();
-  const waiting = page.getByText('Confirm the brief first', { exact: true });
-  await expect(waiting).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
+  expect(await startHeldBy(page)).toBe('Confirm the brief first');
   await section.getByRole('button', { name: 'Study the material' }).click();
   await expect(section.getByRole('article', { name: 'The brief' })).toBeVisible();
   // Nothing of the academy kept for the final test is on the page.
@@ -117,5 +115,5 @@ test('starts Academy desk from a fresh install and reaches the brief to confirm'
   await section.getByRole('button', { name: 'Confirm and continue' }).click();
   await expect(section.getByText('Confirmed on Oct 30')).toBeVisible();
   // The brief no longer holds training back; what's left is this stand-in computer's own setup.
-  await expect(waiting).toHaveCount(0);
+  expect(await startHeldBy(page)).not.toBe('Confirm the brief first');
 });
