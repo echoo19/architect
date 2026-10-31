@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), `certify/no-answer` (from `field/main`): no answer is never an agreed answer
+
+- *Done:* decision 099. cert-1 showed that k attempts that all gave no answer (out of steps, failed, nothing parseable) counted as k agreeing votes, so the request was answered and graded wrong instead of handed off. Now `gaveAnswer` decides whether an attempt has something to agree on; `vote` skips attempts without one; a sealed attempt with no answer is stored under the key `none`, and `scoreTask` skips it (and any stored attempt that stopped without answering or refusing). Calibration, the locked-test and never-seen checks, post-hoc certification, the agent host and `architect serve`'s certificate field all go through these. Statistics unchanged. `docs/CERTIFY.md` notes the rule.
+- *Tests:* engine `certify-run.test.ts`, `agent-host.test.ts`; CLI `serve.test.ts`.
+- *Open:* cert-1's certificate stands as run; it is not re-scored under the new rule, since that would not be a valid certificate. The next live certificate needs a fresh calibration set. Not merged or pushed.
+
 ## 2026-11-01 (Sun), `lab/new-model` (from `field/main`): carry a field to a new model
 
 - *Done:* decision 095, the first of `docs/RFS.md`'s order. "Move to another model" on a field's page and on a version's panel in Models makes the field's next version (089's machinery: `jobs.version_of`, now with a reason, `model`) on any model the existing picker lists. It starts from the carried version's harness folder (instructions, helpers, retrieval, verified lessons), the field's counterexamples, the same tasks, checker and study; `sealVersion` with no moved organization seals the final test and every never-seen organization again as they were. Its trainings become versions of the same agent; the existing promote and rollback are the switch and its undo, and across models they rebind the installation's model. The switch's confirm lists each organization's final test before and after with the change in points, and its toast has Undo. The report's "Before and after" now covers both reasons and each skill; the timeline has "Moved to <model>" both ways. Lab only for the move (the personal edition has no field page); the switch's confirm works in both editions.
