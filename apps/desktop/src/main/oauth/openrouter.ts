@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { assertInsideNetwork, type NetworkDeps } from '@architect/adapters';
 import { z } from 'zod';
 
 /** OpenRouter's PKCE flow for apps on the user's computer: https://openrouter.ai/docs/use-cases/oauth-pkce */
@@ -49,6 +50,11 @@ export interface OpenRouterSignInOptions {
   authorizeUrl?: string;
   exchangeUrl?: string;
   fetch?: typeof fetch;
+  /**
+   * The closed network (decision 098), checked again just before the key exchange, so a network
+   * switched on while the browser was open still holds.
+   */
+  network?: NetworkDeps;
   /** Random bytes, replaceable so tests can pin the PKCE values and the state. */
   random?: (size: number) => Buffer;
 }
@@ -217,7 +223,9 @@ async function exchange(
   url: string,
   fetchImpl: typeof fetch,
   signal: AbortSignal | undefined,
+  network: NetworkDeps | undefined,
 ): Promise<string> {
+  assertInsideNetwork(network, 'OpenRouter', url);
   const timeout = AbortSignal.timeout(EXCHANGE_TIMEOUT_MS);
   let response: Response;
   try {
@@ -226,6 +234,8 @@ async function exchange(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ code, code_verifier: verifier, code_challenge_method: 'S256' }),
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      // The code and its verifier go to OpenRouter and nowhere a redirect might point.
+      redirect: 'manual',
     });
   } catch (cause) {
     if (signal?.aborted) throw new SignInError('cancelled', 'The sign-in was cancelled.');
@@ -296,6 +306,7 @@ export async function signInWithOpenRouter(options: OpenRouterSignInOptions): Pr
         options.exchangeUrl ?? OPENROUTER_EXCHANGE_URL,
         options.fetch ?? fetch,
         options.signal,
+        options.network,
       );
     } catch (error) {
       await respond(NOT_FINISHED);

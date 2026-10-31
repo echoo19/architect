@@ -109,7 +109,13 @@ async function start(): Promise<void> {
   });
   const keys = (ref: string) => secrets.get(ref);
   const openLink = createLinkOpener((url) => shell.openExternal(url), launch.hidden);
-  const signIns = new SignIns((signal) => signInWithOpenRouter({ openBrowser: openLink, signal }));
+  const signIns = new SignIns((signal) =>
+    signInWithOpenRouter({
+      openBrowser: openLink,
+      signal,
+      network: { allowed: () => allowedHostsOf(settings.get().closedNetwork) },
+    }),
+  );
   registerAppHandlers(router, openLink);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);
