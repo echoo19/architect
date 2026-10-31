@@ -12,6 +12,8 @@ checker.js                   only for tasks that are checked by what the agent c
 
 The sample jobs are complete examples: `examples/home-services/job` (one organization, a checker) and `examples/academy/job` (Academy desk: four academies, one never seen).
 
+The sample jobs are complete examples: `examples/home-services/job` (one organization, a checker), `examples/academy/job` (Academy desk: four academies, one never seen) and `examples/assay-desk/job` (Assay desk: four screening labs, one never seen, with export files only some labs have).
+
 ## job.json
 
 Every field is checked against `JobSchema` in `packages/shared/src/job.ts` when the folder is imported. A file that fails says which field is wrong.

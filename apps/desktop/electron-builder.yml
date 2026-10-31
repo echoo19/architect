@@ -55,6 +55,15 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - orgs/**
+  # The Assay desk's job, a science lab sample: its tasks, checker and the four labs' files (one
+  # it is never taught on).
+  - from: ../../examples/assay-desk/job
+    to: assay-job
+    filter:
+      - job.json
+      - tasks.jsonl
+      - checker.js
+      - orgs/**
   # The ready-made agent: its package, and the records of the shop it was taught on. A build
   # without the package leaves it out (electron-builder only warns), and the app then doesn't
   # offer the agent.
