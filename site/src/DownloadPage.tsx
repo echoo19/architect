@@ -46,7 +46,7 @@ export function DownloadPage() {
         <h1 className="t-title enter text-center" style={beat(0)}>
           Download Architect
         </h1>
-        <p className="t-lead enter m-0 mt-4 max-w-[60ch] text-center" style={beat(1)}>
+        <p className="t-lead enter m-0 mt-4 max-w-[36ch] text-center sm:max-w-none" style={beat(1)}>
           One download, two editions: Architect for one job, Architect Lab for a whole field.
         </p>
         <ul
