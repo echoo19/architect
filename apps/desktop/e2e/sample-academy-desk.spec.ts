@@ -9,7 +9,7 @@ import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { FLOW_ENGINE, recordedCalls, stubRecorded, taskPlan } from './fixtures-flow';
 
 /*
- * Academy desk, the tutor, offered as a sample job on a fresh install, on a stand-in engine: choosing it
+ * Academy desk, the academy agent, offered as a sample job on a fresh install, on a stand-in engine: choosing it
  * makes the job, Define asks the teacher to study the academies' material, and training waits
  * until the person confirms the brief.
  */
