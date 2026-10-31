@@ -3,7 +3,7 @@ import {
   METHOD_LABELS,
   organizationNoun,
   type FieldView,
-  type Qualification,
+  type AddedQualification,
 } from '@architect/shared';
 import {
   Button,
@@ -165,7 +165,7 @@ export function Organizations({ field }: { field: FieldSummary }) {
 function QualifyCard({ field, org }: { field: FieldSummary; org: Sealed }) {
   const graduates = useGraduates();
   const [asking, setAsking] = useState<string | null>(null);
-  const of = (candidate: Candidate): Qualification | undefined =>
+  const of = (candidate: Candidate): AddedQualification | undefined =>
     field.view.qualifications?.find(
       (item) => item.runId === candidate.run.id && item.org === org.name,
     );
@@ -176,7 +176,7 @@ function QualifyCard({ field, org }: { field: FieldSummary; org: Sealed }) {
   const qualify = async (candidate: Candidate) => {
     setAsking(candidate.run.id);
     await attempt(`Couldn't qualify it at ${org.name}`, async () => {
-      await flowApi.qualify(candidate.run.id, org.name);
+      await flowApi.qualifyAdded(candidate.run.id, org.name);
       const view = await api.field(field.job.id);
       setQueryData(fieldKey(field.job.id), { ...field, view });
     });

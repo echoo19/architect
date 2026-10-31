@@ -31,7 +31,7 @@ import { isTerminal } from './plan';
 import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
 import { RepeatSession, repeatRefusal } from './repeat';
 import { CertifySession } from './posthoc';
-import { QualifySession, qualifyRefusal } from './qualify';
+import { AddedQualifySession, addedQualifyRefusal } from './qualify-added';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -89,7 +89,7 @@ type Turn =
   | { kind: 'repeat'; runId: string; target: StudentTarget }
   | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] }
   | { kind: 'certify'; runId: string; certificationId: string }
-  | { kind: 'qualify'; runId: string; orgId: string };
+  | { kind: 'qualify_added'; runId: string; orgId: string };
 
 /** A re-test's, a repeat's or a reference's key among the sessions holding a turn. */
 function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
@@ -102,8 +102,8 @@ function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
       return `${turn.runId}/reference/${turn.split}`;
     case 'certify':
       return `${turn.runId}/certify/${turn.certificationId}`;
-    case 'qualify':
-      return `${turn.runId}/qualify/${turn.orgId}`;
+    case 'qualify_added':
+      return `${turn.runId}/qualify-added/${turn.orgId}`;
   }
 }
 
@@ -405,9 +405,9 @@ export class RunController {
    * its job was made, named as the person named it (decision 085). It never changes the run, and
    * its results join the report's organizations. Asking again only resumes one an error paused.
    */
-  async qualify(runId: string, orgName: string): Promise<void> {
+  async qualifyAdded(runId: string, orgName: string): Promise<void> {
     const record = this.get(runId);
-    const refusal = qualifyRefusal(record);
+    const refusal = addedQualifyRefusal(record);
     if (refusal !== null) throw new Error(refusal);
     const { store, deps } = this.options;
     const org = (await deps.vault.addedOrganizations(record.run.jobId)).find(
@@ -416,8 +416,8 @@ export class RunController {
     if (org === undefined) {
       throw new Error(`No organization called ${orgName} was added to this run's field.`);
     }
-    const turn: Turn = { kind: 'qualify', runId, orgId: org.id };
-    const existing = store.qualifications.get(runId, org.id);
+    const turn: Turn = { kind: 'qualify_added', runId, orgId: org.id };
+    const existing = store.addedQualifications.get(runId, org.id);
     if (existing?.status === 'finished') {
       throw new Error(`This run's version was already qualified at ${orgName}.`);
     }
@@ -425,17 +425,17 @@ export class RunController {
       throw new Error(`This run's version is already being qualified at ${orgName}.`);
     }
     if (existing === null) {
-      store.qualifications.insert({
+      store.addedQualifications.insert({
         runId,
         orgId: org.id,
         orgName: org.name,
-        seq: store.qualifications.list(runId).length + 1,
+        seq: store.addedQualifications.list(runId).length + 1,
         status: 'testing',
         startedAt: isoNow(this.clock),
       });
     } else if (existing.status === 'paused') {
       const { error: _error, ...rest } = existing;
-      store.qualifications.update({ ...rest, status: 'testing' });
+      store.addedQualifications.update({ ...rest, status: 'testing' });
     }
     this.schedule(turn);
   }
@@ -542,8 +542,8 @@ export class RunController {
       const turn: Turn = { kind: 'certify', runId, certificationId: id };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
-    for (const { runId, orgId } of store.qualifications.withStatus('testing')) {
-      const turn: Turn = { kind: 'qualify', runId, orgId };
+    for (const { runId, orgId } of store.addedQualifications.withStatus('testing')) {
+      const turn: Turn = { kind: 'qualify_added', runId, orgId };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     this.pump();
@@ -732,8 +732,8 @@ export class RunController {
           ? new RepeatSession(context, turn.target)
           : turn.kind === 'certify'
             ? new CertifySession(context, turn.certificationId)
-            : turn.kind === 'qualify'
-              ? new QualifySession(context, turn.orgId)
+            : turn.kind === 'qualify_added'
+              ? new AddedQualifySession(context, turn.orgId)
               : new ReferenceSession(context, turn.split);
     const done = session
       .run()

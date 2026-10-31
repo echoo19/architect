@@ -43,7 +43,7 @@ import {
   StoredInstallationSchema,
   StoredPublicationSchema,
   StoredRepeatSchema,
-  StoredQualificationSchema,
+  StoredAddedQualificationSchema,
   StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
@@ -61,7 +61,7 @@ import {
   type StoredInstallation,
   type StoredPublication,
   type StoredRepeat,
-  type StoredQualification,
+  type StoredAddedQualification,
   type StoredRetest,
   type StoredRound,
   type StoredRun,
@@ -157,14 +157,14 @@ export interface EngineStore {
     withStatus(status: RetestStatus): StoredRetest[];
   };
   /** Frozen versions tested on organizations added to their field later (decision 085). */
-  qualifications: {
+  addedQualifications: {
     /** Fails if the run already has one at that organization. */
-    insert(qualification: StoredQualification): void;
-    update(qualification: StoredQualification): void;
-    get(runId: string, orgId: string): StoredQualification | null;
+    insert(qualification: StoredAddedQualification): void;
+    update(qualification: StoredAddedQualification): void;
+    get(runId: string, orgId: string): StoredAddedQualification | null;
     /** A run's, oldest first. */
-    list(runId: string): StoredQualification[];
-    withStatus(status: StoredQualification['status']): StoredQualification[];
+    list(runId: string): StoredAddedQualification[];
+    withStatus(status: StoredAddedQualification['status']): StoredAddedQualification[];
   };
   /** Locked tests taken again under the declared seeds a run deferred (decision 045). */
   repeats: {
@@ -577,7 +577,7 @@ function retestParams(retest: StoredRetest): Params {
   };
 }
 
-function qualificationParams(qualification: StoredQualification): Params {
+function addedQualificationParams(qualification: StoredAddedQualification): Params {
   return {
     run_id: qualification.runId,
     org_id: qualification.orgId,
@@ -588,8 +588,8 @@ function qualificationParams(qualification: StoredQualification): Params {
   };
 }
 
-function qualificationFromRow(row: Row): StoredQualification {
-  return StoredQualificationSchema.parse(fromJson(row.body));
+function addedQualificationFromRow(row: Row): StoredAddedQualification {
+  return StoredAddedQualificationSchema.parse(fromJson(row.body));
 }
 
 function retestFromRow(row: Row): StoredRetest {
@@ -1123,29 +1123,36 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
           .map(retestFromRow),
     },
 
-    qualifications: {
-      insert: (qualification) => sql.insert('qualifications', qualificationParams(qualification)),
+    addedQualifications: {
+      insert: (qualification) =>
+        sql.insert('added_qualifications', addedQualificationParams(qualification)),
       update: (qualification) =>
-        sql.update('qualifications', qualificationParams(qualification), ['run_id', 'org_id']),
+        sql.update('added_qualifications', addedQualificationParams(qualification), [
+          'run_id',
+          'org_id',
+        ]),
       get: (runId, orgId) => {
         const row = sql.one(
-          'SELECT * FROM qualifications WHERE run_id = :run_id AND org_id = :org_id',
+          'SELECT * FROM added_qualifications WHERE run_id = :run_id AND org_id = :org_id',
           { run_id: runId, org_id: orgId },
         );
-        return row ? qualificationFromRow(row) : null;
+        return row ? addedQualificationFromRow(row) : null;
       },
       list: (runId) =>
         sql
-          .all('SELECT * FROM qualifications WHERE run_id = :run_id ORDER BY seq', {
+          .all('SELECT * FROM added_qualifications WHERE run_id = :run_id ORDER BY seq', {
             run_id: runId,
           })
-          .map(qualificationFromRow),
+          .map(addedQualificationFromRow),
       withStatus: (status) =>
         sql
-          .all('SELECT * FROM qualifications WHERE status = :status ORDER BY started_at, rowid', {
-            status,
-          })
-          .map(qualificationFromRow),
+          .all(
+            'SELECT * FROM added_qualifications WHERE status = :status ORDER BY started_at, rowid',
+            {
+              status,
+            },
+          )
+          .map(addedQualificationFromRow),
     },
 
     repeats: {

@@ -1,6 +1,6 @@
-import type { Job, Organization, Qualification } from '@architect/shared';
+import type { Job, Organization, AddedQualification } from '@architect/shared';
 import { orgResults } from '../report/report-card';
-import type { StoredQualification, StoredRun } from '../store/records';
+import type { StoredAddedQualification, StoredRun } from '../store/records';
 import { configurationKey } from './configuration';
 import { errorMessage, isAbort, must } from './errors';
 import { evaluate } from './evaluation';
@@ -17,7 +17,7 @@ import { isoNow } from './time';
  */
 
 /** Why a run's frozen version can't be qualified on an organization added later, or null. */
-export function qualifyRefusal(record: StoredRun): string | null {
+export function addedQualifyRefusal(record: StoredRun): string | null {
   const { status } = record.run;
   if (status === 'stopped' || status === 'failed') {
     return 'This run ended without a frozen version, so there is nothing to qualify.';
@@ -33,7 +33,7 @@ export function qualifyRefusal(record: StoredRun): string | null {
 }
 
 /** A qualification as the app shows it: the organization by name, the score once finished. */
-export function qualificationView(stored: StoredQualification): Qualification {
+export function addedQualificationView(stored: StoredAddedQualification): AddedQualification {
   const { orgId: _orgId, orgName, seq: _seq, results, ...shown } = stored;
   return {
     ...shown,
@@ -54,7 +54,7 @@ function resultsAt(
   job: Job,
   org: Organization,
   state: RunState,
-  stored: StoredQualification,
+  stored: StoredAddedQualification,
   tasks: Parameters<typeof scenarios>[1],
 ) {
   const frozen = must(state.record.freeze, 'The frozen version');
@@ -79,7 +79,7 @@ function resultsAt(
  * an error pauses it. Like a re-test, it releases the mentor before anything else, having never
  * made one, and it never writes to the run.
  */
-export class QualifySession {
+export class AddedQualifySession {
   private readonly control: SessionControl = {
     pauseRequested: false,
     abort: new AbortController(),
@@ -98,7 +98,7 @@ export class QualifySession {
   async run(): Promise<void> {
     const { store, runId, jobs, deps } = this.ctx;
     const record = store.runs.get(runId);
-    const stored = store.qualifications.get(runId, this.orgId);
+    const stored = store.addedQualifications.get(runId, this.orgId);
     if (!record || stored?.status !== 'testing') return;
     let state: RunState | undefined;
     try {
@@ -131,8 +131,8 @@ export class QualifySession {
       });
       if (!finished) return;
       const results = resultsAt(state.job, org, state, stored, tasks);
-      store.qualifications.update({
-        ...must(store.qualifications.get(runId, this.orgId), 'The qualification'),
+      store.addedQualifications.update({
+        ...must(store.addedQualifications.get(runId, this.orgId), 'The qualification'),
         status: 'finished',
         endedAt: isoNow(this.ctx.clock),
         results,
@@ -151,8 +151,8 @@ export class QualifySession {
 
   private pause(message: string): void {
     const { store, runId, clock, emit } = this.ctx;
-    const stored = must(store.qualifications.get(runId, this.orgId), 'The qualification');
-    store.qualifications.update({ ...stored, status: 'paused', error: message });
+    const stored = must(store.addedQualifications.get(runId, this.orgId), 'The qualification');
+    store.addedQualifications.update({ ...stored, status: 'paused', error: message });
     emit({
       type: 'log',
       runId,

@@ -570,7 +570,7 @@ export interface ArchitectApi {
      * as the person named it, with no mentor (decision 085). Its results join the report's
      * organizations, marked as added later. Asking again only resumes one an error paused.
      */
-    qualify(runId: string, org: string): Promise<void>;
+    qualifyAdded(runId: string, org: string): Promise<void>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
     /**

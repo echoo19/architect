@@ -126,7 +126,7 @@ export function registerEngineHandlers(
     resume: (runId) => call((api) => api.runs.resume(runId)),
     stop: (runId) => call((api) => api.runs.stop(runId)),
     retest: (runId, target) => call((api) => api.runs.retest(runId, target)),
-    qualify: (runId, org) => call((api) => api.runs.qualify(runId, org)),
+    qualifyAdded: (runId, org) => call((api) => api.runs.qualifyAdded(runId, org)),
     get: (runId) => call((api) => api.runs.get(runId)),
     list: (jobId) => call((api) => api.runs.list(jobId)),
     attempt: (attemptId) => call((api) => api.runs.attempt(attemptId)),

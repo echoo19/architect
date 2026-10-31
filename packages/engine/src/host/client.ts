@@ -120,7 +120,7 @@ export function connectEngine(
       resume: (runId) => request('runs.resume', [runId]),
       stop: (runId) => request('runs.stop', [runId]),
       retest: (runId, target) => request('runs.retest', [runId, target]),
-      qualify: (runId, org) => request('runs.qualify', [runId, org]),
+      qualifyAdded: (runId, org) => request('runs.qualifyAdded', [runId, org]),
       get: (runId) => request('runs.get', [runId]),
       list: (jobId) => request('runs.list', [jobId ?? null]),
       attempt: (attemptId) => request('runs.attempt', [attemptId]),

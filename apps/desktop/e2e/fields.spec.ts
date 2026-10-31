@@ -180,7 +180,7 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
   const qualify = card('Maple Grove Academy');
   await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(2);
 
-  await stubRecorded(launched.app, 'runs:qualify', null);
+  await stubRecorded(launched.app, 'runs:qualifyAdded', null);
   await stubByKey(launched.app, 'jobs:field', {
     [LAB.tutorJob]: {
       ...added,
@@ -200,7 +200,7 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
     .getByRole('button', { name: /^Qualify Tutor/ })
     .first()
     .click();
-  expect(await recordedCalls(launched.app, 'runs:qualify')).toEqual([
+  expect(await recordedCalls(launched.app, 'runs:qualifyAdded')).toEqual([
     [LAB.tutorRun, 'Maple Grove Academy'],
   ]);
   await expect(qualify.getByLabel(/at Maple Grove Academy: 25 of 30$/)).toBeVisible();

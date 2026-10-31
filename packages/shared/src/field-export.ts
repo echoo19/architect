@@ -100,7 +100,7 @@ export type FieldFile = z.infer<typeof FieldFileSchema>;
  * A frozen version's locked test on an organization sealed after its job was made (decision
  * 085): queued or running, paused with the reason, or finished with its score there.
  */
-export const QualificationSchema = z.object({
+export const AddedQualificationSchema = z.object({
   runId: z.string(),
   /** The organization, by the name the person gave it. */
   org: z.string(),
@@ -111,7 +111,7 @@ export const QualificationSchema = z.object({
   /** Every task there, all skills together, once finished. */
   score: ScoreSchema.optional(),
 });
-export type Qualification = z.infer<typeof QualificationSchema>;
+export type AddedQualification = z.infer<typeof AddedQualificationSchema>;
 
 /**
  * What a field is made of, for the person's own page (the app, never a mentor): the
@@ -142,7 +142,7 @@ export const FieldViewSchema = z.object({
   /** Tasks in the locked test; null before the job's test split is sealed. */
   lockedTestTasks: z.number().int().nonnegative().nullable(),
   /** Each frozen version's test on an organization added later, by run and organization name. */
-  qualifications: z.array(QualificationSchema).optional(),
+  qualifications: z.array(AddedQualificationSchema).optional(),
 });
 export type FieldView = z.infer<typeof FieldViewSchema>;
 

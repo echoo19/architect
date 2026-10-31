@@ -164,7 +164,7 @@ describe('an organization added to a field later', () => {
       'Maple Grove',
     );
 
-    await api().runs.qualify(run.id, 'Maple Grove');
+    await api().runs.qualifyAdded(run.id, 'Maple Grove');
     expect(await settled(job.id)).toEqual([
       expect.objectContaining({
         runId: run.id,
@@ -181,7 +181,9 @@ describe('an organization added to a field later', () => {
     expect(store.reports.get(run.id, 'local')).toEqual(card);
     expect(report.test.score).toEqual(card?.test.score);
     store.close();
-    await expect(api().runs.qualify(run.id, 'Maple Grove')).rejects.toThrow(/already qualified/);
+    await expect(api().runs.qualifyAdded(run.id, 'Maple Grove')).rejects.toThrow(
+      /already qualified/,
+    );
 
     // A later run's mentor never sees it.
     world.mentor.requests.length = 0;

@@ -203,7 +203,7 @@ export type RetestStatus = StoredRetest['status'];
  * 085). Its attempts are the run's, under split `test` and round `seq`, which the run's own
  * locked test (round null) never uses, so its card and totals stay as they were.
  */
-export const StoredQualificationSchema = z.object({
+export const StoredAddedQualificationSchema = z.object({
   runId: z.string(),
   orgId: z.string(),
   orgName: z.string(),
@@ -215,7 +215,7 @@ export const StoredQualificationSchema = z.object({
   /** Each skill's result there, once finished. */
   results: z.array(OrgTypeResultSchema).optional(),
 });
-export type StoredQualification = z.infer<typeof StoredQualificationSchema>;
+export type StoredAddedQualification = z.infer<typeof StoredAddedQualificationSchema>;
 
 /**
  * A frozen version certified after the fact (decision 079). Its attempts are the run's, under

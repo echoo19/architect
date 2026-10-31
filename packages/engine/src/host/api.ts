@@ -29,7 +29,7 @@ import {
 } from '@architect/shared';
 import { reportBeside } from '../comparisons/records';
 import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
-import { qualificationView } from '../loop/qualify';
+import { addedQualificationView } from '../loop/qualify-added';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -104,7 +104,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     // version was qualified there (decision 085); the card as filed is left as it was.
     const added =
       target === record.lockedTestOn
-        ? store.qualifications.list(record.run.id).flatMap((item) => item.results ?? [])
+        ? store.addedQualifications.list(record.run.id).flatMap((item) => item.results ?? [])
         : [];
     return added.length === 0
       ? card
@@ -115,7 +115,9 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     const view = fieldView(await jobs.get(jobId), paths);
     const qualifications = store.runs
       .list(jobId)
-      .flatMap((record) => store.qualifications.list(record.run.id).map(qualificationView));
+      .flatMap((record) =>
+        store.addedQualifications.list(record.run.id).map(addedQualificationView),
+      );
     return qualifications.length === 0 ? view : { ...view, qualifications };
   };
   const lineageOf = (record: StoredRun) =>
@@ -415,7 +417,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),
       retest: (runId, target) => controller.retest(runId, target),
-      qualify: (runId, org) => controller.qualify(runId, org),
+      qualifyAdded: (runId, org) => controller.qualifyAdded(runId, org),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
       attempt,

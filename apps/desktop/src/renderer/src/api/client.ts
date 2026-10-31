@@ -181,7 +181,7 @@ export const flowApi = {
   /** Takes a finished run's frozen agent through its final test again on the other endpoint. */
   retest: (runId: string, target: StudentTarget) => bridge().runs.retest(runId, target),
   /** Tests a finished run's frozen agent on an organization added to its field later. */
-  qualify: (runId: string, org: string) => bridge().runs.qualify(runId, org),
+  qualifyAdded: (runId: string, org: string) => bridge().runs.qualifyAdded(runId, org),
   /** Seals a never-seen organization into a field from a folder the person picked. */
   addOrganization: (jobId: string, request: AddOrganizationRequest) =>
     read('jobs.addOrganization', FieldViewSchema, bridge().jobs.addOrganization(jobId, request)),
