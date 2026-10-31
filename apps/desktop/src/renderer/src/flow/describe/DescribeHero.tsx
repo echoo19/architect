@@ -150,6 +150,7 @@ export function DescribeHero() {
             <div className="flex flex-wrap items-center gap-2">
               <SampleJobButton size="sm" />
               {edition === 'lab' && <SampleJobButton size="sm" sample="academy" />}
+              {edition === 'lab' && <SampleJobButton size="sm" sample="assay-desk" />}
               <ReadyMadeAgentButton size="sm" />
               <ImportJobButton size="sm" />
               {edition === 'lab' && (

@@ -161,6 +161,7 @@ async function start(): Promise<void> {
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
           academyJobFile: resources.academyJobFile,
+          assayJobFile: resources.assayJobFile,
           sampleAgentFile: resources.sampleAgentFile,
           sampleAgentDataDir: resources.sampleAgentDataDir,
           trainerDir: resources.trainerDir,

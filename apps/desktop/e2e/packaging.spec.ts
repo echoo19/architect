@@ -45,6 +45,9 @@ test('runs from its archive, with the sandbox and the sample job beside it', asy
     // Tutor's job comes with all four academies, the one it is never taught on included.
     join(where.resources, 'academy-job', 'tasks.jsonl'),
     join(where.resources, 'academy-job', 'orgs', 'juniper', 'data', 'policy.md'),
+    // The Assay desk's job comes with all four labs, the one it never sees included.
+    join(where.resources, 'assay-job', 'tasks.jsonl'),
+    join(where.resources, 'assay-job', 'orgs', 'corvid-hill', 'data', 'orbit_export.csv'),
     // The data the ready-made agent works on always comes along.
     join(where.resources, 'sample-agent', 'data', 'orders.csv'),
   ]) {

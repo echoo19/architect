@@ -156,6 +156,19 @@ describe('the engine host', () => {
     expect((await client.jobs.createSample()).name).toBe('Service desk');
   });
 
+  it("makes the assay desk's sample job with its taught labs, and seals the one it never sees", async () => {
+    world.deps.assayJobFile = fileURLToPath(
+      new URL('../../../examples/assay-desk/job/job.json', import.meta.url),
+    );
+    const { client } = await connect();
+    const job = await client.jobs.createSample('assay-desk');
+    expect(job.name).toBe('Assay desk');
+    expect(job.organizations?.map((org) => org.id)).toEqual(['fenwick', 'alder-row', 'saltmarsh']);
+    const jobDir = new DataPaths(world.dataDir).jobDir(job.id);
+    expect(await readdir(join(jobDir, 'orgs'))).toEqual(['alder-row', 'fenwick', 'saltmarsh']);
+    expect(await readFile(join(jobDir, 'job.json'), 'utf8')).not.toMatch(/corvid/i);
+  });
+
   it('says on the report card that the final test of a drafted job was generated, and what drafting cost', async () => {
     const { client } = await connect();
     const job = await client.jobs.createSample();
