@@ -15,7 +15,12 @@ import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
 import type { RecordingQuote, TranscribeRequest } from './recordings';
 import type { StudyState } from './study';
-import type { AddOrganizationRequest, FieldExportManifest, FieldView } from './field-export';
+import type {
+  AddOrganizationRequest,
+  FieldExportManifest,
+  FieldView,
+  MoveToModelRequest,
+} from './field-export';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type {
@@ -578,6 +583,13 @@ export interface ArchitectApi {
      * what was measured on it stay as they were. Returns the new version's field.
      */
     teachOn(jobId: string, org: string): Promise<FieldView>;
+    /**
+     * Carries a field to another model in a new version (decision 094): a new job on the chosen
+     * model that starts from the field's harness, lessons, counterexamples, tasks and checker,
+     * with every never-seen organization and the final test sealed again as they were. The agent
+     * in use doesn't change. Returns the new version's field.
+     */
+    moveToModel(jobId: string, request: MoveToModelRequest): Promise<FieldView>;
     /**
      * The field export as it would be written now (decision 071), built and checked in memory
      * with nothing written: its counts and what it leaves out.

@@ -314,15 +314,33 @@ export const JobRecordSchema = z.object({
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   /**
-   * Set on a later version of a job, made by teaching on one of the job's never-seen
-   * organizations (decision 089): the job it came from, this one's version number and the
-   * organization moved from never seen to taught on.
+   * Set on a later version of a job: the job it came from, this one's version number, and why it
+   * was made. `organization`: one of the job's never-seen organizations moved to taught on
+   * (decision 089). `model`: the field carried to another model, its student's model before and
+   * after, and the agent version whose harness it starts from, when one did (decision 094).
+   * Records from before the reason was kept are all of the first kind.
    */
   versionOf: z
     .object({
       jobId: z.string(),
       version: z.number().int().min(2),
-      org: z.object({ id: z.string(), name: z.string() }),
+      reason: z.enum(['organization', 'model']).default('organization'),
+      org: z.object({ id: z.string(), name: z.string() }).optional(),
+      model: z
+        .object({
+          from: z.object({ model: z.string(), label: z.string() }),
+          to: z.object({ model: z.string(), label: z.string() }),
+          carried: z
+            .object({ graduateId: z.string(), version: z.number().int().positive() })
+            .optional(),
+        })
+        .optional(),
+    })
+    .refine((made) => (made.reason === 'organization') === (made.org !== undefined), {
+      message: 'names an organization exactly when one was moved',
+    })
+    .refine((made) => (made.reason === 'model') === (made.model !== undefined), {
+      message: 'names the models exactly when the field moved to another one',
     })
     .optional(),
 });

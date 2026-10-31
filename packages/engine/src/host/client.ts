@@ -114,6 +114,7 @@ export function connectEngine(
       field: (jobId) => request('jobs.field', [jobId]),
       addOrganization: (jobId, body) => request('jobs.addOrganization', [jobId, body]),
       teachOn: (jobId, org) => request('jobs.teachOn', [jobId, org]),
+      moveToModel: (jobId, body) => request('jobs.moveToModel', [jobId, body]),
       fieldAssets: (jobId) => request('jobs.fieldAssets', [jobId]),
       exportField: (jobId, directory) => request('jobs.exportField', [jobId, directory]),
       tasks: (jobId, split) => request('jobs.tasks', [jobId, split]),

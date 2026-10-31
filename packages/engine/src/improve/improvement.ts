@@ -20,7 +20,7 @@ import { formatUsd } from '../loop/budget';
 import { must } from '../loop/errors';
 import type { JobLibrary } from '../loop/jobs';
 import type { DataPaths } from '../loop/paths';
-import { laterVersions, newestVersion } from '../loop/job-versions';
+import { laterVersions, newestOnSameModel } from '../loop/job-versions';
 import { isTerminal } from '../loop/plan';
 import { TRAINING_ENDED, type RunState } from '../loop/run-state';
 import type { EngineStore } from '../store/engine-store';
@@ -65,8 +65,9 @@ function versionAdapter(
 /**
  * Checks that Improve agent can start on an agent and says what it starts from: an agent made
  * here from a job, its active version, and every lesson in its queue. One improvement at a time.
- * It teaches on the newest version of the agent's job, which may teach on organizations its own
- * job never saw (decision 089).
+ * It teaches on the newest version of the agent's job on the same model, which may teach on
+ * organizations its own job never saw (decision 089), and never on a version carried to another
+ * model unless the active version came from it (decision 094).
  */
 export function improvementPlan(
   store: EngineStore,
@@ -84,7 +85,10 @@ export function improvementPlan(
     agent.activeVersion === null ? null : store.versions.get(graduateId, agent.activeVersion),
     `${agent.name} has no active version to improve.`,
   );
-  const jobId = newestVersion(store, origin.run.jobId);
+  // The newest version on the model the active version runs on: one carried to another model
+  // teaches that model, and a version made there improves from there (decision 094).
+  const made = active.runId === undefined ? null : store.runs.get(active.runId);
+  const jobId = newestOnSameModel(store, made?.run.jobId ?? origin.run.jobId);
   if (
     improvementRuns(store, origin.run.jobId, graduateId).some(
       (record) => !isTerminal(record.run.status),

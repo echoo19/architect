@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { CheckOutcomeSchema } from './checker';
+import { StudentEndpointSchema } from './job';
 import { JsonValueSchema } from './json';
+import { loopbackEndpointIssue } from './net';
 import { ScoreSchema } from './lineage';
 
 /** The format of a field export's `MANIFEST.json` (docs/SCALE.md, the contract). */
@@ -147,16 +149,31 @@ export const FieldViewSchema = z.object({
     }),
   ),
   /**
-   * Set on a later version of a field, made by teaching on one of its never-seen organizations
-   * (decision 089): the field it came from, this one's version number and the organization moved.
+   * Set on a later version of a field: the field it came from and this one's version number, with
+   * why it was made. Teaching on one of its never-seen organizations names the organization moved
+   * (decision 089); moving it to another model names both models by their short names and the
+   * version whose harness it carried, when one did (decision 094).
    */
   versionOf: z
     .object({
       jobId: z.string(),
       name: z.string(),
       version: z.number().int().min(2),
-      org: z.string(),
+      org: z.string().optional(),
+      model: z
+        .object({
+          from: z.string(),
+          to: z.string(),
+          carried: z
+            .object({ graduateId: z.string(), version: z.number().int().positive() })
+            .optional(),
+        })
+        .optional(),
     })
+    .optional(),
+  /** The version made from this one, once there is one, and the model it moved to, if it did. */
+  nextVersion: z
+    .object({ jobId: z.string(), name: z.string(), model: z.string().optional() })
     .optional(),
   /** Tasks in the locked test; null before the job's test split is sealed. */
   lockedTestTasks: z.number().int().nonnegative().nullable(),
@@ -180,3 +197,23 @@ export const AddOrganizationRequestSchema = z
   })
   .strict();
 export type AddOrganizationRequest = z.infer<typeof AddOrganizationRequestSchema>;
+
+/**
+ * Carries a field to another model in its next version (decision 094): the model the agent runs
+ * on here, chosen from the models connected, its short name, and the version whose harness it
+ * starts from, else the newest version of the field an agent holds.
+ */
+export const MoveToModelRequestSchema = z
+  .object({
+    student: StudentEndpointSchema.superRefine((endpoint, context) => {
+      const issue = loopbackEndpointIssue(endpoint.baseUrl);
+      if (issue !== null) context.addIssue({ code: 'custom', path: ['baseUrl'], message: issue });
+    }),
+    label: z.string().trim().min(1).max(60),
+    from: z
+      .object({ graduateId: z.string().min(1), version: z.number().int().positive() })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type MoveToModelRequest = z.infer<typeof MoveToModelRequestSchema>;

@@ -413,6 +413,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         return fieldOf(jobId);
       },
       teachOn: async (jobId, org) => fieldOf((await jobs.teachOn(jobId, org)).id),
+      moveToModel: async (jobId, request) => fieldOf((await jobs.moveToModel(jobId, request)).id),
       quoteRecordings: (jobId, org, files) => recordings.quote(jobId, org, files),
       shareRecordings: (jobId, allowed) => recordings.share(jobId, allowed),
       transcribe: (jobId, request) => recordings.transcribe(jobId, request),

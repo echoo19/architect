@@ -12,7 +12,7 @@ import {
 import { SERVER_TURN } from '../graduates/library';
 import { ContractBook } from '../graduates/contracts';
 import { prepareGraduate } from '../graduates/graduation';
-import { registerVersion } from '../graduates/versions';
+import { nextVersion, registerVersion } from '../graduates/versions';
 import { computeReportCard, type TestResult } from '../report/report-card';
 import type {
   FrozenConfiguration,
@@ -34,6 +34,7 @@ import {
 import { certify } from './certify';
 import type { MentorReleased } from './deps';
 import { must } from './errors';
+import { carriedFrom } from './job-versions';
 import { evaluate, type EvaluationPurpose } from './evaluation';
 import { settleExperimentCompute } from './experiments';
 import type { RunState } from './run-state';
@@ -158,8 +159,12 @@ export async function freeze(state: RunState): Promise<void> {
     };
   }
   const frozen: GraduateFreeze = {
-    // An improvement makes a version of the agent it improves, never a new agent.
-    graduateId: state.record.improves?.graduateId ?? newId('grd'),
+    // An improvement makes a version of the agent it improves, never a new agent, and so does a
+    // version of a field carried to another model, of the agent it carried (decision 094).
+    graduateId:
+      state.record.improves?.graduateId ??
+      carriedFrom(state.ctx.store, state.run.jobId)?.graduateId ??
+      newId('grd'),
     harnessVersion: harness.meta.version,
     harnessHash: harness.meta.hash,
     student: pinOf(state, await (await state.resources.student('local')).describe()),
@@ -417,7 +422,8 @@ export async function lockedTestReport(
 }
 
 /**
- * Writes the graduate's version 1 and prepares its installation on this computer, then files the
+ * Writes the graduate's version 1, or the next version of the agent a field carried to another
+ * model started from, and prepares its installation on this computer, then files the
  * report card, records the version and finishes the run in one transaction.
  */
 async function graduate(
@@ -453,27 +459,49 @@ async function graduate(
     rounds: state.rounds().map(({ round }) => round),
     lineage: await state.lineage.read(),
   };
-  const { written, installation } = await prepareGraduate(store, paths, graduation);
-
-  const finished = store.transaction(() => {
-    store.reports.put(report);
-    registerVersion(store, paths, {
-      graduateId: frozen.graduateId,
-      name: job.name,
-      version: 1,
-      written,
-      runId,
-      state: 'candidate',
-      installation,
-      at: createdAt,
+  // Carried to another model, it becomes the next version of the agent it carried, beside the
+  // one in use (decision 094): the agent keeps answering on that one until the person switches.
+  const carried = carriedFrom(store, job.id);
+  const parent =
+    carried?.graduateId === frozen.graduateId
+      ? store.versions.get(carried.graduateId, carried.version)
+      : null;
+  const record = async () => {
+    const agent =
+      parent === null
+        ? undefined
+        : {
+            name: must(store.graduates.get(parent.graduateId), 'The carried agent').name,
+            version: nextVersion(store, parent.graduateId),
+            parent: { agentId: parent.graduateId, version: parent.version, digest: parent.digest },
+          };
+    const { written, installation } = await prepareGraduate(store, paths, {
+      ...graduation,
+      ...(agent === undefined ? {} : { agent }),
     });
-    return state.writeRun({
-      status: 'finished',
-      phase: 'done',
-      endedAt: createdAt,
-      graduateId: frozen.graduateId,
+    return store.transaction(() => {
+      store.reports.put(report);
+      registerVersion(store, paths, {
+        graduateId: frozen.graduateId,
+        name: agent?.name ?? job.name,
+        version: agent?.version ?? 1,
+        written,
+        ...(parent === null ? {} : { parent: parent.version }),
+        runId,
+        state: 'candidate',
+        installation,
+        at: createdAt,
+      });
+      return state.writeRun({
+        status: 'finished',
+        phase: 'done',
+        endedAt: createdAt,
+        graduateId: frozen.graduateId,
+      });
     });
-  });
+  };
+  const finished =
+    parent === null ? await record() : await state.ctx.libraryLock.run(parent.graduateId, record);
   state.emit({ type: 'run.updated', run: finished });
   state.emit({ type: 'graduate.ready', graduateId: frozen.graduateId });
 }

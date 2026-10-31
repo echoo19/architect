@@ -220,7 +220,12 @@ describe('Teach this', () => {
     if (record === null) throw new Error('No second version.');
     engine.store.jobs.update({
       ...record,
-      versionOf: { jobId: 'service-desk', version: 2, org: { id: 'hill', name: 'Hill' } },
+      versionOf: {
+        jobId: 'service-desk',
+        version: 2,
+        reason: 'organization',
+        org: { id: 'hill', name: 'Hill' },
+      },
     });
     world.vault.seal('service-desk-v2', [cohort]);
     const before = world.mentor.requests.length;
