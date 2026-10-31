@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { EvidenceResult, Job, RunDetail } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
@@ -57,6 +57,28 @@ async function openAt(path: string): Promise<void> {
   await goTo(page, path);
 }
 
+/**
+ * Scrolls the pane holding `region` so all of it is in view and the pane's top edge falls on the
+ * top of a row, so no row shows cut in half above it.
+ */
+async function showWhole(region: Locator): Promise<void> {
+  await region.evaluate((element) => {
+    let pane = element.parentElement;
+    while (
+      pane &&
+      !(pane.scrollHeight > pane.clientHeight && getComputedStyle(pane).overflowY !== 'visible')
+    ) {
+      pane = pane.parentElement;
+    }
+    if (!pane) return;
+    const bottom = element.getBoundingClientRect().bottom;
+    const rows = [...(element.parentElement?.children ?? [])];
+    const first =
+      rows.find((row) => bottom - row.getBoundingClientRect().top <= pane.clientHeight) ?? element;
+    pane.scrollTop += first.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+  });
+}
+
 const closedNetwork = () =>
   page.evaluate(() => window.architect.settings.get().then((settings) => settings.closedNetwork));
 
@@ -85,7 +107,7 @@ test('names the hosts teaching may reach, in Settings', async () => {
   await expect
     .poll(closedNetwork)
     .toEqual({ on: true, hosts: ['spark.lab.internal', 'vllm-7.lab.internal:8000'] });
-  await host.scrollIntoViewIfNeeded();
+  await showWhole(settings.getByRole('region', { name: 'Closed network' }));
   await capture('closed-network-settings-dark.png');
 
   await settings.getByRole('button', { name: 'Remove vllm-7.lab.internal:8000' }).click();

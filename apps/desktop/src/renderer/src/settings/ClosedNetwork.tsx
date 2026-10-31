@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { networkHostProblem, normalizeNetworkHost, type ClosedNetwork } from '@architect/shared';
-import { Button, IconButton, Input, SettingsRow, SettingsValue, Switch } from '@architect/ui';
+import {
+  Button,
+  IconButton,
+  Input,
+  SettingsRow,
+  SettingsSection,
+  SettingsValue,
+  Switch,
+} from '@architect/ui';
 import { Laptop, Server, X } from 'lucide-react';
 import type { TabProps } from './SettingsModal';
 
@@ -30,10 +38,10 @@ export function ClosedNetworkRows({ settings, update }: TabProps) {
   };
 
   return (
-    <>
+    <SettingsSection title="Closed network">
       <SettingsRow
-        label="Closed network"
-        meta="Teaching reaches only the hosts named here and this computer. Any other is refused before anything is sent."
+        label="Teaching reaches only these hosts"
+        meta="And this computer. Any other is refused before anything is sent."
       >
         <Switch
           aria-label="Closed network"
@@ -99,6 +107,6 @@ export function ClosedNetworkRows({ settings, update }: TabProps) {
           </form>
         </SettingsRow>
       )}
-    </>
+    </SettingsSection>
   );
 }
