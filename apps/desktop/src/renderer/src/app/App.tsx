@@ -84,7 +84,11 @@ function Screen({ route }: { route: Route }) {
     case 'compute':
       return (
         <WorkspaceShell route={route}>
-          <ComputeScreen />
+          <ComputeScreen
+            key={`${route.jobId ?? ''}/${route.model ?? ''}`}
+            jobId={route.jobId}
+            model={route.model}
+          />
         </WorkspaceShell>
       );
     case 'chat':

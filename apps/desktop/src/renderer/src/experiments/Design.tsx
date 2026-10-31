@@ -19,6 +19,7 @@ import {
 } from '@architect/ui';
 import {
   ClipboardCheck,
+  Cpu,
   FileLock2,
   FlaskConical,
   FolderOpen,
@@ -93,6 +94,8 @@ export function ExperimentDesign({
     undefined,
   );
   const id = detail?.experiment.id;
+  // A field of the library, whose weights arms can be planned on a cluster instead.
+  const fieldId = input?.jobId;
 
   useEffect(() => () => clearTimeout(pending.current?.timer), []);
 
@@ -238,10 +241,18 @@ export function ExperimentDesign({
               disabled: WEIGHT_ARMS.has(arm),
             }))}
           />
-          <p className="m-0 mt-4 flex items-center gap-2 text-small">
-            <Lock size={13} aria-hidden />
-            Adapters train and test on this computer&apos;s GPU, which experiments never use.
-          </p>
+          <div className="mt-4 flex items-center gap-4">
+            <p className="m-0 flex min-w-0 flex-1 items-center gap-2 text-small">
+              <Lock size={13} aria-hidden />
+              Adapters train and test on this computer&apos;s GPU, which experiments never use.
+            </p>
+            {fieldId !== undefined && (
+              <Button size="sm" onClick={() => navigate(paths.compute({ jobId: fieldId }))}>
+                <Cpu size={14} strokeWidth={1.8} aria-hidden />
+                Plan cluster training
+              </Button>
+            )}
+          </div>
         </Card>
         {input && detail && <PlanCard input={input} />}
         {problem && (

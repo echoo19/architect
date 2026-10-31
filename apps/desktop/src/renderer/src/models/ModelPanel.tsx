@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   BadgeCheck,
   Columns2,
+  Cpu,
   FileText,
   FolderTree,
   GitBranch,
@@ -216,6 +217,20 @@ function PanelHeader({
             Export
           </Button>
         )}
+        <Button
+          size="sm"
+          onClick={() =>
+            navigate(
+              paths.compute({
+                jobId: version.manifest.contract.jobId,
+                model: version.manifest.model.base.name,
+              }),
+            )
+          }
+        >
+          <Cpu size={14} strokeWidth={1.8} aria-hidden />
+          Plan cluster training
+        </Button>
       </div>
       {certifying && <CertifyDialog row={row} onClose={() => setCertifying(false)} />}
       {moving && active && (

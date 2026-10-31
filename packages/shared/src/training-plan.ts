@@ -26,7 +26,8 @@ export type TrainMethod = z.infer<typeof TrainMethodSchema>;
 export const TrainPrecisionSchema = z.enum(['bf16', 'fp16', 'fp32']);
 export type TrainPrecision = z.infer<typeof TrainPrecisionSchema>;
 
-export const ClusterTargetSchema = z.enum(['slurm', 'kubernetes']);
+/** Where a bundle runs: Slurm, a Kubernetes cluster's training operator, or SkyPilot on any cloud. */
+export const ClusterTargetSchema = z.enum(['slurm', 'kubernetes', 'skypilot']);
 export type ClusterTarget = z.infer<typeof ClusterTargetSchema>;
 
 const repoId = z.string().regex(/^[\w.-]+\/[\w.-]+$/);

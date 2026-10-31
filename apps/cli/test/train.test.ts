@@ -118,6 +118,23 @@ describe('architect train', () => {
     expect(bundle.field_export.declared_hash).toBe(sha('j'));
   });
 
+  it('writes a SkyPilot bundle and prints the command that launches it', async () => {
+    const env = await testEnv();
+    const out = join(await tempDir('out'), 'bundle');
+    const args = ['train', 'bundle', '--config', MOE, '--model', 'lab/moe', '--revision', COMMIT];
+    const result = await cli([...args, '--target', 'skypilot', '--output', out], { env });
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toContain('sky launch -c architect-train sky.yaml');
+    expect(existsSync(join(out, 'sky.yaml'))).toBe(true);
+
+    const unnamed = await cli(
+      [...args, '--gpu-memory', '96', '--target', 'skypilot', '--output', join(out, 'x')],
+      { env },
+    );
+    expect(unnamed.code).toBe(2);
+    expect(unnamed.stderr).toContain('SkyPilot launches GPUs by name');
+  });
+
   it('refuses what it can’t size or trace, with exit code 2', async () => {
     const env = await testEnv();
     const dir = await tempDir('cfg');

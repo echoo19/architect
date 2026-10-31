@@ -167,6 +167,8 @@ test('designs an experiment on a field of the library and shows its estimate bef
   for (const name of ['One-shot adapter', 'Failure-specific adapter']) {
     await expect(arms.getByRole('button', { name })).toBeDisabled();
   }
+  // The weights arms can't run here; a cluster plan for the field is one step away.
+  await expect(page.getByRole('button', { name: 'Plan cluster training' })).toBeVisible();
   await arms.getByRole('button', { name: 'Decoding repeat' }).click();
   await expect(arms.getByRole('button', { name: 'Decoding repeat' })).toHaveAttribute(
     'aria-pressed',

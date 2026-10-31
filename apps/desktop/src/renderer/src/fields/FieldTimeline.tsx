@@ -116,7 +116,7 @@ export function Timeline({
   const read = useQuery(`fieldTimeline:${field.job.id}`, () => readRecords(field), {
     refreshOnMount: true,
   });
-  const latest = useFieldExports((state) => state.latest[field.job.id]);
+  const latest = useFieldExports().find((item) => item.jobId === field.job.id);
   if (!read.data) {
     return read.status === 'error' ? (
       <ProblemState
@@ -128,7 +128,7 @@ export function Timeline({
       <Skeleton aria-busy="true" className="h-64 rounded-card" />
     );
   }
-  const exported = latest && { dir: latest.dir, at: new Date(latest.at).toISOString() };
+  const exported = latest && { dir: latest.dir, at: latest.at };
   const { entries, next } = fieldTimeline(field, { ...read.data, study, exported });
   const follow = (link: Link) => ('tab' in link.to ? openTab(link.to.tab) : navigate(link.to.path));
   const end = (link: Link) => (
