@@ -15,6 +15,7 @@ import { registerGraduateHandlers } from './handlers/graduates';
 import { registerOllamaHandlers } from './handlers/ollama';
 import { registerSecretsHandlers } from './handlers/secrets';
 import { registerSettingsHandlers } from './handlers/settings';
+import { registerTeamHandlers } from './handlers/teams';
 import { registerWorkspaceHandlers } from './handlers/workspace';
 import { IpcRouter } from './ipc/router';
 import { currentChoices } from './jobs/choices';
@@ -231,6 +232,7 @@ async function start(): Promise<void> {
     async () => currentChoices(settings, secrets),
   );
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
+  registerTeamHandlers(router);
   registerWorkspaceHandlers(router, (request) => agentHost.call(request), graduates);
   engine.start();
   stopOnQuit([agentHost, engine]);

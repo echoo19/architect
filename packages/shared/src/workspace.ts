@@ -42,8 +42,23 @@ export const LeafStepSchema = z.object({
 export type LeafStep = z.infer<typeof LeafStepSchema>;
 
 /**
+ * How a consultation ended, as the lead was told: the teammate answered, refused the request,
+ * finished without an answer it could give, failed, was stopped, or ran out of steps.
+ */
+export const ConsultationOutcomeSchema = z.enum([
+  'answered',
+  'refused',
+  'no_answer',
+  'error',
+  'stopped',
+  'out_of_steps',
+]);
+export type ConsultationOutcome = z.infer<typeof ConsultationOutcomeSchema>;
+
+/**
  * How a step shows what it did: the rows a table read showed, the code `run` ran and its output,
- * or, for a consultation, the teammate that answered, its version and its own steps.
+ * or, for a consultation, the teammate that answered, its version, its own steps and, once it
+ * has settled, how it ended.
  */
 export const StepViewSchema = z.discriminatedUnion('kind', [
   ...LeafStepViewSchema.options,
@@ -52,23 +67,29 @@ export const StepViewSchema = z.discriminatedUnion('kind', [
     graduateId: z.string(),
     version: z.number().int().positive(),
     steps: z.array(LeafStepSchema),
+    outcome: ConsultationOutcomeSchema.optional(),
   }),
 ]);
 export type StepView = z.infer<typeof StepViewSchema>;
 
-export const AgentStepSchema = z.object({
-  ...StepFields,
-  /**
-   * `wait`: the reply waits its turn for the GPU while another of Architect's processes has it;
-   * `detail` says for whom, and the step goes once the reply has the GPU. `attempt`: one of a
-   * certified version's k attempts at the request (decision 077); `detail` is its answer and
-   * `meta` whether it agrees with the most common one. `consult`: the lead asked a teammate
-   * (decision 100); `name` is the teammate, `detail` the request and `meta` its answer.
-   */
-  kind: z.enum(['skill', 'tool', 'wait', 'attempt', 'consult']),
-  /** What the step showed, for steps that have more than a summary. */
-  view: StepViewSchema.optional(),
-});
+export const AgentStepSchema = z
+  .object({
+    ...StepFields,
+    /**
+     * `wait`: the reply waits its turn for the GPU while another of Architect's processes has it;
+     * `detail` says for whom, and the step goes once the reply has the GPU. `attempt`: one of a
+     * certified version's k attempts at the request (decision 077); `detail` is its answer and
+     * `meta` whether it agrees with the most common one. `consult`: the lead asked a teammate
+     * (decision 100); `name` is the teammate, `detail` the request and `meta` its answer.
+     */
+    kind: z.enum(['skill', 'tool', 'wait', 'attempt', 'consult']),
+    /** What the step showed, for steps that have more than a summary. */
+    view: StepViewSchema.optional(),
+  })
+  .refine(
+    (step) => (step.kind === 'consult') === (step.view?.kind === 'consult'),
+    "A consultation, and only a consultation, shows a teammate's work.",
+  );
 export type AgentStep = z.infer<typeof AgentStepSchema>;
 
 export const RowDiffSchema = z.object({
@@ -176,6 +197,8 @@ export const ConsultationSchema = z.object({
   work: z.array(ReplyStepSchema),
   /** What the lead got back. */
   text: z.string(),
+  /** How it ended; absent while the teammate is still working. */
+  outcome: ConsultationOutcomeSchema.optional(),
 });
 export type Consultation = z.infer<typeof ConsultationSchema>;
 
@@ -205,8 +228,13 @@ export const WorkspaceMessageSchema = z.object({
   workedMs: z.number().int().nonnegative().optional(),
   /** The graduate version that answered. Absent on user messages and on replies from before versions. */
   graduateVersion: z.number().int().positive().optional(),
-  /** In a team chat, each time the reply asked a teammate, once the reply has settled. */
+  /** In a team chat, each time the reply asked a teammate, kept as each one goes. */
   consultations: z.array(ConsultationSchema).optional(),
+  /**
+   * A team reply (decision 100): its lead answered once, with its teammates' help, and no
+   * certificate covers that, whatever the lead's or teammates' versions carry.
+   */
+  team: z.literal(true).optional(),
 });
 export type WorkspaceMessage = z.infer<typeof WorkspaceMessageSchema>;
 

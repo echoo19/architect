@@ -174,9 +174,12 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     settings: true,
     updateSettings: true,
   },
+  teams: { list: true, create: true, update: true, remove: true },
   workspace: {
     listChats: true,
     createChat: true,
+    listTeamChats: true,
+    createTeamChat: true,
     messages: true,
     send: true,
     stop: true,

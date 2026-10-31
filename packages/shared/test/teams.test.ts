@@ -86,6 +86,22 @@ describe('team contracts', () => {
       view: { ...consult.view, steps: [{ ...consult, id: 'step-1' }] },
     };
     expect(AgentStepSchema.safeParse(deeper).success).toBe(false);
+    const settled = { ...consult, view: { ...consult.view, outcome: 'answered' } };
+    expect(AgentStepSchema.parse(settled).view).toMatchObject({ outcome: 'answered' });
+  });
+
+  it('shows a teammate’s work on a consultation and on nothing else', () => {
+    const { view } = AgentStepSchema.parse({
+      id: 'step-2',
+      kind: 'consult',
+      name: 'Sweep desk',
+      detail: 'Did warmup help?',
+      status: 'running',
+      view: { kind: 'consult', graduateId: 'grd_sweep', version: 1, steps: [] },
+    });
+    expect(AgentStepSchema.safeParse({ ...leaf('step-1'), view }).success).toBe(false);
+    const bare = { ...leaf('step-2'), kind: 'consult' };
+    expect(AgentStepSchema.safeParse(bare).success).toBe(false);
   });
 
   it('still reads messages and chats saved before teams', () => {
