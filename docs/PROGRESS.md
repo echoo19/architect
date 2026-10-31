@@ -2,6 +2,14 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat, afternoon), status (start the next session here)
+
+- *Merged since midday:* post-hoc certification (079, with its calibration set fingerprinted like the test); the app-wide rename to "Tutor" (no "Phil" anywhere in the repo); the developer browsers (084: a field's practice and check tasks, a run's attempts behind "Show all", a version's files read-only); one set of parts and calm motion across the app (40px pill strips everywhere, one `NavItem` with a sliding selection, page fades of 0.1 s, places rising 8px, flow steps sliding 24px, counting numbers; hidden runs and reduced motion stay instant; timings in `docs/DESIGN.md`). `pnpm check` passes (3,785 tests).
+- *In flight:* the third tutor run in `architect-runs/runtree` (round 1 kept, 25/72 to 34/72 on check tasks). Then certify its frozen tutor with decision 079 (rebuild `runtree` at the current tip first, between runs).
+- *Known flaky:* `packages/engine/test/comparison-protocol.test.ts` "resumes a repeat after a restart" failed once under full-suite load and passed alone; `editions.spec.ts` failed once while unit tests ran beside it.
+- *Gotcha:* a blanket `sed` across the repo also rewrites gitignored build outputs (`apps/desktop/out`, `apps/desktop/release`), including binaries. Limit replacements to tracked files (`git ls-files`). Run `pnpm build` and `pnpm package` again before a release.
+- *Next:* remaining audit gaps (add a sealed organization later and qualify on it; per-organization check scores while training; a model trained elsewhere back as a local OpenAI-compatible student; candidates in Models; the organization word from the job); watch the motion in a real window; the full stand-in e2e suite incl. `engine.spec.ts` and `hub.spec.ts`; PR to `main`; release 0.7.0; the film (owner).
+
 ## 2026-10-31 (Sat, afternoon), browsing tasks, attempts and files (branch `lab/browsers`)
 
 **Done** (no model was called, no GPU, no spend; decision 084)
