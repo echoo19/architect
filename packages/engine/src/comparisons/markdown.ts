@@ -1,5 +1,6 @@
 import {
   ARM_LABELS,
+  armInSentence,
   type ArmId,
   type ArmReport,
   type ArmRow,
@@ -165,7 +166,7 @@ function orgTable(rows: readonly ArmRow[]): string | null {
   for (const result of rows.flatMap((row) => row.perOrg ?? [])) {
     orgs.set(
       result.org,
-      `${result.orgName} (${result.seen ? 'trained on' : 'never seen'}, ${result.synthetic ? 'synthetic' : 'real'})`,
+      `${result.orgName} (${result.seen ? 'taught on' : 'never seen'}, ${result.synthetic ? 'synthetic' : 'real'})`,
     );
   }
   if (orgs.size === 0) return null;
@@ -195,7 +196,7 @@ function backendSection(backend: BackendTable, adapters: boolean): string {
     table(
       [
         'Arm',
-        `Locked test, seed ${seed} (95% Wilson)`,
+        `Final test, seed ${seed} (95% Wilson)`,
         'Target',
         'By type',
         'Refused',
@@ -293,11 +294,11 @@ function moneySection(report: ComparisonReport): string[] {
       ? `**Compute: ${usd4(totals.computeUsd)}.** ${totals.computeUsd === 0 ? 'No training job was paid for.' : 'The training jobs, as they ended.'}`
       : `**Compute: ${usd4(totals.computeUsd)} at most.** A training job had not ended, so this is its whole authorization and the cost may be lower.`,
     recorded === null
-      ? '**The hosted student, recorded by its attempts: unknown.** The cost of some attempt was not recorded.'
-      : `**The hosted student, recorded by its attempts: ${dollars(recorded)}.** The cost written down with each attempt, every dollar once: ${list(parts)}.`,
+      ? '**Hosted Glimmer, recorded by its attempts: unknown.** The cost of some attempt was not recorded.'
+      : `**Hosted Glimmer, recorded by its attempts: ${dollars(recorded)}.** The cost written down with each attempt, every dollar once: ${list(parts)}.`,
   ];
   const lead =
-    'What was spent, from the records. The projection made before the run is further down, apart from this, and none of it is counted here. The three figures for the hosted student count the same requests in different ways, so they are not added together.';
+    'What was spent, from the records. The projection made before the run is further down, apart from this, and none of it is counted here. The three figures for hosted Glimmer count the same requests in different ways, so they are not added together.';
   const bulleted = () => bullets.map((bullet) => `- ${bullet}`).join('\n');
   if (credit === null || credit.requests === 0) {
     return [lead, bulleted(), 'The request journal holds no hosted request.'];
@@ -311,19 +312,19 @@ function moneySection(report: ComparisonReport): string[] {
       : `${credit.billedRequests.toLocaleString('en-US')} of them billed by the provider and the rest at the listed price of the usage reported`;
   const held = credit.uncertainRequests + credit.inFlightRequests;
   bullets.push(
-    `**The hosted student, settled by the provider: ${dollars(settled)}.** The request journal's ${plural(settledRequests, 'request')} with a known charge, ${billed}.${
+    `**Hosted Glimmer, settled by the provider: ${dollars(settled)}.** The request journal's ${plural(settledRequests, 'request')} with a known charge, ${billed}.${
       recorded === null
         ? ''
         : ` That is ${against(settled - recorded)}${settled > recorded ? ': the journal writes down every request before it is sent, so it also holds requests that no recorded attempt keeps the cost of (an attempt that failed or was cut off and was made again)' : ''}.`
     }`,
     held === 0
-      ? '**The hosted student, uncertain: $0.0000.** No request was cut off.'
-      : `**The hosted student, uncertain: ${dollars(journal - settled)}.** The journal's ${plural(held, 'request')} that a crash or a failure cut off, whose charge is not known, ${held === 1 ? '' : 'each '}counted at the most it could have cost.`,
+      ? '**Hosted Glimmer, uncertain: $0.0000.** No request was cut off.'
+      : `**Hosted Glimmer, uncertain: ${dollars(journal - settled)}.** The journal's ${plural(held, 'request')} that a crash or a failure cut off, whose charge is not known, ${held === 1 ? '' : 'each '}counted at the most it could have cost.`,
   );
   return [
     lead,
     bulleted(),
-    `The journal counts ${dollars(journal)} in all, settled plus uncertain, of the ${usd(credit.capUsd)} set aside for the hosted student${recorded === null ? '' : `: ${against(journal - recorded)}`}.`,
+    `The journal counts ${dollars(journal)} in all, settled plus uncertain, of the ${usd(credit.capUsd)} set aside for hosted Glimmer${recorded === null ? '' : `: ${against(journal - recorded)}`}.`,
   ];
 }
 
@@ -339,8 +340,8 @@ function sweepLine(value: TaskSweep, about: string): string {
 function seedsParagraph(plan: ComparisonReport['plan'], arms: readonly ArmReport[]): string {
   const name = (id: ArmId) => arms.find((arm) => arm.arm === id)?.label ?? ARM_LABELS[id];
   const ran = plan.seedResults.filter((item) => item.arms.length > 0);
-  const declared = `Locked-test seeds declared in the plan before any arm ran: ${list(plan.testSeeds.map(String))}.`;
-  if (ran.length === 0) return `${declared} No locked test has run, so no seed has a result yet.`;
+  const declared = `Final-test seeds declared in the plan before any arm ran: ${list(plan.testSeeds.map(String))}.`;
+  if (ran.length === 0) return `${declared} No final test has run, so no seed has a result yet.`;
   const sentences = plan.seedResults.map((item, index) =>
     item.arms.length > 0
       ? `Seed ${item.seed} ran for ${list(item.arms.map(name))}.`
@@ -378,9 +379,9 @@ function frozenLines(
   const measured =
     local.length === 0
       ? hosted
-        ? 'All of its measurements here are from the hosted student; that local build was not measured.'
-        : 'It has no locked-test result here, so that local build was not measured either.'
-      : `Its locked test ${hosted ? 'also ' : ''}ran on this computer; see ${local.length === 1 ? 'the table' : 'the tables'} ${list(local.map((table) => `"${table.label}"`))}.`;
+        ? 'All of its measurements here are from hosted Glimmer; that local build was not measured.'
+        : 'It has no final-test result here, so that local build was not measured either.'
+      : `Its final test ${hosted ? 'also ' : ''}ran on this computer; see ${local.length === 1 ? 'the table' : 'the tables'} ${list(local.map((table) => `"${table.label}"`))}.`;
   return [
     `Frozen: harness version ${frozen.harnessVersion} (${short(frozen.harnessHash)})${adapter}.`,
     `Once installed, it is set to run on \`${frozen.localModel}\` on ${runtime}.`,
@@ -408,10 +409,10 @@ function keptCell(arm: ArmReport): string {
 
 /** How to read the development columns of the arms table, for the arms the report has. */
 function devNote(arms: readonly ArmReport[]): string {
-  const sentences = ['The first dev measurement is one run over the dev tasks.'];
+  const sentences = ['The first check-task measurement is one run over the check tasks.'];
   if (arms.some((arm) => arm.dev.kept !== null && arm.dev.kept.kind !== 'draft')) {
     sentences.push(
-      "A round that went through the keep rule is decided on its confirmation: the dev tasks again on new seeds, over more than one run, so its before and after are out of a larger total. Compare a round's before with its after, not with the first measurement.",
+      "A round that went through the keep rule is decided on its confirmation: the check tasks again on new seeds, over more than one run, so its before and after are out of a larger total. Compare a round's before with its after, not with the first measurement.",
     );
   }
   if (arms.some((arm) => arm.dev.kept?.kind === 'draft')) {
@@ -434,7 +435,7 @@ export function renderMarkdown(report: ComparisonReport): string {
     );
   }
   parts.push(
-    `Made ${report.generatedAt}${report.commit === null ? '' : ` at commit ${report.commit}`}, from stored records only. Splits seed ${report.job.splitsSeed}: ${report.job.counts.calibration} calibration, ${report.job.counts.train} train, ${report.job.counts.dev} dev and ${report.job.counts.test} locked-test tasks. Mentoring seed ${report.plan.mentoringSeed}. ${report.plan.releasedAt === null ? 'Development is still open: no locked test has been released.' : `Development closed at ${report.plan.releasedAt}, when the locked tests were released; no arm developed after it.`}`,
+    `Made ${report.generatedAt}${report.commit === null ? '' : ` at commit ${report.commit}`}, from stored records only. Splits seed ${report.job.splitsSeed}: ${report.job.counts.calibration} calibration, ${report.job.counts.train} train, ${report.job.counts.dev} check and ${report.job.counts.test} final-test tasks. Mentoring seed ${report.plan.mentoringSeed}. ${report.plan.releasedAt === null ? 'Development is still open: no final test has been released.' : `Development closed at ${report.plan.releasedAt}, when the final tests were released; no arm developed after it.`}`,
   );
   parts.push(seedsParagraph(report.plan, report.arms));
   // What the plan never asked for is said to be not run, so a reader doesn't look for it.
@@ -457,14 +458,14 @@ export function renderMarkdown(report: ComparisonReport): string {
     parts.push(
       sweepLine(
         report.calibration,
-        'the bare student on the calibration tasks, run first to price an attempt',
+        'Glimmer alone on the calibration tasks, run first to price an attempt',
       ),
     );
   if (report.regression !== null)
     parts.push(
       sweepLine(
         report.regression,
-        'the bare student on dev tasks of a second job, to check the runtime',
+        'Glimmer alone on check tasks of a second job, to check the runtime',
       ),
     );
 
@@ -479,8 +480,8 @@ export function renderMarkdown(report: ComparisonReport): string {
         'Arm',
         'Status',
         'Rounds used of the most allowed, and why training ended',
-        'Dev, first measurement',
-        'Dev, last kept round: before to after',
+        'Check tasks, first measurement',
+        'Check tasks, last kept round: before to after',
       ],
       report.arms.map((arm) => [
         String(arm.priority),
@@ -499,7 +500,7 @@ export function renderMarkdown(report: ComparisonReport): string {
         '#',
         'Arm',
         'Spark: spent of its cap, tokens',
-        'Student: spent of its cap, attempts',
+        'Glimmer: spent of its cap, attempts',
         'Compute',
         'Examples / trained tokens',
       ],
@@ -522,7 +523,7 @@ export function renderMarkdown(report: ComparisonReport): string {
       ...(arm.cumulative === null || arm.cumulative.builtOn.length === 0
         ? []
         : [
-            `Its graduate's cumulative development cost, with the ${arm.cumulative.builtOn.map((other) => ARM_LABELS[other].toLowerCase()).join(' and ')} arm's: Spark ${usd(arm.cumulative.sparkUsd)}, student ${usd(arm.cumulative.studentUsd)}, compute ${usd(arm.cumulative.computeUsd)}.`,
+            `Its graduate's cumulative development cost, with the ${arm.cumulative.builtOn.map((other) => armInSentence(ARM_LABELS[other])).join(' and ')} arm's: Spark ${usd(arm.cumulative.sparkUsd)}, Glimmer ${usd(arm.cumulative.studentUsd)}, compute ${usd(arm.cumulative.computeUsd)}.`,
           ]),
       ...frozenLines(arm, adapters, report.backends),
       ...arm.experiments.map((experiment) => {
@@ -532,20 +533,20 @@ export function renderMarkdown(report: ComparisonReport): string {
         const reason = experiment.reason.endsWith('.')
           ? experiment.reason
           : `${experiment.reason}.`;
-        return `Round ${experiment.round} (${experiment.kind}) ${experiment.disposition}: ${experiment.title}. ${reason}${regressed === '' ? '' : ` Dev regressed on ${regressed}.`}`;
+        return `Round ${experiment.round} (${experiment.kind}) ${experiment.disposition}: ${experiment.title}. ${reason}${regressed === '' ? '' : ` Check tasks regressed on ${regressed}.`}`;
       }),
     ];
     if (lines.length > 0) parts.push(`**${arm.label}.** ${lines.join(' ')}`);
   }
 
-  parts.push('## Locked test, one table per backend');
-  if (report.backends.length === 0) parts.push('No locked test has run yet.');
+  parts.push('## Final test, one table per backend');
+  if (report.backends.length === 0) parts.push('No final test has run yet.');
   for (const backend of report.backends) parts.push(backendSection(backend, adapters));
 
   if (report.adapters.length > 0) {
     parts.push('## Development only: adapter configurations on one llama-server');
     parts.push(
-      'Dev measurements the keep rule picked from, and smoke checks on train tasks. None of these is a locked result, and none is claimed.',
+      'Check-task measurements the keep rule picked from, and smoke checks on train tasks. None of these is a final-test result, and none is claimed.',
     );
     parts.push(
       table(
@@ -568,7 +569,7 @@ export function renderMarkdown(report: ComparisonReport): string {
           String(cell.harnessVersion),
           cell.adapter === null ? 'none' : `${cell.adapter.id} at ${cell.adapter.scale}`,
           cell.seeds.join(', '),
-          cell.split === 'dev' ? 'dev' : 'train (smoke check)',
+          cell.split === 'dev' ? 'check tasks' : 'train (smoke check)',
           count(cell.score),
           `${seconds(cell.latencyMs.p50)} / ${seconds(cell.latencyMs.p95)}`,
           cell.provenance,
@@ -601,7 +602,7 @@ export function renderMarkdown(report: ComparisonReport): string {
           'Hosted attempts',
           'Local attempts',
           'Spark calls / tasks',
-          'Projected student',
+          'Projected Glimmer',
           'Projected Spark',
           'Projected compute',
           'Local GPU',
@@ -623,7 +624,7 @@ export function renderMarkdown(report: ComparisonReport): string {
       ),
     );
     parts.push(
-      `Projected for the funded arms: student ${usd(projection.funded.studentUsd)} of ${usd(projection.caps.studentUsd)}, Spark ${usd(projection.funded.sparkUsd)} of ${usd(projection.caps.sparkUsd)}, compute ${usd(projection.funded.computeUsd)} of ${usd(projection.caps.computeUsd)}, local GPU ${Math.ceil(projection.funded.localMinutes)} of ${Math.floor(projection.caps.localMinutes)} minutes, about ${Math.ceil(projection.funded.wallMinutes)} minutes of wall clock.`,
+      `Projected for the funded arms: Glimmer ${usd(projection.funded.studentUsd)} of ${usd(projection.caps.studentUsd)}, Spark ${usd(projection.funded.sparkUsd)} of ${usd(projection.caps.sparkUsd)}, compute ${usd(projection.funded.computeUsd)} of ${usd(projection.caps.computeUsd)}, local GPU ${Math.ceil(projection.funded.localMinutes)} of ${Math.floor(projection.caps.localMinutes)} minutes, about ${Math.ceil(projection.funded.wallMinutes)} minutes of wall clock.`,
     );
   }
 
