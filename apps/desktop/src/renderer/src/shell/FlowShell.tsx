@@ -3,6 +3,7 @@ import { cn, IconButton, ProgressStepper, StepTransition, travel, useTravel } fr
 import { X } from 'lucide-react';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from './edition';
 
 const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Results'] as const;
 export type FlowStep = (typeof FLOW_STEPS)[number];
@@ -22,8 +23,10 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   actions?: ReactNode;
   /** A bar pinned under the content, such as Back and Start training. */
   footer?: ReactNode;
-  /** What the close button does; going home when absent. */
+  /** What the close button does; going home when absent, or to `field` in the Lab. */
   onClose?: () => void;
+  /** The field the screen is about, by its job's id: the Lab's close goes back to its page. */
+  field?: string | undefined;
   /** A panel at the content's right, such as an inspector, between the header and the footer. */
   aside?: ReactNode;
   children: ReactNode;
@@ -47,9 +50,12 @@ export function FlowShell<Step extends string = FlowStep>({
   actions,
   footer,
   onClose,
+  field,
   aside,
   children,
 }: FlowShellProps<Step>) {
+  const edition = useEdition();
+  const back = field !== undefined && edition === 'lab' ? paths.field(field) : paths.home();
   const pills: readonly string[] = steps ?? FLOW_STEPS;
   const index = pills.indexOf(step);
   const direction = useTravel(step, index, travel(lastStep, index));
@@ -65,7 +71,7 @@ export function FlowShell<Step extends string = FlowStep>({
       */}
       <header className="app-drag grid min-h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2">
         <div className={cn('flex min-w-0 items-center gap-2', isMac() && 'pl-17')}>
-          <IconButton label="Close" onClick={onClose ?? (() => navigate(paths.home()))}>
+          <IconButton label="Close" onClick={onClose ?? (() => navigate(back))}>
             <X size={18} strokeWidth={1.8} aria-hidden />
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>
