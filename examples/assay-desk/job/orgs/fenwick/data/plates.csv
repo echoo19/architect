@@ -1,0 +1,9 @@
+plate_id,layout,instrument,read_on,export_file
+FW-0411,384,Kestrel HT,2026-10-06,kestrel_export.csv
+FW-0412,384,Kestrel HT,2026-10-06,kestrel_export.csv
+FW-0413,96,Kestrel HT,2026-10-06,kestrel_export.csv
+FW-0414,96,Lumen 3,2026-10-08,lumen_export.csv
+FW-0415,384,Lumen 3,10/8/2026,lumen_export.csv
+FW-0416,96,Lumen 3,08-Oct-2026,lumen_export.csv
+FW-0417,96,Kestrel HT,2026-10-12,kestrel_export.csv
+FW-0418,96,Lumen 3,2026-10-12,lumen_export.csv

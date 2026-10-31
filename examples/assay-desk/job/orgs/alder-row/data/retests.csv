@@ -1,0 +1,6 @@
+retest_id,plate_id,compound_id,reason,requested_on
+R-101,AR-2193,,qc,2026-10-04
+R-102,AR-2200,ARX018402,edge,2026-10-08
+R-103,AR-2200,ARX018404,rep,2026-10-08
+R-104,AR-2207,,qc,2026-10-14
+R-105,AR-2214,ARX000486,edge,2026-10-14

@@ -3,7 +3,7 @@ import { Button, EmptyState, Skeleton, Stagger } from '@architect/ui';
 import { LayoutGrid } from 'lucide-react';
 import { useGraduates, useJobs, useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
-import { SampleJobButton } from '../flow/describe/SampleJobButton';
+import { SampleJobButton, ScienceLabButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import {
   AgentsCard,
@@ -137,7 +137,7 @@ function NothingYet() {
             Describe a field
           </Button>
           <SampleJobButton size="md" sample="academy" />
-          <SampleJobButton size="md" sample="sweep-desk" />
+          <ScienceLabButton size="md" />
           <SampleJobButton size="md" />
           <ReadyMadeAgentButton size="md" />
         </>

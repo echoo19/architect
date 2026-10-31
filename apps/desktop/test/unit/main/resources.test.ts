@@ -19,6 +19,7 @@ describe('processResources', () => {
       sampleJobFile: join(ROOT, 'architect', 'examples', 'home-services', 'job', 'job.json'),
       academyJobFile: join(ROOT, 'architect', 'examples', 'academy', 'job', 'job.json'),
       sweepDeskJobFile: join(ROOT, 'architect', 'examples', 'sweep-desk', 'job', 'job.json'),
+      assayJobFile: join(ROOT, 'architect', 'examples', 'assay-desk', 'job', 'job.json'),
       // The ready-made agent's package, where the owner puts it, and the returns desk's own data.
       sampleAgentFile: join(
         ROOT,
@@ -48,6 +49,7 @@ describe('processResources', () => {
       sampleJobFile: join(resourcesPath, 'sample-job', 'job.json'),
       academyJobFile: join(resourcesPath, 'academy-job', 'job.json'),
       sweepDeskJobFile: join(resourcesPath, 'sweep-desk-job', 'job.json'),
+      assayJobFile: join(resourcesPath, 'assay-job', 'job.json'),
       sampleAgentFile: join(resourcesPath, 'sample-agent', 'returns-desk.architect.zip'),
       sampleAgentDataDir: join(resourcesPath, 'sample-agent', 'data'),
       trainerDir: join(resourcesPath, 'trainer'),

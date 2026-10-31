@@ -385,6 +385,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
           'home-services': deps.sampleJobFile,
           academy: deps.academyJobFile,
           'sweep-desk': deps.sweepDeskJobFile,
+          'assay-desk': deps.assayJobFile,
         };
         const file = found(files[sample], "The sample job isn't available in this build.");
         const { id } = JobSchema.parse(await readJsonFile(file));

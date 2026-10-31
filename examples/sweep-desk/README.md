@@ -58,7 +58,7 @@ A grid is written `lr=1e-4/2e-4/3e-4/6e-4; warmup=0/500/2000`, with the group's 
 
 ## Tasks
 
-192 tasks: 48 at each group, one of each skill for each of its eight sweeps. Ids carry the group (`halden-did_it_help-03`), and the six tasks on a sweep form one family, so a sweep's answers never leak from practice into the final test. The 144 tasks of the three taught groups split into 12 calibration, 60 train, 36 dev and 36 locked test. Fennick's 48 are for the locked test only. Each task names its group in `org`, and its data folder is that group's.
+192 tasks: 48 at each group, one of each skill for each of its eight sweeps. Ids carry the group (`halden-did_it_help-03`), and the six tasks on a sweep form one family, so a sweep's answers never leak from practice into the final test. The 144 tasks of the three taught groups split into 12 calibration, 60 practice, 36 check tasks and 36 final test. Fennick's 48 are for the final test only. Each task names its group in `org`, and its data folder is that group's.
 
 | Skill          | The request                                                         | What is checked                                                                                            |
 | -------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -94,7 +94,7 @@ Of the 32 comparisons `did_it_help` asks about, 14 helped, 6 hurt and 12 are unc
 
 ## Known gaps
 
-- The job has not been calibrated on the bare student yet.
+- The job has not been measured with Glimmer alone yet.
 - Every sweep is a learning rate by warmup grid; other knobs (batch size, schedule) sit in the configs but no rule reads them.
 - The groups are synthetic. No real group's runs are in the job.
 

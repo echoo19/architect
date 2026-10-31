@@ -22,7 +22,7 @@ import { AttachedFile } from './AttachedFile';
 import { sendField, sendToMentor, useDraftStore } from './draft-store';
 import { FieldOrganizations, fieldProblem } from './FieldOrganizations';
 import { ImportJobButton } from './ImportJobButton';
-import { SampleJobButton } from './SampleJobButton';
+import { SampleJobButton, ScienceLabButton } from './SampleJobButton';
 
 /**
  * What the paperclip says when asked: what drafting reads and the least it needs, before anything
@@ -150,7 +150,7 @@ export function DescribeHero() {
             <div className="flex flex-wrap items-center gap-2">
               <SampleJobButton size="sm" />
               {edition === 'lab' && <SampleJobButton size="sm" sample="academy" />}
-              {edition === 'lab' && <SampleJobButton size="sm" sample="sweep-desk" />}
+              {edition === 'lab' && <ScienceLabButton size="sm" />}
               <ReadyMadeAgentButton size="sm" />
               <ImportJobButton size="sm" />
               {edition === 'lab' && (

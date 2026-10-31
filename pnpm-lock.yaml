@@ -283,6 +283,16 @@ importers:
         specifier: workspace:*
         version: link:../../packages/engine
 
+  examples/assay-desk:
+    dependencies:
+      '@architect/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      '@architect/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+
   examples/gear-returns:
     dependencies:
       '@architect/shared':
