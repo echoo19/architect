@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import type { AgentStep, Consultation, StepView, WorkspaceMessage } from '@architect/shared';
 import {
+  AgentAvatar,
   cn,
   Collapse,
   Reveal,
@@ -221,6 +222,8 @@ function ConsultRow({
         onClick={() => setOpen(!open)}
         className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-mark text-left"
       >
+        {/* Whose work it is, at a glance: the teammate's avatar, as the sidebar shows it. */}
+        <AgentAvatar name={step.name} className="size-5" />
         <StepText step={step} meta={consultMeta(step)} />
         {working && <Spinner size={13} />}
         <Chevron open={open} />

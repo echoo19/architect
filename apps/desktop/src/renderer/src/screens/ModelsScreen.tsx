@@ -144,7 +144,7 @@ export function ModelsScreen({
             {view === 'connections' ? (
               <ConnectionsView />
             ) : view === 'teams' ? (
-              <TeamsView onOpen={(team) => editTeam(team)} onNew={() => editTeam()} />
+              <TeamsView onOpen={(team) => editTeam(team)} />
             ) : rows.length === 0 ? (
               <EmptyState
                 icon={<Boxes aria-hidden />}

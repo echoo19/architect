@@ -1,13 +1,6 @@
 import type { GraduateSummary, Team } from '@architect/shared';
-import {
-  AgentAvatar,
-  Button,
-  DataTable,
-  EmptyState,
-  Skeleton,
-  type DataColumn,
-} from '@architect/ui';
-import { Plus, Users } from 'lucide-react';
+import { AgentAvatar, DataTable, EmptyState, Skeleton, type DataColumn } from '@architect/ui';
+import { Users } from 'lucide-react';
 import { useGraduates } from '../api/hooks';
 import { useTeams } from '../api/teams';
 import { ProblemState } from '../components/ProblemState';
@@ -70,9 +63,10 @@ const COLUMNS: readonly DataColumn<TeamRow>[] = [
 
 /**
  * Models › Teams: each saved team, its lead and its teammates (decision 100). A row opens the
- * team to change; a new team starts from the page's action.
+ * team to change. A new team starts from the page's action, the one way to make one, so an empty
+ * list doesn't offer a second.
  */
-export function TeamsView({ onOpen, onNew }: { onOpen: (team: Team) => void; onNew: () => void }) {
+export function TeamsView({ onOpen }: { onOpen: (team: Team) => void }) {
   const teams = useTeams();
   const graduates = useGraduates();
   if (!teams.data || !graduates.data) {
@@ -97,12 +91,6 @@ export function TeamsView({ onOpen, onNew }: { onOpen: (team: Team) => void; onN
         title="No teams yet"
         description="A team's lead answers its chats and asks its teammates for their part."
         className="pt-16"
-        actions={
-          <Button variant="primary" size="md" onClick={onNew}>
-            <Plus size={16} aria-hidden />
-            New team
-          </Button>
-        }
       />
     );
   }
