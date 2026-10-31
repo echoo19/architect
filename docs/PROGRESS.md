@@ -2,7 +2,7 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
-## 2026-10-31 (Sat), browsing tasks, attempts and files (branch `lab/browsers`)
+## 2026-10-31 (Sat, afternoon), browsing tasks, attempts and files (branch `lab/browsers`)
 
 **Done** (no model was called, no GPU, no spend; decision 084)
 - `jobs.tasks`: a field's practice and check tasks in full, the calibration and test splits by count, any other split refused with `split_sealed`. A Tasks tab on the Field page with type and organization filters and a side panel per task.
@@ -12,6 +12,23 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 **Next**
 - Merge into `field/main` after review.
+
+## 2026-10-31 (Sat, midday), status (start the next session here)
+
+- *Merged into `field/main` since the morning entry:* the tutor's public name in README, site and docs; `architect serve` (080); the runner's pause instead of a silent drop (081); the leak fingerprint fix with an empty-fingerprint guard (082, reviewed adversarially: no lost detection on the academy job); experiments on library fields with a hypothesis and a primary comparison (074 amended; a one-arm plan needs only a hypothesis); a Lab field made from several organizations' folders, with `docs/JOB_FORMAT.md` (083). `pnpm check` passes (3,751 tests).
+- *In flight:* the third tutor run in `architect-runs/runtree` (rebuilt at `13ee093c`; mentoring now passes the leak gate); `certify/post-hoc` (079) is merging `field/main` to resolve vault conflicts with 082 and 074; `app/rename-tutor` (the app, fixtures, examples and screenshots); `lab/browsers` (tasks, attempts and harness files, 084).
+- *Next:* certify the third run's frozen tutor (079, about $5) once it finishes; the remaining audit gaps (adding a sealed organization later, per-organization check scores while training, a model trained elsewhere back as a local OpenAI-compatible student, candidates in Models, the organization word from the job); a Hestia-inspired pass on one visual language and smooth motion; the full stand-in e2e suite (include `engine.spec.ts` and `hub.spec.ts`), a PR to `main` and release 0.7.0.
+- *Reviews:* Codex is out of credits until Nov 4, 3:01 AM; independent Claude reviewers (adversarial brief, given code, not conclusions) stand in.
+
+## 2026-10-30 (Fri, night), certify an existing version (branch `certify/post-hoc`)
+
+**Done** (no model was called, no GPU, no spend; decision 079)
+- A frozen version can be certified after the fact: calibration tasks from a job's taught organizations that its run (and any run it was improved from) never saw or was tested on, by id, family name and request words, sealed in the vault with the check tasks; k attempts with no mentor under its own round of split `certify`; the certificate filed on a record that never changes. Caps on dollars and minutes, resumable like a re-test.
+- `architect certify <agent> --version N --job <job>` (docs/CLI.md); a Certify action and dialog on a version's panel in Models (Lab only). Screenshot `certify-version-dark.png`.
+
+**Next**
+- Certify Tutor v2 for real on a newer import of the tutor's job (on this computer it costs nothing; the owner decides when the GPU may run it).
+- A cap that pauses a certification can't be raised on it; if that bites, let `startCertification` take new caps.
 
 ## 2026-10-30 (Fri, evening), experiments from fields in the library (branch `lab/experiments-from-fields`)
 
@@ -41,13 +58,13 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - *Price margin.* Projections priced at the calibration estimate ran short twice; attempts cost about $0.0106 each (hosted Glimmer, tutor job). Cap at least 2x the measured price.
 
 **In flight** (each on its own branch, merge into `field/main` when green, then a PR to `main`)
-- The third tutor run (agent, outside the repo: `architect-runs/phil-3`): a new preregistered comparison, bare vs the taught tutor, on phil-2's unopened tasks (Copperfield, Thistlewood, Bramble Hill taught; Juniper and the Real academy's second cohort never seen), caps $9 OpenRouter and $3 Spark. The second run (`architect-runs/phil-2`) halted: the runner dropped its primary arm when attempts cost more than planned and released the other arms' tests (2 attempts each recorded, unopened); disclosed in the third run's plan. Spend so far today: OpenRouter about $0.95.
+- The third tutor run (agent, outside the repo in the architect-runs folder): a new preregistered comparison, bare vs the taught tutor, on the second run's unopened tasks (Copperfield, Thistlewood, Bramble Hill taught; Juniper and the Real academy's second cohort never seen), caps $9 OpenRouter and $3 Spark. The second run halted: the runner dropped its primary arm when attempts cost more than planned and released the other arms' tests (2 attempts each recorded, unopened); disclosed in the third run's plan. Spend so far today: OpenRouter about $0.95.
 - `certify/post-hoc` (decision 079): certify an existing version after the fact on tasks its own run never touched; the Certify action in Models. Used next for the tutor's first live certificate (about $5).
 - `cli/serve` (decision 080): `architect serve` exposes a graduate on loopback as an OpenAI-compatible endpoint with a bearer token, so another app on the same computer (for example a school's platform) can use it.
 - `runner/no-silent-drop` (decision 081): a comparison pauses instead of dropping an arm it can't fund, before any release.
 - `docs/rename-tutor`: the tutor's public name in README, site and docs (comparisons renamed `tutor-1*.md`). The app's sample, fixtures, examples and screenshots get the same rename after the code lanes above merge.
 - A read-only audit of Architect Lab as a development platform (a founder using it on their own field); its gaps become the next lanes, then a Hestia-inspired pass on one visual language and smooth motion that keeps the simple flow.
-- *The third tutor run is on hold before spending anything:* its agent found that the vault's leak fingerprint keeps text the taught academies' own files show (bank questions that test tasks quote), so every mentor call on the academy job is refused. The second run's "draft" arm was therefore the blank setup plus the study's procedure. Branch `vault/fingerprint-data` fixes it (decision 082, Sol review before merge); then rebuild `architect-runs/runtree` and run the plan in `architect-runs/phil-3/PLAN.md` ($9 OpenRouter at 1.5x headroom, safe with decision 081's pause rule), then certify its frozen tutor with decision 079 (about $5).
+- *The third tutor run is on hold before spending anything:* its agent found that the vault's leak fingerprint keeps text the taught academies' own files show (bank questions that test tasks quote), so every mentor call on the academy job is refused. The second run's "draft" arm was therefore the blank setup plus the study's procedure. Branch `vault/fingerprint-data` fixes it (decision 082, Sol review before merge); then rebuild `architect-runs/runtree` and run the plan in the third run's PLAN.md in the architect-runs folder ($9 OpenRouter at 1.5x headroom, safe with decision 081's pause rule), then certify its frozen tutor with decision 079 (about $5).
 - *The platform audit's gaps, in order:* (1) make a field from several organizations' folders in the app (`lab/own-field`, decision 083, plus `docs/JOB_FORMAT.md`); (2) experiments on library fields and a hypothesis in the preregistration (`lab/experiments-from-fields`); then a task and split browser on the Field page (train and dev only), an attempts browser behind "Show all", a read-only harness viewer in Models and the round drawer, adding a sealed organization later and qualifying on it, per-organization check scores while training, bringing a model trained elsewhere back as a local OpenAI-compatible student, candidates in Models, and the organization word taken from the job instead of "academy". Keep all of it Lab-only and additive; the personal edition's specs are the guard.
 
 ## 2026-10-31 (Sat), `architect serve` (branch `cli/serve`)
@@ -61,7 +78,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 ## 2026-10-30 (Fri, night), a comparison pauses instead of dropping an arm (branch `runner/no-silent-drop`)
 
 **Done** (no model was called, no GPU, no spend)
-- The runner no longer drops an arm for money. When an arm can't be paid for at the measured price, before it starts or before its locked test is released, the comparison stops as `needs_funding`, with the arm, what it needs, what is left and the cap, and releases nothing (decision 081). This is what lost the targeted arm in phil-2's second halt.
+- The runner no longer drops an arm for money. When an arm can't be paid for at the measured price, before it starts or before its locked test is released, the comparison stops as `needs_funding`, with the arm, what it needs, what is left and the cap, and releases nothing (decision 081). This is what lost the targeted arm in the second run's second halt.
 - The person answers with `--raise-student-usd` or `--drop-arms` (in the app: `resume` with `studentCapUsd` or `dropArms`), only before the release. A raise is recorded as an amendment with both caps and the price; a drop is recorded as the person's decision.
 - The Experiments screen shows the sentence with Raise the cap and Drop the arm, each behind the existing confirm dialog.
 
@@ -284,7 +301,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 **Done** (no model was called, no GPU, no spend)
 - "Try the tutor" sits beside "Try the sample job" on the empty workspace and the Describe screen. It imports `examples/academy/job` through `jobs.createSample('academy')`: the three train academies go into the job folder, the transfer academy is sealed by the engine. Define then asks Spark to study the material, and training waits for the brief to be confirmed. The service desk stays the default sample.
 - The installer ships the job as `academy-job` (electron-builder `extraResources`, all four academies); the packaged spec checks for it.
-- Engine test (the real example imported, nothing in the job file names the transfer academy) and hidden e2e `sample-tutor.spec.ts` against the stand-in engine. Screenshot `start-phil-dark.png`.
+- Engine test (the real example imported, nothing in the job file names the transfer academy) and hidden e2e `sample-tutor.spec.ts` against the stand-in engine. Screenshot `start-tutor-dark.png`.
 
 **Open issues**
 - Adding a person's own academy folder as an unseen organization was left out: it needs the engine to seal an organization into an existing job and to build its tasks from records (`buildRecordTasks` lives in the example package), which is more than this lane.

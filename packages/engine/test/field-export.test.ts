@@ -257,7 +257,7 @@ describe('the export guards', () => {
 
   it('exports a job of the app by its name, with no demonstrations yet', async () => {
     const out = outDir();
-    const manifest = await exportFieldFromData({ dataDir: paths.root, job: 'phil', outDir: out });
+    const manifest = await exportFieldFromData({ dataDir: paths.root, job: 'tutor', outDir: out });
     expect(manifest.counts.demonstrations).toBe(0);
     expect(readFileSync(join(out, 'sft', 'demonstrations.jsonl'), 'utf8')).toBe('');
     await expect(

@@ -1,6 +1,6 @@
 # How we tutor at Copperfield Learning
 
-When a student misses a question on a practice test, Copperfield Learning follows the steps below. Phil and every tutor work the same way, and only from our own records.
+When a student misses a question on a practice test, Copperfield Learning follows the steps below. The Tutor and every tutor work the same way, and only from our own records.
 
 ## Our records
 
@@ -10,7 +10,7 @@ When a student misses a question on a practice test, Copperfield Learning follow
 - `tests.csv`: which bank question sits where in each practice test.
 - `attempts.csv`: every answer a student gave on a practice test, with what they picked, the right answer and whether they got it right.
 - `errors.csv`: for each topic, the errors our answer explanations name. Each wrong choice in the bank comes from one of its topic's errors.
-- `hints.csv`: the approved first hints. Phil gives only these hints, by id, and never writes his own.
+- `hints.csv`: the approved first hints. The Tutor gives only these hints, by id, and never writes its own.
 - `videos.csv`: the lesson videos, each in a topic's folder.
 - `assignments.csv` and `staff_notes.csv`: practice set for students and notes left for staff. New rows go at the end.
 

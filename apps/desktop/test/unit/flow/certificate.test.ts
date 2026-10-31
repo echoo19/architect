@@ -31,13 +31,13 @@ const issued: Extract<Certificate, { issued: true }> = {
 
 describe('a certificate in words (decision 077)', () => {
   it('says the bound rounded up, the confidence and what it handed on', () => {
-    expect(certificateSentence(issued, 'Phil')).toBe(
-      'When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
+    expect(certificateSentence(issued, 'Tutor')).toBe(
+      'When Tutor answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
     );
     expect(boundPercent(0.07)).toBe(7);
     expect(boundPercent(0.0701)).toBe(8);
     const all = { ...issued, threshold: { ...point, coverage: 1 } };
-    expect(certificateSentence(all, 'Phil')).toContain('It answered every one.');
+    expect(certificateSentence(all, 'Tutor')).toContain('It answered every one.');
   });
 
   it('states n, k, the rule, ε and δ', () => {
@@ -73,6 +73,10 @@ describe('a certificate in words (decision 077)', () => {
     };
     expect(checkPlace({ ...check, orgName: 'Real academy' })).toBe('Real academy');
     expect(checkPlace({ ...check, seen: true })).toBe('Final test, organizations it was taught on');
+    // A certification after the fact checks new tasks at one it was taught on (decision 079).
+    expect(checkPlace({ ...check, seen: true, org: 'summit', orgName: 'Summit Tutoring' })).toBe(
+      'New tasks at Summit Tutoring',
+    );
     expect(checkCounts(check)).toBe('Answered 21 of 30, 3 wrong');
     expect(checkCounts({ ...check, answered: 0, errors: 0 })).toBe('Handed all 30 to a person');
   });

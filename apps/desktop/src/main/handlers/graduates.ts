@@ -102,6 +102,13 @@ export function registerGraduateHandlers(
       harnessDiff: (from, to) => call((api) => api.graduates.harnessDiff(from, to)),
       harnessFiles: (graduateId, number) =>
         call((api) => api.graduates.harnessFiles(graduateId, number)),
+      planCertification: (request) => call((api) => api.graduates.planCertification(request)),
+      startCertification: (certificationId) =>
+        call((api) => api.graduates.startCertification(certificationId)),
+      discardCertification: (certificationId) =>
+        call((api) => api.graduates.discardCertification(certificationId)),
+      certifications: (graduateId, version) =>
+        call((api) => api.graduates.certifications(graduateId, version)),
       acceptVersion: (graduateId, number) =>
         call((api) => api.graduates.acceptVersion(graduateId, number)),
       rejectVersion: (graduateId, number) =>

@@ -49,6 +49,8 @@ export interface EvaluationSpec {
   decoding?: Decoding;
   /** The sealed organizations' folders, by id, which only a locked-test evaluation has. */
   sealedData?: Readonly<Record<string, string>>;
+  /** Asked before each attempt starts; false halts the evaluation there, as a pause does. */
+  mayAttempt?: () => boolean;
 }
 
 /** The stored filter for one evaluation's attempts. */
@@ -111,9 +113,10 @@ async function recordAttempt(
   const { store, paths, runId } = state.ctx;
   const { trace, outcome, check } = item.result;
   const id = newId('att');
-  // The calibration split of a certified job is sealed like the test (decision 077).
+  // The calibration split of a certified job is sealed like the test (decision 077), and so are
+  // the tasks a version is certified on after the fact (079).
   const locked = spec.split === 'test' || spec.split === 'certify';
-  const keyed = locked && state.job.evaluation.certify !== undefined;
+  const keyed = spec.split === 'certify' || (locked && state.job.evaluation.certify !== undefined);
   const traceFile = locked ? null : paths.traceFile(state.run.jobId, runId, id);
   if (traceFile) await writeJsonFile(traceFile, trace);
   const config = configurationKey(spec.config ?? STUDENT_CONFIG);
@@ -322,7 +325,7 @@ async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boole
     const training = spec.purpose === 'training';
     const deadline = training ? state.budget.deadline() : null;
     const signal = deadline ? AbortSignal.any([state.signal, deadline]) : state.signal;
-    const mayStart = () => !shouldHalt(state, training);
+    const mayStart = () => !shouldHalt(state, training) && (spec.mayAttempt?.() ?? true);
     const meter = await startMeter(state, spec, student);
     try {
       await runPool(remaining, spec.concurrency, mayStart, async ({ task, seed }) => {

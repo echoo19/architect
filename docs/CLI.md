@@ -251,6 +251,16 @@ architect train bundle --target slurm|kubernetes --model owner/name --output ./b
 
 Architect never submits a bundle and never holds cluster credentials. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified. Decision 072 says what is checked.
 
+### certify
+
+```bash
+architect certify Tutor --version 2 --job tutor --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
+```
+
+Certifies a version that is already frozen, without training it again (decision 079). The calibration tasks come from the taught organizations of the job you name, and none of them is a task, or of a family, that the version's own run (or a run it was improved from) saw or was tested on; a family whose name differs only in case or punctuation, or a request worded the same, counts as seen. If fewer than `--calibration-size` are left, it says how many there are. The tasks are sealed in the vault, then the version makes k attempts at each with no teacher, and the certificate is filed on that version for good. `--check` names an organization of the job to test the certified bound at: one it never saw, or one it was taught on, with tasks new to it; one its run was already tested on is refused.
+
+It prints what it will do and cost before anything spends, and stops before an attempt that could take it past `--max-usd` or `--max-minutes`. On this computer it costs nothing; `--student` runs a hosted copy, whose key comes from `<PROVIDER>_API_KEY` (for example `OPENROUTER_API_KEY`). Stopped or paused, the same command again resumes it. The certificate goes to stdout, or the whole record with `--json`.
+
 ## Run requests and results
 
 ### The request: `architect.run-request/1`

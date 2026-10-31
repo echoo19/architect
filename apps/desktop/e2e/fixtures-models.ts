@@ -12,19 +12,19 @@ import {
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 import { FIELD_JOB, FIELD_REPORT } from './fixtures-field';
-import { LAB_AGENTS, MINI_ID, PHIL_ID, stubLab } from './fixtures-lab';
+import { LAB_AGENTS, MINI_ID, TUTOR_ID, stubLab } from './fixtures-lab';
 import { hex, manifestFor } from './fixtures-versions';
 import { at, FINAL_TEST, job, STORY, storyReport } from './story';
 
 /*
  * The registry of models against a stand-in engine: the service desk with four versions (its
  * first, the active one with trained weights, a candidate below its target, and one imported from
- * another computer), Phil with two versions taught on three academies and tested on one it never
- * saw and on a real one, and Phil Mini, a second agent for Phil's job on a larger build. Promoting
+ * another computer), Tutor with two versions taught on three academies and tested on one it never
+ * saw and on a real one, and Tutor Mini, a second agent for Tutor's job on a larger build. Promoting
  * moves the active version, so the registry reads what the real engine would.
  */
 
-const PHIL_JOB: Job = { ...FIELD_JOB, id: 'job_phil' };
+const TUTOR_JOB: Job = { ...FIELD_JOB, id: 'job_tutor' };
 
 interface VersionSpec {
   graduateId: string;
@@ -144,11 +144,11 @@ const DESK_VERSIONS: GraduateVersion[] = [
   }),
 ];
 
-const phil = (graduateId: string, spec: Omit<VersionSpec, 'graduateId' | 'job'>) =>
-  makeVersion({ ...spec, graduateId, job: PHIL_JOB });
+const tutor = (graduateId: string, spec: Omit<VersionSpec, 'graduateId' | 'job'>) =>
+  makeVersion({ ...spec, graduateId, job: TUTOR_JOB });
 
-const PHIL_VERSIONS: GraduateVersion[] = [
-  phil(PHIL_ID, {
+const TUTOR_VERSIONS: GraduateVersion[] = [
+  tutor(TUTOR_ID, {
     version: 1,
     state: 'accepted',
     active: false,
@@ -157,7 +157,7 @@ const PHIL_VERSIONS: GraduateVersion[] = [
     day: 1,
     harness: 'c03e7f2',
   }),
-  phil(PHIL_ID, {
+  tutor(TUTOR_ID, {
     version: 2,
     state: 'accepted',
     active: true,
@@ -170,7 +170,7 @@ const PHIL_VERSIONS: GraduateVersion[] = [
 ];
 
 const MINI_VERSIONS: GraduateVersion[] = [
-  phil(MINI_ID, {
+  tutor(MINI_ID, {
     version: 1,
     state: 'accepted',
     active: true,
@@ -196,20 +196,20 @@ function shifted(base: ReportCard, change: (result: OrgTypeResult) => number): R
   return { ...base, test: { ...base.test, perOrg, score } };
 }
 
-const PHIL_REPORTS = {
+const TUTOR_REPORTS = {
   1: {
     ...shifted(FIELD_REPORT, (result) =>
       result.type === 'after_wrong' || result.type === 'hint' ? -1 : result.seen ? 0 : -1,
     ),
-    jobId: PHIL_JOB.id,
-    runId: 'run_phil_1',
+    jobId: TUTOR_JOB.id,
+    runId: 'run_tutor_1',
     dev: { ...FIELD_REPORT.dev, final: { pass: 64, total: 80 } },
     topInterventions: [{ round: 2, title: 'Read the policy before assigning', delta: 6 }],
   },
   2: {
     ...FIELD_REPORT,
-    jobId: PHIL_JOB.id,
-    runId: 'run_phil_2',
+    jobId: TUTOR_JOB.id,
+    runId: 'run_tutor_2',
     dev: { ...FIELD_REPORT.dev, final: { pass: 71, total: 80 } },
     topInterventions: [
       { round: 3, title: 'Pick hints from the catalog, never write them', delta: 5 },
@@ -220,9 +220,9 @@ const PHIL_REPORTS = {
 
 const MINI_REPORT: ReportCard = {
   ...shifted(FIELD_REPORT, (result) => (result.type === 'hint' ? 1 : 0)),
-  jobId: PHIL_JOB.id,
-  runId: 'run_phil_mini',
-  name: 'Phil Mini',
+  jobId: TUTOR_JOB.id,
+  runId: 'run_tutor_mini',
+  name: 'Tutor Mini',
   student: { ...FIELD_REPORT.student, quantization: 'Q8_0' },
   dev: { ...FIELD_REPORT.dev, final: { pass: 73, total: 80 } },
 };
@@ -244,8 +244,8 @@ const REPORTS: Record<string, ReportCard> = {
   [`${STORY.graduateId}:1`]: deskReport({}, { pass: 72, total: 80 }),
   [`${STORY.graduateId}:2`]: deskReport({ scheduling: 2 }, { pass: 75, total: 80 }),
   [`${STORY.graduateId}:3`]: deskReport({ invoice: -3, overdue: -1 }, { pass: 70, total: 80 }),
-  [`${PHIL_ID}:1`]: PHIL_REPORTS[1],
-  [`${PHIL_ID}:2`]: PHIL_REPORTS[2],
+  [`${TUTOR_ID}:1`]: TUTOR_REPORTS[1],
+  [`${TUTOR_ID}:2`]: TUTOR_REPORTS[2],
   [`${MINI_ID}:1`]: MINI_REPORT,
 };
 
@@ -284,7 +284,7 @@ const PATCH = {
 };
 
 const DIFFS: Record<string, FileDiff[]> = {
-  phil: [
+  tutor: [
     { path: 'AGENTS.md', status: 'modified', patch: PATCH.agents },
     { path: 'skills/assign/SKILL.md', status: 'added', patch: PATCH.skill },
   ],
@@ -297,14 +297,21 @@ const HISTORY: Record<string, VersionEvent[]> = {
     { graduateId: STORY.graduateId, kind: 'accepted', version: 2, at: at(180 + 1500) },
     { graduateId: STORY.graduateId, kind: 'promoted', version: 2, from: 1, at: at(180 + 1510) },
   ],
-  [PHIL_ID]: [
-    { graduateId: PHIL_ID, kind: 'accepted', version: 2, at: at(180 + 2900) },
-    { graduateId: PHIL_ID, kind: 'promoted', version: 2, from: 1, at: at(180 + 2905) },
+  [TUTOR_ID]: [
+    { graduateId: TUTOR_ID, kind: 'accepted', version: 2, at: at(180 + 2900) },
+    { graduateId: TUTOR_ID, kind: 'promoted', version: 2, from: 1, at: at(180 + 2905) },
   ],
   [MINI_ID]: [],
 };
 
-export const MODELS = { philId: PHIL_ID, miniId: MINI_ID, deskId: STORY.graduateId };
+export const MODELS = { tutorId: TUTOR_ID, miniId: MINI_ID, deskId: STORY.graduateId };
+
+/** Every agent's versions, by agent. */
+export const MODEL_VERSIONS: Record<string, GraduateVersion[]> = {
+  [STORY.graduateId]: DESK_VERSIONS,
+  [TUTOR_ID]: TUTOR_VERSIONS,
+  [MINI_ID]: MINI_VERSIONS,
+};
 
 /**
  * The Lab's stand-in, then the registry's channels on top: every agent's versions, each
@@ -315,11 +322,7 @@ export async function installModelsFake(app: ElectronApplication): Promise<void>
   await stubLab(app);
   const data = {
     agents: AGENTS,
-    versions: {
-      [STORY.graduateId]: DESK_VERSIONS,
-      [PHIL_ID]: PHIL_VERSIONS,
-      [MINI_ID]: MINI_VERSIONS,
-    } as Record<string, GraduateVersion[]>,
+    versions: MODEL_VERSIONS,
     reports: REPORTS,
     diffs: DIFFS,
     history: HISTORY,
@@ -364,7 +367,7 @@ export async function installModelsFake(app: ElectronApplication): Promise<void>
     handle('graduates:harnessDiff', (from: { graduateId: string }, to: { graduateId: string }) =>
       from.graduateId === 'grd_servicedesk' && to.graduateId === 'grd_servicedesk'
         ? data.diffs.desk
-        : data.diffs.phil,
+        : data.diffs.tutor,
     );
     handle('graduates:acceptVersion', (id: string, number: number) => {
       const found = versions[id]?.find((item) => item.version === number);

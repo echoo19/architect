@@ -23,7 +23,7 @@ function confidence(delta: number): string {
 }
 
 /**
- * The certificate's one sentence: "When Phil answers, it is wrong on at most 8% of requests like
+ * The certificate's one sentence: "When Tutor answers, it is wrong on at most 8% of requests like
  * these, with 95% confidence. It handed 22% to a person."
  */
 export function certificateSentence(certificate: Issued, name: string): string {
@@ -64,9 +64,16 @@ export function noCertificateSentence(
   }
 }
 
-/** Where a check ran: the taught organizations' final test, or one it never saw by name. */
+/**
+ * Where a check ran: the taught organizations' final test, new tasks at one it was taught on (a
+ * certification after the fact, decision 079), or one it never saw, by name.
+ */
 export function checkPlace(check: CertificateCheck): string {
-  if (check.seen) return 'Final test, organizations it was taught on';
+  if (check.seen) {
+    return check.orgName === undefined
+      ? 'Final test, organizations it was taught on'
+      : `New tasks at ${check.orgName}`;
+  }
   return check.orgName ?? 'An organization it never saw';
 }
 

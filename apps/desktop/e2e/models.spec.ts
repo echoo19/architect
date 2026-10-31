@@ -57,22 +57,22 @@ const panel = () => page.getByRole('complementary', { name: 'Model' });
 
 test('lists every agent and version with its scores, and filters and searches them', async () => {
   await openModels();
-  await expect(row(/Phil Mini/)).toBeVisible();
+  await expect(row(/Tutor Mini/)).toBeVisible();
   // Three agents, seven versions, under a header of two rows.
   await expect(table().getByRole('row')).toHaveCount(9);
   await expect(table().getByRole('columnheader', { name: 'Final test' })).toBeVisible();
 
-  // Phil's active version: seen, unseen and real apart, and its check tasks on their own.
-  const phil = row(/^Phil\s+version 2/);
-  await expect(phil).toContainText('Phil');
-  await expect(phil).toContainText('Glimmer · 4-bit');
+  // Tutor's active version: seen, unseen and real apart, and its check tasks on their own.
+  const tutor = row(/^Tutor\s+version 2/);
+  await expect(tutor).toContainText('Tutor');
+  await expect(tutor).toContainText('Glimmer · 4-bit');
   // Its harness hash is behind a hover, not in the row.
-  await expect(phil).not.toContainText('61b8a9d');
-  await expect(phil).toContainText('93%');
-  await expect(phil).toContainText('83%');
-  await expect(phil).toContainText('90%');
-  await expect(phil).toContainText('89%');
-  await expect(phil).toContainText('Active');
+  await expect(tutor).not.toContainText('61b8a9d');
+  await expect(tutor).toContainText('93%');
+  await expect(tutor).toContainText('83%');
+  await expect(tutor).toContainText('90%');
+  await expect(tutor).toContainText('89%');
+  await expect(tutor).toContainText('Active');
 
   // The service desk's imported version took no final test: its scores are absent, not zero.
   const imported = row(/Service desk\s+version 4/);
@@ -81,7 +81,7 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(imported.getByText('None').first()).toBeAttached();
   await expect(row(/Service desk\s+version 2/)).toContainText('Adapter');
   await capture('models-dark.png');
-  await phil.getByText('Harness', { exact: true }).hover();
+  await tutor.getByText('Harness', { exact: true }).hover();
   await expect(page.getByRole('tooltip')).toContainText('harness 61b8a9d');
   await page.mouse.move(0, 0);
 
@@ -93,21 +93,21 @@ test('lists every agent and version with its scores, and filters and searches th
 
   await page.getByRole('searchbox', { name: 'Search models' }).fill('8-bit');
   await expect(table().getByRole('row')).toHaveCount(3);
-  await expect(row(/Phil Mini/)).toBeVisible();
+  await expect(row(/Tutor Mini/)).toBeVisible();
   await page.getByRole('searchbox', { name: 'Search models' }).fill('');
 
   // Sorted by name; the unseen column sorts with unmeasured versions last either way.
   await table().getByRole('button', { name: 'Never seen' }).click();
-  await expect(table().getByRole('row').nth(2)).toContainText('Phil');
+  await expect(table().getByRole('row').nth(2)).toContainText('Tutor');
   await table().getByRole('button', { name: 'Never seen' }).click();
-  await expect(table().getByRole('row').nth(2)).toContainText('Phil Mini');
+  await expect(table().getByRole('row').nth(2)).toContainText('Tutor Mini');
   await expect(table().getByRole('row').last()).toContainText('Service desk');
 });
 
 test("opens a model's panel with its report and lineage, and promotes a candidate", async () => {
   await openModels();
-  await row(/^Phil\s+version 2/).click();
-  await expect(panel().getByRole('heading', { name: /Phil/ })).toBeVisible();
+  await row(/^Tutor\s+version 2/).click();
+  await expect(panel().getByRole('heading', { name: /Tutor/ })).toBeVisible();
   const finalTest = panel().getByRole('region', { name: 'Final test' });
   await expect(finalTest).toContainText('Taught on');
   await expect(finalTest).toContainText('67/72');
@@ -125,7 +125,7 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await panel()
     .getByRole('button', { name: /Version 1\s*Experimental/ })
     .click();
-  await expect(row(/^Phil\s+version 1/)).toHaveAttribute('aria-current', 'true');
+  await expect(row(/^Tutor\s+version 1/)).toHaveAttribute('aria-current', 'true');
   await page.keyboard.press('Escape');
   await expect(panel()).toBeHidden();
 
@@ -158,9 +158,9 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
 
 test('compares two versions skill by organization, with the harness diff between them', async () => {
   await openModels();
-  await row(/^Phil\s+version 2/).click();
+  await row(/^Tutor\s+version 2/).click();
   await panel().getByRole('button', { name: 'Compare' }).click();
-  await page.getByRole('menuitem', { name: 'Phil v1' }).click();
+  await page.getByRole('menuitem', { name: 'Tutor v1' }).click();
 
   await expect(page.getByRole('heading', { name: 'Compare', level: 1 })).toBeVisible();
   const grid = page.getByRole('table', { name: 'Final test by skill and organization' });
@@ -186,7 +186,7 @@ test('compares two versions skill by organization, with the harness diff between
 
   // Two agents of one field compare too; versions tested elsewhere say they can't.
   await page.getByRole('combobox', { name: 'After' }).click();
-  await page.getByRole('option', { name: 'Phil Mini v1' }).click();
+  await page.getByRole('option', { name: 'Tutor Mini v1' }).click();
   await expect(grid.getByLabel(/First hint at Northside Prep, 2 of 4 then 4 of 4/)).toBeVisible();
   await page.getByRole('button', { name: 'All models' }).click();
 

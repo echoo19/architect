@@ -47,7 +47,7 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - data/**
-  # Phil's job: its tasks, checker and the four academies' records (one it is never taught on).
+  # Tutor's job: its tasks, checker and the four academies' records (one it is never taught on).
   - from: ../../examples/academy/job
     to: academy-job
     filter:

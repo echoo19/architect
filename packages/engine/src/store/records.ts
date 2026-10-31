@@ -1,6 +1,11 @@
 import {
   TrainedAdapterSchema,
   AttemptSchema,
+  CertificateSchema,
+  CertificationInputsSchema,
+  CertificationPlanSchema,
+  CertificationStatusSchema,
+  CertifyRequestSchema,
   DecodingSchema,
   EvaluationStatusSchema,
   GrantsSchema,
@@ -191,6 +196,32 @@ export const StoredRetestSchema = z.object({
 });
 export type StoredRetest = z.infer<typeof StoredRetestSchema>;
 export type RetestStatus = StoredRetest['status'];
+
+/**
+ * A frozen version certified after the fact (decision 079). Its attempts are the run's, under
+ * split `certify` and round `seq`, which no training round or the run's own certificate uses.
+ * `activeMs` is the time spent attempting, held to the request's cap across sessions. Finished,
+ * it never changes.
+ */
+export const StoredCertificationSchema = z.object({
+  id: z.string(),
+  graduateId: z.string(),
+  version: z.number().int().positive(),
+  runId: z.string(),
+  /** The job whose run made the version: its vault holds the sealed tasks. */
+  jobId: z.string(),
+  seq: z.number().int().positive(),
+  request: CertifyRequestSchema,
+  plan: CertificationPlanSchema,
+  inputs: CertificationInputsSchema,
+  status: CertificationStatusSchema,
+  error: z.string().optional(),
+  activeMs: z.number().nonnegative(),
+  certificate: CertificateSchema.optional(),
+  createdAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+});
+export type StoredCertification = z.infer<typeof StoredCertificationSchema>;
 
 /** The author's raw reply, saved before it is parsed so a restart never pays for it twice. */
 export const AuthorReplySchema = z.object({

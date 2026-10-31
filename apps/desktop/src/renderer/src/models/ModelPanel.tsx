@@ -17,6 +17,7 @@ import {
 } from '@architect/ui';
 import {
   ArrowUpRight,
+  BadgeCheck,
   Columns2,
   FileText,
   FolderTree,
@@ -38,6 +39,7 @@ import { shortModelName } from '../lib/names';
 import { MoveDialog } from '../workspace/settings/MoveDialog';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { MOVE_WORDS, moveFor, type VersionMove } from '../workspace/settings/versions';
+import { CertifyDialog } from './CertifyDialog';
 import {
   baseModelOf,
   CHECK_HINT,
@@ -136,6 +138,7 @@ function PanelHeader({
   const active = rows.find((other) => other.agent.id === agent.id && other.version.active);
   const move = moveFor(version, active?.version.version ?? null);
   const [moving, setMoving] = useState<VersionMove | null>(null);
+  const [certifying, setCertifying] = useState(false);
   const others = rows.filter((other) => comparable(row, other));
 
   return (
@@ -186,6 +189,12 @@ function PanelHeader({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        {version.runId !== undefined && (
+          <Button size="sm" onClick={() => setCertifying(true)}>
+            <BadgeCheck size={14} strokeWidth={1.8} aria-hidden />
+            Certify
+          </Button>
+        )}
         {version.active && (
           <Button size="sm" onClick={() => useAgentSettingsUi.getState().show(agent.id, 'export')}>
             <Package size={14} strokeWidth={1.8} aria-hidden />
@@ -193,6 +202,7 @@ function PanelHeader({
           </Button>
         )}
       </div>
+      {certifying && <CertifyDialog row={row} onClose={() => setCertifying(false)} />}
       {moving && active && (
         <MoveDialog
           agent={agent}

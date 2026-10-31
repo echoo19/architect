@@ -86,7 +86,7 @@ test("counts and lists a field's counterexamples in its assets", async () => {
   await stubFields(launched.app);
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await goTo(page, `/fields/${LAB.philJob}`);
+  await goTo(page, `/fields/${LAB.tutorJob}`);
   await page.getByRole('tab', { name: 'Assets' }).click();
   const card = page.getByRole('region', { name: 'Counterexamples' });
   await expect(card).toContainText('2');

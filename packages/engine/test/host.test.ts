@@ -141,7 +141,7 @@ describe('the engine host', () => {
     );
     const { client } = await connect();
     const job = await client.jobs.createSample('academy');
-    expect(job.name).toBe('Phil');
+    expect(job.name).toBe('Tutor');
     expect(job.organizations?.map((org) => org.id)).toEqual([
       'copperfield',
       'thistlewood',

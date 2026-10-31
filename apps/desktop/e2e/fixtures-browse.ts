@@ -2,13 +2,11 @@ import type {
   AttemptQuery,
   BrowsedAttempt,
   HarnessFile,
-  JobSummary,
   Task,
   TaskListing,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { stubByKey } from './fixtures-flow';
-import { LAB, LAB_AGENTS, LAB_JOBS } from './fixtures-lab';
+import { LAB } from './fixtures-lab';
 import { FIELD_JOB } from './fixtures-field';
 import { recentAttempts, STORY } from './story';
 
@@ -16,7 +14,7 @@ import { recentAttempts, STORY } from './story';
  * What a developer browses (decision 084), against the stand-in engine: the tutor's practice and
  * check tasks at its three academies, with the final test and calibration counted only; sixty
  * practice and check attempts of the service desk run, paged by fifty as the engine pages them;
- * and the files of a harness version. The tutor goes by its public name, Tutor.
+ * and the files of a harness version.
  */
 
 const ACADEMIES = [
@@ -99,44 +97,18 @@ function tasksOf(split: 'train' | 'dev', each: number): Task[] {
 export const TUTOR_TASKS = { train: tasksOf('train', 2), dev: tasksOf('dev', 1) };
 
 const LISTINGS: Record<string, TaskListing> = {
-  [`${LAB.philJob}/train`]: {
+  [`${LAB.tutorJob}/train`]: {
     split: 'train',
     count: TUTOR_TASKS.train.length,
     tasks: TUTOR_TASKS.train,
   },
-  [`${LAB.philJob}/dev`]: { split: 'dev', count: TUTOR_TASKS.dev.length, tasks: TUTOR_TASKS.dev },
-  [`${LAB.philJob}/calibration`]: { split: 'calibration', count: 12 },
-  [`${LAB.philJob}/test`]: { split: 'test', count: 72 },
+  [`${LAB.tutorJob}/dev`]: { split: 'dev', count: TUTOR_TASKS.dev.length, tasks: TUTOR_TASKS.dev },
+  [`${LAB.tutorJob}/calibration`]: { split: 'calibration', count: 12 },
+  [`${LAB.tutorJob}/test`]: { split: 'test', count: 72 },
 };
 
-/** The Fields place's reads on top of the Lab's, with the tutor named Tutor and its tasks. */
+/** The tutor's tasks by split, on top of the Fields place's reads; each call is recorded. */
 export async function stubFieldTasks(app: ElectronApplication): Promise<void> {
-  const jobs: JobSummary[] = LAB_JOBS.map((job) =>
-    job.id === LAB.philJob ? { ...job, name: 'Tutor' } : job,
-  );
-  // The tutor's agents, under its public name.
-  const agents = LAB_AGENTS.map((agent) => {
-    if (agent.id === STORY.graduateId) return agent;
-    const name = agent.name.replace(/^\S+/, 'Tutor');
-    return { ...agent, name, manifest: { ...agent.manifest, name } };
-  });
-  await app.evaluate(
-    ({ ipcMain }, replies) => {
-      for (const [channel, value] of Object.entries(replies)) {
-        ipcMain.removeHandler(channel);
-        ipcMain.handle(channel, () => ({ ok: true, value }));
-      }
-    },
-    { 'jobs:list': jobs as unknown, 'graduates:list': agents },
-  );
-  await stubByKey(app, 'jobs:get', {
-    [LAB.philJob]: {
-      ...FIELD_JOB,
-      id: LAB.philJob,
-      name: 'Tutor',
-      organizations: ACADEMIES.map((org) => ({ ...org, synthetic: true, role: 'train' })),
-    },
-  });
   await app.evaluate(
     ({ ipcMain }, listings) => {
       const store = globalThis as typeof globalThis & { taskCalls?: unknown[][] };

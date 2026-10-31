@@ -33,7 +33,7 @@ const RECORDS = [
   '- `tests.csv`: which bank question sits where in each practice test.',
   '- `attempts.csv`: every answer a student gave on a practice test, with what they picked, the right answer and whether they got it right.',
   "- `errors.csv`: for each topic, the errors our answer explanations name. Each wrong choice in the bank comes from one of its topic's errors.",
-  '- `hints.csv`: the approved first hints. Phil gives only these hints, by id, and never writes his own.',
+  '- `hints.csv`: the approved first hints. The Tutor gives only these hints, by id, and never writes its own.',
   "- `videos.csv`: the lesson videos, each in a topic's folder.",
   '- `assignments.csv` and `staff_notes.csv`: practice set for students and notes left for staff. New rows go at the end.',
 ];
@@ -66,7 +66,7 @@ function tablePolicy(name: string, policy: PolicyNumbers): string[] {
   return [
     `# ${name}: tutoring policy`,
     '',
-    `This is how ${name} tutors a student right after a wrong answer, and how staff read a student's record. Phil, the academy's tutor, follows it, and so do the staff.`,
+    `This is how ${name} tutors a student right after a wrong answer, and how staff read a student's record. The Tutor, the academy's tutor, follows it, and so do the staff.`,
     '',
     '## The records',
     '',
@@ -125,7 +125,7 @@ function prosePolicy(name: string, policy: PolicyNumbers): string[] {
   return [
     `# How we tutor at ${name}`,
     '',
-    `When a student misses a question on a practice test, ${name} follows the steps below. Phil and every tutor work the same way, and only from our own records.`,
+    `When a student misses a question on a practice test, ${name} follows the steps below. The Tutor and every tutor work the same way, and only from our own records.`,
     '',
     '## Our records',
     '',
@@ -167,7 +167,7 @@ function bulletPolicy(name: string, policy: PolicyNumbers): string[] {
   return [
     `# Tutoring rules, ${name}`,
     '',
-    'For Phil and all tutors. Records first, then the rules.',
+    'For the Tutor and all tutors. Records first, then the rules.',
     '',
     '## Records',
     '',

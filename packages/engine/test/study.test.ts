@@ -41,8 +41,8 @@ function questions(prefix: string): string {
 
 function academyJob(): Job {
   return defaultJob({
-    id: 'phil',
-    name: 'Phil',
+    id: 'tutor',
+    name: 'Tutor',
     description: 'Help a student right after a wrong answer, from the academy files.',
     taskTypes: [
       { id: 'diagnose', label: 'Diagnose' },

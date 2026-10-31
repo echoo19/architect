@@ -197,6 +197,13 @@ export function connectEngine(
       harnessDiff: (from, to) => request('graduates.harnessDiff', [from, to]),
       harnessFiles: (graduateId, version) =>
         request('graduates.harnessFiles', [graduateId, version]),
+      planCertification: (certify) => request('graduates.planCertification', [certify]),
+      startCertification: (certificationId) =>
+        request('graduates.startCertification', [certificationId]),
+      discardCertification: (certificationId) =>
+        request('graduates.discardCertification', [certificationId]),
+      certifications: (graduateId, version) =>
+        request('graduates.certifications', [graduateId, version]),
       acceptVersion: (graduateId, version) =>
         request('graduates.acceptVersion', [graduateId, version]),
       rejectVersion: (graduateId, version) =>

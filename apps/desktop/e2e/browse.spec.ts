@@ -65,7 +65,7 @@ const calls = (name: string) =>
 test("browses a field's practice and check tasks, with the sealed splits counted only", async () => {
   await stubFields(launched.app);
   await stubFieldTasks(launched.app);
-  await openAt(`/fields/${LAB.philJob}`);
+  await openAt(`/fields/${LAB.tutorJob}`);
   await expect(page.getByRole('heading', { name: 'Tutor', level: 1 })).toBeVisible();
   await page.getByRole('tab', { name: 'Tasks' }).click();
 

@@ -9,7 +9,7 @@ import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { FLOW_ENGINE, recordedCalls, stubRecorded, taskPlan } from './fixtures-flow';
 
 /*
- * Phil, the tutor, offered as a sample job on a fresh install, on a stand-in engine: choosing it
+ * Tutor, the tutor, offered as a sample job on a fresh install, on a stand-in engine: choosing it
  * makes the job, Define asks the teacher to study the academies' material, and training waits
  * until the person confirms the brief.
  */
@@ -25,7 +25,7 @@ const shipped = JobSchema.parse(
     ),
   ),
 );
-const phil: Job = {
+const tutor: Job = {
   ...shipped,
   organizations: shipped.organizations?.filter((org) => org.role === 'train'),
 };
@@ -67,13 +67,13 @@ test.afterAll(async () => {
   await launched?.close();
 });
 
-test('starts Phil from a fresh install and reaches the brief to confirm', async () => {
+test('starts Tutor from a fresh install and reaches the brief to confirm', async () => {
   const { app, page } = launched;
   await stubEngine(app, {
     ...FLOW_ENGINE,
     ...EMPTY_ENGINE,
-    'jobs:get': phil,
-    'jobs:save': phil,
+    'jobs:get': tutor,
+    'jobs:save': tutor,
     'jobs:taskPlan': { ...taskPlan, study: { state: 'unstudied', token: '' } },
     'jobs:study': studied,
     'jobs:confirmStudy': {
@@ -82,7 +82,7 @@ test('starts Phil from a fresh install and reaches the brief to confirm', async 
       confirmedAt: '2026-10-30T15:00:00.000Z',
     },
   });
-  await stubRecorded(app, 'jobs:createSample', phil);
+  await stubRecorded(app, 'jobs:createSample', tutor);
   await updateSettings(page, { onboarded: true, comparisonMode: false, edition: 'lab' });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
@@ -95,13 +95,13 @@ test('starts Phil from a fresh install and reaches the brief to confirm', async 
   await expect(page.getByRole('tooltip')).toContainText('a tutor for test-prep academies');
   await settle(page);
   await page.screenshot({
-    path: join(OUT_DIR, 'start-phil-dark.png'),
+    path: join(OUT_DIR, 'start-tutor-dark.png'),
     animations: 'disabled',
   });
 
   await offer.click();
   expect(await recordedCalls(app, 'jobs:createSample')).toEqual([['academy']]);
-  await expect(page).toHaveURL(new RegExp(`#/jobs/${phil.id}/define`));
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${tutor.id}/define`));
 
   const section = page.getByRole('region', { name: 'What Spark understood' });
   await expect(section).toBeVisible();
