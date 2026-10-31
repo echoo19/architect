@@ -408,7 +408,7 @@ test('improves the agent into a new version while the active one keeps answering
   });
   await updateChat(app, CHATS.closeout.id, { running: false });
   await page.getByRole('button', { name: 'Worked for 41 s' }).click();
-  await expect(page.getByRole('list', { name: 'Steps' })).toContainText('Answered by version 2');
+  await expect(page.getByText('Answered by version 2')).toBeAttached();
 
   // Stop works at any point, and says what comes of it.
   await goTo(page, `/runs/${IMPROVE_RUN_ID}/train`);

@@ -4,6 +4,7 @@ import {
   AgentAvatar,
   cn,
   Collapse,
+  InfoTip,
   Reveal,
   Spinner,
   Table,
@@ -12,6 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  VersionTag,
 } from '@architect/ui';
 import { ChevronRight, CircleAlert, Layers } from 'lucide-react';
 import { CodeView } from '../components/CodeView';
@@ -82,19 +84,32 @@ export function Steps({
   if (working && waiting) header = `${stepCount(message.steps.length)} so far`;
   else if (step) header = stepLine(step);
 
+  const version = message.graduateVersion;
   return (
     <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={() => setChoice(!open)}
-        className="flex h-7 max-w-full items-center gap-2 self-start rounded-mark text-ui text-fg transition-colors duration-150"
-      >
-        {working && !waiting && <Spinner size={13} />}
-        <span className="truncate">{header}</span>
-        <Chevron open={open} />
-      </button>
+      <div className="flex h-7 max-w-full items-center gap-2 self-start">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setChoice(!open)}
+          className="flex min-w-0 items-center gap-2 rounded-mark text-ui text-fg transition-colors duration-150"
+        >
+          {working && !waiting && <Spinner size={13} />}
+          <span className="truncate">{header}</span>
+          <Chevron open={open} />
+        </button>
+        {version !== undefined && (
+          <span className="flex items-center gap-0.5">
+            <VersionTag version={version} className="h-6 min-w-8" />
+            <span className="sr-only">Answered by version {version}</span>
+            {/* No certificate covers an agent asking another (decision 100). */}
+            {message.team && (
+              <InfoTip about={`version ${version}`}>Not certified as a team</InfoTip>
+            )}
+          </span>
+        )}
+      </div>
       <Collapse open={open} id={listId}>
         <ol aria-label="Steps" className={STEP_LIST}>
           {message.steps.map((item) =>
@@ -110,13 +125,6 @@ export function Steps({
             ) : (
               <StepRow key={item.id} step={item} onOpenPanel={onOpenPanel} />
             ),
-          )}
-          {message.graduateVersion !== undefined && (
-            <VersionLine>
-              Answered by version {message.graduateVersion}
-              {/* No certificate covers an agent asking another (decision 100). */}
-              {message.team && ', not certified as a team'}
-            </VersionLine>
           )}
         </ol>
       </Collapse>
@@ -224,7 +232,8 @@ function ConsultRow({
       >
         {/* Whose work it is, at a glance: the teammate's avatar, as the sidebar shows it. */}
         <AgentAvatar name={step.name} className="size-5" />
-        <StepText step={step} meta={consultMeta(step)} />
+        {/* Open, the whole answer shows below, so the first line beside the name goes. */}
+        <StepText step={step} meta={open ? undefined : consultMeta(step)} />
         {working && <Spinner size={13} />}
         <Chevron open={open} />
       </button>

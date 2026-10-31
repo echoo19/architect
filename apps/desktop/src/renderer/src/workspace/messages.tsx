@@ -6,7 +6,6 @@ import type {
   WorkspaceMessage,
 } from '@architect/shared';
 import { ErrorState, Reveal, Spinner } from '@architect/ui';
-import { CirclePause } from 'lucide-react';
 import { CopyButton } from '../components/CopyButton';
 import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
 import { writerOf } from './changes';
@@ -73,9 +72,8 @@ export const AgentMessage = memo(function AgentMessage({
   const waiting = answerable
     ? message.blocks.filter((block) => block.kind === 'approval' && block.status === 'pending')
     : [];
+  // The approval cards' own buttons say that the reply waits, so nothing else here repeats it.
   const pending = waiting.length;
-  // A change that couldn't be saved waits for "Try again" rather than for an approval.
-  const retrying = waiting.some((block) => block.kind === 'approval' && block.error !== undefined);
 
   return (
     <Reveal>
@@ -115,12 +113,6 @@ export const AgentMessage = memo(function AgentMessage({
               return <NoteBlock key={key} text={block.text} />;
           }
         })}
-        {pending > 0 && (
-          <p role="status" className="m-0 flex items-center gap-2 text-ui text-fg">
-            <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
-            {retrying ? 'Waiting for you' : 'Waiting for your approval'}
-          </p>
-        )}
         {stoppedQuietly && <NoteBlock text="Stopped" />}
         {message.status === 'error' && (
           <ErrorState

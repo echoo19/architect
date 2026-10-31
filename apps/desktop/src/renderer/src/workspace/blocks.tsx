@@ -5,6 +5,11 @@ import {
   Button,
   cn,
   Collapse,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  IconButton,
   Reveal,
   RowIcon,
   TableBody,
@@ -18,6 +23,7 @@ import {
 import {
   Ban,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   CircleMinus,
@@ -218,11 +224,12 @@ export function ApprovalCard({
     decision: Decision,
     label: string,
     variant: 'primary' | 'secondary' | 'ghost',
+    className?: string,
   ) => (
     <Button
       variant={variant}
       size="md"
-      className="h-[38px]"
+      className={cn('h-[38px]', className)}
       loading={sending === decision}
       disabled={sending !== null}
       onClick={() => void decide(decision)}
@@ -281,13 +288,33 @@ export function ApprovalCard({
             ) : (
               <div className="flex gap-1.5">
                 {choice('deny', 'Deny', 'secondary')}
-                <Tooltip
-                  content={`${agent.name} will save changes to any of its files without asking. You can change this ${named ? 'in its settings' : 'with the lock next to the message box'}.`}
-                  side="top"
-                >
-                  {choice('always', 'Allow saving from now on', 'ghost')}
-                </Tooltip>
-                {choice('approve', 'Allow once', 'primary')}
+                {/* Allow once, with the wider allowance one click further, in its menu. */}
+                <div className="flex">
+                  {choice('approve', 'Allow once', 'primary', 'rounded-r-none')}
+                  <DropdownMenu>
+                    <Tooltip content="More ways to allow">
+                      <DropdownMenuTrigger asChild>
+                        <IconButton
+                          label="More ways to allow"
+                          variant="primary"
+                          size="md"
+                          disabled={sending !== null}
+                          className="h-[38px] w-8 rounded-l-none border-l border-on-primary/15"
+                        >
+                          <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
+                        </IconButton>
+                      </DropdownMenuTrigger>
+                    </Tooltip>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onSelect={() => void decide('always')}
+                        description={`${agent.name} saves to any of its files without asking. Change it ${named ? 'in its settings' : 'with the lock by the message box'}.`}
+                      >
+                        Allow saving from now on
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             ))}
         </div>
