@@ -327,7 +327,8 @@ test("says why an agent from another computer can't be taught here", async () =>
   const dialog = await openTeaching('Returns desk');
   const lessons = dialog.getByRole('region', { name: 'Lessons' });
   await expect(lessons).toContainText("Can't be taught on this computer");
-  await expect(lessons.getByRole('button')).toHaveCount(0);
+  // Nothing to press but the rows' info icons.
+  await expect(lessons.getByRole('button', { name: /^(?!About )/ })).toHaveCount(0);
   await capture('agent-teaching-imported-dark.png');
   expect(await callsTo(launched.app, 'teach:propose')).toEqual([]);
 });
@@ -448,9 +449,11 @@ test('improves the agent into a new version while the active one keeps answering
   const made = running.getByRole('region', { name: 'Lessons' });
   await expect(made).toContainText('Made version 3 · 93% → 98% on check tasks');
   const versions = running.getByRole('list', { name: 'Versions' });
-  await expect(versions.getByRole('listitem', { name: 'Version 3' })).toContainText(
-    'New, not in use yet',
-  );
+  await expect(
+    versions
+      .getByRole('listitem', { name: 'Version 3' })
+      .getByRole('button', { name: 'Use this version' }),
+  ).toBeVisible();
   await expect(versions.getByRole('listitem', { name: 'Version 2' })).toContainText('In use');
   await capture('agent-teaching-made-dark.png');
 
