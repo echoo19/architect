@@ -20,6 +20,7 @@ import {
   type PassDifference,
   type PrimaryComparison,
 } from '@architect/shared';
+import { formatCost } from '../flow/format';
 import type { ModelNames } from '../flow/train/phase';
 import { formatScore } from '../lib/format';
 import { shortModelName } from '../lib/names';
@@ -386,7 +387,8 @@ export interface CostRow {
 /**
  * Accuracy against cost (decision 096): each arm's own final-test result under the first seed, on
  * every backend it ran on, with the model that answered, where, and what 1,000 requests cost there,
- * from the attempts' recorded charges. Empty for a report made before rows said so.
+ * from the tokens each attempt recorded at that model's listed price. Empty for a report made
+ * before rows said so.
  */
 export function costRowsOf(report: ComparisonReport): CostRow[] {
   const seed = report.plan.testSeeds[0];
@@ -405,6 +407,17 @@ export function costRowsOf(report: ComparisonReport): CostRow[] {
       ];
     }),
   );
+}
+
+/** What a cost no record holds in full is called, where its dash stands. */
+export const NOT_RECORDED = 'Not recorded';
+
+/**
+ * What 1,000 requests cost, as the cost table writes it: dollars, or null when the report has no
+ * full record of it, which the table shows as a dash, never as a partial sum.
+ */
+export function perThousandText(usd: number | null): string | null {
+  return usd === null ? null : formatCost(usd);
 }
 
 /** Where the student ran, in a word or two. */

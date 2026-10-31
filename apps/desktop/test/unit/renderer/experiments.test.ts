@@ -12,6 +12,7 @@ import {
   costRowsOf,
   countIn,
   figuresOf,
+  perThousandText,
   DEFAULT_NAMES,
   defaultInput,
   experimentNames,
@@ -160,6 +161,12 @@ describe('accuracy against cost', () => {
     expect(hosted?.backend.backend).toBe('hosted');
     expect(hosted?.rows.map((item) => item.arm)).toEqual(['targeted', 'teacher']);
     expect(others.map((figure) => figure.backend.backend)).toEqual(['local-ollama']);
+  });
+
+  it('writes a cost per 1,000 requests, and nothing where it was not recorded in full', () => {
+    expect(perThousandText(40.9)).toBe('$40.90');
+    expect(perThousandText(0)).toBe('$0');
+    expect(perThousandText(null)).toBeNull();
   });
 
   it('leaves out rows from a report made before they said where they answered', () => {

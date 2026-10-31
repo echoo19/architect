@@ -1,9 +1,8 @@
 import type { ArmId, ComparisonReport } from '@architect/shared';
 import { DataTable } from '@architect/ui';
 import { Cloud, Laptop } from 'lucide-react';
-import { formatCost } from '../flow/format';
 import { formatScore } from '../lib/format';
-import { costRowsOf, rowLabel, type CostRow } from './model';
+import { costRowsOf, NOT_RECORDED, perThousandText, rowLabel, type CostRow } from './model';
 
 const icon = { size: 14, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
@@ -57,7 +56,16 @@ export function CostTable({
           header: 'Per 1,000 requests',
           align: 'end',
           width: '168px',
-          cell: (item) => (item.perThousandUsd === null ? null : formatCost(item.perThousandUsd)),
+          cell: (item) => {
+            const text = perThousandText(item.perThousandUsd);
+            return text === null ? (
+              <span aria-label={NOT_RECORDED} title={NOT_RECORDED}>
+                –
+              </span>
+            ) : (
+              text
+            );
+          },
         },
       ]}
     />

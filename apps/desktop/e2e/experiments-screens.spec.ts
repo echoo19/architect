@@ -2,13 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import {
-  costUsd,
-  mentorPreset,
-  type ArmRow,
-  type ComparisonReport,
-  type ExperimentInput,
-} from '@architect/shared';
+import type { ArmRow, ComparisonReport, ExperimentInput } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { finishExperiments, installExperimentsFake } from './fixtures-experiments';
@@ -75,17 +69,10 @@ function asField(report: ComparisonReport): ComparisonReport {
 }
 
 /**
- * What 1,000 of the recording's attempts cost at Spark's price: each reads 30,000 tokens and
- * writes 800, as the dry run's hosted Glimmer attempts do.
- */
-const SPARK_PER_THOUSAND =
-  1000 * costUsd(mentorPreset('meta-spark').pricing, { inputTokens: 30_000, outputTokens: 800 });
-
-/**
  * The recorded comparison with the teacher alone beside its arms, as the engine reports one
  * (decision 096): Spark's blank-harness reference row again as the teacher's own run, named
- * after the model, hosted, at Spark's price for the recording's attempts. The engine's own
- * tests run the real arm.
+ * after the model, hosted, at the cost the report worked out for those same attempts. The
+ * engine's own tests run the real arm.
  */
 function withTeacher(report: ComparisonReport): ComparisonReport {
   const table = report.backends.find((backend) => backend.backend === 'reference');
@@ -98,7 +85,6 @@ function withTeacher(report: ComparisonReport): ComparisonReport {
     runId: 'run_teacher',
     model: 'Spark',
     runsOn: 'hosted',
-    perThousandUsd: SPARK_PER_THOUSAND,
   };
   const own = { ...table, backend: 'teacher' as const, label: 'Spark alone, as the agent' };
   return {
@@ -358,7 +344,12 @@ test('sets the teacher alone beside the taught student, by accuracy and cost per
   // Every row names the model that answered and where; the teacher and the student side by side.
   const teacher = table.getByRole('row').filter({ hasText: 'Spark alone' });
   await expect(teacher).toContainText('Hosted');
-  await expect(teacher).toContainText(/\$\d/);
+  // Spark answered both, on the same tasks: the same cost per 1,000 requests, from the same records.
+  const reference = table.getByRole('row').filter({ hasText: 'Spark reference' });
+  const perThousand = async (row: Locator) =>
+    (await row.getByRole('cell').last().innerText()).trim();
+  expect(await perThousand(teacher)).toMatch(/^\$\d/);
+  expect(await perThousand(reference)).toBe(await perThousand(teacher));
   await expect(
     table.getByRole('row').filter({ hasText: 'Targeted mentoring' }).first(),
   ).toContainText('Glimmer');
