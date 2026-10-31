@@ -29,7 +29,11 @@ import type {
   CorrectionResult,
   CorrectionStart,
 } from '../../src/teaching/correction';
-import type { OpenedTransfer, TransferOrganization } from '../../src/vault/vault';
+import type {
+  CertificationSets,
+  OpenedTransfer,
+  TransferOrganization,
+} from '../../src/vault/vault';
 
 export type AttemptHook = (
   task: Task,
@@ -432,6 +436,49 @@ export class FakeVault implements VaultDeps {
         transfer.map(({ org }) => [org.id, `sealed:${jobId}/${org.id}`]),
       ),
     };
+  }
+
+  /** Each certification's sealed tasks, by `<job>/<id>`, with a stand-in hash. */
+  readonly certifications = new Map<string, { sets: CertificationSets; sha256: string }>();
+
+  /** What each certification was fingerprinted against: the visible tasks' ids and the data. */
+  readonly certificationPrints = new Map<string, { others: string[]; data: string[] }>();
+
+  sealCertification(
+    jobId: string,
+    id: string,
+    sets: CertificationSets,
+    others: Task[],
+    data: string[],
+  ): string {
+    const key = `${jobId}/${id}`;
+    this.certificationPrints.set(key, { others: others.map((task) => task.id), data });
+    if (this.certifications.has(key)) throw new Error(`${key} is already sealed.`);
+    const sha256 = `sha-${key}-${JSON.stringify(sets).length}`;
+    this.certifications.set(key, { sets: structuredClone(sets), sha256 });
+    return sha256;
+  }
+
+  openCertification(jobId: string, id: string, sha256: string, proof: unknown): CertificationSets {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError(
+        'split',
+        "A certification's tasks open only after the mentor is released.",
+      );
+    }
+    const sealed = this.certifications.get(`${jobId}/${id}`);
+    if (sealed === undefined || sealed.sha256 !== sha256) {
+      throw new GuardError(
+        'split',
+        `The tasks of certification ${id} changed after they were sealed.`,
+      );
+    }
+    this.opened.push(`${jobId}:certification:${id}`);
+    return structuredClone(sealed.sets);
+  }
+
+  discardCertification(jobId: string, id: string): void {
+    this.certifications.delete(`${jobId}/${id}`);
   }
 
   /** The sealed tasks appended to the folder's tasks.jsonl, each sealed organization's files. */

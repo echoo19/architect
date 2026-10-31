@@ -3,6 +3,8 @@ import {
   BindRequestSchema,
   CapabilityBreakdownSchema,
   CategorySchema,
+  CertificationSchema,
+  CertifyRequestSchema,
   CounterexampleSchema,
   ComparisonReportSchema,
   CorrectionRequestSchema,
@@ -356,6 +358,22 @@ export const ENGINE_ROUTES = {
     z.tuple([VersionPickSchema, VersionPickSchema]),
     z.array(FileDiffSchema),
     (api, [from, to]) => api.graduates.harnessDiff(from, to),
+  ),
+  'graduates.planCertification': route(
+    z.tuple([CertifyRequestSchema]),
+    CertificationSchema,
+    (api, [request]) => api.graduates.planCertification(request),
+  ),
+  'graduates.startCertification': route(z.tuple([id]), CertificationSchema, (api, [certId]) =>
+    api.graduates.startCertification(certId),
+  ),
+  'graduates.discardCertification': route(z.tuple([id]), z.void(), (api, [certId]) =>
+    api.graduates.discardCertification(certId),
+  ),
+  'graduates.certifications': route(
+    z.tuple([id, versionNumber]),
+    z.array(CertificationSchema),
+    (api, [graduateId, version]) => api.graduates.certifications(graduateId, version),
   ),
   'graduates.acceptVersion': route(
     z.tuple([id, versionNumber]),

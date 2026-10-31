@@ -3,6 +3,7 @@ import {
   appendFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -33,6 +34,16 @@ const FINGERPRINT_FILE = 'fingerprint.json';
 const JOB_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 /** Where the organizations a job never trains on keep their files, inside the job's vault. */
 const TRANSFER_DIR = 'transfer';
+/** Where the tasks of versions certified after the fact are sealed (decision 079). */
+const CERTIFICATIONS_DIR = 'certifications';
+/** Beside each certification's tasks, their prints for the leak detector. */
+const PRINTS_SUFFIX = '.prints.json';
+
+/** The tasks a version is certified on after the fact: calibration, and each check by organization. */
+export interface CertificationSets {
+  calibration: Task[];
+  checks: Record<string, Task[]>;
+}
 
 /**
  * An organization the job never trains on, with its files, sealed beside the test split
@@ -196,7 +207,12 @@ export class Vault {
 
   /** Checks text bound for the mentor against the sealed test tasks' fingerprints. */
   leakDetector(jobId: string): LeakDetector {
-    return createLeakDetector(this.fingerprint(jobId));
+    const fingerprint = this.fingerprint(jobId);
+    // Tasks a version was certified on after the fact are held to it like the test's (079).
+    return createLeakDetector({
+      ...fingerprint,
+      tasks: [...fingerprint.tasks, ...this.certificationPrints(jobId)],
+    });
   }
 
   /**
@@ -322,6 +338,115 @@ export class Vault {
       dataDirs[org.id] = folder;
     }
     return { organizations: transfer.map(({ org }) => org), dataDirs };
+  }
+
+  /**
+   * Seals the tasks a frozen version is certified on after the fact (decision 079), in this
+   * job's vault beside its test. They are fingerprinted as the test is (decision 082): `others`
+   * are the tasks the job's mentor may see and `data` the text of the files it trains on, with
+   * each table's rows as the mentor is shown them, and their prints join the job's leak detector.
+   * A task with nothing of its own to be recognized by is refused, and nothing is written. A
+   * sealed set is never replaced. Returns the file's sha256, which opening it again must match.
+   */
+  sealCertification(
+    jobId: string,
+    certificationId: string,
+    sets: CertificationSets,
+    others: readonly Task[],
+    data: readonly string[],
+  ): string {
+    const file = this.certificationFile(jobId, certificationId);
+    if (existsSync(file)) {
+      throw new GuardError('split', `The tasks of certification ${certificationId} are sealed.`);
+    }
+    const parsed = {
+      calibration: sets.calibration.map((task) => TaskSchema.parse(task)),
+      checks: Object.fromEntries(
+        Object.entries(sets.checks).map(([org, tasks]) => [
+          org,
+          tasks.map((task) => TaskSchema.parse(task)),
+        ]),
+      ),
+    };
+    const content = `${JSON.stringify(parsed)}\n`;
+    const tasks = [...parsed.calibration, ...Object.values(parsed.checks).flat()];
+    const prints = fingerprintTests(jobId, tasks, others, data, sha256(content)).tasks;
+    const blank = prints.find(
+      (print) => print.prompt === null && print.grams.length === 0 && print.values.length === 0,
+    );
+    if (blank !== undefined) {
+      throw new GuardError(
+        'split',
+        `Task ${blank.id} can't be sealed: everything it says is also in the data or in other tasks, so a leak of it couldn't be recognized. Give it some wording or a value of its own, such as an id with digits.`,
+      );
+    }
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileAtomic(this.printsFile(jobId, certificationId), `${JSON.stringify(prints)}\n`);
+    writeFileAtomic(file, content);
+    return sha256(content);
+  }
+
+  /** A certification's sealed tasks, after the mentor is released, as long as they are unchanged. */
+  openCertification(
+    jobId: string,
+    certificationId: string,
+    expectedSha256: string,
+    proof: MentorReleased,
+  ): CertificationSets {
+    if (!isMentorReleased(proof)) {
+      throw new GuardError(
+        'split',
+        "A certification's tasks open only after the mentor has been released.",
+      );
+    }
+    const content = readFileSync(this.certificationFile(jobId, certificationId), 'utf8');
+    if (sha256(content) !== expectedSha256) {
+      throw new GuardError(
+        'split',
+        `The tasks of certification ${certificationId} changed after they were sealed.`,
+      );
+    }
+    const raw = JSON.parse(content) as {
+      calibration: unknown[];
+      checks: Record<string, unknown[]>;
+    };
+    return {
+      calibration: raw.calibration.map((task) => TaskSchema.parse(task)),
+      checks: Object.fromEntries(
+        Object.entries(raw.checks).map(([org, tasks]) => [
+          org,
+          tasks.map((task) => TaskSchema.parse(task)),
+        ]),
+      ),
+    };
+  }
+
+  /** Takes back the sealed tasks of a certification that never started. */
+  discardCertification(jobId: string, certificationId: string): void {
+    rmSync(this.certificationFile(jobId, certificationId), { force: true });
+    rmSync(this.printsFile(jobId, certificationId), { force: true });
+  }
+
+  /** The prints of every certification sealed in a job's vault after the fact. */
+  private certificationPrints(jobId: string): Fingerprint['tasks'] {
+    const folder = join(this.dir(jobId), CERTIFICATIONS_DIR);
+    if (!existsSync(folder)) return [];
+    return readdirSync(folder)
+      .filter((name) => name.endsWith(PRINTS_SUFFIX))
+      .flatMap((name) =>
+        FingerprintSchema.shape.tasks.parse(JSON.parse(readFileSync(join(folder, name), 'utf8'))),
+      );
+  }
+
+  private printsFile(jobId: string, certificationId: string): string {
+    return this.certificationFile(jobId, certificationId).replace(/\.json$/, PRINTS_SUFFIX);
+  }
+
+  private certificationFile(jobId: string, certificationId: string): string {
+    if (!JOB_ID.test(certificationId)) {
+      throw new Error(`"${certificationId}" is not a valid certification id.`);
+    }
+    return join(this.dir(jobId), CERTIFICATIONS_DIR, `${certificationId}.json`);
   }
 
   /**

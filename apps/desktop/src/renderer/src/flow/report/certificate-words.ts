@@ -64,9 +64,16 @@ export function noCertificateSentence(
   }
 }
 
-/** Where a check ran: the taught organizations' final test, or one it never saw by name. */
+/**
+ * Where a check ran: the taught organizations' final test, new tasks at one it was taught on (a
+ * certification after the fact, decision 079), or one it never saw, by name.
+ */
 export function checkPlace(check: CertificateCheck): string {
-  if (check.seen) return 'Final test, organizations it was taught on';
+  if (check.seen) {
+    return check.orgName === undefined
+      ? 'Final test, organizations it was taught on'
+      : `New tasks at ${check.orgName}`;
+  }
   return check.orgName ?? 'An organization it never saw';
 }
 

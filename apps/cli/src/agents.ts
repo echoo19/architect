@@ -12,7 +12,11 @@ export function agentSlug(summary: Pick<GraduateSummary, 'name'>): string {
  * agents share is refused, with their ids, rather than guessed.
  */
 export function resolveAgent(library: GraduateLibrary, named: string): GraduateSummary {
-  const agents = library.list();
+  return pickAgent(library.list(), named);
+}
+
+/** `resolveAgent` over agents already listed. */
+export function pickAgent(agents: readonly GraduateSummary[], named: string): GraduateSummary {
   const byId = agents.find((agent) => agent.id === named);
   if (byId) return byId;
   const slug = slugify(named);

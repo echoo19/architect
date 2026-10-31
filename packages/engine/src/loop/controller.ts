@@ -30,6 +30,7 @@ import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
 import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
 import { RepeatSession, repeatRefusal } from './repeat';
+import { CertifySession } from './posthoc';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -85,7 +86,8 @@ type Turn =
   | { kind: 'run'; runId: string }
   | { kind: 'retest'; runId: string; target: StudentTarget }
   | { kind: 'repeat'; runId: string; target: StudentTarget }
-  | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] };
+  | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] }
+  | { kind: 'certify'; runId: string; certificationId: string };
 
 /** A re-test's, a repeat's or a reference's key among the sessions holding a turn. */
 function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
@@ -96,6 +98,8 @@ function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
       return `${turn.runId}/repeat/${turn.target}`;
     case 'reference':
       return `${turn.runId}/reference/${turn.split}`;
+    case 'certify':
+      return `${turn.runId}/certify/${turn.certificationId}`;
   }
 }
 
@@ -451,6 +455,25 @@ export class RunController {
     this.schedule(turn);
   }
 
+  /**
+   * Queues a planned certification of a frozen version, or resumes a paused one (decision 079).
+   * It holds the student like a re-test, and never changes the run.
+   */
+  certify(certificationId: string): void {
+    const { store } = this.options;
+    const stored = store.certifications.get(certificationId);
+    if (stored === null) throw new Error(`There is no certification "${certificationId}".`);
+    if (stored.status === 'finished') throw new Error('This certification has finished.');
+    const turn: Turn = { kind: 'certify', runId: stored.runId, certificationId };
+    if (stored.status === 'certifying' && this.isScheduled(turn)) {
+      throw new Error('This version is already being certified.');
+    }
+    if (stored.status !== 'certifying') {
+      store.certifications.update({ ...stored, status: 'certifying', error: undefined });
+    }
+    this.schedule(turn);
+  }
+
   /** On startup: runs and re-tests that were active when the app closed resume where they were. */
   recover(): void {
     const { store } = this.options;
@@ -469,6 +492,10 @@ export class RunController {
     }
     for (const { runId, split } of store.references.withStatus('running')) {
       const turn: Turn = { kind: 'reference', runId, split };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, id } of store.certifications.withStatus('certifying')) {
+      const turn: Turn = { kind: 'certify', runId, certificationId: id };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     this.pump();
@@ -655,7 +682,9 @@ export class RunController {
         ? new RetestSession(context, turn.target)
         : turn.kind === 'repeat'
           ? new RepeatSession(context, turn.target)
-          : new ReferenceSession(context, turn.split);
+          : turn.kind === 'certify'
+            ? new CertifySession(context, turn.certificationId)
+            : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))

@@ -449,4 +449,23 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX counterexamples_by_run ON counterexamples (run_id, round);
     `,
   },
+  {
+    version: 19,
+    name: 'certifications',
+    sql: `
+      -- A frozen version certified after the fact, on tasks its run never saw (decision 079).
+      CREATE TABLE certifications (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        graduate_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        seq INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE UNIQUE INDEX certifications_once ON certifications (run_id, seq);
+      CREATE INDEX certifications_by_version ON certifications (graduate_id, version, created_at);
+    `,
+  },
 ];

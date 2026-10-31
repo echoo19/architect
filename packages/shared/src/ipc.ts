@@ -8,6 +8,7 @@ import type {
   RunImprovement,
   TeachingOverview,
 } from './corrections';
+import type { Certification, CertifyRequest } from './certification';
 import type { Counterexample } from './counterexamples';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
@@ -701,6 +702,18 @@ export interface ArchitectApi {
      * version's harness read from its folder (never run) and held to its manifest's hash.
      */
     harnessDiff(from: VersionPick, to: VersionPick): Promise<FileDiff[]>;
+    /**
+     * Certifies a frozen version after the fact (decision 079): draws calibration tasks its run
+     * never saw from a job's taught organizations, seals them with the check tasks, and projects
+     * the cost. Spends nothing; a request it can't meet is refused with the reason.
+     */
+    planCertification(request: CertifyRequest): Promise<Certification>;
+    /** Starts a planned certification, or resumes a paused one. Returns at once. */
+    startCertification(certificationId: string): Promise<Certification>;
+    /** Takes back a planned certification that never started, with its sealed tasks. */
+    discardCertification(certificationId: string): Promise<void>;
+    /** A version's certifications, newest first. */
+    certifications(graduateId: string, version: number): Promise<Certification[]>;
     acceptVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     rejectVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     /** Makes an accepted version the active one, in one step. Chats already answering finish first. */

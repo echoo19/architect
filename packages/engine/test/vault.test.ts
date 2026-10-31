@@ -7,7 +7,7 @@ import { DataPaths } from '../src/loop/paths';
 import { describeJobData } from '../src/mentor/data-files';
 import { buildOneShotView, oneShotViewParts } from '../src/mentor/view';
 import { isMentorReleased, releaseMentor, type MentorReleased } from '../src/vault/gate';
-import { Vault } from '../src/vault/vault';
+import { Vault, type CertificationSets } from '../src/vault/vault';
 import { importJobInto } from './support/field';
 
 const INVOICE_FORMAT = 'End with: ANSWER: {"invoice_id": "<id>", "total_cents": <integer>}';
@@ -330,6 +330,71 @@ describe('the calibration split of a certified job (decision 077)', () => {
     expect(() => vault.openCalibration('job_certified', proof)).toThrow(
       'The calibration split of job job_certified changed after it was sealed.',
     );
+  });
+});
+
+describe("a version's certification after the fact (decision 079)", () => {
+  const sets: CertificationSets = {
+    calibration: [others[0] as Task],
+    checks: { north: [others[1] as Task] },
+  };
+  /** What the job's mentor may see besides them. */
+  const visible = others.slice(2);
+  const file = () => join(root, 'vault', 'job_sample', 'certifications', 'crt_1.json');
+  const seal = (id = 'crt_1', tasks = sets) =>
+    vault.sealCertification('job_sample', id, tasks, visible, []);
+
+  it('seals once beside the test, and opens only on the release proof', async () => {
+    const sha256 = seal();
+    expect(() => seal()).toThrow(GuardError);
+    expect(() =>
+      vault.openCertification('job_sample', 'crt_1', sha256, {} as MentorReleased),
+    ).toThrow("A certification's tasks open only after the mentor has been released.");
+    const proof = await releaseMentor(session());
+    expect(vault.openCertification('job_sample', 'crt_1', sha256, proof)).toEqual(sets);
+  });
+
+  it('holds text bound for the mentor to not quoting them, as the test is (decision 082)', () => {
+    expect(vault.leakDetector('job_sample').scan(others[0]?.prompt ?? '').leaked).toBe(false);
+    seal();
+    const scan = vault.leakDetector('job_sample');
+    expect(scan.scan(JSON.stringify({ prompt: others[0]?.prompt })).matchedIds).toEqual([
+      'inv-train-1',
+    ]);
+    expect(scan.scan(`the check task: ${others[1]?.prompt ?? ''}`).matchedIds).toContain(
+      'inv-train-2',
+    );
+    // The test's own prints still hold.
+    expect(scan.scan(tests[0]?.prompt ?? '').matchedIds).toContain('inv-test-1');
+  });
+
+  it('refuses a task with nothing of its own to recognize it by, and writes nothing', () => {
+    const echo = { ...(visible[0] as Task), id: 'echo' };
+    expect(() => seal('crt_2', { calibration: [echo], checks: {} })).toThrow(
+      "Task echo can't be sealed: everything it says is also in the data or in other tasks",
+    );
+    expect(() =>
+      readFileSync(join(root, 'vault', 'job_sample', 'certifications', 'crt_2.json')),
+    ).toThrow();
+  });
+
+  it('refuses tasks that changed after sealing, and takes back what never started', async () => {
+    const sha256 = seal();
+    writeFileSync(file(), readFileSync(file(), 'utf8').replace('W-1001', 'W-1009'));
+    const proof = await releaseMentor(session());
+    expect(() => vault.openCertification('job_sample', 'crt_1', sha256, proof)).toThrow(
+      'The tasks of certification crt_1 changed after they were sealed.',
+    );
+    vault.discardCertification('job_sample', 'crt_1');
+    expect(() => readFileSync(file())).toThrow();
+    expect(vault.leakDetector('job_sample').scan(others[0]?.prompt ?? '').leaked).toBe(false);
+    expect(vault.isSealed('job_sample')).toBe(true);
+  });
+
+  it('keeps them out of the locked test and its counts, under an id that names no other path', () => {
+    seal();
+    expect(vault.count('job_sample')).toBe(tests.length);
+    expect(() => seal('..')).toThrow('is not a valid certification id');
   });
 });
 

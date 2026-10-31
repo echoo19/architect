@@ -55,6 +55,11 @@ export interface EngineHostOptions {
    * and scripts on a data folder of their own, nothing is coordinated. The caller closes it.
    */
   gpu?: GpuLease;
+  /**
+   * Whether runs, re-tests and training jobs left active resume when the host starts: true for
+   * the app. A command that does one thing on the app's data folder leaves them to the app.
+   */
+  recover?: boolean;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
   /**
@@ -202,9 +207,11 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   // A job that was being made when the app closed is taken back whole, with its sealed test, so
   // nothing is left that no job owns and the job's id is free to be made again.
   await jobs.recoverInterrupted(onError);
-  // Training jobs left unfinished when the app closed are checked again, never sent again.
-  options.deps.training?.worker.resume();
-  controller.recover();
+  if (options.recover !== false) {
+    // Training jobs left unfinished when the app closed are checked again, never sent again.
+    options.deps.training?.worker.resume();
+    controller.recover();
+  }
 
   return {
     api,

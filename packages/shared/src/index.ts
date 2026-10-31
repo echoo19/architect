@@ -1,5 +1,6 @@
 export * from './adapters';
 export * from './cells';
+export * from './certification';
 export * from './chat';
 export * from './checker';
 export * from './cli';

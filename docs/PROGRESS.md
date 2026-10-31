@@ -9,6 +9,16 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - *Next:* certify the third run's frozen tutor (079, about $5) once it finishes; the remaining audit gaps (adding a sealed organization later, per-organization check scores while training, a model trained elsewhere back as a local OpenAI-compatible student, candidates in Models, the organization word from the job); a Hestia-inspired pass on one visual language and smooth motion; the full stand-in e2e suite (include `engine.spec.ts` and `hub.spec.ts`), a PR to `main` and release 0.7.0.
 - *Reviews:* Codex is out of credits until Nov 4, 3:01 AM; independent Claude reviewers (adversarial brief, given code, not conclusions) stand in.
 
+## 2026-10-30 (Fri, night), certify an existing version (branch `certify/post-hoc`)
+
+**Done** (no model was called, no GPU, no spend; decision 079)
+- A frozen version can be certified after the fact: calibration tasks from a job's taught organizations that its run (and any run it was improved from) never saw or was tested on, by id, family name and request words, sealed in the vault with the check tasks; k attempts with no mentor under its own round of split `certify`; the certificate filed on a record that never changes. Caps on dollars and minutes, resumable like a re-test.
+- `architect certify <agent> --version N --job <job>` (docs/CLI.md); a Certify action and dialog on a version's panel in Models (Lab only). Screenshot `certify-version-dark.png`.
+
+**Next**
+- Certify Phil v2 for real on a newer import of the tutor's job (on this computer it costs nothing; the owner decides when the GPU may run it).
+- A cap that pauses a certification can't be raised on it; if that bites, let `startCertification` take new caps.
+
 ## 2026-10-30 (Fri, evening), experiments from fields in the library (branch `lab/experiments-from-fields`)
 
 **Done** (no model was called, no GPU, no spend; decision 074's amendment)
