@@ -1,12 +1,14 @@
 import {
   AppInfoSchema,
   AppSettingsSchema,
+  AttemptPageSchema,
   ConnectionTestSchema,
   DraftTurnSchema,
   FieldExportManifestSchema,
   FieldViewSchema,
   FileDiffSchema,
   GraduateSummarySchema,
+  HarnessFileSchema,
   HubTokenStatusSchema,
   JobSchema,
   JobSummarySchema,
@@ -21,11 +23,13 @@ import {
   SecretStatusSchema,
   StudentTargetSchema,
   StudyStateSchema,
+  TaskListingSchema,
   TaskPlanSchema,
   TraceSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ArchitectApi,
+  type AttemptQuery,
   type DraftOrganization,
   type Job,
   type ModelSource,
@@ -33,6 +37,7 @@ import {
   type SampleJob,
   type StudentEndpoint,
   type StudentTarget,
+  type TaskSplit,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -87,6 +92,19 @@ export const api = {
   field: (jobId: string) => read('jobs.field', FieldViewSchema, bridge().jobs.field(jobId)),
   fieldAssets: (jobId: string) =>
     read('jobs.fieldAssets', FieldExportManifestSchema, bridge().jobs.fieldAssets(jobId)),
+  /** A split's tasks: practice and check tasks in full, the calibration and test splits counted. */
+  tasks: (jobId: string, split: TaskSplit) =>
+    read('jobs.tasks', TaskListingSchema, bridge().jobs.tasks(jobId, split)),
+  /** A page of the run's practice and check attempts, newest first. */
+  attempts: (runId: string, query: AttemptQuery) =>
+    read('runs.attempts', AttemptPageSchema, bridge().runs.attempts(runId, query)),
+  /** The files of one of the run's harness versions. */
+  runHarnessFiles: (runId: string, version: number) =>
+    read(
+      'runs.harnessFiles',
+      z.array(HarnessFileSchema),
+      bridge().runs.harnessFiles(runId, version),
+    ),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   run: (runId: string) => read('runs.get', RunDetailSchema, bridge().runs.get(runId)),
   /** The run's report card: from where its own final test ran, or from one endpoint when named. */

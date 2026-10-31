@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Button, DataTable, EmptyState, PageTabs, Skeleton } from '@architect/ui';
-import { Boxes, Building2, FlaskConical, LayoutGrid, Library, Package } from 'lucide-react';
+import {
+  Boxes,
+  Building2,
+  FlaskConical,
+  LayoutGrid,
+  Library,
+  ListChecks,
+  Package,
+} from 'lucide-react';
 import { useJobs } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
@@ -16,6 +24,7 @@ import {
 } from '../fields/model';
 import { Organizations } from '../fields/Organizations';
 import { Overview } from '../fields/Overview';
+import { Tasks } from '../fields/Tasks';
 import { scoreCell } from '../fields/parts';
 import { useDraftStore } from '../flow/describe/draft-store';
 import { shortDate } from '../flow/format';
@@ -161,16 +170,17 @@ function FieldList({ ids }: { ids: readonly string[] }) {
 const ORGANIZATIONS = 'Organizations';
 const BEST = 'Best final test';
 
-type FieldTab = 'overview' | 'organizations' | 'candidates' | 'assets';
+type FieldTab = 'overview' | 'organizations' | 'tasks' | 'candidates' | 'assets';
 
 const TABS = [
   { value: 'overview', label: 'Overview', icon: <LayoutGrid strokeWidth={1.8} /> },
   { value: 'organizations', label: 'Organizations', icon: <Building2 strokeWidth={1.8} /> },
+  { value: 'tasks', label: 'Tasks', icon: <ListChecks strokeWidth={1.8} /> },
   { value: 'candidates', label: 'Candidates', icon: <Boxes strokeWidth={1.8} /> },
   { value: 'assets', label: 'Assets', icon: <Package strokeWidth={1.8} /> },
 ] as const;
 
-/** One field: its overview, organizations, candidates and assets, a tab each. */
+/** One field: its overview, organizations, tasks, candidates and assets, a tab each. */
 export function FieldScreen({ jobId }: { jobId: string }) {
   const read = useQuery(fieldKey(jobId), () => readField(jobId));
   if (!read.data) {
@@ -213,6 +223,7 @@ function Field({ field }: { field: FieldSummary }) {
       <PageTabs aria-label={job.name} tabs={TABS} value={tab} onValueChange={setTab}>
         {tab === 'overview' && <Overview field={field} />}
         {tab === 'organizations' && <Organizations view={field.view} />}
+        {tab === 'tasks' && <Tasks job={job} />}
         {tab === 'candidates' && <Candidates field={field} />}
         {tab === 'assets' && <Assets jobId={job.id} />}
       </PageTabs>
