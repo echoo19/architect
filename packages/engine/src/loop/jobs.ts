@@ -11,8 +11,13 @@ import {
   StudyRecordSchema,
   TaskSchema,
   trainOrganizations,
+  ORG_ID,
+  slugify,
+  type AddOrganizationRequest,
   type DraftRecord,
   type Job,
+  type Organization,
+  type ResourceFile,
   type JobRun,
   type JobSummary,
   type RuleConfirmation,
@@ -25,6 +30,9 @@ import {
 } from '@architect/shared';
 import { z } from 'zod';
 import { calibrationSize } from '../certify/settings';
+import { parseCsv } from '../data/csv';
+import { addedOrganizationTasks } from '../drafting/field';
+import { folderShortfalls, shortfallInWords } from '../graduates/checks';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
@@ -156,6 +164,20 @@ async function readTasks(file: string): Promise<Task[]> {
       throw new Error(`Line ${index + 1} of tasks.jsonl isn't a task: ${why}.`, { cause: error });
     }
   });
+}
+
+/**
+ * The job's files as a folder must hold them: each table with the columns the first taught
+ * organization's copy has, so another organization's folder can be checked against them.
+ */
+async function withColumns(job: Job, dataDir: string): Promise<ResourceFile[]> {
+  return Promise.all(
+    job.data.files.map(async (file) => {
+      if (file.kind !== 'table') return file;
+      const content = await readFile(join(dataDir, file.name), 'utf8').catch(() => null);
+      return content === null ? file : { ...file, columns: parseCsv(file.name, content).columns };
+    }),
+  );
 }
 
 /** Copies a file, saying `missing` when it isn't there; an `optional` file that isn't is skipped. */
@@ -752,6 +774,121 @@ export class JobLibrary {
   /** Writes the job file as-is. Tasks stay behind: the test split never leaves the vault. */
   async exportFile(jobId: string, file: string): Promise<void> {
     await writeJsonFile(file, await this.get(jobId));
+  }
+
+  /**
+   * Seals a never-seen organization into a field after it was made (decision 085). The folder
+   * must hold the job's files with the columns its first taught organization's tables have, as
+   * an agent's own records folder is checked (decision 070). Its tasks come from a `tasks.jsonl`
+   * in the folder, each of the job's kinds and of no other organization, or, for a field drafted
+   * from folders, are made from its files with the field's own kinds of task; anything else is
+   * refused with what to do. The organization's files and tasks go to the vault beside the job's
+   * seal, which doesn't change, and nothing of it is written to the job.
+   */
+  async addOrganization(jobId: string, request: AddOrganizationRequest): Promise<void> {
+    const job = await this.get(jobId);
+    const taught = trainOrganizations(job);
+    const [first] = taught;
+    if (first === undefined) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} serves one organization, so it has no field to add one to. Make a field of several organizations to qualify on one it never saw.`,
+      );
+    }
+    if (!(await this.deps.vault.isSealed(jobId))) {
+      throw new Error(
+        `${job.name} has no sealed final test yet, so nothing can be sealed beside it.`,
+      );
+    }
+    const name = request.name.trim();
+    const id = slugify(name);
+    if (!ORG_ID.test(id)) {
+      throw new Error(`"${name}" can't name an organization; use letters or digits in it.`);
+    }
+    const sealed = await this.deps.vault.transferIdentifiers(jobId);
+    if ([...taught, ...sealed].some((org) => org.id === id || org.name === name)) {
+      throw new Error(
+        `${job.name} already has an organization called ${name}. Give it another name.`,
+      );
+    }
+    const folder = resolve(request.folder);
+    if (!(await stat(folder).catch(() => null))?.isDirectory()) {
+      throw new Error(`${folder} isn't a folder.`);
+    }
+    const shortfalls = await folderShortfalls(
+      await withColumns(job, orgDataDir(this.paths.jobDir(jobId), first.id)),
+      folder,
+    );
+    if (shortfalls.length > 0) {
+      throw new Error(
+        `That folder doesn't hold what ${job.name}'s organizations hold. ${shortfalls.map(shortfallInWords).join(' ')}`,
+      );
+    }
+    const org: Organization = { id, name, synthetic: request.synthetic, role: 'transfer' };
+    const tasks = await this.addedTasks(job, org, folder);
+    const files = (
+      await Promise.all(
+        job.data.files.map(async (file) => {
+          const content = await readFile(join(folder, file.name)).catch((error: unknown) => {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+            throw error;
+          });
+          return content === null ? [] : [{ name: file.name, content }];
+        }),
+      )
+    ).flat();
+    const others = [
+      ...(await this.tasks(jobId, 'calibration')),
+      ...(await this.tasks(jobId, 'train')),
+      ...(await this.tasks(jobId, 'dev')),
+    ];
+    const data = await mentorDataTexts(
+      job.data.files,
+      taught.map((item) => orgDataDir(this.paths.jobDir(jobId), item.id)),
+    );
+    await this.deps.vault.addOrganization(jobId, { org, files }, tasks, others, data);
+  }
+
+  /** An added organization's tasks: its folder's `tasks.jsonl`, or a drafted field's kinds made from its files. */
+  private async addedTasks(job: Job, org: Organization, folder: string): Promise<Task[]> {
+    const listed = await readTasks(join(folder, 'tasks.jsonl'));
+    if (listed.length > 0) {
+      const tasks = listed.map((task) => ({ ...task, org: task.org ?? org.id }));
+      const stranger = tasks.find((task) => task.org !== org.id);
+      if (stranger !== undefined) {
+        throw new Error(
+          `Task "${stranger.id}" in tasks.jsonl names the organization "${stranger.org}"; every task there must be ${org.name}'s, with "org": "${org.id}" or none.`,
+        );
+      }
+      checkTasks({ ...job, organizations: [...trainOrganizations(job), org] }, tasks);
+      return tasks;
+    }
+    const draft = await this.drafting(job.id);
+    const inputs = (draft?.source === 'generated' ? draft.types : []).flatMap((type) => {
+      const info = job.taskTypes.find((item) => item.id === type.id);
+      return type.spec === undefined || info === undefined
+        ? []
+        : [
+            {
+              id: info.id,
+              label: info.label,
+              description: info.description ?? info.label,
+              spec: type.spec,
+            },
+          ];
+    });
+    if (inputs.length === 0) {
+      throw new Error(
+        `That folder has no tasks.jsonl, and ${job.name}'s tasks weren't made from its files, so Architect can't make ${org.name}'s. Put its tasks in a tasks.jsonl in the folder, one per line, as docs/JOB_FORMAT.md describes.`,
+      );
+    }
+    const made = await addedOrganizationTasks(org, folder, inputs, job.requirements.passRate);
+    if (made.length === 0) {
+      throw new Error(
+        `${org.name}'s files make no task of the kinds ${job.name} asks, so nothing would test the agent there. Check that the folder holds the same records as the others.`,
+      );
+    }
+    return made;
   }
 
   async tasks(jobId: string, split: VisibleSplit): Promise<Task[]> {

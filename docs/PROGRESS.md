@@ -34,6 +34,18 @@ The previous session ended with work in flight. Read CLAUDE.md, then this entry,
 3. Watch the motion pass in a real window once (owner's machine), then the full stand-in e2e suite, PR to `main`, release 0.7.0.
 4. Owner: the film (it still shows the one-job story; new narration needs the owner's OK on the picture first), the real academy's drafted policy, whether question text can be exported. Submission closes Nov 4, 9 PM ET (`docs/HACKATHON.md`).
 
+## 2026-10-31 (Sat, evening), organizations added later, per-organization scores, candidates, the organization word (branch `lab/orgs-later`)
+
+**Done** (no model was called, no GPU, no spend; decision 085)
+- A never-seen organization can be added to a field after it was made, from a folder checked against the field's files, sealed beside the job's seal (which doesn't change), and each candidate qualified on it from the Organizations tab; its results join the report under "Added later".
+- The check score at each organization while a field trains: on the Train screen under the score and in the round drawer's check tasks.
+- Models lists the candidates waiting to be accepted, labeled by origin, with Compare with the active version.
+- `organizationNoun` in job.json ("academy" for the academy job) replaces the hard-coded "academy" in the workspace and the study.
+- Screenshots `field-add-org-dark.png`, `train-per-org-dark.png`, `models-candidates-dark.png`.
+
+**Next**
+- Review and merge into `field/main`. Added organizations are not yet staged for comparisons or counted in the field export's manifest.
+
 ## 2026-10-31 (Sat, afternoon), status (start the next session here)
 
 - *Merged since midday:* post-hoc certification (079, with its calibration set fingerprinted like the test); the app-wide rename to "Tutor" (the private name appears nowhere in the repo); the developer browsers (084: a field's practice and check tasks, a run's attempts behind "Show all", a version's files read-only); one set of parts and calm motion across the app (40px pill strips everywhere, one `NavItem` with a sliding selection, page fades of 0.1 s, places rising 8px, flow steps sliding 24px, counting numbers; hidden runs and reduced motion stay instant; timings in `docs/DESIGN.md`). `pnpm check` passes (3,785 tests).

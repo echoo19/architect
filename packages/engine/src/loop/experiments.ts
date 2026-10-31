@@ -7,6 +7,7 @@ import {
   type ExperimentKind,
   type GateResult,
   type Measurement,
+  type OrgScore,
   type Score,
   type TypeScore,
 } from '@architect/shared';
@@ -189,7 +190,7 @@ export function settleExperimentCompute(
 export function measurement(
   label: string,
   configuration: Measurement['configuration'],
-  result: { score: Score; perType: TypeScore[]; latencies: readonly number[] },
+  result: { score: Score; perType: TypeScore[]; perOrg?: OrgScore[]; latencies: readonly number[] },
   seeds: readonly number[],
   provenance: string,
 ): Measurement {
@@ -199,6 +200,7 @@ export function measurement(
     seeds: [...seeds],
     score: result.score,
     perType: result.perType,
+    ...(result.perOrg === undefined ? {} : { perOrg: result.perOrg }),
     latencyMs: { p50: percentile(result.latencies, 50), p95: percentile(result.latencies, 95) },
     provenance,
   };

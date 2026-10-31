@@ -485,4 +485,23 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX qualifications_by_job ON qualifications (job_id, created_at);
     `,
   },
+  {
+    version: 21,
+    name: 'added_qualifications',
+    sql: `
+      -- A frozen version's test on an organization sealed after its job was made (decision 085).
+      CREATE TABLE added_qualifications (
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        org_id TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        body TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, org_id)
+      );
+      CREATE UNIQUE INDEX added_qualifications_once ON added_qualifications (run_id, seq);
+      -- The current check score at each organization a field is taught on.
+      ALTER TABLE runs ADD COLUMN dev_by_org TEXT;
+    `,
+  },
 ];

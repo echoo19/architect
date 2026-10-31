@@ -12,7 +12,7 @@ import {
 import type { KeyedLock } from '../graduates/library';
 import type { AttemptFilter, EngineStore } from '../store/engine-store';
 import type { StoredAttempt, StoredRound, StoredRun } from '../store/records';
-import { resultOf, type EvaluationResult } from './attempts';
+import { resultOf, scoreByOrg, type EvaluationResult } from './attempts';
 import { BudgetGuard } from './budget';
 import {
   configurationKey,
@@ -94,6 +94,8 @@ export class RunState {
   readonly lineage: LineageLog;
   readonly resources: SessionResources;
   readonly jobDir: string;
+  /** Each dev task's organization, once the dev tasks were read; empty until then. */
+  private readonly devOrgs = new Map<string, string | undefined>();
 
   constructor(
     readonly ctx: SessionContext,
@@ -167,10 +169,12 @@ export class RunState {
       target: this.targetOf(config),
       config: configurationKey(config),
     });
-    return resultOf(
-      seeds === undefined ? attempts : attempts.filter((attempt) => seeds.includes(attempt.seed)),
-      this.job,
-    );
+    const counted =
+      seeds === undefined ? attempts : attempts.filter((attempt) => seeds.includes(attempt.seed));
+    // Grouped by the task's organization for a field (decision 085). Every dev evaluation reads
+    // the dev tasks first, so the map is filled by the time its attempts are counted.
+    const perOrg = scoreByOrg(counted, this.job, this.devOrgs);
+    return { ...resultOf(counted, this.job), ...(perOrg === undefined ? {} : { perOrg }) };
   }
 
   /**
@@ -221,8 +225,10 @@ export class RunState {
     return this.ctx.jobs.tasks(this.run.jobId, 'train');
   }
 
-  devTasks(): Promise<Task[]> {
-    return this.ctx.jobs.tasks(this.run.jobId, 'dev');
+  async devTasks(): Promise<Task[]> {
+    const tasks = await this.ctx.jobs.tasks(this.run.jobId, 'dev');
+    for (const task of tasks) this.devOrgs.set(task.id, task.org);
+    return tasks;
   }
 
   /** The round's train batch, the same every time it is asked for. */

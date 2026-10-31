@@ -122,7 +122,11 @@ export async function baseline(state: RunState): Promise<void> {
   if (!(await evaluate(state, await devEvaluation(state, version, null)))) return;
   const result = state.devResult(version, null, undefined, state.incumbentConfig());
   state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
-  state.saveRun({ devBaseline: result.score, devCurrent: result.score });
+  state.saveRun({
+    devBaseline: result.score,
+    devCurrent: result.score,
+    ...(result.perOrg === undefined ? {} : { devByOrg: result.perOrg }),
+  });
 }
 
 /** The title an adopted harness's round carries, so the decision and reports can name it. */
@@ -511,6 +515,7 @@ async function decide(
         ? state.writeRun({
             currentVersion: entry.versionTo,
             devCurrent: entry.measured.devAfter,
+            ...(after.perOrg === undefined ? {} : { devByOrg: after.perOrg }),
             ...(verdict.adapter === undefined ? {} : { currentAdapter: verdict.adapter }),
           })
         : null,

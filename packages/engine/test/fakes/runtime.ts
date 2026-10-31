@@ -348,6 +348,8 @@ export class FakeVault implements VaultDeps {
   readonly opened: string[] = [];
   /** The jobs whose sealed part was staged for a comparison, in order. */
   readonly staged: string[] = [];
+  /** The organizations sealed after each job was made, with their tasks (decision 085). */
+  readonly added = new Map<string, { org: Organization; tasks: Task[] }[]>();
 
   constructor(private readonly runtime: FakeRuntime) {}
 
@@ -387,11 +389,51 @@ export class FakeVault implements VaultDeps {
   }
 
   transferIdentifiers(jobId: string) {
-    return (this.transfer.get(jobId) ?? []).map(({ org }) => ({ id: org.id, name: org.name }));
+    return [...(this.transfer.get(jobId) ?? []), ...(this.added.get(jobId) ?? [])].map(
+      ({ org }) => ({ id: org.id, name: org.name }),
+    );
+  }
+
+  addOrganization(
+    jobId: string,
+    { org }: TransferOrganization,
+    tasks: Task[],
+    _others?: Task[],
+    _data?: string[],
+  ): void {
+    if (!this.sealed.has(jobId)) throw new GuardError('split', `${jobId} isn't sealed.`);
+    if (this.transferIdentifiers(jobId).some((item) => item.id === org.id)) {
+      throw new GuardError('split', `${org.name} is already sealed.`);
+    }
+    this.added.set(jobId, [
+      ...(this.added.get(jobId) ?? []),
+      { org, tasks: structuredClone(tasks) },
+    ]);
+  }
+
+  addedOrganizations(jobId: string): Organization[] {
+    return (this.added.get(jobId) ?? []).map(({ org }) => org);
+  }
+
+  openAdded(jobId: string, orgId: string, proof: unknown): Task[] {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError(
+        'split',
+        'A sealed organization opens only after the mentor is released.',
+      );
+    }
+    this.opened.push(`${jobId}:added:${orgId}`);
+    const found = (this.added.get(jobId) ?? []).find(({ org }) => org.id === orgId);
+    if (found === undefined) throw new GuardError('split', `${orgId} isn't sealed.`);
+    return structuredClone(found.tasks);
   }
 
   leakDetector(jobId: string) {
-    const tests = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
+    const tests = [
+      ...(this.sealed.get(jobId) ?? []),
+      ...(this.calibration.get(jobId) ?? []),
+      ...(this.added.get(jobId) ?? []).flatMap(({ tasks }) => tasks),
+    ];
     return {
       scan: (text: string) => {
         const matchedIds = tests
@@ -429,7 +471,7 @@ export class FakeVault implements VaultDeps {
         'The sealed organizations open only after the mentor is released.',
       );
     }
-    const transfer = this.transfer.get(jobId) ?? [];
+    const transfer = [...(this.transfer.get(jobId) ?? []), ...(this.added.get(jobId) ?? [])];
     return {
       organizations: transfer.map(({ org }) => org),
       dataDirs: Object.fromEntries(

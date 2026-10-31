@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
-import { FIELDS, TUTOR_ASSETS, stubFields } from './fixtures-fields';
-import { recordedCalls, stubRecorded } from './fixtures-flow';
+import { FIELDS, TUTOR_ASSETS, TUTOR_FIELD, stubFields } from './fixtures-fields';
+import { recordedCalls, stubByKey, stubRecorded } from './fixtures-flow';
 import { LAB } from './fixtures-lab';
 
 /*
@@ -144,6 +144,69 @@ test('lists the organizations taught on with their files, and the sealed ones by
 
   await orgs.getByRole('button', { name: /Lakeview Academy/ }).click();
   await expect(card('Lakeview Academy')).toContainText('3,675 rows');
+});
+
+test('adds a never-seen organization later and qualifies a candidate on it', async () => {
+  await openAt(`/fields/${LAB.tutorJob}`);
+  await tab('Organizations').click();
+  const folder = 'D:\\Records\\Maple Grove Academy';
+  const added = {
+    ...TUTOR_FIELD,
+    sealed: [
+      ...TUTOR_FIELD.sealed,
+      { name: 'Maple Grove Academy', synthetic: false, files: 9, addedLater: true as const },
+    ],
+  };
+  await stubEngine(launched.app, { 'files:pick': [folder] });
+  await stubRecorded(launched.app, 'jobs:addOrganization', added);
+  await page.getByRole('button', { name: 'Add a never-seen organization' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a never-seen organization' });
+  await dialog.getByRole('button', { name: 'Choose a folder' }).click();
+  await expect(dialog.getByRole('button', { name: /Maple Grove Academy/ })).toBeVisible();
+  await expect(dialog.getByLabel('Name')).toHaveValue('Maple Grove Academy');
+  await dialog.getByRole('button', { name: 'Add and seal' }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(await recordedCalls(launched.app, 'jobs:addOrganization')).toEqual([
+    [LAB.tutorJob, { folder, name: 'Maple Grove Academy', synthetic: false }],
+  ]);
+
+  // The new organization is sealed beside the others, marked as added later, and opens beside
+  // the list with each candidate to qualify on it.
+  const orgs = card('Organizations');
+  const maple = orgs.getByRole('button', { name: /Maple Grove Academy/ });
+  await expect(maple).toContainText('Added later');
+  await expect(maple).toHaveAttribute('aria-pressed', 'true');
+  await expect(orgs.getByText('Never seen', { exact: true })).toHaveCount(2);
+  const qualify = card('Maple Grove Academy');
+  await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(2);
+
+  await stubRecorded(launched.app, 'runs:qualifyAdded', null);
+  await stubByKey(launched.app, 'jobs:field', {
+    [LAB.tutorJob]: {
+      ...added,
+      qualifications: [
+        {
+          runId: LAB.tutorRun,
+          org: 'Maple Grove Academy',
+          status: 'finished',
+          startedAt: '2026-10-31T12:00:00.000Z',
+          endedAt: '2026-10-31T12:20:00.000Z',
+          score: { pass: 25, total: 30 },
+        },
+      ],
+    },
+  });
+  await qualify
+    .getByRole('button', { name: /^Qualify Tutor/ })
+    .first()
+    .click();
+  expect(await recordedCalls(launched.app, 'runs:qualifyAdded')).toEqual([
+    [LAB.tutorRun, 'Maple Grove Academy'],
+  ]);
+  await expect(qualify.getByLabel(/at Maple Grove Academy: 25 of 30$/)).toBeVisible();
+  await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(1);
+  await capture('field-add-org-dark.png');
+  await stubFields(launched.app);
 });
 
 test('lists every candidate with its scores, the best marked, each opening its report', async () => {

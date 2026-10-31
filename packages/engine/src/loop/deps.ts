@@ -229,6 +229,21 @@ export interface VaultDeps {
    * files in `orgs/<id>/data/`. Returns the sealed organizations. Never for a mentor.
    */
   stageSealed(jobId: string, dir: string): Awaitable<Organization[]>;
+  /**
+   * Seals a never-seen organization beside the job's seal after the job was made (decision 085),
+   * fingerprinted against `others` and `data` as the test is; the job's seal doesn't change.
+   */
+  addOrganization(
+    jobId: string,
+    organization: TransferOrganization,
+    tasks: Task[],
+    others: Task[],
+    data: string[],
+  ): Awaitable<void>;
+  /** The organizations sealed after the job was made; the engine's own, never a mentor's. */
+  addedOrganizations(jobId: string): Awaitable<Organization[]>;
+  /** One of their tasks, on the same proof as the locked test. */
+  openAdded(jobId: string, orgId: string, proof: MentorReleased): Awaitable<Task[]>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */

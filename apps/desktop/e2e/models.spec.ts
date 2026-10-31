@@ -104,6 +104,29 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(table().getByRole('row').last()).toContainText('Service desk');
 });
 
+test('lists the candidates waiting to be accepted, each labeled, and compares one with the active', async () => {
+  await openModels();
+  const candidates = page.getByRole('region', { name: 'Candidates' });
+  await expect(candidates).toBeVisible();
+  // The service desk's two candidates, newest first: an improvement of version 2 and an import.
+  await expect(candidates.getByText('Service desk v3', { exact: true })).toBeVisible();
+  await expect(candidates).toContainText('Improvement of v2');
+  await expect(candidates).toContainText('Imported');
+  await expect(candidates).toContainText('Final test 85%');
+  await expect(candidates).toContainText('No final test');
+  await expect(candidates.getByRole('button', { name: /^Compare / })).toHaveCount(2);
+  await capture('models-candidates-dark.png');
+
+  await candidates.getByRole('button', { name: 'Open Service desk v3' }).click();
+  await expect(panel().getByRole('heading', { name: /Service desk/ })).toBeVisible();
+  await panel().getByRole('button', { name: 'Close' }).click();
+
+  await candidates.getByRole('button', { name: 'Compare Service desk v3 with v2' }).click();
+  await expect(page.getByRole('heading', { name: 'Compare', level: 1 })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Before' })).toContainText('Service desk v2');
+  await expect(page.getByRole('combobox', { name: 'After' })).toContainText('Service desk v3');
+});
+
 test("opens a model's panel with its report and lineage, and promotes a candidate", async () => {
   await openModels();
   await row(/^Tutor\s+version 2/).click();

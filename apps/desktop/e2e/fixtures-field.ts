@@ -143,6 +143,7 @@ const SCORE = {
 export const FIELD_JOB: Job = {
   ...trainedJob,
   name: 'Tutor',
+  organizationNoun: 'academy',
   summary: 'Helps a student right after a wrong answer, from the academy’s own curriculum.',
   does: [],
   doesNot: ['Changes a grade or a recorded score'],
@@ -152,6 +153,7 @@ export const FIELD_JOB: Job = {
 export const FIELD_REPORT: ReportCard = {
   ...storyReport,
   name: 'Tutor',
+  organizationNoun: 'academy',
   refusedTypes: [],
   topInterventions: [],
   test: {

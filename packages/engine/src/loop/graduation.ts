@@ -321,7 +321,10 @@ export function lockedTestAttempts(
  * repeat, so repeats never count as more scenarios. Its time is its slowest repeat's, and it
  * was refused when any repeat was.
  */
-function scenarios(attempts: readonly StoredAttempt[], tasks: readonly Task[] = []): TestResult[] {
+export function scenarios(
+  attempts: readonly StoredAttempt[],
+  tasks: readonly Task[] = [],
+): TestResult[] {
   const byTask = new Map<string, StoredAttempt[]>();
   for (const attempt of attempts) {
     byTask.set(attempt.taskId, [...(byTask.get(attempt.taskId) ?? []), attempt]);

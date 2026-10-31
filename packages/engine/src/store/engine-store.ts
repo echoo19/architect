@@ -44,6 +44,7 @@ import {
   StoredInstallationSchema,
   StoredPublicationSchema,
   StoredRepeatSchema,
+  StoredAddedQualificationSchema,
   StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
@@ -62,6 +63,7 @@ import {
   type StoredInstallation,
   type StoredPublication,
   type StoredRepeat,
+  type StoredAddedQualification,
   type StoredRetest,
   type StoredRound,
   type StoredRun,
@@ -155,6 +157,16 @@ export interface EngineStore {
     get(runId: string, target: StudentTarget): StoredRetest | null;
     /** Oldest first, so interrupted re-tests resume in the order they started. */
     withStatus(status: RetestStatus): StoredRetest[];
+  };
+  /** Frozen versions tested on organizations added to their field later (decision 085). */
+  addedQualifications: {
+    /** Fails if the run already has one at that organization. */
+    insert(qualification: StoredAddedQualification): void;
+    update(qualification: StoredAddedQualification): void;
+    get(runId: string, orgId: string): StoredAddedQualification | null;
+    /** A run's, oldest first. */
+    list(runId: string): StoredAddedQualification[];
+    withStatus(status: StoredAddedQualification['status']): StoredAddedQualification[];
   };
   /** Locked tests taken again under the declared seeds a run deferred (decision 045). */
   repeats: {
@@ -359,6 +371,7 @@ function runParams({ run, ...record }: StoredRun): Params {
     current_version: run.currentVersion,
     dev_baseline: jsonOrNull(run.devBaseline),
     dev_current: jsonOrNull(run.devCurrent),
+    dev_by_org: jsonOrNull(run.devByOrg),
     totals: json(run.totals),
     stop_reason: run.stopReason ?? null,
     error: run.error ?? null,
@@ -389,6 +402,7 @@ function runFromRow(row: Row): StoredRun {
       currentVersion: row.current_version,
       devBaseline: fromJson(row.dev_baseline),
       devCurrent: fromJson(row.dev_current),
+      devByOrg: orUndefined(fromJson(row.dev_by_org)),
       totals: fromJson(row.totals),
       stopReason: orUndefined(row.stop_reason),
       error: orUndefined(row.error),
@@ -573,6 +587,21 @@ function retestParams(retest: StoredRetest): Params {
     started_at: retest.startedAt,
     ended_at: retest.endedAt ?? null,
   };
+}
+
+function addedQualificationParams(qualification: StoredAddedQualification): Params {
+  return {
+    run_id: qualification.runId,
+    org_id: qualification.orgId,
+    seq: qualification.seq,
+    status: qualification.status,
+    body: json(qualification),
+    started_at: qualification.startedAt,
+  };
+}
+
+function addedQualificationFromRow(row: Row): StoredAddedQualification {
+  return StoredAddedQualificationSchema.parse(fromJson(row.body));
 }
 
 function retestFromRow(row: Row): StoredRetest {
@@ -1115,6 +1144,38 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             status,
           })
           .map(retestFromRow),
+    },
+
+    addedQualifications: {
+      insert: (qualification) =>
+        sql.insert('added_qualifications', addedQualificationParams(qualification)),
+      update: (qualification) =>
+        sql.update('added_qualifications', addedQualificationParams(qualification), [
+          'run_id',
+          'org_id',
+        ]),
+      get: (runId, orgId) => {
+        const row = sql.one(
+          'SELECT * FROM added_qualifications WHERE run_id = :run_id AND org_id = :org_id',
+          { run_id: runId, org_id: orgId },
+        );
+        return row ? addedQualificationFromRow(row) : null;
+      },
+      list: (runId) =>
+        sql
+          .all('SELECT * FROM added_qualifications WHERE run_id = :run_id ORDER BY seq', {
+            run_id: runId,
+          })
+          .map(addedQualificationFromRow),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT * FROM added_qualifications WHERE status = :status ORDER BY started_at, rowid',
+            {
+              status,
+            },
+          )
+          .map(addedQualificationFromRow),
     },
 
     repeats: {

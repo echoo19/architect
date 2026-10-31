@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StudentTargetSchema } from './job';
+import { OrganizationNounSchema, StudentTargetSchema } from './job';
 import { ScoreSchema } from './lineage';
 import { RuleReportSchema } from './rules';
 import { MethodSchema } from './run';
@@ -27,6 +27,8 @@ export const OrgTypeResultSchema = z.object({
   synthetic: z.boolean(),
   pass: z.number().int().nonnegative(),
   total: z.number().int().nonnegative(),
+  /** Tested after the run, on an organization sealed after its job was made (decision 085). */
+  addedLater: z.literal(true).optional(),
 });
 export type OrgTypeResult = z.infer<typeof OrgTypeResultSchema>;
 
@@ -195,5 +197,7 @@ export const ReportCardSchema = z.object({
     .optional(),
   /** For a job that asked for one, the graduate's certificate (decision 077). */
   certificate: CertificateSchema.optional(),
+  /** The job's word for one of its organizations, when it has one ("academy"). */
+  organizationNoun: OrganizationNounSchema.optional(),
 });
 export type ReportCard = z.infer<typeof ReportCardSchema>;

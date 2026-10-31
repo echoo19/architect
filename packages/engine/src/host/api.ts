@@ -12,6 +12,7 @@ import {
   type ClarificationReply,
   type ComparisonReport,
   type ErrorCode,
+  type FieldView,
   type FileDiff,
   type Harness,
   type HarnessFile,
@@ -28,6 +29,7 @@ import {
 } from '@architect/shared';
 import { reportBeside } from '../comparisons/records';
 import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
+import { addedQualificationView } from '../loop/qualify-added';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -92,13 +94,33 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`, 'run_not_found');
   /** The run's card from one student endpoint; from its own locked test when none is named. */
-  const reportOf = (record: StoredRun, target: StudentTarget = record.lockedTestOn): ReportCard =>
-    found(
+  const reportOf = (record: StoredRun, target: StudentTarget = record.lockedTestOn): ReportCard => {
+    const card = found(
       store.reports.get(record.run.id, target),
       target === record.lockedTestOn
         ? 'This run has no report card yet.'
         : `This run's graduate hasn't been tested on the ${target} student.`,
     );
+    // An organization added to the field later joins the card's organizations once its frozen
+    // version was qualified there (decision 085); the card as filed is left as it was.
+    const added =
+      target === record.lockedTestOn
+        ? store.addedQualifications.list(record.run.id).flatMap((item) => item.results ?? [])
+        : [];
+    return added.length === 0
+      ? card
+      : { ...card, test: { ...card.test, perOrg: [...(card.test.perOrg ?? []), ...added] } };
+  };
+  /** A field as the person's page shows it, with each run's qualifications on organizations added later. */
+  const fieldOf = async (jobId: string): Promise<FieldView> => {
+    const view = fieldView(await jobs.get(jobId), paths);
+    const qualifications = store.runs
+      .list(jobId)
+      .flatMap((record) =>
+        store.addedQualifications.list(record.run.id).map(addedQualificationView),
+      );
+    return qualifications.length === 0 ? view : { ...view, qualifications };
+  };
   const lineageOf = (record: StoredRun) =>
     new LineageLog(paths.lineageFile(record.run.jobId, record.run.id)).read();
   const versionsOf = (record: StoredRun) =>
@@ -374,7 +396,11 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),
       study: (jobId) => studying.study(jobId),
       confirmStudy: (jobId, token) => jobs.confirmStudy(jobId, token),
-      field: async (jobId) => fieldView(await jobs.get(jobId), paths),
+      field: fieldOf,
+      addOrganization: async (jobId, request) => {
+        await jobs.addOrganization(jobId, request);
+        return fieldOf(jobId);
+      },
       fieldAssets: async (jobId) => {
         await jobs.get(jobId);
         return buildFieldExport(await fieldSource(store, paths, jobId)).manifest;
@@ -392,6 +418,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),
       retest: (runId, target) => controller.retest(runId, target),
+      qualifyAdded: (runId, org) => controller.qualifyAdded(runId, org),
       qualify: async (request) => controller.qualify(request),
       qualifications: async (jobId) =>
         store.qualifications.ofJob(jobId).map((item) => qualificationView(item)),

@@ -206,6 +206,10 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       discardCertification: (jobId, id) => vault.discardCertification(jobId, id),
       openCalibration: (jobId, proof) => vault.openCalibration(jobId, proof as MentorReleased),
       stageSealed: (jobId, dir) => vault.stageSealed(jobId, dir),
+      addOrganization: (jobId, organization, tasks, others, data) =>
+        vault.addOrganization(jobId, organization, tasks, others, data),
+      addedOrganizations: (jobId) => vault.addedOrganizations(jobId),
+      openAdded: (jobId, orgId, proof) => vault.openAdded(jobId, orgId, proof as MentorReleased),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),
