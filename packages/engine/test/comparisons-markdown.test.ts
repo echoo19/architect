@@ -445,6 +445,20 @@ describe('the adapters the report speaks of', () => {
   });
 });
 
+describe('the models a report names', () => {
+  it("names the comparison's own teacher and student in its prose and headers", () => {
+    const names = { mentor: 'Qwen3 235B', student: 'Qwen3 32B' };
+    const text = renderMarkdown(comparisonOne(), names);
+    const money = section(text, 'Money');
+    expect(money).toContain('**Qwen3 235B: $2.5797.**');
+    expect(money).toContain('**Hosted Qwen3 32B, recorded by its attempts: $3.7630.**');
+    expect(money).not.toMatch(/Glimmer|Spark/);
+    expect(section(text, 'Arms')).toContain(
+      '| Qwen3 235B: spent of its cap, tokens | Qwen3 32B: spent of its cap, attempts |',
+    );
+  });
+});
+
 describe('the words of a rendered report', () => {
   it('has no arrow, dash or curly quote of its own', () => {
     expect(renderMarkdown(comparisonOne())).not.toMatch(
