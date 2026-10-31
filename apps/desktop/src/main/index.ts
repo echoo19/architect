@@ -173,6 +173,7 @@ async function start(): Promise<void> {
           academyJobFile: resources.academyJobFile,
           sweepDeskJobFile: resources.sweepDeskJobFile,
           assayJobFile: resources.assayJobFile,
+          inventoryJobFile: resources.inventoryJobFile,
           sampleAgentFile: resources.sampleAgentFile,
           sampleAgentDataDir: resources.sampleAgentDataDir,
           trainerDir: resources.trainerDir,

@@ -9,7 +9,14 @@ import {
   Tooltip,
   type ButtonProps,
 } from '@architect/ui';
-import { ChartLine, FlaskConical, GraduationCap, Microscope, TestTubes } from 'lucide-react';
+import {
+  ChartLine,
+  FlaskConical,
+  GraduationCap,
+  Microscope,
+  TestTubes,
+  Warehouse,
+} from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
@@ -42,6 +49,12 @@ const SCIENCE_LAB = [
     name: 'Assay desk',
     says: "Reads screening labs' plate-reader exports",
     Icon: TestTubes,
+  },
+  {
+    sample: 'inventory-desk',
+    name: 'Inventory desk',
+    says: "Draws screening labs' compound stock for re-tests",
+    Icon: Warehouse,
   },
 ] as const;
 
@@ -82,8 +95,8 @@ export function SampleJobButton({
 }
 
 /**
- * One offer for the science lab's samples: it opens a choice of its specialists, Sweep desk and
- * Assay desk, and starts the one picked like any other sample job.
+ * One offer for the science lab's samples: it opens a choice of its specialists, Sweep desk,
+ * Assay desk and Inventory desk, and starts the one picked like any other sample job.
  */
 export function ScienceLabButton({ size }: Pick<ButtonProps, 'size'>) {
   const { creating, start } = useStartSample();

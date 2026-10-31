@@ -74,6 +74,8 @@ export interface EngineWiringOptions {
   sweepDeskJobFile?: string;
   /** The Assay desk's job shipped with the app, with its labs at `orgs/<id>/data/` beside it. */
   assayJobFile?: string;
+  /** The Inventory desk's job shipped with the app, with the labs' stores at `orgs/<id>/data/` beside it. */
+  inventoryJobFile?: string;
   /** The ready-made agent shipped with the app: its package, and the data it works on. */
   sampleAgent?: SampleAgentFiles;
   /** The CPU-thread cap for students on a local runtime right now, if there is one. */
@@ -285,6 +287,9 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       ? {}
       : { sweepDeskJobFile: options.sweepDeskJobFile }),
     ...(options.assayJobFile === undefined ? {} : { assayJobFile: options.assayJobFile }),
+    ...(options.inventoryJobFile === undefined
+      ? {}
+      : { inventoryJobFile: options.inventoryJobFile }),
     ...(options.sampleAgent === undefined ? {} : { sampleAgent: options.sampleAgent }),
   };
 }
