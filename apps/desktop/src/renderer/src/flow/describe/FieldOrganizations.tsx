@@ -1,8 +1,8 @@
 import type { DraftOrganization } from '@architect/shared';
-import { Button, Card, CardRow, IconButton, Input, Segmented } from '@architect/ui';
+import { Button, Card, CardRow, IconButton, Input, RowIcon, Segmented } from '@architect/ui';
 import { Building2, FolderPlus, Lock, X } from 'lucide-react';
 import { flowApi } from '../../api/client';
-import { Quiet, Tile } from '../../fields/parts';
+import { Quiet } from '../../fields/parts';
 import { attempt } from '../../lib/notify';
 import { fileName } from '../format';
 
@@ -78,13 +78,13 @@ export function FieldOrganizations({
           <CardRow
             key={org.folder}
             icon={
-              <Tile>
+              <RowIcon>
                 {org.role === 'train' ? (
                   <Building2 strokeWidth={1.8} aria-hidden />
                 ) : (
                   <Lock strokeWidth={1.8} aria-hidden />
                 )}
-              </Tile>
+              </RowIcon>
             }
             title={
               <Input

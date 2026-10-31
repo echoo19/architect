@@ -10,6 +10,7 @@ import {
   ErrorState,
   Input,
   Inspector,
+  RowIcon,
   Select,
   Stat,
   Textarea,
@@ -318,11 +319,7 @@ function calibrationLines(detail: ExperimentDetail) {
   ];
 }
 
-const rowIcon = (icon: ReactNode) => (
-  <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-    {icon}
-  </span>
-);
+const rowIcon = (icon: ReactNode) => <RowIcon>{icon}</RowIcon>;
 
 /**
  * What the experiment is run to find out, first: the hypothesis in the person's words, and the
@@ -616,9 +613,9 @@ function EstimateCard({
       })}
       <CardRow
         icon={
-          <span className="flex size-9 items-center justify-center rounded-control bg-selected">
+          <RowIcon>
             <ClipboardCheck size={16} strokeWidth={1.7} aria-hidden />
-          </span>
+          </RowIcon>
         }
         title="Calibration"
         detail={`${calibration.tasks} tasks, about ${formatCost(calibration.studentUsdEstimate)} of Glimmer${

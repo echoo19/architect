@@ -14,6 +14,7 @@ import {
   Field,
   Input,
   Inspector,
+  RowIcon,
   Segmented,
   Select,
   Stat,
@@ -230,9 +231,9 @@ function PlanCard({
           </form>
         ) : (
           <div className="flex items-center gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-selected">
+            <RowIcon>
               <FileJson size={16} strokeWidth={1.7} aria-hidden />
-            </span>
+            </RowIcon>
             <span className="min-w-0 flex-1 truncate font-mono text-small">
               {file ?? 'No file chosen'}
             </span>

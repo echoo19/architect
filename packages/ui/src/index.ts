@@ -8,6 +8,7 @@ export {
   PRESS_SCALE,
   Reveal,
   STEP_SLIDE,
+  SidePresence,
   Stagger,
   StaggerItem,
   StepTransition,
@@ -28,6 +29,7 @@ export {
   type NumberKind,
   type NumberTickerProps,
   type RevealProps,
+  type SidePresenceProps,
   type StaggerItemProps,
   type StaggerProps,
   type StepDirection,
@@ -62,9 +64,11 @@ export {
   Card,
   CardGrid,
   CardRow,
+  RowIcon,
   type CardGridProps,
   type CardProps,
   type CardRowProps,
+  type RowIconProps,
 } from './components/card';
 export {
   ChoiceTiles,
