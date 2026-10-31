@@ -518,7 +518,7 @@ const HEADER_SCALE = 1.7;
 
 function Opening({ t }: { t: number }) {
   if (t >= MOMENT.handoff + 1.45) return null;
-  const words = 'Specialists that run on your own computer.'.split(' ');
+  const words = 'The training system for your own AI.'.split(' ');
   return (
     <>
       <h1
