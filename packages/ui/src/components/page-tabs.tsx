@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Tabs } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { springs } from '../motion/springs';
+import { StepTransition } from '../motion/step-transition';
 
 export interface PageTab<T extends string> {
   value: T;
@@ -23,7 +24,7 @@ export interface PageTabsProps<T extends string> {
 
 /**
  * A page's sections as tabs: a segmented strip under the title whose selected fill slides
- * between them, and the open tab's content below it.
+ * between them, and the open tab's content below it, which fades in as the tab changes.
  */
 export function PageTabs<T extends string>({
   tabs,
@@ -81,7 +82,9 @@ export function PageTabs<T extends string>({
         ))}
       </Tabs.List>
       <Tabs.Content value={value} className="min-w-0 focus-visible:outline-none">
-        {children}
+        <StepTransition transitionKey={value} kind="tab">
+          {children}
+        </StepTransition>
       </Tabs.Content>
     </Tabs.Root>
   );

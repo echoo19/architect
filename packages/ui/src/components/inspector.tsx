@@ -4,6 +4,7 @@ import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Tabs } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { springs } from '../motion/springs';
+import { StepTransition } from '../motion/step-transition';
 import { IconButton } from './icon-button';
 import { Tooltip } from './tooltip';
 
@@ -179,17 +180,17 @@ export function Inspector<T extends string>({
           className="flex min-h-0 flex-1 flex-col"
         >
           {header}
-          <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+          <div className="flex items-center gap-2 px-4 pb-2 pt-3">
             <Tabs.List
               aria-label={props['aria-label']}
-              className="flex min-w-0 flex-1 rounded-control bg-field p-[3px] shadow-edge"
+              className="flex min-w-0 flex-1 rounded-full bg-field p-[3px] shadow-edge"
             >
               {tabs.map((t) => (
                 <Tabs.Trigger
                   key={t.value}
                   value={t.value}
                   className={cn(
-                    'relative h-8 min-w-0 flex-auto rounded-mark px-[5px] text-small font-medium',
+                    'relative h-8 min-w-0 flex-auto rounded-full px-[5px] text-small font-medium',
                     'transition-colors duration-150 hover:bg-hover',
                   )}
                 >
@@ -198,7 +199,7 @@ export function Inspector<T extends string>({
                       layoutId={indicator}
                       transition={springs.snappy}
                       aria-hidden
-                      className="absolute inset-0 rounded-mark bg-raised shadow-edge-strong"
+                      className="absolute inset-0 rounded-full bg-raised shadow-edge-strong"
                     />
                   )}
                   <span className="relative block truncate">{t.label}</span>
@@ -217,9 +218,11 @@ export function Inspector<T extends string>({
           </div>
           <Tabs.Content
             value={tab}
-            className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3 focus-visible:outline-none"
+            className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3 scroll-quiet focus-visible:outline-none"
           >
-            {children(tab)}
+            <StepTransition transitionKey={tab} kind="tab">
+              {children(tab)}
+            </StepTransition>
           </Tabs.Content>
         </Tabs.Root>
       )}
