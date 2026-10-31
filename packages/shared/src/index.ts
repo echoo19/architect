@@ -42,6 +42,7 @@ export * from './steps';
 export * from './recordings';
 export * from './study';
 export * from './task';
+export * from './teams';
 export * from './training';
 export * from './training-plan';
 export * from './trace';

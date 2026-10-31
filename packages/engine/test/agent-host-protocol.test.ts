@@ -22,6 +22,8 @@ const CHAT: WorkspaceChat = {
   waiting: false,
 };
 
+const TEAM_CHAT: WorkspaceChat = { ...CHAT, id: 'cht_2', teamId: 'team_1' };
+
 const MESSAGE: WorkspaceMessage = {
   id: 'msg_1',
   chatId: 'cht_1',
@@ -44,8 +46,13 @@ function stubHost(overrides: Partial<AgentHost> = {}) {
     async closeGraduate(...args) {
       calls.push(['closeGraduate', ...args]);
     },
+    async closeTeam(...args) {
+      calls.push(['closeTeam', ...args]);
+    },
     listChats: async () => [CHAT],
     createChat: async () => CHAT,
+    listTeamChats: async () => [TEAM_CHAT],
+    createTeamChat: async () => TEAM_CHAT,
     messages: async () => [MESSAGE],
     async send(...args) {
       calls.push(['send', ...args]);
@@ -111,6 +118,14 @@ describe('the agent host protocol', () => {
       ['stop', 'cht_1'],
       ['closeGraduate', 'grd_1'],
     ]);
+  });
+
+  it('carries team chats, and stops a team’s replies before it goes', async () => {
+    const { client, calls } = connect();
+    expect(await client.listTeamChats('team_1')).toEqual([TEAM_CHAT]);
+    expect(await client.createTeamChat('team_1')).toEqual(TEAM_CHAT);
+    await client.closeTeam('team_1');
+    expect(calls).toEqual([['closeTeam', 'team_1']]);
   });
 
   it('passes a graduate its CPU thread cap only when there is one', async () => {

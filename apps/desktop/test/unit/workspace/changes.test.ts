@@ -6,6 +6,7 @@ import {
   changeVerb,
   previewSize,
   rowCounts,
+  writerOf,
 } from '../../../src/renderer/src/workspace/changes';
 
 const rows: RowDiff = {
@@ -60,5 +61,21 @@ describe('a change the agent asks to make', () => {
     expect(previewSize({ op: 'append', diff: rows })).toEqual({ count: 3, unit: 'rows' });
     expect(previewSize({ op: 'write', patch: created })).toEqual({ count: 3, unit: 'lines' });
     expect(previewSize({ op: 'edit', patch: edited })).toEqual({ count: 3, unit: 'lines' });
+  });
+});
+
+describe('writerOf', () => {
+  const lead = { id: 'grd_lead', name: 'Inventory desk' };
+
+  it("names the teammate a team reply's write is for, and the lead otherwise", () => {
+    const named = { agent: { graduateId: 'grd_mate', name: 'Assay desk' } };
+    expect(writerOf(named, lead)).toEqual({ id: 'grd_mate', name: 'Assay desk' });
+    expect(writerOf({}, lead)).toBe(lead);
+  });
+
+  it('keeps naming a teammate taken out of the team since it asked, never the lead', () => {
+    // The team now has no teammate by that id; the write is still that teammate's.
+    const named = { agent: { graduateId: 'grd_gone', name: 'Sweep desk' } };
+    expect(writerOf(named, lead)).toEqual({ id: 'grd_gone', name: 'Sweep desk' });
   });
 });

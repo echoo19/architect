@@ -36,6 +36,11 @@ import {
 export interface GraduateSession {
   readonly id: string;
   readonly name: string;
+  /**
+   * What the version's contract says it does: its summary, or its description, and its task
+   * types. A team's lead reads it in the tool it asks its teammates with (decision 100).
+   */
+  readonly about: { summary: string; skills: readonly string[] };
   /** The version that answers. Every reply records it. */
   readonly version: number;
   /** The version and installation it was opened with (`activeStamp`). */
@@ -262,9 +267,14 @@ export async function openGraduateSession(
     skills: skillFiles(harness),
     mode: 'live',
   };
+  const { contract } = manifest;
   return {
     id: active.graduateId,
     name: active.name,
+    about: {
+      summary: contract.summary ?? contract.description,
+      skills: contract.capabilities.taskTypes.map((type) => type.label),
+    },
     version: active.version.version,
     stamp: active.stamp,
     harness,

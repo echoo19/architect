@@ -8,7 +8,7 @@ import { ProblemState } from '../components/ProblemState';
 import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import { mentorName, studentName } from '../lib/names';
-import { navigate, paths } from '../lib/router';
+import { chatPath, navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { latestChat } from '../workspace/store';
 
@@ -61,7 +61,7 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
     let current = true;
     latestChat(graduates.map((graduate) => graduate.id)).then(
       (chat) => {
-        if (current) navigate(paths.chat(chat.graduateId, chat.id), { replace: true });
+        if (current) navigate(chatPath(chat), { replace: true });
       },
       (error: unknown) => {
         if (current) setFailure(toError(error));

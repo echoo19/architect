@@ -1,0 +1,251 @@
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { stubEngineFailure } from './fixtures';
+import {
+  installTeamsFake,
+  TEAM,
+  TEAM_AGENTS,
+  TEAM_CHAT,
+  teamCallsTo,
+  teamWorld,
+} from './fixtures-teams';
+
+/*
+ * A team on the stand-in engine (decision 100), from the examples' demo at Fenwick: made in
+ * Models, listed in the sidebar, and a chat where Inventory desk asks Assay desk which compounds
+ * need a re-test before it reserves their stock. Each agent's work, approval and lesson are its
+ * own.
+ */
+
+const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
+const SIZE = { width: 1440, height: 900 };
+
+test.describe.configure({ mode: 'serial' });
+
+let launched: LaunchedApp;
+let page: Page;
+
+test.beforeAll(async () => {
+  launched = await launchApp();
+  page = launched.page;
+  const visible = await launched.app.evaluate(({ BrowserWindow }, size) => {
+    const [main] = BrowserWindow.getAllWindows();
+    if (!main) throw new Error('No window');
+    main.setContentSize(size.width, size.height);
+    return main.isVisible();
+  }, SIZE);
+  expect(visible).toBe(false);
+  await mkdir(OUT_DIR, { recursive: true });
+  await updateSettings(page, { onboarded: true, edition: 'lab' });
+  await installTeamsFake(launched.app, teamWorld());
+});
+
+test.afterAll(async () => {
+  await launched?.close();
+});
+
+async function capture(file: string): Promise<void> {
+  await page.mouse.move(0, 0);
+  await settle(page);
+  await page.screenshot({ path: join(OUT_DIR, file), animations: 'disabled', timeout: 15_000 });
+}
+
+async function openAt(path: string): Promise<void> {
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  await goTo(page, path);
+}
+
+/** Scrolls the chat, and only the chat, so the element sits in the middle of it. */
+async function centerInChat(element: Locator): Promise<void> {
+  await element.evaluate((target) => {
+    let box = target.parentElement;
+    while (box && getComputedStyle(box).overflowY !== 'auto') box = box.parentElement;
+    if (!box) return;
+    const at = target.getBoundingClientRect();
+    const frame = box.getBoundingClientRect();
+    box.scrollTop += at.top - frame.top - (frame.height - at.height) / 2;
+  });
+}
+
+const { lead, teammate } = TEAM_AGENTS;
+const sidebar = () => page.getByRole('navigation', { name: 'Agents' });
+const reply = () => page.getByRole('article', { name: lead.name });
+
+test('a team is made in Models, from a lead and a teammate', async () => {
+  await openAt('/models/teams');
+  await expect(page.getByRole('tab', { name: 'Teams' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: 'No teams yet' })).toBeVisible();
+  await expect(sidebar().getByRole('group', { name: 'Teams' })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'New team' }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'New team' });
+  await dialog.getByLabel('Name').fill(TEAM.name);
+  await dialog.getByRole('combobox', { name: 'Lead' }).click();
+  await page.getByRole('option', { name: lead.name }).click();
+  // Named and led, it says what it still needs, and Save says so too.
+  const make = dialog.getByRole('button', { name: 'Make team' });
+  await expect(dialog.getByRole('status')).toHaveText('Choose a teammate');
+  await expect(make).toBeDisabled();
+  await expect(make).toHaveAccessibleDescription('Choose a teammate');
+  await dialog.getByRole('checkbox', { name: teammate.name }).click();
+  const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks it for` });
+  await expect(role).toHaveValue("Reads a screening lab's plate exports by the lab's own rules.");
+  await capture('team-new-dark.png');
+
+  // The engine's refusal shows in the dialog, beside what can be changed.
+  const refusal = `${teammate.name} has a helper called ask_teammate, the name of the tool a team's lead asks its teammates with, so it can't join a team.`;
+  await stubEngineFailure(launched.app, { 'teams:create': refusal });
+  await dialog.getByRole('button', { name: 'Make team' }).click();
+  await expect(dialog).toContainText("Couldn't make the team");
+  await expect(dialog).toContainText(refusal);
+  await installTeamsFake(launched.app, teamWorld());
+
+  await dialog.getByRole('button', { name: 'Make team' }).click();
+  await expect(dialog).toHaveCount(0);
+  // A role left at the contract's summary isn't saved, so the teammate keeps following it.
+  expect(await teamCallsTo(launched.app, 'teams:create')).toEqual([
+    [{ name: TEAM.name, members: [{ graduateId: lead.id }, { graduateId: teammate.id }] }],
+  ]);
+  const row = page.getByRole('table', { name: 'Teams' }).getByRole('row', { name: /Screening/ });
+  await expect(row).toContainText(lead.name);
+  await expect(row).toContainText(teammate.name);
+  await expect(row.getByRole('cell').last()).toHaveText('1');
+  await expect(sidebar().getByRole('group', { name: 'Teams' })).toContainText(TEAM.name);
+  await capture('models-teams-dark.png');
+
+  // The Lab names the team among the agents, and its chat that waits for an approval.
+  await goTo(page, '/');
+  await expect(page.getByRole('region', { name: 'Needs you' })).toContainText(
+    `${TEAM.name} waits for your approval`,
+  );
+  await expect(
+    page.getByRole('region', { name: 'Agents' }).getByRole('button', { name: `Open ${TEAM.name}` }),
+  ).toContainText(`${lead.name} asks ${teammate.name}`);
+});
+
+test('in the team’s chat the lead asks its teammate, whose own work opens under it', async () => {
+  await sidebar().getByRole('button', { name: TEAM_CHAT.title }).click();
+  await expect(page).toHaveURL(new RegExp(`#/teams/${TEAM.id}/chats/${TEAM_CHAT.id}$`));
+  const header = page.locator('header').first();
+  // Both work at Fenwick, so the header names it once, and its menu moves each on its own.
+  const shared = header.getByRole('button', {
+    name: `Organization of ${lead.name} and ${teammate.name}: Fenwick Screening Core`,
+  });
+  await expect(shared).toBeVisible();
+  await expect(header.getByRole('button', { name: /'s organization:/ })).toHaveCount(0);
+  await shared.click();
+  const menu = page.getByRole('menu');
+  for (const agent of [lead, teammate]) await expect(menu).toContainText(agent.name);
+  await expect(menu.getByRole('menuitem', { name: 'Fenwick Screening Core' })).toHaveCount(2);
+  await page.keyboard.press('Escape');
+  // Each agent asks before writing as its own setting says, so the team's composer has none.
+  await expect(page.getByRole('button', { name: /^Saving files/ })).toHaveCount(0);
+
+  await reply()
+    .getByRole('button', { name: /so far/ })
+    .click();
+  const consult = reply().getByRole('button', { name: new RegExp(`^Asked ${teammate.name}`) });
+  await expect(consult).toContainText('FW-0418 passes QC (Z′ 0.7689)');
+  await consult.click();
+  const work = reply().getByRole('list', { name: `${teammate.name}'s steps` });
+  await expect(work).toContainText(/Searched\s*data\/plates\.csv for \/FW-0418\//);
+  await expect(work).toContainText(/Added to\s*data\/retests\.csv\s*2 rows/);
+  await expect(work).toContainText('Answered by version 1');
+  await capture('team-chat-dark.png');
+});
+
+test('each agent asks for its own files', async () => {
+  const theirs = reply().getByRole('group', {
+    name: `${teammate.name}: write to data/retests.csv`,
+  });
+  await expect(theirs).toContainText('Allowed');
+  await expect(theirs).toContainText(`${teammate.name} · 2 new rows`);
+  const ours = reply().getByRole('group', { name: `${lead.name}: write to data/reservations.csv` });
+  await expect(ours).toContainText('HOLD-0163');
+  await expect(ours).toContainText('FL-04159');
+  await centerInChat(ours);
+  await capture('team-approval-dark.png');
+  await ours.getByRole('button', { name: 'Allow once' }).click();
+  await expect(ours).toContainText('Allowed');
+  expect(await teamCallsTo(launched.app, 'workspace:decide')).toEqual([['chg_holds', 'approve']]);
+  await expect(reply()).toContainText('FWC-13399');
+  await expect(reply()).toContainText('LOW-VOLUME');
+});
+
+test("Teach this on the teammate's answer goes to the teammate", async () => {
+  const flag = reply().getByRole('button', { name: `Flag ${teammate.name}'s answer for teaching` });
+  await centerInChat(reply().getByRole('list', { name: `${teammate.name}'s steps` }));
+  await capture('team-consultation-dark.png');
+  await flag.click();
+  const sheet = page.getByRole('dialog', { name: 'Teach this' });
+  await expect(sheet).toContainText(`${teammate.name}'s answer to ${lead.name}`);
+  await sheet
+    .getByLabel('What was wrong')
+    .fill("It didn't say which re-test id is which compound.");
+  await sheet.getByRole('button', { name: /^Share with/ }).click();
+  await expect(sheet).toContainText('Name each compound it queues with the re-test id it gave it.');
+  const [proposal] = await teamCallsTo(launched.app, 'teach:propose');
+  expect(proposal?.[2]).toMatchObject({ step: 'step-2', consent: true });
+  // Both agents whose work the exchange holds let it be shared.
+  expect(await teamCallsTo(launched.app, 'teach:shareCorrections')).toEqual([
+    [teammate.id, true],
+    [lead.id, true],
+  ]);
+  await capture('team-teach-dark.png');
+  await page.keyboard.press('Escape');
+});
+
+test("a team's address shows only that team's chats", async () => {
+  await openAt(`/teams/${TEAM.id}/chats/cht_someone_else`);
+  await expect(
+    page.getByRole('heading', { name: `This chat isn't in ${TEAM.name}.` }),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox', { name: `Message ${TEAM.name}` })).toHaveCount(0);
+});
+
+test('an agent in a team stays until it is taken out, and the way out opens Teams', async () => {
+  await sidebar()
+    .getByRole('button', { name: `${teammate.name} settings` })
+    .click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: `Delete ${teammate.name}?` })
+    .getByRole('button', { name: 'Delete agent' })
+    .click();
+  const refused = page.getByRole('dialog', { name: `${teammate.name} is in a team` });
+  await expect(refused).toContainText(
+    `${teammate.name} is in ${TEAM.name}. Take it out of the team in Models, Teams, first.`,
+  );
+  await refused.getByRole('button', { name: 'Open Teams' }).click();
+  await expect(page).toHaveURL(/#\/models\/teams$/);
+  await expect(page.getByRole('table', { name: 'Teams' })).toBeVisible();
+});
+
+test('the personal edition has no teams', async () => {
+  await updateSettings(page, { edition: 'personal' });
+  const before = (await teamCallsTo(launched.app, 'teams:list')).length;
+  await openAt(`/agents/${lead.id}/chats/none`);
+  await expect(sidebar().getByText(lead.name)).toBeVisible();
+  await expect(sidebar().getByRole('group', { name: 'Teams' })).toHaveCount(0);
+  expect((await teamCallsTo(launched.app, 'teams:list')).length).toBe(before);
+  await goTo(page, `/teams/${TEAM.id}/chats/${TEAM_CHAT.id}`);
+  await expect(page).toHaveURL(/#\/$/);
+
+  // Started at a team's chat, it goes home before anything asks for teams or their chats.
+  const asked = async () =>
+    (await teamCallsTo(launched.app, 'teams:list')).length +
+    (await teamCallsTo(launched.app, 'workspace:listTeamChats')).length;
+  const earlier = await asked();
+  await page.evaluate((hash) => {
+    window.location.hash = hash;
+  }, `/teams/${TEAM.id}/chats/${TEAM_CHAT.id}`);
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page).toHaveURL(/#\/$/);
+  await settle(page);
+  expect(await asked()).toBe(earlier);
+});

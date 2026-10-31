@@ -7,6 +7,7 @@ import {
   type JobSummary,
   type ReportCard,
   type Score,
+  type Team,
 } from '@architect/shared';
 import {
   AgentAvatar,
@@ -34,6 +35,7 @@ import {
   Plus,
   ShieldCheck,
   ArrowBigUpDash,
+  Users,
 } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
@@ -41,6 +43,7 @@ import { fetchQuery, useQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
 import { minutesText, STATUS_WORDS as EXPERIMENT_WORDS } from '../experiments/model';
+import { membersOf } from '../models/team-form';
 import { newField } from '../fields/new-field';
 import { orgCountText } from '../fields/parts';
 import { Counted } from '../flow/counted';
@@ -50,14 +53,16 @@ import { formatPercent, percentOf } from '../lib/format';
 import { activeVersionName, agentModelName, mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
-import { useAgentChats } from '../workspace/store';
-import { openAgent } from './open-agent';
+import { namesInSentence } from '../workspace/labels';
+import { useAgentChats, useTeamChats } from '../workspace/store';
+import { openAgent, openTeam } from './open-agent';
 import {
   approvalNeeds,
   experimentNeeds,
   jobNeeds,
   orgScores,
   runWord,
+  teamApprovalNeeds,
   teachingNeeds,
   type Need,
   type NeedKind,
@@ -162,14 +167,40 @@ function AgentNeeds({
   );
 }
 
+/** A team's chats that wait for an approval, read on their own like an agent's. */
+function TeamNeeds({ team, kinds }: { team: Team; kinds: readonly NeedKind[] }) {
+  const chats = useTeamChats(team.id);
+  if (!kinds.includes('approval')) return null;
+  return (
+    <>
+      {teamApprovalNeeds(team, chats.entry.data ?? []).map((need) => (
+        <NeedRow key={need.key} need={need} />
+      ))}
+      {chats.entry.status === 'error' && (
+        <li className="border-t border-line px-6 py-3">
+          <ProblemState
+            layout="inline"
+            error={chats.entry.error}
+            title={`Couldn't read what ${team.name} has waiting`}
+            onRetry={chats.reload}
+          />
+        </li>
+      )}
+      {chats.entry.status === 'loading' && <li aria-busy="true" className="sr-only" />}
+    </>
+  );
+}
+
 /** Everything that waits for the person, grouped by kind: the focal card, with Running beside it. */
 export function NeedsYouCard({
   jobs,
   graduates,
+  teams,
   experiments,
 }: {
   jobs: readonly JobSummary[];
   graduates: readonly GraduateSummary[];
+  teams: readonly Team[];
   experiments: readonly ExperimentRecord[];
 }) {
   const fromJobs = [...jobNeeds(jobs), ...experimentNeeds(experiments)];
@@ -197,6 +228,9 @@ export function NeedsYouCard({
                   kinds={group.kinds}
                   problems={index === NEED_GROUPS.length - 1}
                 />
+              ))}
+              {teams.map((team) => (
+                <TeamNeeds key={team.id} team={team} kinds={group.kinds} />
               ))}
             </ul>
           </section>
@@ -653,7 +687,13 @@ const STATUS_WORDS: Partial<Record<GraduateSummary['status'], string>> = {
   blocked: 'Blocked',
 };
 
-export function AgentsCard({ graduates }: { graduates: readonly GraduateSummary[] }) {
+export function AgentsCard({
+  graduates,
+  teams,
+}: {
+  graduates: readonly GraduateSummary[];
+  teams: readonly Team[];
+}) {
   return (
     <Card title="Agents" flush>
       {graduates.length === 0 ? (
@@ -683,8 +723,33 @@ export function AgentsCard({ graduates }: { graduates: readonly GraduateSummary[
               </li>
             );
           })}
+          {teams.map((team) => (
+            <li key={team.id}>
+              <TeamRow team={team} graduates={graduates} />
+            </li>
+          ))}
         </ul>
       )}
     </Card>
+  );
+}
+
+/** A team among the agents: its name and whom its lead asks; it opens at its last chat. */
+function TeamRow({ team, graduates }: { team: Team; graduates: readonly GraduateSummary[] }) {
+  const { lead, teammates } = membersOf(team, graduates);
+  const asked = namesInSentence(teammates.map((teammate) => teammate.name));
+  return (
+    <CardRow
+      icon={
+        <RowIcon>
+          <Users strokeWidth={1.8} aria-hidden />
+        </RowIcon>
+      }
+      title={team.name}
+      detail={lead ? `${lead.name} asks ${asked}` : asked}
+      end={chevron}
+      label={`Open ${team.name}`}
+      onClick={() => openTeam(team)}
+    />
   );
 }

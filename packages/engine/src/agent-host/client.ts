@@ -17,6 +17,8 @@ export interface AgentHostClient extends WorkspaceApi {
   openGraduate(graduateId: string, cpuThreads?: number): Promise<void>;
   send(chatId: string, text: string, options?: SendOptions): Promise<void>;
   closeGraduate(graduateId: string): Promise<void>;
+  /** Stops the team's replies, before the team and its chats are removed. */
+  closeTeam(teamId: string): Promise<void>;
   /** Network calls the agent host's guard has blocked, oldest first. */
   blockedConnections(): Promise<BlockedConnection[]>;
   /** The settings the host's llama-server starts with from now on. */
@@ -111,10 +113,13 @@ export function connectAgentHost(
         cpuThreads === undefined ? [graduateId] : [graduateId, cpuThreads],
       ),
     closeGraduate: (graduateId) => request('host.closeGraduate', [graduateId]),
+    closeTeam: (teamId) => request('host.closeTeam', [teamId]),
     blockedConnections: () => request('host.blockedConnections', []),
     configure: (settings) => request('host.configure', [settings]),
     listChats: (graduateId) => request('workspace.listChats', [graduateId]),
     createChat: (graduateId) => request('workspace.createChat', [graduateId]),
+    listTeamChats: (teamId) => request('workspace.listTeamChats', [teamId]),
+    createTeamChat: (teamId) => request('workspace.createTeamChat', [teamId]),
     messages: (chatId) => request('workspace.messages', [chatId]),
     send: (chatId, text, options) =>
       request('workspace.send', options === undefined ? [chatId, text] : [chatId, text, options]),

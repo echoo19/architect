@@ -27,6 +27,12 @@ export const workspaceApi = {
       WorkspaceChatSchema,
       architect().workspace.createChat(graduateId),
     ),
+  createTeamChat: (teamId: string) =>
+    parsed(
+      'workspace.createTeamChat',
+      WorkspaceChatSchema,
+      architect().workspace.createTeamChat(teamId),
+    ),
   graduateSettings: (graduateId: string) =>
     parsed(
       'graduates.settings',

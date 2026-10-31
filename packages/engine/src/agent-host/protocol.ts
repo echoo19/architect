@@ -67,6 +67,7 @@ export const AGENT_HOST_ROUTES = {
   'host.closeGraduate': route(z.tuple([id]), z.void(), (api, [graduateId]) =>
     api.closeGraduate(graduateId),
   ),
+  'host.closeTeam': route(z.tuple([id]), z.void(), (api, [teamId]) => api.closeTeam(teamId)),
   'host.blockedConnections': route(z.tuple([]), z.array(BlockedConnectionSchema), (api) =>
     api.blockedConnections(),
   ),
@@ -78,6 +79,12 @@ export const AGENT_HOST_ROUTES = {
   ),
   'workspace.createChat': route(z.tuple([id]), WorkspaceChatSchema, (api, [graduateId]) =>
     api.createChat(graduateId),
+  ),
+  'workspace.listTeamChats': route(z.tuple([id]), z.array(WorkspaceChatSchema), (api, [teamId]) =>
+    api.listTeamChats(teamId),
+  ),
+  'workspace.createTeamChat': route(z.tuple([id]), WorkspaceChatSchema, (api, [teamId]) =>
+    api.createTeamChat(teamId),
   ),
   'workspace.messages': route(z.tuple([id]), z.array(WorkspaceMessageSchema), (api, [chatId]) =>
     api.messages(chatId),

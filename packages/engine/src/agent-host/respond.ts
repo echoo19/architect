@@ -14,10 +14,11 @@ import type { AgentFiles } from '../files/agent-files';
 import { LocalRuntimeError, type GpuHold } from '../local-runtime';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
+import type { ExtraTool } from '../tools/toolbox';
 import type { Agreement, GraduateSession } from './graduate';
 import type { ReplyOutcome } from './messages';
 import type { LiveReply } from './reply';
-import { finishedStep, ruleSkillStep, startedStep, type NewStep } from './steps';
+import { showStep, type Teammates } from './steps';
 
 export interface ReplyRequest {
   graduate: GraduateSession;
@@ -38,6 +39,11 @@ export interface ReplyRequest {
    * runs where Architect doesn't share the GPU out.
    */
   holdGpu(): Promise<GpuHold | null>;
+  /**
+   * A team reply (decision 100): the lead's tool for asking its teammates, and who they are for
+   * the steps that show each ask. A team reply answers once, certified or not.
+   */
+  team?: { tool: ExtraTool; teammates: Teammates };
   signal: AbortSignal;
 }
 
@@ -49,11 +55,12 @@ export interface ReplyRequest {
  * report.
  */
 export async function respond(input: ReplyRequest): Promise<void> {
-  const { graduate, reply } = input;
+  const { graduate, reply, team } = input;
   let trace: Settled;
   let gpu: GpuHold | null = null;
   const refused = matchGuardrail(graduate.harness, input.request) !== null;
   const { agreement } = graduate;
+  const teammates = team?.teammates;
   const once = () =>
     runAgent({
       harness: graduate.harness,
@@ -66,15 +73,20 @@ export async function respond(input: ReplyRequest): Promise<void> {
       mode: 'chat',
       now: input.now,
       seed: input.seed,
-      onStep: (step) => record(reply, graduate.harness, step),
+      onStep: (step) => record(reply, graduate.harness, step, teammates),
       onText: (delta) => reply.appendText(delta),
       // A turn asked for again shows only its new text, so the chat never repeats itself.
       onRetract: () => reply.retract(),
       approveWrite: input.approveWrite,
+      ...(team === undefined ? {} : { extraTools: [team.tool] }),
       signal: input.signal,
     });
-  // A certified version answers by agreement; a refusal needs no attempts.
-  const answer = agreement === null || refused ? once : () => byAgreement(input, agreement);
+  // A certified version answers by agreement; a refusal needs no attempts, and a team reply,
+  // which no certificate covers, answers once.
+  const answer =
+    agreement === null || refused || team !== undefined
+      ? once
+      : () => byAgreement(input, agreement);
   try {
     if (!refused) gpu = await input.holdGpu();
     // The reply's model turns run inside its hold, so each joins it rather than waiting in line.
@@ -130,29 +142,13 @@ function finishApprovalRequired(reply: LiveReply, approval: ApprovalRequest): vo
   });
 }
 
-function record(reply: LiveReply, harness: Harness, step: TraceStep): void {
+function record(reply: LiveReply, harness: Harness, step: TraceStep, teammates?: Teammates): void {
   reply.recordStep(step);
-  switch (step.kind) {
-    case 'model':
-      reply.endTurn();
-      for (const call of step.toolCalls) reply.addStep(startedStep(call, harness), call.id);
-      return;
-    case 'tool': {
-      const finish = (started: NewStep) => finishedStep(started, step);
-      if (!reply.finishCall(step.callId, finish)) {
-        const call = { id: step.callId, name: step.name, arguments: step.arguments };
-        reply.addStep(finish(startedStep(call, harness)));
-      }
-      return;
-    }
-    case 'skill':
-      // A skill the model read already shows as the step of its read call.
-      if (step.via === 'rule') reply.addStep(ruleSkillStep(step.slug));
-      return;
-    case 'refusal':
-      reply.addBlock({ kind: 'refusal', taskType: step.taskType, reason: step.reason });
-      return;
+  if (step.kind === 'model') reply.endTurn();
+  if (step.kind === 'refusal') {
+    reply.addBlock({ kind: 'refusal', taskType: step.taskType, reason: step.reason });
   }
+  showStep(reply, harness, step, teammates);
 }
 
 /** How a reply's work ended: one attempt's trace, or what a certified reply settled on. */

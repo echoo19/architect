@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type {
   Correction,
   CorrectionRequest,
@@ -10,7 +11,7 @@ import { NO_LOCKED_TEST } from '../src/loop/retest';
 import { TeachThis } from '../src/improve/teach-this';
 import { hypothesis } from './fakes/adapters';
 import { deferred } from './fakes/clock';
-import { task } from './fakes/job';
+import { defaultJob, defaultTasks, task, writeJobFolder } from './fakes/job';
 import { createWorld, openEngine, type Engine, type World } from './fakes/world';
 import { withStandInTraining } from './support/training-world';
 
@@ -859,5 +860,210 @@ describe('Improve agent', () => {
       'Service desk is already being improved. Wait for it, or stop it first.',
     );
     await engine.controller.idle();
+  });
+});
+
+/** A final-test task only the teammate's job has. */
+const TEAMMATE_SEALED = task('test', 'overdue', 9);
+
+/**
+ * A team chat (decision 100): the agent of `graduateWithChat` leads, and a second agent, made
+ * from a job of its own, answered one consultation in its reply.
+ */
+async function teamChat(
+  options: { teammateSharing?: boolean; consultation?: boolean; leadText?: string } = {},
+): Promise<{ engine: Engine; leadId: string; teammateId: string }> {
+  const { engine, graduateId: leadId } = await graduateWithChat();
+  const file = await writeJobFolder(
+    join(world.root, 'teammate'),
+    defaultJob({
+      id: 'sweep-desk',
+      name: 'Sweep desk',
+      budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 60 },
+      sharing: { remoteTraining: false, corrections: options.teammateSharing !== false },
+    }),
+    [...defaultTasks(), TEAMMATE_SEALED],
+  );
+  const job = await engine.jobs.importFile(file);
+  const run = await engine.controller.start(job.id, 'architect', 7);
+  await engine.controller.idle();
+  const teammateId = engine.store.runs.get(run.id)?.run.graduateId;
+  if (teammateId === undefined) throw new Error('The run made no graduate.');
+  engine.store.teams.insert({
+    id: 'team_lab',
+    name: 'Lab review',
+    members: [{ graduateId: leadId }, { graduateId: teammateId }],
+    createdAt: AT,
+    updatedAt: AT,
+  });
+  engine.store.chats.insert({
+    id: 'cht_team',
+    graduateId: leadId,
+    teamId: 'team_lab',
+    title: 'Overdue invoices',
+    createdAt: AT,
+    updatedAt: AT,
+    running: false,
+    waiting: false,
+    graduateVersion: 1,
+  });
+  const base = { chatId: 'cht_team', createdAt: AT, blocks: [], status: 'done' as const };
+  engine.store.messages.insert({
+    ...base,
+    id: 'msg_t1',
+    role: 'user',
+    text: 'Which invoices are overdue, ours and Halden’s?',
+    steps: [],
+  });
+  engine.store.messages.insert({
+    ...base,
+    id: 'msg_t2',
+    role: 'agent',
+    text: options.leadText ?? 'INV-1 is overdue here; Halden has INV-9.',
+    graduateVersion: 1,
+    team: true,
+    steps: [
+      {
+        id: 'step-1',
+        kind: 'consult',
+        name: 'Sweep desk',
+        detail: 'Which of Halden’s invoices are overdue?',
+        status: 'done',
+        view: {
+          kind: 'consult',
+          graduateId: teammateId,
+          version: 1,
+          steps: [],
+          outcome: 'answered',
+        },
+      },
+    ],
+    trace: [
+      {
+        kind: 'model',
+        text: 'Asking Sweep desk.',
+        calls: [{ id: 'c1', name: 'ask_teammate', arguments: '{"member":"Sweep desk"}' }],
+      },
+      {
+        kind: 'tool',
+        callId: 'c1',
+        name: 'ask_teammate',
+        arguments: '{"member":"Sweep desk"}',
+        result: 'Halden has INV-9 overdue.\nANSWER: INV-9',
+      },
+      { kind: 'model', text: 'INV-1 is overdue here; Halden has INV-9.', calls: [] },
+    ],
+    ...(options.consultation === false
+      ? {}
+      : {
+          consultations: [
+            {
+              stepId: 'step-1',
+              graduateId: teammateId,
+              version: 1,
+              request: 'Which of Halden’s invoices are overdue?',
+              work: [
+                {
+                  kind: 'tool' as const,
+                  callId: 'm1',
+                  name: 'read',
+                  arguments: '{"path":"data/invoices.csv"}',
+                  result: '1\tinvoice_id,paid\n2\tINV-9,false',
+                },
+                {
+                  kind: 'model' as const,
+                  text: 'Halden has INV-9 overdue.\nANSWER: INV-9',
+                  calls: [],
+                },
+              ],
+              text: 'Halden has INV-9 overdue.\nANSWER: INV-9',
+              outcome: 'answered' as const,
+            },
+          ],
+        }),
+  });
+  return { engine, leadId, teammateId };
+}
+
+describe('Teach this in a team chat (decision 100)', () => {
+  it("sends a teammate's flagged answer to that teammate, with only what it was asked and did", async () => {
+    const { engine, teammateId } = await teamChat();
+    const proposed = await teachThis(engine).propose('cht_team', 'msg_t2', {
+      ...correction,
+      step: 'step-1',
+    });
+    expect(proposed).toMatchObject({ graduateId: teammateId, version: 1, step: 'step-1' });
+    expect(engine.store.corrections.list(teammateId)).toEqual([proposed]);
+    const sent = world.mentor.requests.at(-1)?.messages[0]?.content ?? '';
+    expect(sent).toContain('# The request, from Service desk, the agent that asked it');
+    expect(sent).toContain('Which of Halden’s invoices are overdue?');
+    expect(sent).toContain('INV-9,false');
+    expect(sent).toContain("# The agent's answer");
+    // The lead's own work and the person's message stay out of it.
+    expect(sent).not.toContain('Asking Sweep desk.');
+    expect(sent).not.toContain('ours and Halden');
+  });
+
+  it('teaches the lead from its own work, each consultation only as the request and the answer', async () => {
+    const { engine, leadId } = await teamChat();
+    const proposed = await teachThis(engine).propose('cht_team', 'msg_t2', correction);
+    expect(proposed).toMatchObject({ graduateId: leadId, version: 1 });
+    expect(proposed.step).toBeUndefined();
+    const sent = world.mentor.requests.at(-1)?.messages[0]?.content ?? '';
+    expect(sent).toContain('ours and Halden');
+    expect(sent).toContain('Asking Sweep desk.');
+    expect(sent).toContain('Halden has INV-9 overdue.');
+    // The teammate's own reads stay with its job's mentor.
+    expect(sent).not.toContain('INV-9,false');
+    expect(sent).not.toContain('data/invoices.csv');
+  });
+
+  it('needs every agent whose words are in the chat to share corrections', async () => {
+    const { engine, leadId, teammateId } = await teamChat({ teammateSharing: false });
+    const before = world.mentor.requests.length;
+    await expect(teachThis(engine).propose('cht_team', 'msg_t2', correction)).rejects.toThrow(
+      "Sweep desk keeps corrections on this computer, and Sweep desk's words are in this exchange.",
+    );
+    await expect(
+      teachThis(engine).propose('cht_team', 'msg_t2', { ...correction, step: 'step-1' }),
+    ).rejects.toThrow('Sweep desk keeps corrections on this computer');
+    expect(world.mentor.requests).toHaveLength(before);
+    expect(engine.store.corrections.list(leadId)).toEqual([]);
+    expect(engine.store.corrections.list(teammateId)).toEqual([]);
+  });
+
+  it("holds the whole exchange to each involved job's locked test", async () => {
+    const { engine } = await teamChat({ leadText: `Halden says: ${TEAMMATE_SEALED.prompt}` });
+    // Only the teammate's job keeps it: the lead's own check alone would let it through.
+    const own = await world.deps.vault.leakDetector('service-desk');
+    expect(own.scan(TEAMMATE_SEALED.prompt).leaked).toBe(false);
+    const teammates = await world.deps.vault.leakDetector('sweep-desk');
+    expect(teammates.scan(TEAMMATE_SEALED.prompt).leaked).toBe(true);
+    const before = world.mentor.requests.length;
+    // The lead's reply repeats words its teammate's job keeps for its final test.
+    await expect(teachThis(engine).propose('cht_team', 'msg_t2', correction)).rejects.toThrow(
+      /Refused a mentor call: its payload matched 1 locked test task/,
+    );
+    expect(world.mentor.requests).toHaveLength(before);
+  });
+
+  it('sends nothing once an agent whose words are in the chat is gone', async () => {
+    const { engine, teammateId } = await teamChat();
+    // Taken out of the team and removed since: its words stay in the lead's reply.
+    engine.store.graduates.remove(teammateId);
+    const before = world.mentor.requests.length;
+    await expect(teachThis(engine).propose('cht_team', 'msg_t2', correction)).rejects.toThrow(
+      'an agent whose words are in this exchange was removed',
+    );
+    expect(world.mentor.requests).toHaveLength(before);
+  });
+
+  it("sends nothing when a teammate's answer has no record of who gave it", async () => {
+    const { engine } = await teamChat({ consultation: false });
+    const before = world.mentor.requests.length;
+    await expect(teachThis(engine).propose('cht_team', 'msg_t2', correction)).rejects.toThrow(
+      "whose words are in it can't be told",
+    );
+    expect(world.mentor.requests).toHaveLength(before);
   });
 });

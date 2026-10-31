@@ -1,4 +1,5 @@
 import type { JsonValue } from './json';
+import { ASK_TEAMMATE } from './teams';
 import type { WriteRecord } from './trace';
 
 /*
@@ -19,7 +20,7 @@ export const ALL_FOLDERS = 'your folders';
 
 /**
  * What a call acts on: `data/invoices.csv`, `data/bookings.csv for /T-07/`, the files code
- * reads, or a helper's arguments.
+ * reads, what a lead asks a teammate, or a helper's arguments.
  */
 export function describeCall(name: string, args: Record<string, JsonValue>): string {
   return clip(actedOn(name, args), DETAIL_CHARS);
@@ -44,6 +45,8 @@ function actedOn(name: string, args: Record<string, JsonValue>): string {
     }
     case 'run':
       return codeTarget(typeof args.code === 'string' ? args.code : '');
+    case ASK_TEAMMATE:
+      return format(args.request);
     default:
       return fields(args);
   }
@@ -91,6 +94,7 @@ export function describeResult(
       return more ? `${more[1]} matches` : count(lines.length, 'match', 'matches');
     }
     case 'run':
+    case ASK_TEAMMATE:
       return clip(lines[0] ?? '', META_CHARS);
     default:
       return clip(result, META_CHARS);

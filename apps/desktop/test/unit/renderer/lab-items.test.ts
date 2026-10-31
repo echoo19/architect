@@ -16,6 +16,7 @@ import {
   runningRuns,
   runWord,
   teachingNeeds,
+  teamApprovalNeeds,
 } from '../../../src/renderer/src/lab/items';
 
 function job(name: string, latestRun?: Partial<JobRun>): JobSummary {
@@ -177,5 +178,36 @@ describe('a final test by kind of organization', () => {
     expect(
       orgScores([result({}), result({ seen: false, synthetic: false, total: 0, pass: 0 })]),
     ).toEqual({ seen: { pass: 1, total: 2 }, unseen: null, real: null });
+  });
+});
+
+describe('teamApprovalNeeds', () => {
+  it("lists a team's chats that wait for an approval, opening each under the team", () => {
+    const team = {
+      id: 'team_lab',
+      name: 'Screening logistics',
+      members: [{ graduateId: 'grd_lead' }, { graduateId: 'grd_mate' }],
+      createdAt: '2026-10-31T09:00:00.000Z',
+      updatedAt: '2026-10-31T09:00:00.000Z',
+    };
+    const chat = (id: string, waiting: boolean): WorkspaceChat => ({
+      id,
+      graduateId: 'grd_lead',
+      teamId: team.id,
+      title: 'Reserve lots',
+      createdAt: '2026-10-31T09:00:00.000Z',
+      updatedAt: '2026-10-31T09:00:00.000Z',
+      running: waiting,
+      waiting,
+    });
+    expect(teamApprovalNeeds(team, [chat('cht_1', true), chat('cht_2', false)])).toEqual([
+      {
+        key: 'approval:cht_1',
+        kind: 'approval',
+        title: 'Reserve lots',
+        detail: 'Screening logistics waits for your approval',
+        target: { path: '/teams/team_lab/chats/cht_1' },
+      },
+    ]);
   });
 });

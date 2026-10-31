@@ -16,11 +16,20 @@ export function placesOf(edition: Edition): readonly Place[] {
 
 /**
  * A route the personal edition doesn't have: a Lab place other than home, which both editions
- * have (the Lab in one, the agents' home in the other).
+ * have (the Lab in one, the agents' home in the other), and a team's chat (decision 100).
  */
 export function isLabOnly(route: Route): boolean {
+  if (route.name === 'team-chat') return true;
   const place = placeOf(route);
   return place !== null && place !== 'lab';
+}
+
+/**
+ * A route that reads teams (decision 100): a team's chat, or Models on its Teams tab. It shows
+ * only once the edition is known to be the Lab, so the personal edition never asks for teams.
+ */
+export function readsTeams(route: Route): boolean {
+  return route.name === 'team-chat' || (route.name === 'models' && route.tab === 'teams');
 }
 
 /** The edition in the settings; null until they have loaded. */

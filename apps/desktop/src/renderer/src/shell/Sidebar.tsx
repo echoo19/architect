@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { GraduateSummary, JobSummary } from '@architect/shared';
+import type { GraduateSummary, JobSummary, Team, WorkspaceChat } from '@architect/shared';
 import {
   AgentAvatar,
   cn,
@@ -10,6 +10,7 @@ import {
   IconButton,
   LogoMark,
   NavItem,
+  RowIcon,
   Skeleton,
   Spinner,
   StaggerItem,
@@ -26,20 +27,28 @@ import {
   Plus,
   Settings,
   Square,
+  Users,
 } from 'lucide-react';
 import { EDITIONS, placesOf, useEdition } from './edition';
 import { placeOf } from './places';
 import { api } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
 import { fetchQuery } from '../api/query';
+import { useTeams } from '../api/teams';
 import { ProblemState } from '../components/ProblemState';
 import { chooseFromHub, chooseImport } from '../import/session';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
-import { navigate, paths, type Route } from '../lib/router';
+import { chatPath, navigate, paths, type Route } from '../lib/router';
 import { useUi } from '../state/ui';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
-import { createChat, useAgentChats } from '../workspace/store';
+import {
+  createChat,
+  createTeamChat,
+  useAgentChats,
+  useTeamChats,
+  type ListState,
+} from '../workspace/store';
 import {
   TRAINING_ROW_WORDS,
   trainingRows,
@@ -127,6 +136,7 @@ export function Sidebar({ route }: { route: Route }) {
           {graduates.data ? (
             <>
               <AgentList graduates={graduates.data} route={route} />
+              {edition === 'lab' && <TeamList route={route} />}
               {jobs.data ? (
                 <TrainingList jobs={jobs.data} route={route} />
               ) : (
@@ -223,38 +233,52 @@ function AgentList({ graduates, route }: { graduates: GraduateSummary[]; route: 
   );
 }
 
+/** Starts a chat and opens it, saying so if it couldn't. */
+function useStartChat(name: string, create: () => Promise<WorkspaceChat>) {
+  const [creating, setCreating] = useState(false);
+  const start = async () => {
+    setCreating(true);
+    const chat = await attempt(`Couldn't start a chat with ${name}`, create);
+    setCreating(false);
+    if (chat) navigate(chatPath(chat));
+  };
+  return { creating, start: () => void start() };
+}
+
+/** "New chat", out of the way until the group is pointed at or reached with the keyboard. */
+function NewChatButton({
+  name,
+  creating,
+  onClick,
+}: {
+  name: string;
+  creating: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip content="New chat" side="right">
+      <IconButton label={`New chat with ${name}`} size="xs" disabled={creating} onClick={onClick}>
+        <Plus size={14} strokeWidth={1.8} aria-hidden />
+      </IconButton>
+    </Tooltip>
+  );
+}
+
+const GROUP_ACTIONS =
+  'flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
+
 function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Route }) {
   const chats = useAgentChats(graduate.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
-  const [creating, setCreating] = useState(false);
-  const list = chats.entry.data;
-
-  const startChat = async () => {
-    setCreating(true);
-    const chat = await attempt(`Couldn't start a chat with ${graduate.name}`, () =>
-      createChat(graduate.id),
-    );
-    setCreating(false);
-    if (chat) navigate(paths.chat(graduate.id, chat.id));
-  };
+  const { creating, start } = useStartChat(graduate.name, () => createChat(graduate.id));
 
   return (
     <div className="group/agent flex flex-col gap-0.5">
       <div className="flex h-9 items-center gap-2.5 pl-2.5 pr-0.5">
         <AgentAvatar name={graduate.name} />
         <span className="min-w-0 flex-1 truncate font-medium">{graduate.name}</span>
-        {/* Out of the way until the agent is pointed at or reached with the keyboard. */}
-        <div className="flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100">
-          <Tooltip content="New chat" side="right">
-            <IconButton
-              label={`New chat with ${graduate.name}`}
-              size="xs"
-              disabled={creating}
-              onClick={() => void startChat()}
-            >
-              <Plus size={14} strokeWidth={1.8} aria-hidden />
-            </IconButton>
-          </Tooltip>
+        <div className={GROUP_ACTIONS}>
+          <NewChatButton name={graduate.name} creating={creating} onClick={start} />
           <Tooltip content="Agent settings" side="right">
             <IconButton
               label={`${graduate.name} settings`}
@@ -266,6 +290,64 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
           </Tooltip>
         </div>
       </div>
+      <GroupChats chats={chats} route={route} />
+    </div>
+  );
+}
+
+/**
+ * The Lab's teams (decision 100), each with its chats, under the agents. Nothing shows while they
+ * load, and nothing when there are none: a team is made in Models.
+ */
+function TeamList({ route }: { route: Route }) {
+  const teams = useTeams();
+  if (teams.status === 'error' && !teams.data) {
+    return (
+      <ProblemState
+        layout="inline"
+        error={teams.error}
+        title="Couldn't load your teams"
+        onRetry={teams.reload}
+        className="px-2.5"
+      />
+    );
+  }
+  if (!teams.data || teams.data.length === 0) return null;
+  return (
+    <div aria-label="Teams" role="group" className="flex flex-col gap-3">
+      {teams.data.map((team) => (
+        <TeamGroup key={team.id} team={team} route={route} />
+      ))}
+    </div>
+  );
+}
+
+function TeamGroup({ team, route }: { team: Team; route: Route }) {
+  const chats = useTeamChats(team.id);
+  const { creating, start } = useStartChat(team.name, () => createTeamChat(team.id));
+  return (
+    <div className="group/agent flex flex-col gap-0.5">
+      <div className="flex h-9 items-center gap-2.5 pl-2.5 pr-0.5">
+        <RowIcon>
+          <Users size={16} strokeWidth={1.8} aria-hidden />
+        </RowIcon>
+        <span className="min-w-0 flex-1 truncate font-medium">{team.name}</span>
+        <div className={GROUP_ACTIONS}>
+          {/* One action, so a team's longer name has room; the team itself is set in Models. */}
+          <NewChatButton name={team.name} creating={creating} onClick={start} />
+        </div>
+      </div>
+      <GroupChats chats={chats} route={route} />
+    </div>
+  );
+}
+
+/** An agent's or a team's chats, nested under it. */
+function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route: Route }) {
+  const list = chats.entry.data;
+  const open = route.name === 'chat' || route.name === 'team-chat' ? route.chatId : null;
+  return (
+    <>
       {!list && chats.entry.status === 'loading' && (
         <div className="flex flex-col gap-2.5 py-1.5 pl-11" aria-busy="true">
           <Skeleton className="h-3 w-32" />
@@ -282,13 +364,13 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
         />
       )}
       {list?.map((chat, index) => {
-        const current = route.name === 'chat' && route.chatId === chat.id;
+        const current = open === chat.id;
         return (
           <StaggerItem key={chat.id} index={index}>
             <NavItem
               nested
               current={current}
-              onClick={() => navigate(paths.chat(graduate.id, chat.id))}
+              onClick={() => navigate(chatPath(chat))}
               end={
                 // A chat waiting for an answer isn't working; the open one says so in the thread.
                 chat.waiting ? (
@@ -305,12 +387,12 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
           </StaggerItem>
         );
       })}
-    </div>
+    </>
   );
 }
 
 /** What each kind of row leads with: a spinner while it trains, an icon of its own otherwise. */
-function RowIcon({ kind }: { kind: TrainingRowKind }) {
+function TrainingRowIcon({ kind }: { kind: TrainingRowKind }) {
   switch (kind) {
     case 'training':
       return <Spinner tone="mentor" size={16} label="Training" />;
@@ -338,7 +420,7 @@ function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
   const current = (route.name === 'train' || route.name === 'report') && route.runId === row.runId;
   return (
     <NavItem
-      icon={<RowIcon kind={row.kind} />}
+      icon={<TrainingRowIcon kind={row.kind} />}
       current={current}
       onClick={() => navigate(row.path)}
       end={<span className={ROW_TONE[row.kind] ?? 'text-fg'}>{TRAINING_ROW_WORDS[row.kind]}</span>}

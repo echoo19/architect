@@ -1,4 +1,9 @@
-import type { CorrectionRequest, ReplyStep, WorkspaceMessage } from '@architect/shared';
+import {
+  GuardError,
+  type CorrectionRequest,
+  type ReplyStep,
+  type WorkspaceMessage,
+} from '@architect/shared';
 import type { PayloadPart } from '../mentor/gate';
 
 /** A tool result longer than this is cut, with a note of how much was left out. */
@@ -10,6 +15,73 @@ const MAX_STEPS = 60;
 export interface Exchange {
   request: WorkspaceMessage;
   reply: WorkspaceMessage;
+}
+
+/** What the mentor reads of one exchange: the request, the work that answered it, the answer. */
+export interface ExchangeText {
+  request: string;
+  /** Absent for a reply from before replies kept their work. */
+  work: readonly ReplyStep[] | undefined;
+  answer: string;
+  /** Who asked, when it was an agent: a team's lead asking a teammate (decision 100). */
+  from?: string;
+}
+
+/**
+ * A reply's exchange: the agent's own work only. In a team reply a consultation is in it as the
+ * call the lead made and the answer it got back, never the teammate's work, which only the
+ * teammate's job's mentor may read.
+ */
+export function exchangeText({ request, reply }: Exchange): ExchangeText {
+  return { request: request.text, work: reply.trace, answer: reply.text };
+}
+
+/** A teammate's answer inside a team reply, as the lead asked for it. */
+export function consultationExchange(
+  reply: WorkspaceMessage,
+  stepId: string,
+  lead: string,
+): ExchangeText & { graduateId: string; version: number } {
+  const consultation = reply.consultations?.find((each) => each.stepId === stepId);
+  if (consultation === undefined) throw new Error('That reply asked no teammate at that step.');
+  return {
+    graduateId: consultation.graduateId,
+    version: consultation.version,
+    request: consultation.request,
+    work: consultation.work,
+    answer: consultation.text,
+    from: `${lead}, the agent that asked it`,
+  };
+}
+
+/**
+ * Every agent whose words are in a team chat up to and including one reply: the lead, and each
+ * teammate any of those replies asked, since a lead can repeat what a teammate said, in a later
+ * reply or in what it asks another. A consultation whose teammate isn't recorded leaves that
+ * unknown, so nothing from the chat may go to a mentor.
+ */
+export function teamChatAgents(
+  messages: readonly WorkspaceMessage[],
+  messageId: string,
+  lead: string,
+): string[] {
+  const end = messages.findIndex((message) => message.id === messageId);
+  const agents = new Set([lead]);
+  for (const message of messages.slice(0, end + 1)) {
+    const consultations = message.consultations ?? [];
+    for (const step of message.steps) {
+      if (step.kind !== 'consult') continue;
+      const consultation = consultations.find((each) => each.stepId === step.id);
+      if (consultation === undefined) {
+        throw new GuardError(
+          'permission',
+          "Nothing was sent: this team chat has a teammate's answer without a record of which agent gave it, so whose words are in it can't be told.",
+        );
+      }
+      agents.add(consultation.graduateId);
+    }
+  }
+  return [...agents];
 }
 
 /**
@@ -42,8 +114,7 @@ function resultText(step: Extract<ReplyStep, { kind: 'tool' }>): string {
 }
 
 /** The reply's work, numbered by model turn, the way a trace is shown to the mentor. */
-function workText(reply: WorkspaceMessage): string {
-  const trace = reply.trace;
+function workText(trace: readonly ReplyStep[] | undefined): string {
   if (trace === undefined) {
     return 'This reply was saved before replies kept their steps, so only its answer is here.';
   }
@@ -74,17 +145,28 @@ function workText(reply: WorkspaceMessage): string {
 }
 
 /**
- * Everything the mentor reads for one correction, in parts: the person's request, the agent's
- * work step by step with each call's arguments and result, its answer, and what the person
- * wrote. Nothing else from the workspace, the job or its tasks goes with it.
+ * Everything the mentor reads for one correction, in parts: the request, from the person or from
+ * the team's lead that asked, the agent's work step by step with each call's arguments and
+ * result, its answer, and what the person wrote. Nothing else from the workspace, the job or its
+ * tasks goes with it.
  */
-export function exchangeParts(exchange: Exchange, correction: CorrectionRequest): PayloadPart[] {
+export function exchangeParts(
+  exchange: ExchangeText,
+  correction: CorrectionRequest,
+): PayloadPart[] {
+  const request =
+    exchange.from === undefined
+      ? { label: "the person's request", text: `# The person's request\n${exchange.request}` }
+      : {
+          label: "the lead's request",
+          text: `# The request, from ${exchange.from}\n${exchange.request}`,
+        };
   const parts: PayloadPart[] = [
-    { label: "the person's request", text: `# The person's request\n${exchange.request.text}` },
-    { label: "the agent's work", text: `# The agent's work\n${workText(exchange.reply)}` },
+    request,
+    { label: "the agent's work", text: `# The agent's work\n${workText(exchange.work)}` },
     {
       label: "the agent's answer",
-      text: `# The agent's answer\n${exchange.reply.text.trim() || '(no text)'}`,
+      text: `# The agent's answer\n${exchange.answer.trim() || '(no text)'}`,
     },
     { label: 'the correction', text: `# What the person says was wrong\n${correction.wrong}` },
   ];

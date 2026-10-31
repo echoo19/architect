@@ -266,7 +266,8 @@ export class GpuLease {
         const running: Running = { purpose };
         this.activate(use, running);
         this.kick();
-        return this.holdFor(use, running, undefined);
+        // Paused and taken back later, it says whom it waits for, as a hold of its own does.
+        return this.holdFor(use, running, watch);
       });
     }
     return this.request(use, purpose, signal, watch);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ASK_TEAMMATE } from './teams';
 
 export const DataFileSchema = z.object({
   /** File name relative to the job's data folder, e.g. `invoices.csv`. The agent sees `data/<name>`. */
@@ -55,6 +56,14 @@ export type WriteToolName = (typeof WRITE_TOOL_NAMES)[number];
 
 export function isBuiltinTool(name: string): name is BuiltinToolName {
   return (BUILTIN_TOOL_NAMES as readonly string[]).includes(name);
+}
+
+/**
+ * A name no harness helper may take: a built-in tool's, or `ask_teammate`, which a lead gets in a
+ * team reply (decision 100).
+ */
+export function isReservedToolName(name: string): boolean {
+  return isBuiltinTool(name) || name === ASK_TEAMMATE;
 }
 
 export function isWriteTool(name: string): name is WriteToolName {

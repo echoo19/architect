@@ -29,7 +29,7 @@ import { useLocalCard } from '../flow/report/use-retest';
 import { reportVerdict } from '../flow/report/verdict';
 import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
-import { navigate, paths } from '../lib/router';
+import { chatPath, navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
 import { useEdition } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
@@ -46,11 +46,10 @@ export function ReportScreen({ runId }: { runId: string }) {
       const graduate = await flowApi.acceptGraduate(runId);
       // Its row stops reading "Results ready" now that the agent is the person's.
       await refreshRunLists();
-      const chat = await createChat(graduate.id);
-      return { graduateId: graduate.id, chatId: chat.id };
+      return createChat(graduate.id);
     });
     setAccepting(false);
-    if (opened) navigate(paths.chat(opened.graduateId, opened.chatId));
+    if (opened) navigate(chatPath(opened));
   };
 
   return (
