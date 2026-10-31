@@ -1,0 +1,9 @@
+sweep_id,name,model,grid,baseline,started_on
+S210,1.4B lr x warmup v2,1.4B,learning_rate=3e-4/6e-4/1e-3/2e-3; warmup_steps=0/250/2000,learning_rate=6e-4; warmup_steps=0,2026-08-28
+S212,1.4B lr x warmup (rerun),1.4B,learning_rate=2e-4/3e-4/6e-4/1e-3; warmup_steps=0/250/1000,learning_rate=3e-4; warmup_steps=0,2026-09-02
+S214,1.4B lr x warmup (rerun),1.4B,learning_rate=6e-4/1e-3/2e-3/3e-3; warmup_steps=0/250/2000,learning_rate=1e-3; warmup_steps=0,2026-09-06
+S216,70M lr x warmup,70M,learning_rate=3e-4/6e-4/1e-3/2e-3; warmup_steps=0/1000/2000,learning_rate=6e-4; warmup_steps=0,2026-09-13
+S218,410M lr x warmup (rerun),410M,learning_rate=2e-4/3e-4/6e-4/1e-3; warmup_steps=0/500/1000,learning_rate=3e-4; warmup_steps=0,2026-09-18
+S220,410M lr x warmup (rerun),410M,learning_rate=1e-3/2e-3/3e-3/6e-3; warmup_steps=0/250/500,learning_rate=2e-3; warmup_steps=0,2026-09-24
+S222,1.4B lr x warmup v2,1.4B,learning_rate=3e-4/6e-4/1e-3/2e-3; warmup_steps=0/500/2000,learning_rate=6e-4; warmup_steps=0,2026-10-01
+S224,70M lr x warmup,70M,learning_rate=3e-4/6e-4/1e-3/2e-3; warmup_steps=0/250/2000,learning_rate=6e-4; warmup_steps=0,2026-10-07

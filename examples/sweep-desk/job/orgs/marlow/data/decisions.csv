@@ -1,0 +1,4 @@
+decision_id,sweep_id,decided_on,learning_rate,warmup_steps,decision
+DL0081,sweep_1,2026-09-19,0.0003,0,keep
+DL0082,sweep_7,2026-10-03,0.001,0,keep
+DL0083,sweep_13,2026-10-20,0.0006,0,keep

@@ -27,6 +27,7 @@ export const EngineStartSchema = FollowedSettingsSchema.extend({
   sandboxEntryPath: z.string().min(1),
   sampleJobFile: z.string().min(1),
   academyJobFile: z.string().min(1),
+  sweepDeskJobFile: z.string().min(1),
   assayJobFile: z.string().min(1),
   /** The ready-made agent's package and its data, which a build may not have (decision 054). */
   sampleAgentFile: z.string().min(1),

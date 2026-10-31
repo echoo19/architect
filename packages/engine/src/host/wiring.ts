@@ -68,6 +68,8 @@ export interface EngineWiringOptions {
   sampleJobFile?: string;
   /** The Academy desk's job shipped with the app, with its academies at `orgs/<id>/data/` beside it. */
   academyJobFile?: string;
+  /** Sweep desk's job shipped with the app, with its research groups beside it. */
+  sweepDeskJobFile?: string;
   /** The Assay desk's job shipped with the app, with its labs at `orgs/<id>/data/` beside it. */
   assayJobFile?: string;
   /** The ready-made agent shipped with the app: its package, and the data it works on. */
@@ -243,6 +245,9 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),
     ...(options.academyJobFile === undefined ? {} : { academyJobFile: options.academyJobFile }),
+    ...(options.sweepDeskJobFile === undefined
+      ? {}
+      : { sweepDeskJobFile: options.sweepDeskJobFile }),
     ...(options.assayJobFile === undefined ? {} : { assayJobFile: options.assayJobFile }),
     ...(options.sampleAgent === undefined ? {} : { sampleAgent: options.sampleAgent }),
   };

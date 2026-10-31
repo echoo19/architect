@@ -131,6 +131,7 @@ test('the personal home opens the chat used last, and Describe offers no Academy
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import a job file' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try the Academy desk' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Try a science lab' })).toHaveCount(0);
 });
 
 test('the Lab home leads with its places, and Describe offers the Academy desk too', async () => {
@@ -143,6 +144,7 @@ test('the Lab home leads with its places, and Describe offers the Academy desk t
   );
   await goTo(page, '/new');
   await expect(page.getByRole('button', { name: 'Try the Academy desk' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try a science lab' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await goTo(page, '/models');
   await expect(page).toHaveURL(/#\/models$/);

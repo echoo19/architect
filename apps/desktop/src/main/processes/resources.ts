@@ -20,6 +20,8 @@ export interface ProcessResources {
   sampleJobFile: string;
   /** The Academy desk's job, with its academies beside it. */
   academyJobFile: string;
+  /** Sweep desk's job, with its research groups beside it. */
+  sweepDeskJobFile: string;
   /** The Assay desk's job, a science lab sample, with its labs beside it. */
   assayJobFile: string;
   /** The ready-made agent's package, which a build that doesn't ship it leaves out. */
@@ -43,6 +45,9 @@ export function processResources(location: AppLocation): ProcessResources {
     academyJobFile: location.packaged
       ? join(location.resourcesPath, 'academy-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'academy', 'job', 'job.json'),
+    sweepDeskJobFile: location.packaged
+      ? join(location.resourcesPath, 'sweep-desk-job', 'job.json')
+      : join(location.appPath, '..', '..', 'examples', 'sweep-desk', 'job', 'job.json'),
     assayJobFile: location.packaged
       ? join(location.resourcesPath, 'assay-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'assay-desk', 'job', 'job.json'),
