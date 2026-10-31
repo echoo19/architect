@@ -16,6 +16,7 @@ import { Budget } from '../flow/train/Budget';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
 import { Examples } from '../flow/train/Examples';
+import { hadStarted } from '../flow/train/idle';
 import { IdleNotice } from '../flow/train/IdleNotice';
 import { LatestAttempts } from '../flow/train/LatestAttempts';
 import { findingNotes, lessonNotes, type StepNote } from '../flow/train/lesson-steps';
@@ -373,6 +374,11 @@ function TrainBoard({
       ? { error: records.error, reload: records.reload }
       : null;
   const question = useQuestion(run.id, round, records);
+  // A notice says what state the run is in, so the status line under it would say it again.
+  const paused = run.status === 'paused' && run.error !== undefined;
+  const idle = run.status === 'stopped' && run.stopReason === 'nothing_to_try';
+  // A run that ended before it began has no score, spend, rounds or attempts to show.
+  const nothingRan = hasEnded(run) && !hadStarted(live);
   return (
     <Stagger className="flex flex-col gap-10">
       {improves && (
@@ -389,64 +395,74 @@ function TrainBoard({
           />
         </StaggerItem>
       )}
-      {run.status === 'paused' && run.error !== undefined && (
+      {paused && (
         <StaggerItem>
           <PausedNotice live={live} />
         </StaggerItem>
       )}
-      {run.status === 'stopped' && run.stopReason === 'nothing_to_try' && (
+      {idle && (
         <StaggerItem>
           <IdleNotice live={live} />
         </StaggerItem>
       )}
-      <StaggerItem>
-        <LiveStatus
-          mentor={names.mentor}
-          student={names.student}
-          studentPlace={studentPlace(live)}
-          hosted={activeTarget(live) === 'hosted'}
-          status={run.status}
-          view={view}
-          drafting={drafting}
-          passRate={score ? rate(score) / 100 : null}
-          progress={activeProgress(live)}
-        />
-      </StaggerItem>
-      <StaggerItem>
-        <TaskSuccess live={live} names={names} />
-      </StaggerItem>
-      <StaggerItem>
-        <Budget live={live} mentor={names.mentor} />
-      </StaggerItem>
-      <StaggerItem>
-        <Rounds
-          job={job}
-          rounds={live.rounds}
-          running={WORKING.has(run.status)}
-          ended={hasEnded(run)}
-          draftRound={draft}
-          records={evidence}
-          failure={failure}
-          stopReason={run.stopReason}
-          onOpen={onOpenRound}
-          current={
-            round && <CurrentRound live={live} round={round} names={names} question={question} />
-          }
-        />
-      </StaggerItem>
+      {!paused && !idle && (
+        <StaggerItem>
+          <LiveStatus
+            mentor={names.mentor}
+            student={names.student}
+            studentPlace={studentPlace(live)}
+            hosted={activeTarget(live) === 'hosted'}
+            status={run.status}
+            view={view}
+            drafting={drafting}
+            passRate={score ? rate(score) / 100 : null}
+            progress={activeProgress(live)}
+          />
+        </StaggerItem>
+      )}
+      {!nothingRan && (
+        <StaggerItem>
+          <TaskSuccess live={live} names={names} />
+        </StaggerItem>
+      )}
+      {!nothingRan && (
+        <StaggerItem>
+          <Budget live={live} mentor={names.mentor} />
+        </StaggerItem>
+      )}
+      {!nothingRan && (
+        <StaggerItem>
+          <Rounds
+            job={job}
+            rounds={live.rounds}
+            running={WORKING.has(run.status)}
+            ended={hasEnded(run)}
+            draftRound={draft}
+            records={evidence}
+            failure={failure}
+            stopReason={run.stopReason}
+            onOpen={onOpenRound}
+            current={
+              round && <CurrentRound live={live} round={round} names={names} question={question} />
+            }
+          />
+        </StaggerItem>
+      )}
       <StaggerItem className="empty:hidden">
         <Examples job={job} records={records} onOpen={onOpenLesson} />
       </StaggerItem>
-      <StaggerItem>
-        <LatestAttempts
-          job={job}
-          attempts={live.attempts}
-          mentor={names.mentor}
-          ended={hasEnded(run)}
-          onOpen={onOpenAttempt}
-          onShowAll={onShowAllAttempts}
-        />
-      </StaggerItem>
+      {!nothingRan && (
+        <StaggerItem>
+          <LatestAttempts
+            job={job}
+            attempts={live.attempts}
+            mentor={names.mentor}
+            ended={hasEnded(run)}
+            onOpen={onOpenAttempt}
+            onShowAll={onShowAllAttempts}
+          />
+        </StaggerItem>
+      )}
     </Stagger>
   );
 }

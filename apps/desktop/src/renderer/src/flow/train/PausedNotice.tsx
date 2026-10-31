@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { Button, Disclosure } from '@architect/ui';
+import { Button, Disclosure, InfoTip } from '@architect/ui';
 import { CirclePause, Download, KeyRound, Power } from 'lucide-react';
 import { useLocalRuntimes, useSecretsStatus } from '../../api/hooks';
 import { DownloadButton } from '../../settings/models/StudentRows';
@@ -14,7 +14,7 @@ const ICONS = { key: KeyRound, runtime: Power, model: Download } as const;
  * something it needs isn't there: a key that isn't saved, a model that isn't downloaded, Ollama not
  * running. The screen looks at the computer now for those and offers the fix beside each; the
  * engine's own sentence says why it paused, whatever the cause, and waits under Details when a
- * cause was found. It is read from the run, so it is here whenever the run is opened, not only
+ * cause was found, with what to do then behind an info icon. It is read from the run, so it is here whenever the run is opened, not only
  * while the pause was watched.
  */
 export function PausedNotice({ live }: { live: LiveRun }) {
@@ -62,8 +62,17 @@ export function PausedNotice({ live }: { live: LiveRun }) {
       <CirclePause size={16} className="mt-0.5 shrink-0 text-mentor" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <span className="font-medium">{what} is paused</span>
-          {problems.length === 0 && <span className="text-fg text-pretty">{reason}</span>}
+          <span className="flex items-center gap-1">
+            <span className="font-medium">{what} is paused</span>
+            {problems.length > 0 && (
+              <InfoTip about="resuming" className="-my-1.5">
+                When that is put right, press Resume.
+              </InfoTip>
+            )}
+          </span>
+          {problems.length === 0 && (
+            <span className="text-fg text-pretty">{reason} Press Resume to try again.</span>
+          )}
         </div>
         {problems.length > 0 && (
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -81,11 +90,6 @@ export function PausedNotice({ live }: { live: LiveRun }) {
             })}
           </ul>
         )}
-        <p className="m-0 text-small text-pretty">
-          {problems.length > 0
-            ? 'When that is put right, press Resume.'
-            : 'Press Resume to try again.'}
-        </p>
         {problems.length > 0 && (
           <Disclosure label="Details">
             <p className="m-0 text-small text-fg text-pretty">{reason}</p>
