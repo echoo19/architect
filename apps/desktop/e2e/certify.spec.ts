@@ -80,6 +80,10 @@ test('states the certificate, its curve and whether it held where it was not cal
   await expect(section).toContainText(
     'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
   );
+  // What it rests on and assumes is a click away, under the sentence.
+  const measured = section.getByRole('button', { name: 'How this is measured' });
+  await expect(measured).toHaveAttribute('aria-expanded', 'false');
+  await measured.click();
   await expect(section).toContainText(
     'Measured on 77 calibration tasks it had never seen, 5 attempts each: it answers when 4 of 5 agree; target 10% at 95% confidence.',
   );

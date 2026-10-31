@@ -1,5 +1,5 @@
 import type { Certificate as CertificateRecord } from '@architect/shared';
-import { RiskCoveragePlot } from '@architect/ui';
+import { Disclosure, RiskCoveragePlot } from '@architect/ui';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { Section } from '../ledger';
 import {
@@ -39,8 +39,13 @@ export function Certificate({
               ? certificateSentence(certificate, name)
               : noCertificateSentence(certificate)}
           </p>
-          <p className="m-0 text-small text-pretty">{certificateBasis(certificate)}</p>
-          <p className="m-0 text-small text-pretty">{certificate.assumption}</p>
+          {/* What the bound rests on and what it assumes, a click away from the sentence. */}
+          <Disclosure label="How this is measured">
+            <div className="flex flex-col gap-2 pt-1">
+              <p className="m-0 text-ui text-pretty">{certificateBasis(certificate)}</p>
+              <p className="m-0 text-ui text-pretty">{certificate.assumption}</p>
+            </div>
+          </Disclosure>
         </div>
         {points.length > 0 && (
           <RiskCoveragePlot
