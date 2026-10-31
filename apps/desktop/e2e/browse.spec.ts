@@ -159,7 +159,7 @@ test('opens every practice and check attempt of a run from Latest attempts, filt
   await rounds.getByRole('button', { name: /Cents, not dollars/ }).click();
   const drawer = page.getByRole('dialog', { name: 'Round 3: Cents, not dollars' });
   const changed = drawer.getByRole('region', { name: 'What changed' });
-  await changed.getByRole('button', { name: 'Details' }).click();
+  await changed.getByRole('button', { name: 'Files' }).click();
   await expect(changed.getByText('Work in integer cents from start to finish.')).toBeVisible();
   await changed.getByRole('radio', { name: 'Files' }).click();
   await expect(changed.getByRole('list', { name: 'Files' })).toContainText('price-a-job');
@@ -212,7 +212,7 @@ test("leaves the personal edition's Train screen as it was", async () => {
   const changed = page
     .getByRole('dialog', { name: 'Round 3: Cents, not dollars' })
     .getByRole('region', { name: 'What changed' });
-  await changed.getByRole('button', { name: 'Details' }).click();
+  await changed.getByRole('button', { name: 'Files' }).click();
   await expect(changed.getByText('Work in integer cents from start to finish.')).toBeVisible();
   await expect(changed.getByRole('radio', { name: 'Files' })).toHaveCount(0);
   await page.keyboard.press('Escape');

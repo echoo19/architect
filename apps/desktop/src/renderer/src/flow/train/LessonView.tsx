@@ -9,7 +9,7 @@ import {
   EvidenceMark,
   Segmented,
 } from '@architect/ui';
-import { ArrowRight, Check, CircleHelp, CircleX } from 'lucide-react';
+import { ArrowRight, Check, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { mentoringApi, mentoringKeys } from '../../api/mentoring';
 import { useQuery, type QueryState } from '../../api/query';
@@ -82,7 +82,6 @@ export function LessonDrawerContent({
           reason={lesson.reason}
         />
         <BeforeAndAfter
-          lesson={lesson}
           attempt={attempt.status === 'success' ? attempt.data : null}
           original={original.status === 'success' ? original.data : null}
           correction={trace}
@@ -176,13 +175,11 @@ export function LessonDrawerContent({
  * the two read side by side; an expected record needn't.
  */
 function BeforeAndAfter({
-  lesson,
   attempt,
   original,
   correction,
   names,
 }: {
-  lesson: ListedLesson;
   attempt: ListedAttempt | null;
   original: Trace | null;
   correction: QueryState<Trace | null>;
@@ -203,26 +200,13 @@ function BeforeAndAfter({
   return (
     // Whose answer each is, in the title: the second is Spark's, for Glimmer to learn from.
     <DrawerSection title={`${names.student}'s answer, and ${names.mentor}'s correction`}>
+      {/* The correction's verdict is the banner's; this row is the failure it repaired. */}
       <dl className="m-0 grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2.5 text-small">
         <AnswerRow who={names.student} passed={attempt.check.pass} note={attempt.check.reason} />
-        {correction.status === 'success' && correction.data !== null && (
-          <AnswerRow
-            who={`${names.mentor}'s correction`}
-            passed={lesson.status === 'verified'}
-            note={lesson.status === 'verified' ? 'Got it right.' : 'Got it wrong.'}
-          />
-        )}
-        {correction.status === 'error' && (
-          <AnswerRow
-            who={`${names.mentor}'s correction`}
-            passed={null}
-            note="Couldn't be read, like its steps below."
-          />
-        )}
       </dl>
       {/* The answers as the task's format writes them, for whoever wants to compare them. */}
       {answers.length > 0 && (
-        <Disclosure label="Details">
+        <Disclosure label="Both answers">
           <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-small">
             {answers.map((answer) => (
               <Fragment key={answer.who}>
@@ -243,21 +227,12 @@ function AnswerRow({
   note,
 }: {
   who: string;
-  /** Null when there is no answer to mark. */
-  passed: boolean | null;
+  passed: boolean;
   note?: string | undefined;
 }) {
   return (
     <>
-      {passed === null ? (
-        <CircleHelp
-          size={15}
-          strokeWidth={1.8}
-          role="img"
-          aria-label="Not read"
-          className="mt-0.5 text-fg"
-        />
-      ) : passed ? (
+      {passed ? (
         <Check
           size={15}
           strokeWidth={2.2}
@@ -384,13 +359,16 @@ function LessonSteps({
 
 /** What the checker and the audit of every write said about the correction. */
 function Checked({ lesson }: { lesson: ListedLesson }) {
-  if (lesson.check === null && lesson.audit === null) return null;
+  // The banner gives the lesson's reason; the checker's line stays only when it says more.
+  const check =
+    lesson.check !== null && lesson.check.reason !== lesson.reason ? lesson.check : null;
+  if (check === null && lesson.audit === null) return null;
   return (
     <DrawerSection title="Checked">
       <ul className="m-0 flex list-none flex-col gap-2 p-0 text-small">
-        {lesson.check && (
-          <CheckLine passed={lesson.check.pass} label="Checker">
-            {lesson.check.reason}
+        {check && (
+          <CheckLine passed={check.pass} label="Checker">
+            {check.reason}
           </CheckLine>
         )}
         {lesson.audit && (

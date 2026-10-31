@@ -27,7 +27,7 @@ import { useQuery } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatRange, formatRate, signed } from '../format';
 import { modelNames, typeLabel } from '../names';
-import { decisionSentence, harmSentence, predictionCheck, refusalSentence } from './decision';
+import { decisionSentence, harmSentence, refusalSentence } from './decision';
 import { FilePatch } from '../../components/FilePatch';
 import { HarnessFiles } from '../../components/HarnessFiles';
 import { useEdition } from '../../shell/edition';
@@ -38,6 +38,7 @@ import {
   ExperimentDetails,
   Findings,
   Gates,
+  InterventionKind,
   InterventionLine,
   RoundCost,
   RoundExamples,
@@ -144,14 +145,7 @@ export function RoundDrawerContent({
         {question === undefined && (
           <DrawerSection title="Gain on check tasks">
             <dl className="m-0 grid grid-flow-col auto-cols-fr divide-x divide-line">
-              <Effect
-                label={`${names.mentor} expected`}
-                note={
-                  predicted && firstMeasured !== null && !unmeasured
-                    ? predictionCheck(predicted, firstMeasured)
-                    : undefined
-                }
-              >
+              <Effect label={`${names.mentor} expected`}>
                 {predicted ? formatRange(predicted.devDeltaMin, predicted.devDeltaMax) : '–'}
               </Effect>
               <Effect
@@ -179,6 +173,7 @@ export function RoundDrawerContent({
           <DrawerSection
             title={draft ? `What ${names.mentor} set out to do` : `${names.mentor}'s diagnosis`}
             tone="mentor"
+            actions={intervention && !draft && <InterventionKind intervention={intervention} />}
           >
             {round.diagnosis && (
               <p className="m-0 whitespace-pre-wrap text-body text-fg text-pretty">
@@ -543,7 +538,7 @@ function RoundFiles({
   return (
     <div className="flex flex-col gap-2">
       <p className="m-0 text-body text-fg text-pretty">{sentence(changeSummary(diff.data))}</p>
-      <Disclosure label="Details">
+      <Disclosure label="Files">
         {version === undefined || !lab ? (
           patches
         ) : (

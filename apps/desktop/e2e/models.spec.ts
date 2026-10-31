@@ -66,8 +66,9 @@ test('lists every agent and version with its scores, and filters and searches th
   const academyDesk = row(/^Academy desk\s+version 2/);
   await expect(academyDesk).toContainText('Academy desk');
   await expect(academyDesk).toContainText('Glimmer · 4-bit');
-  // Its harness hash is behind a hover, not in the row.
+  // Its harness hash and its runtime are behind a hover, not in the row.
   await expect(academyDesk).not.toContainText('61b8a9d');
+  await expect(academyDesk).not.toContainText('Ollama');
   await expect(academyDesk).toContainText('93%');
   await expect(academyDesk).toContainText('83%');
   await expect(academyDesk).toContainText('90%');
@@ -84,6 +85,11 @@ test('lists every agent and version with its scores, and filters and searches th
   await academyDesk.getByText('Harness', { exact: true }).hover();
   await expect(page.getByRole('tooltip')).toContainText('harness 61b8a9d');
   await page.mouse.move(0, 0);
+  // Its runtime is behind the base model, which says so when it takes focus.
+  const base = academyDesk.locator('span[tabindex="0"]', { hasText: 'Glimmer · 4-bit' });
+  await base.focus();
+  await expect(page.getByRole('tooltip')).toContainText('Runs on Ollama');
+  await base.blur();
 
   await page.getByRole('radio', { name: 'Candidates' }).click();
   await expect(table().getByRole('row')).toHaveCount(4);
@@ -138,6 +144,12 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await expect(panel()).toContainText('71/80');
   await expect(panel().getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   await expect(panel().getByRole('button', { name: 'Export evidence' })).toBeVisible();
+  // The panel pushes the table, which keeps every column in view, Status last.
+  await expect(row(/^Academy desk\s+version 1/)).toContainText('Experimental');
+  const scroller = page.locator('div:has(> table[aria-label="Models"])');
+  expect(
+    await scroller.evaluate((element) => element.scrollWidth - element.clientWidth),
+  ).toBeLessThanOrEqual(0);
   await capture('model-panel-dark.png');
 
   await panel().getByRole('tab', { name: 'Lineage' }).click();

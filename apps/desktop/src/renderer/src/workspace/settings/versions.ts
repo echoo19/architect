@@ -29,12 +29,14 @@ export const MOVE_WORDS: Record<
   },
 };
 
-/** What a version is to the agent: the one in use, a new one waiting, or an older or newer one. */
-export function standing(version: GraduateVersion, active: number | null): string {
+/**
+ * What a version with no move is to the agent, in the move's place: the one in use, or one set
+ * aside. Null for the rest, whose button says what they are to it.
+ */
+export function standing(version: GraduateVersion): string | null {
   if (version.active) return 'In use';
-  if (version.state === 'candidate') return 'New, not in use yet';
   if (version.state === 'rejected') return 'Set aside';
-  return active !== null && version.version > active ? 'Newer, not in use' : 'Earlier version';
+  return null;
 }
 
 /**

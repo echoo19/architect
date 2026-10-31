@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { GraduateSummary, GraduateVersion } from '@architect/shared';
-import { Button, SettingsRow, SettingsSection, Skeleton, VersionTag } from '@architect/ui';
+import { Button, SettingsRow, SettingsSection, SettingsValue, Skeleton } from '@architect/ui';
 import { ArrowUpRight, Undo2 } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
+import { shortDate } from '../../flow/format';
 import { formatPercent } from '../../lib/format';
 import { LessonsSection } from '../teach/LessonsSection';
 import { MoveDialog } from './MoveDialog';
@@ -12,7 +13,6 @@ import {
   MOVE_WORDS,
   moveFor,
   standing,
-  versionDate,
   versionOrigin,
   versionScore,
   type VersionMove,
@@ -20,16 +20,15 @@ import {
 
 /**
  * Teaching: what the agent is being taught (flagged answers, teaching it something new, and
- * Improve), then its versions, newest first. Each version says whether it is the one in use, how
- * its own final test came out, what it was made from and when, and can be used, or gone back to,
- * after a confirmation that says what changes.
+ * Improve), then its versions, newest first. Each version says how its own final test came out,
+ * what it was made from and when, and either that it is the one in use or set aside, or a button
+ * to use it, or go back to it, after a confirmation that says what changes.
  */
 export function TeachingTab({ agent }: { agent: GraduateSummary }) {
   const versions = useVersions(agent.id);
   const [move, setMove] = useState<{ version: GraduateVersion; kind: VersionMove } | null>(null);
   const list = versions.data;
   const active = list?.find((version) => version.active) ?? null;
-  const scored = list?.some((version) => versionScore(version) !== null) ?? false;
 
   return (
     <>
@@ -38,7 +37,8 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
         title="Versions"
         actions={
           // Names the score column: it ends where the scores do, left of the buttons' slot.
-          scored && <span className="mr-[184px] text-small text-fg">Final test</span>
+          list &&
+          list.length > 0 && <span className="mr-[216px] text-small text-fg">Final test</span>
         }
       >
         {list ? (
@@ -47,7 +47,6 @@ export function TeachingTab({ agent }: { agent: GraduateSummary }) {
               <VersionRow
                 key={version.version}
                 version={version}
-                active={active?.version ?? null}
                 move={moveFor(version, active?.version ?? null)}
                 onMove={(kind) => setMove({ version, kind })}
               />
@@ -96,46 +95,46 @@ function VersionSkeleton() {
 
 function VersionRow({
   version,
-  active,
   move,
   onMove,
 }: {
   version: GraduateVersion;
-  /** The version in use, for what the others are to it. */
-  active: number | null;
   move: VersionMove | null;
   onMove: (kind: VersionMove) => void;
 }) {
   const score = versionScore(version);
-  // The label says what the version is to the agent. A score that fell short, or is missing,
-  // says so under it; one that passed has nothing to add to the score beside it.
-  const meta = [
-    version.evaluation === 'ready' ? null : evaluationNote(version),
-    versionOrigin(version),
-    versionDate(version.createdAt),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  // Two facts under the title, so the line fits: why its final test fell short, or else what it
+  // was made from; then when.
+  const meta = capitalized(
+    [
+      version.evaluation === 'experimental' ? evaluationNote(version) : versionOrigin(version),
+      shortDate(version.createdAt),
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  );
+  const word = standing(version);
 
   return (
     <li aria-label={`Version ${version.version}`}>
-      <SettingsRow
-        icon={<VersionTag version={version.version} active={version.active} />}
-        label={standing(version, active)}
-        meta={meta}
-      >
+      <SettingsRow label={`Version ${version.version}`} meta={meta}>
         <div className="flex items-center gap-4">
-          {score && (
-            <span className="flex flex-col items-end whitespace-nowrap tabular-nums">
-              <span className="font-mono">{formatPercent(score)}</span>
-              <span className="text-small text-fg">
-                {score.pass} of {score.total}
-              </span>
-            </span>
-          )}
+          <span className="whitespace-nowrap tabular-nums">
+            {score ? (
+              <>
+                <span className="font-mono">{formatPercent(score)}</span>
+                <span className="text-small">
+                  {' '}
+                  · {score.pass} of {score.total}
+                </span>
+              </>
+            ) : (
+              'No test'
+            )}
+          </span>
           {/* The same width on every row, so the scores line up whether or not a row has one. */}
           <div className="flex w-[200px] shrink-0 justify-end">
-            {move !== null && (
+            {move !== null ? (
               <Button size="xs" onClick={() => onMove(move)}>
                 {move === 'promote' ? (
                   <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
@@ -144,10 +143,16 @@ function VersionRow({
                 )}
                 {MOVE_WORDS[move].action}
               </Button>
+            ) : (
+              word !== null && <SettingsValue>{word}</SettingsValue>
             )}
           </div>
         </div>
       </SettingsRow>
     </li>
   );
+}
+
+function capitalized(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

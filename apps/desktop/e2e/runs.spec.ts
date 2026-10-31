@@ -202,7 +202,13 @@ test('says why a run is paused, and what puts it right, when it is opened later'
   const notice = page.getByRole('status', { name: 'Training is paused' });
   await expect(notice).toBeVisible();
   await expect(notice).toContainText('Spark has no key saved.');
-  await expect(notice).toContainText('When that is put right, press Resume.');
+  // What to do once it is put right waits behind the info icon by the title.
+  await expect(notice).not.toContainText('When that is put right, press Resume.');
+  await notice.getByRole('button', { name: 'About resuming' }).hover();
+  await expect(page.getByRole('tooltip')).toContainText('When that is put right, press Resume.');
+  await page.mouse.move(0, 0);
+  // The notice says the run is paused, so the status line under it doesn't say it again.
+  await expect(page.getByRole('main').getByText('Paused', { exact: true })).toHaveCount(0);
   // The engine's own words wait under Details, and the other lines about the run stay quiet.
   await expect(notice.getByText(KEY_MISSING)).toBeHidden();
   await notice.getByRole('button', { name: 'Details' }).click();

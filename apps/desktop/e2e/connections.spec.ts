@@ -345,8 +345,11 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   // Nothing to continue with yet: skipping says what that costs.
   const next = page.getByRole('button', { name: 'Continue' });
   await expect(next).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
-  await expect(page.getByText('You can connect one later in Settings.')).toBeVisible();
+  const skip = page.getByRole('button', { name: 'Skip for now' });
+  await expect(skip).toBeVisible();
+  await skip.hover();
+  await expect(page.getByRole('tooltip')).toContainText('You can connect one later in Settings');
+  await page.mouse.move(0, 0);
 
   await page.getByRole('radio', { name: /On this computer/ }).click();
   await page.getByRole('button', { name: 'Teacher', exact: true }).click();

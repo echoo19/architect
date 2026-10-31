@@ -407,14 +407,15 @@ test('walks from a description to a graduate', async () => {
     '6 more check tasks passed (26 → 32 of 40). Measured again to rule out luck: 10 more over ' +
       'both (52 → 62 of 80), and no task type got worse.',
   );
-  await expect(roundDrawer).toContainText('Measured within this range');
+  // Spark's range and the measured gain sit side by side, with nothing said between them.
+  await expect(roundDrawer).not.toContainText('Measured within this range');
   await expect(roundDrawer.getByText('Measured again', { exact: true })).toBeVisible();
-  // What changed says so in a sentence; its lines wait under Details.
+  // What changed says so in a sentence; its lines wait under Files.
   const changed = roundDrawer.getByRole('region', { name: 'What changed' });
   await expect(changed).toContainText('Its instructions and 1 skill.');
   await expect(changed.getByText('Work in integer cents from start to finish.')).toBeHidden();
   await capture(page, 'flow-round-dark');
-  await changed.getByRole('button', { name: 'Details' }).click();
+  await changed.getByRole('button', { name: 'Files' }).click();
   await expect(changed.getByText('Work in integer cents from start to finish.')).toBeVisible();
   await expect(roundDrawer).not.toContainText('@@');
   await page.keyboard.press('Escape');

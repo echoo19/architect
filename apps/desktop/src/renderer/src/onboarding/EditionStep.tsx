@@ -15,7 +15,7 @@ export function EditionStep({ edition, onChoose }: EditionStepProps) {
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        Choose how you&apos;ll use it. You can switch in Settings at any time.
+        Choose how you&apos;ll use it; you can switch in Settings.
       </StepIntro>
       <RadioCardGroup<Edition>
         aria-label="Edition"

@@ -26,6 +26,7 @@ import {
   Pause,
   Plus,
   Settings,
+  ShieldCheck,
   Square,
   Users,
 } from 'lucide-react';
@@ -373,9 +374,19 @@ function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route
               onClick={() => navigate(chatPath(chat))}
               end={
                 // A chat waiting for an answer isn't working; the open one says so in the thread.
+                // An icon, not a word, so the chat's title keeps its room.
                 chat.waiting ? (
                   current ? undefined : (
-                    'Approve'
+                    <Tooltip content="Waiting for your approval" side="right">
+                      <span className="inline-flex">
+                        <ShieldCheck
+                          size={16}
+                          strokeWidth={1.8}
+                          role="img"
+                          aria-label="Waiting for your approval"
+                        />
+                      </span>
+                    </Tooltip>
                   )
                 ) : chat.running ? (
                   <Spinner tone="student" label="Working" />

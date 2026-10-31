@@ -189,10 +189,11 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   await expect(row(2)).toContainText('In use');
   await expect(row(2)).toContainText('95%');
   await expect(row(2)).toContainText('57 of 60');
-  await expect(row(3)).toContainText('New, not in use yet');
-  await expect(row(3)).toContainText('Below its 90% target · from version 2');
-  await expect(row(4)).toContainText('No final test yet · from version 2, imported');
-  await expect(row(1)).toContainText('Earlier version');
+  // Each row is named by its number; a version with a move says what it is by its button.
+  await expect(row(3)).not.toContainText('New, not in use yet');
+  await expect(row(3)).toContainText('Below its 90% target · Oct');
+  await expect(row(4)).toContainText('No test');
+  await expect(row(4)).toContainText('From version 2, imported');
   await expect(row(1)).toContainText('55 of 60');
   await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
   await expect(row(1).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
@@ -219,7 +220,7 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   await promote.getByRole('button', { name: 'Use version 3' }).click();
   await expect(promote).toBeHidden();
   await expect(row(3)).toContainText('In use');
-  await expect(row(2)).toContainText('Earlier version');
+  await expect(row(2).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
   expect(await callsTo(app, 'graduates:acceptVersion')).toEqual([[AGENT.id, 3]]);
   expect(await callsTo(app, 'graduates:promote')).toEqual([[AGENT.id, 3]]);
 
