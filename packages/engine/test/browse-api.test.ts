@@ -125,10 +125,12 @@ describe("a run's attempts", () => {
     expect(page.next).toBeNull();
     expect(page.attempts.every((attempt) => attempt.split === 'dev')).toBe(true);
     expect(page.attempts[0]?.prompt).toContain('[dev]');
-    const times = page.attempts.map((attempt) => attempt.createdAt);
-    expect(times).toEqual([...times].sort().reverse());
 
     const store = openEngineStore(new DataPaths(world.dataDir).database);
+    // Newest first, as the run's detail lists its latest attempts.
+    expect(page.attempts.map((attempt) => attempt.id)).toEqual(
+      store.attempts.recent(run.id, ['dev'], 50).map((attempt) => attempt.id),
+    );
     const sealed = [
       ...store.attempts.list({ runId: run.id, split: 'test' }),
       ...store.attempts.list({ runId: run.id, split: 'certify' }),
@@ -165,7 +167,7 @@ describe("a version's files", () => {
     const graduate = await api().graduates.accept(run.id);
 
     const ofRun = await api().runs.harnessFiles(run.id, 1);
-    const ofVersion = await api().graduates.harnessFiles(graduate.id, graduate.activeVersion);
+    const ofVersion = await api().graduates.harnessFiles(graduate.id, graduate.activeVersion ?? 1);
     expect(ofRun.length).toBeGreaterThan(0);
     expect(ofRun.map((file) => file.path)).toEqual([...ofRun.map((file) => file.path)].sort());
     expect(ofVersion).toEqual(ofRun);
