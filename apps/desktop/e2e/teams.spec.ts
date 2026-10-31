@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngineFailure } from './fixtures';
 import {
   installTeamsFake,
@@ -119,9 +119,11 @@ test('a team is made in Models, from a lead and a teammate', async () => {
 
   // The Lab names the team among the agents, and its chat that waits for an approval.
   await goTo(page, '/');
-  await expect(page.getByRole('region', { name: 'Needs you' })).toContainText(
-    `${TEAM.name} waits for your approval`,
-  );
+  await expect(
+    page
+      .getByRole('region', { name: 'Needs you' })
+      .getByRole('button', { name: new RegExp(`${TEAM_CHAT.title}.*${TEAM.name}.*Approve$`) }),
+  ).toBeVisible();
   await expect(
     page.getByRole('region', { name: 'Agents' }).getByRole('button', { name: `Open ${TEAM.name}` }),
   ).toContainText(`${lead.name} asks ${teammate.name}`);
@@ -150,7 +152,11 @@ test('in the team’s chat the lead asks its teammate, whose own work opens unde
     .click();
   const consult = reply().getByRole('button', { name: new RegExp(`^Asked ${teammate.name}`) });
   await expect(consult).toContainText('FW-0418 passes QC (Z′ 0.7689)');
+  // The reply names the version that answered, and that no certificate covers the team.
+  expect(await infoTipText(page, reply(), 'version 1')).toBe('Not certified as a team');
   await consult.click();
+  // Open, the whole answer shows below, so its first line no longer sits beside the name.
+  await expect(consult).not.toContainText('FW-0418 passes QC');
   const work = reply().getByRole('list', { name: `${teammate.name}'s steps` });
   await expect(work).toContainText(/Searched\s*data\/plates\.csv for \/FW-0418\//);
   await expect(work).toContainText(/Added to\s*data\/retests\.csv\s*2 rows/);

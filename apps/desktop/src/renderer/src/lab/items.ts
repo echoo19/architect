@@ -28,8 +28,10 @@ export interface Need {
   kind: NeedKind;
   /** The job, agent or chat it is about. */
   title: string;
-  /** What it asks, in a few words. */
-  detail: string;
+  /** What only this row can say, such as whose chat it is or a version's scores; else nothing. */
+  detail?: string;
+  /** What it asks of the person, in a word: Question, Results, Approve, Review. */
+  end: string;
   /** Where it opens: a screen, or an agent's Teaching settings. */
   target: { path: string } | { teaching: string };
 }
@@ -39,16 +41,16 @@ export function jobNeeds(jobs: readonly JobSummary[]): Need[] {
   return jobs.flatMap((job): Need[] => {
     const run = job.latestRun;
     if (!run) return [];
-    const at = (kind: NeedKind, detail: string, path: string): Need[] => [
-      { key: `${kind}:${run.id}`, kind, title: job.name, detail, target: { path } },
+    const at = (kind: NeedKind, end: string, path: string): Need[] => [
+      { key: `${kind}:${run.id}`, kind, title: job.name, end, target: { path } },
     ];
     if (run.status === 'paused' && run.phase === 'clarifying') {
-      return at('question', 'A question for you', paths.train(run.id));
+      return at('question', 'Question', paths.train(run.id));
     }
     if (run.status === 'finished' && run.improves !== true && run.accepted === false) {
-      return at('results', 'Results ready', paths.report(run.id));
+      return at('results', 'Results', paths.report(run.id));
     }
-    if (run.status === 'failed') return at('failed', 'Stopped on an error', paths.train(run.id));
+    if (run.status === 'failed') return at('failed', 'Failed', paths.train(run.id));
     return [];
   });
 }
@@ -59,20 +61,20 @@ export function jobNeeds(jobs: readonly JobSummary[]): Need[] {
  */
 export function experimentNeeds(experiments: readonly ExperimentRecord[]): Need[] {
   return experiments.flatMap((experiment): Need[] => {
-    const detail =
+    const end =
       experiment.status === 'needs_funding'
         ? 'Needs funding'
         : experiment.status === 'waiting'
-          ? 'Waits for you'
+          ? 'Review'
           : null;
-    return detail === null
+    return end === null
       ? []
       : [
           {
             key: `experiment:${experiment.id}`,
             kind: 'experiment',
             title: experiment.input.name,
-            detail,
+            end,
             target: { path: paths.experiment(experiment.id) },
           },
         ];
@@ -96,7 +98,8 @@ export function approvalNeeds(graduate: GraduateSummary, chats: readonly Workspa
       key: `approval:${chat.id}`,
       kind: 'approval' as const,
       title: chat.title,
-      detail: `${graduate.name} waits for your approval`,
+      detail: graduate.name,
+      end: 'Approve',
       target: { path: paths.chat(graduate.id, chat.id) },
     }));
 }
@@ -112,7 +115,8 @@ export function teamApprovalNeeds(team: Team, chats: readonly WorkspaceChat[]): 
       key: `approval:${chat.id}`,
       kind: 'approval' as const,
       title: chat.title,
-      detail: `${team.name} waits for your approval`,
+      detail: team.name,
+      end: 'Approve',
       target: { path: chatPath(chat) },
     }));
 }
@@ -133,7 +137,8 @@ export function teachingNeeds(
       key: `lessons:${graduate.id}`,
       kind: 'lessons',
       title: graduate.name,
-      detail: proposed === 1 ? 'A lesson to review' : `${proposed} lessons to review`,
+      ...(proposed === 1 ? {} : { detail: `${proposed} lessons` }),
+      end: 'Review',
       target: { teaching: graduate.id },
     });
   }
@@ -152,6 +157,7 @@ export function teachingNeeds(
       kind: 'promote',
       title: graduate.name,
       detail: versionDetail(version, improvement, graduate.activeVersion),
+      end: 'Review',
       target: { path: paths.improvement(improvement.runId) },
     });
   }

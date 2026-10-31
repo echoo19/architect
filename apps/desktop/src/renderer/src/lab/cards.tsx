@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { Fragment, useEffect, type ReactNode } from 'react';
 import {
   orgCounts,
   RunEventSchema,
@@ -14,7 +14,6 @@ import {
   CapMeter,
   Card,
   CardRow,
-  cn,
   IconButton,
   Meter,
   NumberTicker,
@@ -81,9 +80,9 @@ const NEED_ICONS: Record<NeedKind, ReactNode> = {
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
 
-/** A calm line in an empty card: what is not there, in a few words. */
-function Quiet({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn('m-0 px-6 pb-6 pt-1 text-ui', className)}>{children}</p>;
+/** What an empty card lacks, in a few words, as the card's one row. */
+function EmptyRow({ title, className }: { title: string; className?: string }) {
+  return <CardRow title={<span className="font-normal">{title}</span>} className={className} />;
 }
 
 function NeedRow({ need }: { need: Need }) {
@@ -96,7 +95,12 @@ function NeedRow({ need }: { need: Need }) {
         icon={<RowIcon>{icon}</RowIcon>}
         title={need.title}
         detail={need.detail}
-        end={chevron}
+        end={
+          <>
+            {need.end}
+            {chevron}
+          </>
+        }
         onClick={() =>
           'path' in target ? navigate(target.path) : showSettings(target.teaching, 'teaching')
         }
@@ -105,19 +109,19 @@ function NeedRow({ need }: { need: Need }) {
   );
 }
 
-/** The kinds of what waits, in the order the card groups them. */
-const NEED_GROUPS: readonly { label: string; kinds: readonly NeedKind[] }[] = [
-  { label: 'Questions', kinds: ['question'] },
-  { label: 'Results', kinds: ['results', 'failed'] },
-  { label: 'Approvals', kinds: ['approval'] },
-  { label: 'Lessons', kinds: ['lessons'] },
-  { label: 'Versions', kinds: ['promote'] },
-  { label: 'Experiments', kinds: ['experiment'] },
+/** The kinds of what waits, in the order the card lists them; each row's icon names its kind. */
+const NEED_ORDER: readonly (readonly NeedKind[])[] = [
+  ['question'],
+  ['results', 'failed'],
+  ['approval'],
+  ['lessons'],
+  ['promote'],
+  ['experiment'],
 ];
 
 /**
- * One agent's approvals, lessons and versions of the given kinds; each read on its own. Only one
- * group shows a failed read, so a problem isn't repeated in every group.
+ * One agent's approvals, lessons and versions of the given kinds; each read on its own. Only the
+ * last kinds show a failed read, so a problem isn't repeated for every kind.
  */
 function AgentNeeds({
   graduate,
@@ -191,7 +195,7 @@ function TeamNeeds({ team, kinds }: { team: Team; kinds: readonly NeedKind[] }) 
   );
 }
 
-/** Everything that waits for the person, grouped by kind: the focal card, with Running beside it. */
+/** Everything that waits for the person, in order of kind: the focal card, with Running beside it. */
 export function NeedsYouCard({
   jobs,
   graduates,
@@ -206,18 +210,13 @@ export function NeedsYouCard({
   const fromJobs = [...jobNeeds(jobs), ...experimentNeeds(experiments)];
   return (
     <Card title="Needs you" flush>
-      {/* Each agent's rows come from reads of their own; a group shows once it holds a row. */}
+      {/* Each agent's rows come from reads of their own, in one list ordered by kind. */}
       <div className="group">
-        {NEED_GROUPS.map((group, index) => (
-          <section
-            key={group.label}
-            aria-label={group.label}
-            className="hidden has-[li:not([aria-busy])]:block"
-          >
-            <h3 className="m-0 px-6 pb-2 pt-6 font-sans text-small font-medium">{group.label}</h3>
-            <ul className="m-0 flex list-none flex-col p-0">
+        <ul className="m-0 flex list-none flex-col p-0">
+          {NEED_ORDER.map((kinds, index) => (
+            <Fragment key={kinds.join()}>
               {fromJobs
-                .filter((need) => group.kinds.includes(need.kind))
+                .filter((need) => kinds.includes(need.kind))
                 .map((need) => (
                   <NeedRow key={need.key} need={need} />
                 ))}
@@ -225,20 +224,25 @@ export function NeedsYouCard({
                 <AgentNeeds
                   key={graduate.id}
                   graduate={graduate}
-                  kinds={group.kinds}
-                  problems={index === NEED_GROUPS.length - 1}
+                  kinds={kinds}
+                  problems={index === NEED_ORDER.length - 1}
                 />
               ))}
               {teams.map((team) => (
-                <TeamNeeds key={team.id} team={team} kinds={group.kinds} />
+                <TeamNeeds key={team.id} team={team} kinds={kinds} />
               ))}
-            </ul>
-          </section>
-        ))}
-        <Quiet className="flex items-center gap-2.5 group-has-[li:not([aria-busy])]:hidden">
-          <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />
-          Nothing waits for you
-        </Quiet>
+            </Fragment>
+          ))}
+        </ul>
+        <CardRow
+          icon={
+            <RowIcon>
+              <CircleCheck strokeWidth={1.8} className="text-student" aria-hidden />
+            </RowIcon>
+          }
+          title="Nothing waits for you"
+          className="group-has-[li:not([aria-busy])]:hidden"
+        />
       </div>
     </Card>
   );
@@ -366,7 +370,7 @@ export function RunningCard({
   return (
     <Card title="Running" flush>
       {rows.length === 0 && experiments.length === 0 ? (
-        <Quiet>Nothing is running</Quiet>
+        <EmptyRow title="Nothing is running" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((row) => (
@@ -419,7 +423,7 @@ export function ExperimentsCard({
       ) : !experiments ? (
         <Skeleton aria-busy="true" className="mx-6 mb-5 h-10" />
       ) : experiments.length === 0 ? (
-        <Quiet>No experiments yet</Quiet>
+        <EmptyRow title="No experiments yet" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {experiments.slice(0, 4).map((experiment) => (
@@ -531,7 +535,7 @@ export function FinishedCard({ rows }: { rows: readonly RunRow[] }) {
   return (
     <Card title="Recently finished" flush>
       {rows.length === 0 ? (
-        <Quiet>No finished runs yet</Quiet>
+        <EmptyRow title="No finished runs yet" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((row) => (
@@ -676,7 +680,7 @@ export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
             <FieldRow key={job.id} jobId={job.id} />
           ))}
         </ul>
-        <Quiet className="group-has-[li:not([aria-busy])]:hidden">No fields yet</Quiet>
+        <EmptyRow title="No fields yet" className="group-has-[li:not([aria-busy])]:hidden" />
       </div>
     </Card>
   );
@@ -697,7 +701,7 @@ export function AgentsCard({
   return (
     <Card title="Agents" flush>
       {graduates.length === 0 ? (
-        <Quiet>No agents yet</Quiet>
+        <EmptyRow title="No agents yet" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {graduates.map((graduate) => {

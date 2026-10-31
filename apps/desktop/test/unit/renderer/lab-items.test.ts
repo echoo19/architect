@@ -55,10 +55,16 @@ describe('what needs the person', () => {
       job('Busy'),
       job('New'),
     ]);
-    expect(needs.map((need) => [need.kind, need.title, need.target])).toEqual([
-      ['question', 'Asks', { path: '/runs/run_Asks/train' }],
-      ['results', 'Ready', { path: '/runs/run_Ready/report' }],
-      ['failed', 'Broke', { path: '/runs/run_Broke/train' }],
+    // What each asks is one word at the row's end, with no line of its own under the name.
+    expect(needs.map((need) => [need.kind, need.title, need.end, need.detail])).toEqual([
+      ['question', 'Asks', 'Question', undefined],
+      ['results', 'Ready', 'Results', undefined],
+      ['failed', 'Broke', 'Failed', undefined],
+    ]);
+    expect(needs.map((need) => need.target)).toEqual([
+      { path: '/runs/run_Asks/train' },
+      { path: '/runs/run_Ready/report' },
+      { path: '/runs/run_Broke/train' },
     ]);
   });
 
@@ -72,7 +78,8 @@ describe('what needs the person', () => {
         key: 'approval:cht_1',
         kind: 'approval',
         title: 'Assign practice',
-        detail: 'Academy desk waits for your approval',
+        detail: 'Academy desk',
+        end: 'Approve',
         target: { path: '/agents/grd_1/chats/cht_1' },
       },
     ]);
@@ -96,10 +103,14 @@ describe('what needs the person', () => {
       }) as Improvement;
     const needs = teachingNeeds(agent(), corrections, [improvement({})]);
     // Both scores, so a version that scored lower is never offered as the better one.
-    expect(needs.map((need) => [need.kind, need.detail])).toEqual([
-      ['lessons', '2 lessons to review'],
-      ['promote', 'Version 2: 88% on check tasks, active version 1: 94%'],
+    expect(needs.map((need) => [need.kind, need.detail, need.end])).toEqual([
+      ['lessons', '2 lessons', 'Review'],
+      ['promote', 'Version 2: 88% on check tasks, active version 1: 94%', 'Review'],
     ]);
+    // One lesson needs no count: the row says Review, and its icon says what kind.
+    expect(teachingNeeds(agent(), [{ status: 'proposed' }] as Correction[], [])[0]?.detail).toBe(
+      undefined,
+    );
     // Started from another version: the active one's score isn't in this record.
     expect(
       teachingNeeds(agent({ activeVersion: 3 }), [], [improvement({ fromVersion: 1 })])[0]?.detail,
@@ -205,7 +216,8 @@ describe('teamApprovalNeeds', () => {
         key: 'approval:cht_1',
         kind: 'approval',
         title: 'Reserve lots',
-        detail: 'Screening logistics waits for your approval',
+        detail: 'Screening logistics',
+        end: 'Approve',
         target: { path: '/teams/team_lab/chats/cht_1' },
       },
     ]);

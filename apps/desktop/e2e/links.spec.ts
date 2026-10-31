@@ -250,7 +250,7 @@ test('the Lab shows its experiments, running ones under Running and waiting ones
   await expect(
     region('Running').getByRole('button', { name: new RegExp(running.input.name) }),
   ).toContainText('47 min');
-  const waiting = region('Needs you').getByRole('region', { name: 'Experiments' });
+  const waiting = region('Needs you');
   await expect(waiting.getByRole('button', { name: new RegExp(funding.input.name) })).toContainText(
     'Needs funding',
   );
