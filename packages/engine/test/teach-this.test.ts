@@ -1004,6 +1004,20 @@ describe('Teach this in a team chat (decision 100)', () => {
     expect(sent).not.toContain('ours and Halden');
   });
 
+  it('teaches the lead from its own work, each consultation only as the request and the answer', async () => {
+    const { engine, leadId } = await teamChat();
+    const proposed = await teachThis(engine).propose('cht_team', 'msg_t2', correction);
+    expect(proposed).toMatchObject({ graduateId: leadId, version: 1 });
+    expect(proposed.step).toBeUndefined();
+    const sent = world.mentor.requests.at(-1)?.messages[0]?.content ?? '';
+    expect(sent).toContain('ours and Halden');
+    expect(sent).toContain('Asking Sweep desk.');
+    expect(sent).toContain('Halden has INV-9 overdue.');
+    // The teammate's own reads stay with its job's mentor.
+    expect(sent).not.toContain('INV-9,false');
+    expect(sent).not.toContain('data/invoices.csv');
+  });
+
   it('needs every agent whose words are in the chat to share corrections', async () => {
     const { engine, leadId, teammateId } = await teamChat({ teammateSharing: false });
     const before = world.mentor.requests.length;

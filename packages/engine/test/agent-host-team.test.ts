@@ -358,7 +358,20 @@ describe('a team reply (decision 100)', () => {
       { text: 'Four answers.' },
     ]);
     const { reply } = await ask(world, 'Ask five questions.');
-    expect(reply.consultations).toHaveLength(4);
+    // The fifth is kept as refused, with whom it named, so the chat stays teachable.
+    expect(reply.consultations?.map((each) => each.outcome)).toEqual([
+      'answered',
+      'answered',
+      'answered',
+      'answered',
+      'error',
+    ]);
+    expect(reply.consultations?.[4]).toMatchObject({
+      graduateId: 'grd_sweep',
+      request: 'Question 5?',
+      work: [],
+      text: expect.stringContaining('4 times'),
+    });
     const last = reply.steps.at(-1);
     expect(last).toMatchObject({ kind: 'consult', status: 'error', view: { outcome: 'error' } });
     expect(last?.meta).toContain('4 times');
@@ -376,7 +389,13 @@ describe('a team reply (decision 100)', () => {
       { text: 'Nobody answered.' },
     ]);
     const { reply } = await ask(world, 'Ask around.');
-    expect(reply.consultations).toBeUndefined();
+    expect(reply.consultations).toEqual([
+      expect.objectContaining({
+        graduateId: 'grd_sweep',
+        outcome: 'error',
+        text: expect.stringContaining('at most 2000 characters'),
+      }),
+    ]);
     expect(reply.steps.map((step) => [step.kind, step.status])).toEqual([
       ['tool', 'error'],
       ['tool', 'error'],
@@ -485,6 +504,58 @@ describe('a team reply (decision 100)', () => {
     expect(world.model.chats()).toHaveLength(1);
   });
 
+  it('fails a send cleanly when a teammate is closed while it opens again', async () => {
+    const world = await setup([]);
+    const installation = world.engine.installations.get(world.sweep.id);
+    if (!installation) throw new Error('Sweep desk is not installed.');
+    world.engine.installations.put({
+      ...installation,
+      grants: { ...installation.grants, writes: 'allow' },
+      updatedAt: '2026-11-06T09:00:00.000Z',
+    });
+    const chat = await world.host.createTeamChat(world.team.id);
+    // The send opens Sweep desk again, since its installation changed; it closes meanwhile.
+    const sending = world.host.send(chat.id, 'Ask Sweep desk.');
+    const closing = world.host.closeGraduate(world.sweep.id);
+    await expect(sending).rejects.toThrow('Open the graduate "grd_sweep"');
+    await closing;
+    expect(await world.host.messages(chat.id)).toEqual([]);
+    expect((await world.host.listTeamChats(world.team.id))[0]).toMatchObject({ running: false });
+    expect(world.model.chats()).toEqual([]);
+    // It stays closed: the next send is refused the same way.
+    await expect(world.host.send(chat.id, 'Again.')).rejects.toThrow('Open the graduate');
+  });
+
+  it('opens and runs alone an agent with a helper named ask_teammate from before teams', async () => {
+    const world = await setup(
+      [{ toolCalls: [{ name: ASK_TEAMMATE, arguments: {} }] }, { text: 'The helper said 7.' }],
+      {
+        sweep: {
+          job: { name: 'Sweep desk' },
+          harness: {
+            tools: [
+              {
+                name: ASK_TEAMMATE,
+                description: 'A helper from before teams.',
+                parameters: { type: 'object' },
+                code: 'function run() { return 7; }',
+              },
+            ],
+          },
+        },
+      },
+    );
+    const chat = await world.host.createChat(world.sweep.id);
+    const done = settled(world, chat.id);
+    await world.host.send(chat.id, 'Use your helper.');
+    const reply = await done;
+    expect(reply).toMatchObject({ status: 'done', text: 'The helper said 7.' });
+    expect(reply.steps).toMatchObject([
+      { kind: 'tool', name: ASK_TEAMMATE, meta: '7', status: 'done' },
+    ]);
+    expect(reply.team).toBeUndefined();
+  });
+
   it('refuses to answer until every agent in the team is open here', async () => {
     const world = await setup([], { open: ['grd_assay'] });
     const chat = await world.host.createTeamChat(world.team.id);
@@ -508,7 +579,11 @@ describe('a team reply (decision 100)', () => {
     // The installation changes, as promoting another version does; nothing reopens mid-reply.
     const installation = world.engine.installations.get(world.sweep.id);
     if (!installation) throw new Error('Sweep desk is not installed.');
-    world.engine.installations.put({ ...installation, updatedAt: '2026-11-06T09:00:00.000Z' });
+    world.engine.installations.put({
+      ...installation,
+      grants: { ...installation.grants, writes: 'allow' },
+      updatedAt: '2026-11-06T09:00:00.000Z',
+    });
     await world.host.openGraduate(world.sweep.id);
     const reply = await done;
     expect(reply.status).toBe('done');

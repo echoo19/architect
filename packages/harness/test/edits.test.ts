@@ -164,6 +164,37 @@ describe('applyEdits', () => {
     expect(edited.tools.map((tool) => tool.name)).toEqual(['days_between', 'invoice_total']);
   });
 
+  const askTeammate = [
+    write(
+      'tools/ask_teammate.json',
+      '{"name":"ask_teammate","description":"Asks.","parameters":{"type":"object"}}',
+    ),
+    write('tools/ask_teammate.js', 'function run(args, ctx) {\n  return 0;\n}\n'),
+  ];
+
+  it('refuses a new helper named like the tool a team’s lead asks with', () => {
+    expect(() => applyEdits(sampleHarness(), askTeammate)).toThrow(
+      `tools/ask_teammate.json: "ask_teammate" is the tool a team's lead asks its teammates with. Pick a different name.`,
+    );
+  });
+
+  it('keeps such a helper that a harness had before the name was reserved', () => {
+    const before = { ...sampleHarness(), tools: [] as ReturnType<typeof sampleHarness>['tools'] };
+    const had = {
+      ...before,
+      tools: [
+        {
+          name: 'ask_teammate',
+          description: 'Asks.',
+          parameters: { type: 'object' as const },
+          code: 'function run(args, ctx) {\n  return 0;\n}\n',
+        },
+      ],
+    };
+    const edited = applyEdits(had, [write('AGENTS.md', 'Be brief.\n')]);
+    expect(edited.tools.map((tool) => tool.name)).toEqual(['ask_teammate']);
+  });
+
   it('does not change the harness it was given', () => {
     const harness = sampleHarness();
     const snapshot = structuredClone(harness);

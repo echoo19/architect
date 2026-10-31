@@ -79,6 +79,10 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     cause: 'This agent is in a team.',
     next: 'Take it out of the team in Models, Teams, first.',
   },
+  team_answering: {
+    cause: 'This team is still answering.',
+    next: 'Stop its replies, then try again.',
+  },
 };
 
 /** The plain words for a failure that carries a code, or null for every other failure. */

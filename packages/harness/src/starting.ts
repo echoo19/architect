@@ -12,6 +12,7 @@ import { parseMeta } from './parse';
 import { META_PATH } from './paths';
 import { HarnessValidationError } from './errors';
 import { HARNESS_TEMPLATES } from './templates';
+import { newReservedHelpers } from './edits';
 import { validateHarnessFiles } from './validate';
 
 function systemFor(name: string, description: string): string {
@@ -66,6 +67,8 @@ export async function importHarness(dir: string): Promise<Harness> {
   const result = validateHarnessFiles(files);
   if (!result.ok) throw new HarnessValidationError(result.errors);
   const { harness } = result;
+  const reserved = newReservedHelpers(harness, null);
+  if (reserved.length > 0) throw new HarnessValidationError(reserved);
   const name = metaText === undefined ? basename(resolve(dir)) : harness.meta.name;
   const fresh: Harness = {
     ...harness,

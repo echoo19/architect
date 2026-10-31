@@ -117,6 +117,53 @@ describe('teams', () => {
     expect(() => teams.get(team.id)).toThrow(`There is no team "${team.id}".`);
   });
 
+  it('keeps a team while one of its chats is answering or waits on an approval', () => {
+    const team = teams.create(LAB_REVIEW);
+    const chat = teamChat(team.id, 'grd_assay');
+    computer.store.chats.insert({ ...chat, running: true });
+    expect(() => teams.remove(team.id)).toThrow(
+      expect.objectContaining({
+        code: 'team_answering',
+        message: 'Lab review is still answering. Stop its replies, then remove it.',
+      }),
+    );
+    computer.store.chats.update({ ...chat, waiting: true });
+    expect(() => teams.remove(team.id)).toThrow('Lab review is still answering.');
+    computer.store.chats.update(chat);
+    teams.remove(team.id);
+    expect(computer.store.chats.get(chat.id)).toBeNull();
+  });
+
+  it('refuses an agent whose helper has the name of the tool a lead asks with', async () => {
+    await addGraduate(computer.dataDir, computer.store, {
+      id: 'grd_old',
+      baseUrl: LOCAL,
+      job: { name: 'Old desk' },
+      harness: {
+        tools: [
+          {
+            name: 'ask_teammate',
+            description: 'A helper from before teams.',
+            parameters: { type: 'object' },
+            code: 'function run() { return 1; }',
+          },
+        ],
+      },
+    });
+    expect(() =>
+      teams.create({
+        name: 'Old review',
+        members: [{ graduateId: 'grd_assay' }, { graduateId: 'grd_old' }],
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        name: 'GuardError',
+        message:
+          "Old desk has a helper called ask_teammate, the name of the tool a team's lead asks its teammates with, so it can't join a team.",
+      }),
+    );
+  });
+
   it('refuses to remove an agent that is in a team, with the way out', async () => {
     teams.create(LAB_REVIEW);
     await expect(computer.library.remove('grd_sweep')).rejects.toMatchObject({

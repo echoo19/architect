@@ -215,16 +215,25 @@ export function askTeammate(options: TeamReplyOptions): ExtraTool {
             : `There is no teammate called "${typeof member === 'string' ? member : ''}".`;
         throw new ToolError(`${who} Ask one of your teammates: ${names.join(', ')}.`);
       }
-      // The step shows a consultation already; one refused here settles as that error.
+      const text = typeof request === 'string' ? request.trim() : '';
+      // The step shows a consultation already. One refused here is kept as that error, with
+      // whom it named, so the chat still says whose words are in it.
       const refuse = (message: string): never => {
         reply.updateCall(call.id, (step) =>
           step.view?.kind === 'consult'
             ? { ...step, view: { ...step.view, outcome: 'error' } }
             : step,
         );
+        reply.recordConsultation(call.id, {
+          graduateId: teammate.session.id,
+          version: teammate.session.version,
+          request: text,
+          work: [],
+          text: message,
+          outcome: 'error',
+        });
         throw new ToolError(message);
       };
-      const text = typeof request === 'string' ? request.trim() : '';
       if (text === '') refuse(`Say what to ask ${teammate.session.name}.`);
       if (text.length > TEAM_REQUEST_CHARS) {
         refuse(
