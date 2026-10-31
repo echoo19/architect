@@ -95,7 +95,7 @@ const EARLIER_REPORT: ReportCard = {
 const runOf = (key: string, overrides: Partial<Run>): Run =>
   makeRun({ id: `run_${key}`, jobId: `job_${key}`, updatedAt: at(120), ...overrides });
 
-const RUNS: Record<string, Run[]> = Object.fromEntries(
+export const RUNS: Record<string, Run[]> = Object.fromEntries(
   LAB_JOBS.map((summary) => {
     const key = summary.id.replace(/^job_/, '');
     const latest = summary.latestRun;
@@ -121,7 +121,7 @@ const RUNS: Record<string, Run[]> = Object.fromEntries(
   }),
 );
 
-const REPORT_TARGETS: Record<string, string[]> = Object.fromEntries(
+export const REPORT_TARGETS: Record<string, string[]> = Object.fromEntries(
   Object.values(RUNS)
     .flat()
     .map((run) => [run.id, run.status === 'finished' ? ['hosted'] : []]),
@@ -216,26 +216,28 @@ export const ACADEMY_DESK_ASSETS: FieldExportManifest = {
   ],
 };
 
+/** Each Lab job's field, by its id. */
+export const FIELD_VIEWS: Record<string, FieldView> = Object.fromEntries(
+  LAB_JOBS.map((job) => [
+    job.id,
+    job.id === LAB.academyDeskJob ? ACADEMY_DESK_FIELD : oneOrg(job.id),
+  ]),
+);
+
+/** The cards the Fields place reads, by run. */
+export const FIELD_REPORTS: Record<string, ReportCard> = {
+  [LAB.academyDeskRun]: { ...FIELD_REPORT, runId: LAB.academyDeskRun, name: 'Academy desk' },
+  [EARLIER_RUN]: EARLIER_REPORT,
+  run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
+};
+
 /** Every read the Fields place makes, on the Lab's records. */
 export async function stubFields(app: ElectronApplication): Promise<void> {
   await stubLab(app);
-  await stubByKey(
-    app,
-    'jobs:field',
-    Object.fromEntries(
-      LAB_JOBS.map((job) => [
-        job.id,
-        job.id === LAB.academyDeskJob ? ACADEMY_DESK_FIELD : oneOrg(job.id),
-      ]),
-    ),
-  );
+  await stubByKey(app, 'jobs:field', FIELD_VIEWS);
   await stubByKey(app, 'runs:list', RUNS);
   await stubByKey(app, 'reports:list', REPORT_TARGETS);
-  await stubByKey(app, 'reports:get', {
-    [LAB.academyDeskRun]: { ...FIELD_REPORT, runId: LAB.academyDeskRun, name: 'Academy desk' },
-    [EARLIER_RUN]: EARLIER_REPORT,
-    run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
-  });
+  await stubByKey(app, 'reports:get', FIELD_REPORTS);
   await stubByKey(app, 'jobs:taskPlan', {
     [LAB.academyDeskJob]: ACADEMY_DESK_PLAN,
     ...Object.fromEntries(
