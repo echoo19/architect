@@ -15,6 +15,7 @@ import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
 import type { RecordingQuote, TranscribeRequest } from './recordings';
 import type { StudyState } from './study';
+import type { Team, TeamInput } from './teams';
 import type {
   AddOrganizationRequest,
   FieldExportManifest,
@@ -910,9 +911,26 @@ export interface ArchitectApi {
     settings(graduateId: string): Promise<GraduateSettings>;
     updateSettings(graduateId: string, patch: Partial<GraduateSettings>): Promise<GraduateSettings>;
   };
+  /**
+   * Agents that answer together (decision 100): a lead that may ask its teammates, each working
+   * on its own files. A team's lead stays its lead; a different lead is a new team.
+   */
+  teams: {
+    /** Oldest first. */
+    list(): Promise<Team[]>;
+    create(input: TeamInput): Promise<Team>;
+    /** Changes its name, roles and teammates; refused when the input names another lead. */
+    update(teamId: string, input: TeamInput): Promise<Team>;
+    /** Removes the team and its chats. Its agents stay. */
+    remove(teamId: string): Promise<void>;
+  };
   workspace: {
     listChats(graduateId: string): Promise<WorkspaceChat[]>;
     createChat(graduateId: string): Promise<WorkspaceChat>;
+    /** A team's chats, most recently updated first. */
+    listTeamChats(teamId: string): Promise<WorkspaceChat[]>;
+    /** A new chat with a team, answered by its lead. */
+    createTeamChat(teamId: string): Promise<WorkspaceChat>;
     messages(chatId: string): Promise<WorkspaceMessage[]>;
     send(chatId: string, text: string): Promise<void>;
     stop(chatId: string): Promise<void>;

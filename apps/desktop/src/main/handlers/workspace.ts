@@ -1,6 +1,7 @@
 import type { AgentHostClient } from '@architect/engine/agent-host';
 import type { IpcRouter } from '../ipc/router';
 import type { WorkspaceGraduates } from '../workspace/graduates';
+import { TEAMS_UNAVAILABLE } from './teams';
 
 /** Sends one request to the agent host. */
 export type AgentHostCall = <T>(request: (host: AgentHostClient) => Promise<T>) => Promise<T>;
@@ -26,6 +27,12 @@ export function registerWorkspaceHandlers(
       const failure = graduates.failure(graduateId);
       if (failure !== undefined) throw new Error(failure);
       return call((host) => host.createChat(graduateId));
+    },
+    listTeamChats: () => {
+      throw new Error(TEAMS_UNAVAILABLE);
+    },
+    createTeamChat: () => {
+      throw new Error(TEAMS_UNAVAILABLE);
     },
     messages: (chatId) => whenOpen((host) => host.messages(chatId)),
     send: (chatId, text) => whenOpen((host) => host.send(chatId, text)),

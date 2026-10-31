@@ -32,8 +32,11 @@ import { respond } from './respond';
 import type { WorkspaceStore } from './store';
 import { approveWrites, PendingWrites } from './writes';
 
-/** The workspace part of the app's API: what the agent host serves to the UI. */
-export type WorkspaceApi = ArchitectApi['workspace'];
+/**
+ * The workspace part of the app's API that the agent host serves to the UI so far: team chats
+ * come with the agent host's team replies.
+ */
+export type WorkspaceApi = Omit<ArchitectApi['workspace'], 'listTeamChats' | 'createTeamChat'>;
 
 export interface AgentHostOptions {
   /** Graduates, their installations and chats, on the app's database. */
