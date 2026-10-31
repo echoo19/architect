@@ -84,6 +84,7 @@ describe('the public API', () => {
       'createMentor',
       'createMentorActor',
       'createModelMentor',
+      'createMuseVoiceTranscriber',
       'createOllamaStudent',
       'createOpenAICompatibleStudent',
       'createStudent',

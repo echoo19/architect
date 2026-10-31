@@ -3,6 +3,7 @@ import {
   createLlamaCppStudent,
   createMentor,
   createMentorActor,
+  createMuseVoiceTranscriber,
   createStudent,
   mentorCanAct,
   type StudentDeps,
@@ -227,6 +228,7 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
         createStudent(endpoint, { ...adapterOptions, ...followedQuietSettings(endpoint, options) }),
       createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
       canAct: (config) => mentorCanAct(config),
+      createTranscriber: (transcriberOptions) => createMuseVoiceTranscriber(transcriberOptions),
       ...(adapterRuntime === undefined
         ? {}
         : {

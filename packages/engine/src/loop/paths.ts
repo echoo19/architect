@@ -85,6 +85,11 @@ export class DataPaths {
     return join(this.jobDir(jobId), STUDY_FILE);
   }
 
+  /** The taught organizations' recordings that were transcribed, and what each cost (087). */
+  recordingsFile(jobId: string): string {
+    return join(this.jobDir(jobId), 'recordings.json');
+  }
+
   tasksFile(jobId: string, split: VisibleSplit): string {
     return join(this.jobDir(jobId), 'tasks', `${split}.jsonl`);
   }

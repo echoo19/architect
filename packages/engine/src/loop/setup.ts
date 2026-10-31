@@ -2,6 +2,7 @@ import { join, resolve } from 'node:path';
 import {
   GuardError,
   keyDestinationProblem,
+  MUSE_VOICE_TRANSCRIBE,
   StudyRecordSchema,
   type ActorAdapter,
   type Harness,
@@ -11,6 +12,7 @@ import {
   type StudentAdapter,
   type StudentEndpoint,
   type StudentTarget,
+  type Transcriber,
 } from '@architect/shared';
 import { isStudied, procedureEdit } from '../drafting/study';
 import type { HarnessDeps, LoopDeps } from './deps';
@@ -81,6 +83,16 @@ export async function connectActor(
 }
 
 /** Stops a job file from sending a stored key to a host outside the key's own service. */
+/** Muse Voice Transcribe, through the Meta key, which goes to Meta's API host only. */
+export async function connectTranscriber(
+  deps: Pick<LoopDeps, 'adapters' | 'secrets'>,
+): Promise<Transcriber> {
+  const create = deps.adapters.createTranscriber;
+  if (create === undefined) throw new Error("This build can't transcribe recordings.");
+  guardKeyDestination(MUSE_VOICE_TRANSCRIBE.secretRef, MUSE_VOICE_TRANSCRIBE.baseUrl);
+  return create({ apiKey: await secret(deps, MUSE_VOICE_TRANSCRIBE.secretRef) });
+}
+
 function guardKeyDestination(ref: string, baseUrl: string): void {
   const problem = keyDestinationProblem(ref, baseUrl);
   if (problem !== null) throw new GuardError('permission', problem);

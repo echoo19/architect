@@ -36,6 +36,7 @@ import { folderShortfalls, shortfallInWords } from '../graduates/checks';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
+import { recordingsView } from '../drafting/recordings';
 import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
 import { mentorDataTexts } from '../mentor/data-files';
@@ -557,7 +558,7 @@ export class JobLibrary {
         sealed,
       }),
       ...(confirmation === null ? {} : { confirmation }),
-      ...(study === null ? {} : { study }),
+      ...(study === null ? {} : { study, recordings: await recordingsView(job, this.paths) }),
     };
   }
 

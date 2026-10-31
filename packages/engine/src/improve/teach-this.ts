@@ -267,7 +267,11 @@ export class TeachThis {
     if ((job.sharing?.corrections === true) === allowed) return;
     await this.ctx.jobs.save({
       ...job,
-      sharing: { remoteTraining: job.sharing?.remoteTraining === true, corrections: allowed },
+      sharing: {
+        ...job.sharing,
+        remoteTraining: job.sharing?.remoteTraining === true,
+        corrections: allowed,
+      },
     });
   }
 

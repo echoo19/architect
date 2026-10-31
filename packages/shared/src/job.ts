@@ -196,6 +196,11 @@ export const DataSharingSchema = z.object({
    * Corrections never leave this computer otherwise.
    */
   corrections: z.boolean(),
+  /**
+   * The taught organizations' recordings may go to Meta to be transcribed for the study (decision
+   * 087). Absent means no.
+   */
+  recordings: z.boolean().optional(),
 });
 export type DataSharing = z.infer<typeof DataSharingSchema>;
 

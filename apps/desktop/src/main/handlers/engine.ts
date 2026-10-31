@@ -98,6 +98,15 @@ export function registerEngineHandlers(
       confirmRules: (jobId, token) => call((api) => api.jobs.confirmRules(jobId, token)),
       study: (jobId) => call((api) => api.jobs.study(jobId)),
       confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
+      quoteRecordings: (jobId, org, files) => {
+        const chosen = files.map((file) => picked.check(file));
+        return call((api) => api.jobs.quoteRecordings(jobId, org, chosen));
+      },
+      shareRecordings: (jobId, allowed) => call((api) => api.jobs.shareRecordings(jobId, allowed)),
+      transcribe: (jobId, request) => {
+        const chosen = request.paths.map((file) => picked.check(file));
+        return call((api) => api.jobs.transcribe(jobId, { ...request, paths: chosen }));
+      },
       field: (jobId) => call((api) => api.jobs.field(jobId)),
       addOrganization: (jobId, request) => {
         const chosen = { ...request, folder: picked.check(request.folder) };

@@ -16,6 +16,7 @@ How to read this page:
 | --- | --- | --- | --- | --- | --- |
 | Mentor, default | Meta Model API | `muse-spark-1.3` | `https://api.meta.ai/v1` | 1,048,576; 131,072 max output (OpenCode example) | $1.25 / $0.15 / $4.25 |
 | Mentor, cheaper (Meta may train on the content) | Meta Model API | `muse-spark-1.3-contributor` | `https://api.meta.ai/v1` | 1,048,576 | $0.10 / $0.002 / $0.20 |
+| Transcribes a taught organization's recordings for the study | Meta Model API | `muse-voice-transcribe-1.0` | `https://api.meta.ai/v1/asr/transcribe` | WAV, 10 minutes and 32 MB a request | $0.18 an hour of audio |
 | Mentor, open weights, hosted | Baseten Model APIs | `meta-models/muse-spark-open-1026` (dated snapshot from Baseten's partner notes; public pages show `meta-models/muse-spark-open`) | `https://inference.baseten.co/v1` | 1,048,576 for the model; Baseten's served limit unverified | $1.25 / $0.15 / $4.25 |
 | Mentor, open weights, hosted | Modal Shared Endpoint | endpoint created from `meta-models/Muse-Spark-Open-816B-A42B`; request `model` comes from the dashboard | `https://inference.us-west.modal.direct/v1` (confirm in the dashboard) | 1,000,000 | $1.25 / $0.15 / $4.25 |
 | Mentor, other providers | OpenAI | `gpt-6.1-sol`, `gpt-6-luna` | `https://api.openai.com/v1` | not recorded | $2 / $0.10 / $10 and $0.10 / $0.01 / $0.50, more above 272K input tokens |
@@ -204,6 +205,20 @@ Error body: `{"error": {"message", "type", "param", "code"}}`. Rely on `type` an
 - Caching is independent of `store`.
 
 Sources: https://dev.meta.ai/docs/prompt-caching, https://dev.meta.ai/docs/protocols/chat-completions
+
+### Muse Voice Transcribe
+
+Architect uses `muse-voice-transcribe-1.0` for one job: turning a taught organization's recordings into text the study reads (decision 087). Checked 2026-10-30.
+
+- Two endpoints share the model: a realtime WebSocket, `wss://api.meta.ai/v1/asr/realtime`, and a file endpoint, `POST https://api.meta.ai/v1/asr/transcribe`. Architect uses the file endpoint. Sources: https://dev.meta.ai/docs/models, https://dev.meta.ai/docs/api-reference/voice/transcribe
+- Request: Bearer auth with the same Meta key, `multipart/form-data` with two parts. `request` is JSON: `model` (required), `audioEncoding` (required, `"WAV"` only, no default), `mode` (`PUSH_TO_TALK` default, `ENDPOINTING`, `DIARIZATION`), optional `keywords` and `languageBias` (language names such as `["English"]`). `audio` is the file. An optional `sessionId` query parameter is echoed back. Sources: https://dev.meta.ai/docs/api-reference/voice/transcribe, https://dev.meta.ai/docs/api-reference/voice/schemas
+- Audio: a RIFF/WAVE file, mono, 16-bit PCM, at 16 kHz or 24 kHz. Anything else must be converted first; Meta's example uses ffmpeg. At most 10 minutes of audio (400 above it) and 32 MB of body (413). Source: https://dev.meta.ai/docs/speech-to-text
+- Reply with `Accept: application/json`: `sessionId`, `transcript`, `audioDurationMs` and `turns`, each turn with `turnId`, `startMs`, `endMs`, `transcript` and, in `DIARIZATION` mode only, `speaker` (`A`, `B`, labels that hold within one request). No word-level timestamps. `DIARIZATION` is Meta's pick for a recorded file with several speakers. Sources: https://dev.meta.ai/docs/api-reference/voice/schemas, https://dev.meta.ai/docs/speech-to-text
+- Errors: 400 for a bad WAV, more than 10 minutes or a body that isn't multipart; 406 for an `Accept` it can't produce; 413; 429 for the concurrency or hourly stream limit; 500 when transcription fails. Source: https://dev.meta.ai/docs/api-reference/voice/transcribe
+- Price: $0.18 an hour of audio processed, metered in whole seconds and rounded down, billed apart from tokens. Streaming and files cost the same; there is no Contributor tier. Failed requests and 429s are not billed. Sources: https://dev.meta.ai/docs/pricing-rate-limits, https://dev.meta.ai/docs/speech-to-text
+- Limits: no RPM or TPM; 256 concurrent streams and 16,000 streams an hour per team, shared by realtime and file requests. Replies carry no rate-limit headers. Source: https://dev.meta.ai/docs/pricing-rate-limits
+- Video: the docs cover audio only. Architect reads WAV in plain code (any PCM or float WAV, mixed to mono, brought to 16 kHz, cut into pieces under 590 s) and asks for a WAV export of anything else, video included; decoding compressed audio would need a decoder it doesn't ship.
+- Live check, 2026-10-30, through Architect's own adapter and WAV code: a 7.8 s clip of Windows' built-in speech voice (44.1 kHz stereo, converted to 16 kHz mono) came back in 1.8 s as one turn, speaker `A`, `audioDurationMs` 7,840, so 7 billed seconds, $0.00035. The words came back with "fifty dollars" written "$50" and one word doubled ("over over"), so a quoted passage is the transcript's words, not the speaker's script.
 
 ## Muse Spark Open
 

@@ -43,6 +43,7 @@ import { qualificationView } from '../loop/qualify';
 import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
+import { JobRecordings } from '../drafting/recordings';
 import { JobStudy } from '../drafting/studying';
 import type { ExperimentService } from '../experiments/service';
 import { bundleFromRequest, planFromRequest, readModelConfig } from '../training-plan/requests';
@@ -127,6 +128,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     deps.harness.versions(paths.harnessDir(record.run.jobId, record.run.id));
   const drafter: JobDrafter = new JobDrafting({ jobs, deps, clock: ctx.clock });
   const studying = new JobStudy({ jobs, paths, deps, clock: ctx.clock });
+  const recordings = new JobRecordings({ jobs, paths, deps, clock: ctx.clock });
   const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
   /** Who hears a publication move. Listeners only pass it on, so none of them throws. */
   const publishListeners = new Set<(progress: PublishProgress) => void>();
@@ -401,6 +403,9 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         await jobs.addOrganization(jobId, request);
         return fieldOf(jobId);
       },
+      quoteRecordings: (jobId, org, files) => recordings.quote(jobId, org, files),
+      shareRecordings: (jobId, allowed) => recordings.share(jobId, allowed),
+      transcribe: (jobId, request) => recordings.transcribe(jobId, request),
       fieldAssets: async (jobId) => {
         await jobs.get(jobId);
         return buildFieldExport(await fieldSource(store, paths, jobId)).manifest;
