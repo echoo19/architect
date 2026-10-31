@@ -177,6 +177,61 @@ describe('experiments from the app', () => {
     await expect(service.resume(id, {})).rejects.toMatchObject({ code: 'experiment_state' });
   }, 300_000);
 
+  it("plans on the field's own models and freezes them with the plan", async () => {
+    const { world, service } = setUp();
+    const { dir } = fieldJob(world);
+    const job = JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8')) as Record<string, unknown>;
+    const pricing = { inputPerM: 0.2, cachedInputPerM: 0.2, outputPerM: 0.6 };
+    const mentor = {
+      kind: 'model',
+      provider: 'other',
+      label: 'Teacher on the cluster',
+      baseUrl: 'http://gpu-node-3:8000/v1',
+      model: 'big-teacher',
+      reasoningEffort: 'medium',
+      pricing,
+    };
+    const hosted = {
+      runtime: 'openai_compatible',
+      baseUrl: 'http://gpu-node-7:8000/v1',
+      model: 'qwen3-32b',
+      contextLength: 16_384,
+      pricing,
+    };
+    writeFileSync(
+      join(dir, 'job.json'),
+      JSON.stringify({
+        ...job,
+        mentor,
+        student: {
+          label: 'Qwen',
+          local: {
+            runtime: 'ollama',
+            baseUrl: 'http://127.0.0.1:11434',
+            model: 'qwen3:32b',
+            contextLength: 16_384,
+          },
+          trainOn: 'hosted',
+          hosted,
+        },
+      }),
+    );
+    const planned = await service.plan(inputFor(dir));
+    expect(planned.names).toEqual({ mentor: 'Teacher on the cluster', student: 'Qwen' });
+    const { id } = planned.experiment;
+    const frozen = await service.preregister(id);
+    expect(frozen.preregistration?.models).toEqual({
+      mentor,
+      student: hosted,
+      localModel: 'qwen3:32b',
+    });
+    const stored = JSON.parse(
+      readFileSync(join(world.root, 'experiments', id, 'preregistration.json'), 'utf8'),
+    ) as { models: unknown };
+    expect(stored.models).toEqual(frozen.preregistration?.models);
+    expect((await service.get(id)).names.mentor).toBe('Teacher on the cluster');
+  });
+
   it('pauses where it is, releases nothing meanwhile, and goes on from there', async () => {
     const { world, service } = setUp();
     let id = '';

@@ -1,13 +1,18 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  DEFAULT_STUDENT,
+  GLIMMER_BUILDS,
   JobSchema,
   MENTOR_PRESETS,
   STUDENT_PRESETS,
   type ArmId,
+  type ExperimentModels,
   type Harness,
   type Job,
   type Method,
+  type ModelMentor,
+  type StudentEndpoint,
   type StudentTarget,
 } from '@architect/shared';
 import { isStudied } from '../drafting/study';
@@ -17,31 +22,112 @@ import type { ComparisonEngine } from './engine';
 import { JOB_PRICE_PER_HOUR, type ComparisonConfig } from './projection';
 import type { ComparisonFiles } from './records';
 
-/** Which hosted student and mentor a comparison runs, by preset, and how OpenRouter routes it. */
-export interface ComparisonModels {
-  /** A mentor preset key: decision 014 reports comparisons on Spark's standard tier. */
-  mentor: string;
-  /** A hosted student preset key. */
-  student: string;
-  /**
-   * The providers OpenRouter may route the hosted student to, with no fallback, so every hosted
-   * attempt runs on one provider's serving of the model; any provider when absent.
-   */
-  providers?: readonly string[];
-  /**
-   * The student on this computer, by its name in Ollama's store: the build every graduate is
-   * pinned to when it freezes, the one local tests run on, and the base adapters are served on.
-   */
-  localModel: string;
-}
+/**
+ * Which mentor and hosted student a comparison runs, and how OpenRouter routes it: a preset by
+ * its key, or the field's own model by its whole address (decision 093). The providers pin the
+ * hosted student to one serving of the model; `localModel` is the build on this computer every
+ * graduate is pinned to when it freezes, the one local tests run on, and the base adapters use.
+ */
+export type ComparisonModels = ExperimentModels;
 
 export const DEFAULT_MODELS: ComparisonModels = {
+  // Decision 014 reports comparisons on Spark's standard tier.
   mentor: 'meta-spark',
   student: 'openrouter-glimmer',
   providers: ['DeepInfra'],
   // The 2-bit build that fits this computer's 12 GB GPU (decision 034).
   localModel: 'muse-glimmer:30b-iq2',
 };
+
+const isGlimmer = (model: string) => GLIMMER_BUILDS.some((build) => build.model === model);
+
+/**
+ * The models a comparison on this field runs (decision 093): the field's own teacher and the
+ * hosted copy of its student, each by its preset key where a preset is that model at that
+ * address, and the defaults where the field has none (a coding agent teaches, or the student has
+ * no hosted copy). A field on Glimmer keeps the defaults' routing and the build that fits here.
+ */
+export function fieldModels(job: Job): ComparisonModels {
+  const { mentor } = job;
+  const mentorPreset =
+    mentor.kind === 'model'
+      ? MENTOR_PRESETS.find(
+          (preset) => preset.model === mentor.model && preset.baseUrl === mentor.baseUrl,
+        )
+      : undefined;
+  const chosen: ComparisonModels['mentor'] =
+    mentor.kind === 'model' ? (mentorPreset?.key ?? mentor) : DEFAULT_MODELS.mentor;
+  const hosted = job.student.hosted;
+  if (hosted === undefined || hosted.runtime !== 'openai_compatible') {
+    return { ...DEFAULT_MODELS, mentor: chosen };
+  }
+  const preset = STUDENT_PRESETS.find(
+    (candidate) => candidate.model === hosted.model && candidate.baseUrl === hosted.baseUrl,
+  );
+  const providers =
+    hosted.providers ??
+    (preset?.key === DEFAULT_MODELS.student ? DEFAULT_MODELS.providers : undefined);
+  const local = job.student.local.model;
+  return {
+    mentor: chosen,
+    student: preset?.key ?? hosted,
+    ...(providers === undefined ? {} : { providers: [...providers] }),
+    localModel: preset !== undefined || isGlimmer(local) ? DEFAULT_MODELS.localModel : local,
+  };
+}
+
+/**
+ * How a plan's settings name the models, which a resume must ask for again: a preset by its key,
+ * any other model as `model at address`.
+ */
+export function modelKeys(models: ComparisonModels): { mentor: string; student: string } {
+  const named = (model: string | { model: string; baseUrl: string }) =>
+    typeof model === 'string' ? model : `${model.model} at ${model.baseUrl}`;
+  return { mentor: named(models.mentor), student: named(models.student) };
+}
+
+/** The mentor a comparison's models name, as its job's settings. */
+function mentorOf(models: ComparisonModels): ModelMentor {
+  if (typeof models.mentor !== 'string') return { ...models.mentor, reasoningEffort: 'medium' };
+  const key = models.mentor;
+  const preset = MENTOR_PRESETS.find((candidate) => candidate.key === key);
+  if (!preset) throw new Error(`There is no mentor preset "${key}".`);
+  return {
+    kind: 'model',
+    provider: preset.provider,
+    label: key === DEFAULT_MODELS.mentor ? 'Spark' : preset.label,
+    baseUrl: preset.baseUrl,
+    model: preset.model,
+    reasoningEffort: 'medium',
+    secretRef: preset.secretRef,
+  };
+}
+
+/** The hosted student a comparison's models name, and the label its job gives the student. */
+function hostedOf(
+  models: ComparisonModels,
+  source: Job,
+): { label: string; hosted: Omit<StudentEndpoint, 'contextLength' | 'providers'> } {
+  if (typeof models.student !== 'string') {
+    const { contextLength: _context, providers: _providers, ...hosted } = models.student;
+    return { label: source.student.label, hosted };
+  }
+  const key = models.student;
+  const preset = STUDENT_PRESETS.find((candidate) => candidate.key === key);
+  if (!preset || preset.runtime !== 'openai_compatible' || preset.secretRef === undefined) {
+    throw new Error(`"${key}" is not a hosted student preset.`);
+  }
+  return {
+    // Every hosted preset is a copy of Glimmer, whatever the field's own student is.
+    label: isGlimmer(source.student.local.model) ? source.student.label : DEFAULT_STUDENT.label,
+    hosted: {
+      runtime: preset.runtime,
+      baseUrl: preset.baseUrl,
+      model: preset.model,
+      secretRef: preset.secretRef,
+    },
+  };
+}
 
 /**
  * The job every arm copies: the source job with the comparison's mentor and hosted student,
@@ -52,32 +138,17 @@ export function comparisonJob(
   config: ComparisonConfig,
   models: ComparisonModels,
 ): Job {
-  const mentor = MENTOR_PRESETS.find((preset) => preset.key === models.mentor);
-  if (!mentor) throw new Error(`There is no mentor preset "${models.mentor}".`);
-  const student = STUDENT_PRESETS.find((preset) => preset.key === models.student);
-  if (!student || student.runtime !== 'openai_compatible' || student.secretRef === undefined) {
-    throw new Error(`"${models.student}" is not a hosted student preset.`);
-  }
+  const { label, hosted } = hostedOf(models, source);
   return JobSchema.parse({
     ...source,
-    mentor: {
-      kind: 'model',
-      provider: mentor.provider,
-      label: 'Spark',
-      baseUrl: mentor.baseUrl,
-      model: mentor.model,
-      reasoningEffort: 'medium',
-      secretRef: mentor.secretRef,
-    },
+    mentor: mentorOf(models),
     student: {
       ...source.student,
+      label,
       local: { ...source.student.local, model: models.localModel },
       trainOn: 'hosted',
       hosted: {
-        runtime: student.runtime,
-        baseUrl: student.baseUrl,
-        model: student.model,
-        secretRef: student.secretRef,
+        ...hosted,
         contextLength: source.student.local.contextLength,
         ...(models.providers === undefined ? {} : { providers: [...models.providers] }),
       },

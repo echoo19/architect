@@ -7,6 +7,7 @@ import {
   PinnedInputsSchema,
   ProjectionSchema,
 } from './comparisons';
+import { ModelMentorSchema, StudentEndpointSchema } from './job';
 import { StudyBriefSchema } from './study';
 
 /*
@@ -137,12 +138,29 @@ export const ExperimentStatusSchema = z.enum([
 ]);
 export type ExperimentStatus = z.infer<typeof ExperimentStatusSchema>;
 
+/**
+ * The models a comparison runs: the field's own teacher and hosted student where it has them,
+ * the defaults otherwise (decision 093). A preset goes by its key, any other model by its whole
+ * address; a key's value is never here, only the name it is stored under.
+ */
+export const ExperimentModelsSchema = z.object({
+  mentor: z.union([z.string().min(1), ModelMentorSchema]),
+  student: z.union([z.string().min(1), StudentEndpointSchema]),
+  /** The providers OpenRouter may route the hosted student to, with no fallback; any when absent. */
+  providers: z.array(z.string().min(1)).min(1).optional(),
+  /** The student on this computer, by its name in Ollama's store, which graduates pin. */
+  localModel: z.string().min(1),
+});
+export type ExperimentModels = z.infer<typeof ExperimentModelsSchema>;
+
 /** The plan frozen before it ran: what was frozen, its hash and when. */
 export const PreregistrationSchema = z.object({
   at: z.iso.datetime(),
   /** The sha256 of the input and the pinned job files, as stored. */
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   pinned: PinnedInputsSchema,
+  /** The models it runs, frozen with it; absent on one preregistered before they were kept. */
+  models: ExperimentModelsSchema.optional(),
 });
 export type Preregistration = z.infer<typeof PreregistrationSchema>;
 
@@ -178,6 +196,8 @@ export type CalibrationCost = z.infer<typeof CalibrationCostSchema>;
 
 export const ExperimentDetailSchema = z.object({
   experiment: ExperimentRecordSchema,
+  /** The teacher and the hosted student it runs, by their labels, for every line that names them. */
+  names: z.object({ mentor: z.string().min(1), student: z.string().min(1) }),
   /** Each arm projected: from calibration's measured price once it ran, assumed before. */
   projection: ProjectionSchema,
   calibration: CalibrationCostSchema,
