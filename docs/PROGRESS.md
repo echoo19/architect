@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), Sweep desk, a science lab sample (branch `examples/sweep-desk`, from `field/main`)
+
+- *Done:* `examples/sweep-desk`, a field for ML research groups: four synthetic groups (Halden, Quill, Marlow taught on; Fennick never seen), each with its own metric names, steps or epochs, configs in `runs.csv` or `configs.json`, messy exports and a policy in table or prose style. Six skills (`best_config`, `early_stop`, `diverged`, `did_it_help`, `next_runs`, `sweep_report`), 48 tasks per group, all end states checked by `checker.js`. A reference solver using only read, run and append passes every task through the engine's tools and checker. The Lab edition offers it as "Try a science lab" on the Lab home and in Describe; packaging ships `sweep-desk-job`.
+- *Next:* review and merge into `field/main`. Not merged or pushed. Not calibrated on the bare student (needs hosted credit).
+
 ## 2026-10-30 (Fri, night, by this computer's clock), study reads recordings (branch `study/recordings`, from `field/main`)
 
 - *Done:* decision 087. "Add recordings" on Define's study section sends a taught organization's WAV files to Muse Voice Transcribe (`muse-voice-transcribe-1.0`, `POST /v1/asr/transcribe`) after a dialog shows each file's length and cost, the line that they go to Meta, and the job's new `sharing.recordings` setting. Transcripts land in `orgs/<id>/data/<name>.transcript.txt` with `recordings.json` (source hash, seconds, cost); the study reads and quotes them like any file. $1 cap a batch; sealed organizations refused before any file is read; video asks for a WAV export. Tests: engine `recordings.test.ts` (fake endpoint), e2e `recordings.spec.ts`, screenshot `docs/screenshots/study-recordings-dark.png`.
