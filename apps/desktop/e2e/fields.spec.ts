@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
-import { FIELDS, PHIL_ASSETS, stubFields } from './fixtures-fields';
+import { FIELDS, TUTOR_ASSETS, stubFields } from './fixtures-fields';
 import { recordedCalls, stubRecorded } from './fixtures-flow';
 import { LAB } from './fixtures-lab';
 
@@ -16,7 +16,7 @@ import { LAB } from './fixtures-lab';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
-const EXPORT_DIR = 'C:\\Users\\dana\\Exports\\phil';
+const EXPORT_DIR = 'C:\\Users\\dana\\Exports\\tutor';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -64,10 +64,10 @@ test('lists each field with its organizations, best candidate and last activity'
   // Five fields under a header of two rows: the organizations, then the best final test.
   await expect(table.getByRole('row')).toHaveCount(7);
 
-  // Phil: taught on three academies, sealed from two, one of them real; its best candidate's
+  // Tutor: taught on three academies, sealed from two, one of them real; its best candidate's
   // final test on each kind.
-  const phil = table.getByRole('row', { name: /^Phil/ });
-  const cells = phil.getByRole('cell');
+  const tutor = table.getByRole('row', { name: /^Tutor/ });
+  const cells = tutor.getByRole('cell');
   await expect(cells.nth(1)).toHaveText('3');
   await expect(cells.nth(2)).toHaveText('2');
   await expect(cells.nth(3)).toHaveText('1');
@@ -87,16 +87,16 @@ test('lists each field with its organizations, best candidate and last activity'
   await expect(page.getByRole('button', { name: 'New field' })).toBeVisible();
   await capture('fields-dark.png');
 
-  await phil.click();
-  await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.philJob}$`));
+  await tutor.click();
+  await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.tutorJob}$`));
   await page.goBack();
   await page.getByRole('button', { name: 'New field' }).click();
   await expect(page).toHaveURL(/#\/new$/);
 });
 
 test("shows the best candidate's skill by organization grid, the skills and the study", async () => {
-  await openAt(`/fields/${LAB.philJob}`);
-  await expect(page.getByRole('heading', { name: 'Phil', level: 1 })).toBeVisible();
+  await openAt(`/fields/${LAB.tutorJob}`);
+  await expect(page.getByRole('heading', { name: 'Tutor', level: 1 })).toBeVisible();
   await expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
 
   const grid = page.getByRole('table', { name: 'Final test by organization' });
@@ -113,14 +113,14 @@ test("shows the best candidate's skill by organization grid, the skills and the 
   await capture('field-overview-dark.png');
 
   await page.getByRole('button', { name: 'Open report' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.philRun}/report$`));
-  await goTo(page, `/fields/${LAB.philJob}`);
+  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.tutorRun}/report$`));
+  await goTo(page, `/fields/${LAB.tutorJob}`);
   await study.getByRole('button', { name: 'Open' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/jobs/${LAB.philJob}/define$`));
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${LAB.tutorJob}/define$`));
 });
 
 test('lists the organizations taught on with their files, and the sealed ones by name only', async () => {
-  await openAt(`/fields/${LAB.philJob}`);
+  await openAt(`/fields/${LAB.tutorJob}`);
   await tab('Organizations').click();
   const orgs = card('Organizations');
   const northside = orgs.getByRole('button', { name: /Northside Prep/ });
@@ -147,23 +147,23 @@ test('lists the organizations taught on with their files, and the sealed ones by
 });
 
 test('lists every candidate with its scores, the best marked, each opening its report', async () => {
-  await openAt(`/fields/${LAB.philJob}`);
+  await openAt(`/fields/${LAB.tutorJob}`);
   await tab('Candidates').click();
   const table = page.getByRole('table', { name: 'Candidates' });
   await expect(table.getByRole('row')).toHaveCount(3);
   const best = table.getByRole('row', { name: /Best/ });
   await expect(best.getByRole('cell').nth(3)).toHaveText('9');
-  await expect(best).toContainText('Phil');
+  await expect(best).toContainText('Tutor');
   await table.getByRole('row').nth(2).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FIELDS.earlierRun}/report$`));
-  await goTo(page, `/fields/${LAB.philJob}`);
+  await goTo(page, `/fields/${LAB.tutorJob}`);
   await tab('Candidates').click();
   await page.getByRole('button', { name: 'Open Models' }).click();
   await expect(page).toHaveURL(/#\/models$/);
 });
 
 test("counts the field's assets and exports them to a folder the person picks", async () => {
-  await openAt(`/fields/${LAB.philJob}`);
+  await openAt(`/fields/${LAB.tutorJob}`);
   await tab('Assets').click();
   const assets = card('Field export');
   await expect(assets.getByText('Verified demonstrations')).toBeVisible();
@@ -181,11 +181,11 @@ test("counts the field's assets and exports them to a folder the person picks", 
   await capture('field-assets-dark.png');
 
   await stubEngine(launched.app, { 'files:pick': [EXPORT_DIR] });
-  await stubRecorded(launched.app, 'jobs:exportField', PHIL_ASSETS);
+  await stubRecorded(launched.app, 'jobs:exportField', TUTOR_ASSETS);
   await page.getByRole('button', { name: 'Export' }).click();
   await expect(page.getByText('Field exported', { exact: true })).toBeVisible();
   expect(await recordedCalls(launched.app, 'jobs:exportField')).toEqual([
-    [LAB.philJob, EXPORT_DIR],
+    [LAB.tutorJob, EXPORT_DIR],
   ]);
 });
 

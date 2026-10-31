@@ -8,14 +8,14 @@ import type {
   TaskPlan,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
-import { PHIL_COUNTEREXAMPLES } from './fixtures-counterexamples';
+import { TUTOR_COUNTEREXAMPLES } from './fixtures-counterexamples';
 import { FIELD_ORGS, FIELD_REPORT } from './fixtures-field';
 import { stubByKey, taskPlan } from './fixtures-flow';
-import { LAB, LAB_JOBS, PHIL_ID, stubLab } from './fixtures-lab';
+import { LAB, LAB_JOBS, TUTOR_ID, stubLab } from './fixtures-lab';
 import { at, makeRun, storyReport } from './story';
 
 /*
- * The Fields place against the stand-in engine, on the Lab's jobs: Phil's field, taught on three
+ * The Fields place against the stand-in engine, on the Lab's jobs: Tutor's field, taught on three
  * generated academies and sealed from a generated one and a real one, with two candidates; and
  * the one-organization jobs, each a field of its own records. Every score is one the Lab's
  * screens already show.
@@ -49,8 +49,8 @@ function academyFiles(scale: number): FieldFile[] {
 const seen = FIELD_ORGS.filter((org) => org.seen);
 const sealed = FIELD_ORGS.filter((org) => !org.seen);
 
-export const PHIL_FIELD: FieldView = {
-  jobId: LAB.philJob,
+export const TUTOR_FIELD: FieldView = {
+  jobId: LAB.tutorJob,
   organizations: seen.map((org, index) => ({
     id: org.org,
     name: org.name,
@@ -79,8 +79,8 @@ const oneOrg = (jobId: string): FieldView => ({
   lockedTestTasks: 60,
 });
 
-/** Phil's earlier candidate: one fewer pass on each skill it was tested on anywhere. */
-const EARLIER_RUN = 'run_phil_earlier';
+/** Tutor's earlier candidate: one fewer pass on each skill it was tested on anywhere. */
+const EARLIER_RUN = 'run_tutor_earlier';
 const EARLIER_REPORT: ReportCard = {
   ...FIELD_REPORT,
   runId: EARLIER_RUN,
@@ -102,10 +102,10 @@ const RUNS: Record<string, Run[]> = Object.fromEntries(
     const run = runOf(key, {
       status: latest?.status ?? 'finished',
       phase: latest?.phase ?? 'done',
-      ...(key === 'phil' ? { graduateId: PHIL_ID, currentVersion: 9 } : {}),
+      ...(key === 'tutor' ? { graduateId: TUTOR_ID, currentVersion: 9 } : {}),
     });
     const earlier =
-      key === 'phil'
+      key === 'tutor'
         ? [
             makeRun({
               id: EARLIER_RUN,
@@ -153,7 +153,7 @@ const BRIEF: StudyBrief = {
   dropped: 0,
 };
 
-export const PHIL_PLAN: TaskPlan = {
+export const TUTOR_PLAN: TaskPlan = {
   source: 'included',
   counts: { calibration: 12, train: 96, dev: 48, test: 72 },
   types: FIELD_REPORT.test.perType.map((type) => ({
@@ -172,12 +172,12 @@ export const PHIL_PLAN: TaskPlan = {
   },
 };
 
-export const PHIL_ASSETS: FieldExportManifest = {
+export const TUTOR_ASSETS: FieldExportManifest = {
   format: 'architect.field-export/1',
   created_at: at(200),
   job: {
-    id: LAB.philJob,
-    name: 'Phil',
+    id: LAB.tutorJob,
+    name: 'Tutor',
     format: 1,
     created_at: at(0),
     sha256: 'a'.repeat(64),
@@ -188,7 +188,7 @@ export const PHIL_ASSETS: FieldExportManifest = {
     train_tasks: 96,
     train_organizations: 3,
     sealed_organizations: 2,
-    locked_test_tasks: PHIL_FIELD.lockedTestTasks ?? 0,
+    locked_test_tasks: TUTOR_FIELD.lockedTestTasks ?? 0,
   },
   files: {},
   permitted_uses: {
@@ -198,7 +198,7 @@ export const PHIL_ASSETS: FieldExportManifest = {
   },
   left_out: [
     {
-      what: `the locked test (${PHIL_FIELD.lockedTestTasks ?? 0} tasks)`,
+      what: `the locked test (${TUTOR_FIELD.lockedTestTasks ?? 0} tasks)`,
       why: 'it stays in the vault; eval/manifest.json gives its hash only',
     },
     {
@@ -223,28 +223,28 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
     app,
     'jobs:field',
     Object.fromEntries(
-      LAB_JOBS.map((job) => [job.id, job.id === LAB.philJob ? PHIL_FIELD : oneOrg(job.id)]),
+      LAB_JOBS.map((job) => [job.id, job.id === LAB.tutorJob ? TUTOR_FIELD : oneOrg(job.id)]),
     ),
   );
   await stubByKey(app, 'runs:list', RUNS);
   await stubByKey(app, 'reports:list', REPORT_TARGETS);
   await stubByKey(app, 'reports:get', {
-    [LAB.philRun]: { ...FIELD_REPORT, runId: LAB.philRun, name: 'Phil' },
+    [LAB.tutorRun]: { ...FIELD_REPORT, runId: LAB.tutorRun, name: 'Tutor' },
     [EARLIER_RUN]: EARLIER_REPORT,
     run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
   });
   await stubByKey(app, 'jobs:taskPlan', {
-    [LAB.philJob]: PHIL_PLAN,
+    [LAB.tutorJob]: TUTOR_PLAN,
     ...Object.fromEntries(
-      LAB_JOBS.filter((job) => job.id !== LAB.philJob).map((job) => [job.id, taskPlan]),
+      LAB_JOBS.filter((job) => job.id !== LAB.tutorJob).map((job) => [job.id, taskPlan]),
     ),
   });
-  await stubByKey(app, 'jobs:fieldAssets', { [LAB.philJob]: PHIL_ASSETS });
+  await stubByKey(app, 'jobs:fieldAssets', { [LAB.tutorJob]: TUTOR_ASSETS });
   await stubByKey(
     app,
     'mentoring:fieldCounterexamples',
     Object.fromEntries(
-      LAB_JOBS.map((job) => [job.id, job.id === LAB.philJob ? PHIL_COUNTEREXAMPLES : []]),
+      LAB_JOBS.map((job) => [job.id, job.id === LAB.tutorJob ? TUTOR_COUNTEREXAMPLES : []]),
     ),
   );
 }

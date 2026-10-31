@@ -16,14 +16,14 @@ const OFFERS = {
   },
   academy: {
     label: 'Try the tutor',
-    says: 'Phil, a tutor for test-prep academies: taught at three, tested at one it never saw',
+    says: 'Tutor, a tutor for test-prep academies: taught at three, tested at one it never saw',
     Icon: GraduationCap,
   },
 } as const;
 
 /**
  * The offer to start from a sample job Architect trains an agent for, to watch it work: the small
- * service desk, or Phil, the tutor. It sits beside the offer of a ready-made agent, so they read
+ * service desk, or Tutor, the tutor. It sits beside the offer of a ready-made agent, so they read
  * as one choice: watch one being made, or open one that is made.
  */
 export function SampleJobButton({
