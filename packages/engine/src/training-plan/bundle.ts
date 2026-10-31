@@ -34,6 +34,9 @@ export const BUNDLE_FILE = 'bundle.json';
 export const TRAINER_SCRIPT = 'train_fsdp.py';
 export const SBATCH_FILE = 'submit.sbatch';
 export const PYTORCHJOB_FILE = 'pytorchjob.yaml';
+export const SKYPILOT_FILE = 'sky.yaml';
+/** The SkyPilot cluster a bundle launches, named so `sky down` can find it again. */
+export const SKYPILOT_CLUSTER = 'architect-train';
 /** The PersistentVolumeClaim a PyTorchJob mounts the bundle from; the user makes it. */
 export const BUNDLE_CLAIM = 'architect-bundle';
 const RENDEZVOUS_PORT = 29500;
@@ -200,18 +203,88 @@ function pytorchJob(nodes: number, perNode: number, image: string, bundle: Train
   return `# EXPERIMENTAL, NOT RUN. Written by Architect; never applied by it.\n${stringify(manifest)}`;
 }
 
-function readme(bundle: TrainBundle, plan: TrainingPlan, perNode: number): string {
-  const slurm = bundle.target === 'slurm';
-  const steps = slurm
-    ? [
+/**
+ * SkyPilot's name for a GPU (`sky show-gpus`), from the plan's GPU as the app or the CLI names
+ * it: "H100 80GB" or `h100-80gb`. A GPU it can't name is refused rather than guessed.
+ */
+export function skyAccelerator(gpu: { name: string; memoryGb: number }): string {
+  const name = gpu.name.toLowerCase();
+  if (/^h100\b|^h100-/.test(name)) return 'H100';
+  if (/^h200\b/.test(name)) return 'H200';
+  if (/^a100\b|^a100-/.test(name)) return gpu.memoryGb >= 80 ? 'A100-80GB' : 'A100';
+  if (/^l40s\b/.test(name)) return 'L40S';
+  if (/^b200\b/.test(name)) return 'B200';
+  throw new BundleError(
+    `SkyPilot launches GPUs by name, and "${gpu.name}" isn't one Architect can name for it. Plan for an H100, H200, A100, L40S or B200.`,
+  );
+}
+
+/**
+ * A SkyPilot task: the bundle folder as its workdir on every node, the pinned image and
+ * packages, and one torchrun per node meeting at the first node, as the other targets do.
+ */
+function skyTask(
+  nodes: number,
+  perNode: number,
+  accelerator: string,
+  image: string,
+  bundle: TrainBundle,
+): string {
+  const run = [
+    'set -euo pipefail',
+    'HEAD_IP="$(echo "${SKYPILOT_NODE_IPS}" | head -n 1)"',
+    '# One torchrun per node; they meet at the first node of the cluster.',
+    'python3 -m torch.distributed.run \\',
+    '  --nnodes="${SKYPILOT_NUM_NODES}" \\',
+    '  --nproc_per_node="${SKYPILOT_NUM_GPUS_PER_NODE}" \\',
+    '  --node_rank="${SKYPILOT_NODE_RANK}" \\',
+    '  --master_addr="${HEAD_IP}" \\',
+    `  --master_port=${RENDEZVOUS_PORT} \\`,
+    `  ${TRAINER_SCRIPT} --config train.json`,
+    '',
+  ].join('\n');
+  const task = {
+    name: SKYPILOT_CLUSTER,
+    workdir: '.',
+    num_nodes: nodes,
+    resources: { accelerators: `${accelerator}:${perNode}`, image_id: `docker:${image}` },
+    setup: 'set -euo pipefail\npip install --no-cache-dir -r requirements.txt\n',
+    run,
+  };
+  return [
+    '# EXPERIMENTAL, NOT RUN. Written by Architect; never launched by it.',
+    `# ${bundle.base_model.repo} at ${bundle.base_model.revision}, ${bundle.method}, ${nodes} node(s) x ${perNode} GPU(s).`,
+    `# Field export manifest: ${bundle.field_export?.manifest_sha256 ?? 'none'}. Recipe: ${bundle.recipe.sha256}.`,
+    stringify(task),
+  ].join('\n');
+}
+
+const SUBMIT: Record<ClusterTarget, string> = {
+  slurm: `sbatch ${SBATCH_FILE}`,
+  kubernetes: `kubectl apply -f ${PYTORCHJOB_FILE}`,
+  skypilot: `sky launch -c ${SKYPILOT_CLUSTER} ${SKYPILOT_FILE}`,
+};
+
+const TARGET_NAMES: Record<ClusterTarget, string> = {
+  slurm: 'Slurm',
+  kubernetes: 'Kubernetes',
+  skypilot: 'SkyPilot',
+};
+
+/** How to submit a bundle on its target, step by step, with its command. */
+function submitSteps(bundle: TrainBundle): string[] {
+  switch (bundle.target) {
+    case 'slurm':
+      return [
         '1. Copy this folder to a filesystem every node of your cluster can read.',
         '2. In it, make a Python environment with the pinned packages:',
         '     python3 -m venv .venv && .venv/bin/pip install -r requirements.txt',
         '3. If the base model is gated, export HF_TOKEN in your shell first.',
         '4. Submit it with your own Slurm (add --partition, --account or --time as your cluster asks):',
         `     PYTHON="$PWD/.venv/bin/python" ${bundle.submit}`,
-      ]
-    : [
+      ];
+    case 'kubernetes':
+      return [
         `1. Make a PersistentVolumeClaim named ${BUNDLE_CLAIM} in your namespace and copy this folder`,
         '   to its root, so the pods see it at /bundle.',
         '2. Install the Kubeflow training operator if your cluster lacks it (PyTorchJob, kubeflow.org/v1).',
@@ -219,6 +292,22 @@ function readme(bundle: TrainBundle, plan: TrainingPlan, perNode: number): strin
         '4. Submit it with your own kubectl:',
         `     ${bundle.submit}`,
       ];
+    case 'skypilot':
+      return [
+        '1. Set up SkyPilot for the clouds or Kubernetes clusters you use; `sky check` lists them.',
+        '   SkyPilot copies this folder to every node and installs the pinned packages there.',
+        '2. If the base model is gated, add --env HF_TOKEN to pass yours from your shell.',
+        '3. From this folder, launch it with your own SkyPilot (add --use-spot or other options as you like):',
+        `     ${bundle.submit}`,
+        '4. The outputs stay on the first node, in ~/sky_workdir/outputs. Copy them back, then stop',
+        '   paying for the GPUs:',
+        `     rsync -Pavz ${SKYPILOT_CLUSTER}:~/sky_workdir/outputs/ outputs/`,
+        `     sky down ${SKYPILOT_CLUSTER}`,
+      ];
+  }
+}
+
+function readme(bundle: TrainBundle, plan: TrainingPlan, perNode: number): string {
   return [
     'EXPERIMENTAL, NOT RUN',
     '',
@@ -227,13 +316,13 @@ function readme(bundle: TrainBundle, plan: TrainingPlan, perNode: number): strin
     'Architect wrote this bundle and never submitted it. It holds no credentials.',
     '',
     `Base model: ${bundle.base_model.repo} at ${bundle.base_model.revision}`,
-    `Method: ${bundle.method}, on ${bundle.nodes} node(s) x ${perNode} GPU(s) (${slurm ? 'Slurm' : 'Kubernetes'})`,
+    `Method: ${bundle.method}, on ${bundle.nodes} node(s) x ${perNode} GPU(s) (${TARGET_NAMES[bundle.target]})`,
     `Field export: ${bundle.field_export ? `MANIFEST.json sha256 ${bundle.field_export.manifest_sha256 ?? '(no manifest)'}, ${bundle.field_export.data.length} data file(s) in data/` : 'none; put chat examples in data/*.jsonl before submitting'}`,
     `Recipe: sha256 ${bundle.recipe.sha256} (the trainer files, listed in bundle.json)`,
     `Package pins: from ${bundle.recipe.pins.name}, sha256 ${bundle.recipe.pins.sha256}`,
     '',
     'To submit:',
-    ...steps,
+    ...submitSteps(bundle),
     '',
     'Outputs go to outputs/model, with outputs/result.json beside it. To compare the model with',
     "the field's other candidates, serve it on an OpenAI-compatible endpoint and add it in Architect.",
@@ -246,9 +335,9 @@ function readme(bundle: TrainBundle, plan: TrainingPlan, perNode: number): strin
 
 /**
  * Writes a launch bundle for a cluster: the experimental FSDP trainer, its settings and FSDP
- * config, the field export's verified demonstrations, the pinned packages, and an sbatch script
- * or a PyTorchJob manifest, with a README holding the command to submit it. Nothing is submitted
- * and no credential is written.
+ * config, the field export's verified demonstrations, the pinned packages, and an sbatch script,
+ * a PyTorchJob manifest or a SkyPilot task, with a README holding the command to submit it.
+ * Nothing is submitted and no credential is written.
  */
 export function writeTrainBundle(input: BundleInput): WrittenBundle {
   const { plan, target, outputDir } = input;
@@ -259,6 +348,7 @@ export function writeTrainBundle(input: BundleInput): WrittenBundle {
     );
   }
   if (plan.fit === null) throw new BundleError(`The plan doesn't fit: ${plan.reason ?? ''}`);
+  const accelerator = target === 'skypilot' ? skyAccelerator(plan.input.gpu) : '';
   if (existsSync(outputDir) && readdirSync(outputDir).length > 0) {
     throw new BundleError(`${outputDir} isn't empty.`);
   }
@@ -319,7 +409,6 @@ export function writeTrainBundle(input: BundleInput): WrittenBundle {
   const recipeHashes = recipeFiles
     .map((file) => ({ name: file.name, sha256: sha256(file.content) }))
     .sort((a, b) => (a.name < b.name ? -1 : 1));
-  const submitFile = target === 'slurm' ? SBATCH_FILE : PYTORCHJOB_FILE;
   const bundle = TrainBundleSchema.parse({
     format: TRAIN_BUNDLE_FORMAT,
     experimental: true,
@@ -341,7 +430,7 @@ export function writeTrainBundle(input: BundleInput): WrittenBundle {
       files: recipeHashes,
       pins: { name: pins.recipe.name, sha256: pins.sha256 },
     },
-    submit: target === 'slurm' ? `sbatch ${SBATCH_FILE}` : `kubectl apply -f ${PYTORCHJOB_FILE}`,
+    submit: SUBMIT[target],
     wording: CLUSTER_TEMPLATE_WORDING,
   });
 
@@ -353,12 +442,17 @@ export function writeTrainBundle(input: BundleInput): WrittenBundle {
   };
   for (const file of recipeFiles) write(file.name, file.content);
   for (const file of exported?.data ?? []) write(`data/${file.name}`, file.bytes);
-  write(
-    submitFile,
-    target === 'slurm'
-      ? sbatchScript(nodes, gpusPerNode, bundle)
-      : pytorchJob(nodes, gpusPerNode, pins.recipe.image, bundle),
-  );
+  switch (target) {
+    case 'slurm':
+      write(SBATCH_FILE, sbatchScript(nodes, gpusPerNode, bundle));
+      break;
+    case 'kubernetes':
+      write(PYTORCHJOB_FILE, pytorchJob(nodes, gpusPerNode, pins.recipe.image, bundle));
+      break;
+    case 'skypilot':
+      write(SKYPILOT_FILE, skyTask(nodes, gpusPerNode, accelerator, pins.recipe.image, bundle));
+      break;
+  }
   write('plan.json', `${JSON.stringify(plan, null, 2)}\n`);
   write(BUNDLE_FILE, `${JSON.stringify(bundle, null, 2)}\n`);
   write('README.txt', readme(bundle, plan, gpusPerNode));

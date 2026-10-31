@@ -13,6 +13,7 @@ import type {
   DraftOrganization,
   DraftTurn,
   Edition,
+  FieldExportRecord,
   FileDiff,
   GraduateSettings,
   GraduateSummary,
@@ -63,6 +64,13 @@ export const CustomEndpointSchema = z.object({
 
 export const EditionSchema = z.enum(['personal', 'lab']) satisfies z.ZodType<Edition>;
 
+export const FieldExportRecordSchema = z.object({
+  jobId: z.string().min(1),
+  name: z.string().min(1),
+  dir: z.string().min(1),
+  at: z.iso.datetime(),
+}) satisfies z.ZodType<FieldExportRecord>;
+
 export const AppSettingsSchema = z.object({
   edition: EditionSchema,
   steps: z.enum(['collapsed', 'expanded']),
@@ -73,14 +81,19 @@ export const AppSettingsSchema = z.object({
   customEndpoints: z.array(CustomEndpointSchema).max(50),
   onboarded: z.boolean(),
   llamaServerPath: z.string().min(1).optional(),
+  fieldExports: z.array(FieldExportRecordSchema).max(200).optional(),
 }) satisfies z.ZodType<AppSettings>;
 
 /**
  * What `settings.update` accepts: any subset of fields, and nothing else. The llama-server path
  * isn't among them: Architect runs that program, so only a file the user picked may become it
- * (`connections.chooseLlamaServer`).
+ * (`connections.chooseLlamaServer`). Nor are the field exports, which the main process records
+ * as it writes them.
  */
-export const AppSettingsPatchSchema = AppSettingsSchema.omit({ llamaServerPath: true })
+export const AppSettingsPatchSchema = AppSettingsSchema.omit({
+  llamaServerPath: true,
+  fieldExports: true,
+})
   .partial()
   .strict() satisfies z.ZodType<AppSettingsPatch>;
 

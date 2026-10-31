@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { StudyState } from '@architect/shared';
-import { Card, CardRow, Skeleton } from '@architect/ui';
+import { Card, CardRow, RowIcon, Skeleton } from '@architect/ui';
 import {
   ArrowRight,
   BookOpen,
@@ -25,7 +25,6 @@ import { navigate } from '../lib/router';
 import { loadRegistry } from '../models/load';
 import { useFieldExports } from './exports';
 import type { FieldSummary } from './model';
-import { Tile } from './parts';
 import {
   fieldTimeline,
   STAGE_WORDS,
@@ -95,7 +94,7 @@ function Lead({ at, icon }: { at: string | null; icon: ReactNode }) {
   return (
     <span className="flex items-center gap-4">
       <span className="w-12 text-ui tabular-nums">{at}</span>
-      <Tile>{icon}</Tile>
+      <RowIcon>{icon}</RowIcon>
     </span>
   );
 }
@@ -117,7 +116,7 @@ export function Timeline({
   const read = useQuery(`fieldTimeline:${field.job.id}`, () => readRecords(field), {
     refreshOnMount: true,
   });
-  const latest = useFieldExports((state) => state.latest[field.job.id]);
+  const latest = useFieldExports().find((item) => item.jobId === field.job.id);
   if (!read.data) {
     return read.status === 'error' ? (
       <ProblemState
@@ -129,7 +128,7 @@ export function Timeline({
       <Skeleton aria-busy="true" className="h-64 rounded-card" />
     );
   }
-  const exported = latest && { dir: latest.dir, at: new Date(latest.at).toISOString() };
+  const exported = latest && { dir: latest.dir, at: latest.at };
   const { entries, next } = fieldTimeline(field, { ...read.data, study, exported });
   const follow = (link: Link) => ('tab' in link.to ? openTab(link.to.tab) : navigate(link.to.path));
   const end = (link: Link) => (

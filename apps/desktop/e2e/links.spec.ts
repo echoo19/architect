@@ -216,6 +216,11 @@ test("a model's panel opens its chat and results and shows every qualification",
   await panel().getByRole('button', { name: 'Open chat' }).click();
   await expect(page).toHaveURL(new RegExp(`#/agents/${ACADEMY_DESK_ID}/chats/${FIELD_CHAT.id}$`));
 
+  // Cluster training is planned for the version's field, from the model it runs on.
+  await goTo(page, `/models/${VERSION_KEY}`);
+  await panel().getByRole('button', { name: 'Plan cluster training' }).click();
+  await expect(page).toHaveURL(/#\/compute\/fields\/[^/]+\/[^/]+$/);
+
   // Closing the panel takes it out of the path too.
   await goTo(page, `/models/${VERSION_KEY}`);
   await panel().getByRole('button', { name: 'Close' }).click();
@@ -322,7 +327,7 @@ test("a field's export leads to Compute, whose bundle offers it as the field's l
     [LAB.academyDeskJob, exported],
   ]);
   await toast.getByRole('button', { name: 'Open Compute' }).click();
-  await expect(page).toHaveURL(/#\/compute$/);
+  await expect(page).toHaveURL(new RegExp(`#/compute/fields/${LAB.academyDeskJob}$`));
 
   // A plan from a config.json on this computer, so the bundle has something to carry.
   const config = join(folders, 'config.json');

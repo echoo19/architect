@@ -237,7 +237,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   },
   train: {
     usage:
-      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes --model owner/name --output <folder> [options]',
+      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output <folder> [options]',
     summary: 'Size a training job for a cluster, or write its launch bundle (experimental).',
     args: 1,
     options: {
@@ -269,7 +269,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --seq-len <n>           tokens per example (default 4096)',
       '  --micro-batch <n>       examples per GPU per step (default 1)',
       '  --lora-rank <n>         the adapter rank (default 16)',
-      '  --target <t>            bundle: slurm or kubernetes',
+      '  --target <t>            bundle: slurm, kubernetes or skypilot',
       '  --export <folder>       bundle: a field export, whose sft/*.jsonl become the data',
       '  --output <folder>       bundle: an empty or new folder to write it to',
       JSON_HELP,

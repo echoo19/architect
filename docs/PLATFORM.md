@@ -46,7 +46,7 @@ Describe a field → Study and define it → Teach → Qualify → Use. Everythi
 | Fields | `/fields`, `/fields/:jobId` | Each field: its skills, organizations (taught on, sealed, real), study brief, candidates, assets | The skill by organization grid of the best candidate |
 | Experiments | `/experiments`, `/experiments/new`, `/experiments/:id` | Design a comparison (arms, seeds, caps), preregister it, run it, read it like a paper | The interval plot of each arm on each group |
 | Models | `/models` | Every agent and version: base model, method, harness, adapter, scores seen / unseen / real, status; compare two | The registry table |
-| Compute | `/compute` | Where training runs: this computer, Hugging Face Jobs, a Slurm or Kubernetes cluster; training plans with sizing and bundles | The plan's memory breakdown |
+| Compute | `/compute`, `/compute/fields/:jobId[/:model]` | Where training runs: this computer, Hugging Face Jobs, a Slurm, Kubernetes or SkyPilot cluster; training plans with sizing and bundles | The plan's memory breakdown |
 | Agents | `/agents/...` (existing chats) | Use a specialist | The chat |
 
 The guided flow screens (Describe, Define, Train, Results, Improvement) keep their routes and their top stepper.

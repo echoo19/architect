@@ -56,7 +56,7 @@ export function Select<T extends string>({
           sideOffset={6}
           className={cn(
             'z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)]',
-            'origin-[var(--radix-select-content-transform-origin)] overflow-hidden rounded-control bg-raised p-1 shadow-float',
+            'origin-[var(--radix-select-content-transform-origin)] overflow-hidden rounded-control surface-float p-1',
             'data-[state=closed]:animate-fade-out data-[state=open]:animate-pop',
           )}
         >

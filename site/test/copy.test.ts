@@ -48,8 +48,9 @@ describe('the site', () => {
     expect(WINDOWS_INSTALLER.endsWith(`/Architect-Setup-${version}.exe`)).toBe(true);
   });
 
-  it('refers to no address but the repository, so the page fetches from nobody else', () => {
-    const allowed = ['https://github.com/echoo19/architect'];
+  it('refers to no address but the repository and the requests it quotes, and fetches from nobody', () => {
+    // The quoted requests are citation links (decision 092): nothing loads from them until clicked.
+    const allowed = ['https://github.com/echoo19/architect', 'https://www.ycombinator.com/rfs#'];
     const addresses = FILES.flatMap(({ path, text }) =>
       [...text.matchAll(/https?:\/\/[^\s'"`)<>]+/g)].map((match) => ({ path, url: match[0] })),
     );

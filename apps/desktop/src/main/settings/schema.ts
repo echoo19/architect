@@ -2,11 +2,13 @@ import {
   AppSettingsSchema,
   CustomEndpointSchema,
   DEFAULT_STUDENT,
+  FieldExportRecordSchema,
   MentorConfigSchema,
   mentorPreset,
   StudentEndpointSchema,
   type AppSettings,
   type CustomEndpoint,
+  type FieldExportRecord,
 } from '@architect/shared';
 import { z } from 'zod';
 
@@ -48,6 +50,32 @@ const StoredEndpointsSchema = z
   )
   .catch(() => []);
 
+/** Recorded exports one by one, likewise; a file from before they were kept has none. */
+const StoredExportsSchema = z
+  .array(z.unknown())
+  .transform((entries) =>
+    entries.flatMap((entry): FieldExportRecord[] => {
+      const parsed = FieldExportRecordSchema.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  )
+  .optional()
+  .catch(undefined);
+
+/** The most exports kept: one per field, the oldest dropped first. */
+export const MAX_FIELD_EXPORTS = 200;
+
+/** The list with this export as its field's latest, newest first. */
+export function withFieldExport(
+  list: readonly FieldExportRecord[],
+  record: FieldExportRecord,
+): FieldExportRecord[] {
+  return [record, ...list.filter((entry) => entry.jobId !== record.jobId)].slice(
+    0,
+    MAX_FIELD_EXPORTS,
+  );
+}
+
 /**
  * Reads a settings file leniently: a field that is missing or no longer valid falls back to its
  * default instead of discarding the rest of the user's choices. Files from before endpoints could
@@ -64,6 +92,7 @@ const StoredSettingsSchema = z.object({
   customEndpoints: StoredEndpointsSchema,
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),
   llamaServerPath: z.string().min(1).optional().catch(undefined),
+  fieldExports: StoredExportsSchema,
 }) satisfies z.ZodType<AppSettings>;
 
 export function settingsFromStored(raw: unknown): AppSettings {

@@ -13,6 +13,8 @@ const PickOptionsSchema = z
     filters: FiltersSchema,
     multiple: z.boolean().optional(),
     directory: z.boolean().optional(),
+    /** Where the dialog opens; nothing is allowed until the person chooses it. */
+    defaultPath: z.string().min(1).optional(),
   })
   .strict();
 
@@ -31,6 +33,7 @@ export function registerFilesHandlers(router: IpcRouter, picked: PickedPaths): v
       pick: async (options) => {
         const dialogOptions: OpenDialogOptions = {
           title: options.title,
+          ...(options.defaultPath === undefined ? {} : { defaultPath: options.defaultPath }),
           filters: options.filters ?? [],
           properties: [
             options.directory ? 'openDirectory' : 'openFile',

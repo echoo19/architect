@@ -17,6 +17,7 @@ import {
   Input,
   Segmented,
   Spinner,
+  RowIcon,
 } from '@architect/ui';
 import { Building2, FolderOpen, FolderPlus, GitBranch, Lock, ShieldCheck } from 'lucide-react';
 import { api, flowApi } from '../api/client';
@@ -28,7 +29,7 @@ import { formatBytes, formatScore, shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { fieldKey, type Candidate, type FieldSummary } from './model';
-import { plural, Quiet, Tile } from './parts';
+import { plural, Quiet } from './parts';
 import { newerVersion, TeachOnDialog } from './TeachOn';
 
 type TaughtOn = FieldView['organizations'][number];
@@ -103,9 +104,9 @@ export function Organizations({ field }: { field: FieldSummary }) {
           <CardRow
             key={org.id ?? 'data'}
             icon={
-              <Tile>
+              <RowIcon>
                 <Building2 strokeWidth={1.8} aria-hidden />
-              </Tile>
+              </RowIcon>
             }
             title={name(org)}
             detail={holds(org)}
@@ -118,9 +119,9 @@ export function Organizations({ field }: { field: FieldSummary }) {
           <CardRow
             key={org.name}
             icon={
-              <Tile>
+              <RowIcon>
                 <Lock strokeWidth={1.8} aria-hidden />
-              </Tile>
+              </RowIcon>
             }
             title={org.name}
             detail={[kindWord(org.synthetic), plural(org.files, 'file')].join(' · ')}
@@ -287,9 +288,9 @@ function QualifyCard({
             <CardRow
               key={candidate.run.id}
               icon={
-                <Tile>
+                <RowIcon>
                   <ShieldCheck strokeWidth={1.8} aria-hidden />
-                </Tile>
+                </RowIcon>
               }
               title={label}
               detail={[

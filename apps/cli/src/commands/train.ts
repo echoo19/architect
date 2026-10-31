@@ -143,7 +143,7 @@ export async function train(
       throw new CliError(
         'invalid_input',
         'usage',
-        'Say where it runs with --target slurm|kubernetes.',
+        'Say where it runs with --target slurm|kubernetes|skypilot.',
       );
     }
     const output = stringOption(values, 'output');

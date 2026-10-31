@@ -35,7 +35,7 @@ export function Tooltip({ content, side = 'top', children }: TooltipProps) {
             <RadixTooltip.Content key="content" forceMount asChild side={side} sideOffset={6}>
               <motion.div
                 {...floating}
-                className="z-50 rounded-mark bg-raised px-2.5 py-1.5 text-small shadow-float"
+                className="z-50 rounded-mark surface-float px-2.5 py-1.5 text-small"
               >
                 {content}
               </motion.div>

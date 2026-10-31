@@ -585,6 +585,22 @@ export const GLIMMER_TRAINING_BASE = {
   architecture: 'muse-glimmer',
 } as const;
 
+/** Every name Glimmer runs under here: its local builds and its hosted copies. */
+const GLIMMER_NAMES: ReadonlySet<string> = new Set([
+  ...GLIMMER_BUILDS.map((build) => build.model),
+  ...STUDENT_PRESETS.filter((preset) => preset.label.startsWith('Muse Glimmer')).map(
+    (preset) => preset.model,
+  ),
+]);
+
+/**
+ * The Hugging Face repository a student model's weights come from, for planning its training on
+ * a cluster: known for Glimmer under any of its names, null for a model Architect can't place.
+ */
+export function trainingRepoFor(model: string): string | null {
+  return GLIMMER_NAMES.has(model) ? GLIMMER_TRAINING_BASE.repo : null;
+}
+
 /** Words in a listed model id that mark it as something other than a chat model. */
 const NOT_CHAT =
   /embed|tts|transcri|whisper|dall-e|image|realtime|audio|moderation|search-preview|sora|veo|imagen|lyria|aqa|robotics|speech|voice|rerank|guard|computer-use|deep-research|-live/i;

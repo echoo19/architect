@@ -117,6 +117,20 @@ describe('SettingsStore', () => {
     expect((await SettingsStore.open(file)).get().customEndpoints).toEqual([good]);
   });
 
+  it('keeps the recorded field exports across a restart, reading past a damaged one', async () => {
+    const good = {
+      jobId: 'job_a',
+      name: 'Academy desk',
+      dir: join(dir, 'exports', 'academy-desk'),
+      at: '2026-11-01T09:00:00.000Z',
+    };
+    await writeFile(file, JSON.stringify({ fieldExports: [good, { jobId: 'job_b' }, 'x'] }));
+    expect((await SettingsStore.open(file)).get().fieldExports).toEqual([good]);
+
+    await writeFile(file, JSON.stringify({ fieldExports: 'not a list' }));
+    expect((await SettingsStore.open(file)).get().fieldExports).toBeUndefined();
+  });
+
   it('reads an install from before the Lab as the personal edition, and keeps a chosen one', async () => {
     await writeFile(file, JSON.stringify({ onboarded: true, steps: 'expanded' }));
     expect((await SettingsStore.open(file)).get().edition).toBe('personal');
@@ -167,5 +181,10 @@ describe('settings patches', () => {
     expect(
       AppSettingsPatchSchema.safeParse({ llamaServerPath: 'C:\\Temp\\anything.exe' }).success,
     ).toBe(false);
+  });
+
+  it('never record a field export: only the main process does, as it writes one', () => {
+    const record = { jobId: 'j', name: 'n', dir: 'C:\\x', at: '2026-11-01T09:00:00.000Z' };
+    expect(AppSettingsPatchSchema.safeParse({ fieldExports: [record] }).success).toBe(false);
   });
 });

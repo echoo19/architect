@@ -242,7 +242,7 @@ test('each entry leads to the place that holds it', async () => {
   await open(0, new RegExp(`#/jobs/${LAB.academyDeskJob}/define$`));
   await open(2, new RegExp(`#/runs/${FIELDS.earlierRun}/report$`));
   await open(6, /#\/experiments\/cmp_targeted$/);
-  await open(8, /#\/compute$/);
+  await open(8, new RegExp(`#/compute/fields/${LAB.academyDeskJob}$`));
   await open(10, /#\/models\/.+/);
 
   await goTo(page, `/fields/${LAB.academyDeskJob}`);

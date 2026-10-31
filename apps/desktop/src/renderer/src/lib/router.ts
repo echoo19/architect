@@ -13,7 +13,11 @@ export type Route =
   | { name: 'experiment'; experimentId: string }
   /** Models, with one version's panel open when `open` names it (`graduateId:version`). */
   | { name: 'models'; open?: string }
-  | { name: 'compute' }
+  /**
+   * Compute, planning for a field when `jobId` names one: its student's model, or `model` when a
+   * version of it runs on another (the name a runtime serves it under).
+   */
+  | { name: 'compute'; jobId?: string; model?: string }
   | { name: 'welcome' }
   | { name: 'chat'; graduateId: string; chatId: string }
   | { name: 'new' }
@@ -37,7 +41,12 @@ export const paths = {
     jobId === undefined ? '/experiments/new' : `/experiments/new/${segment(jobId)}`,
   experiment: (experimentId: string) => `/experiments/${segment(experimentId)}`,
   models: (open?: string) => (open === undefined ? '/models' : `/models/${segment(open)}`),
-  compute: () => '/compute',
+  compute: (field?: { jobId: string; model?: string | undefined }) =>
+    field === undefined
+      ? '/compute'
+      : field.model === undefined
+        ? `/compute/fields/${segment(field.jobId)}`
+        : `/compute/fields/${segment(field.jobId)}/${segment(field.model)}`,
   welcome: () => '/welcome',
   chat: (graduateId: string, chatId: string) =>
     `/agents/${segment(graduateId)}/chats/${segment(chatId)}`,
@@ -84,6 +93,12 @@ export function parsePath(path: string): Route {
   if (first === 'models' && exactly(1)) return { name: 'models' };
   if (first === 'models' && id && exactly(2)) return { name: 'models', open: id };
   if (first === 'compute' && exactly(1)) return { name: 'compute' };
+  if (first === 'compute' && id === 'fields' && third && exactly(3)) {
+    return { name: 'compute', jobId: third };
+  }
+  if (first === 'compute' && id === 'fields' && third && fourth && exactly(4)) {
+    return { name: 'compute', jobId: third, model: fourth };
+  }
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };
   }

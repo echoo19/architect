@@ -61,7 +61,7 @@ describe('Card and CardGrid', () => {
     expect(html).toContain('aria-label="Needs you"');
     expect(html).toMatch(/<h2[^>]*>Needs you<\/h2><button>See all<\/button>/);
     expect(html).toContain('Spark asks');
-    expect(html).toContain('rounded-card bg-card shadow-edge');
+    expect(html).toContain('rounded-card surface-card');
   });
 
   it('spans two columns when wide, and lays cards out in a grid', () => {

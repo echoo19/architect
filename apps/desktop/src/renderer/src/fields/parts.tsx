@@ -8,15 +8,6 @@ export function Quiet({ children, className }: { children: ReactNode; className?
   return <p className={cn('m-0 px-6 pb-6 pt-1 text-ui', className)}>{children}</p>;
 }
 
-/** A row's leading mark: an icon on a quiet tile. */
-export function Tile({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex size-9 items-center justify-center rounded-control bg-selected [&_svg]:size-4">
-      {children}
-    </span>
-  );
-}
-
 /** A score as a table cell: its pass rate, or nothing (read as absent) when it wasn't tested. */
 export function scoreCell(score: Score | null): ReactNode {
   return score ? formatPercent(score) : null;

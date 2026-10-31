@@ -5,6 +5,7 @@ import {
   Input,
   PageTabs,
   Segmented,
+  SidePresence,
   Skeleton,
   type PageTab,
 } from '@architect/ui';
@@ -147,20 +148,22 @@ export function ModelsScreen({ open: asked }: { open?: string | undefined }) {
           </PageTabs>
         </PlacePage>
       </div>
-      {open && (
-        <ModelPanel
-          key={open.key}
-          row={open}
-          rows={rows}
-          onClose={close}
-          onOpen={(row) => setOpenKey(row.key)}
-          onCompare={(other) => {
-            const [before, after] = ordered(open, other);
-            setComparing([before.key, after.key]);
-          }}
-          onMoved={registry.reload}
-        />
-      )}
+      <SidePresence show={open !== undefined}>
+        {open && (
+          <ModelPanel
+            key={open.key}
+            row={open}
+            rows={rows}
+            onClose={close}
+            onOpen={(row) => setOpenKey(row.key)}
+            onCompare={(other) => {
+              const [before, after] = ordered(open, other);
+              setComparing([before.key, after.key]);
+            }}
+            onMoved={registry.reload}
+          />
+        )}
+      </SidePresence>
     </div>
   );
 }

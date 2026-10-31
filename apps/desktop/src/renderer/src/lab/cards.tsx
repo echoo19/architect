@@ -16,6 +16,7 @@ import {
   IconButton,
   Meter,
   NumberTicker,
+  RowIcon,
   Skeleton,
   Spinner,
   Tooltip,
@@ -61,28 +62,14 @@ import {
   type RunRow,
 } from './items';
 
-/** A row's leading mark: an icon on a quiet tile, in the color of who it is about. */
-function Tile({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'flex size-9 items-center justify-center rounded-control bg-selected [&_svg]:size-4',
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-const NEED_ICONS: Record<NeedKind, { icon: ReactNode; tone: string }> = {
-  question: { icon: <MessageCircleQuestion strokeWidth={1.8} aria-hidden />, tone: 'text-mentor' },
-  results: { icon: <CircleCheck strokeWidth={1.8} aria-hidden />, tone: 'text-student' },
-  approval: { icon: <ShieldCheck strokeWidth={1.8} aria-hidden />, tone: 'text-fg' },
-  lessons: { icon: <GraduationCap strokeWidth={1.8} aria-hidden />, tone: 'text-mentor' },
-  promote: { icon: <ArrowBigUpDash strokeWidth={1.8} aria-hidden />, tone: 'text-student' },
-  failed: { icon: <CircleAlert strokeWidth={1.8} aria-hidden />, tone: 'text-danger' },
-  experiment: { icon: <FlaskConical strokeWidth={1.8} aria-hidden />, tone: 'text-fg' },
+const NEED_ICONS: Record<NeedKind, ReactNode> = {
+  question: <MessageCircleQuestion strokeWidth={1.8} aria-hidden />,
+  results: <CircleCheck strokeWidth={1.8} aria-hidden />,
+  approval: <ShieldCheck strokeWidth={1.8} aria-hidden />,
+  lessons: <GraduationCap strokeWidth={1.8} aria-hidden />,
+  promote: <ArrowBigUpDash strokeWidth={1.8} aria-hidden />,
+  failed: <CircleAlert strokeWidth={1.8} aria-hidden />,
+  experiment: <FlaskConical strokeWidth={1.8} aria-hidden />,
 };
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
@@ -94,12 +81,12 @@ function Quiet({ children, className }: { children: ReactNode; className?: strin
 
 function NeedRow({ need }: { need: Need }) {
   const showSettings = useAgentSettingsUi((state) => state.show);
-  const { icon, tone } = NEED_ICONS[need.kind];
+  const icon = NEED_ICONS[need.kind];
   const target = need.target;
   return (
     <li>
       <CardRow
-        icon={<Tile className={tone}>{icon}</Tile>}
+        icon={<RowIcon>{icon}</RowIcon>}
         title={need.title}
         detail={need.detail}
         end={chevron}
@@ -194,7 +181,7 @@ export function NeedsYouCard({
             aria-label={group.label}
             className="hidden has-[li:not([aria-busy])]:block"
           >
-            <h3 className="m-0 px-6 pb-2 pt-4 text-small font-medium">{group.label}</h3>
+            <h3 className="m-0 px-6 pb-2 pt-6 font-sans text-small font-medium">{group.label}</h3>
             <ul className="m-0 flex list-none flex-col p-0">
               {fromJobs
                 .filter((need) => group.kinds.includes(need.kind))
@@ -256,13 +243,13 @@ function RunningRow({ row }: { row: RunRow }) {
         className="flex w-full flex-col gap-3 border-t border-line px-6 py-4 text-left text-ui transition-colors duration-150 hover:bg-hover focus-visible:bg-hover"
       >
         <span className="flex w-full items-center gap-3">
-          <Tile>
+          <RowIcon>
             {paused ? (
               <Pause className="text-mentor" aria-label="Paused" />
             ) : (
               <Spinner tone="mentor" size={16} label="Running" />
             )}
-          </Tile>
+          </RowIcon>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-medium">{row.jobName}</span>
             <span className="truncate text-small">
@@ -313,9 +300,9 @@ function RunningExperiment({ experiment }: { experiment: ExperimentRecord }) {
     <li>
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <Spinner tone="mentor" size={16} label={EXPERIMENT_WORDS[experiment.status]} />
-          </Tile>
+          </RowIcon>
         }
         title={experiment.input.name}
         detail={`${EXPERIMENT_WORDS[experiment.status]}, ${experiment.job.name}`}
@@ -403,9 +390,9 @@ export function ExperimentsCard({
             <li key={experiment.id}>
               <CardRow
                 icon={
-                  <Tile>
+                  <RowIcon>
                     <FlaskConical strokeWidth={1.8} aria-hidden />
-                  </Tile>
+                  </RowIcon>
                 }
                 title={experiment.input.name}
                 detail={experiment.job.name}
@@ -460,9 +447,9 @@ function FinishedRow({ row }: { row: RunRow }) {
     <li>
       <CardRow
         icon={
-          <Tile className="text-student">
+          <RowIcon>
             <CircleCheck strokeWidth={1.8} aria-hidden />
-          </Tile>
+          </RowIcon>
         }
         title={row.jobName}
         detail={card ? (shortDate(card.createdAt) ?? undefined) : undefined}
@@ -533,8 +520,8 @@ function SpendRow({ row }: { row: RunRow }) {
   }
   const { run, job } = detail.data;
   return (
-    <div className="flex flex-col gap-3">
-      <span className="truncate font-medium">{row.jobName}</span>
+    <div className="flex flex-col gap-2">
+      <span className="truncate text-small font-medium">{row.jobName}</span>
       <CapMeter
         tone="mentor"
         label={mentorName(job.mentor)}
@@ -600,9 +587,9 @@ function FieldRow({ jobId }: { jobId: string }) {
     <li>
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <Library strokeWidth={1.8} aria-hidden />
-          </Tile>
+          </RowIcon>
         }
         title={job.data.name}
         detail={orgs.length === 1 ? 'One organization' : `${orgs.length} organizations`}

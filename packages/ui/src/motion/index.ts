@@ -18,6 +18,7 @@ export {
   type StaggerItemProps,
   type StaggerProps,
 } from './reveal';
+export { SidePresence, type SidePresenceProps } from './side-presence';
 export { FLOAT_SCALE, PRESS_SCALE, motionSettings, springs, type MotionSettings } from './springs';
 export {
   STEP_SLIDE,

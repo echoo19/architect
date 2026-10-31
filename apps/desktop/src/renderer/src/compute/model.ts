@@ -1,5 +1,7 @@
 import {
   GPU_TYPES,
+  trainingRepoFor,
+  type Job,
   type ModelConfigRead,
   type TrainingPlanRequest,
   type TrainMethod,
@@ -73,12 +75,44 @@ export function paramsText(count: number): string {
 export function bundleBlocker(
   read: ModelConfigRead | null,
   fits: boolean,
-  folders: { exportDir: string | null; parentDir: string | null },
+  folders: { exportDir: string | null; exportReady: boolean; parentDir: string | null },
 ): string | null {
   if (read === null) return 'Plan a model first.';
   if (read.model.repo === null) return 'A bundle needs a model on Hugging Face, read at a commit.';
   if (!fits) return "The plan doesn't fit.";
   if (folders.exportDir === null) return 'Choose a field export.';
+  if (!folders.exportReady) return 'Choose the field export again.';
   if (folders.parentDir === null) return 'Choose where to write it.';
   return null;
+}
+
+/** The field a plan is for, its student's model, and the Hugging Face repository it comes from. */
+export interface PlanFor {
+  jobId: string;
+  /** Null when the field couldn't be read. */
+  name: string | null;
+  model: string;
+  /** Null when Architect doesn't know where the model's weights come from. */
+  repo: string | null;
+}
+
+/**
+ * What Compute plans for when it is opened from a field: the model named (a version's), or the
+ * field's student, on this computer first and then its online copy, whichever Architect can place
+ * on Hugging Face. Null when there is no model to plan for.
+ */
+export function planFor(
+  jobId: string,
+  job: Pick<Job, 'name' | 'student'> | null,
+  model?: string,
+): PlanFor | null {
+  const name = job?.name ?? null;
+  if (model !== undefined) return { jobId, name, model, repo: trainingRepoFor(model) };
+  if (job === null) return null;
+  const models = [job.student.local.model, job.student.hosted?.model].filter(
+    (item): item is string => item !== undefined,
+  );
+  const placed = models.find((item) => trainingRepoFor(item) !== null);
+  const chosen = placed ?? job.student.local.model;
+  return { jobId, name, model: chosen, repo: trainingRepoFor(chosen) };
 }
