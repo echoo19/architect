@@ -104,7 +104,7 @@ export function Recordings({ job, plan, mentor }: { job: Job; plan: TaskPlan; me
   return (
     <section
       aria-label="Recordings"
-      className="mt-4 flex flex-col gap-3 rounded-card bg-card px-6 py-5 shadow-edge"
+      className="mt-4 flex flex-col gap-3 rounded-card surface-card px-6 py-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="m-0 flex max-w-[560px] items-start gap-2.5 text-pretty">

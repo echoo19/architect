@@ -177,7 +177,7 @@ function RuleCard({
   return (
     <article
       aria-label={label}
-      className="flex flex-col overflow-hidden rounded-card bg-card px-6 pb-2 pt-5 shadow-edge"
+      className="flex flex-col overflow-hidden rounded-card surface-card px-6 pb-2 pt-5"
     >
       <h3 className="m-0 flex items-center gap-2.5 pb-5 font-display text-h2 font-semibold">
         <ScrollText size={18} strokeWidth={1.7} className="shrink-0" aria-hidden />

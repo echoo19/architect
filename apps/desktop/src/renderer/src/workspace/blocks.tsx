@@ -5,6 +5,7 @@ import {
   cn,
   Collapse,
   Reveal,
+  RowIcon,
   TableBody,
   TableCard,
   TableCell,
@@ -231,9 +232,9 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
             onClick={() => setExpanded(!expanded)}
             className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-control text-left"
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
-              <FileIcon size={17} strokeWidth={1.6} aria-hidden />
-            </span>
+            <RowIcon>
+              <FileIcon size={16} strokeWidth={1.8} aria-hidden />
+            </RowIcon>
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="shrink-0">{changeVerb(block)}</span>
@@ -331,9 +332,9 @@ export function RefusalCard({ block, agent }: { block: RefusalBlockData; agent: 
         role="note"
         className="flex items-start gap-3.5 rounded-card bg-raised py-3.5 pl-4 pr-5 leading-[1.4] shadow-edge-strong"
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-hover text-fg">
-          <Ban size={17} strokeWidth={1.6} aria-hidden />
-        </span>
+        <RowIcon>
+          <Ban size={16} strokeWidth={1.8} aria-hidden />
+        </RowIcon>
         <span className="flex min-w-0 flex-col gap-1 pt-px">
           <span>
             {agent.name} doesn&apos;t handle {inSentence(label)}

@@ -106,7 +106,7 @@ export function LocalTest({ report }: { report: ReportCard }) {
   return (
     <section
       aria-label={`Test on ${device}`}
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card p-6 shadow-edge"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card surface-card p-6"
     >
       <div className="flex min-w-0 flex-[1_1_360px] items-start gap-3.5">
         <span className="mt-0.5 flex shrink-0">{mark}</span>

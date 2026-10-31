@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import {
   type ClusterTarget,
   type ModelConfigRead,
@@ -15,6 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  RowIcon,
 } from '@architect/ui';
 import {
   ChevronDown,
@@ -31,14 +32,6 @@ import { newestFirst, useFieldExports, type FieldExport } from '../fields/export
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { bundleBlocker, planRequest, type PlanSettings } from './model';
-
-function Tile({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-      {children}
-    </span>
-  );
-}
 
 const icon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
@@ -142,9 +135,9 @@ export function BundleCard({
       </div>
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <FolderInput {...icon} />
-          </Tile>
+          </RowIcon>
         }
         title={exported ? `Field export of ${exported.name}` : 'Field export'}
         detail={
@@ -166,9 +159,9 @@ export function BundleCard({
       />
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <FolderOutput {...icon} />
-          </Tile>
+          </RowIcon>
         }
         title="Write in"
         detail={

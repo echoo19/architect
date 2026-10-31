@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ArmId } from '@architect/shared';
+import { RowIcon } from '@architect/ui';
 import {
   BookCheck,
   Cpu,
@@ -27,11 +28,7 @@ export const ARM_ICONS: Record<ArmId, ReactNode> = {
   'weights-targeted': <Layers {...icon} />,
 };
 
-/** An arm's mark in a 36px tile, at the left of a card row. */
+/** An arm's mark at the left of a card row. */
 export function ArmTile({ arm }: { arm: ArmId }) {
-  return (
-    <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-      {ARM_ICONS[arm]}
-    </span>
-  );
+  return <RowIcon>{ARM_ICONS[arm]}</RowIcon>;
 }

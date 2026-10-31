@@ -48,7 +48,7 @@ export function PlacePage({ title, back, action, status, aside, children }: Plac
       </div>
       {aside && (
         <div className="flex h-full shrink-0 flex-col">
-          <div className="app-drag h-12 shrink-0 border-l border-line" />
+          <div className="app-drag h-12 shrink-0" />
           <div className="flex min-h-0 flex-1">{aside}</div>
         </div>
       )}

@@ -34,7 +34,7 @@ export function CommandPalette({
             <RadixDialog.Content key="content" forceMount asChild aria-describedby={undefined}>
               <motion.div
                 {...floating}
-                className="fixed left-1/2 top-[18vh] z-50 w-[calc(100%-48px)] max-w-[640px] -translate-x-1/2 overflow-hidden rounded-card bg-raised shadow-float outline-none"
+                className="fixed left-1/2 top-[18vh] z-50 w-[calc(100%-48px)] max-w-[640px] -translate-x-1/2 overflow-hidden rounded-card surface-float outline-none"
               >
                 <RadixDialog.Title className="sr-only">Command palette</RadixDialog.Title>
                 <Command loop label="Command palette">

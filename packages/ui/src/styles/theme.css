@@ -149,6 +149,33 @@
   }
 }
 
+/*
+ * The two materials (docs/DESIGN.md, Material). A card rests on the ground, lit faintly from
+ * above with a soft rim; what floats is slightly see-through with a light blur and the one shadow.
+ * Where a browser can't blur, the float is the solid raised fill.
+ */
+@utility surface-card {
+  background: var(--ui-sheen), var(--ui-card);
+  box-shadow: var(--ui-rim-top), var(--ui-rim);
+}
+
+@utility surface-float {
+  background-color: var(--ui-raised);
+  box-shadow: var(--ui-rim-top), var(--ui-rim), var(--ui-shadow-float);
+  @supports (backdrop-filter: blur(1px)) {
+    background-color: var(--ui-float);
+    backdrop-filter: var(--ui-float-blur);
+  }
+}
+
+/* A surface whose rim brightens under the pointer, and nothing else about it changes. */
+@utility rim-hover {
+  transition: box-shadow 150ms ease-out;
+  &:hover {
+    box-shadow: var(--ui-rim-top), var(--ui-rim-hover);
+  }
+}
+
 /* Regions that move the window when dragged (custom title bar). */
 @utility app-drag {
   -webkit-app-region: drag;

@@ -134,7 +134,7 @@ export function Combobox({
             >
               <motion.div
                 {...floating}
-                className="z-50 w-[min(440px,calc(100vw-48px))] overflow-hidden rounded-card bg-raised shadow-float outline-none"
+                className="z-50 w-[min(440px,calc(100vw-48px))] overflow-hidden rounded-card surface-float outline-none"
               >
                 <Command loop label={props['aria-label']}>
                   <div className="flex h-12 items-center gap-2.5 border-b border-line px-4">
