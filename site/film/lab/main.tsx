@@ -70,7 +70,12 @@ async function fonts() {
 let measured: Measured = new Map();
 window.__duration = RUNTIME;
 window.__ready = false;
-window.__seek = (time: number) => draw(filmTime(Math.min(RUNTIME, Math.max(0, time))), measured);
+// The renderer waits for the returned promise: one painted frame after the new state, so a large
+// scroll is never captured from the frame before it.
+window.__seek = (time: number) => {
+  draw(filmTime(Math.min(RUNTIME, Math.max(0, time))), measured);
+  return new Promise<void>((done) => requestAnimationFrame(() => done()));
+};
 
 void fonts().then(() => {
   draw(0, measured, true);
