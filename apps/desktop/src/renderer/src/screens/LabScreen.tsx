@@ -1,6 +1,7 @@
 import type { GraduateSummary, JobSummary } from '@architect/shared';
 import { Button, EmptyState, Skeleton, Stagger } from '@architect/ui';
 import { LayoutGrid } from 'lucide-react';
+import { useExperiments } from '../api/experiments';
 import { useGraduates, useJobs, useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
 import { newField } from '../fields/new-field';
@@ -8,13 +9,14 @@ import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import {
   AgentsCard,
+  ExperimentsCard,
   FieldsCard,
   FinishedCard,
   NeedsYouCard,
   RunningCard,
   SpendCard,
 } from '../lab/cards';
-import { finishedRuns, runningRuns } from '../lab/items';
+import { finishedRuns, runningExperiments, runningRuns } from '../lab/items';
 import { mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
@@ -67,8 +69,8 @@ export function LabScreen() {
 
 /**
  * Two columns, a wide one and a narrower one, each a stack of cards at its own height: what needs
- * the person, what finished and the fields at the left; what runs, what it cost and the agents at
- * the right. A short card never stretches to match the one beside it.
+ * the person, what finished and the fields at the left; what runs, the experiments, what it cost
+ * and the agents at the right. A short card never stretches to match the one beside it.
  */
 const COLUMN = 'flex min-w-0 flex-col gap-4';
 
@@ -81,15 +83,23 @@ function LabBoard({
 }) {
   const running = runningRuns(jobs);
   const finished = finishedRuns(jobs);
+  // The Lab still shows the rest when experiments can't be read; their card says why.
+  const experiments = useExperiments();
+  const records = experiments.data ?? [];
   return (
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Stagger className={COLUMN}>
-        <NeedsYouCard jobs={jobs} graduates={graduates} />
+        <NeedsYouCard jobs={jobs} graduates={graduates} experiments={records} />
         <FinishedCard rows={finished} />
         <FieldsCard jobs={jobs} />
       </Stagger>
       <Stagger className={COLUMN}>
-        <RunningCard rows={running} />
+        <RunningCard rows={running} experiments={runningExperiments(records)} />
+        <ExperimentsCard
+          experiments={experiments.data}
+          error={experiments.status === 'error' ? experiments.error : null}
+          onRetry={experiments.reload}
+        />
         <SpendCard rows={[...running, ...finished].slice(0, 3)} />
         <AgentsCard graduates={graduates} />
       </Stagger>

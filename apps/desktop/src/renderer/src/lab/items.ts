@@ -1,5 +1,6 @@
 import type {
   Correction,
+  ExperimentRecord,
   GraduateSummary,
   Improvement,
   JobSummary,
@@ -20,7 +21,8 @@ import { paths } from '../lib/router';
 type LatestRun = NonNullable<JobSummary['latestRun']>;
 
 /** What waits for the person, by kind. */
-export type NeedKind = 'question' | 'results' | 'approval' | 'lessons' | 'promote' | 'failed';
+export type NeedKind =
+  'question' | 'results' | 'approval' | 'lessons' | 'promote' | 'failed' | 'experiment';
 
 export interface Need {
   key: string;
@@ -50,6 +52,41 @@ export function jobNeeds(jobs: readonly JobSummary[]): Need[] {
     if (run.status === 'failed') return at('failed', 'Stopped on an error', paths.train(run.id));
     return [];
   });
+}
+
+/**
+ * Experiments paused for the person: one that can't pay for an arm at what an attempt really
+ * cost (decision 081), or one waiting for Spark's brief to be confirmed or a cut plan accepted.
+ */
+export function experimentNeeds(experiments: readonly ExperimentRecord[]): Need[] {
+  return experiments.flatMap((experiment): Need[] => {
+    const detail =
+      experiment.status === 'needs_funding'
+        ? 'Needs funding'
+        : experiment.status === 'waiting'
+          ? 'Waits for you'
+          : null;
+    return detail === null
+      ? []
+      : [
+          {
+            key: `experiment:${experiment.id}`,
+            kind: 'experiment',
+            title: experiment.input.name,
+            detail,
+            target: { path: paths.experiment(experiment.id) },
+          },
+        ];
+  });
+}
+
+/** Experiments under way: calibrating, or running their arms. */
+export function runningExperiments(
+  experiments: readonly ExperimentRecord[],
+): readonly ExperimentRecord[] {
+  return experiments.filter(
+    (experiment) => experiment.status === 'running' || experiment.status === 'calibrating',
+  );
 }
 
 /** Chats where an agent waits for the person to approve a change. */
