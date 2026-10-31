@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, EmptyState, Input, Segmented, Skeleton } from '@architect/ui';
 import { Boxes, Search } from 'lucide-react';
 import { ProblemState } from '../components/ProblemState';
@@ -26,14 +26,24 @@ const FILTERS: readonly { value: RegistryFilter; label: string }[] = [
 
 /**
  * Models: every agent and every version of it on this computer, in one registry. A row opens its
- * panel at the right; two versions open side by side to compare.
+ * panel at the right; two versions open side by side to compare. Another place opens a version's
+ * panel by naming it in the path (`open`).
  */
-export function ModelsScreen() {
+export function ModelsScreen({ open: asked }: { open?: string | undefined }) {
   const registry = useRegistry();
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(asked ?? null);
   const [comparing, setComparing] = useState<[string, string] | null>(null);
   const rows = registry.data;
-  const close = useCallback(() => setOpenKey(null), []);
+  useEffect(() => {
+    if (asked === undefined) return;
+    setOpenKey(asked);
+    setComparing(null);
+  }, [asked]);
+  // Closed, the panel leaves the path too, so going back doesn't open it again.
+  const close = useCallback(() => {
+    setOpenKey(null);
+    if (asked !== undefined) navigate(paths.models(), { replace: true });
+  }, [asked]);
 
   if (!rows) {
     return (

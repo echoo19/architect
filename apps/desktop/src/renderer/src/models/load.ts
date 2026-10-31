@@ -34,3 +34,8 @@ export async function loadRegistry(): Promise<ModelRow[]> {
 
 /** The registry, read again each time the place opens, since runs and imports add to it. */
 export const useRegistry = () => useQuery(REGISTRY_KEY, loadRegistry, { refreshOnMount: true });
+
+/** The registry row of the version a run made, once that version is on this computer. */
+export function versionOfRun(rows: readonly ModelRow[], runId: string): ModelRow | undefined {
+  return rows.find((row) => row.version.runId === runId);
+}

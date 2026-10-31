@@ -74,7 +74,7 @@ function Screen({ route }: { route: Route }) {
     case 'models':
       return (
         <WorkspaceShell route={route}>
-          <ModelsScreen />
+          <ModelsScreen open={route.open} />
         </WorkspaceShell>
       );
     case 'compute':
