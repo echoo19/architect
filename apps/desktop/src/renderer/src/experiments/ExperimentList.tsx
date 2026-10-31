@@ -4,6 +4,7 @@ import { FlaskConical, Plus } from 'lucide-react';
 import { useExperiment, useExperiments } from '../api/experiments';
 import { ProblemState } from '../components/ProblemState';
 import { formatCost, shortDate } from '../flow/format';
+import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 import { ARM_NAMES, STATUS_WORDS } from './model';
@@ -12,7 +13,8 @@ import { ARM_NAMES, STATUS_WORDS } from './model';
 const NOT_STARTED = new Set<ExperimentRecord['status']>(['draft', 'calibrating', 'preregistered']);
 
 /**
- * What one experiment spent of a kind, against its total cap. Before it starts there is no spend
+ * What one experiment spent of a kind, against its total cap, with the model that spent it under
+ * it, since the list spans fields taught by different models. Before it starts there is no spend
  * to show, only the cap: "Up to $6.00".
  */
 function SpendCell({
@@ -25,10 +27,18 @@ function SpendCell({
   const detail = useExperiment(record.id);
   const cap = formatCost(record.input.caps[kind]);
   const spent = NOT_STARTED.has(record.status) ? undefined : detail.data?.report?.totals[kind];
-  if (spent === undefined || spent === null) return <span>Up to {cap}</span>;
+  const names = detail.data?.names;
+  const model = names && shortModelName(kind === 'sparkUsd' ? names.mentor : names.student);
   return (
-    <span className={spent > record.input.caps[kind] ? 'text-danger' : undefined}>
-      <span className="font-medium">{formatCost(spent)}</span> of {cap}
+    <span className="flex flex-col items-end whitespace-nowrap leading-5">
+      {spent === undefined || spent === null ? (
+        <span>Up to {cap}</span>
+      ) : (
+        <span className={spent > record.input.caps[kind] ? 'text-danger' : undefined}>
+          <span className="font-medium">{formatCost(spent)}</span> of {cap}
+        </span>
+      )}
+      {model && <span className="text-small">{model}</span>}
     </span>
   );
 }
@@ -96,14 +106,16 @@ export function ExperimentsScreen() {
               },
               {
                 key: 'spark',
-                header: 'Spark',
+                header: 'Teacher',
+                hint: "What the field's teacher spent of its cap",
                 align: 'end',
                 width: '150px',
                 cell: (record) => <SpendCell record={record} kind="sparkUsd" />,
               },
               {
                 key: 'student',
-                header: 'Glimmer',
+                header: 'Student',
+                hint: 'What the hosted copy of the student spent of its cap',
                 align: 'end',
                 width: '150px',
                 cell: (record) => <SpendCell record={record} kind="studentUsd" />,
