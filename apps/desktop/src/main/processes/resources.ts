@@ -20,6 +20,8 @@ export interface ProcessResources {
   sampleJobFile: string;
   /** The tutor's job, with its academies beside it. */
   academyJobFile: string;
+  /** Sweep desk's job, with its research groups beside it. */
+  sweepDeskJobFile: string;
   /** The ready-made agent's package, which a build that doesn't ship it leaves out. */
   sampleAgentFile: string;
   /** The data the ready-made agent works on, which comes with its package. */
@@ -41,6 +43,9 @@ export function processResources(location: AppLocation): ProcessResources {
     academyJobFile: location.packaged
       ? join(location.resourcesPath, 'academy-job', 'job.json')
       : join(location.appPath, '..', '..', 'examples', 'academy', 'job', 'job.json'),
+    sweepDeskJobFile: location.packaged
+      ? join(location.resourcesPath, 'sweep-desk-job', 'job.json')
+      : join(location.appPath, '..', '..', 'examples', 'sweep-desk', 'job', 'job.json'),
     // The returns desk's package, and its own data, which the package's agent works on.
     sampleAgentFile: location.packaged
       ? join(location.resourcesPath, 'sample-agent', 'returns-desk.architect.zip')

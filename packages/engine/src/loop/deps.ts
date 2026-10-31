@@ -422,6 +422,8 @@ export interface EngineHostDeps extends LoopDeps {
   sampleJobFile?: string;
   /** The tutor's job, with its academies at `orgs/<id>/data/` beside it. */
   academyJobFile?: string;
+  /** Sweep desk's job, with its research groups at `orgs/<id>/data/` beside it. */
+  sweepDeskJobFile?: string;
   /** Absent where the app ships no ready-made agent, which is then never offered. */
   sampleAgent?: SampleAgentFiles;
 }

@@ -137,6 +137,7 @@ function NothingYet() {
             Describe a field
           </Button>
           <SampleJobButton size="md" sample="academy" />
+          <SampleJobButton size="md" sample="sweep-desk" />
           <SampleJobButton size="md" />
           <ReadyMadeAgentButton size="md" />
         </>

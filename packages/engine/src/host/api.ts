@@ -381,10 +381,12 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       get: (jobId) => jobs.get(jobId),
       save: (job) => jobs.save(job),
       createSample: async (sample = 'home-services') => {
-        const file = found(
-          sample === 'academy' ? deps.academyJobFile : deps.sampleJobFile,
-          "The sample job isn't available in this build.",
-        );
+        const files = {
+          'home-services': deps.sampleJobFile,
+          academy: deps.academyJobFile,
+          'sweep-desk': deps.sweepDeskJobFile,
+        };
+        const file = found(files[sample], "The sample job isn't available in this build.");
         const { id } = JobSchema.parse(await readJsonFile(file));
         return store.jobs.get(id) ? jobs.get(id) : jobs.importFile(file);
       },

@@ -55,6 +55,14 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - orgs/**
+  # Sweep desk's job: its tasks, checker and the four research groups' runs (one never seen).
+  - from: ../../examples/sweep-desk/job
+    to: sweep-desk-job
+    filter:
+      - job.json
+      - tasks.jsonl
+      - checker.js
+      - orgs/**
   # The ready-made agent: its package, and the records of the shop it was taught on. A build
   # without the package leaves it out (electron-builder only warns), and the app then doesn't
   # offer the agent.

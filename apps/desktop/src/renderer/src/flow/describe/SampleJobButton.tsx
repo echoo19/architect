@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { SampleJob } from '@architect/shared';
 import { Button, Tooltip, type ButtonProps } from '@architect/ui';
-import { FlaskConical, GraduationCap } from 'lucide-react';
+import { FlaskConical, GraduationCap, Microscope } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
@@ -19,11 +19,16 @@ const OFFERS = {
     says: 'Tutor, a tutor for test-prep academies: taught at three, tested at one it never saw',
     Icon: GraduationCap,
   },
+  'sweep-desk': {
+    label: 'Try a science lab',
+    says: "Sweep desk reads a research group's training runs: taught at three groups, tested at one it never saw",
+    Icon: Microscope,
+  },
 } as const;
 
 /**
  * The offer to start from a sample job Architect trains an agent for, to watch it work: the small
- * service desk, or Tutor, the tutor. It sits beside the offer of a ready-made agent, so they read
+ * service desk, Tutor, the tutor, or Sweep desk, a science lab's reader of training runs. It sits beside the offer of a ready-made agent, so they read
  * as one choice: watch one being made, or open one that is made.
  */
 export function SampleJobButton({

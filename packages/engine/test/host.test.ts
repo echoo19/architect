@@ -156,6 +156,19 @@ describe('the engine host', () => {
     expect((await client.jobs.createSample()).name).toBe('Service desk');
   });
 
+  it("makes Sweep desk's sample job with its train groups, and seals the one it never sees", async () => {
+    world.deps.sweepDeskJobFile = fileURLToPath(
+      new URL('../../../examples/sweep-desk/job/job.json', import.meta.url),
+    );
+    const { client } = await connect();
+    const job = await client.jobs.createSample('sweep-desk');
+    expect(job.name).toBe('Sweep desk');
+    expect(job.organizations?.map((org) => org.id)).toEqual(['halden', 'quill', 'marlow']);
+    const jobDir = new DataPaths(world.dataDir).jobDir(job.id);
+    expect(await readdir(join(jobDir, 'orgs'))).toEqual(['halden', 'marlow', 'quill']);
+    expect(await readFile(join(jobDir, 'job.json'), 'utf8')).not.toMatch(/fennick/i);
+  });
+
   it('says on the report card that the final test of a drafted job was generated, and what drafting cost', async () => {
     const { client } = await connect();
     const job = await client.jobs.createSample();
