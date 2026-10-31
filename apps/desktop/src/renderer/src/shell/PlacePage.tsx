@@ -6,7 +6,7 @@ export interface PlacePageProps {
   title: string;
   /** At the right of the title: the page's one primary action, if it has one. */
   action?: ReactNode;
-  /** Before the title, the way up to the place a page belongs to, named by `label`. */
+  /** Before the title, the way back to the place a page belongs to, by the place's name. */
   back?: { label: string; onClick: () => void };
   /** Beside the title, such as the page's status in a word. */
   status?: ReactNode;
@@ -31,8 +31,8 @@ export function PlacePage({ title, back, action, status, aside, children }: Plac
             <div className="flex min-h-12 items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 {back && (
-                  <Tooltip content={back.label} side="bottom">
-                    <IconButton label={back.label} size="md" onClick={back.onClick}>
+                  <Tooltip content={`Back to ${back.label}`} side="bottom">
+                    <IconButton label={`Back to ${back.label}`} size="md" onClick={back.onClick}>
                       <ChevronLeft size={20} strokeWidth={1.8} aria-hidden />
                     </IconButton>
                   </Tooltip>

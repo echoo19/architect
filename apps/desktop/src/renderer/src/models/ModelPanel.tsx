@@ -417,7 +417,9 @@ function trainedResult(item: Qualification): Result {
   return {
     key: `trained:${item.id}`,
     label: item.model,
-    detail: shortDate(item.endedAt ?? item.startedAt),
+    detail: ['Trained elsewhere', shortDate(item.endedAt ?? item.startedAt)]
+      .filter(Boolean)
+      .join(', '),
     value:
       item.status === 'finished' && item.card
         ? scoreText(item.card.test.score)
