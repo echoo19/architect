@@ -93,7 +93,7 @@ export function CardRow({
 }: CardRowProps) {
   const body = (
     <>
-      {icon && <span className="flex w-6 shrink-0 items-center justify-center">{icon}</span>}
+      {icon && <span className="flex min-w-6 shrink-0 items-center justify-center">{icon}</span>}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate font-medium">{title}</span>
         {detail && <span className="truncate text-small">{detail}</span>}
