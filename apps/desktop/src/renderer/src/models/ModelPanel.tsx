@@ -15,10 +15,20 @@ import {
   Tooltip,
   VersionTag,
 } from '@architect/ui';
-import { ArrowUpRight, Columns2, FileText, GitBranch, Package, Undo2, X } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Columns2,
+  FileText,
+  FolderTree,
+  GitBranch,
+  Package,
+  Undo2,
+  X,
+} from 'lucide-react';
 import { graduatesApi } from '../api/graduates';
 import { useQuery } from '../api/query';
 import { FilePatch } from '../components/FilePatch';
+import { HarnessFiles } from '../components/HarnessFiles';
 import { ProblemState } from '../components/ProblemState';
 import { shortDate } from '../flow/format';
 import { changeSummary } from '../flow/train/diff';
@@ -42,11 +52,12 @@ import {
   type ModelRow,
 } from './registry';
 
-type PanelTab = 'report' | 'lineage';
+type PanelTab = 'report' | 'lineage' | 'files';
 
 const TABS = [
   { value: 'report', label: 'Report', icon: <FileText aria-hidden /> },
   { value: 'lineage', label: 'Lineage', icon: <GitBranch aria-hidden /> },
+  { value: 'files', label: 'Files', icon: <FolderTree aria-hidden /> },
 ] as const;
 
 /** A model's panel beside the registry: its report, where it came from, and what can be done. */
@@ -97,8 +108,10 @@ export function ModelPanel({
         {(tab) =>
           tab === 'report' ? (
             <ReportTab row={row} />
-          ) : (
+          ) : tab === 'lineage' ? (
             <LineageTab row={row} rows={rows} onOpen={onOpen} />
+          ) : (
+            <FilesTab row={row} rows={rows} />
           )
         }
       </Inspector>
@@ -324,11 +337,8 @@ function LineageTab({
   rows: readonly ModelRow[];
   onOpen: (row: ModelRow) => void;
 }) {
-  const { agent, version, report } = row;
-  const parent =
-    version.parent === undefined
-      ? undefined
-      : rows.find((other) => other.key === rowKey(agent.id, version.parent ?? 0));
+  const { version, report } = row;
+  const parent = parentOf(row, rows);
   const changes = report?.topInterventions ?? [];
   return (
     <div className="flex flex-col gap-7">
@@ -384,13 +394,61 @@ function LineageTab({
   );
 }
 
-/** What changed in the harness from the version it was made from. */
-function ChangedFrom({ row, parent }: { row: ModelRow; parent: ModelRow }) {
+const parentOf = (row: ModelRow, rows: readonly ModelRow[]): ModelRow | undefined =>
+  row.version.parent === undefined
+    ? undefined
+    : rows.find((other) => other.key === rowKey(row.agent.id, row.version.parent ?? 0));
+
+/** The version's harness as its folder holds it, and what changed from its parent. */
+function FilesTab({ row, rows }: { row: ModelRow; rows: readonly ModelRow[] }) {
+  const parent = parentOf(row, rows);
+  return (
+    <HarnessFiles
+      queryKey={`harness-files:${row.key}`}
+      load={() => graduatesApi.harnessFiles(row.agent.id, row.version.version)}
+      {...(parent ? { changes: <ParentChanges row={row} parent={parent} /> } : {})}
+    />
+  );
+}
+
+function ParentChanges({ row, parent }: { row: ModelRow; parent: ModelRow }) {
+  const diff = useHarnessDiff(row, parent);
+  if (diff.status === 'loading') return <Skeleton className="h-10 w-full" />;
+  if (diff.status === 'error') {
+    return (
+      <ProblemState
+        layout="inline"
+        error={diff.error}
+        title="Couldn't compare the harnesses"
+        onRetry={diff.reload}
+      />
+    );
+  }
+  if (diff.data.length === 0) {
+    return (
+      <p className="m-0 text-ui">Nothing in its harness changed from v{parent.version.version}</p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {diff.data.map((file) => (
+        <FilePatch key={file.path} file={file} />
+      ))}
+    </div>
+  );
+}
+
+function useHarnessDiff(row: ModelRow, parent: ModelRow) {
   const from = { graduateId: parent.agent.id, version: parent.version.version };
   const to = { graduateId: row.agent.id, version: row.version.version };
-  const diff = useQuery(`harness-diff:${parent.key}:${row.key}`, () =>
+  return useQuery(`harness-diff:${parent.key}:${row.key}`, () =>
     graduatesApi.harnessDiff(from, to),
   );
+}
+
+/** What changed in the harness from the version it was made from. */
+function ChangedFrom({ row, parent }: { row: ModelRow; parent: ModelRow }) {
+  const diff = useHarnessDiff(row, parent);
   return (
     <section aria-label="What changed" className="flex flex-col gap-3">
       <Heading>What changed</Heading>
