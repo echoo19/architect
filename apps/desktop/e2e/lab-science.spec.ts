@@ -95,7 +95,8 @@ test('the Lab shows the science lab beside the other fields', async () => {
 test("Sweep desk's field: its skills by research group, its timeline and its groups' files", async () => {
   await openAt(`/fields/${SWEEP.job}`);
   await expect(page.getByRole('heading', { name: 'Sweep desk', level: 1 })).toBeVisible();
-  await expect(page.getByText('3 taught on · 1 never seen', { exact: true })).toBeVisible();
+  // The title stands alone: what the field holds is on its tabs, not in a caption beside it.
+  await expect(page.getByText('3 taught on · 1 never seen', { exact: true })).toHaveCount(0);
   const grid = page.getByRole('table', { name: 'Final test by organization' });
   await expect(grid.getByRole('columnheader', { name: 'Fennick Research' })).toBeVisible();
   await expect(grid.getByLabel('Did it help at Fennick Research, 5 of 8 passed')).toBeVisible();

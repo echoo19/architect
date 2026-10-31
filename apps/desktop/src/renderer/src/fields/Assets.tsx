@@ -4,7 +4,17 @@ import {
   type Counterexample,
   type FieldExportManifest,
 } from '@architect/shared';
-import { Button, Card, CardGrid, CardRow, Skeleton, toast, RowIcon } from '@architect/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardGrid,
+  CardRow,
+  InfoTip,
+  Skeleton,
+  toast,
+  RowIcon,
+} from '@architect/ui';
 import { Bug, Check, FolderOutput, Gauge, Lock, MessagesSquare } from 'lucide-react';
 import { api, flowApi } from '../api/client';
 import { mentoringApi } from '../api/mentoring';
@@ -15,7 +25,7 @@ import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { useSessionExports } from './exports';
-import { count, plural, Quiet } from './parts';
+import { count, EmptyRow, plural } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
 const WORDING =
@@ -64,7 +74,7 @@ function Counterexamples({ counterexamples }: { counterexamples: readonly Counte
       flush
     >
       {counterexamples.length === 0 ? (
-        <Quiet>None yet</Quiet>
+        <EmptyRow title="None yet" />
       ) : (
         counterexamples.map((counterexample) => (
           <CardRow
@@ -135,8 +145,12 @@ function AssetsView({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-start justify-between gap-8">
-        <p className="m-0 max-w-[620px] text-body text-pretty">{WORDING}</p>
+      <div className="flex items-center justify-between gap-8">
+        {/* What an export is and isn't, said on demand beside the mark that it is experimental. */}
+        <span className="flex items-center gap-1">
+          <Badge>Experimental</Badge>
+          <InfoTip about="these assets">{WORDING}</InfoTip>
+        </span>
         <Button variant="primary" size="md" loading={exporting} onClick={() => void exportTo()}>
           {!exporting && <FolderOutput size={15} strokeWidth={1.7} aria-hidden />}
           Export
@@ -177,7 +191,7 @@ function AssetsView({
         </Card>
         <Card title="Left out" flush>
           {manifest.left_out.length === 0 ? (
-            <Quiet>Nothing</Quiet>
+            <EmptyRow title="Nothing" />
           ) : (
             <ul className="m-0 flex list-none flex-col p-0">
               {manifest.left_out.map((entry) => (

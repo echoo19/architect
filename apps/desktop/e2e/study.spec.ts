@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Job, StudyBrief, StudyState, TaskPlan } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, startHeldBy, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
 import { FLOW_ENGINE, taskPlan } from './fixtures-flow';
 import { job } from './story';
@@ -184,8 +184,7 @@ test('shows what the teacher understood, and trains only once the person confirm
   const section = page.getByRole('region', { name: 'What Spark understood' });
   await expect(section).toBeVisible();
   const start = page.getByRole('button', { name: 'Start training' });
-  await expect(start).toBeDisabled();
-  await expect(page.getByText('Confirm the brief first', { exact: true })).toBeVisible();
+  expect(await startHeldBy(page)).toBe('Confirm the brief first');
 
   const card = section.getByRole('article', { name: 'The brief' });
   await expect(card.getByText('Assign practice', { exact: true })).toBeVisible();
@@ -203,8 +202,6 @@ test('shows what the teacher understood, and trains only once the person confirm
   await section.getByRole('button', { name: 'Confirm and continue' }).click();
   await expect(section.getByText('Confirmed on Oct 30')).toBeVisible();
   await expect(section.getByRole('button', { name: 'Confirm and continue' })).toHaveCount(0);
-  // Nothing waits now; what is said beside Start training is that the time limit cuts it short.
-  await expect(start).toBeEnabled();
-  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
+  // Nothing waits now.
   await expect(start).toBeEnabled();
 });

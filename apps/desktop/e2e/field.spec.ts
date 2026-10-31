@@ -128,10 +128,9 @@ test('shows each skill at each organization, trained-with, never-seen and real a
 
   // The headline is the academies it was taught on; the ones it never saw are counted apart.
   await expect(
-    page.getByText(
-      'Tested on 72 new tasks from the organizations it was taught on and 66 from 2 organizations it had never seen',
-      { exact: false },
-    ),
+    page.getByText('Tested on 72 new tasks and 66 from 2 organizations it had never seen', {
+      exact: false,
+    }),
   ).toBeVisible();
   await expect(page.getByText('67 of 72', { exact: true }).first()).toBeVisible();
 

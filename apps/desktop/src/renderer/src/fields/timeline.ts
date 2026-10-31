@@ -80,17 +80,6 @@ export interface TimelineRecords {
   exported: { dir: string; at: string } | undefined;
 }
 
-export const STAGE_WORDS: Record<Stage, string> = {
-  learned: 'Learned from',
-  moved: 'Moved to',
-  studied: 'Studied',
-  taught: 'Taught',
-  tested: 'Tested',
-  certified: 'Certified',
-  compared: 'Compared',
-  exported: 'Exported',
-};
-
 const STAGE_ORDER: Stage[] = [
   'learned',
   'moved',

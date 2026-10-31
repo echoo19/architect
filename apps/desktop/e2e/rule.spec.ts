@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
-import { allowMoreTime, goTo, launchApp, settle, type LaunchedApp } from './app';
+import { allowMoreTime, goTo, launchApp, settle, startHeldBy, type LaunchedApp } from './app';
 import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
 import { stubEngine } from './fixtures';
 import { FLOW_LOCAL } from './fixtures-flow';
@@ -410,8 +410,7 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
 
   // Not confirmed: training can't start, and the screen says why.
   const start = page.getByRole('button', { name: 'Start training' });
-  await expect(start).toBeDisabled();
-  await expect(page.getByText('Confirm the rule first')).toBeVisible();
+  expect(await startHeldBy(page)).toBe('Confirm the rule first');
   // A rule that isn't right has a way out: change the description, which comes back as it was
   // with its files, and the button says so when it is asked.
   const change = section.getByRole('button', { name: 'Change the description' });
@@ -460,7 +459,7 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await resize(1300);
   // The rule is no longer what holds training back. Time is: this computer can't fit a round in
   // four hours, so one callout by the choice says so, with the way out, and Start training waits.
-  await expect(page.getByText('Confirm the rule first')).toHaveCount(0);
+  expect(await startHeldBy(page)).not.toBe('Confirm the rule first');
   await expect(start).toBeDisabled();
   const slow = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
   await expect(slow).toContainText(
@@ -482,10 +481,6 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await allowMoreTime(page);
   await expect(slow).toHaveCount(0);
   await expect(start).toBeEnabled();
-  // One round fits now, and the footer says the limit still cuts training short, with the fix.
-  await expect(
-    page.getByText('The 7-hour limit fits 1 of 8 rounds', { exact: true }),
-  ).toBeVisible();
   // The longer limit is saved as it is allowed; the models below are saved after it, not before.
   const jobAt = jobIdOf(page);
   await expect
@@ -629,8 +624,7 @@ test('asks for the confirmation again when a record changes, or when the files a
   await expect(changed.getByRole('alert')).toContainText(
     'policy.md is not the file the tasks were made from',
   );
-  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-  await expect(page.getByText('Describe the job again first')).toBeVisible();
+  expect(await startHeldBy(page)).toBe('Describe the job again first');
   // Confirming can't bring the old tasks back, so there is nothing to confirm; the rule it was
   // confirmed with is folded away until asked for.
   await expect(changed.getByRole('button', { name: 'Confirm the rule' })).toHaveCount(0);

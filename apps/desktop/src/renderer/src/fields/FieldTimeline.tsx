@@ -28,7 +28,6 @@ import { useFieldExports } from './exports';
 import type { FieldSummary } from './model';
 import {
   fieldTimeline,
-  STAGE_WORDS,
   type HeldVersion,
   type Link,
   type Stage,
@@ -156,7 +155,7 @@ export function Timeline({
             <CardRow
               icon={<Lead at={shortDate(entry.at)} icon={STAGE_ICONS[entry.stage]} />}
               title={entry.sentence}
-              detail={entry.word ?? STAGE_WORDS[entry.stage]}
+              detail={entry.word}
               end={end(entry.link)}
               onClick={() => follow(entry.link)}
             />

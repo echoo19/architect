@@ -326,7 +326,7 @@ test('describes a job, answers a question and trains on the tasks it made', asyn
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
-  const examples = advanced.getByRole('button', { name: 'Example tasks' });
+  const examples = advanced.getByRole('button', { name: 'Example tasks', exact: true });
   if ((await examples.getAttribute('aria-expanded')) !== 'true') await examples.click();
   await examples.scrollIntoViewIfNeeded();
   expect(await infoTipText(page, advanced, 'Example tasks')).toBe(
@@ -465,7 +465,7 @@ test('drafts at once when asked to, and says what it left open', async () => {
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
-  const examples = advanced.getByRole('button', { name: 'Example tasks' });
+  const examples = advanced.getByRole('button', { name: 'Example tasks', exact: true });
   if ((await examples.getAttribute('aria-expanded')) !== 'true') await examples.click();
   await examples.scrollIntoViewIfNeeded();
   const open = advanced.getByRole('region', { name: 'Left open' });

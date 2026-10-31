@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
 import { FIELDS, ACADEMY_DESK_ASSETS, ACADEMY_DESK_FIELD, stubFields } from './fixtures-fields';
 import { recordedCalls, stubByKey, stubRecorded } from './fixtures-flow';
@@ -232,11 +232,11 @@ test("counts the field's assets and exports them to a folder the person picks", 
     'Final-test tasks and 2 never-seen organizations, by hash only',
   );
   await expect(card('Left out')).toContainText('the calibration and check tasks');
-  await expect(
-    page.getByText('GPU execution, large models and training gains are unverified', {
-      exact: false,
-    }),
-  ).toBeVisible();
+  // What an export is and isn't is said beside its Experimental mark, when asked.
+  await expect(page.getByText('Experimental', { exact: true })).toBeVisible();
+  expect(await infoTipText(page, page, 'these assets')).toContain(
+    'GPU execution, large models and training gains are unverified',
+  );
   await capture('field-assets-dark.png');
 
   await stubEngine(launched.app, { 'files:pick': [EXPORT_DIR] });

@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, SAMPLE_ENGINE, stubEngine } from './fixtures';
 
 /*
@@ -93,7 +93,9 @@ test('switches in Settings without a restart, and the personal edition has no La
   );
   await choice.getByRole('radio', { name: 'Architect', exact: true }).click();
   await expect.poll(edition).toBe('personal');
-  await expect(settings.getByText('Your agents and their training stay in both.')).toBeVisible();
+  expect(await infoTipText(page, settings, 'Edition')).toContain(
+    'Your agents and their training stay in both.',
+  );
   await capture('settings-edition-dark.png');
   await page.keyboard.press('Escape');
 

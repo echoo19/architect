@@ -83,23 +83,20 @@ test('shows what needs the person and what runs, then what finished, spent and s
   await reloadAt('/');
 
   const needs = card('Needs you');
+  // What each row asks is one word at its end; its icon names the kind, so no group heads it.
+  await expect(needs.getByRole('button', { name: /Returns desk.*Question$/ })).toBeVisible();
+  await expect(needs.getByRole('button', { name: /Clinic intake.*Results$/ })).toBeVisible();
   await expect(
-    needs.getByRole('button', { name: /Returns desk.*A question for you/ }),
+    needs.getByRole('button', { name: /Invoice and book Cedar Ave.*Service desk.*Approve$/ }),
   ).toBeVisible();
-  await expect(needs.getByRole('button', { name: /Clinic intake.*Results ready/ })).toBeVisible();
-  await expect(
-    needs.getByRole('button', { name: /Invoice and book Cedar Ave.*approval/ }),
-  ).toBeVisible();
-  await expect(needs.getByRole('button', { name: /A lesson to review/ })).toBeVisible();
+  await expect(needs.getByRole('button', { name: /^Service desk\s*Review$/ })).toBeVisible();
   // The new version beside the active one, so a lower score is never offered as the better one.
   await expect(
     needs.getByRole('button', {
       name: /Version 3: 88% on check tasks, active version 2: 94%/,
     }),
   ).toBeVisible();
-  for (const group of ['Questions', 'Results', 'Approvals', 'Lessons', 'Versions']) {
-    await expect(needs.getByRole('region', { name: group })).toBeVisible();
-  }
+  await expect(needs.getByRole('heading')).toHaveCount(1);
   await expect(needs.getByText('Nothing waits for you')).toBeHidden();
 
   const running = card('Running');
@@ -148,7 +145,7 @@ test('shows what needs the person and what runs, then what finished, spent and s
   await card('Agents').getByRole('button', { name: 'Open Service desk' }).click();
   await expect(page).toHaveURL(new RegExp(`#/agents/${STORY.graduateId}/chats/${CHATS.fresh.id}$`));
   await goTo(page, '/');
-  await needs.getByRole('button', { name: /A lesson to review/ }).click();
+  await needs.getByRole('button', { name: /^Service desk\s*Review$/ }).click();
   await expect(page.getByRole('dialog')).toContainText('Teaching');
   await page.keyboard.press('Escape');
 });

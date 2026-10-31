@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import type { Score } from '@architect/shared';
-import { cn } from '@architect/ui';
+import { CardRow } from '@architect/ui';
 import { formatPercent } from '../lib/format';
 
-/** A calm line in a card that has nothing to list: what is not there, in a few words. */
-export function Quiet({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn('m-0 px-6 pb-6 pt-1 text-ui', className)}>{children}</p>;
+/** What a card that has nothing to list lacks, in a few words, as the card's one row. */
+export function EmptyRow({ title, className }: { title: string; className?: string }) {
+  return <CardRow title={<span className="font-normal">{title}</span>} className={className} />;
 }
 
 /** A score as a table cell: its pass rate, or nothing (read as absent) when it wasn't tested. */

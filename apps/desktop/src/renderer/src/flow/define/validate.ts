@@ -37,7 +37,7 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
     add('budget.maxMentorUsd', 'Use an amount from $0 to $1,000.');
   }
   if (!wholeNumber(budget.maxWallMinutes) || !between(budget.maxWallMinutes, 1, 10_080)) {
-    add('budget.maxWallMinutes', 'Use whole minutes, from 1 up to a week (10,080).');
+    add('budget.maxWallMinutes', 'Use from a minute up to a week (168 hours).');
   }
   if (budget.maxComputeUsd !== undefined && !between(budget.maxComputeUsd, 0, 1000)) {
     add('budget.maxComputeUsd', 'Use an amount from $0 to $1,000.');

@@ -10,9 +10,11 @@ import {
   estimateNotes,
   estimateTime,
   minutesForOneRound,
+  TRAIN_ONLINE_LINE,
   trainHereLine,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { TrainingPlace, TrainingRows } from '../../../src/renderer/src/flow/define/TrainingPlace';
+import { modelNames } from '../../../src/renderer/src/flow/names';
 import { makeJob } from './factories';
 
 const COPY = {
@@ -257,8 +259,8 @@ describe('the card of the place that is chosen', () => {
 
 describe('what leaves this computer when training here', () => {
   const names = { mentor: 'Spark', student: 'Glimmer' };
-  /** The note under the choice, which is about the place chosen. */
-  const note = (job: Job) => text(render(job));
+  /** What the card for training here says behind its info mark. */
+  const note = (job: Job) => trainHereLine(job, modelNames(job), 'this computer');
   const withTeacher = (mentor: Job['mentor']): Job => ({ ...jobOf('local', 2000), mentor });
   const ollama = {
     kind: 'model',
@@ -294,9 +296,11 @@ describe('what leaves this computer when training here', () => {
     expect(note(lan)).not.toContain('Nothing leaves');
   });
 
-  it('says the tasks and files go online when training happens online', () => {
-    const words = note(jobOf('hosted'));
-    expect(words).toContain('Tasks and files go online.');
+  it('says it on the cards, behind an info mark, never as a line under them', () => {
+    // Static markup has no open tooltips, so neither card's sentence is on the page until asked.
+    const words = text(render(jobOf('hosted')));
+    expect(TRAIN_ONLINE_LINE).toBe('Tasks and files go online.');
+    expect(words).not.toContain(TRAIN_ONLINE_LINE);
     expect(words).not.toContain('Only what Spark reads');
   });
 
@@ -389,7 +393,6 @@ describe('the online place', () => {
       const words = text(render(jobOf('hosted'), hosted));
       expect(words).toMatch(/About 15 seconds a task/);
       expect(words).toMatch(/About \$\d+(\.\d+)?/);
-      expect(words).toContain('Tasks and files go online.');
     }
     expect(text(render(jobOf('hosted'), NO_KEY))).toContain(
       'Add an OpenRouter key in Advanced settings',

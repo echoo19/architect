@@ -133,22 +133,17 @@ function InstallRow({
         baseBytes: active?.manifest.model.base.sizeBytes,
       })
     : null;
+  // Ready, the row says where and when it was checked; otherwise why it can't run, which the
+  // badge beside it doesn't say.
   const meta =
     status === 'ready' && machine && checked?.checkedAt
       ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
-      : undefined;
-  const cause =
-    status === 'ready' ? '' : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
+      : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 
   return (
     <>
-      <SettingsRow
-        label={WORKS_HERE_TITLE}
-        meta={meta}
-        info={cause || undefined}
-        error={errorOf(installation)}
-      >
+      <SettingsRow label={WORKS_HERE_TITLE} meta={meta || undefined} error={errorOf(installation)}>
         {installation.status === 'error' ? (
           <RetryButton onClick={installation.reload} />
         ) : (
