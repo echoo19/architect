@@ -13,6 +13,7 @@ import type { Certification, CertifyRequest } from './certification';
 import type { Counterexample } from './counterexamples';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
+import type { RecordingQuote, TranscribeRequest } from './recordings';
 import type { StudyState } from './study';
 import type { FieldExportManifest, FieldView } from './field-export';
 import type { RunEvent } from './events';
@@ -527,6 +528,18 @@ export interface ArchitectApi {
     study(jobId: string): Promise<StudyState>;
     /** Records that the person confirmed the brief. `token` is the one the brief came with. */
     confirmStudy(jobId: string, token: string): Promise<StudyState>;
+    /**
+     * What transcribing these recordings of a taught organization would cost (decision 087), with
+     * nothing sent. An organization kept for the final test is refused.
+     */
+    quoteRecordings(jobId: string, org: string, paths: string[]): Promise<RecordingQuote>;
+    /** Lets the job's recordings go to Meta to be transcribed, or keeps them here again. */
+    shareRecordings(jobId: string, allowed: boolean): Promise<TaskPlan>;
+    /**
+     * Transcribes the recordings with Muse Voice Transcribe into the organization's files, for the
+     * study to read. Needs the job to allow it and `consent`; costs at most the quote's cap.
+     */
+    transcribe(jobId: string, request: TranscribeRequest): Promise<TaskPlan>;
     /**
      * What the job's field is made of, for the person's own page: the organizations it trains on
      * with their files, and the sealed ones by name and kind only (decision 075).

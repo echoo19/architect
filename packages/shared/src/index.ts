@@ -36,6 +36,7 @@ export * from './rules';
 export * from './run';
 export * from './secrets';
 export * from './steps';
+export * from './recordings';
 export * from './study';
 export * from './task';
 export * from './training';

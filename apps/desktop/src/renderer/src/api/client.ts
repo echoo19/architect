@@ -22,6 +22,7 @@ import {
   RunSchema,
   SecretStatusSchema,
   StudentTargetSchema,
+  RecordingQuoteSchema,
   StudyStateSchema,
   TaskListingSchema,
   TaskPlanSchema,
@@ -38,6 +39,7 @@ import {
   type StudentEndpoint,
   type StudentTarget,
   type TaskSplit,
+  type TranscribeRequest,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -152,6 +154,16 @@ export const flowApi = {
   study: (jobId: string) => read('jobs.study', StudyStateSchema, bridge().jobs.study(jobId)),
   confirmStudy: (jobId: string, token: string) =>
     read('jobs.confirmStudy', StudyStateSchema, bridge().jobs.confirmStudy(jobId, token)),
+  quoteRecordings: (jobId: string, org: string, paths: string[]) =>
+    read(
+      'jobs.quoteRecordings',
+      RecordingQuoteSchema,
+      bridge().jobs.quoteRecordings(jobId, org, paths),
+    ),
+  shareRecordings: (jobId: string, allowed: boolean) =>
+    read('jobs.shareRecordings', TaskPlanSchema, bridge().jobs.shareRecordings(jobId, allowed)),
+  transcribe: (jobId: string, request: TranscribeRequest) =>
+    read('jobs.transcribe', TaskPlanSchema, bridge().jobs.transcribe(jobId, request)),
   /** Imports a job file picked in a dialog, as a new job. */
   importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
   /** Writes the job's settings to a file chosen in a save dialog. */

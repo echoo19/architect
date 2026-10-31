@@ -68,6 +68,7 @@ import {
   ReferenceOptionsSchema,
   ReferenceRecordSchema,
   ReportCardSchema,
+  RecordingQuoteSchema,
   RuleConfirmationStateSchema,
   RunDetailSchema,
   RunEventSchema,
@@ -83,6 +84,7 @@ import {
   TeachingOverviewSchema,
   TraceSchema,
   TrainBundleRequestSchema,
+  TranscribeRequestSchema,
   TrainingPlanRequestSchema,
   TrainingPlanSchema,
   VersionEventSchema,
@@ -173,6 +175,21 @@ export const ENGINE_ROUTES = {
   'jobs.study': route(z.tuple([id]), StudyStateSchema, (api, [jobId]) => api.jobs.study(jobId)),
   'jobs.confirmStudy': route(z.tuple([id, id]), StudyStateSchema, (api, [jobId, token]) =>
     api.jobs.confirmStudy(jobId, token),
+  ),
+  'jobs.quoteRecordings': route(
+    z.tuple([id, id, z.array(z.string().min(1)).min(1).max(20)]),
+    RecordingQuoteSchema,
+    (api, [jobId, org, paths]) => api.jobs.quoteRecordings(jobId, org, paths),
+  ),
+  'jobs.shareRecordings': route(
+    z.tuple([id, z.boolean()]),
+    TaskPlanSchema,
+    (api, [jobId, allowed]) => api.jobs.shareRecordings(jobId, allowed),
+  ),
+  'jobs.transcribe': route(
+    z.tuple([id, TranscribeRequestSchema]),
+    TaskPlanSchema,
+    (api, [jobId, request]) => api.jobs.transcribe(jobId, request),
   ),
   'jobs.field': route(z.tuple([id]), FieldViewSchema, (api, [jobId]) => api.jobs.field(jobId)),
   'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>

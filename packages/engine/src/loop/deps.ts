@@ -22,6 +22,7 @@ import type {
   SuiteResult,
   Task,
   Trace,
+  Transcriber,
   TrainingBackendKind,
   TrainingJobRecord,
   TypeScore,
@@ -293,6 +294,11 @@ export interface AdapterDeps {
    * server. Absent where no adapter runtime is set up; weights interventions are then refused.
    */
   createAdapterStudent?(request: AdapterServeRequest, options: { label?: string }): StudentAdapter;
+  /**
+   * Muse Voice Transcribe, for a taught organization's recordings (decision 087). Absent where a
+   * build has none; transcribing is then refused.
+   */
+  createTranscriber?(options: { apiKey: string }): Transcriber;
 }
 
 export interface SecretDeps {

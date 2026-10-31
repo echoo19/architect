@@ -64,6 +64,13 @@ export interface HttpClient {
     schema: S,
     request?: RequestOptions,
   ): Promise<z.output<S>>;
+  /** POSTs a multipart form, such as a file with its settings, and parses the JSON reply. */
+  postForm<S extends z.ZodType>(
+    path: string,
+    form: FormData,
+    schema: S,
+    request?: RequestOptions,
+  ): Promise<z.output<S>>;
   /** Sends a DELETE with a JSON body and resolves on a success status; any reply body is ignored. */
   delete(path: string, body: unknown, request?: RequestOptions): Promise<void>;
   /** POSTs and resolves once the server has started answering with a success status. */
@@ -97,10 +104,14 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
         method,
         headers: {
           accept: request.accept ?? 'application/json',
-          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          // A form sets its own content type, with the boundary between its parts.
+          ...(body === undefined || body instanceof FormData
+            ? {}
+            : { 'content-type': 'application/json' }),
           ...options.headers,
         },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body:
+          body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
         signal: guard.signal,
       });
       guard.disarm();
@@ -177,6 +188,8 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     getJson: (path, schema, request = {}) => requestJson('GET', path, undefined, schema, request),
     postJson: (path, body, schema, request = {}) =>
       requestJson('POST', path, body, schema, request),
+    postForm: (path, form, schema, request = {}) =>
+      requestJson('POST', path, form, schema, request),
     async delete(path, body, request = {}) {
       const limit = request.timeoutMs ?? QUICK_TIMEOUT_MS;
       const { response, guard } = await send('DELETE', path, body, request, {

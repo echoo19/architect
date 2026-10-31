@@ -74,6 +74,23 @@ export const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 export const LMSTUDIO_BASE_URL = 'http://127.0.0.1:1234/v1';
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
+/**
+ * Muse Voice Transcribe, which turns a taught organization's recordings into text for the study
+ * (decision 087). Its file endpoint takes mono 16-bit PCM WAV at 16 or 24 kHz, at most 10 minutes
+ * and 32 MB a request, and bills audio in whole seconds, rounded down (docs/MODELS.md).
+ */
+export const MUSE_VOICE_TRANSCRIBE = {
+  label: 'Muse Voice Transcribe',
+  model: 'muse-voice-transcribe-1.0',
+  baseUrl: META_API_BASE_URL,
+  path: '/asr/transcribe',
+  secretRef: 'meta',
+  usdPerHour: 0.18,
+  maxSeconds: 600,
+  maxBytes: 32 * 1024 * 1024,
+  sampleRates: [16_000, 24_000],
+} as const;
+
 export const PROVIDERS: Readonly<Record<ProviderId, ProviderInfo>> = {
   meta: {
     label: 'Meta',
