@@ -54,7 +54,7 @@ const AT = {
 } as const;
 
 /** The chat's last line sits here, so the camera's push never cuts what it shows. */
-const CHAT = { top: 56, bottom: 476, fade: 32 } as const;
+const CHAT = { top: 56, bottom: 476 } as const;
 
 const STEP_LIST =
   'm-0 ml-1.5 flex min-w-0 list-none flex-col border-l border-line-strong py-0 pl-4 pr-0 text-small leading-normal';
@@ -316,15 +316,9 @@ export function TeamChatPage({ t }: { t: number }) {
       </header>
       <div
         className="absolute inset-x-0 flex flex-col justify-end overflow-hidden"
-        style={{
-          top: CHAT.top,
-          height: CHAT.bottom - CHAT.top,
-          // What scrolls up under the header thins out over its last few pixels, so a line or a
-          // bubble on its way out is never a hard cut.
-          maskImage: `linear-gradient(to bottom, transparent, black ${CHAT.fade}px)`,
-        }}
+        style={{ top: CHAT.top, height: CHAT.bottom - CHAT.top }}
       >
-        <div className="mx-auto flex w-[720px] shrink-0 flex-col pb-1 pt-8">
+        <div className="mx-auto flex w-[720px] shrink-0 flex-col pb-1 pt-6">
           <Grow t={t} at={AT.request} dur={0.5}>
             <div className="ml-auto w-fit max-w-[540px] rounded-card bg-raised px-5 py-3.5 text-body">
               {TEAM.request}
@@ -358,10 +352,19 @@ export function TeamChatPage({ t }: { t: number }) {
                   <Step action="Read" target={<Mono>data/reservations.csv</Mono>} meta="162 rows" />
                 </StepItem>
                 <StepItem t={t} at={AT.adding}>
-                  <span className="flex items-center gap-2">
-                    <Step action="Adding to" target={<Mono>data/reservations.csv</Mono>} />
-                    <Spinner size={13} />
-                  </span>
+                  {/* The write waits for its answer; once allowed, the step is done. */}
+                  {allowed > 0 ? (
+                    <Step
+                      action="Added to"
+                      target={<Mono>data/reservations.csv</Mono>}
+                      meta="1 row"
+                    />
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Step action="Adding to" target={<Mono>data/reservations.csv</Mono>} />
+                      <Spinner size={13} />
+                    </span>
+                  )}
                 </StepItem>
                 <StepItem t={t} at={AT.version}>
                   <span className="flex items-center gap-2">
@@ -402,7 +405,7 @@ export function TeamChatPage({ t }: { t: number }) {
               rows={TEAM.hold}
             />
           </Grow>
-          <Grow t={t} at={AT.waiting} until={AT.allow + 0.25} className="pt-5">
+          <Grow t={t} at={AT.waiting} until={AT.allow + 0.05} className="pt-5">
             <span className="flex items-center gap-2 text-ui">
               <CirclePause size={15} strokeWidth={1.8} aria-hidden />
               Waiting for your approval
