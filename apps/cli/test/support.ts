@@ -73,6 +73,50 @@ export async function machineWith(
   }
 }
 
+export interface TeamMachine extends Machine {
+  /** The lead's teammate, on the same model. */
+  teammate: GraduateFixture;
+}
+
+/**
+ * A computer with two graduates on one model, `script` playing both, and a team of them
+ * (decision 100): Screening logistics, which Inventory desk leads and Assay desk is in.
+ */
+export async function teamMachineWith(script: ScriptedTurn[]): Promise<TeamMachine> {
+  const env = await testEnv();
+  const dataDir = env['ARCHITECT_USER_DATA'] ?? '';
+  await mkdir(dataDir, { recursive: true });
+  const model = await startFakeOllama(script);
+  cleanups.push(() => model.close());
+  const store = openEngineStore(join(dataDir, 'architect.db'));
+  try {
+    const graduate = await addGraduate(dataDir, store, {
+      id: 'grd_inventory',
+      baseUrl: model.url,
+      job: { name: 'Inventory desk' },
+    });
+    const teammate = await addGraduate(dataDir, store, {
+      id: 'grd_assay',
+      baseUrl: model.url,
+      job: { name: 'Assay desk' },
+    });
+    const at = '2026-11-05T18:00:00.000Z';
+    store.teams.insert({
+      id: 'team_screening',
+      name: 'Screening logistics',
+      members: [
+        { graduateId: graduate.id },
+        { graduateId: teammate.id, role: "Reads Fenwick Screening Core's plates." },
+      ],
+      createdAt: at,
+      updatedAt: at,
+    });
+    return { env, dataDir, model, graduate, teammate };
+  } finally {
+    store.close();
+  }
+}
+
 export interface Captured {
   code: number;
   stdout: string;

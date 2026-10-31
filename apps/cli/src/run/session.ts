@@ -1,14 +1,16 @@
 import { createAgentHost, workspaceStore, type AgentHost } from '@architect/engine/agent-host';
+import type { LocalLibrary } from '@architect/engine/graduates';
 import type {
   AgentBlock,
   AgentStep,
   GraduateSummary,
   GraduateVersion,
   Installation,
+  Team,
   WorkspaceChat,
   WorkspaceMessage,
 } from '@architect/shared';
-import { resolveAgent } from '../agents';
+import { resolveAgent, resolveTeam } from '../agents';
 import type { CliContext } from '../context';
 import { CliError } from '../exit';
 import { sessionStore, type SessionStore, type SessionStoreOptions } from './store';
@@ -16,11 +18,20 @@ import { sessionStore, type SessionStore, type SessionStoreOptions } from './sto
 export type ApprovalBlock = Extract<AgentBlock, { kind: 'approval' }>;
 export type ApprovalAnswer = 'approve' | 'deny' | 'always';
 
-/** An agent opened for a terminal session: its active version, on this computer's setup. */
-export interface AgentSession {
+/** An agent as a session runs it: its active version, on this computer's setup. */
+export interface SessionAgent {
   agent: GraduateSummary;
   version: GraduateVersion;
   installation: Installation;
+}
+
+/**
+ * An agent opened for a terminal session: its active version, on this computer's setup. For a
+ * team (decision 100) it is the team's lead, and `team` has the team with every member as it
+ * runs here, the lead first.
+ */
+export interface AgentSession extends SessionAgent {
+  team?: { team: Team; members: SessionAgent[] };
   host: AgentHost;
   /** The session's own chats and messages, on the app's agents and installations. */
   store: SessionStore;
@@ -69,17 +80,10 @@ function checkRequirements(
 }
 
 /**
- * Opens an agent's active version through the agent host the workspace uses, on the app's own
- * store, after the network guard is up: the same loader, harness, tools, folders, permissions
- * and event stream as a chat in the app.
+ * The agent's active version and this computer's installation of it, checked: it can run here
+ * before anything loads.
  */
-export async function openSession(
-  ctx: CliContext,
-  named: string,
-  options: Partial<SessionStoreOptions> = {},
-): Promise<AgentSession> {
-  const local = ctx.library();
-  const agent = resolveAgent(local.library, named);
+function runnable(local: LocalLibrary, agent: GraduateSummary): SessionAgent {
   const version = local.library.versions(agent.id).find((listed) => listed.active);
   if (!version) {
     throw new CliError(
@@ -91,7 +95,20 @@ export async function openSession(
   }
   const installation = local.library.installation(agent.id, version.version);
   checkRequirements(agent, version, installation);
+  return { agent, version, installation };
+}
 
+/**
+ * The agent host a session runs on, on the app's own store, started once the network guard is
+ * up, with the agents it answers with opened: the same loader, harness, tools, folders,
+ * permissions and event stream as a chat in the app.
+ */
+async function startHost(
+  ctx: CliContext,
+  local: LocalLibrary,
+  agents: readonly SessionAgent[],
+  options: Partial<SessionStoreOptions>,
+): Promise<{ host: AgentHost; store: SessionStore; failures: unknown[] }> {
   ctx.io.installGuard();
   const failures: unknown[] = [];
   const store = sessionStore(workspaceStore(local.store, local.paths.root), {
@@ -109,12 +126,58 @@ export async function openSession(
   });
   try {
     // Quiet mode, as in the app: a local student gets the same thread cap.
-    await host.openGraduate(agent.id, ctx.localRuntime().threads);
-    const chat = await host.createChat(agent.id);
+    for (const { agent } of agents) await host.openGraduate(agent.id, ctx.localRuntime().threads);
+    return { host, store, failures };
+  } catch (error) {
+    await host.close();
+    throw error;
+  }
+}
+
+/**
+ * Opens an agent's active version through the agent host the workspace uses, on the app's own
+ * store, after the network guard is up, in a chat of its own.
+ */
+export async function openSession(
+  ctx: CliContext,
+  named: string,
+  options: Partial<SessionStoreOptions> = {},
+): Promise<AgentSession> {
+  const local = ctx.library();
+  const agent = runnable(local, resolveAgent(local.library, named));
+  const { host, store, failures } = await startHost(ctx, local, [agent], options);
+  try {
+    const chat = await host.createChat(agent.agent.id);
+    return { ...agent, host, store, chat, failures, close: () => host.close() };
+  } catch (error) {
+    await host.close();
+    throw error;
+  }
+}
+
+/**
+ * Opens a team (decision 100) in a team chat: every member's active version checked first, so
+ * none loads unless all of them can run here, then each opened in one agent host, as the app's
+ * team chat runs them. The lead answers, and asks its teammates as it needs them.
+ */
+export async function openTeamSession(
+  ctx: CliContext,
+  named: string,
+  options: Partial<SessionStoreOptions> = {},
+): Promise<AgentSession> {
+  const local = ctx.library();
+  const team = resolveTeam(local.store.teams.list(), named);
+  const members = team.members.map((member) =>
+    runnable(local, local.library.summary(member.graduateId)),
+  );
+  const [lead] = members;
+  if (lead === undefined) throw new Error(`${team.name} has no lead.`);
+  const { host, store, failures } = await startHost(ctx, local, members, options);
+  try {
+    const chat = await host.createTeamChat(team.id);
     return {
-      agent,
-      version,
-      installation,
+      ...lead,
+      team: { team, members },
       host,
       store,
       chat,

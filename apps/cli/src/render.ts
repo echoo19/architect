@@ -1,4 +1,4 @@
-import type { AgentStep, InstallCheck, Installation } from '@architect/shared';
+import type { AgentStep, ConsultationOutcome, InstallCheck, Installation } from '@architect/shared';
 import type { Failure } from './exit';
 import type { Output } from './io';
 
@@ -44,6 +44,33 @@ export function stepLine(step: Pick<AgentStep, 'name' | 'detail' | 'meta' | 'sta
   const result = step.meta ? ` (${step.meta})` : '';
   const failed = step.status === 'error' ? ' failed' : '';
   return `  ${step.name}${about}${failed}${result}`;
+}
+
+/** How a consultation ended without an answer, in the app's words for it. */
+const CONSULT_WORDS: Readonly<Record<Exclude<ConsultationOutcome, 'answered'>, string>> = {
+  refused: "doesn't handle this",
+  no_answer: 'gave no answer',
+  error: 'stopped with an error',
+  stopped: 'stopped',
+  out_of_steps: 'ran out of steps',
+};
+
+/**
+ * A finished step as the terminal shows it. A consultation in a team reply (decision 100) is the
+ * teammate asked, with the first line of its answer or how it ended without one, and then the
+ * teammate's own steps under it:
+ *
+ *     asked Assay desk (FW-0418 passes QC.)
+ *       read data/plates.csv (96 rows)
+ */
+export function stepLines(step: AgentStep): string[] {
+  if (step.view?.kind !== 'consult') return [stepLine(step)];
+  const outcome = step.view.outcome ?? (step.status === 'error' ? 'error' : 'stopped');
+  const said = outcome === 'answered' ? step.meta : CONSULT_WORDS[outcome];
+  return [
+    `  asked ${step.name}${said ? ` (${said})` : ''}`,
+    ...step.view.steps.map((inner) => `  ${stepLine(inner)}`),
+  ];
 }
 
 function checkLine(check: InstallCheck): string {

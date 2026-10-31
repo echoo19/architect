@@ -71,10 +71,12 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   },
   run: {
     usage:
-      'architect run <agent> [--input request.json] [--output result.json] [--non-interactive]',
-    summary: 'Chat with an agent, or run one task from a JSON request.',
-    args: 1,
+      'architect run <agent> [--input request.json] [--output result.json] [--non-interactive] | architect run --team <name>',
+    summary: 'Chat with an agent or a team, or run one task from a JSON request.',
+    args: 0,
+    maxArgs: 1,
     options: {
+      team: { type: 'string' },
       input: { type: 'string' },
       output: { type: 'string' },
       'non-interactive': { type: 'boolean' },
@@ -82,6 +84,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       timeout: { type: 'string' },
     },
     help: [
+      '  --team <name>           chat with a team: its lead answers and asks its teammates',
       '  --input <file>          a JSON request (docs/CLI.md); - reads it from stdin',
       '  --output <file>         where the JSON result goes; stdout when absent',
       '  --non-interactive       never ask: a change that needs approval fails the run',
