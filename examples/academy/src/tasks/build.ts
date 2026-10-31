@@ -12,7 +12,7 @@ export { SKILLS } from './records';
 export type { AssignRequest, HistoryRequest, Skill, SolveRequest, WrongAnswer } from './records';
 
 /**
- * The six kinds of request the Tutor answers at a synthetic academy, a set number of each, written the way a
+ * The six kinds of request the Academy desk answers at a synthetic academy, a set number of each, written the way a
  * tutor or a student would ask. Expected values come from the construction where it decides them
  * (the right choice and the error behind each wrong one) and otherwise from the reference rules
  * applied to the academy's own files.

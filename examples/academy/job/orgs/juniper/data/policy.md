@@ -1,6 +1,6 @@
 # Tutoring rules, Juniper Study House
 
-For the Tutor and all tutors. Records first, then the rules.
+For the Academy desk and all tutors. Records first, then the rules.
 
 ## Records
 
@@ -10,7 +10,7 @@ For the Tutor and all tutors. Records first, then the rules.
 - `tests.csv`: which bank question sits where in each practice test.
 - `attempts.csv`: every answer a student gave on a practice test, with what they picked, the right answer and whether they got it right.
 - `errors.csv`: for each topic, the errors our answer explanations name. Each wrong choice in the bank comes from one of its topic's errors.
-- `hints.csv`: the approved first hints. The Tutor gives only these hints, by id, and never writes its own.
+- `hints.csv`: the approved first hints. The Academy desk gives only these hints, by id, and never writes its own.
 - `videos.csv`: the lesson videos, each in a topic's folder.
 - `assignments.csv` and `staff_notes.csv`: practice set for students and notes left for staff. New rows go at the end.
 - Right or wrong is whatever `result` in attempts.csv says. A grid-in answer may be a fraction or a decimal (1/8, 0.125 or .125), so `selected` and `correct` can differ on a right answer.

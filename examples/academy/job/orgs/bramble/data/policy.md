@@ -1,6 +1,6 @@
 # Bramble Hill Academy: tutoring policy
 
-This is how Bramble Hill Academy tutors a student right after a wrong answer, and how staff read a student's record. The Tutor, the academy's tutor, follows it, and so do the staff.
+This is how Bramble Hill Academy tutors a student right after a wrong answer, and how staff read a student's record. The Academy desk, the academy's staff-facing agent, follows it, and so do the staff.
 
 ## The records
 
@@ -10,7 +10,7 @@ This is how Bramble Hill Academy tutors a student right after a wrong answer, an
 - `tests.csv`: which bank question sits where in each practice test.
 - `attempts.csv`: every answer a student gave on a practice test, with what they picked, the right answer and whether they got it right.
 - `errors.csv`: for each topic, the errors our answer explanations name. Each wrong choice in the bank comes from one of its topic's errors.
-- `hints.csv`: the approved first hints. The Tutor gives only these hints, by id, and never writes its own.
+- `hints.csv`: the approved first hints. The Academy desk gives only these hints, by id, and never writes its own.
 - `videos.csv`: the lesson videos, each in a topic's folder.
 - `assignments.csv` and `staff_notes.csv`: practice set for students and notes left for staff. New rows go at the end.
 
