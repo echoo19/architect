@@ -6,7 +6,7 @@ import type {
   StudentTarget,
   Task,
 } from '@architect/shared';
-import { agreementSeeds, vote } from '../certify/agreement';
+import { agreementSeeds, NO_ANSWER, vote } from '../certify/agreement';
 import { chooseThreshold, type CurvePoint, type Scored } from '../certify/stats';
 import type { GraduateFreeze, StoredAttempt } from '../store/records';
 import { configurationKey, type AttemptConfig } from './configuration';
@@ -23,8 +23,14 @@ export function scoreTask(attempts: readonly StoredAttempt[], seeds: readonly nu
   const ordered = [...attempts]
     .filter((attempt) => seeds.includes(attempt.seed))
     .sort((a, b) => seeds.indexOf(a.seed) - seeds.indexOf(b.seed));
-  // An attempt without a key (made before keys were kept) agrees with nothing.
-  const best = vote(ordered, (attempt) => attempt.answerKey ?? attempt.id);
+  // An attempt with no answer is not counted (decision 099); one without a key (made before keys
+  // were kept) agrees with nothing.
+  const best = vote(ordered, (attempt) =>
+    attempt.answerKey === NO_ANSWER ||
+    (attempt.stopReason !== 'answer' && attempt.stopReason !== 'refused')
+      ? null
+      : (attempt.answerKey ?? attempt.id),
+  );
   return best === null
     ? { votes: 0, correct: false }
     : { votes: best.votes, correct: best.chosen.check.pass };

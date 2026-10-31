@@ -725,6 +725,13 @@ describe('a certified version (decision 077)', () => {
     expect(reply.steps.map((step) => step.meta)).toEqual(['agrees', 'differs', 'differs']);
   });
 
+  it('hands off when no attempt gave an answer, though their empty outcomes match (decision 099)', async () => {
+    const world = await setup([{ text: '' }, { text: '' }, { text: '' }], { certificate });
+    const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.text).toContain("I'm not sure about this one: 0 of my 3 attempts");
+    expect(reply.steps.map((step) => step.meta)).toEqual(['differs', 'differs', 'differs']);
+  });
+
   it('hands off replies in words that say different things, and answers ones that say the same', async () => {
     const differing = await setup(
       [{ text: 'Ruiz owes 5000.' }, { text: 'Ruiz owes 4000.' }, { text: 'Nothing is owed.' }],
