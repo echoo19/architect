@@ -18,6 +18,7 @@ import type {
   GraduateSummary,
   HubInstallResult,
   HubTokenStatus,
+  ImportedJob,
   ImportResult,
   JobSummary,
   ListedAttempt,
@@ -29,6 +30,7 @@ import type {
   OllamaStatus,
   PullProgress,
   ReferenceOptions,
+  ReplacedModel,
   Retest,
   RunDetail,
   RunStartOptions,
@@ -284,6 +286,17 @@ export const AddConnectionRequestSchema = z
     key: z.string().max(MAX_KEY_LENGTH).optional(),
   })
   .strict() satisfies z.ZodType<AddConnectionRequest>;
+
+export const ReplacedModelSchema = z.object({
+  role: z.enum(['mentor', 'student', 'hosted']),
+  from: z.string(),
+  to: z.string().nullable(),
+}) satisfies z.ZodType<ReplacedModel>;
+
+export const ImportedJobSchema = z.object({
+  job: JobSchema,
+  replaced: z.array(ReplacedModelSchema),
+}) satisfies z.ZodType<ImportedJob>;
 
 export const AddConnectionResultSchema = z.object({
   secretRef: z.string().optional(),

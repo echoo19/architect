@@ -135,6 +135,22 @@ export interface LlamaServerStatus {
   minimumBuild: number;
 }
 
+/** A model a job file named that isn't connected here, and what the job uses in its place. */
+export interface ReplacedModel {
+  /** The teacher, the model on this computer, or the hosted or cluster copy it practices on. */
+  role: 'mentor' | 'student' | 'hosted';
+  /** The file's model, by its label or its id. */
+  from: string;
+  /** What the job uses instead; null when it goes without, as with no hosted copy. */
+  to: string | null;
+}
+
+/** A job file imported: the job as saved, and which of the file's models were replaced. */
+export interface ImportedJob {
+  job: Job;
+  replaced: ReplacedModel[];
+}
+
 /** An OpenAI-compatible endpoint the user added by its address, such as a vLLM server. */
 export interface CustomEndpoint {
   baseUrl: string;
@@ -496,10 +512,11 @@ export interface ArchitectApi {
     createSample(sample?: SampleJob): Promise<Job>;
     /**
      * Imports a job file with its `tasks.jsonl` and `data/` folder beside it, as a new job that
-     * starts from this person's teacher and model. A file that isn't a job file fails with the
-     * code `not_a_job`.
+     * keeps the file's models where they are connected here and takes this person's teacher and
+     * model in place of the others, each of which `replaced` names. A file that isn't a job file
+     * fails with the code `not_a_job`.
      */
-    importFile(path: string): Promise<Job>;
+    importFile(path: string): Promise<ImportedJob>;
     /** Writes the job's settings as a job file. Its tasks and data stay where they are. */
     exportFile(jobId: string, path: string): Promise<void>;
     draftStart(description: string, files: string[]): Promise<DraftTurn>;

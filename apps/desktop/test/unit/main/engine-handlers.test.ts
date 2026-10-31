@@ -10,7 +10,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { PickedPaths } from '../../../src/main/files/picked';
 import { registerEngineHandlers } from '../../../src/main/handlers/engine';
-import { applyChoices, type JobChoices } from '../../../src/main/jobs/choices';
+import { applyChoices, applyFileModels, type JobChoices } from '../../../src/main/jobs/choices';
 import { defaultSettings } from '../../../src/main/settings/schema';
 import { makeJob } from '../flow/factories';
 import { routerHarness } from './router-harness';
@@ -33,6 +33,7 @@ const CHOSEN: JobChoices = {
   mentor: defaultSettings().defaultMentor,
   student: { ...defaultSettings().defaultStudent, model: glimmerBuild('glimmer-gpu').model },
   keys: { openrouter: true },
+  endpoints: [],
 };
 
 function setup(choices: JobChoices = CHOSEN) {
@@ -115,7 +116,10 @@ describe('engine handlers', () => {
     expect(engine.jobs.importFile).not.toHaveBeenCalled();
 
     picked.add([job], 'files');
-    expect(await call('jobs:importFile', job)).toMatchObject({ ok: true, value: { id: 'job_1' } });
+    expect(await call('jobs:importFile', job)).toMatchObject({
+      ok: true,
+      value: { job: { id: 'job_1' } },
+    });
     expect(engine.jobs.importFile).toHaveBeenCalledWith(job);
   });
 
@@ -233,14 +237,25 @@ describe('engine handlers', () => {
       expect(engine.jobs.save).not.toHaveBeenCalled();
     });
 
-    it("starts an imported job file with theirs, whatever the file's author chose", async () => {
+    it("keeps an imported job file's models that are connected here, and names the rest it replaced", async () => {
       const { engine, picked, call } = setup();
       const file = join(ROOT, 'downloads', 'job.json');
       picked.add([file], 'files');
       const result = await call('jobs:importFile', file);
-      const expected = wanted(makeJob({ id: 'job_1' }));
+      const expected = applyFileModels(makeJob({ id: 'job_1' }), CHOSEN);
+      // Spark's key isn't saved, so their teacher is the person's; the model here stays the file's.
+      expect(expected.job.student.local.model).toBe(makeJob().student.local.model);
       expect(result).toEqual({ ok: true, value: expected });
-      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith(expected);
+      expect(engine.jobs.save).toHaveBeenCalledExactlyOnceWith(expected.job);
+    });
+
+    it('saves nothing again when every model the file names is connected here', async () => {
+      const { engine, picked, call } = setup({ ...CHOSEN, keys: { meta: true } });
+      const file = join(ROOT, 'downloads', 'job.json');
+      picked.add([file], 'files');
+      const result = await call('jobs:importFile', file);
+      expect(result).toEqual({ ok: true, value: { job: makeJob({ id: 'job_1' }), replaced: [] } });
+      expect(engine.jobs.save).not.toHaveBeenCalled();
     });
 
     it('fails an import the engine refuses, and saves nothing', async () => {

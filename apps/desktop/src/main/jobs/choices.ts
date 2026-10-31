@@ -1,10 +1,15 @@
+import { isDeepStrictEqual } from 'node:util';
 import {
   DEFAULT_STUDENT,
   GLIMMER_BUILDS,
+  isLoopbackUrl,
+  keyMayGoTo,
   OPENROUTER_BASE_URL,
   STUDENT_PRESETS,
   type AppSettings,
+  type ImportedJob,
   type Job,
+  type ReplacedModel,
   type StudentEndpoint,
   type StudentPreset,
 } from '@architect/shared';
@@ -20,6 +25,8 @@ export interface JobChoices {
   student: AppSettings['defaultStudent'];
   /** Which keys are saved, by the name they are stored under. */
   keys: Readonly<Record<string, boolean>>;
+  /** The addresses of the endpoints the person added, such as a vLLM server on a cluster node. */
+  endpoints: readonly string[];
 }
 
 /**
@@ -30,14 +37,19 @@ export function currentChoices(
   settings: Pick<SettingsStore, 'get'>,
   secrets: Pick<SecretStore, 'status'>,
 ): JobChoices {
-  const { defaultMentor, defaultStudent } = settings.get();
+  const { defaultMentor, defaultStudent, customEndpoints } = settings.get();
   let keys: Record<string, boolean> = {};
   try {
     keys = secrets.status();
   } catch (error) {
     console.warn('[jobs] The saved keys could not be read, so no hosted copy is added.', error);
   }
-  return { mentor: defaultMentor, student: defaultStudent, keys };
+  return {
+    mentor: defaultMentor,
+    student: defaultStudent,
+    keys,
+    endpoints: customEndpoints.map((endpoint) => endpoint.baseUrl),
+  };
 }
 
 /** Whether the model is one of Glimmer's builds, which the hosts below keep a copy of. */
@@ -60,46 +72,113 @@ function hostedCopy(keys: JobChoices['keys']): StudentPreset | undefined {
 }
 
 /**
- * A new job with the person's choices in place of the job's own, so the sample job, a job file
- * from somewhere else and a drafted job all start from what they set up: the teacher, the model
- * on this computer (build, runtime and address), a hosted copy of Glimmer when a host is
- * connected, and training online when there is one to train on. The job's own context size stays,
- * since the agent is developed under the limit it later runs under. A job file's own hosted copy
- * goes: where a person's tasks and files are sent is theirs to choose.
+ * A new job with the person's choices in place of the job's own, so the sample job and a drafted
+ * job start from what they set up: the teacher, the model on this computer (build, runtime and
+ * address), a hosted copy of Glimmer when a host is connected, and training online when there is
+ * one to train on. The job's own context size stays, since the agent is developed under the limit
+ * it later runs under. A job file keeps those of its own models that are connected here
+ * (`applyFileModels`): where a person's tasks and files are sent is theirs to choose.
  *
  * Only for a job that has just been made. Applying it to an existing job would change a job the
  * person has already looked at, and may have trained.
  */
 export function applyChoices(job: Job, choices: JobChoices): Job {
   const { student } = choices;
-  const contextLength = job.student.local.contextLength;
   const local: StudentEndpoint = {
     runtime: student.runtime,
     baseUrl: student.baseUrl,
     model: student.model,
-    contextLength,
+    contextLength: job.student.local.contextLength,
     ...(student.secretRef === undefined ? {} : { secretRef: student.secretRef }),
   };
-  const glimmer = isGlimmer(student.model);
-  const copy = glimmer ? hostedCopy(choices.keys) : undefined;
-  const hosted: StudentEndpoint | undefined =
-    copy?.secretRef === undefined
-      ? undefined
-      : {
-          runtime: copy.runtime,
-          baseUrl: copy.baseUrl,
-          model: copy.model,
-          secretRef: copy.secretRef,
-          contextLength,
-        };
+  const hosted = glimmerCopy(local, choices.keys);
   return {
     ...job,
     mentor: choices.mentor,
     student: {
-      label: glimmer ? DEFAULT_STUDENT.label : student.model,
+      label: isGlimmer(student.model) ? DEFAULT_STUDENT.label : student.model,
       local,
       trainOn: hosted === undefined ? 'local' : 'hosted',
       ...(hosted === undefined ? {} : { hosted }),
     },
+  };
+}
+
+/** The hosted copy of Glimmer for a model here that is one of its builds, when a host is connected. */
+function glimmerCopy(
+  local: StudentEndpoint,
+  keys: JobChoices['keys'],
+): StudentEndpoint | undefined {
+  const copy = isGlimmer(local.model) ? hostedCopy(keys) : undefined;
+  return copy?.secretRef === undefined
+    ? undefined
+    : {
+        runtime: copy.runtime,
+        baseUrl: copy.baseUrl,
+        model: copy.model,
+        secretRef: copy.secretRef,
+        contextLength: local.contextLength,
+      };
+}
+
+/**
+ * Whether a model at this address is connected here: its key is saved and may go to that address,
+ * or it needs none and is on this computer or at an endpoint the person added. So a job file can't
+ * send a saved key, or the person's tasks, anywhere the person didn't connect.
+ */
+function connected(
+  endpoint: { baseUrl: string; secretRef?: string | undefined },
+  choices: JobChoices,
+): boolean {
+  const { baseUrl, secretRef } = endpoint;
+  if (secretRef !== undefined) {
+    return choices.keys[secretRef] === true && keyMayGoTo(secretRef, baseUrl);
+  }
+  return isLoopbackUrl(baseUrl) || choices.endpoints.includes(baseUrl);
+}
+
+/**
+ * A job file just imported, keeping each of its models that is connected here (decision 093): the
+ * teacher, the model on this computer, and the hosted or cluster copy it practices on. The others
+ * take the person's choices, as any new job does, and `replaced` names each so the person is told.
+ * The model on this computer must answer at an address on this computer, since the agent runs only
+ * here (invariant 3); a copy of it goes with it when that is replaced.
+ */
+export function applyFileModels(job: Job, choices: JobChoices): ImportedJob {
+  const defaults = applyChoices(job, choices);
+  const replaced: ReplacedModel[] = [];
+  const keepMentor = job.mentor.kind === 'model' && connected(job.mentor, choices);
+  if (!keepMentor && !isDeepStrictEqual(job.mentor, defaults.mentor)) {
+    replaced.push({ role: 'mentor', from: job.mentor.label, to: defaults.mentor.label });
+  }
+  const { local, hosted } = job.student;
+  const keepLocal = isLoopbackUrl(local.baseUrl) && connected(local, choices);
+  if (!keepLocal) {
+    replaced.push({ role: 'student', from: local.model, to: defaults.student.local.model });
+  }
+  const student = keepLocal ? withCopy(job, choices) : defaults.student;
+  if (hosted !== undefined && !isDeepStrictEqual(student.hosted, hosted)) {
+    replaced.push({ role: 'hosted', from: hosted.model, to: student.hosted?.model ?? null });
+  }
+  return {
+    job: { ...job, mentor: keepMentor ? job.mentor : defaults.mentor, student },
+    replaced,
+  };
+}
+
+/**
+ * The file's own model on this computer with the copy it practices on: the file's copy when it is
+ * connected here, else the hosted copy of Glimmer a new job would get, else none.
+ */
+function withCopy(job: Job, choices: JobChoices): Job['student'] {
+  const { hosted, local } = job.student;
+  const keep = hosted !== undefined && connected(hosted, choices);
+  const copy = keep ? hosted : glimmerCopy(local, choices.keys);
+  const trainOn = copy === undefined ? 'local' : keep ? job.student.trainOn : 'hosted';
+  return {
+    label: job.student.label,
+    local,
+    trainOn,
+    ...(copy === undefined ? {} : { hosted: copy }),
   };
 }

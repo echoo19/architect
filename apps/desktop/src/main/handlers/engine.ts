@@ -10,7 +10,7 @@ import {
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
-import { applyChoices, type JobChoices } from '../jobs/choices';
+import { applyChoices, applyFileModels, type JobChoices } from '../jobs/choices';
 import type { SettingsStore } from '../settings/store';
 
 /** Sends one request to the engine process. */
@@ -24,7 +24,8 @@ const text = z.string().min(1);
  * conversation that drafts a job talks to the teacher the person chose in Settings, which only
  * this process reads, so each of its calls carries it to the engine. A job that is new, whether
  * the sample job, a job file or a drafted job, starts from the teacher and model the person chose
- * (`choices`); a job that already exists keeps what it has.
+ * (`choices`), except a job file's own models that are connected here; a job that already exists
+ * keeps what it has.
  */
 export function registerEngineHandlers(
   router: IpcRouter,
@@ -68,7 +69,11 @@ export function registerEngineHandlers(
       },
       importFile: async (file) => {
         const chosen = picked.check(file);
-        return chosenFor(await call((api) => api.jobs.importFile(chosen)));
+        const job = await call((api) => api.jobs.importFile(chosen));
+        // The file's own models stay where they are connected here; the person hears of the rest.
+        const imported = applyFileModels(job, await choices());
+        if (isDeepStrictEqual(imported.job, job)) return imported;
+        return { ...imported, job: await call((api) => api.jobs.save(imported.job)) };
       },
       exportFile: (jobId, file) => {
         const chosen = picked.check(file);
