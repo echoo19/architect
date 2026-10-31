@@ -5,6 +5,7 @@ import {
   type CheckResult,
   type Expected,
   type Job,
+  type OrgScore,
   type JsonValue,
   type Score,
   type StudentEndpoint,
@@ -101,6 +102,32 @@ export function studentPrice(
 export interface EvaluationResult {
   score: Score;
   perType: TypeScore[];
+  /** For a job with organizations, the result at each one (decision 085). */
+  perOrg?: OrgScore[];
+}
+
+/**
+ * Attempts at each organization, in the order the job lists them, from each task's `org`. None
+ * for a job without organizations, or before its tasks were read.
+ */
+export function scoreByOrg(
+  attempts: readonly StoredAttempt[],
+  job: Job,
+  orgOf: ReadonlyMap<string, string | undefined>,
+): OrgScore[] | undefined {
+  if (job.organizations === undefined || orgOf.size === 0) return undefined;
+  return job.organizations.flatMap((org) => {
+    const here = attempts.filter((attempt) => orgOf.get(attempt.taskId) === org.id);
+    return here.length === 0
+      ? []
+      : [
+          {
+            org: org.id,
+            pass: here.filter((attempt) => attempt.check.pass).length,
+            total: here.length,
+          },
+        ];
+  });
 }
 
 export function resultOf(attempts: readonly StoredAttempt[], job: Job): EvaluationResult {

@@ -130,6 +130,17 @@ export const TypeScoreSchema = z.object({
 export type TypeScore = z.infer<typeof TypeScoreSchema>;
 
 /**
+ * The check tasks' result at one organization a job is taught on (decision 085), so a field's
+ * training shows where the score comes from. Only for a job that lists organizations.
+ */
+export const OrgScoreSchema = z.object({
+  org: z.string(),
+  pass: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+export type OrgScore = z.infer<typeof OrgScoreSchema>;
+
+/**
  * What the mentor learns about an earlier hypothesis: for one dev measured, the decision and the
  * overall dev change; for one rejected before dev saw it, why, so the next reply can fix it.
  */

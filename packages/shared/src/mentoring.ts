@@ -8,6 +8,7 @@ import {
   CostEstimateSchema,
   EvidenceSchema,
   FileEditSchema,
+  OrgScoreSchema,
   PredictionSchema,
   TypeScoreSchema,
 } from './mentor';
@@ -270,6 +271,8 @@ export const MeasurementSchema = z.object({
   seeds: z.array(z.number().int()),
   score: ScoreSchema,
   perType: z.array(TypeScoreSchema),
+  /** For a job with organizations, the same result at each one it is taught on (decision 085). */
+  perOrg: z.array(OrgScoreSchema).optional(),
   latencyMs: z.object({ p50: z.number().nonnegative(), p95: z.number().nonnegative() }),
   /** Where the numbers come from: measured for this experiment, or reused and from where. */
   provenance: z.string().min(1),

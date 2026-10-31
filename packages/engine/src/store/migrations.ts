@@ -483,6 +483,8 @@ export const MIGRATIONS: readonly Migration[] = [
         PRIMARY KEY (run_id, org_id)
       );
       CREATE UNIQUE INDEX qualifications_once ON qualifications (run_id, seq);
+      -- The current check score at each organization a field is taught on.
+      ALTER TABLE runs ADD COLUMN dev_by_org TEXT;
     `,
   },
 ];

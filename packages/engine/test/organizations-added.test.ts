@@ -135,6 +135,16 @@ describe('an organization added to a field later', () => {
     const store = openEngineStore(new DataPaths(world.dataDir).database);
     const card = store.reports.get(run.id, 'local');
 
+    // While it trained, the check score was kept at each organization it is taught on too.
+    const trained = store.runs.get(run.id)?.run;
+    expect(trained?.devByOrg?.map((org) => org.org)).toEqual(['north', 'south']);
+    expect(trained?.devByOrg?.reduce((sum, org) => sum + org.total, 0)).toBe(
+      trained?.devCurrent?.total,
+    );
+    const measured = store.experiments.list(run.id).flatMap((item) => item.measurements);
+    expect(measured.length).toBeGreaterThan(0);
+    expect(measured.every((item) => item.perOrg?.length === 2)).toBe(true);
+
     await api().jobs.addOrganization(job.id, {
       folder: folderOf(world.root, MAPLE_FILES, mapleTasks()),
       name: 'Maple Grove',
