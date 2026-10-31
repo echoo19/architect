@@ -42,7 +42,7 @@ test('runs from its archive, with the sandbox and the sample job beside it', asy
     join(sandbox, 'child.mjs'),
     join(sandbox, 'emscripten-module.wasm'),
     join(where.resources, 'sample-job', 'job.json'),
-    // Tutor's job comes with all four academies, the one it is never taught on included.
+    // Academy desk's job comes with all four academies, the one it is never taught on included.
     join(where.resources, 'academy-job', 'tasks.jsonl'),
     join(where.resources, 'academy-job', 'orgs', 'juniper', 'data', 'policy.md'),
     // The data the ready-made agent works on always comes along.

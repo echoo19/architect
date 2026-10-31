@@ -68,8 +68,8 @@ describe("the reference solutions through the runner's tools", () => {
   afterAll(() => sandbox.dispose());
 
   const harness = HarnessSchema.parse({
-    meta: { format: 2, name: 'Tutor', version: 0, hash: '' },
-    system: 'You are the Tutor, the academy tutor.',
+    meta: { format: 2, name: 'Academy desk', version: 0, hash: '' },
+    system: 'You are the Academy desk, the staff-facing academy agent.',
     retrieval: {},
     decoding: {},
     guardrails: {},

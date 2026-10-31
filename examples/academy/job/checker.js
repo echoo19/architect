@@ -1,4 +1,4 @@
-// End-state and answer checks for the academy job (the Tutor).
+// End-state and answer checks for the academy job (the Academy desk).
 //
 // The runner loads this file in a sandbox and calls the validator a task names, passing the
 // task's params and a context:

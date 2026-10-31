@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
-import { FIELDS, TUTOR_ASSETS, TUTOR_FIELD, stubFields } from './fixtures-fields';
+import { FIELDS, ACADEMY_DESK_ASSETS, ACADEMY_DESK_FIELD, stubFields } from './fixtures-fields';
 import { recordedCalls, stubByKey, stubRecorded } from './fixtures-flow';
 import { LAB } from './fixtures-lab';
 
@@ -16,7 +16,7 @@ import { LAB } from './fixtures-lab';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
-const EXPORT_DIR = 'C:\\Users\\dana\\Exports\\tutor';
+const EXPORT_DIR = 'C:\\Users\\dana\\Exports\\academy-desk';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -64,10 +64,10 @@ test('lists each field with its organizations, best candidate and last activity'
   // Five fields under a header of two rows: the organizations, then the best final test.
   await expect(table.getByRole('row')).toHaveCount(7);
 
-  // Tutor: taught on three academies, sealed from two, one of them real; its best candidate's
+  // Academy desk: taught on three academies, sealed from two, one of them real; its best candidate's
   // final test on each kind.
-  const tutor = table.getByRole('row', { name: /^Tutor/ });
-  const cells = tutor.getByRole('cell');
+  const academyDesk = table.getByRole('row', { name: /^Academy desk/ });
+  const cells = academyDesk.getByRole('cell');
   await expect(cells.nth(1)).toHaveText('3');
   await expect(cells.nth(2)).toHaveText('2');
   await expect(cells.nth(3)).toHaveText('1');
@@ -87,16 +87,16 @@ test('lists each field with its organizations, best candidate and last activity'
   await expect(page.getByRole('button', { name: 'New field' })).toBeVisible();
   await capture('fields-dark.png');
 
-  await tutor.click();
-  await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.tutorJob}$`));
+  await academyDesk.click();
+  await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.academyDeskJob}$`));
   await page.goBack();
   await page.getByRole('button', { name: 'New field' }).click();
   await expect(page).toHaveURL(/#\/new$/);
 });
 
 test("shows the best candidate's skill by organization grid, the skills and the study", async () => {
-  await openAt(`/fields/${LAB.tutorJob}`);
-  await expect(page.getByRole('heading', { name: 'Tutor', level: 1 })).toBeVisible();
+  await openAt(`/fields/${LAB.academyDeskJob}`);
+  await expect(page.getByRole('heading', { name: 'Academy desk', level: 1 })).toBeVisible();
   await expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
 
   const grid = page.getByRole('table', { name: 'Final test by organization' });
@@ -113,14 +113,14 @@ test("shows the best candidate's skill by organization grid, the skills and the 
   await capture('field-overview-dark.png');
 
   await page.getByRole('button', { name: 'Open report' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.tutorRun}/report$`));
-  await goTo(page, `/fields/${LAB.tutorJob}`);
+  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.academyDeskRun}/report$`));
+  await goTo(page, `/fields/${LAB.academyDeskJob}`);
   await study.getByRole('button', { name: 'Open' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/jobs/${LAB.tutorJob}/define$`));
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${LAB.academyDeskJob}/define$`));
 });
 
 test('lists the organizations taught on with their files, and the sealed ones by name only', async () => {
-  await openAt(`/fields/${LAB.tutorJob}`);
+  await openAt(`/fields/${LAB.academyDeskJob}`);
   await tab('Organizations').click();
   const orgs = card('Organizations');
   const northside = orgs.getByRole('button', { name: /Northside Prep/ });
@@ -147,13 +147,13 @@ test('lists the organizations taught on with their files, and the sealed ones by
 });
 
 test('adds a never-seen organization later and qualifies a candidate on it', async () => {
-  await openAt(`/fields/${LAB.tutorJob}`);
+  await openAt(`/fields/${LAB.academyDeskJob}`);
   await tab('Organizations').click();
   const folder = 'D:\\Records\\Maple Grove Academy';
   const added = {
-    ...TUTOR_FIELD,
+    ...ACADEMY_DESK_FIELD,
     sealed: [
-      ...TUTOR_FIELD.sealed,
+      ...ACADEMY_DESK_FIELD.sealed,
       { name: 'Maple Grove Academy', synthetic: false, files: 9, addedLater: true as const },
     ],
   };
@@ -167,7 +167,7 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
   await dialog.getByRole('button', { name: 'Add and seal' }).click();
   await expect(dialog).toHaveCount(0);
   expect(await recordedCalls(launched.app, 'jobs:addOrganization')).toEqual([
-    [LAB.tutorJob, { folder, name: 'Maple Grove Academy', synthetic: false }],
+    [LAB.academyDeskJob, { folder, name: 'Maple Grove Academy', synthetic: false }],
   ]);
 
   // The new organization is sealed beside the others, marked as added later, and opens beside
@@ -182,11 +182,11 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
 
   await stubRecorded(launched.app, 'runs:qualifyAdded', null);
   await stubByKey(launched.app, 'jobs:field', {
-    [LAB.tutorJob]: {
+    [LAB.academyDeskJob]: {
       ...added,
       qualifications: [
         {
-          runId: LAB.tutorRun,
+          runId: LAB.academyDeskRun,
           org: 'Maple Grove Academy',
           status: 'finished',
           startedAt: '2026-10-31T12:00:00.000Z',
@@ -197,11 +197,11 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
     },
   });
   await qualify
-    .getByRole('button', { name: /^Qualify Tutor/ })
+    .getByRole('button', { name: /^Qualify Academy desk/ })
     .first()
     .click();
   expect(await recordedCalls(launched.app, 'runs:qualifyAdded')).toEqual([
-    [LAB.tutorRun, 'Maple Grove Academy'],
+    [LAB.academyDeskRun, 'Maple Grove Academy'],
   ]);
   await expect(qualify.getByLabel(/at Maple Grove Academy: 25 of 30$/)).toBeVisible();
   await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(1);
@@ -210,23 +210,23 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
 });
 
 test('lists every candidate with its scores, the best marked, each opening its report', async () => {
-  await openAt(`/fields/${LAB.tutorJob}`);
+  await openAt(`/fields/${LAB.academyDeskJob}`);
   await tab('Candidates').click();
   const table = page.getByRole('table', { name: 'Candidates' });
   await expect(table.getByRole('row')).toHaveCount(3);
   const best = table.getByRole('row', { name: /Best/ });
   await expect(best.getByRole('cell').nth(3)).toHaveText('9');
-  await expect(best).toContainText('Tutor');
+  await expect(best).toContainText('Academy desk');
   await table.getByRole('row').nth(2).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FIELDS.earlierRun}/report$`));
-  await goTo(page, `/fields/${LAB.tutorJob}`);
+  await goTo(page, `/fields/${LAB.academyDeskJob}`);
   await tab('Candidates').click();
   await page.getByRole('button', { name: 'Open Models' }).click();
   await expect(page).toHaveURL(/#\/models$/);
 });
 
 test("counts the field's assets and exports them to a folder the person picks", async () => {
-  await openAt(`/fields/${LAB.tutorJob}`);
+  await openAt(`/fields/${LAB.academyDeskJob}`);
   await tab('Assets').click();
   const assets = card('Field export');
   await expect(assets.getByText('Verified demonstrations')).toBeVisible();
@@ -244,11 +244,11 @@ test("counts the field's assets and exports them to a folder the person picks", 
   await capture('field-assets-dark.png');
 
   await stubEngine(launched.app, { 'files:pick': [EXPORT_DIR] });
-  await stubRecorded(launched.app, 'jobs:exportField', TUTOR_ASSETS);
+  await stubRecorded(launched.app, 'jobs:exportField', ACADEMY_DESK_ASSETS);
   await page.getByRole('button', { name: 'Export' }).click();
   await expect(page.getByText('Field exported', { exact: true })).toBeVisible();
   expect(await recordedCalls(launched.app, 'jobs:exportField')).toEqual([
-    [LAB.tutorJob, EXPORT_DIR],
+    [LAB.academyDeskJob, EXPORT_DIR],
   ]);
 });
 

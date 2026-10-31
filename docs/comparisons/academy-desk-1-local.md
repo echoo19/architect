@@ -1,6 +1,6 @@
-# Comparisons: Tutor on this computer
+# Comparisons: Academy desk on this computer
 
-Written on Oct 30, 2026. The frozen Tutor from `tutor-1.md` (the targeted arm, harness `8430022212bd`) took the same 120 locked tasks again, unchanged, on the 2-bit Glimmer that runs on an RTX 4070 Ti with 12 GB (`muse-glimmer:30b-iq2` through Ollama, 16,384-token context). This is a check of another backend for a candidate that was already frozen, on a test that was already released: no teaching, no mentor call, nothing tuned. Hosted numbers are the ones in `tutor-1.md`.
+Written on Oct 30, 2026. The frozen Academy desk from `academy-desk-1.md` (the targeted arm, harness `8430022212bd`) took the same 120 locked tasks again, unchanged, on the 2-bit Glimmer that runs on an RTX 4070 Ti with 12 GB (`muse-glimmer:30b-iq2` through Ollama, 16,384-token context). This is a check of another backend for a candidate that was already frozen, on a test that was already released: no teaching, no mentor call, nothing tuned. Hosted numbers are the ones in `academy-desk-1.md`.
 
 | Group | Local | Hosted | Wins / losses | Difference, points (95% Newcombe) |
 | --- | --- | --- | --- | --- |

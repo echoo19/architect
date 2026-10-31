@@ -11,7 +11,7 @@ import { FIELD_JOB } from './fixtures-field';
 import { recentAttempts, STORY } from './story';
 
 /*
- * What a developer browses (decision 084), against the stand-in engine: the tutor's practice and
+ * What a developer browses (decision 084), against the stand-in engine: the Academy desk's practice and
  * check tasks at its three academies, with the final test and calibration counted only; sixty
  * practice and check attempts of the service desk run, paged by fifty as the engine pages them;
  * and the files of a harness version.
@@ -94,20 +94,24 @@ function tasksOf(split: 'train' | 'dev', each: number): Task[] {
   );
 }
 
-export const TUTOR_TASKS = { train: tasksOf('train', 2), dev: tasksOf('dev', 1) };
+export const ACADEMY_DESK_TASKS = { train: tasksOf('train', 2), dev: tasksOf('dev', 1) };
 
 const LISTINGS: Record<string, TaskListing> = {
-  [`${LAB.tutorJob}/train`]: {
+  [`${LAB.academyDeskJob}/train`]: {
     split: 'train',
-    count: TUTOR_TASKS.train.length,
-    tasks: TUTOR_TASKS.train,
+    count: ACADEMY_DESK_TASKS.train.length,
+    tasks: ACADEMY_DESK_TASKS.train,
   },
-  [`${LAB.tutorJob}/dev`]: { split: 'dev', count: TUTOR_TASKS.dev.length, tasks: TUTOR_TASKS.dev },
-  [`${LAB.tutorJob}/calibration`]: { split: 'calibration', count: 12 },
-  [`${LAB.tutorJob}/test`]: { split: 'test', count: 72 },
+  [`${LAB.academyDeskJob}/dev`]: {
+    split: 'dev',
+    count: ACADEMY_DESK_TASKS.dev.length,
+    tasks: ACADEMY_DESK_TASKS.dev,
+  },
+  [`${LAB.academyDeskJob}/calibration`]: { split: 'calibration', count: 12 },
+  [`${LAB.academyDeskJob}/test`]: { split: 'test', count: 72 },
 };
 
-/** The tutor's tasks by split, on top of the Fields place's reads; each call is recorded. */
+/** The Academy desk's tasks by split, on top of the Fields place's reads; each call is recorded. */
 export async function stubFieldTasks(app: ElectronApplication): Promise<void> {
   await app.evaluate(
     ({ ipcMain }, listings) => {

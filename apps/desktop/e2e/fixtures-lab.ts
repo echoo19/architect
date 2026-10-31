@@ -18,37 +18,37 @@ import { CHATS } from './fixtures-workspace';
 import { AT, at, detail, makeRun, STORY, storyReport, trainedJob } from './story';
 
 /*
- * The Lab against the stand-in engine: Tutor's field job finished and qualified, the service desk
+ * The Lab against the stand-in engine: Academy desk's field job finished and qualified, the service desk
  * training, the returns desk asking a question, the clinic intake's results waiting, and the
  * service desk agent with a chat to approve, a lesson to review and a version to weigh. Every
  * figure is one of the shared story's, and the agents are the ones Models lists (version 2 active
- * for the service desk and for Tutor), so the Lab agrees with the screens it opens.
+ * for the service desk and for Academy desk), so the Lab agrees with the screens it opens.
  */
 
-export const TUTOR_ID = 'grd_tutor';
-export const MINI_ID = 'grd_tutor_mini';
+export const ACADEMY_DESK_ID = 'grd_academy_desk';
+export const MINI_ID = 'grd_academy_desk_mini';
 
-export const TUTOR_AGENT: GraduateSummary = {
+export const ACADEMY_DESK_AGENT: GraduateSummary = {
   ...FIELD_AGENT,
-  id: TUTOR_ID,
-  path: 'graduates/tutor',
+  id: ACADEMY_DESK_ID,
+  path: 'graduates/academy-desk',
   activeVersion: 2,
   versions: 2,
-  manifest: { ...FIELD_AGENT.manifest, id: TUTOR_ID, jobId: 'job_tutor' },
+  manifest: { ...FIELD_AGENT.manifest, id: ACADEMY_DESK_ID, jobId: 'job_academy_desk' },
 };
 
 export const MINI_AGENT: GraduateSummary = {
-  ...TUTOR_AGENT,
+  ...ACADEMY_DESK_AGENT,
   id: MINI_ID,
-  name: 'Tutor Mini',
-  path: 'graduates/tutor-mini',
+  name: 'Academy desk Mini',
+  path: 'graduates/academy-desk-mini',
   activeVersion: 1,
   versions: 1,
-  manifest: { ...TUTOR_AGENT.manifest, id: MINI_ID, name: 'Tutor Mini' },
+  manifest: { ...ACADEMY_DESK_AGENT.manifest, id: MINI_ID, name: 'Academy desk Mini' },
 };
 
 /** Every agent, as Models lists them. */
-export const LAB_AGENTS: GraduateSummary[] = [AGENT_WITH_VERSIONS, TUTOR_AGENT, MINI_AGENT];
+export const LAB_AGENTS: GraduateSummary[] = [AGENT_WITH_VERSIONS, ACADEMY_DESK_AGENT, MINI_AGENT];
 
 interface Entry {
   name: string;
@@ -66,8 +66,8 @@ const ACADEMIES: Job['organizations'] = [
 ];
 
 const ENTRIES: Record<string, Entry> = {
-  tutor: {
-    name: 'Tutor',
+  academy_desk: {
+    name: 'Academy desk',
     run: { status: 'finished', phase: 'done', accepted: true },
     job: { ...FIELD_JOB, organizations: ACADEMIES },
     totals: { mentorUsd: 2.84, rounds: 9 },
@@ -179,19 +179,23 @@ export async function stubLab(app: ElectronApplication): Promise<void> {
   await stubByKey(app, 'jobs:get', JOBS);
   await stubByKey(app, 'workspace:listChats', {
     [STORY.graduateId]: Object.values(CHATS),
-    [TUTOR_ID]: [{ ...FIELD_CHAT, graduateId: TUTOR_ID, updatedAt: at(600) }],
+    [ACADEMY_DESK_ID]: [{ ...FIELD_CHAT, graduateId: ACADEMY_DESK_ID, updatedAt: at(600) }],
     [MINI_ID]: [],
   });
   await stubByKey(app, 'teach:list', {
     [STORY.graduateId]: FLAGGED,
-    [TUTOR_ID]: [],
+    [ACADEMY_DESK_ID]: [],
     [MINI_ID]: [],
   });
   await stubByKey(app, 'teach:improvements', {
     [STORY.graduateId]: [IMPROVEMENT],
-    [TUTOR_ID]: [],
+    [ACADEMY_DESK_ID]: [],
     [MINI_ID]: [],
   });
 }
 
-export const LAB = { tutorRun: runId('tutor'), deskRun: runId('desk'), tutorJob: jobId('tutor') };
+export const LAB = {
+  academyDeskRun: runId('academy_desk'),
+  deskRun: runId('desk'),
+  academyDeskJob: jobId('academy_desk'),
+};

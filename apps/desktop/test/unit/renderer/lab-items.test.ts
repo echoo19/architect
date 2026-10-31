@@ -41,7 +41,7 @@ function job(name: string, latestRun?: Partial<JobRun>): JobSummary {
 }
 
 const agent = (patch: Partial<GraduateSummary> = {}) =>
-  ({ id: 'grd_1', name: 'Tutor', activeVersion: 1, ...patch }) as GraduateSummary;
+  ({ id: 'grd_1', name: 'Academy desk', activeVersion: 1, ...patch }) as GraduateSummary;
 
 describe('what needs the person', () => {
   it('lists a question, results nobody took yet, and an error, each opening its screen', () => {
@@ -71,7 +71,7 @@ describe('what needs the person', () => {
         key: 'approval:cht_1',
         kind: 'approval',
         title: 'Assign practice',
-        detail: 'Tutor waits for your approval',
+        detail: 'Academy desk waits for your approval',
         target: { path: '/agents/grd_1/chats/cht_1' },
       },
     ]);

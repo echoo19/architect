@@ -66,7 +66,7 @@ export interface EngineWiringOptions {
   getSecret(ref: string): Promise<string | undefined>;
   /** The sample job shipped with the app (`job.json`, with `tasks.jsonl` and `data/` beside it). */
   sampleJobFile?: string;
-  /** The tutor's job shipped with the app, with its academies at `orgs/<id>/data/` beside it. */
+  /** The Academy desk's job shipped with the app, with its academies at `orgs/<id>/data/` beside it. */
   academyJobFile?: string;
   /** The ready-made agent shipped with the app: its package, and the data it works on. */
   sampleAgent?: SampleAgentFiles;

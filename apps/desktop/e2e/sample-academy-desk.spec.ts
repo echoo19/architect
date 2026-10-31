@@ -9,7 +9,7 @@ import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { FLOW_ENGINE, recordedCalls, stubRecorded, taskPlan } from './fixtures-flow';
 
 /*
- * Tutor, the tutor, offered as a sample job on a fresh install, on a stand-in engine: choosing it
+ * Academy desk, the academy agent, offered as a sample job on a fresh install, on a stand-in engine: choosing it
  * makes the job, Define asks the teacher to study the academies' material, and training waits
  * until the person confirms the brief.
  */
@@ -25,7 +25,7 @@ const shipped = JobSchema.parse(
     ),
   ),
 );
-const tutor: Job = {
+const academyDesk: Job = {
   ...shipped,
   organizations: shipped.organizations?.filter((org) => org.role === 'train'),
 };
@@ -67,13 +67,13 @@ test.afterAll(async () => {
   await launched?.close();
 });
 
-test('starts Tutor from a fresh install and reaches the brief to confirm', async () => {
+test('starts Academy desk from a fresh install and reaches the brief to confirm', async () => {
   const { app, page } = launched;
   await stubEngine(app, {
     ...FLOW_ENGINE,
     ...EMPTY_ENGINE,
-    'jobs:get': tutor,
-    'jobs:save': tutor,
+    'jobs:get': academyDesk,
+    'jobs:save': academyDesk,
     'jobs:taskPlan': { ...taskPlan, study: { state: 'unstudied', token: '' } },
     'jobs:study': studied,
     'jobs:confirmStudy': {
@@ -82,26 +82,26 @@ test('starts Tutor from a fresh install and reaches the brief to confirm', async
       confirmedAt: '2026-10-30T15:00:00.000Z',
     },
   });
-  await stubRecorded(app, 'jobs:createSample', tutor);
+  await stubRecorded(app, 'jobs:createSample', academyDesk);
   await updateSettings(page, { onboarded: true, comparisonMode: false, edition: 'lab' });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, '/');
 
   await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
-  const offer = page.getByRole('button', { name: 'Try the tutor' });
+  const offer = page.getByRole('button', { name: 'Try the Academy desk' });
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await offer.hover();
-  await expect(page.getByRole('tooltip')).toContainText('a tutor for test-prep academies');
+  await expect(page.getByRole('tooltip')).toContainText('for the staff of test-prep academies');
   await settle(page);
   await page.screenshot({
-    path: join(OUT_DIR, 'start-tutor-dark.png'),
+    path: join(OUT_DIR, 'start-academy-desk-dark.png'),
     animations: 'disabled',
   });
 
   await offer.click();
   expect(await recordedCalls(app, 'jobs:createSample')).toEqual([['academy']]);
-  await expect(page).toHaveURL(new RegExp(`#/jobs/${tutor.id}/define`));
+  await expect(page).toHaveURL(new RegExp(`#/jobs/${academyDesk.id}/define`));
 
   const section = page.getByRole('region', { name: 'What Spark understood' });
   await expect(section).toBeVisible();

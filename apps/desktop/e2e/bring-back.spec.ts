@@ -18,7 +18,7 @@ import { job } from './story';
 
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 1000 };
-const ENDPOINT = { baseUrl: 'http://127.0.0.1:8000/v1', model: 'tutor-ft-7b' };
+const ENDPOINT = { baseUrl: 'http://127.0.0.1:8000/v1', model: 'academy-desk-ft-7b' };
 
 test.describe.configure({ mode: 'serial' });
 
@@ -97,7 +97,7 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
       held = {
         id: 'qlf_1',
         runId: request.runId,
-        jobId: 'job_tutor',
+        jobId: 'job_academy_desk',
         harnessVersion: 2,
         model: request.endpoint['model'],
         baseUrl: request.endpoint['baseUrl'],
@@ -114,7 +114,7 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
       return [held];
     });
     void runId;
-  }, LAB.tutorRun);
+  }, LAB.academyDeskRun);
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, '/compute');
@@ -123,7 +123,7 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
   await expect(card).toContainText("this computer's GPU");
   await expect(card).toContainText('costs no money');
   await card.getByRole('combobox', { name: 'Field' }).click();
-  await page.getByRole('option', { name: 'Tutor' }).click();
+  await page.getByRole('option', { name: 'Academy desk' }).click();
   await expect(card.getByRole('combobox', { name: 'Harness version' })).toContainText('Harness');
 
   const qualify = card.getByRole('button', { name: 'Qualify' });
@@ -142,7 +142,7 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
   const calls = await launched.app.evaluate(
     () => (globalThis as typeof globalThis & { qualifyCalls?: unknown[] }).qualifyCalls,
   );
-  expect(calls).toMatchObject([{ runId: LAB.tutorRun, endpoint: ENDPOINT }]);
+  expect(calls).toMatchObject([{ runId: LAB.academyDeskRun, endpoint: ENDPOINT }]);
 
   await page.mouse.move(0, 0);
   await card.evaluate((element) => element.scrollIntoView({ block: 'start' }));

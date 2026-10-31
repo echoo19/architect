@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { Certificate, CertifyRequest, FieldView, JobSummary } from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { TUTOR_CERTIFICATE } from './fixtures-certify';
+import { ACADEMY_DESK_CERTIFICATE } from './fixtures-certify';
 import { stubByKey } from './fixtures-flow';
-import { TUTOR_FIELD } from './fixtures-fields';
+import { ACADEMY_DESK_FIELD } from './fixtures-fields';
 import { LAB, LAB_JOBS } from './fixtures-lab';
 import { installModelsFake, MODEL_VERSIONS, MODELS } from './fixtures-models';
 
@@ -20,24 +20,27 @@ import { installModelsFake, MODEL_VERSIONS, MODELS } from './fixtures-models';
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
 
-/** The tutor's job imported again with more tasks, and a third academy it seals. */
+/** The Academy desk's job imported again with more tasks, and a third academy it seals. */
 const NEWER: JobSummary = {
-  id: 'job_tutor_more',
-  name: 'Tutor',
+  id: 'job_academy_desk_more',
+  name: 'Academy desk',
   createdAt: '2026-10-30T09:00:00.000Z',
   taskCount: 312,
 };
 const NEWER_FIELD: FieldView = {
-  ...TUTOR_FIELD,
+  ...ACADEMY_DESK_FIELD,
   jobId: NEWER.id,
-  sealed: [...TUTOR_FIELD.sealed, { name: 'Brookfield Academy', synthetic: true, files: 12 }],
+  sealed: [
+    ...ACADEMY_DESK_FIELD.sealed,
+    { name: 'Brookfield Academy', synthetic: true, files: 12 },
+  ],
 };
 
-/** What the stand-in files once the attempts are made: Tutor's certificate, checked where asked. */
+/** What the stand-in files once the attempts are made: Academy desk's certificate, checked where asked. */
 const CERTIFICATE: Certificate = {
-  ...TUTOR_CERTIFICATE,
+  ...ACADEMY_DESK_CERTIFICATE,
   n: 60,
-  ...(TUTOR_CERTIFICATE.issued
+  ...(ACADEMY_DESK_CERTIFICATE.issued
     ? {
         checks: [
           {
@@ -95,13 +98,13 @@ async function capture(file: string): Promise<void> {
 }
 
 /**
- * Models with Tutor's versions made by runs here, the jobs and fields, and a certification the
+ * Models with Academy desk's versions made by runs here, the jobs and fields, and a certification the
  * stand-in moves along each time it is read: planned, then certifying, then finished.
  */
 async function installCertifyFake(): Promise<void> {
   await installModelsFake(launched.app);
   await stubByKey(launched.app, 'jobs:field', {
-    [LAB.tutorJob]: TUTOR_FIELD,
+    [LAB.academyDeskJob]: ACADEMY_DESK_FIELD,
     [NEWER.id]: NEWER_FIELD,
   });
   await launched.app.evaluate(
@@ -156,10 +159,10 @@ async function installCertifyFake(): Promise<void> {
           id: `crt_${certifications.length + 1}`,
           graduateId: request.graduateId,
           version: request.version,
-          runId: 'run_tutor_2',
+          runId: 'run_academy_desk_2',
           request,
           plan: {
-            jobName: 'Tutor',
+            jobName: 'Academy desk',
             target: 'local',
             student: 'muse-glimmer:30b',
             calibration: request.size,
@@ -223,13 +226,15 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
   await goTo(page, '/models');
   await page
     .getByRole('table', { name: 'Models' })
-    .getByRole('row', { name: /^Tutor\s+version 2/ })
+    .getByRole('row', { name: /^Academy desk\s+version 2/ })
     .click();
   const panel = page.getByRole('complementary', { name: 'Model' });
   await panel.getByRole('button', { name: 'Certify' }).click();
 
   // The newest job of its field is offered first: its tasks are new to version 2.
-  await expect(dialog().getByRole('combobox', { name: 'Tasks from' })).toContainText('Tutor ·');
+  await expect(dialog().getByRole('combobox', { name: 'Tasks from' })).toContainText(
+    'Academy desk ·',
+  );
   await expect(dialog().getByRole('textbox', { name: 'Calibration tasks' })).toHaveValue('60');
   await expect(dialog().getByRole('textbox', { name: 'Tries per task' })).toHaveValue('5');
   await expect(dialog().getByRole('textbox', { name: 'Wrong at most' })).toHaveValue('10');
@@ -247,7 +252,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
   await dialog().getByRole('button', { name: 'Review' }).click();
 
   const plan = dialog().getByRole('list', { name: 'What it will do' });
-  await expect(plan).toContainText('60 tasks of Tutor that version 2 never saw');
+  await expect(plan).toContainText('60 tasks of Academy desk that version 2 never saw');
   await expect(plan).toContainText(
     'Checked at Summit Tutoring (12 tasks), Brookfield Academy (24 tasks)',
   );
@@ -257,7 +262,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
     (globalThis as typeof globalThis & { certifyCalls?: unknown[] }).certifyCalls?.at(-1),
   );
   expect(asked).toMatchObject({
-    graduateId: MODELS.tutorId,
+    graduateId: MODELS.academyDeskId,
     version: 2,
     jobId: NEWER.id,
     k: 5,
@@ -273,7 +278,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
   await expect(dialog().getByRole('progressbar', { name: 'Certifying' })).toBeVisible();
   const certificate = dialog().getByRole('region', { name: 'Certified answers' });
   await expect(certificate).toContainText(
-    'When Tutor answers, it is wrong on at most 8% of requests like these, with 95% confidence.',
+    'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence.',
     { timeout: 15_000 },
   );
   await expect(certificate).toContainText(
