@@ -302,9 +302,7 @@ export function modelInputs(
               1_000_000,
             unit: 'USD',
             source: 'assumed',
-            note: measured
-              ? `the student's measured tokens per attempt at ${teacher.label}'s price`
-              : `30,000 tokens in and 2,000 out at ${teacher.label}'s price`,
+            note: `${measured ? "the student's measured tokens per attempt" : '30,000 tokens in and 2,000 out'} at ${teacher.label}'s price, sent to ${new URL(teacher.baseUrl).host}; a model that reasons at length writes more, and its own attempts price it once it has some`,
           },
         }),
   };

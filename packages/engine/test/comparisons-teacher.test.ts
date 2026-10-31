@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import {
   ExperimentArmSchema,
   MENTOR_PRESETS,
+  STUDENT_PRESETS,
   type ExperimentInput,
   type MentorConfig,
 } from '@architect/shared';
@@ -18,7 +19,13 @@ import { configOf } from '../src/experiments/service';
 import { systemClock } from '../src/loop/deps';
 import { DataPaths } from '../src/loop/paths';
 import { openEngineStore } from '../src/store/engine-store';
-import { comparisonWorld, RETURNS_DESK, type ComparisonWorld } from './support/comparison-world';
+import { StudentCredit } from '../src/comparisons/spend';
+import {
+  comparisonWorld,
+  MODEL_MARK,
+  RETURNS_DESK,
+  type ComparisonWorld,
+} from './support/comparison-world';
 
 /*
  * The teacher alone as an arm (decision 095): the teacher, or a chosen model, does the job itself
@@ -45,6 +52,16 @@ const CHOSEN: Extract<MentorConfig, { kind: 'model' }> = {
   reasoningEffort: 'medium',
   secretRef: sol.secretRef,
 };
+
+/** The field's teacher, Spark, by its model id. */
+const SPARK = 'muse-spark-1.3';
+
+/** The hosted copy of the student every arm but the teacher's answers on. */
+const HOSTED_STUDENT = (() => {
+  const preset = STUDENT_PRESETS.find((item) => item.key === DEFAULT_MODELS.student);
+  if (preset === undefined) throw new Error('The default hosted student preset is missing.');
+  return preset.model;
+})();
 
 const CONFIG: ComparisonConfig = {
   ...DEFAULT_CONFIG,
@@ -99,7 +116,7 @@ describe('the teacher alone as an arm', () => {
     // No arm here teaches, and the teacher arm made no mentor: nothing it did could reach one.
     expect(mentors).toEqual([]);
     expect(world.mentor.requests).toEqual([]);
-    expect(students).toContain('muse-spark-1.3');
+    expect(students).toContain(SPARK);
 
     const store = readStore(world);
     try {
@@ -124,8 +141,10 @@ describe('the teacher alone as an arm', () => {
     }
 
     // Its rows sit with the teacher's references, named after it, at its price, hosted.
-    const reference = report.backends.find((table) => table.backend === 'reference');
+    const reference = report.backends.find((table) => table.backend === 'teacher');
     const teacher = reference?.rows.find((row) => row.arm === 'teacher');
+    expect(reference?.label).toBe('Spark alone, as the agent');
+    expect(reference?.identity.model).toBe('muse-spark-1.3');
     expect(teacher).toMatchObject({
       label: 'Spark alone',
       model: 'Spark',
@@ -180,10 +199,13 @@ describe('the teacher alone as an arm', () => {
           .filter((attempt) => attempt.split === 'test')
           .map((attempt) => attempt.taskId),
       );
-      // Nothing the teacher did, and no final-test task, is in anything a mentor was sent.
+      // Nothing the teacher did, and no final-test task, is in anything a mentor was sent. The
+      // mentors do read their own student's words, so a teacher's words there would show.
       const sent = world.mentor.requests.map((item) => JSON.stringify(item));
       expect(sent.length).toBeGreaterThan(0);
+      expect(sent.some((text) => text.includes(`${MODEL_MARK}${HOSTED_STUDENT}`))).toBe(true);
       for (const text of sent) {
+        expect(text).not.toContain(`${MODEL_MARK}${CHOSEN.model}`);
         expect(text).not.toContain(run.run.id);
         expect(text).not.toContain(CHOSEN.model);
         expect(text).not.toContain(CHOSEN.label);
@@ -204,10 +226,76 @@ describe('the teacher alone as an arm', () => {
     } finally {
       store.close();
     }
-    const teacher = report.backends
-      .find((table) => table.backend === 'reference')
-      ?.rows.find((row) => row.arm === 'teacher');
-    expect(teacher).toMatchObject({ label: 'GPT-6.1 Sol alone', model: 'GPT-6.1 Sol' });
+    const table = report.backends.find((item) => item.backend === 'teacher');
+    expect(table?.identity.model).toBe(CHOSEN.model);
+    expect(table?.rows.find((row) => row.arm === 'teacher')).toMatchObject({
+      label: 'GPT-6.1 Sol alone',
+      model: 'GPT-6.1 Sol',
+    });
+    // Where it was sent is said, since the never-seen organizations' files went there too.
+    expect(report.disclosures.join('\n')).toContain('as the agent at api.openai.com');
+  }, 180_000);
+
+  it("keeps the field's own teacher's words as the agent out of its words as the mentor", async () => {
+    // The common case: the teacher alone is the very model, behind the same key, that mentors.
+    const { world, request, mentors } = setUp({
+      ...CONFIG,
+      arms: ['bare', 'draft', 'targeted', 'teacher'],
+      caps: { studentUsd: 40, sparkUsd: 10, computeUsd: 0, localMinutes: 0 },
+    });
+    const { outcome } = await runComparison(request, world.env);
+    expect(outcome).toBe('finished');
+    expect(mentors.every((mentor) => mentor.kind === 'model' && mentor.model === SPARK)).toBe(true);
+    const sent = world.mentor.requests.map((item) => JSON.stringify(item));
+    expect(sent.some((text) => text.includes(`${MODEL_MARK}${HOSTED_STUDENT}`))).toBe(true);
+    for (const text of sent) expect(text).not.toContain(`${MODEL_MARK}${SPARK}`);
+    const store = readStore(world);
+    try {
+      // Nor did any lesson or lineage entry of the teaching arms take them in.
+      for (const run of store.runs.list()) {
+        const lessons = JSON.stringify(store.lessons.list({ runId: run.run.id }));
+        const rounds = JSON.stringify(store.rounds.list(run.run.id));
+        expect(lessons).not.toContain(`${MODEL_MARK}${SPARK}`);
+        expect(rounds).not.toContain(`${MODEL_MARK}${SPARK}`);
+      }
+    } finally {
+      store.close();
+    }
+  }, 180_000);
+
+  it('stops at the cap when the teacher costs more than its projection, and starves no arm', async () => {
+    // A chosen teacher that writes five times the student's tokens, at a steep output price.
+    const pricing = { inputPerM: 1, cachedInputPerM: 1, outputPerM: 100 };
+    const config: ComparisonConfig = {
+      ...CONFIG,
+      caps: { studentUsd: 16.5, sparkUsd: 10, computeUsd: 0, localMinutes: 0 },
+      teacher: { ...CHOSEN, pricing },
+    };
+    const { world, request } = setUp(config);
+    world.runtime.prices.set(CHOSEN.model, pricing);
+    world.runtime.outputScale.set(CHOSEN.model, 5);
+    const { outcome, report } = await runComparison(request, world.env);
+    expect(outcome).not.toBe('finished');
+    // The cap is hard: the journal never counts more than it, the teacher's overrun included.
+    const journal = new StudentCredit(join(world.out, 'requests.jsonl'), 1_000, systemClock);
+    expect(journal.total()).toBeLessThanOrEqual(16.5 + 1e-9);
+    const store = readStore(world);
+    try {
+      const run = (arm: string) => store.runs.list().find((item) => item.protocol?.arm === arm);
+      // The bare arm, before it in the order, developed in full and froze first.
+      expect(run('bare')?.freeze).not.toBeNull();
+      const teacher = run('teacher');
+      expect(teacher).toBeDefined();
+      // No final test was released while the teacher couldn't be paid for.
+      expect(
+        store.attempts
+          .list({ runId: teacher?.run.id ?? '' })
+          .filter((attempt) => attempt.split === 'test'),
+      ).toEqual([]);
+    } finally {
+      store.close();
+    }
+    expect(report.plan.releasedAt).toBeNull();
   }, 180_000);
 
   it('is refused with the reason when the teacher speaks another protocol', async () => {

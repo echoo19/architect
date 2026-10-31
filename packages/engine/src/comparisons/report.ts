@@ -95,6 +95,7 @@ const UNKNOWN_IDENTITY = (runtime: string): RuntimeIdentity => ({
 const BACKEND_LABELS: Record<BackendId, string> = {
   hosted: 'Hosted Glimmer',
   reference: 'Spark as a reference',
+  teacher: 'The teacher alone, as the agent',
   'local-ollama': "This computer's Glimmer on Ollama",
   'local-llama.cpp': "This computer's Glimmer with adapters on llama-server",
 };
@@ -380,8 +381,9 @@ function ownSlices(arm: ArmId, run: StoredRun, seed: number): Slice[] {
 }
 
 function backendOf(slice: Slice): BackendId {
-  // The teacher as the agent sits with Spark's references: the teacher, not the student, answered.
-  if (slice.config.startsWith('reference/') || slice.arm === 'teacher') return 'reference';
+  if (slice.config.startsWith('reference/')) return 'reference';
+  // The teacher alone answered on its own endpoint, in a table of its own.
+  if (slice.arm === 'teacher') return 'teacher';
   if (slice.target === 'hosted') return 'hosted';
   return slice.config.startsWith('student/llama.cpp') ? 'local-llama.cpp' : 'local-ollama';
 }
@@ -480,13 +482,19 @@ function backendTables(input: ReportInput): BackendTable[] {
     });
   }
   const tables: BackendTable[] = [];
-  for (const backend of ['hosted', 'reference', 'local-ollama', 'local-llama.cpp'] as const) {
+  for (const backend of [
+    'hosted',
+    'reference',
+    'teacher',
+    'local-ollama',
+    'local-llama.cpp',
+  ] as const) {
     const inTable = slices.filter((slice) => backendOf(slice) === backend);
     const rows = inTable.flatMap((slice) => rowOf(input, slice) ?? []);
     if (rows.length === 0) continue;
-    // Spark pairs with the hosted arms on the same tasks and seed: a reference, labelled so.
+    // Spark, and the teacher alone, pair with the hosted arms on the same tasks and seed.
     const partners =
-      backend === 'reference'
+      backend === 'reference' || backend === 'teacher'
         ? [...inTable, ...slices.filter((slice) => backendOf(slice) === 'hosted')]
         : inTable;
     // An arm's own result: its one row, or with its adapter when it has both.
@@ -508,7 +516,10 @@ function backendTables(input: ReportInput): BackendTable[] {
     });
     tables.push({
       backend,
-      label: BACKEND_LABELS[backend],
+      label:
+        backend === 'teacher'
+          ? `${teacherName(input)} alone, as the agent`
+          : BACKEND_LABELS[backend],
       identity: input.plan?.identities[backend] ?? UNKNOWN_IDENTITY(backend),
       rows,
       paired: pairs,
@@ -1190,7 +1201,7 @@ function disclosures(
     .filter((arm) => arm.status !== 'not_run')
     .map(
       (arm) =>
-        `${arm.label}: Spark ${money(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, ${arm.arm === 'teacher' ? teacherName(input) : 'Glimmer'} ${money(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, compute ${money(arm.spent.computeUsd)} of ${cap(arm.caps.computeUsd)}${arm.spent.examples > 0 ? `, ${arm.spent.examples} examples and ${arm.spent.trainedTokens} trained tokens` : ''}`,
+        `${arm.label}: ${arm.arm === 'teacher' ? '' : `Spark ${money(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, `}${arm.arm === 'teacher' ? teacherName(input) : 'Glimmer'} ${money(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, compute ${money(arm.spent.computeUsd)} of ${cap(arm.caps.computeUsd)}${arm.spent.examples > 0 ? `, ${arm.spent.examples} examples and ${arm.spent.trainedTokens} trained tokens` : ''}`,
     );
   if (budgets.length > 0) {
     lines.push(
@@ -1270,6 +1281,15 @@ function disclosures(
     const second = arms.some((arm) => arm.arm === 'reference-targeted' && arm.status !== 'not_run');
     lines.push(
       `Spark's rows are references on the same tasks, tools, limits and seed, not arms, graded by the same checker; Spark judged nothing. The blank-harness row is the primary reference: Spark saw no lesson.${second ? " The targeted-harness row, declared before anything ran, gives Spark the targeted arm's frozen harness for a same-harness comparison." : ''}`,
+    );
+  }
+  const teacher = teacherOf(input.base, input.config.teacher);
+  if (
+    typeof teacher !== 'string' &&
+    arms.some((arm) => arm.arm === 'teacher' && arm.status !== 'not_run')
+  ) {
+    lines.push(
+      `${teacher.label} took the final test as the agent at ${new URL(teacher.baseUrl).host}: every final-test task, the never-seen organizations' among them, and the files they read went there, only once every other arm was frozen. It was reached through the student's OpenAI-compatible client, with the blank harness's decoding settings, as every arm's student is.`,
     );
   }
   const regression = input.regression;

@@ -11,6 +11,7 @@ import {
   armNames,
   costRowsOf,
   countIn,
+  figuresOf,
   DEFAULT_NAMES,
   defaultInput,
   experimentNames,
@@ -146,6 +147,19 @@ describe('accuracy against cost', () => {
       ['GPT-6.1 Sol alone', 'GPT-6.1 Sol', 'hosted', 61.2],
       ['Targeted mentoring', 'Glimmer', 'this_computer', 0],
     ]);
+  });
+
+  it("sets the teacher alone's table beside the hosted student's, as Spark's references are", () => {
+    const [hosted, ...others] = figuresOf(
+      report([
+        table('hosted', [row()]),
+        table('teacher', [teacher]),
+        table('local-ollama', [{ ...row(), runsOn: 'this_computer' }]),
+      ]),
+    );
+    expect(hosted?.backend.backend).toBe('hosted');
+    expect(hosted?.rows.map((item) => item.arm)).toEqual(['targeted', 'teacher']);
+    expect(others.map((figure) => figure.backend.backend)).toEqual(['local-ollama']);
   });
 
   it('leaves out rows from a report made before they said where they answered', () => {

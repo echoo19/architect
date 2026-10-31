@@ -66,10 +66,16 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
 
 /**
  * Where a comparison's attempts ran. Arms are compared only within one backend: the hosted copy
- * of the student, Spark itself as a reference, or this computer's 2-bit build on Ollama, or on
- * llama-server with adapters.
+ * of the student, Spark itself as a reference, the teacher alone as the agent in a run of its own
+ * (decision 095), or this computer's 2-bit build on Ollama, or on llama-server with adapters.
  */
-export const BackendIdSchema = z.enum(['hosted', 'reference', 'local-ollama', 'local-llama.cpp']);
+export const BackendIdSchema = z.enum([
+  'hosted',
+  'reference',
+  'teacher',
+  'local-ollama',
+  'local-llama.cpp',
+]);
 export type BackendId = z.infer<typeof BackendIdSchema>;
 
 /**

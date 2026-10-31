@@ -2,7 +2,13 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import type { ArmRow, ComparisonReport, ExperimentInput } from '@architect/shared';
+import {
+  costUsd,
+  mentorPreset,
+  type ArmRow,
+  type ComparisonReport,
+  type ExperimentInput,
+} from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { finishExperiments, installExperimentsFake } from './fixtures-experiments';
@@ -69,26 +75,35 @@ function asField(report: ComparisonReport): ComparisonReport {
 }
 
 /**
+ * What 1,000 of the recording's attempts cost at Spark's price: each reads 30,000 tokens and
+ * writes 800, as the dry run's hosted Glimmer attempts do.
+ */
+const SPARK_PER_THOUSAND =
+  1000 * costUsd(mentorPreset('meta-spark').pricing, { inputTokens: 30_000, outputTokens: 800 });
+
+/**
  * The recorded comparison with the teacher alone beside its arms, as the engine reports one
  * (decision 095): Spark's blank-harness reference row again as the teacher's own run, named
- * after the model, hosted, at what its attempts cost. The engine's own tests run the real arm.
+ * after the model, hosted, at Spark's price for the recording's attempts. The engine's own
+ * tests run the real arm.
  */
 function withTeacher(report: ComparisonReport): ComparisonReport {
+  const table = report.backends.find((backend) => backend.backend === 'reference');
+  const reference = table?.rows.find((row) => row.arm === 'reference');
+  if (table === undefined || reference === undefined) throw new Error('No Spark reference ran.');
+  const teacher: ArmRow = {
+    ...reference,
+    arm: 'teacher',
+    label: 'Spark alone',
+    runId: 'run_teacher',
+    model: 'Spark',
+    runsOn: 'hosted',
+    perThousandUsd: SPARK_PER_THOUSAND,
+  };
+  const own = { ...table, backend: 'teacher' as const, label: 'Spark alone, as the agent' };
   return {
     ...report,
-    backends: report.backends.map((backend) => {
-      const reference = backend.rows.find((row) => row.arm === 'reference');
-      if (backend.backend !== 'reference' || reference === undefined) return backend;
-      const teacher: ArmRow = {
-        ...reference,
-        arm: 'teacher',
-        label: 'Spark alone',
-        runId: 'run_teacher',
-        model: 'Spark',
-        runsOn: 'hosted',
-      };
-      return { ...backend, rows: [...backend.rows, teacher] };
-    }),
+    backends: [...report.backends, { ...own, rows: [teacher], paired: [], repeats: [] }],
   };
 }
 

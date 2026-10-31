@@ -84,6 +84,9 @@ const HOSTED_PRICE: TokenPricing = (() => {
   return pricing;
 })();
 
+/** What every model step of a dry-run attempt ends with, before the model that wrote it. */
+export const MODEL_MARK = 'written by ';
+
 /** What a model's calls are billed at: a teacher's preset price, else hosted Glimmer's. */
 function priceOf(model: string): TokenPricing {
   return MENTOR_PRESETS.find((preset) => preset.model === model)?.pricing ?? HOSTED_PRICE;
@@ -117,6 +120,10 @@ export class DryRunRuntime extends FakeRuntime {
   costScale = 1;
   /** The same for locked-test attempts alone, under the declared seeds 101 and 102. */
   lockedTestCostScale = 1;
+  /** How many times the usual tokens a model writes: a teacher that reasons at length. */
+  readonly outputScale = new Map<string, number>();
+  /** A model's own price, for one no preset knows, as a chosen teacher's endpoint carries it. */
+  readonly prices = new Map<string, TokenPricing>();
   /**
    * What the provider bills, as a share of the listed price, reported with each call the way
    * OpenRouter does; null when it reports no charge.
@@ -157,16 +164,20 @@ export class DryRunRuntime extends FakeRuntime {
    * of the returns desk makes two, reading about 30,000 tokens and writing 800 in all, more when
    * a test makes the price drift.
    */
-  callUsage(seed: number): { inputTokens: number; outputTokens: number } {
+  callUsage(seed: number, model = ''): { inputTokens: number; outputTokens: number } {
     if (this.unreported) return { inputTokens: 0, outputTokens: 0 };
     const locked = seed === 101 || seed === 102;
     const scale = this.costScale * (locked ? this.lockedTestCostScale : 1);
-    return { inputTokens: Math.round(15_000 * scale), outputTokens: Math.round(400 * scale) };
+    const writes = this.outputScale.get(model) ?? 1;
+    return {
+      inputTokens: Math.round(15_000 * scale),
+      outputTokens: Math.round(400 * scale * writes),
+    };
   }
 
   /** What a whole attempt reads and writes: its two calls. */
-  usageOf(seed: number): { inputTokens: number; outputTokens: number } {
-    const call = this.callUsage(seed);
+  usageOf(seed: number, model = ''): { inputTokens: number; outputTokens: number } {
+    const call = this.callUsage(seed, model);
     return { inputTokens: 2 * call.inputTokens, outputTokens: 2 * call.outputTokens };
   }
 
@@ -176,7 +187,7 @@ export class DryRunRuntime extends FakeRuntime {
    */
   billedFor(usage: { inputTokens: number; outputTokens: number }, model = ''): number | undefined {
     if (this.billing === null || this.unreported) return undefined;
-    return this.billing * costUsd(priceOf(model), usage);
+    return this.billing * costUsd(this.prices.get(model) ?? priceOf(model), usage);
   }
 
   /** Each task in turn, each reported as it finishes, as the real runtime reports them. */
@@ -190,15 +201,17 @@ export class DryRunRuntime extends FakeRuntime {
       const [item] = (await super.evaluateTasks([task], ctx, options)).items;
       if (item === undefined) continue;
       const { trace } = item.result;
-      // Its two model calls, each billed as the provider would bill it.
-      const call = this.callUsage(options.seed);
+      // Its two model calls, each billed as the provider would bill it, each saying which model
+      // wrote it, so a test can look for one model's words wherever they might have gone.
+      const call = this.callUsage(options.seed, ctx.student.model);
       for (const step of trace.steps) {
         if (step.kind !== 'model') continue;
+        step.text = `${step.text} [${MODEL_MARK}${ctx.student.model}]`;
         step.usage = { ...call };
         const billed = ctx.student.isLocal ? undefined : this.billedFor(call, ctx.student.model);
         if (billed !== undefined) step.costUsd = billed;
       }
-      trace.usage = this.usageOf(options.seed);
+      trace.usage = this.usageOf(options.seed, ctx.student.model);
       if (this.trainIds.has(item.task.id) && !item.result.check.pass) {
         this.trainFailures.push(item.task.id);
       }
@@ -409,7 +422,7 @@ class DryRunStudent implements StudentAdapter {
     yield { type: 'text', delta: 'ANSWER: {}' };
     const usage = this.isLocal
       ? { inputTokens: 300, outputTokens: 80 }
-      : this.runtime.usageOf(request.seed);
+      : this.runtime.usageOf(request.seed, this.model);
     const billed = this.isLocal ? undefined : this.runtime.billedFor(usage, this.model);
     yield {
       type: 'done',
@@ -601,7 +614,7 @@ export function comparisonWorld(options: { clock: Clock; parallel?: number }): C
         ? job.mentor.kind === 'model'
           ? job.mentor.model
           : 'none'
-        : backend === 'hosted'
+        : backend === 'hosted' || backend === 'teacher'
           ? (job.student.hosted?.model ?? 'none')
           : job.student.local.model,
     provider: `${backend} (dry run)`,

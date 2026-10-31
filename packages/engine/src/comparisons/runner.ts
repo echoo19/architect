@@ -64,6 +64,7 @@ import {
 import { armRun, buildReport } from './report';
 import { StudentCredit } from './spend';
 import { sweep } from './sweep';
+import { teacherJob, teacherOf } from './teacher';
 
 /** What the runner runs on: the engine's dependencies, real or fakes, and a few of its own. */
 export interface ComparisonEnvironment {
@@ -144,10 +145,14 @@ const MAX_RESUMES = 5;
 /** Dev tasks of each type the regression check takes from the other job. */
 const REGRESSION_PER_TYPE = 10;
 
+/**
+ * The arms in the order they develop. The teacher alone needs no other arm, but starts last, so
+ * its price, which only its own attempts show, can't hold back an arm before it in 037's order.
+ */
 const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
-  ['bare', 'draft', 'teacher'],
+  ['bare', 'draft'],
   ['targeted', 'fixed'],
-  ['weights-one-shot', 'weights-targeted'],
+  ['weights-one-shot', 'weights-targeted', 'teacher'],
 ];
 
 /** The arms that measure other arms' graduates and have no run of their own. */
@@ -328,8 +333,8 @@ function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSet
     ...modelKeys(models),
     providers: models.providers === undefined ? null : [...models.providers],
     localModel: models.localModel,
-    teacher:
-      config.teacher === undefined ? null : `${config.teacher.model} at ${config.teacher.baseUrl}`,
+    // The whole of a chosen teacher, so a resume can't change its label, key name or price.
+    teacher: config.teacher === undefined ? null : JSON.stringify(config.teacher),
   };
 }
 
@@ -895,9 +900,7 @@ async function identities(
   const weights = funded('weights-one-shot') || funded('weights-targeted');
   const backends: BackendId[] = [
     'hosted',
-    ...(funded('reference') || funded('reference-targeted') || funded('teacher')
-      ? (['reference'] as const)
-      : []),
+    ...(funded('reference') || funded('reference-targeted') ? (['reference'] as const) : []),
     ...(config.localOllama || weights ? (['local-ollama'] as const) : []),
     ...(weights ? (['local-llama.cpp'] as const) : []),
   ];
@@ -905,6 +908,12 @@ async function identities(
   for (const backend of backends) {
     const identity = await env.identify(backend, base);
     if (identity !== null) found[backend] = identity;
+  }
+  // The teacher alone answers on its own endpoint, which its job copy holds as the hosted one.
+  const teacher = funded('teacher') ? teacherOf(base, config.teacher) : null;
+  if (teacher !== null && typeof teacher !== 'string') {
+    const identity = await env.identify('teacher', teacherJob(base, teacher));
+    if (identity !== null) found.teacher = identity;
   }
   return found;
 }

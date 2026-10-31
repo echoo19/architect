@@ -142,7 +142,9 @@ async function ollamaVersion(baseUrl: string): Promise<string | null> {
 async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity | null> {
   const hosted = job.student.hosted;
   switch (backend) {
-    case 'hosted': {
+    // The teacher alone is read from its job copy, which holds it as the hosted endpoint.
+    case 'hosted':
+    case 'teacher': {
       if (hosted === undefined) return null;
       const providers = hosted.providers;
       return {
