@@ -313,6 +313,18 @@ export const JobRecordSchema = z.object({
   taskCount: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  /**
+   * Set on a later version of a job, made by teaching on one of the job's never-seen
+   * organizations (decision 089): the job it came from, this one's version number and the
+   * organization moved from never seen to taught on.
+   */
+  versionOf: z
+    .object({
+      jobId: z.string(),
+      version: z.number().int().min(2),
+      org: z.object({ id: z.string(), name: z.string() }),
+    })
+    .optional(),
 });
 export type JobRecord = z.infer<typeof JobRecordSchema>;
 

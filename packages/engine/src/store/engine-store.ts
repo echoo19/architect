@@ -341,6 +341,8 @@ function jobParams(job: JobRecord): Params {
     task_count: job.taskCount,
     created_at: job.createdAt,
     updated_at: job.updatedAt,
+    // Only a later version of a job has one, and it is set once, when that version is made.
+    ...(job.versionOf === undefined ? {} : { version_of: jsonOrNull(job.versionOf) }),
   };
 }
 
@@ -353,6 +355,7 @@ function jobFromRow(row: Row): JobRecord {
     taskCount: row.task_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    versionOf: orUndefined(fromJson(row.version_of)),
   });
 }
 

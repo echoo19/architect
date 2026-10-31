@@ -41,10 +41,12 @@ import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
 import { mentorDataTexts } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
-import type { StoredRun } from '../store/records';
+import type { JobRecord, StoredRun } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
 import type { Clock, LoopDeps } from './deps';
+import { must } from './errors';
 import { readJsonFile, readJsonLines, writeJsonFile, writeJsonLines } from './files';
+import { nextVersion } from './job-versions';
 import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
 import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
@@ -725,7 +727,7 @@ export class JobLibrary {
     );
   }
 
-  private record(job: Job, taskCount: number): void {
+  private record(job: Job, taskCount: number, versionOf?: JobRecord['versionOf']): void {
     this.store.transaction(() => {
       this.store.jobs.insert({
         id: job.id,
@@ -735,6 +737,7 @@ export class JobLibrary {
         taskCount,
         createdAt: job.createdAt,
         updatedAt: isoNow(this.clock),
+        ...(versionOf === undefined ? {} : { versionOf }),
       });
       this.contracts.ensure(job);
     });
@@ -848,6 +851,107 @@ export class JobLibrary {
       taught.map((item) => orgDataDir(this.paths.jobDir(jobId), item.id)),
     );
     await this.deps.vault.addOrganization(jobId, { org, files }, tasks, others, data);
+  }
+
+  /**
+   * Teaches on a never-seen organization in a new version of the field (decision 089), never in
+   * place: a new job, recorded as this one's next version, whose taught organizations take the
+   * moved one with its files, and whose practice and check tasks take its tasks, split in the
+   * job's own proportion with families whole. Everything else is this job's: its practice, check
+   * and calibration tasks, its final test without the moved organization, and every other sealed
+   * organization, sealed again with prints made afresh for what the new version's teacher may
+   * see (decision 082). This job, its vault, its runs and what they measured stay as they were;
+   * a job that already has a newer version is taught on there instead.
+   */
+  async teachOn(jobId: string, orgName: string): Promise<Job> {
+    const job = await this.get(jobId);
+    const record = must(this.store.jobs.get(jobId), `The job "${jobId}"`);
+    const newer = nextVersion(this.store, jobId);
+    if (newer !== null) {
+      throw new Error(
+        `${job.name} already has a newer version, ${newer.name}. Teach on ${orgName} there.`,
+      );
+    }
+    const taught = trainOrganizations(job);
+    if (taught.length === 0 || !(await this.deps.vault.isSealed(jobId))) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} has no sealed organization to teach on. Make a field of several organizations first.`,
+      );
+    }
+    const sealed = (await this.deps.vault.transferIdentifiers(jobId)).find(
+      (org) => org.name === orgName,
+    );
+    if (sealed === undefined) {
+      throw new Error(`${job.name} has no never-seen organization called ${orgName}.`);
+    }
+    const released = await this.deps.vault.releaseOrganization(jobId, sealed.id);
+    const moved: Organization = { ...released.org, role: 'train' };
+    const count = released.tasks.length;
+    const { train, dev } = job.splits;
+    const checks = Math.round((count * dev) / Math.max(1, train + dev));
+    const split = this.deps.runtime.splitTasks(released.tasks, {
+      seed: job.splits.seed,
+      calibration: 0,
+      train: count - checks,
+      dev: checks,
+      test: 0,
+    });
+    if (split.train.length + split.dev.length !== count) {
+      throw new Error(`${orgName}'s tasks couldn't all be split into practice and check tasks.`);
+    }
+    const version = (record.versionOf?.version ?? 1) + 1;
+    const base = { id: job.id.replace(/-v\d+$/, ''), name: job.name.replace(/ v\d+$/, '') };
+    const next: Job = {
+      ...job,
+      id: await this.freshId(`${base.id}-v${version}`),
+      name: `${base.name} v${version}`,
+      createdAt: isoNow(this.clock),
+      organizations: [...taught, moved],
+      splits: { ...job.splits, train: train + split.train.length, dev: dev + split.dev.length },
+    };
+    return this.finalize(next, async () => {
+      // The job's own folder, less its runs, its tasks and its job file, which are the new one's.
+      const from = this.paths.jobDir(jobId);
+      const skipped = new Set(
+        ['runs', 'tasks', 'job.json', 'finalizing'].map((name) => join(from, name)),
+      );
+      await cp(from, this.paths.jobDir(next.id), {
+        recursive: true,
+        filter: (path) => !skipped.has(path),
+      });
+      for (const file of released.files) {
+        const target = join(this.paths.orgDataDir(next.id, moved.id), file.name);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.content);
+      }
+      const visible = {
+        calibration: await this.tasks(jobId, 'calibration'),
+        train: [...(await this.tasks(jobId, 'train')), ...split.train],
+        dev: [...(await this.tasks(jobId, 'dev')), ...split.dev],
+      };
+      for (const [name, tasks] of Object.entries(visible)) {
+        await writeJsonLines(this.paths.tasksFile(next.id, name as VisibleSplit), tasks);
+      }
+      const data = await mentorDataTexts(
+        next.data.files,
+        [...taught, moved].map((org) => this.paths.orgDataDir(next.id, org.id)),
+      );
+      await this.deps.vault.sealVersion(
+        jobId,
+        next.id,
+        moved.id,
+        [...visible.calibration, ...visible.train, ...visible.dev],
+        data,
+      );
+      await writeJsonFile(this.paths.jobFile(next.id), next);
+      this.record(next, record.taskCount, {
+        jobId,
+        version,
+        org: { id: moved.id, name: moved.name },
+      });
+      return next;
+    });
   }
 
   /** An added organization's tasks: its folder's `tasks.jsonl`, or a drafted field's kinds made from its files. */

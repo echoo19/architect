@@ -50,6 +50,7 @@ import { bundleFromRequest, planFromRequest, readModelConfig } from '../training
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
+import { labelTaughtLater, taughtLater, withVersions } from '../loop/job-versions';
 import { LineageLog } from '../loop/lineage';
 import type { DataPaths } from '../loop/paths';
 import { capabilityBreakdown, mentoringProgress } from '../loop/progress';
@@ -108,11 +109,16 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       target === record.lockedTestOn
         ? store.addedQualifications.list(record.run.id).flatMap((item) => item.results ?? [])
         : [];
-    return added.length === 0
-      ? card
-      : { ...card, test: { ...card.test, perOrg: [...(card.test.perOrg ?? []), ...added] } };
+    const withAdded =
+      added.length === 0
+        ? card
+        : { ...card, test: { ...card.test, perOrg: [...(card.test.perOrg ?? []), ...added] } };
+    return labelTaughtLater(withAdded, taughtLater(store, record.run.jobId));
   };
-  /** A field as the person's page shows it, with each run's qualifications on organizations added later. */
+  /**
+   * A field as the person's page shows it: each run's qualifications on organizations added
+   * later, the version it is of, and its sealed organizations a later version teaches on.
+   */
   const fieldOf = async (jobId: string): Promise<FieldView> => {
     const view = fieldView(await jobs.get(jobId), paths);
     const qualifications = store.runs
@@ -120,7 +126,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       .flatMap((record) =>
         store.addedQualifications.list(record.run.id).map(addedQualificationView),
       );
-    return qualifications.length === 0 ? view : { ...view, qualifications };
+    return withVersions(qualifications.length === 0 ? view : { ...view, qualifications }, store);
   };
   const lineageOf = (record: StoredRun) =>
     new LineageLog(paths.lineageFile(record.run.jobId, record.run.id)).read();
@@ -406,6 +412,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         await jobs.addOrganization(jobId, request);
         return fieldOf(jobId);
       },
+      teachOn: async (jobId, org) => fieldOf((await jobs.teachOn(jobId, org)).id),
       quoteRecordings: (jobId, org, files) => recordings.quote(jobId, org, files),
       shareRecordings: (jobId, allowed) => recordings.share(jobId, allowed),
       transcribe: (jobId, request) => recordings.transcribe(jobId, request),

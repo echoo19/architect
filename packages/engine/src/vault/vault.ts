@@ -70,6 +70,11 @@ export interface TransferOrganization {
   files: readonly { name: string; content: string | Uint8Array }[];
 }
 
+/** A sealed organization with its files and its tasks, as they were sealed. */
+export interface SealedOrganization extends TransferOrganization {
+  tasks: Task[];
+}
+
 /** The sealed organizations, opened for the locked test: each one's folder, by its id. */
 export interface OpenedTransfer {
   organizations: Organization[];
@@ -377,6 +382,114 @@ export class Vault {
         `A sealed organization's tasks of job ${jobId} changed after they were sealed.`,
       );
     }
+    return content
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => TaskSchema.parse(JSON.parse(line)));
+  }
+
+  /**
+   * A never-seen organization's files and tasks, as they were sealed, for the new version of the
+   * job that teaches on it, at the person's word (decision 089). It is the engine's, to become
+   * that version's material and practice; nothing here changes, so this job's final test and
+   * what was measured on it stay as they were. A file changed since it was sealed is refused.
+   */
+  releaseOrganization(jobId: string, orgId: string): SealedOrganization {
+    const found = this.sealedParts(jobId).find(({ org }) => org.id === orgId);
+    if (found === undefined) {
+      throw new GuardError('split', `No organization sealed in job ${jobId} has that id.`);
+    }
+    return found;
+  }
+
+  /**
+   * Seals the next version of a job in `toJobId`'s vault (decision 089): its final test is this
+   * job's without the tasks of `movedOrgId`, now taught on, its calibration split is this job's,
+   * and every other sealed organization, those added later among them, is sealed again as never
+   * seen with its files and tasks. The prints are made afresh by decision 082's rules: against
+   * `others`, the new version's visible tasks, and `data`, its taught organizations' files with
+   * the moved one's among them, and a task with nothing of its own left is refused. This job's
+   * vault is only read.
+   */
+  sealVersion(
+    fromJobId: string,
+    toJobId: string,
+    movedOrgId: string,
+    others: readonly Task[],
+    data: readonly string[],
+  ): void {
+    const fingerprint = this.fingerprint(fromJobId);
+    const tests = this.readChecked(
+      join(this.dir(fromJobId), TEST_FILE),
+      fingerprint.testFileSha256,
+      `The locked test of job ${fromJobId} changed after it was sealed.`,
+    );
+    const calibration =
+      fingerprint.certify === undefined
+        ? []
+        : this.readChecked(
+            join(this.dir(fromJobId), CERTIFY_FILE),
+            fingerprint.certify.fileSha256,
+            `The calibration split of job ${fromJobId} changed after it was sealed.`,
+          );
+    const kept = this.sealedParts(fromJobId).filter(({ org }) => org.id !== movedOrgId);
+    // The job's own sealed organizations' tasks are in its test; those added later bring theirs.
+    const own = new Set((fingerprint.transfer ?? []).map(({ org }) => org.id));
+    const added = kept.filter(({ org }) => !own.has(org.id)).flatMap(({ tasks }) => tasks);
+    this.seal(
+      toJobId,
+      [...tests.filter((task) => task.org !== movedOrgId), ...added],
+      others,
+      data,
+      kept.map(({ org, files }) => ({ org, files })),
+      calibration,
+    );
+  }
+
+  /**
+   * Every organization sealed in a job, the job's own and those added later, with its files and
+   * tasks as sealed, each checked against its hash.
+   */
+  private sealedParts(jobId: string): SealedOrganization[] {
+    const fingerprint = this.fingerprint(jobId);
+    const transfer = fingerprint.transfer ?? [];
+    const tests =
+      transfer.length === 0
+        ? []
+        : this.readChecked(
+            join(this.dir(jobId), TEST_FILE),
+            fingerprint.testFileSha256,
+            `The locked test of job ${jobId} changed after it was sealed.`,
+          );
+    const changed = `A sealed organization's file of job ${jobId} changed after it was sealed.`;
+    const read = (folder: string, files: readonly { name: string; sha256: string }[]) =>
+      files.map((file) => {
+        const content = readFileSync(join(folder, file.name));
+        if (sha256(content) !== file.sha256) throw new GuardError('split', changed);
+        return { name: file.name, content: new Uint8Array(content) };
+      });
+    return [
+      ...transfer.map(({ org, files }) => ({
+        org,
+        files: read(this.transferDir(jobId, org.id), files),
+        tasks: tests.filter((task) => task.org === org.id),
+      })),
+      ...this.added(jobId).map(({ org, files, tasksSha256 }) => ({
+        org,
+        files: read(join(this.addedDir(jobId, org.id), 'data'), files),
+        tasks: this.readChecked(
+          join(this.addedDir(jobId, org.id), ADDED_TASKS),
+          tasksSha256,
+          changed,
+        ),
+      })),
+    ];
+  }
+
+  /** The tasks of a sealed file, refused when it no longer has the hash it was sealed with. */
+  private readChecked(file: string, expected: string, changed: string): Task[] {
+    const content = readFileSync(file, 'utf8');
+    if (sha256(content) !== expected) throw new GuardError('split', changed);
     return content
       .split('\n')
       .filter((line) => line !== '')

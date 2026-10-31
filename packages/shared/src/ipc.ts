@@ -553,6 +553,13 @@ export interface ArchitectApi {
      */
     addOrganization(jobId: string, request: AddOrganizationRequest): Promise<FieldView>;
     /**
+     * Teaches on a never-seen organization in a new version of the field (decision 089): a new
+     * job whose practice and check tasks take the organization's tasks and whose material takes
+     * its files, with every other sealed organization sealed again. The field it came from and
+     * what was measured on it stay as they were. Returns the new version's field.
+     */
+    teachOn(jobId: string, org: string): Promise<FieldView>;
+    /**
      * The field export as it would be written now (decision 071), built and checked in memory
      * with nothing written: its counts and what it leaves out.
      */

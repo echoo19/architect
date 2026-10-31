@@ -29,6 +29,11 @@ export const OrgTypeResultSchema = z.object({
   total: z.number().int().nonnegative(),
   /** Tested after the run, on an organization sealed after its job was made (decision 085). */
   addedLater: z.literal(true).optional(),
+  /**
+   * Measured while the organization was never seen, and taught on since in a later version of
+   * the job (decision 089). Added when the card is read; the card as filed is unchanged.
+   */
+  taughtLater: z.literal(true).optional(),
 });
 export type OrgTypeResult = z.infer<typeof OrgTypeResultSchema>;
 
@@ -59,6 +64,8 @@ export const CertificateCheckSchema = z.object({
   answered: z.number().int().nonnegative(),
   errors: z.number().int().nonnegative(),
   held: z.boolean(),
+  /** As on a result: measured before the organization was taught on in a later version (089). */
+  taughtLater: z.literal(true).optional(),
 });
 export type CertificateCheck = z.infer<typeof CertificateCheckSchema>;
 

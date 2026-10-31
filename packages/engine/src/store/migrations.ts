@@ -504,4 +504,13 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE runs ADD COLUMN dev_by_org TEXT;
     `,
   },
+  {
+    version: 22,
+    name: 'job_versions',
+    sql: `
+      -- A later version of a job, made by teaching on one of its never-seen organizations
+      -- (decision 089): the job it came from, its number and the organization moved.
+      ALTER TABLE jobs ADD COLUMN version_of TEXT;
+    `,
+  },
 ];

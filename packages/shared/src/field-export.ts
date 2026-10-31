@@ -137,8 +137,25 @@ export const FieldViewSchema = z.object({
       files: z.number().int().nonnegative(),
       /** Sealed after the job was made, beside its seal (decision 085). */
       addedLater: z.literal(true).optional(),
+      /**
+       * Taught on since in a later version of the job (decision 089). It stays sealed here, so
+       * what this version measured on it stays as it was.
+       */
+      taughtIn: z.object({ jobId: z.string(), name: z.string() }).optional(),
     }),
   ),
+  /**
+   * Set on a later version of a field, made by teaching on one of its never-seen organizations
+   * (decision 089): the field it came from, this one's version number and the organization moved.
+   */
+  versionOf: z
+    .object({
+      jobId: z.string(),
+      name: z.string(),
+      version: z.number().int().min(2),
+      org: z.string(),
+    })
+    .optional(),
   /** Tasks in the locked test; null before the job's test split is sealed. */
   lockedTestTasks: z.number().int().nonnegative().nullable(),
   /** Each frozen version's test on an organization added later, by run and organization name. */

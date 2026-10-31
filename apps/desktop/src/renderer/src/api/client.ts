@@ -197,6 +197,9 @@ export const flowApi = {
   /** Seals a never-seen organization into a field from a folder the person picked. */
   addOrganization: (jobId: string, request: AddOrganizationRequest) =>
     read('jobs.addOrganization', FieldViewSchema, bridge().jobs.addOrganization(jobId, request)),
+  /** Teaches on a never-seen organization in a new version of the field; returns that version. */
+  teachOn: (jobId: string, org: string) =>
+    read('jobs.teachOn', FieldViewSchema, bridge().jobs.teachOn(jobId, org)),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
   roundDiff: (runId: string, round: number) =>
