@@ -89,7 +89,11 @@ describe('design tokens', () => {
   });
 
   it('paints nothing on the ground: no gradient, dot grid or glow', () => {
-    for (const css of [tokens, theme]) {
+    // The one light there is: a card's fixed top light, white fading to nothing.
+    const sheen =
+      /^\s*--ui-sheen: linear-gradient\(180deg, rgb\(255 255 255 \/ 0\.0\d+\), rgb\(255 255 255 \/ 0\) \d+px\);$/m;
+    expect(tokens).toMatch(sheen);
+    for (const css of [tokens.replace(sheen, ''), theme]) {
       expect(css).not.toMatch(/gradient/i);
       expect(css).not.toMatch(/dot-grid|--ui-dot\b/);
     }

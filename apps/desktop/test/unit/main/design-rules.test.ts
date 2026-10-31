@@ -69,9 +69,10 @@ describe('docs/DESIGN.md, as far as the source can show it', () => {
   });
 
   it('paints nothing on the ground: no gradient, glow or dot grid', () => {
+    // The one gradient is a card's fixed top light, held in a token (docs/DESIGN.md, Material).
     expect(
       hits(/gradient|bg-linear|bg-radial|bg-conic|bg-dot-grid|backdrop-blur|\bblur-|drop-shadow/i),
-    ).toEqual([]);
+    ).toEqual([expect.stringMatching(/^packages\/ui\/src\/styles\/tokens\.css:\d+: --ui-sheen: /)]);
     expect(hits(/box-shadow:\s*0 0 \d+px/)).toEqual([]);
   });
 
