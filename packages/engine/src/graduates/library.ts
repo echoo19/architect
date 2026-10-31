@@ -555,9 +555,23 @@ export class GraduateLibrary {
     return this.settings(graduateId);
   }
 
-  /** Removes the agent, every version and its installation. Its data folders stay where they are. */
+  /**
+   * Removes the agent, every version and its installation. Its data folders stay where they are.
+   * An agent in a team is refused until it is taken out.
+   */
   async remove(graduateId: string): Promise<void> {
     const record = this.agent(graduateId);
+    // A team's chats and consultations name its agents (decision 100), so one stays while in one.
+    const team = this.ctx.store.teams
+      .list()
+      .find((each) => each.members.some((member) => member.graduateId === record.id));
+    if (team) {
+      throw new Error(
+        team.members[0]?.graduateId === record.id
+          ? `${record.name} leads ${team.name}. Remove the team in Models, Teams, first.`
+          : `${record.name} is in ${team.name}. Take it out of the team in Models, Teams, first.`,
+      );
+    }
     this.ctx.store.graduates.remove(record.id);
     this.failures.delete(record.id);
     this.checkFailures.delete(record.id);

@@ -11,6 +11,7 @@ import {
   ReportCardSchema,
   RuntimeMeasurementSchema,
   StudentTargetSchema,
+  TeamSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type Category,
@@ -27,6 +28,7 @@ import {
   type RuntimeMeasurement,
   type SplitName,
   type StudentTarget,
+  type Team,
   type WorkspaceChat,
   type WorkspaceMessage,
 } from '@architect/shared';
@@ -244,12 +246,26 @@ export interface EngineStore {
     /** Oldest first. */
     list(jobId: string): StoredContract[];
   };
+  /** Agents that answer together (decision 100). */
+  teams: {
+    insert(team: Team): void;
+    update(team: Team): void;
+    get(id: string): Team | null;
+    /** Oldest first. */
+    list(): Team[];
+    /** Removes the team with its chats. */
+    remove(id: string): void;
+  };
   chats: {
     insert(chat: WorkspaceChat): void;
     update(chat: WorkspaceChat): void;
     get(id: string): WorkspaceChat | null;
-    /** Most recently updated first. */
+    /** The agent's own chats, not its teams', most recently updated first. */
     list(graduateId: string): WorkspaceChat[];
+    /** A team's chats, most recently updated first. */
+    listTeam(teamId: string): WorkspaceChat[];
+    /** The chats of every team the agent leads, most recently updated first. */
+    listLed(graduateId: string): WorkspaceChat[];
   };
   messages: {
     insert(message: WorkspaceMessage): void;
@@ -840,8 +856,20 @@ function chatParams(chat: WorkspaceChat): Params {
     running: flag(chat.running),
     waiting: flag(chat.waiting),
     graduate_version: chat.graduateVersion ?? null,
+    team_id: chat.teamId ?? null,
     created_at: chat.createdAt,
     updated_at: chat.updatedAt,
+  };
+}
+
+function teamParams(team: Team): Params {
+  const parsed = TeamSchema.parse(team);
+  return {
+    id: parsed.id,
+    name: parsed.name,
+    body: json(parsed),
+    created_at: parsed.createdAt,
+    updated_at: parsed.updatedAt,
   };
 }
 
@@ -853,6 +881,7 @@ function chatFromRow(row: Row): WorkspaceChat {
     running: row.running === 1,
     waiting: row.waiting === 1,
     graduateVersion: orUndefined(row.graduate_version),
+    teamId: orUndefined(row.team_id),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });
@@ -1408,6 +1437,22 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
           .map(contractFromRow),
     },
 
+    teams: {
+      insert: (team) => sql.insert('teams', teamParams(team)),
+      update: (team) => sql.update('teams', teamParams(team), ['id']),
+      get: (id) => {
+        const row = sql.one('SELECT body FROM teams WHERE id = :id', { id });
+        return row ? bodyOf(TeamSchema, row) : null;
+      },
+      list: () =>
+        sql
+          .all('SELECT body FROM teams ORDER BY created_at, rowid')
+          .map((row) => bodyOf(TeamSchema, row)),
+      remove: (id) => {
+        sql.run('DELETE FROM teams WHERE id = :id', { id });
+      },
+    },
+
     chats: {
       insert: (chat) => sql.insert('chats', chatParams(chat)),
       update: (chat) => sql.update('chats', chatParams(chat), ['id']),
@@ -1418,7 +1463,21 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
       list: (graduateId) =>
         sql
           .all(
-            'SELECT * FROM chats WHERE graduate_id = :graduate_id ORDER BY updated_at DESC, rowid DESC',
+            'SELECT * FROM chats WHERE graduate_id = :graduate_id AND team_id IS NULL ORDER BY updated_at DESC, rowid DESC',
+            { graduate_id: graduateId },
+          )
+          .map(chatFromRow),
+      listTeam: (teamId) =>
+        sql
+          .all(
+            'SELECT * FROM chats WHERE team_id = :team_id ORDER BY updated_at DESC, rowid DESC',
+            { team_id: teamId },
+          )
+          .map(chatFromRow),
+      listLed: (graduateId) =>
+        sql
+          .all(
+            'SELECT * FROM chats WHERE graduate_id = :graduate_id AND team_id IS NOT NULL ORDER BY updated_at DESC, rowid DESC',
             { graduate_id: graduateId },
           )
           .map(chatFromRow),
