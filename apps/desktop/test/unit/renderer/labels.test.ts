@@ -10,6 +10,7 @@ import {
   activeVersionName,
   agentModelName,
   baseModelName,
+  modelTabsFit,
   capitalized,
   mentorIsLocal,
   quantizationLabel,
@@ -166,5 +167,12 @@ describe('activeVersionName', () => {
     expect(activeVersionName({ activeVersion: null, manifest: { harness: { round: 7 } } })).toBe(
       'The setup from round 7',
     );
+  });
+});
+
+describe("an inspector's model tabs", () => {
+  it('go by name when the two fit beside the other tabs, by icon when they would be cut', () => {
+    expect(modelTabsFit({ mentor: 'Spark', student: 'Glimmer' })).toBe(true);
+    expect(modelTabsFit({ mentor: 'Qwen3 235B', student: 'Qwen3 32B' })).toBe(false);
   });
 });

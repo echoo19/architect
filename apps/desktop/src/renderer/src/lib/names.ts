@@ -21,6 +21,18 @@ export function shortModelName(label: string): string {
   return short || label;
 }
 
+/** How many letters the two models' names may have together beside an inspector's other tabs. */
+const TAB_NAMES_MAX = 12;
+
+/**
+ * Whether an inspector's teacher and student tabs fit by their models' short names ("Spark" and
+ * "Glimmer" do). Longer ones ("Qwen3 235B") would cut every tab, so those two show their icons,
+ * named by the model, and the panel under each names it too.
+ */
+export function modelTabsFit(names: { mentor: string; student: string }): boolean {
+  return names.mentor.length + names.student.length <= TAB_NAMES_MAX;
+}
+
 export function mentorName(mentor: MentorConfig): string {
   return shortModelName(mentor.label);
 }

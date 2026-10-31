@@ -7,6 +7,8 @@ import { setQueryData, toError } from '../../api/query';
 import { attempt } from '../../lib/notify';
 import { problemOf } from '../../lib/problems';
 import { navigate, paths } from '../../lib/router';
+import { useUi } from '../../state/ui';
+import { replacedText } from './replaced';
 
 /** The job folder's format, with a worked example. */
 const JOB_FORMAT = 'https://github.com/echoo19/architect/blob/main/docs/JOB_FORMAT.md';
@@ -32,9 +34,9 @@ export function ImportJobButton({ size }: Pick<ButtonProps, 'size'>) {
     const file = picked?.[0];
     if (!file) return;
     setImporting(true);
-    let job;
+    let imported;
     try {
-      job = await flowApi.importJob(file);
+      imported = await flowApi.importJob(file);
     } catch (error) {
       const failure = toError(error);
       const problem = problemOf(failure);
@@ -50,8 +52,21 @@ export function ImportJobButton({ size }: Pick<ButtonProps, 'size'>) {
     } finally {
       setImporting(false);
     }
+    const { job, replaced } = imported;
     setQueryData(queryKeys.job(job.id), job);
     navigate(paths.define(job.id));
+    // The file's models that aren't connected here were replaced; the person hears which.
+    if (replaced.length > 0) {
+      toast({
+        key: 'imported-models',
+        title: 'Imported with your models',
+        description: replacedText(replaced),
+        action: {
+          label: 'Add a connection',
+          onClick: () => useUi.getState().openSettings('models'),
+        },
+      });
+    }
   };
 
   return (

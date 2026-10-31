@@ -1,14 +1,18 @@
 import {
   armInSentence,
   ArmIdSchema,
+  DEFAULT_MENTOR_PRESET,
+  DEFAULT_STUDENT,
   defaultExperimentSettings,
   ExperimentInputSchema,
+  mentorPreset,
   type ArmId,
   type ArmReport,
   type ArmRow,
   type BackendId,
   type BackendTable,
   type ComparisonReport,
+  type ExperimentDetail,
   type ExperimentGroup,
   type ExperimentInput,
   type ExperimentStatus,
@@ -16,7 +20,9 @@ import {
   type PassDifference,
   type PrimaryComparison,
 } from '@architect/shared';
+import type { ModelNames } from '../flow/train/phase';
 import { formatScore } from '../lib/format';
+import { shortModelName } from '../lib/names';
 
 /*
  * What the experiment screens say about an experiment, worked out from its stored records only:
@@ -55,33 +61,57 @@ export function armStatusWord(arm: ArmReport, experiment: ExperimentStatus): str
   }
 }
 
-/** Every arm the runner takes, in its order, under the names the tiles use. */
-export const ARM_NAMES: Record<ArmId, string> = {
-  bare: 'Glimmer alone',
-  draft: 'One-shot draft',
-  targeted: 'Targeted mentoring',
-  reference: 'Spark reference',
-  'reference-targeted': 'Spark, targeted harness',
-  teacher: 'Spark alone',
-  repeat: 'Decoding repeat',
-  fixed: 'Fixed intervention',
-  'weights-one-shot': 'One-shot adapter',
-  'weights-targeted': 'Failure-specific adapter',
+/**
+ * The short names of the models an experiment runs, as every line names them: the field's own
+ * teacher and student (decision 094), "Spark" and "Glimmer" by default.
+ */
+export function experimentNames(detail: Pick<ExperimentDetail, 'names'>): ModelNames {
+  return {
+    mentor: shortModelName(detail.names.mentor),
+    student: shortModelName(detail.names.student),
+  };
+}
+
+/** The defaults' names, for a list that spans experiments, each on its own field's models. */
+export const DEFAULT_NAMES: ModelNames = {
+  mentor: shortModelName(mentorPreset(DEFAULT_MENTOR_PRESET).label),
+  student: DEFAULT_STUDENT.label,
 };
 
+/** Every arm the runner takes, in its order, under the names the tiles use. */
+export function armNames({ mentor, student }: ModelNames): Record<ArmId, string> {
+  return {
+    bare: `${student} alone`,
+    draft: 'One-shot draft',
+    targeted: 'Targeted mentoring',
+    reference: `${mentor} reference`,
+    'reference-targeted': `${mentor}, targeted harness`,
+    teacher: `${mentor} alone`,
+    repeat: 'Decoding repeat',
+    fixed: 'Fixed intervention',
+    'weights-one-shot': 'One-shot adapter',
+    'weights-targeted': 'Failure-specific adapter',
+  };
+}
+
+/** The arms under the defaults' names. */
+export const ARM_NAMES = armNames(DEFAULT_NAMES);
+
 /** What each arm does, in one plain line under its name. */
-export const ARM_DESCRIPTIONS: Record<ArmId, string> = {
-  bare: 'Glimmer alone, with no teaching',
-  draft: 'Spark writes one harness before any practice',
-  targeted: "Spark edits the harness round by round from Glimmer's failures",
-  reference: 'Spark takes the test itself, with a blank harness',
-  'reference-targeted': 'Spark takes the test itself, with the taught harness',
-  teacher: 'Spark does the job itself in a run of its own, with no teaching',
-  repeat: 'The finished arms tested again on a new seed, to show the noise',
-  fixed: 'Spark may use one kind of change only',
-  'weights-one-shot': "Retrains Glimmer's weights once on verified examples",
-  'weights-targeted': "Retrains Glimmer's weights on the failures Spark found",
-};
+export function armDescriptions({ mentor, student }: ModelNames): Record<ArmId, string> {
+  return {
+    bare: `${student} alone, with no teaching`,
+    draft: `${mentor} writes one harness before any practice`,
+    targeted: `${mentor} edits the harness round by round from ${student}'s failures`,
+    reference: `${mentor} takes the test itself, with a blank harness`,
+    'reference-targeted': `${mentor} takes the test itself, with the taught harness`,
+    teacher: `${mentor} does the job itself in a run of its own, with no teaching`,
+    repeat: 'The finished arms tested again on a new seed, to show the noise',
+    fixed: `${mentor} may use one kind of change only`,
+    'weights-one-shot': `Retrains ${student}'s weights once on verified examples`,
+    'weights-targeted': `Retrains ${student}'s weights on the failures ${mentor} found`,
+  };
+}
 
 export const ARMS: readonly ArmId[] = ArmIdSchema.options;
 
@@ -151,10 +181,10 @@ export const GROUP_WORDS: Record<ExperimentGroup, string> = {
 };
 
 /** The primary comparison in one line: "Targeted mentoring minus Bare student, on …". */
-export function primaryText(input: ExperimentInput): string | null {
+export function primaryText(input: ExperimentInput, arms = ARM_NAMES): string | null {
   const primary = input.primaryComparison;
   if (primary === undefined) return null;
-  return `${ARM_NAMES[primary.a]} minus ${ARM_NAMES[primary.b]}, on ${GROUP_WORDS[primary.group]}`;
+  return `${arms[primary.a]} minus ${arms[primary.b]}, on ${GROUP_WORDS[primary.group]}`;
 }
 
 /** What keeps a plan from being preregistered beyond being sent, in a sentence; null when nothing. */
@@ -290,10 +320,9 @@ export function skillsOf(row: ArmRow): { type: string; label: string }[] {
 }
 
 /** A row's name: the arm's, with its configuration when the arm has more than one. */
-export function rowLabel(row: ArmRow): string {
+export function rowLabel(row: ArmRow, arms = ARM_NAMES): string {
   // The teacher arm names the model that did the job, which may be one the person chose.
-  const name =
-    row.arm === 'teacher' && row.model !== null ? `${row.model} alone` : ARM_NAMES[row.arm];
+  const name = row.arm === 'teacher' && row.model !== null ? `${row.model} alone` : arms[row.arm];
   return row.configuration === null ? name : `${name} (${row.configuration})`;
 }
 
@@ -370,16 +399,18 @@ export function costRowsOf(report: ComparisonReport): CostRow[] {
 }
 
 /** Where the student ran, in a word or two. */
-export const BACKEND_NAMES: Record<BackendId, string> = {
-  hosted: 'Hosted',
-  reference: 'Spark',
-  'local-ollama': 'Ollama',
-  'local-llama.cpp': 'llama-server',
-};
+export function backendNames({ mentor }: ModelNames): Record<BackendId, string> {
+  return {
+    hosted: 'Hosted',
+    reference: mentor,
+    'local-ollama': 'Ollama',
+    'local-llama.cpp': 'llama-server',
+  };
+}
 
 /** A pairing in words: the two arms, or the pair's own label when an arm meets itself. */
-export function pairName(pair: Paired): string {
-  return pair.a === pair.b ? pair.label : `${ARM_NAMES[pair.a]} vs ${ARM_NAMES[pair.b]}`;
+export function pairName(pair: Paired, arms: Record<ArmId, string>): string {
+  return pair.a === pair.b ? pair.label : `${arms[pair.a]} vs ${arms[pair.b]}`;
 }
 
 export type Verdict = 'gain' | 'loss' | 'none';
@@ -405,7 +436,11 @@ export const VERDICT_WORDS: Record<Verdict, string> = {
  * ran first: on the whole test, the paired difference with its interval and the gain rule; on a
  * part of it, each arm's pass rate there and the difference. Null where either arm has nothing.
  */
-export function primaryResult(report: ComparisonReport, primary: PrimaryComparison): string | null {
+export function primaryResult(
+  report: ComparisonReport,
+  primary: PrimaryComparison,
+  arms = ARM_NAMES,
+): string | null {
   const [figure] = figuresOf(report);
   if (figure === undefined) return null;
   const pair = figure.pairs.find((item) => item.a === primary.a && item.b === primary.b);
@@ -422,7 +457,7 @@ export function primaryResult(report: ComparisonReport, primary: PrimaryComparis
   const countB = b === undefined ? null : countIn(b, group);
   if (countA === null || countB === null) return null;
   const rate = countA.pass / countA.total - countB.pass / countB.total;
-  return `${ARM_NAMES[primary.a]} ${formatScore(countA)}, ${armInSentence(ARM_NAMES[primary.b])} ${formatScore(countB)}: ${points(rate)} points.`;
+  return `${arms[primary.a]} ${formatScore(countA)}, ${armInSentence(arms[primary.b])} ${formatScore(countB)}: ${points(rate)} points.`;
 }
 
 /** A share as signed whole percentage points, with a true minus: "+23", "−1". */

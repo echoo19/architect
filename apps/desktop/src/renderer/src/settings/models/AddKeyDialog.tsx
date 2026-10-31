@@ -24,7 +24,7 @@ import { forgetModelList } from './hooks';
 
 const PROVIDER_OPTIONS = [
   ...KEY_PROVIDERS.map((id) => ({ value: id, label: PROVIDERS[id].label })),
-  { value: 'other' as const, label: 'Another OpenAI-compatible endpoint' },
+  { value: 'other' as const, label: 'OpenAI-compatible endpoint: vLLM, SGLang, TGI, llama-server' },
 ];
 
 export interface AddKeyDialogProps {
@@ -37,8 +37,10 @@ export interface AddKeyDialogProps {
 }
 
 /**
- * Adds a provider's key, or an endpoint by its address with a key if it needs one. Main checks
- * the key with the provider before saving it, so a key that is refused never lands in the store.
+ * Adds a provider's key, or an endpoint by its address with a key if it needs one: a hosted API
+ * or a server on a cluster node, since vLLM, SGLang, TGI and llama-server all answer the OpenAI
+ * API. Main checks the key with the provider before saving it, so a key that is refused never
+ * lands in the store.
  */
 export function AddKeyDialog({ open, onOpenChange, provider, onAdded }: AddKeyDialogProps) {
   const [chosen, setChosen] = useState<ProviderId>(provider ?? 'openai');
@@ -89,7 +91,7 @@ export function AddKeyDialog({ open, onOpenChange, provider, onAdded }: AddKeyDi
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent title="Add an API key">
+      <DialogContent title="Add a provider or endpoint">
         <form onSubmit={(event) => void save(event)}>
           <div className="flex flex-col gap-3 px-7 pt-5">
             <Select<ProviderId>
@@ -105,7 +107,7 @@ export function AddKeyDialog({ open, onOpenChange, provider, onAdded }: AddKeyDi
             {other && (
               <Input
                 aria-label="Address"
-                placeholder="https://api.example.com/v1"
+                placeholder="http://gpu-node-7:8000/v1"
                 value={address}
                 onChange={(event) => setAddress(event.target.value)}
                 autoComplete="off"

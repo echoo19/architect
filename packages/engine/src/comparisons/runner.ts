@@ -30,7 +30,7 @@ import { deriveSeed, sampleTrainBatch } from '../loop/seeds';
 import { connectStudent } from '../loop/setup';
 import { waitOnClock } from '../loop/time';
 import type { StoredRun } from '../store/records';
-import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
+import { armStart, comparisonJob, modelKeys, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
 import { openComparisonEngine, type ComparisonEngine } from './engine';
 import {
@@ -325,8 +325,7 @@ function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSet
     smokeTasks: config.smokeTasks,
     sparkCaps: { ...config.sparkCaps },
     studentCaps: { ...(config.studentCaps ?? {}) },
-    mentor: models.mentor,
-    student: models.student,
+    ...modelKeys(models),
     providers: models.providers === undefined ? null : [...models.providers],
     localModel: models.localModel,
     teacher:
@@ -388,7 +387,7 @@ function requirePrice(job: Job): void {
   const hosted = job.student.hosted;
   if (hosted === undefined || studentPricing(hosted) !== undefined) return;
   throw new Error(
-    `Hosted Glimmer (${hosted.model}) has no known price, so the comparison can't hold it to Glimmer's credit. Nothing was sent.`,
+    `The hosted ${job.student.label} (${hosted.model}) has no known price, so the comparison can't hold it to its cap. Nothing was sent.`,
   );
 }
 

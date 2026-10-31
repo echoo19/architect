@@ -7,9 +7,13 @@ import type {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  armDescriptions,
+  armNames,
   costRowsOf,
   countIn,
+  DEFAULT_NAMES,
   defaultInput,
+  experimentNames,
   groupsOf,
   inputProblem,
   points,
@@ -195,6 +199,16 @@ describe('experiment plans', () => {
     expect(primaryText(primary)).toBe(
       'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
     );
+    // On a field of other models, the arms go by their names (decision 094).
+    const names = experimentNames({ names: { mentor: 'Qwen3 235B on vLLM', student: 'Qwen' } });
+    expect(names).toEqual({ mentor: 'Qwen3 235B', student: 'Qwen' });
+    expect(primaryText(primary, armNames(names))).toBe(
+      'Targeted mentoring minus Qwen alone, on the organizations it has never seen',
+    );
+    expect(armDescriptions(names).targeted).toBe(
+      "Qwen3 235B edits the harness round by round from Qwen's failures",
+    );
+    expect(armNames(DEFAULT_NAMES).reference).toBe('Spark reference');
     // Taking an arm of the comparison out clears it, to be chosen again.
     expect(withArms(primary, ['bare', 'draft']).primaryComparison).toBeUndefined();
     expect(withArms(primary, ['bare', 'targeted']).primaryComparison).toEqual({

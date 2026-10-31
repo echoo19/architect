@@ -120,9 +120,9 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
     'true',
   );
 
-  // Student: the model here, where it practices, the online copy and the context.
+  // Student: the model here, where it practices (this computer or a hosted or cluster endpoint), and the context.
   await inspector.getByRole('tab', { name: 'Glimmer' }).click();
-  await expect(inspector.getByRole('radiogroup', { name: 'Runs on' })).toBeVisible();
+  await expect(inspector.getByRole('radiogroup', { name: 'Practices on' })).toBeVisible();
   await expect(inspector.getByRole('textbox', { name: 'Context' })).toHaveValue('16384');
   await capture(page, 'define-inspector-student-dark');
 

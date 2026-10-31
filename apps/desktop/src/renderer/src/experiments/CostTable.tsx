@@ -1,4 +1,4 @@
-import type { ComparisonReport } from '@architect/shared';
+import type { ArmId, ComparisonReport } from '@architect/shared';
 import { DataTable } from '@architect/ui';
 import { Cloud, Laptop } from 'lucide-react';
 import { formatCost } from '../flow/format';
@@ -21,7 +21,14 @@ function RunsOn({ where }: { where: CostRow['runsOn'] }) {
  * Each arm's accuracy on the final test against what 1,000 requests like it cost where it
  * answered (decision 095), so the student taught here and the teacher alone read side by side.
  */
-export function CostTable({ report }: { report: ComparisonReport }) {
+export function CostTable({
+  report,
+  arms,
+}: {
+  report: ComparisonReport;
+  /** The arms by name, as the experiment's other figures and tables call them. */
+  arms: Record<ArmId, string>;
+}) {
   const rows = costRowsOf(report);
   if (rows.length === 0) return null;
   return (
@@ -30,7 +37,7 @@ export function CostTable({ report }: { report: ComparisonReport }) {
       rows={rows}
       rowKey={(item) => item.key}
       columns={[
-        { key: 'arm', header: 'Arm', cell: (item) => rowLabel(item.row) },
+        { key: 'arm', header: 'Arm', cell: (item) => rowLabel(item.row, arms) },
         { key: 'model', header: 'Model', cell: (item) => item.model },
         {
           key: 'where',

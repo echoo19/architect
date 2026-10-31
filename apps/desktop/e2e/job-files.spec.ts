@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { glimmerBuild, OLLAMA_BASE_URL, type Job } from '@architect/shared';
+import { glimmerBuild, mentorPreset, OLLAMA_BASE_URL, type Job } from '@architect/shared';
 import { goTo, launchApp, type LaunchedApp } from './app';
 
 /*
@@ -15,6 +15,7 @@ import { goTo, launchApp, type LaunchedApp } from './app';
 
 const SAMPLE_JOB = fileURLToPath(new URL('../../../examples/home-services/job', import.meta.url));
 const GPU_BUILD = glimmerBuild('glimmer-gpu').model;
+const FOUR_BIT = glimmerBuild('glimmer-4bit').model;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -82,7 +83,7 @@ test('says plainly that a file is not a job file, and imports nothing', async ()
   expect(await jobs()).toEqual([]);
 });
 
-test('imports a job file as a new job that starts from the model the person chose', async () => {
+test("imports a job file as a new job that keeps the file's models where they are connected", async () => {
   await choose(join(jobFolder, 'job.json'));
   await goTo(page, '/new');
   await page.getByRole('button', { name: 'Import a job file' }).click();
@@ -93,9 +94,11 @@ test('imports a job file as a new job that starts from the model the person chos
   expect(others).toEqual([]);
   expect(listed).toMatchObject({ name: 'Service desk', taskCount: 180 });
 
-  // The file says Glimmer's 4-bit build; the person set up the 2-bit one, and the job has that.
+  // The file says Glimmer's 4-bit build, on this computer's Ollama: the job keeps it, and the
+  // teacher it names is the one the person set up, so nothing was replaced to say so.
   const job: Job = await page.evaluate((id) => window.architect.jobs.get(id), listed?.id ?? '');
-  expect(job.student.local.model).toBe(GPU_BUILD);
+  expect(job.student.local.model).toBe(FOUR_BIT);
+  await expect(page.getByText('Imported with your models')).toHaveCount(0);
   expect(job.student.trainOn).toBe('local');
   expect(job.student.hosted).toBeUndefined();
   expect(job.mentor).toMatchObject({ provider: 'meta', model: 'muse-spark-1.3' });
@@ -150,6 +153,53 @@ test('exports the job file, and imports it again beside its tasks and data as an
   expect(after.map((job) => job.taskCount)).toEqual([180, 180]);
 });
 
+test("replaces a file's teacher and cluster copy that aren't connected here, and says so", async () => {
+  const theirs = join(work, 'their-team');
+  await cp(jobFolder, theirs, { recursive: true });
+  const file = JSON.parse(await readFile(join(theirs, 'job.json'), 'utf8')) as Job;
+  const luna = mentorPreset('openai-gpt-6-luna');
+  await writeFile(
+    join(theirs, 'job.json'),
+    JSON.stringify({
+      ...file,
+      mentor: {
+        kind: 'model',
+        provider: luna.provider,
+        label: luna.label,
+        baseUrl: luna.baseUrl,
+        model: luna.model,
+        reasoningEffort: 'medium',
+        secretRef: luna.secretRef,
+      },
+      student: {
+        ...file.student,
+        trainOn: 'hosted',
+        hosted: {
+          runtime: 'openai_compatible',
+          baseUrl: 'http://gpu-node-7:8000/v1',
+          model: 'served-copy',
+          contextLength: 16_384,
+        },
+      },
+    }),
+  );
+  await choose(join(theirs, 'job.json'));
+  await goTo(page, '/new');
+  await page.getByRole('button', { name: 'Import a job file' }).click();
+  await expect(page).toHaveURL(/#\/jobs\/[^/]+\/define$/);
+  await expect(page.getByText('Imported with your models')).toBeVisible();
+  await expect(
+    page.getByText(
+      "GPT-6 Luna isn't connected here, so Spark teaches. served-copy isn't connected here, so it practices on this computer.",
+    ),
+  ).toBeVisible();
+  const id = /#\/jobs\/([^/]+)\/define$/.exec(page.url())?.[1] ?? '';
+  const job: Job = await page.evaluate((jobId) => window.architect.jobs.get(jobId), id);
+  expect(job.mentor).toMatchObject({ provider: 'meta' });
+  expect(job.student.hosted).toBeUndefined();
+  expect(job.student.trainOn).toBe('local');
+});
+
 test('says a file with no data beside it is missing its data', async () => {
   const lonely = join(work, 'lonely', 'job.json');
   await cp(join(jobFolder, 'job.json'), lonely);
@@ -162,7 +212,7 @@ test('says a file with no data beside it is missing its data', async () => {
     ),
   ).toBeVisible();
   await expect(page).toHaveURL(/#\/new$/);
-  expect(await jobs()).toHaveLength(2);
+  expect(await jobs()).toHaveLength(3);
 });
 
 test('copies a checker file chosen in Define into the job, and only one that was chosen', async () => {

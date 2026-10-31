@@ -37,15 +37,18 @@ import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery, setQueryData, toError } from '../api/query';
 import { fileName, formatCost } from '../flow/format';
 import { shortPath } from '../lib/format';
+import { modelTabsFit } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ARM_ICONS, ArmTile } from './icons';
 import {
-  ARM_DESCRIPTIONS,
-  ARM_NAMES,
+  armDescriptions,
+  armNames,
   ARMS,
+  DEFAULT_NAMES,
+  experimentNames,
   SPARK_ARMS,
   STATUS_WORDS,
   STUDENT_ARMS,
@@ -59,18 +62,26 @@ import {
   withArms,
 } from './model';
 import { NumberRow } from './NumberRow';
+import type { ModelNames } from '../flow/train/phase';
 
 type Tab = 'teacher' | 'student' | 'teaching' | 'evaluation' | 'budget';
 
 const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
-const TABS: readonly InspectorTab<Tab>[] = [
-  { value: 'teacher', label: 'Spark', icon: <GraduationCap {...tabIcon} /> },
-  { value: 'student', label: 'Glimmer', icon: <User {...tabIcon} /> },
-  { value: 'teaching', label: 'Teaching', icon: <Repeat2 {...tabIcon} /> },
-  { value: 'evaluation', label: 'Evaluation', icon: <ClipboardCheck {...tabIcon} /> },
-  { value: 'budget', label: 'Budget', icon: <Wallet {...tabIcon} /> },
-];
+/**
+ * The inspector's tabs, the first two named after the models the experiment runs: by their icons
+ * when the names are too long to sit beside the others uncut.
+ */
+function tabsFor(names: ModelNames): readonly InspectorTab<Tab>[] {
+  const iconOnly = !modelTabsFit(names);
+  return [
+    { value: 'teacher', label: names.mentor, icon: <GraduationCap {...tabIcon} />, iconOnly },
+    { value: 'student', label: names.student, icon: <User {...tabIcon} />, iconOnly },
+    { value: 'teaching', label: 'Teaching', icon: <Repeat2 {...tabIcon} /> },
+    { value: 'evaluation', label: 'Evaluation', icon: <ClipboardCheck {...tabIcon} /> },
+    { value: 'budget', label: 'Budget', icon: <Wallet {...tabIcon} /> },
+  ];
+}
 
 /** How long the plan waits for typing to stop before the engine projects it again. */
 const REVISE_MS = 400;
@@ -94,6 +105,9 @@ export function ExperimentDesign({
     undefined,
   );
   const id = detail?.experiment.id;
+  // The field's own models name every line once it is chosen (decision 094).
+  const names = detail ? experimentNames(detail) : DEFAULT_NAMES;
+  const arms = armNames(names);
   // A field of the library, whose weights arms can be planned on a cluster instead.
   const fieldId = input?.jobId;
 
@@ -196,11 +210,16 @@ export function ExperimentDesign({
       }
       aside={
         input && (
-          <Inspector<Tab> aria-label="Experiment settings" tabs={TABS} rememberAs="experiment">
+          <Inspector<Tab>
+            aria-label="Experiment settings"
+            tabs={tabsFor(names)}
+            rememberAs="experiment"
+          >
             {(tab) => (
               <Settings
                 tab={tab}
                 input={input}
+                names={names}
                 splitsSeed={detail?.experiment.job.splitsSeed ?? null}
                 onChange={change}
               />
@@ -211,7 +230,7 @@ export function ExperimentDesign({
     >
       <div className="flex max-w-[880px] flex-col gap-4">
         {input && detail && (
-          <HypothesisCard input={input} groups={detail.groups} onChange={change} />
+          <HypothesisCard input={input} groups={detail.groups} arms={arms} onChange={change} />
         )}
         <FieldCard
           input={input}
@@ -235,8 +254,8 @@ export function ExperimentDesign({
             onValueChange={(arms) => input && change(withArms(input, arms))}
             options={ARMS.map((arm) => ({
               value: arm,
-              label: ARM_NAMES[arm],
-              description: ARM_DESCRIPTIONS[arm],
+              label: arms[arm],
+              description: armDescriptions(names)[arm],
               icon: ARM_ICONS[arm],
               disabled: WEIGHT_ARMS.has(arm),
             }))}
@@ -267,6 +286,7 @@ export function ExperimentDesign({
           <EstimateCard
             input={input}
             detail={detail}
+            names={names}
             onCalibrate={() => setConfirming('calibrate')}
           />
         )}
@@ -300,7 +320,7 @@ export function ExperimentDesign({
             title="Calibrate the estimate?"
             confirm="Calibrate"
             onConfirm={calibrate}
-            lines={calibrationLines(detail)}
+            lines={calibrationLines(detail, names)}
           />
         </>
       )}
@@ -308,19 +328,19 @@ export function ExperimentDesign({
   );
 }
 
-function calibrationLines(detail: ExperimentDetail) {
+function calibrationLines(detail: ExperimentDetail, { mentor, student }: ModelNames) {
   const { calibration } = detail;
   return [
     {
       icon: <User aria-hidden />,
-      text: `Glimmer alone answers ${calibration.tasks} calibration tasks, about ${formatCost(calibration.studentUsdEstimate)}, and never more than ${formatCost(calibration.studentUsdCap)}.`,
+      text: `${student} alone answers ${calibration.tasks} calibration tasks, about ${formatCost(calibration.studentUsdEstimate)}, and never more than ${formatCost(calibration.studentUsdCap)}.`,
     },
     ...(calibration.studySparkUsdCap === null
       ? []
       : [
           {
             icon: <GraduationCap aria-hidden />,
-            text: `Spark studies the organizations it is taught on, for at most ${formatCost(calibration.studySparkUsdCap)}.`,
+            text: `${mentor} studies the organizations it is taught on, for at most ${formatCost(calibration.studySparkUsdCap)}.`,
           },
         ]),
     {
@@ -339,16 +359,18 @@ const rowIcon = (icon: ReactNode) => <RowIcon>{icon}</RowIcon>;
 function HypothesisCard({
   input,
   groups,
+  arms,
   onChange,
 }: {
   input: ExperimentInput;
   groups: readonly ExperimentGroup[];
+  arms: Record<ArmId, string>;
   onChange: (next: ExperimentInput) => void;
 }) {
   const chosen = input.arms.map((item) => item.arm);
   const primary = input.primaryComparison;
   const armOptions = (other: ArmId | undefined) =>
-    chosen.map((arm) => ({ value: arm, label: ARM_NAMES[arm], disabled: arm === other }));
+    chosen.map((arm) => ({ value: arm, label: arms[arm], disabled: arm === other }));
   /** One side chosen: the other side kept where it can be, else the bare student or another arm. */
   const compare = (side: 'a' | 'b', arm: ArmId) => {
     const kept = side === 'a' ? primary?.b : primary?.a;
@@ -545,10 +567,12 @@ function PlanCard({ input }: { input: ExperimentInput }) {
 function EstimateCard({
   input,
   detail,
+  names,
   onCalibrate,
 }: {
   input: ExperimentInput;
   detail: ExperimentDetail;
+  names: ModelNames;
   onCalibrate: () => void;
 }) {
   const { projection, calibration, experiment } = detail;
@@ -568,14 +592,14 @@ function EstimateCard({
       <div className="grid grid-cols-1 gap-x-10 gap-y-5 px-6 pb-6 pt-1 sm:grid-cols-2">
         <CapMeter
           tone="mentor"
-          label="Spark"
+          label={names.mentor}
           used={funded('sparkUsd')}
           cap={input.caps.sparkUsd}
           format={formatCost}
         />
         <CapMeter
           tone="student"
-          label="Glimmer"
+          label={names.student}
           used={funded('studentUsd') + projection.committedUsd}
           cap={input.caps.studentUsd}
           format={formatCost}
@@ -600,15 +624,15 @@ function EstimateCard({
       {arms.map((arm) => {
         const caps = own.get(arm.arm);
         const parts = [
-          `Spark ${formatCost(arm.sparkUsd)}${caps?.sparkUsd === undefined ? '' : ` of ${formatCost(caps.sparkUsd)}`}`,
-          `Glimmer ${formatCost(arm.studentUsd)}${caps?.studentUsd === undefined ? '' : ` of ${formatCost(caps.studentUsd)}`}`,
+          `${names.mentor} ${formatCost(arm.sparkUsd)}${caps?.sparkUsd === undefined ? '' : ` of ${formatCost(caps.sparkUsd)}`}`,
+          `${names.student} ${formatCost(arm.studentUsd)}${caps?.studentUsd === undefined ? '' : ` of ${formatCost(caps.studentUsd)}`}`,
           minutesText(arm.wallMinutes),
         ];
         return (
           <CardRow
             key={arm.arm}
             icon={<ArmTile arm={arm.arm} />}
-            title={ARM_NAMES[arm.arm]}
+            title={armNames(names)[arm.arm]}
             detail={parts.join(' · ')}
             end={
               arm.funded ? undefined : (
@@ -629,10 +653,10 @@ function EstimateCard({
           </RowIcon>
         }
         title="Calibration"
-        detail={`${calibration.tasks} tasks, about ${formatCost(calibration.studentUsdEstimate)} of Glimmer${
+        detail={`${calibration.tasks} tasks, about ${formatCost(calibration.studentUsdEstimate)} of ${names.student}${
           calibration.studySparkUsdCap === null
             ? ''
-            : `, Spark's study at most ${formatCost(calibration.studySparkUsdCap)}`
+            : `, ${names.mentor}'s study at most ${formatCost(calibration.studySparkUsdCap)}`
         }`}
         end={
           experiment.calibratedAt !== null ? (
@@ -661,11 +685,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Settings({
   tab,
   input,
+  names,
   splitsSeed,
   onChange,
 }: {
   tab: Tab;
   input: ExperimentInput;
+  names: ModelNames;
   splitsSeed: number | null;
   onChange: (next: ExperimentInput) => void;
 }) {
@@ -678,7 +704,7 @@ function Settings({
     return shown.map((arm) => (
       <NumberRow
         key={`${kind}-${arm}`}
-        label={ARM_NAMES[arm]}
+        label={armNames(names)[arm]}
         value={input.arms.find((item) => item.arm === arm)?.[kind]}
         optional
         placeholder="Default"
@@ -690,10 +716,16 @@ function Settings({
 
   switch (tab) {
     case 'teacher':
-      return <Section title="Spark's cap for each arm">{capRows(SPARK_ARMS, 'sparkUsd')}</Section>;
+      return (
+        <Section title={`${names.mentor}'s cap for each arm`}>
+          {capRows(SPARK_ARMS, 'sparkUsd')}
+        </Section>
+      );
     case 'student':
       return (
-        <Section title="Glimmer's cap for each arm">{capRows(STUDENT_ARMS, 'studentUsd')}</Section>
+        <Section title={`${names.student}'s cap for each arm`}>
+          {capRows(STUDENT_ARMS, 'studentUsd')}
+        </Section>
       );
     case 'teaching':
       return (
@@ -739,7 +771,7 @@ function Settings({
       return (
         <Section title="Caps for the whole experiment">
           <NumberRow
-            label="Spark"
+            label={names.mentor}
             value={input.caps.sparkUsd}
             unit="USD"
             onChange={(sparkUsd) =>
@@ -747,7 +779,7 @@ function Settings({
             }
           />
           <NumberRow
-            label="Glimmer"
+            label={names.student}
             value={input.caps.studentUsd}
             unit="USD"
             onChange={(studentUsd) =>
