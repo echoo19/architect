@@ -1,8 +1,9 @@
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
+import { Why } from './components/Why';
 
-/** The home page: what Architect is, the downloads, and the walkthrough film. */
+/** The home page: what Architect is, the downloads, the walkthrough film, and why we made it. */
 export function App() {
   return (
     <div id="top">
@@ -15,6 +16,7 @@ export function App() {
       <Header page="home" />
       <main id="main">
         <Hero />
+        <Why />
       </main>
       <Footer page="home" />
     </div>
