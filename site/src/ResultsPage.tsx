@@ -37,6 +37,7 @@ import {
   type Pair,
   type Round,
   type SourceKey,
+  type ThirdRow,
 } from './evidence';
 import { Actors } from './components/Actors';
 import { Footer } from './components/Footer';
@@ -149,39 +150,65 @@ function Exhibit({
   );
 }
 
-/** A numbered section. */
+/** A numbered section; inside a part, its headings sit one level down. */
 function Section({
   id,
   number,
   title,
+  inPart = false,
   children,
 }: {
   id: string;
   number: number;
   title: string;
+  inPart?: boolean;
   children: ReactNode;
 }) {
+  const Heading = inPart ? 'h3' : 'h2';
   return (
     <section
       id={id}
       aria-labelledby={`${id}-title`}
       className="article flex scroll-mt-20 flex-col gap-6 pt-16 sm:pt-20"
     >
-      <h2 id={`${id}-title`} className="t-h1 hang">
+      <Heading id={`${id}-title`} className="t-h1 hang">
         <span className="sec-num">{number}</span>
         {title}
-      </h2>
+      </Heading>
       {children}
     </section>
   );
 }
 
-function Subsection({ number, title }: { number: string; title: string }) {
+function Subsection({
+  number,
+  title,
+  inPart = false,
+}: {
+  number: string;
+  title: string;
+  inPart?: boolean;
+}) {
+  const Heading = inPart ? 'h4' : 'h3';
   return (
-    <h3 className="t-h2 hang mt-4">
+    <Heading className="t-h2 hang mt-4">
       <span className="sec-num">{number}</span>
       {title}
-    </h3>
+    </Heading>
+  );
+}
+
+/** A part of the paper that holds several sections of one study, under its own heading. */
+function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20">
+      <div className="article mt-16 border-t border-line pt-12 sm:mt-20 sm:pt-16">
+        <h2 id={`${id}-title`} className="t-title">
+          {title}
+        </h2>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -203,7 +230,7 @@ function arm(comparison: Comparison, name: string): Arm {
   return found;
 }
 
-const interval = (p: Pair) => `${signed(p.low)} to ${signed(p.high)}`;
+const interval = (p: { low: number; high: number }) => `${signed(p.low)} to ${signed(p.high)}`;
 
 /** A hairline table: a header row, then rows whose numbers line up. */
 function Table({
@@ -666,19 +693,47 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
 ];
 
-/** The headline figures under the abstract. */
-const HEADLINE: readonly { figure: string; text: string }[] = [
+/** Academy desk against a blank setup in one group of the first field run. */
+function fieldPair(group: GroupKey): FieldPair {
+  const found = FIELD_PAIRS.find(
+    (each) => each.label === 'Academy desk against a blank setup' && each.group === group,
+  );
+  if (!found) throw new Error(`The field run has no blank-setup pairing on ${group}.`);
+  return found;
+}
+
+/** One group of the third run, by its key. */
+function thirdRow(group: ThirdRow['group']): ThirdRow {
+  const found = THIRD_ROWS.find((each) => each.group === group);
+  if (!found) throw new Error(`The third run has no group ${group}.`);
+  return found;
+}
+
+const HARBORVIEW = fieldPair('harborview');
+const JUNIPER = thirdRow('juniper');
+const REAL_THIRD = thirdRow('real');
+const academyDesk = (index: number) => FIELD_ARMS[2]?.groups[index]?.passed;
+const blank = (index: number) => FIELD_ARMS[0]?.groups[index]?.passed;
+
+/**
+ * The headline figures under the abstract: blank setup to Academy desk, then what it is out of and
+ * where, then the difference in points with its 95% interval.
+ */
+const HEADLINE: readonly { figure: string; label: string; difference: string }[] = [
   {
-    figure: '24 to 43',
-    text: 'of 48 tasks on a generated academy that Academy desk had never seen. Difference +39.6 points, 95% interval +22.9 to +53.7.',
+    figure: `${blank(1)} to ${academyDesk(1)}`,
+    label: `of ${HARBORVIEW.n} · Harborview Prep, never seen`,
+    difference: `${signed(HARBORVIEW.diff)} points (${interval(HARBORVIEW)})`,
   },
   {
-    figure: '15 to 31',
-    text: 'of 48 tasks on Juniper Study House, another generated academy it had never seen, in the third run. Difference +33.3 points, 95% interval +16.2 to +47.5.',
+    figure: `${JUNIPER.bare.passed} to ${JUNIPER.academyDesk.passed}`,
+    label: `of ${JUNIPER.n} · Juniper Study House, never seen`,
+    difference: `${signed(JUNIPER.diff)} points (${interval(JUNIPER)})`,
   },
   {
-    figure: '13 to 3',
-    text: 'of 30 tasks on the Real academy, anonymized, in the third run: worse, -33.3 points (-50.3 to -14.2). In the first run it was 9 to 12 of 24, no gain shown.',
+    figure: `${REAL_THIRD.bare.passed} to ${REAL_THIRD.academyDesk.passed}`,
+    label: `of ${REAL_THIRD.n} · Real academy, never seen`,
+    difference: `${signed(REAL_THIRD.diff)} points (${interval(REAL_THIRD)})`,
   },
 ];
 
@@ -710,8 +765,8 @@ export function ResultsPage() {
       </a>
       <Header page="results" />
       <main id="main" className="pb-20 sm:pb-24">
-        <section aria-labelledby="results-title" className="article pt-12 sm:pt-20">
-          <h1 id="results-title" className="t-title">
+        <section aria-labelledby="paper-title" className="article pt-12 sm:pt-20">
+          <h1 id="paper-title" className="t-title">
             What teaching changed
           </h1>
           <p className="m-0 mt-4">Jake Kang · October 2026</p>
@@ -721,13 +776,15 @@ export function ResultsPage() {
               text={`Architect turns an organization's own material into a specialist that runs on its own computer. A large model, Spark, studies the material and teaches a small one, Glimmer, by changing its instructions and small tools. A change is kept only if it raises the score on check tasks Spark never sees. In the run on test-prep academies, Spark taught Glimmer to be Academy desk, an agent that helps academy staff after a student's wrong answer, on three generated academies. A sealed test of ${FIELD_TEST_SIZE} tasks then included a fourth generated academy and a real one that neither model had seen. On the fourth, Academy desk passed 43 of 48 tasks and Glimmer on a blank setup 24. On the real academy, Academy desk passed 12 of 24 and the blank setup 9, a difference whose interval includes zero, so no gain is shown there. Academy desk was then frozen and taken again on the build of Glimmer that runs on one graphics card, where it passed ${LOCAL_ROWS[3]?.local} of ${FIELD_TEST_SIZE} tasks against ${LOCAL_ROWS[3]?.hosted} hosted, with no difference shown, and took about four times as long. A third run, taught on three other generated academies, showed a gain again on an unseen one, ${THIRD_ROWS[1]?.bare.passed} to ${THIRD_ROWS[1]?.academyDesk.passed} of 48, and did worse on a second snapshot of the real academy, ${THIRD_ROWS[2]?.bare.passed} to ${THIRD_ROWS[2]?.academyDesk.passed} of 30, where the instructions and tools it was taught did not fit the real academy's wording and policy. A first live certificate for that Academy desk was refused: answering only when five attempts agreed, it was wrong on 14 of the 46 calibration tasks it would have answered. In an earlier run on one job, a returns desk, teaching took Glimmer from ${second.alone.passed} to ${second.taught.passed} of ${TEST_SIZE} requests for 42 cents of Spark. Every figure is under one seed, and all but the local check are from Glimmer served online.`}
             />
           </p>
-          <ul className="m-0 mt-10 grid list-none gap-x-8 gap-y-6 border-y border-line p-0 py-8 sm:grid-cols-3">
+          <ul
+            aria-label="Tasks passed, blank setup to Academy desk, with the difference and its 95% interval"
+            className="m-0 mt-10 grid list-none gap-x-8 gap-y-6 border-y border-line p-0 py-8 sm:grid-cols-3"
+          >
             {HEADLINE.map((item) => (
-              <li key={item.figure} className="flex flex-col gap-3">
+              <li key={item.figure} className="flex flex-col gap-1">
                 <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
-                <span className="t-small text-pretty">
-                  <Actors text={item.text} />
-                </span>
+                <span className="mt-2 text-pretty">{item.label}</span>
+                <span className="t-small tabular-nums">{item.difference}</span>
               </li>
             ))}
           </ul>
@@ -904,209 +961,217 @@ export function ResultsPage() {
           </Text>
         </Section>
 
-        <Section id="setup" number={2} title="Setup">
-          <Text>
-            <Actors text="The earlier returns desk runs used one job and no organizations. Glimmer, a small open-weight model, took the same final test three ways: on its own, with a one-shot setup written by Spark, and after Spark watched it fail and taught it" />
-            <Cite to={['plan']} />.
-          </Text>
-          <Text>
-            <Actors
-              text={`Each final test has ${TEST_SIZE} requests Glimmer has never seen, ${PER_TYPE} of each kind: refunds, order questions and pickups. Nothing Spark does can touch it. It is opened once, after every setup is frozen, and a program grades it.`}
-            />
-          </Text>
-          <Text>
-            Improving an agent from its failures is already published work, such as GEPA
-            <Cite to={['gepa']} /> and ACE
-            <Cite to={['ace']} />. Checking an agent's work by the state it leaves behind has
-            precedent too, in tau-bench
-            <Cite to={['taubench']} />. Architect puts these ideas into one product you can inspect.
-            It has a sealed final test, a checker that is the same every time, and a result that
-            runs offline.
-          </Text>
-          <Text>
-            <Actors text="Teaching runs in rounds (Figure 3). Spark reads Glimmer's failed practice attempts and makes one change to its instructions or small tools. The change is kept only if check-task passes rise by at least 2 a run, measured again on new seeds over 2 runs, and no kind of task loses more than 1. Spark sees the check-task score, never the tasks" />
-            <Cite to={['plan', 'second']} />.
-          </Text>
-          <Exhibit
-            label="Figure 3"
-            caption="The job's tasks, cut once into four sets, and the five steps of a round of teaching. The final test stays sealed until every setup is frozen."
-          >
-            <RoundDiagram />
-          </Exhibit>
-        </Section>
+        <Part id="returns" title="An earlier run: one job, a returns desk">
+          <Section id="setup" number={2} title="Setup" inPart>
+            <Text>
+              <Actors text="These runs had no organizations. Glimmer, a small open-weight model, took the same final test three ways: on its own, with a one-shot setup written by Spark, and after Spark watched it fail and taught it" />
+              <Cite to={['plan']} />.
+            </Text>
+            <Text>
+              <Actors
+                text={`Each final test has ${TEST_SIZE} requests Glimmer has never seen, ${PER_TYPE} of each kind: refunds, order questions and pickups. Nothing Spark does can touch it. It is opened once, after every setup is frozen, and a program grades it.`}
+              />
+            </Text>
+            <Text>
+              Improving an agent from its failures is already published work, such as GEPA
+              <Cite to={['gepa']} /> and ACE
+              <Cite to={['ace']} />. Checking an agent's work by the state it leaves behind has
+              precedent too, in tau-bench
+              <Cite to={['taubench']} />. Architect puts these ideas into one product you can
+              inspect. It has a sealed final test, a checker that is the same every time, and a
+              result that runs offline.
+            </Text>
+            <Text>
+              <Actors text="Teaching runs in rounds (Figure 3). Spark reads Glimmer's failed practice attempts and makes one change to its instructions or small tools. The change is kept only if check-task passes rise by at least 2 a run, measured again on new seeds over 2 runs, and no kind of task loses more than 1. Spark sees the check-task score, never the tasks" />
+              <Cite to={['plan', 'second']} />.
+            </Text>
+            <Exhibit
+              label="Figure 3"
+              caption="The job's tasks, cut once into four sets, and the five steps of a round of teaching. The final test stays sealed until every setup is frozen."
+            >
+              <RoundDiagram />
+            </Exhibit>
+          </Section>
 
-        <Section id="results" number={3} title="Final-test results">
-          <Subsection number="3.1" title="A new returns desk" />
-          <Text>
-            <Actors
-              text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 4, Table 6)`}
-            />
-            <Cite to={['second']} />.
-          </Text>
-          <Exhibit
-            label="Figure 4"
-            caption="Final-test passes by arm on the new returns desk, with 95% intervals. The dashed line is the job's target."
-          >
-            <PassRates comparison={SECOND} />
-          </Exhibit>
-          <Exhibit table label="Table 6" caption="Passes by kind of request, of 20 each.">
-            <ArmTable comparison={SECOND} />
-          </Exhibit>
-          <Text>
-            <Actors
-              text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 5, Table 7).`}
-            />
-          </Text>
-          <Exhibit
-            label="Figure 5"
-            caption="Differences in final-test pass rate between arms, matched request by request, in percentage points with 95% intervals."
-          >
-            <PairForest comparison={SECOND} />
-          </Exhibit>
-          <Exhibit
-            table
-            label="Table 7"
-            caption="Requests each arm passed and the other failed (won), the reverse (lost), and where they agreed."
-          >
-            <PairTable comparison={SECOND} />
-          </Exhibit>
+          <Section id="results" number={3} title="Final-test results" inPart>
+            <Subsection number="3.1" title="A new returns desk" inPart />
+            <Text>
+              <Actors
+                text={`Teaching could run up to 8 rounds. After it, Glimmer passed ${second.taught.passed} of ${TEST_SIZE}, against ${second.alone.passed} on its own and ${second.oneShot.passed} with Spark's one-shot setup (Figure 4, Table 6)`}
+              />
+              <Cite to={['second']} />.
+            </Text>
+            <Exhibit
+              label="Figure 4"
+              caption="Final-test passes by arm on the new returns desk, with 95% intervals. The dashed line is the job's target."
+            >
+              <PassRates comparison={SECOND} />
+            </Exhibit>
+            <Exhibit table label="Table 6" caption="Passes by kind of request, of 20 each.">
+              <ArmTable comparison={SECOND} />
+            </Exhibit>
+            <Text>
+              <Actors
+                text={`Matched request by request, the taught Glimmer won ${second.againstAlone.wins} requests that Glimmer alone failed and lost ${second.againstAlone.losses}, a difference of ${signed(second.againstAlone.diff)} points (95% interval ${interval(second.againstAlone)}). Against the one-shot setup it won ${second.againstOneShot.wins} and lost ${second.againstOneShot.losses} (Figure 5, Table 7).`}
+              />
+            </Text>
+            <Exhibit
+              label="Figure 5"
+              caption="Differences in final-test pass rate between arms, matched request by request, in percentage points with 95% intervals."
+            >
+              <PairForest comparison={SECOND} />
+            </Exhibit>
+            <Exhibit
+              table
+              label="Table 7"
+              caption="Requests each arm passed and the other failed (won), the reverse (lost), and where they agreed."
+            >
+              <PairTable comparison={SECOND} />
+            </Exhibit>
 
-          <Subsection number="3.2" title="The first returns desk" />
-          <Text>
-            <Actors
-              text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 6, Table 8)`}
-            />
-            <Cite to={['first']} />.
-          </Text>
-          <Exhibit
-            label="Figure 6"
-            caption="Final-test passes by arm on the first returns desk, with 95% intervals, and Spark answering the requests itself as a fourth arm."
-          >
-            <PassRates comparison={FIRST} />
-          </Exhibit>
-          <Exhibit table label="Table 8" caption="Passes by kind of request, of 20 each.">
-            <ArmTable comparison={FIRST} />
-          </Exhibit>
-          <Text>
-            <Actors
-              text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 7, Table 9). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
-            />
-            <Cite to={['plan']} />.
-          </Text>
-          <Exhibit
-            label="Figure 7"
-            caption="Differences in final-test pass rate between arms on the first returns desk, in percentage points with 95% intervals."
-          >
-            <PairForest comparison={FIRST} />
-          </Exhibit>
-          <Exhibit
-            table
-            label="Table 9"
-            caption="Requests won and lost in each pairing, as in Table 7."
-          >
-            <PairTable comparison={FIRST} />
-          </Exhibit>
-        </Section>
+            <Subsection number="3.2" title="The first returns desk" inPart />
+            <Text>
+              <Actors
+                text={`On the returns desk that ships with the app, teaching was held to two rounds. Glimmer passed ${first.taught.passed} of ${TEST_SIZE} after teaching against ${first.alone.passed} on its own, and Spark answering every request itself passed ${first.spark.passed} (Figure 6, Table 8)`}
+              />
+              <Cite to={['first']} />.
+            </Text>
+            <Exhibit
+              label="Figure 6"
+              caption="Final-test passes by arm on the first returns desk, with 95% intervals, and Spark answering the requests itself as a fourth arm."
+            >
+              <PassRates comparison={FIRST} />
+            </Exhibit>
+            <Exhibit table label="Table 8" caption="Passes by kind of request, of 20 each.">
+              <ArmTable comparison={FIRST} />
+            </Exhibit>
+            <Text>
+              <Actors
+                text={`Request by request, teaching won ${first.againstAlone.wins} and lost ${first.againstAlone.losses} against Glimmer alone. The interval around that difference, ${interval(first.againstAlone)} points, includes zero, so this comparison shows no gain (Figure 7, Table 9). The second comparison was designed after seeing it, with the budget the job gives teaching, and its plan was published before it ran`}
+              />
+              <Cite to={['plan']} />.
+            </Text>
+            <Exhibit
+              label="Figure 7"
+              caption="Differences in final-test pass rate between arms on the first returns desk, in percentage points with 95% intervals."
+            >
+              <PairForest comparison={FIRST} />
+            </Exhibit>
+            <Exhibit
+              table
+              label="Table 9"
+              caption="Requests won and lost in each pairing, as in Table 7."
+            >
+              <PairTable comparison={FIRST} />
+            </Exhibit>
+          </Section>
 
-        <Section id="rounds" number={4} title="Teaching, round by round">
-          <Text>
-            <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 8, Table 10)" />
-            <Cite to={['second']} />.
-          </Text>
-          <Exhibit
-            label="Figure 8"
-            caption="Check tasks passed on the new returns desk after each round. Hollow points are changes that were measured and reverted; the line follows what was kept."
-          >
-            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <span className="font-display text-hero font-semibold leading-none tabular-nums max-sm:text-title">
-                98%
-              </span>
-              <span className="tabular-nums">44 of 45, from 31 of 45 to start</span>
-            </div>
-            <ScoreChart className="mb-8" times={{ rise1: 0, hollow2: 0, hollow3: 0, rise4: 0 }} />
-          </Exhibit>
-          <Exhibit
-            table
-            label="Table 10"
-            caption="Each round on the new returns desk: the change, check tasks before and after, the same change measured again on new seeds, and the result."
-          >
-            <RoundList rounds={ROUNDS_SECOND} label="Rounds of teaching on the new returns desk" />
-          </Exhibit>
-          <Text>
-            On the first returns desk, teaching was held to 2 rounds after the draft and stopped
-            there, with the cap reached. One change was kept (Table 11)
-            <Cite to={['first']} />.
-          </Text>
-          <Exhibit
-            table
-            label="Table 11"
-            caption="Each round on the first returns desk, as in Table 10."
-          >
-            <RoundList rounds={ROUNDS_FIRST} label="Rounds of teaching on the first returns desk" />
-          </Exhibit>
-          <Text>
-            <Actors
-              text={`On a second kind of job, a repair shop's ticket costs, one round took Glimmer from ${REPAIR.checkBefore} of ${REPAIR.checkTotal} check tasks to ${REPAIR.checkAfter} of ${REPAIR.checkTotal}: Spark's first draft, a ticket-cost tool and a lookup. It then passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test, graded by the rule the shop confirmed, for ${REPAIR.cents} cents in all`}
-            />
-            <Cite to={['hackathon']} />.
-          </Text>
-        </Section>
+          <Section id="rounds" number={4} title="Teaching, round by round" inPart>
+            <Text>
+              <Actors text="On the new returns desk the check-task score rose from 31 of 45 to 44 of 45 in four rounds. Two changes were kept and two were reverted, and teaching stopped when the target was reached (Figure 8, Table 10)" />
+              <Cite to={['second']} />.
+            </Text>
+            <Exhibit
+              label="Figure 8"
+              caption="Check tasks passed on the new returns desk after each round. Hollow points are changes that were measured and reverted; the line follows what was kept."
+            >
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span className="font-display text-hero font-semibold leading-none tabular-nums max-sm:text-title">
+                  98%
+                </span>
+                <span className="tabular-nums">44 of 45, from 31 of 45 to start</span>
+              </div>
+              <ScoreChart className="mb-8" times={{ rise1: 0, hollow2: 0, hollow3: 0, rise4: 0 }} />
+            </Exhibit>
+            <Exhibit
+              table
+              label="Table 10"
+              caption="Each round on the new returns desk: the change, check tasks before and after, the same change measured again on new seeds, and the result."
+            >
+              <RoundList
+                rounds={ROUNDS_SECOND}
+                label="Rounds of teaching on the new returns desk"
+              />
+            </Exhibit>
+            <Text>
+              On the first returns desk, teaching was held to 2 rounds after the draft and stopped
+              there, with the cap reached. One change was kept (Table 11)
+              <Cite to={['first']} />.
+            </Text>
+            <Exhibit
+              table
+              label="Table 11"
+              caption="Each round on the first returns desk, as in Table 10."
+            >
+              <RoundList
+                rounds={ROUNDS_FIRST}
+                label="Rounds of teaching on the first returns desk"
+              />
+            </Exhibit>
+            <Text>
+              <Actors
+                text={`On a second kind of job, a repair shop's ticket costs, one round took Glimmer from ${REPAIR.checkBefore} of ${REPAIR.checkTotal} check tasks to ${REPAIR.checkAfter} of ${REPAIR.checkTotal}: Spark's first draft, a ticket-cost tool and a lookup. It then passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test, graded by the rule the shop confirmed, for ${REPAIR.cents} cents in all`}
+              />
+              <Cite to={['hackathon']} />.
+            </Text>
+          </Section>
 
-        <Section id="time" number={5} title="Speed and cost">
-          <Text>
-            <Actors
-              text={`After teaching, Glimmer's median answer took ${second.taught.p50} s, and its slowest 5% finished within ${second.taught.p95} s. On its own, its median answer took ${second.alone.p50} s (Figure 9)`}
-            />
-            <Cite to={['second']} />.
-          </Text>
-          <Exhibit
-            label="Figure 9"
-            caption="Time to answer on the new returns desk. The dot is the median answer; the line runs to the slowest 5%."
-          >
-            <Forest
-              name="Median and slowest 5% of answer times, by arm"
-              rows={SECOND.arms.map((each) => ({
-                label: armLabel(each),
-                value: each.p50,
-                low: each.p50,
-                high: each.p95,
-                tone: each.tone,
-                figure: (
-                  <span className="whitespace-nowrap">
-                    <span className="font-display text-h2 font-semibold">
-                      {each.p50.toFixed(1)} s
+          <Section id="time" number={5} title="Speed and cost" inPart>
+            <Text>
+              <Actors
+                text={`After teaching, Glimmer's median answer took ${second.taught.p50} s, and its slowest 5% finished within ${second.taught.p95} s. On its own, its median answer took ${second.alone.p50} s (Figure 9)`}
+              />
+              <Cite to={['second']} />.
+            </Text>
+            <Exhibit
+              label="Figure 9"
+              caption="Time to answer on the new returns desk. The dot is the median answer; the line runs to the slowest 5%."
+            >
+              <Forest
+                name="Median and slowest 5% of answer times, by arm"
+                rows={SECOND.arms.map((each) => ({
+                  label: armLabel(each),
+                  value: each.p50,
+                  low: each.p50,
+                  high: each.p95,
+                  tone: each.tone,
+                  figure: (
+                    <span className="whitespace-nowrap">
+                      <span className="font-display text-h2 font-semibold">
+                        {each.p50.toFixed(1)} s
+                      </span>
+                      <span className="t-body ml-2">to {each.p95.toFixed(1)} s</span>
                     </span>
-                    <span className="t-body ml-2">to {each.p95.toFixed(1)} s</span>
-                  </span>
-                ),
-                summary: `${each.name}: typical answer ${each.p50} seconds, slowest 5 percent within ${each.p95}.`,
-              }))}
-              min={0}
-              max={60}
-              figureWidth="10.5rem"
-              ticks={[0, 15, 30, 45, 60]}
-              formatTick={(value) => `${value} s`}
-            />
-          </Exhibit>
-          <Text>
-            Teaching cost 42 cents of Spark: 34 for the rounds and 8 for its first setup. The whole
-            run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
-            {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 12)
-            <Cite to={['second', 'readme']} />.
-          </Text>
-          <Exhibit table label="Table 12" caption="What each arm cost on the new returns desk.">
-            <Table
-              fit
-              label="What each arm cost on the new returns desk"
-              columns={['', 'Spark', 'Glimmer, hosted']}
-              rows={SECOND.arms.map((each) => [
-                armLabel(each),
-                dollars(each.spark),
-                each.glimmer === null ? '' : dollars(each.glimmer),
-              ])}
-            />
-          </Exhibit>
-        </Section>
+                  ),
+                  summary: `${each.name}: typical answer ${each.p50} seconds, slowest 5 percent within ${each.p95}.`,
+                }))}
+                min={0}
+                max={60}
+                figureWidth="10.5rem"
+                ticks={[0, 15, 30, 45, 60]}
+                formatTick={(value) => `${value} s`}
+              />
+            </Exhibit>
+            <Text>
+              Teaching cost 42 cents of Spark: 34 for the rounds and 8 for its first setup. The
+              whole run cost Spark ${MONEY.spark.toFixed(4)} and the hosted Glimmer $
+              {MONEY.glimmer.toFixed(4)}, as its attempts recorded it (Table 12)
+              <Cite to={['second', 'readme']} />.
+            </Text>
+            <Exhibit table label="Table 12" caption="What each arm cost on the new returns desk.">
+              <Table
+                fit
+                label="What each arm cost on the new returns desk"
+                columns={['', 'Spark', 'Glimmer, hosted']}
+                rows={SECOND.arms.map((each) => [
+                  armLabel(each),
+                  dollars(each.spark),
+                  each.glimmer === null ? '' : dollars(each.glimmer),
+                ])}
+              />
+            </Exhibit>
+          </Section>
+        </Part>
 
         <Section id="scale" number={6} title="From a specialist to a field model">
           <Text>
