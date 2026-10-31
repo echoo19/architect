@@ -278,7 +278,7 @@ test('walks from a description to a graduate', async () => {
   // The example tasks: where they came from, then each type with the rule behind it, its
   // tasks in each set and three examples with their expected answers.
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
-  await advanced.getByRole('button', { name: 'Example tasks' }).click();
+  await advanced.getByRole('button', { name: 'Example tasks', exact: true }).click();
   expect(await infoTipText(page, advanced, 'Example tasks')).toBe('From the tasks you attached.');
   await expect(advanced.getByText('170 tasks', { exact: true })).toBeVisible();
   await expect(
@@ -821,7 +821,7 @@ test('says what a run needs before it starts, with one action for each', async (
     'connections:add': { secretRef: 'meta', models: 3 },
     'secrets:status': { meta: true, openrouter: false },
   });
-  await dialog.getByLabel('API key').fill('key-for-the-test');
+  await dialog.getByLabel('API key', { exact: true }).fill('key-for-the-test');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(needs).not.toContainText('Spark needs a Meta key');

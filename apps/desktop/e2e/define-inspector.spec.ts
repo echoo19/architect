@@ -186,7 +186,7 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
   // The shortfall is said here, with its fix, and nowhere in the footer.
   await expect(inspector.getByRole('button', { name: /^Allow \d+ hours$/ })).toBeVisible();
   // Every time on the tab is in hours: what training would take, the limit, and the field.
-  await expect(inspector.getByRole('meter', { name: 'Training time' })).toContainText(/ h of 20 h/);
+  await expect(inspector).toContainText(/Training time\s*[\d.]+ h of 20 h/);
   await expect(inspector.getByRole('textbox', { name: 'Training time' })).toHaveValue('20');
   await capture(page, 'define-inspector-budget-dark');
 

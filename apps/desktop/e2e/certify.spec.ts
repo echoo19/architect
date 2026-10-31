@@ -213,7 +213,8 @@ test('in the personal edition, hands a request it is unsure of to a person, atte
   await expect(page.getByText('Please hand it to a person.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: /^Worked for/ }).click();
   const steps = page.getByRole('list', { name: 'Steps' });
-  await expect(steps.getByRole('listitem')).toHaveCount(6);
+  // The five attempts; the version that answered is in the summary, not a step.
+  await expect(steps.getByRole('listitem')).toHaveCount(5);
   await expect(steps).toContainText('Attempt 1 of 5:');
   await expect(steps).toContainText('{"refund_cents":4500}');
   await expect(steps.getByText('differs')).toHaveCount(3);

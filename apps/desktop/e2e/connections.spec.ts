@@ -240,7 +240,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
   // A preset from a provider with no key yet asks for its key.
   await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: /Claude Haiku/ }).click();
-  await expect(page.getByLabel('Anthropic API key')).toBeVisible();
+  await expect(page.getByLabel('Anthropic API key', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 });
 
@@ -299,12 +299,12 @@ test('adds a key its provider accepts, and says why when one is refused', async 
   await openModelsTab();
   await page.getByRole('button', { name: 'Add provider or endpoint' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add a provider or endpoint' });
-  await dialog.getByLabel('API key').fill('refused-key');
+  await dialog.getByLabel('API key', { exact: true }).fill('refused-key');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText(
     'OpenAI refused that key. Check it and try again.',
   );
-  await dialog.getByLabel('API key').fill('a-key-that-works');
+  await dialog.getByLabel('API key', { exact: true }).fill('a-key-that-works');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog).toBeHidden();
   const connections = page.getByRole('region', { name: 'Connections' });
@@ -336,7 +336,7 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   // Spark with a Meta key comes first; the other ways wait behind one line.
-  await expect(page.getByLabel('Meta API key')).toBeVisible();
+  await expect(page.getByLabel('Meta API key', { exact: true })).toBeVisible();
   await expect(page.getByRole('radio')).toHaveCount(0);
   await page.getByRole('button', { name: 'Other ways to connect a teacher' }).click();
   for (const name of [/^Spark/, /OpenRouter/, /Another service/, /On this computer/]) {

@@ -141,11 +141,25 @@ export async function infoTipText(
       ? { name: `About ${about}`, exact: true }
       : { name: new RegExp(`^About ${about.source}`) },
   );
-  await tip.focus();
+  return tooltipText(page, tip);
+}
+
+/**
+ * The tooltip of a focusable element, read while focus keeps it open and closed again after. It
+ * is scrolled into view first: a tooltip closes when its trigger's page scrolls.
+ */
+async function tooltipText(page: Page, trigger: Locator): Promise<string> {
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.focus();
+  // Read in the same moment it shows: a re-render or a scroll can close a tooltip again.
+  const shown = await page.waitForFunction(
+    () => document.querySelector('[role="tooltip"]')?.textContent ?? null,
+    undefined,
+    { polling: 50 },
+  );
+  const text = String(await shown.jsonValue());
+  await trigger.blur();
   const tooltip = page.getByRole('tooltip');
-  await expect(tooltip).toBeVisible();
-  const text = (await tooltip.textContent()) ?? '';
-  await tip.blur();
   await expect(tooltip).toBeHidden();
   return text;
 }
@@ -164,14 +178,7 @@ export function startHeldBy(page: Page): Promise<string | null> {
  */
 export async function heldBy(page: Page, button: Locator): Promise<string | null> {
   if (await button.isEnabled()) return null;
-  const wrap = button.locator('xpath=..');
-  await wrap.focus();
-  const tooltip = page.getByRole('tooltip');
-  await expect(tooltip).toBeVisible();
-  const text = (await tooltip.textContent()) ?? '';
-  await wrap.blur();
-  await expect(tooltip).toBeHidden();
-  return text;
+  return tooltipText(page, button.locator('xpath=..'));
 }
 
 /** Navigates by hash and waits until nothing on screen is still loading. */

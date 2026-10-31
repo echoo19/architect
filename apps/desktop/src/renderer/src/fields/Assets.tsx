@@ -149,7 +149,7 @@ function AssetsView({
         {/* What an export is and isn't, said on demand beside the mark that it is experimental. */}
         <span className="flex items-center gap-1">
           <Badge>Experimental</Badge>
-          <InfoTip about="the field export">{WORDING}</InfoTip>
+          <InfoTip about="these assets">{WORDING}</InfoTip>
         </span>
         <Button variant="primary" size="md" loading={exporting} onClick={() => void exportTo()}>
           {!exporting && <FolderOutput size={15} strokeWidth={1.7} aria-hidden />}
