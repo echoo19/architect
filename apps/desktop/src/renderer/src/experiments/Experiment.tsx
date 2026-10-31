@@ -2,7 +2,9 @@ import { useState } from 'react';
 import {
   capToFund,
   type ArmId,
+  type ComparisonReport,
   type ExperimentDetail,
+  type ExperimentInput,
   type ExperimentRecord,
   type ExperimentStart,
 } from '@architect/shared';
@@ -17,7 +19,17 @@ import {
   ErrorState,
   Meter,
 } from '@architect/ui';
-import { Ban, Clock, GraduationCap, Lock, Pause, Play, Square, Wallet } from 'lucide-react';
+import {
+  Ban,
+  Clock,
+  FlaskConical,
+  GraduationCap,
+  Lock,
+  Pause,
+  Play,
+  Square,
+  Wallet,
+} from 'lucide-react';
 import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery } from '../api/query';
 import { formatCost } from '../flow/format';
@@ -34,6 +46,8 @@ import {
   STUDENT_ARMS,
   armStatusWord,
   minutesText,
+  primaryResult,
+  primaryText,
 } from './model';
 import { Results } from './Results';
 
@@ -220,6 +234,37 @@ function SpendCard({ detail }: { detail: ExperimentDetail }) {
   );
 }
 
+/**
+ * What it was run to find out, as frozen: the hypothesis and its primary comparison, and once the
+ * tests are released what was measured for it. An experiment from before hypotheses has none.
+ */
+function HypothesisCard({
+  input,
+  report,
+}: {
+  input: ExperimentInput;
+  report: ComparisonReport | null;
+}) {
+  const { hypothesis, primaryComparison } = input;
+  if (hypothesis === undefined || primaryComparison === undefined) return null;
+  const measured = report === null ? null : primaryResult(report, primaryComparison);
+  return (
+    <Card title="Hypothesis" icon={<FlaskConical size={16} strokeWidth={1.7} aria-hidden />}>
+      <p className="m-0 max-w-[68ch] text-body text-pretty">{hypothesis}</p>
+      <dl className="m-0 mt-4 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-ui">
+        <dt className="font-medium">Primary comparison</dt>
+        <dd className="m-0">{primaryText(input)}</dd>
+        {measured !== null && (
+          <>
+            <dt className="font-medium">Measured</dt>
+            <dd className="m-0 tabular-nums">{measured}</dd>
+          </>
+        )}
+      </dl>
+    </Card>
+  );
+}
+
 /** What was frozen before it ran, for whoever needs to quote it. */
 function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
   const { preregistration, input, job } = experiment;
@@ -233,7 +278,13 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
             value: new Date(preregistration.at).toLocaleString('en-US'),
           },
           { label: 'Plan hash', value: preregistration.sha256 },
-          { label: 'Field', value: `${job.name}, ${shortPath(input.jobDir)}` },
+          {
+            label: 'Field',
+            value:
+              input.jobDir === undefined
+                ? `${job.name}, in your library`
+                : `${job.name}, ${shortPath(input.jobDir)}`,
+          },
           { label: 'Splits seed', value: job.splitsSeed },
           { label: 'Teaching seed', value: input.seeds.mentoring },
           { label: 'Final-test seeds', value: input.seeds.lockedTest.join(', ') },
@@ -444,6 +495,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
       action={action}
     >
       <div className={released ? 'flex max-w-[960px] flex-col gap-10' : 'flex flex-col gap-4'}>
+        <HypothesisCard input={input} report={released ? report : null} />
         {status === 'waiting' && <WaitingCard detail={detail} onGoOn={resume} />}
         {status === 'needs_funding' && <FundingCard detail={detail} onAnswer={resume} />}
         {status === 'failed' && (

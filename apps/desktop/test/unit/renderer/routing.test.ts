@@ -26,6 +26,10 @@ describe('parsePath', () => {
     expect(parsePath(paths.field('job_1'))).toEqual({ name: 'field', jobId: 'job_1' });
     expect(parsePath(paths.experiments())).toEqual({ name: 'experiments' });
     expect(parsePath(paths.newExperiment())).toEqual({ name: 'experiment-new' });
+    expect(parsePath(paths.newExperiment('job_1'))).toEqual({
+      name: 'experiment-new',
+      jobId: 'job_1',
+    });
     expect(parsePath(paths.experiment('exp_1'))).toEqual({
       name: 'experiment',
       experimentId: 'exp_1',

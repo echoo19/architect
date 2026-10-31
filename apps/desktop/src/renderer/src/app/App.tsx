@@ -62,7 +62,7 @@ function Screen({ route }: { route: Route }) {
     case 'experiment-new':
       return (
         <WorkspaceShell route={route}>
-          <NewExperimentScreen />
+          <NewExperimentScreen key={route.jobId ?? ''} jobId={route.jobId} />
         </WorkspaceShell>
       );
     case 'experiment':

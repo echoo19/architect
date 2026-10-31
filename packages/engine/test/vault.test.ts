@@ -393,3 +393,48 @@ describe('the leak fingerprint of the academy job, with organizations (decision 
     expect(detector.scan(`orgs/${juniper.id}/data`).matchedIds).toEqual(its);
   });
 });
+
+describe("a comparison's copy of a sealed job (decision 074, amended Oct 30)", () => {
+  const org = { id: 'harbor', name: 'Harbor Services', synthetic: true, role: 'transfer' as const };
+  const calibration = [invoiceTask('inv-cal-2', 'W-5120', 'Lena Ortiz')];
+  beforeEach(() =>
+    vault.seal(
+      'job_field',
+      tests,
+      others,
+      [],
+      [{ org, files: [{ name: 'invoices.csv', content: 'id,total\nW-9,100\n' }] }],
+      calibration,
+    ),
+  );
+
+  it("appends the sealed tasks to the folder's tasks and writes each sealed organization's files", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'architect-staged-'));
+    try {
+      writeFileSync(join(dir, 'tasks.jsonl'), `${JSON.stringify(others[0])}\n`);
+      expect(vault.stageSealed('job_field', dir)).toEqual([org]);
+      const ids = readFileSync(join(dir, 'tasks.jsonl'), 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => (JSON.parse(line) as Task).id);
+      expect(ids).toEqual([
+        'inv-train-1',
+        ...tests.map((task) => task.id),
+        ...calibration.map((task) => task.id),
+      ]);
+      expect(readFileSync(join(dir, 'orgs', 'harbor', 'data', 'invoices.csv'), 'utf8')).toBe(
+        'id,total\nW-9,100\n',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses a sealed file that changed after sealing', () => {
+    const file = join(root, 'vault', 'job_field', 'transfer', 'harbor', 'data', 'invoices.csv');
+    writeFileSync(file, 'id,total\nW-9,101\n');
+    expect(() => vault.stageSealed('job_field', root)).toThrow(
+      "A sealed organization's file of job job_field changed after it was sealed.",
+    );
+  });
+});

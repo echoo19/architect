@@ -7,10 +7,12 @@ import {
   type BackendId,
   type BackendTable,
   type ComparisonReport,
+  type ExperimentGroup,
   type ExperimentInput,
   type ExperimentStatus,
   type Paired,
   type PassDifference,
+  type PrimaryComparison,
 } from '@architect/shared';
 
 /*
@@ -93,11 +95,17 @@ export const SPARK_ARMS: readonly ArmId[] = [
 /** Arms the hosted student answers in, so a student cap of their own means something. */
 export const STUDENT_ARMS: readonly ArmId[] = ['bare', 'draft', 'targeted', 'repeat', 'fixed'];
 
-/** A new experiment's plan before the person changes it: the runner's usual arms and seeds. */
-export function defaultInput(jobDir: string, name: string): ExperimentInput {
+/**
+ * A new experiment's plan before the person changes it: the runner's usual arms and seeds, on a
+ * field of the library or a job folder. Its hypothesis is the person's to state.
+ */
+export function defaultInput(
+  source: { jobId: string } | { jobDir: string },
+  name: string,
+): ExperimentInput {
   return {
     name,
-    jobDir,
+    ...source,
     arms: [{ arm: 'bare' }, { arm: 'draft' }, { arm: 'targeted' }, { arm: 'reference' }],
     seeds: { mentoring: 1, lockedTest: [101] },
     rounds: 4,
@@ -105,13 +113,50 @@ export function defaultInput(jobDir: string, name: string): ExperimentInput {
   };
 }
 
-/** The arms asked for, in the runner's order, keeping each arm's own caps. */
+/**
+ * The arms asked for, in the runner's order, keeping each arm's own caps. A primary comparison of
+ * an arm no longer asked for is cleared, to be chosen again.
+ */
 export function withArms(input: ExperimentInput, arms: readonly ArmId[]): ExperimentInput {
   const kept = new Map(input.arms.map((item) => [item.arm, item]));
-  return {
+  const next: ExperimentInput = {
     ...input,
     arms: ARMS.filter((arm) => arms.includes(arm)).map((arm) => kept.get(arm) ?? { arm }),
   };
+  const primary = input.primaryComparison;
+  if (primary !== undefined && (!arms.includes(primary.a) || !arms.includes(primary.b))) {
+    delete next.primaryComparison;
+  }
+  return next;
+}
+
+/** Each part of the final test a primary comparison can read, in words. */
+export const GROUP_WORDS: Record<ExperimentGroup, string> = {
+  all: 'the whole final test',
+  seen: 'the organizations it is taught on',
+  unseen: 'the organizations it never sees',
+};
+
+/** The primary comparison in one line: "Targeted mentoring minus Bare student, on …". */
+export function primaryText(input: ExperimentInput): string | null {
+  const primary = input.primaryComparison;
+  if (primary === undefined) return null;
+  return `${ARM_NAMES[primary.a]} minus ${ARM_NAMES[primary.b]}, on ${GROUP_WORDS[primary.group]}`;
+}
+
+/** What keeps a plan from being preregistered beyond being sent, in a sentence; null when nothing. */
+export function preregisterProblem(
+  input: ExperimentInput,
+  groups: readonly ExperimentGroup[],
+): string | null {
+  if ((input.hypothesis ?? '').trim() === '') return 'State the hypothesis.';
+  const primary = input.primaryComparison;
+  if (primary === undefined) return 'Choose the primary comparison.';
+  const arms = input.arms.map((item) => item.arm);
+  if (!arms.includes(primary.a) || !arms.includes(primary.b)) {
+    return 'Compare two of the chosen arms.';
+  }
+  return groups.includes(primary.group) ? null : 'Choose a part of the final test this field has.';
 }
 
 /** One arm's own cap set, or cleared back to the runner's with `undefined`. */
@@ -157,6 +202,19 @@ export interface TestGroup {
 const ALL: TestGroup = { key: 'all', label: '' };
 const SEEN: TestGroup = { key: 'seen', label: 'Organizations it was taught on' };
 
+/** The group of the final test a primary comparison reads. */
+export function primaryGroup(group: ExperimentGroup): TestGroup {
+  if (group === 'all') return ALL;
+  return group === 'seen' ? SEEN : { key: 'unseen', label: 'Organizations it never saw' };
+}
+
+/** Whether an organization's results belong to a group of the final test. */
+function inGroup(result: { seen: boolean; org: string }, group: TestGroup): boolean {
+  if (group.key === 'seen') return result.seen;
+  if (group.key === 'unseen') return !result.seen;
+  return result.org === group.key;
+}
+
 /**
  * The groups the final test splits into: for a job with organizations, those it was taught on
  * together, then each it never saw; otherwise the test as one.
@@ -186,9 +244,7 @@ export function countIn(
     const { pass, total, wilson95 } = row.scenarios;
     return total === 0 || wilson95 === null ? null : { pass, total, ...wilson95 };
   }
-  const here = (row.perOrg ?? []).filter((result) =>
-    group.key === 'seen' ? result.seen : result.org === group.key,
-  );
+  const here = (row.perOrg ?? []).filter((result) => inGroup(result, group));
   const pass = here.reduce((sum, result) => sum + result.pass, 0);
   const total = here.reduce((sum, result) => sum + result.total, 0);
   const interval = wilson(pass, total);
@@ -206,8 +262,7 @@ export function skillIn(
     return found === undefined || found.total === 0 ? null : found;
   }
   const here = (row.perOrg ?? []).filter(
-    (result) =>
-      result.type === type && (group.key === 'seen' ? result.seen : result.org === group.key),
+    (result) => result.type === type && inGroup(result, group),
   );
   const total = here.reduce((sum, result) => sum + result.total, 0);
   if (total === 0) return null;
@@ -296,6 +351,33 @@ export const VERDICT_WORDS: Record<Verdict, string> = {
   loss: 'Loss shown',
   none: 'No gain shown',
 };
+
+const percent = (pass: number, total: number) => `${((pass / total) * 100).toFixed(1)}%`;
+
+/**
+ * What the released results say about the primary comparison, in a sentence, where the student
+ * ran first: on the whole test, the paired difference with its interval and the gain rule; on a
+ * part of it, each arm's pass rate there and the difference. Null where either arm has nothing.
+ */
+export function primaryResult(report: ComparisonReport, primary: PrimaryComparison): string | null {
+  const [figure] = figuresOf(report);
+  if (figure === undefined) return null;
+  const pair = figure.pairs.find((item) => item.a === primary.a && item.b === primary.b);
+  if (primary.group === 'all' && pair !== undefined) {
+    const { rate, low, high } = pair.difference;
+    return `${points(rate)} points, 95% interval ${points(low)} to ${points(high)}: ${VERDICT_WORDS[verdictOf(pair.difference)].toLowerCase()}.`;
+  }
+  const rowOf = (arm: ArmId) =>
+    figure.rows.find((row) => row.arm === arm && row.configuration === null);
+  const group = primaryGroup(primary.group);
+  const a = rowOf(primary.a);
+  const b = rowOf(primary.b);
+  const countA = a === undefined ? null : countIn(a, group);
+  const countB = b === undefined ? null : countIn(b, group);
+  if (countA === null || countB === null) return null;
+  const rate = countA.pass / countA.total - countB.pass / countB.total;
+  return `${ARM_NAMES[primary.a]} ${percent(countA.pass, countA.total)} of ${countA.total}, ${ARM_NAMES[primary.b].toLowerCase()} ${percent(countB.pass, countB.total)} of ${countB.total}: ${points(rate)} points.`;
+}
 
 /** A share as signed percentage points, one decimal, with a true minus: "+23.3", "−1.3". */
 export function points(rate: number): string {

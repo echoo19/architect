@@ -7,7 +7,8 @@ export type Route =
   | { name: 'fields' }
   | { name: 'field'; jobId: string }
   | { name: 'experiments' }
-  | { name: 'experiment-new' }
+  /** Designing an experiment, on a field of the library when one is named. */
+  | { name: 'experiment-new'; jobId?: string }
   | { name: 'experiment'; experimentId: string }
   | { name: 'models' }
   | { name: 'compute' }
@@ -29,7 +30,8 @@ export const paths = {
   fields: () => '/fields',
   field: (jobId: string) => `/fields/${segment(jobId)}`,
   experiments: () => '/experiments',
-  newExperiment: () => '/experiments/new',
+  newExperiment: (jobId?: string) =>
+    jobId === undefined ? '/experiments/new' : `/experiments/new/${segment(jobId)}`,
   experiment: (experimentId: string) => `/experiments/${segment(experimentId)}`,
   models: () => '/models',
   compute: () => '/compute',
@@ -67,6 +69,9 @@ export function parsePath(path: string): Route {
   if (first === 'fields' && id && exactly(2)) return { name: 'field', jobId: id };
   if (first === 'experiments' && exactly(1)) return { name: 'experiments' };
   if (first === 'experiments' && id === 'new' && exactly(2)) return { name: 'experiment-new' };
+  if (first === 'experiments' && id === 'new' && third && exactly(3)) {
+    return { name: 'experiment-new', jobId: third };
+  }
   if (first === 'experiments' && id && exactly(2)) {
     return { name: 'experiment', experimentId: id };
   }

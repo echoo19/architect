@@ -11,6 +11,7 @@ import type {
   Job,
   MentorAdapter,
   MentorConfig,
+  Organization,
   PackageManifest,
   Score,
   SplitConfig,
@@ -200,6 +201,12 @@ export interface VaultDeps {
   openTransfer(jobId: string, proof: MentorReleased): Awaitable<OpenedTransfer>;
   /** A certified job's calibration split, on the same proof; none for a job without one. */
   openCalibration(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
+  /**
+   * Writes the sealed part of a job into a job folder that a comparison imports and seals again
+   * in its own vault: the sealed tasks appended to its `tasks.jsonl`, each sealed organization's
+   * files in `orgs/<id>/data/`. Returns the sealed organizations. Never for a mentor.
+   */
+  stageSealed(jobId: string, dir: string): Awaitable<Organization[]>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */

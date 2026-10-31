@@ -2,6 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, evening), experiments from fields in the library (branch `lab/experiments-from-fields`)
+
+**Done** (no model was called, no GPU, no spend; decision 074's amendment)
+- An experiment runs on a field in the library (by job id, the default) or on a job folder. For a library job the service stages the folder the runner reads from the stored job and tasks and the vault's sealed part (`Vault.stageSealed`), for as long as one call reads it; the preregistration pins it, and a job saved since is refused.
+- Preregistering needs a hypothesis and a primary comparison (arm A minus arm B on the whole test, the organizations taught on, or those never seen); both are hashed with the plan and lead the design, the live page and the results, which say what was measured for it.
+- A Field page's New experiment opens the design with that field chosen.
+
+**Next**
+- Merge into `field/main` after review. The experiment's copy of a library job is split again with the job's seed, so its test may not be the library's own split; a path that imports a job with its splits as they are would close that.
+
 ## 2026-10-31 (Sat, morning), in flight: the third tutor run, post-hoc certification, serve, runner fix, the Tutor rename, a platform audit (start the next session here)
 
 **Rules learned today**

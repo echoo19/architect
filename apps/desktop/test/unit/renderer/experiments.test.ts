@@ -1,4 +1,4 @@
-import type { ArmRow, OrgTypeResult } from '@architect/shared';
+import type { ArmRow, ExperimentInput, OrgTypeResult } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   countIn,
@@ -6,6 +6,9 @@ import {
   groupsOf,
   inputProblem,
   points,
+  preregisterProblem,
+  primaryGroup,
+  primaryText,
   skillIn,
   verdictOf,
   wilson,
@@ -93,11 +96,13 @@ describe('experiment results', () => {
     expect(countIn(row(perOrg), groups[0]!)).toMatchObject({ pass: 7, total: 8 });
     expect(skillIn(row(perOrg), groups[2]!, 'refund')).toEqual({ pass: 1, total: 4 });
     expect(skillIn(row(perOrg), groups[2]!, 'pickup')).toBeNull();
+    expect(countIn(row(perOrg), primaryGroup('unseen'))).toMatchObject({ pass: 3, total: 8 });
+    expect(countIn(row(perOrg), primaryGroup('seen'))).toMatchObject({ pass: 7, total: 8 });
   });
 });
 
 describe('experiment plans', () => {
-  const input = defaultInput('C:/fields/desk', 'Desk');
+  const input = defaultInput({ jobId: 'desk' }, 'Desk');
 
   it('keeps chosen arms in the runner order with their own caps', () => {
     const capped = withArmCap(input, 'targeted', 'sparkUsd', 5);
@@ -117,5 +122,33 @@ describe('experiment plans', () => {
     expect(inputProblem({ ...input, name: ' ' })).toBe('Name the experiment.');
     expect(inputProblem({ ...input, arms: [] })).toBe('Choose at least one arm.');
     expect(inputProblem({ ...input, rounds: 11 })).toBe('One of the settings is out of range.');
+    expect(inputProblem({ ...input, jobDir: 'C:/fields/desk' })).toBe(
+      'One of the settings is out of range.',
+    );
+  });
+
+  it('asks for a hypothesis and a primary comparison of chosen arms before preregistering', () => {
+    const groups = ['all', 'seen', 'unseen'] as const;
+    expect(preregisterProblem(input, groups)).toBe('State the hypothesis.');
+    const stated = { ...input, hypothesis: 'Mentoring beats the bare student on unseen desks.' };
+    expect(preregisterProblem(stated, groups)).toBe('Choose the primary comparison.');
+    const primary: ExperimentInput = {
+      ...stated,
+      primaryComparison: { a: 'targeted', b: 'bare', group: 'unseen' },
+    };
+    expect(preregisterProblem(primary, groups)).toBeNull();
+    expect(preregisterProblem(primary, ['all'])).toBe(
+      'Choose a part of the final test this field has.',
+    );
+    expect(primaryText(primary)).toBe(
+      'Targeted mentoring minus Bare student, on the organizations it never sees',
+    );
+    // Taking an arm of the comparison out clears it, to be chosen again.
+    expect(withArms(primary, ['bare', 'draft']).primaryComparison).toBeUndefined();
+    expect(withArms(primary, ['bare', 'targeted']).primaryComparison).toEqual({
+      a: 'targeted',
+      b: 'bare',
+      group: 'unseen',
+    });
   });
 });

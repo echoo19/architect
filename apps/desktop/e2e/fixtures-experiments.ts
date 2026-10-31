@@ -51,7 +51,7 @@ export async function installExperimentsFake(
     const data = raw as ReturnType<typeof experimentsData>;
     type Record = {
       id: string;
-      input: { jobDir: string; name: string };
+      input: { jobId?: string; jobDir?: string; name: string };
       job: { id: string; name: string; splitsSeed: number };
       status: string;
       reason?: string;
@@ -88,6 +88,7 @@ export async function installExperimentsFake(
       experiment: { ...record },
       projection: data.projection,
       calibration: data.calibration,
+      groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
       funding: null,

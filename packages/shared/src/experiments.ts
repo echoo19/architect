@@ -51,11 +51,37 @@ export const ExperimentSeedsSchema = z
   .strict();
 export type ExperimentSeeds = z.infer<typeof ExperimentSeedsSchema>;
 
+/**
+ * The part of the final test a primary comparison reads: all of it, the organizations the arms
+ * are taught on, or every organization they never see, together.
+ */
+export const ExperimentGroupSchema = z.enum(['all', 'seen', 'unseen']);
+export type ExperimentGroup = z.infer<typeof ExperimentGroupSchema>;
+
+/** The one comparison an experiment is run to answer: arm `a`'s pass rate less arm `b`'s. */
+export const PrimaryComparisonSchema = z
+  .object({ a: ArmIdSchema, b: ArmIdSchema, group: ExperimentGroupSchema })
+  .strict()
+  .refine((comparison) => comparison.a !== comparison.b, {
+    message: 'A primary comparison sets two different arms against each other.',
+    path: ['b'],
+  });
+export type PrimaryComparison = z.infer<typeof PrimaryComparisonSchema>;
+
 export const ExperimentInputSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
+    /**
+     * A field in the library, by its job id: the runner reads its stored job and tasks, and its
+     * sealed organizations from the vault (decision 074, amended Oct 30). Set this or `jobDir`.
+     */
+    jobId: z.string().min(1).optional(),
     /** The job's folder: job.json, tasks.jsonl, data/ (or orgs/<id>/data/) and its checker. */
-    jobDir: z.string().min(1),
+    jobDir: z.string().min(1).optional(),
+    /** What the person expects and why, in their words; required before it is preregistered. */
+    hypothesis: z.string().max(2000).optional(),
+    /** The comparison the hypothesis is about; required before it is preregistered. */
+    primaryComparison: PrimaryComparisonSchema.optional(),
     arms: z.array(ExperimentArmSchema).min(1),
     seeds: ExperimentSeedsSchema,
     /** Refinement rounds for the arms whose rounds decide their size, at most. */
@@ -64,6 +90,13 @@ export const ExperimentInputSchema = z
   })
   .strict()
   .superRefine((input, context) => {
+    if ((input.jobId === undefined) === (input.jobDir === undefined)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['jobId'],
+        message: 'An experiment runs on a field in the library or on a folder, one of the two.',
+      });
+    }
     const arms = input.arms.map((item) => item.arm);
     if (new Set(arms).size !== arms.length) {
       context.addIssue({ code: 'custom', path: ['arms'], message: 'Each arm is asked for once.' });
@@ -148,6 +181,8 @@ export const ExperimentDetailSchema = z.object({
   /** Each arm projected: from calibration's measured price once it ran, assumed before. */
   projection: ProjectionSchema,
   calibration: CalibrationCostSchema,
+  /** The parts of the final test the job has, for a primary comparison to read. */
+  groups: z.array(ExperimentGroupSchema).min(1),
   /** Spark's brief of the organizations, for the person to read and confirm with its token. */
   study: z
     .object({ brief: StudyBriefSchema, token: z.string(), confirmed: z.boolean() })
