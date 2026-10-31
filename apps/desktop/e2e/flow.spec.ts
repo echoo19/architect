@@ -729,7 +729,7 @@ test("keeps Start training off until the job's plan is known, and says so when i
   await page.waitForLoadState('domcontentloaded');
   const alert = page.getByRole('alert').filter({ hasText: "Couldn't check whether this job" });
   await expect(alert).toContainText('The engine did not answer.');
-  await expect(alert).toContainText("Training can't start until it is checked.");
+  await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
   await expect(page.getByText("Couldn't check the job", { exact: true })).toBeVisible();
   await expect(start).toBeDisabled();
   await capture(page, 'flow-define-unreadable-dark');

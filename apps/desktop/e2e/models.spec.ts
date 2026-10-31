@@ -198,8 +198,8 @@ test('compares two versions skill by organization, with the harness diff between
   ).toBeVisible();
   // The check tasks stand apart from the final test, with each version's own result.
   const versions = page.getByRole('table', { name: 'Versions' });
-  await expect(versions.getByRole('row', { name: /Check tasks/ })).toContainText('64/80');
-  await expect(versions.getByRole('row', { name: /Check tasks/ })).toContainText('71/80');
+  await expect(versions.getByRole('row', { name: /Check tasks/ })).toContainText('80% · 64 of 80');
+  await expect(versions.getByRole('row', { name: /Check tasks/ })).toContainText('89% · 71 of 80');
   const harness = page.getByRole('region', { name: 'Harness' });
   await expect(harness).toContainText('Changed its instructions and 1 skill.');
   await expect(

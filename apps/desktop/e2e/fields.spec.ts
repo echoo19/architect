@@ -64,12 +64,12 @@ test('lists each field with its organizations, best candidate and last activity'
   // Five fields under a header of two rows: the organizations, then the best final test.
   await expect(table.getByRole('row')).toHaveCount(7);
 
-  // Academy desk: taught on three academies, sealed from two, one of them real; its best candidate's
+  // Academy desk: taught on three academies, one never seen and one real; its best candidate's
   // final test on each kind.
   const academyDesk = table.getByRole('row', { name: /^Academy desk/ });
   const cells = academyDesk.getByRole('cell');
   await expect(cells.nth(1)).toHaveText('3');
-  await expect(cells.nth(2)).toHaveText('2');
+  await expect(cells.nth(2)).toHaveText('1');
   await expect(cells.nth(3)).toHaveText('1');
   await expect(cells.nth(4)).toHaveText('93%');
   await expect(cells.nth(5)).toHaveText('83%');

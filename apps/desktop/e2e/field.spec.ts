@@ -160,7 +160,7 @@ test('shows each skill at each organization, trained-with, never-seen and real a
     '9/10',
   ]);
   // A skill the real academy's records can't check is left empty there, not scored zero.
-  await expect(row('First hint').getByRole('cell')).toHaveText(['3/4', '4/4', '4/4', '5/6', '']);
+  await expect(row('First hint').getByRole('cell')).toHaveText(['3/4', '4/4', '4/4', '5/6', '–']);
   await expect(grid.getByLabel('First hint at Real academy, None')).toBeAttached();
   await expect(row('All skills').getByRole('cell')).toHaveText([
     '22/24',

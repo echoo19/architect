@@ -279,7 +279,7 @@ test('marks an agent tested online, tests it on this computer, and is ready once
   await emitRunEvents(launched.app, [testFinished]);
   await expect(offer).toContainText('Passed on this computer');
   await expect(offer).toContainText('92% · 55 of 60. Typical answer time 1 min 34 s');
-  await expect(offer).toContainText('Online it got 54 of 60.');
+  await expect(offer).toContainText('Online it got 90% · 54 of 60.');
   await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
   await expect(page.getByText('It passed on this computer too: 55 of 60')).toBeVisible();
   await expect(
@@ -452,7 +452,7 @@ test("offers the test on this computer in the agent's own Results", async () => 
   // The agent's run is here, so its records can take the test again.
   const dialog = await openAgentSettings(withRetests());
   // Its Final test row says where the test ran.
-  await expect(dialog.getByText('Passed online: 54 of 60 (90%)')).toBeVisible();
+  await expect(dialog.getByText('Passed online: 90% · 54 of 60')).toBeVisible();
   await dialog.getByRole('tab', { name: 'Results' }).click();
   await expect(dialog.getByText('Typical answer, on the online copy')).toBeVisible();
   const offer = dialog.getByRole('region', { name: 'Test on this computer' });
