@@ -11,5 +11,8 @@ export default defineConfig({
     ],
     environment: 'node',
     testTimeout: 20_000,
+    // Several suites import a whole field job (300 tasks, sealed and fingerprinted) in a setup
+    // hook: about 2.5 s alone, far longer when the machine is busy.
+    hookTimeout: 60_000,
   },
 });
