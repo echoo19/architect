@@ -11,6 +11,6 @@
 - A re-test may be made up from several lots. Every lot that is in date and has free volume is usable; take from them in order, everything free from each until the re-test has 5000 nL, and from the last only what is still needed.
 - Draw from the lot that expires first first.
 - Usable: the free volume of the usable lots together.
-- Limit: a compound with 4 reservations already in reservations.csv gets no new one, whatever its lots, reason LIMIT.
-- A compound that has no lot in date gets reason OUT-OF-DATE; one with lots in date that can't make up a re-test gets reason SHORT.
+- First, whether a re-test can be drawn at all: a compound that has no lot in date gets reason OUT-OF-DATE; one with lots in date that can't make up a re-test gets reason SHORT.
+- Limit: A re-test that can be drawn is allocated and reserved only if the compound's rows in reservations.csv, with one new row for each lot drawn, come to no more than 4; otherwise it gets reason LIMIT and no row.
 - New rows in reservations.csv: reservation_id numbered on from the last row, compound_id, lot, amount (in our unit, the number and the unit, as the file writes them), and reserved_on, the day of the request written the way we write dates. One row per lot drawn from, and none for a compound with nothing to draw.

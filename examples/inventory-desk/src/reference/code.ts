@@ -51,7 +51,6 @@ function usable(id) {
 }
 function allocate(id) {
   const none = (reason) => ({ compound: id, draws: [], reason });
-  if (holds().filter((h) => key(h.compound_id) === key(id)).length >= P.maxHolds) return none(P.codes.limit);
   if (!lotsOf(id).some(inDate)) return none(P.codes.expired);
   const draws = [];
   let needed = P.minimum;
@@ -61,7 +60,9 @@ function allocate(id) {
     draws.push({ lot: l.lot, location: l.location, amount_ul: amount / 1000 });
     needed -= amount;
   }
-  return needed === 0 ? { compound: id, draws, reason: null } : none(P.codes.low);
+  if (needed > 0) return none(P.codes.low);
+  const held = holds().filter((h) => key(h.compound_id) === key(id)).length;
+  return held + draws.length > P.maxHolds ? none(P.codes.limit) : { compound: id, draws, reason: null };
 }
 const UNIT = { uL: ['µL', 1000, 3], mL: ['mL', 1000000, 6], nL: ['nL', 1, 0] }[P.unit];
 const volume = (n) => String(Number((n / UNIT[1]).toFixed(UNIT[2]))) + ' ' + UNIT[0];

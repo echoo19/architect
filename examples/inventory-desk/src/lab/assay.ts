@@ -11,8 +11,8 @@ export interface RetestList {
   plate: string;
   /** The plate's inconclusive and borderline compounds not already queued, in plate order. */
   compounds: string[];
-  /** Whether the Assay desk queues every one of them (none is left out by its cap per plate). */
-  queued: boolean;
+  /** How many of them the Assay desk queues: all, or its cap per plate when more qualify. */
+  take: number;
 }
 
 export interface AssayLab {
@@ -52,7 +52,7 @@ export function assayLab(generated: GeneratedLab): AssayLab {
     .map((plan) => ({
       plate: plan.plate,
       compounds: plan.candidates.map((c) => c.compound),
-      queued: plan.candidates.length <= plan.take,
+      take: plan.take,
     }));
   return {
     id: organization.id,
@@ -68,7 +68,7 @@ export function assayLab(generated: GeneratedLab): AssayLab {
  * it returns are exactly the ones it queues, whichever valid plan it picks.
  */
 export function chainList(assay: AssayLab): RetestList {
-  const whole = assay.lists.filter((list) => list.queued);
+  const whole = assay.lists.filter((list) => list.compounds.length === list.take);
   const longest = whole.reduce<RetestList | undefined>(
     (best, list) => (best && best.compounds.length >= list.compounds.length ? best : list),
     undefined,

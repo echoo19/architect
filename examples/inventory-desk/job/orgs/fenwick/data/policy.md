@@ -19,7 +19,7 @@ The lots go in the order the table says to draw from: the one that expires first
 
 ## Reservations
 
-A compound that already has as many reservations in reservations.csv as the table allows gets no new one, whatever its lots, with the reservation-limit code. Otherwise a compound with no lot in date gets the no-lot-in-date code, and one with lots in date that cannot make up a re-test gets the too-little code.
+First, whether a re-test can be drawn at all: a compound with no lot in date gets the no-lot-in-date code, and one with lots in date that cannot make up a re-test gets the too-little code. A re-test that can be drawn is allocated and reserved only if the compound's rows in reservations.csv, with one new row for each lot drawn, come to no more than the reservations per compound in the table; otherwise it gets the reservation-limit code and no row.
 
 New rows in reservations.csv: reservation_id numbered on from the last row, compound_id, lot, amount (in our unit, the number and the unit, as the file writes them), and reserved_on, the day of the request written the way we write dates. One row per lot drawn from, and none for a compound with nothing to draw.
 

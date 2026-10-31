@@ -92,13 +92,15 @@ export function usableVolume(store: Store, compound: string): number {
   return usableLots(store, compound).reduce((sum, lot) => sum + freeOf(lot, store.holds), 0);
 }
 
-/** What one re-test of a compound draws, by the policy. */
+/**
+ * What one re-test of a compound draws, by the policy. Whether it can be drawn at all comes first:
+ * no lot in date, or too little in the lots that are. A re-test that can be drawn is reserved
+ * only if the compound's reservations, with one new row for each lot drawn, come to no more than
+ * the policy's limit.
+ */
 export function allocate(store: Store, compound: string): Allocation {
   const { policy, holds } = store;
   const none = (reason: string): Allocation => ({ compound, draws: [], reason });
-  if (holds.filter((h) => h.compound === compound).length >= policy.maxHolds) {
-    return none(policy.codes.limit);
-  }
   if (!lotsOf(store, compound).some((lot) => inDate(lot, store))) return none(policy.codes.expired);
   const draws: Draw[] = [];
   let needed = policy.minimum;
@@ -108,5 +110,9 @@ export function allocate(store: Store, compound: string): Allocation {
     draws.push({ lot: lot.lot, location: lot.location, amount });
     needed -= amount;
   }
-  return needed === 0 ? { compound, draws, reason: null } : none(policy.codes.low);
+  if (needed > 0) return none(policy.codes.low);
+  const held = holds.filter((h) => h.compound === compound).length;
+  return held + draws.length > policy.maxHolds
+    ? none(policy.codes.limit)
+    : { compound, draws, reason: null };
 }

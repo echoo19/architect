@@ -92,11 +92,10 @@ function readText(text: string): Policy {
     /[Dd]raw from (the lot [^.]+?) first\./,
   ]);
   const [maxHolds] = find(text, 'the most reservations per compound', [
-    /already has ([\w-]+) reservations in reservations\.csv/,
-    /a compound with (\d+) reservations already/,
+    /with one new row for each lot drawn, come to no more than ([\w-]+);/,
   ]);
   const [limit] = find(text, 'the reservation-limit code', [
-    /gets no new one, whatever its lots, (?:with )?reason (\S+)\./,
+    /otherwise it gets reason (\S+) and no row\./,
   ]);
   const [expired] = find(text, 'the no-lot-in-date code', [/no lot in date gets reason (\S+);/]);
   const [low] = find(text, 'the too-little code', [/make up a re-test gets reason (\S+)\./]);
