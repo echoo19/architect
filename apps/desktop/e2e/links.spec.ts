@@ -352,6 +352,9 @@ test("a field's export leads to Compute, whose bundle offers it as the field's l
 test('the personal edition shows none of the Lab links', async () => {
   // On the results first: a Lab place reloaded in the personal edition would be sent home.
   await goTo(page, report);
+  // The results must be on screen before the edition changes: settling can pass while the last
+  // test's Compute page is still up, and Compute in the personal edition is sent home.
+  await expect(button('See all rounds')).toBeVisible();
   await updateSettings(page, { edition: 'personal' });
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
