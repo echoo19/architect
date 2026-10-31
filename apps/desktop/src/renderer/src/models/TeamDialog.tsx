@@ -13,6 +13,7 @@ import {
   Input,
   Select,
   Textarea,
+  Tooltip,
 } from '@architect/ui';
 import { CircleAlert, MessagesSquare, Trash2 } from 'lucide-react';
 import { useVersions } from '../api/graduates';
@@ -120,6 +121,19 @@ function TeamForm({
     onDone();
   };
 
+  const leadSelect = (
+    <Select
+      aria-label="Lead"
+      value={lead}
+      disabled={team !== undefined}
+      options={agents.map((agent) => ({ value: agent.id, label: agent.name }))}
+      onValueChange={(next) => {
+        setLead(next);
+        setPicks((current) => current.filter((pick) => pick.graduateId !== next));
+      }}
+    />
+  );
+
   return (
     <DialogContent title={team ? team.name : 'New team'}>
       <div className="flex flex-col gap-6 px-6 pt-5">
@@ -133,24 +147,19 @@ function TeamForm({
           />
         </Field>
         <Field label="Lead" htmlFor={`${id}-lead`}>
-          <Select
-            aria-label="Lead"
-            value={lead}
-            disabled={team !== undefined}
-            options={agents.map((agent) => ({ value: agent.id, label: agent.name }))}
-            onValueChange={(next) => {
-              setLead(next);
-              setPicks((current) => current.filter((pick) => pick.graduateId !== next));
-            }}
-          />
+          {team ? (
+            // A team keeps its lead, which the locked choice says when pointed at.
+            <Tooltip content="Stays for the team's life" side="top">
+              <span tabIndex={0} className="block rounded-control">
+                {leadSelect}
+              </span>
+            </Tooltip>
+          ) : (
+            leadSelect
+          )}
         </Field>
         <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
-          <legend className="mb-2 flex items-baseline gap-2 p-0 text-ui font-medium">
-            Teammates
-            <span className="text-small font-normal tabular-nums">
-              {picks.length} of {MAX_TEAMMATES}
-            </span>
-          </legend>
+          <legend className="mb-2 p-0 text-ui font-medium">Teammates</legend>
           {teammates.length === 0 ? (
             <p className="m-0 text-ui">Teach another agent first.</p>
           ) : (
@@ -249,20 +258,32 @@ function TeammateRow({
   const contract = active?.manifest.contract;
   const fallback = defaultRole(contract?.summary ?? contract?.description);
   useEffect(() => onDefault(fallback), [fallback, onDefault]);
+  const checkbox = (
+    <Checkbox
+      checked={pick !== undefined}
+      disabled={disabled}
+      onCheckedChange={onToggle}
+      className="h-10"
+      label={
+        <span className="flex items-center gap-2.5">
+          <AgentAvatar name={agent.name} />
+          {agent.name}
+        </span>
+      }
+    />
+  );
   return (
     <li className="flex flex-col">
-      <Checkbox
-        checked={pick !== undefined}
-        disabled={disabled}
-        onCheckedChange={onToggle}
-        className="h-10"
-        label={
-          <span className="flex items-center gap-2.5">
-            <AgentAvatar name={agent.name} />
-            {agent.name}
+      {disabled ? (
+        // A team is full at its limit, which the unchosen agents say when pointed at.
+        <Tooltip content={`Up to ${MAX_TEAMMATES}`} side="right">
+          <span tabIndex={0} className="self-start rounded-control">
+            {checkbox}
           </span>
-        }
-      />
+        </Tooltip>
+      ) : (
+        checkbox
+      )}
       <Collapse open={pick !== undefined}>
         <Field
           label={`What ${lead} asks it for`}
