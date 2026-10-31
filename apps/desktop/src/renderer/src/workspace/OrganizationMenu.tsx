@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { organizationNoun, type GraduateSummary } from '@architect/shared';
 import {
+  AgentAvatar,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -37,9 +39,16 @@ const trigger =
  * agent's records to it, as the settings' folder row does. "Another <organization>" binds a folder of
  * the person's own records once it holds the files and columns the agent was trained with; the
  * header then says the agent wasn't tested there, since no report number applies to it. Writes
- * still ask as they did.
+ * still ask as they did. In a team chat, one menu stands for each agent of the team (`named`): it
+ * leads with the agent's avatar and says whose records it is.
  */
-export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
+export function OrganizationMenu({
+  agent,
+  named = false,
+}: {
+  agent: GraduateSummary;
+  named?: boolean;
+}) {
   const report = useVersionReport(agent);
   const installation = useInstallation(agent.id);
   const [choosing, setChoosing] = useState(false);
@@ -68,7 +77,9 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
   };
 
   const own = folder !== undefined && current?.org === null;
-  const label = `Organization: ${current?.name ?? 'not chosen'}${own ? `, not tested at this ${noun}` : ''}`;
+  const whose = named ? `${agent.name}'s organization` : 'Organization';
+  const label = `${whose}: ${current?.name ?? 'not chosen'}${own ? `, not tested at this ${noun}` : ''}`;
+  const where = folder ? shortPath(folder) : `${agent.name}'s own copy`;
   const chooseOwn = async () => {
     setChoosing(true);
     const next = await attempt(`Couldn't move ${agent.name} to another ${noun}`, async () => {
@@ -91,10 +102,19 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
 
   return (
     <DropdownMenu>
-      <Tooltip content={folder ? shortPath(folder) : `${agent.name}'s own copy`} side="bottom">
+      <Tooltip content={named ? `${agent.name} · ${where}` : where} side="bottom">
         <DropdownMenuTrigger asChild>
-          <button type="button" className={trigger} disabled={choosing} aria-label={label}>
-            <Building2 size={15} strokeWidth={1.8} aria-hidden />
+          <button
+            type="button"
+            className={cn(trigger, named && 'pl-1')}
+            disabled={choosing}
+            aria-label={label}
+          >
+            {named ? (
+              <AgentAvatar name={agent.name} />
+            ) : (
+              <Building2 size={15} strokeWidth={1.8} aria-hidden />
+            )}
             {current?.name ?? 'Choose an organization'}
             {own && <span className="font-normal text-fg-dim">{`Not tested at this ${noun}`}</span>}
             <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
@@ -102,7 +122,7 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
         </DropdownMenuTrigger>
       </Tooltip>
       <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Organization</DropdownMenuLabel>
+        <DropdownMenuLabel>{whose}</DropdownMenuLabel>
         {orgs.map((org) => (
           <DropdownMenuItem
             key={org.org}

@@ -1,4 +1,4 @@
-import type { AgentBlock, RowDiff } from '@architect/shared';
+import type { AgentBlock, GraduateSummary, RowDiff } from '@architect/shared';
 import { createsFile, lineCounts, patchRows } from '../flow/train/diff';
 import { diffLines } from './diff';
 
@@ -18,6 +18,19 @@ export function changeVerb(change: ChangeShape): string {
     return 'Create';
   }
   return VERBS[change.op];
+}
+
+/**
+ * Whose files a change writes: in a team reply, the teammate the change names, else the agent
+ * that answers (decision 100).
+ */
+export function writerOf<Agent extends Pick<GraduateSummary, 'id'>>(
+  change: Pick<ApprovalBlock, 'agent'>,
+  answering: Agent,
+  teammates: readonly Agent[],
+): Agent {
+  const named = change.agent?.graduateId;
+  return teammates.find((teammate) => teammate.id === named) ?? answering;
 }
 
 /** True when a change makes something new: a new file, or rows or lines added at the end. */

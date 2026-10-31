@@ -93,7 +93,13 @@ function WriteModeMenu({ agent }: { agent: GraduateSummary }) {
 }
 
 export interface ChatComposerProps {
+  /** The agent that answers: in a team chat, the team's lead. */
   agent: GraduateSummary;
+  /**
+   * In a team chat, the team's name. Each agent of a team asks before writing as its own setting
+   * says, so the composer has no write setting of its own there.
+   */
+  team?: string;
   draft: string;
   onDraftChange: (text: string) => void;
   onSend: (text: string) => void;
@@ -110,6 +116,7 @@ export interface ChatComposerProps {
 
 export function ChatComposer({
   agent,
+  team,
   draft,
   onDraftChange,
   onSend,
@@ -137,7 +144,7 @@ export function ChatComposer({
       <div ref={fieldRef}>
         <Composer
           className="mx-auto"
-          label={`Message ${agent.name}`}
+          label={`Message ${team ?? agent.name}`}
           placeholder={`Ask ${agent.name}`}
           value={draft}
           onValueChange={onDraftChange}
@@ -146,7 +153,7 @@ export function ChatComposer({
           onStop={onStop}
           disabled={disabled}
           autoFocus
-          leading={<WriteModeMenu agent={agent} />}
+          leading={team === undefined ? <WriteModeMenu agent={agent} /> : undefined}
         />
       </div>
     </div>

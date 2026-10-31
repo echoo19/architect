@@ -1,9 +1,15 @@
 import { memo } from 'react';
-import type { AgentBlock, GraduateSummary, WorkspaceMessage } from '@architect/shared';
+import type {
+  AgentBlock,
+  Consultation,
+  GraduateSummary,
+  WorkspaceMessage,
+} from '@architect/shared';
 import { ErrorState, Reveal, Spinner } from '@architect/ui';
 import { CirclePause } from 'lucide-react';
 import { CopyButton } from '../components/CopyButton';
 import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
+import { writerOf } from './changes';
 import { Markdown } from './markdown/Markdown';
 import type { PanelContent } from './SidePanel';
 import { Steps } from './Steps';
@@ -37,20 +43,27 @@ function blockKey(block: AgentBlock, index: number): string {
 
 export interface AgentMessageProps {
   message: WorkspaceMessage;
+  /** The agent that answers: in a team chat, the team's lead. */
   agent: GraduateSummary;
+  /** In a team chat, the lead's teammates, whose writes and answers the reply can hold. */
+  teammates?: readonly GraduateSummary[];
   /** Whether finished steps start open, from the "Tool steps" setting. */
   stepsStartOpen: boolean;
   onOpenPanel: (content: PanelContent) => void;
   /** Opens Teach this for a settled reply. */
   onFlag: (message: WorkspaceMessage) => void;
+  /** In a team chat, opens Teach this for a teammate's answer in a settled reply. */
+  onFlagConsultation?: (message: WorkspaceMessage, consultation: Consultation) => void;
 }
 
 export const AgentMessage = memo(function AgentMessage({
   message,
   agent,
+  teammates,
   stepsStartOpen,
   onOpenPanel,
   onFlag,
+  onFlagConsultation,
 }: AgentMessageProps) {
   const working = message.status === 'streaming';
   const answerable = working || message.status === 'done';
@@ -73,6 +86,9 @@ export const AgentMessage = memo(function AgentMessage({
             startOpen={stepsStartOpen}
             waiting={pending > 0}
             onOpenPanel={onOpenPanel}
+            {...(onFlagConsultation
+              ? { onFlagConsultation: (consultation) => onFlagConsultation(message, consultation) }
+              : {})}
           />
         )}
         {working && empty && <Thinking />}
@@ -87,7 +103,8 @@ export const AgentMessage = memo(function AgentMessage({
                 <ApprovalCard
                   key={key}
                   block={block}
-                  agent={agent}
+                  agent={writerOf(block, agent, teammates ?? [])}
+                  named={teammates !== undefined}
                   answerable={answerable}
                   onOpenPanel={onOpenPanel}
                 />

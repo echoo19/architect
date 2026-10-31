@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import type { AgentBlock, GraduateSummary } from '@architect/shared';
 import {
+  AgentAvatar,
   Button,
   cn,
   Collapse,
@@ -144,7 +145,13 @@ function Outcome({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 
 export interface ApprovalCardProps {
   block: ApprovalBlockData;
+  /** The agent whose files the change writes: in a team reply, the lead or a teammate. */
   agent: GraduateSummary;
+  /**
+   * In a team reply, the card leads with the agent whose files it writes, since each agent of the
+   * team asks on its own and only for its own files.
+   */
+  named?: boolean;
   /** False once the reply ended without an answer, for example because it was stopped. */
   answerable: boolean;
   onOpenPanel: (content: PanelContent) => void;
@@ -156,7 +163,13 @@ export interface ApprovalCardProps {
  * allowed change that couldn't be saved says why and offers to try again; it never shows as
  * allowed while nothing was written.
  */
-export function ApprovalCard({ block, agent, answerable, onOpenPanel }: ApprovalCardProps) {
+export function ApprovalCard({
+  block,
+  agent,
+  named = false,
+  answerable,
+  onOpenPanel,
+}: ApprovalCardProps) {
   const previewId = useId();
   const [expanded, setExpanded] = useState(block.status === 'pending');
   const [sending, setSending] = useState<Decision | null>(null);
@@ -168,6 +181,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
   useEffect(() => setAnswer(null), [block.status, block.error]);
   const unsaved = block.error !== undefined;
   const retrying = block.status === 'pending' && unsaved && answerable;
+  const counts = changeCounts(block) || block.summary;
 
   const decide = async (decision: Decision) => {
     setSending(decision);
@@ -221,7 +235,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
     <Reveal>
       <div
         role="group"
-        aria-label={`Write to ${block.file}`}
+        aria-label={named ? `${agent.name}: write to ${block.file}` : `Write to ${block.file}`}
         className="flex flex-col overflow-hidden rounded-card bg-raised leading-[1.4] shadow-edge-strong"
       >
         <div className="flex flex-wrap items-center gap-3.5 py-3.5 pl-4 pr-3.5">
@@ -232,9 +246,13 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
             onClick={() => setExpanded(!expanded)}
             className="flex min-w-0 flex-[1_1_200px] items-center gap-3.5 rounded-control text-left"
           >
-            <RowIcon>
-              <FileIcon size={16} strokeWidth={1.8} aria-hidden />
-            </RowIcon>
+            {named ? (
+              <AgentAvatar name={agent.name} />
+            ) : (
+              <RowIcon>
+                <FileIcon size={16} strokeWidth={1.8} aria-hidden />
+              </RowIcon>
+            )}
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="shrink-0">{changeVerb(block)}</span>
@@ -249,7 +267,9 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
                   )}
                 />
               </span>
-              <span className="text-small text-fg">{changeCounts(block) || block.summary}</span>
+              <span className="text-small text-fg">
+                {named ? `${agent.name} · ${counts}` : counts}
+              </span>
             </span>
           </button>
           {outcome ??
@@ -262,7 +282,7 @@ export function ApprovalCard({ block, agent, answerable, onOpenPanel }: Approval
               <div className="flex gap-1.5">
                 {choice('deny', 'Deny', 'secondary')}
                 <Tooltip
-                  content={`${agent.name} will save changes to any of its files without asking. You can change this with the lock next to the message box.`}
+                  content={`${agent.name} will save changes to any of its files without asking. You can change this ${named ? 'in its settings' : 'with the lock next to the message box'}.`}
                   side="top"
                 >
                   {choice('always', 'Allow saving from now on', 'ghost')}
