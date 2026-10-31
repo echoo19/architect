@@ -18,13 +18,14 @@ import type { Candidate, FieldSummary } from './model';
 import { plural } from './parts';
 
 /*
- * A field's life as one timeline (decision 091): what it was studied from, each training, each
- * final test, each certificate, each experiment and this session's export, every entry read from
+ * A field's life as one timeline (decision 091): the version it was made from and any later one
+ * (decision 089), what it was studied from, each training, each final test, each certificate, each experiment and this session's export, every entry read from
  * a stored record and linked to the place that holds it. A stage with no record has no entry; one
  * next step, worked out from what is missing, closes the line.
  */
 
-export type Stage = 'studied' | 'taught' | 'tested' | 'certified' | 'compared' | 'exported';
+export type Stage =
+  'learned' | 'studied' | 'taught' | 'tested' | 'certified' | 'compared' | 'exported';
 
 /** Where an entry leads: a place of the app, or a tab of the field's own page. */
 export interface Link {
@@ -52,6 +53,14 @@ export interface HeldVersion {
   runId: string;
 }
 
+/** A later version made by teaching on an organization this field never saw, and when. */
+export interface LaterVersion {
+  jobId: string;
+  name: string;
+  org: string;
+  at: string;
+}
+
 /** The records the timeline reads beside the field's own. */
 export interface TimelineRecords {
   study: StudyState | undefined;
@@ -62,11 +71,14 @@ export interface TimelineRecords {
   /** Models trained elsewhere and qualified on the field (decision 086). */
   qualifications: readonly Qualification[];
   experiments: readonly ExperimentRecord[];
+  /** Later versions taught on one of the field's never-seen organizations. */
+  laterVersions: readonly LaterVersion[];
   /** The field's latest export written in this session; exports aren't kept in the library. */
   exported: { dir: string; at: string } | undefined;
 }
 
 export const STAGE_WORDS: Record<Stage, string> = {
+  learned: 'Learned from',
   studied: 'Studied',
   taught: 'Taught',
   tested: 'Tested',
@@ -75,7 +87,15 @@ export const STAGE_WORDS: Record<Stage, string> = {
   exported: 'Exported',
 };
 
-const STAGE_ORDER: Stage[] = ['studied', 'taught', 'tested', 'certified', 'compared', 'exported'];
+const STAGE_ORDER: Stage[] = [
+  'learned',
+  'studied',
+  'taught',
+  'tested',
+  'certified',
+  'compared',
+  'exported',
+];
 
 /** "a, b and c". */
 function list(parts: readonly string[]): string {
@@ -160,6 +180,27 @@ export function fieldTimeline(
     const version = held(runId);
     return version ? { place: 'Models', to: { path: paths.models(version.key) } } : results(runId);
   };
+
+  const versionOf = field.view.versionOf;
+  if (versionOf) {
+    entries.push({
+      key: `learned:${versionOf.jobId}`,
+      stage: 'learned',
+      at: field.job.createdAt,
+      sentence: `Made as version ${versionOf.version} from ${versionOf.name} by teaching on ${versionOf.org}, which it had never seen`,
+      link: { place: 'Field', to: { path: paths.field(versionOf.jobId) } },
+    });
+  }
+
+  for (const later of records.laterVersions) {
+    entries.push({
+      key: `learned:${later.jobId}:${later.org}`,
+      stage: 'learned',
+      at: later.at,
+      sentence: `${later.name}, a later version, was taught on ${later.org}, which this one never saw`,
+      link: { place: 'Field', to: { path: paths.field(later.jobId) } },
+    });
+  }
 
   const study = records.study;
   if (study?.confirmedAt) {
