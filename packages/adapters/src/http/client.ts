@@ -95,7 +95,7 @@ function isRedirect(status: number): boolean {
 /** A redirect, refused: where it pointed, by host alone, since its path can carry secrets. */
 function redirected(response: Response, url: string): HttpError {
   const location = response.headers.get('location');
-  let target: string | null = null;
+  let target: string | null;
   try {
     target = location === null ? null : new URL(location, url).host;
   } catch {
