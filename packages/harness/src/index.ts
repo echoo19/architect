@@ -6,6 +6,7 @@ export type { StoredHarness } from './folder';
 export { MANIFEST_FILE as LEGACY_MANIFEST_FILE, readGraduate, writeGraduate } from './graduate';
 export type { GraduateBundle, GraduateFolder } from './graduate';
 export { hashFiles, hashHarness } from './hash';
+export { camelToSnake, mapKeys, snakeToCamel } from './keys';
 export { migrateFormat1 } from './legacy';
 export { appendLineage, readLineage } from './lineage';
 export { renderReportMarkdown } from './report';

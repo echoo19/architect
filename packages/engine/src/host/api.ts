@@ -30,6 +30,7 @@ import {
 import { reportBeside } from '../comparisons/records';
 import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
 import { addedQualificationView } from '../loop/qualify-added';
+import { writeEvidencePack } from '../graduates/evidence-pack';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -556,6 +557,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       exportPackage: (graduateId, request) => exportPackage(packages, graduateId, request),
       exportFolder: (graduateId, directory) => exportPackage(packages, graduateId, { directory }),
       exportPart: (graduateId, request) => exportPart(packages, graduateId, request),
+      exportEvidence: (graduateId, request) =>
+        writeEvidencePack({ library: graduates }, graduateId, request),
       inspectPackage: (path) => inspectPackage(packages, path),
       previewImport: (path) => previewImport(packages, path),
       importPackage: (path, request) => importPackage(packages, path, request),

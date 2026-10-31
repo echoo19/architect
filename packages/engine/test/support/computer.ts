@@ -10,6 +10,7 @@ import {
   type Harness,
   type HarnessTool,
   type Job,
+  type OrgTypeResult,
   type Machine,
   type StudentEndpoint,
 } from '@architect/shared';
@@ -242,6 +243,8 @@ export interface VersionOptions {
   unevaluated?: boolean;
   /** Where its locked test ran; on this computer's model when absent. */
   testedOn?: 'local' | 'hosted';
+  /** The locked test at each organization, for a field's version (decision 068). */
+  perOrg?: OrgTypeResult[];
 }
 
 /** The job a computer's graduates are made for, with its data folder holding the sample tables. */
@@ -310,7 +313,14 @@ export async function addVersion(
     harness: { meta: harness.meta, files: harnessToFiles(harness) },
     report: options.unevaluated
       ? null
-      : { ...reportFor(job), testedOn: options.testedOn ?? 'local' },
+      : (() => {
+          const report = reportFor(job);
+          return {
+            ...report,
+            testedOn: options.testedOn ?? 'local',
+            test: { ...report.test, ...(options.perOrg ? { perOrg: options.perOrg } : {}) },
+          };
+        })(),
     lineage: [],
     columns: options.columns ?? { 'customers.csv': ['customer_id', 'name', 'city', 'terms_days'] },
     rounds: 0,

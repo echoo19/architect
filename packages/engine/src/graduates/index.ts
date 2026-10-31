@@ -5,6 +5,7 @@
  */
 export { reviewExport, exportPackage, EXPORT_NOTICE, type ExportContext } from './exporter';
 export { HOSTED_INFERENCE_NOTE, renderModelCard } from './card';
+export { verifyEvidencePack, writeEvidencePack, type EvidenceContext } from './evidence-pack';
 export {
   downloadFromHub,
   hubRepository,

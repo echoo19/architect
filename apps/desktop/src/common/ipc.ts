@@ -158,6 +158,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     exportPackage: true,
     exportFolder: true,
     exportPart: true,
+    exportEvidence: true,
     inspectPackage: true,
     previewImport: true,
     importPackage: true,

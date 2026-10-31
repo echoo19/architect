@@ -2,6 +2,7 @@ import { HubError } from '@architect/engine';
 import {
   BindRequestSchema,
   CodedError,
+  EvidenceRequestSchema,
   ExportPartRequestSchema,
   ExportRequestSchema,
   HubInstallRequestSchema,
@@ -153,6 +154,10 @@ export function registerGraduateHandlers(
         const directory = picked.check(request.directory);
         return call((api) => api.graduates.exportPart(graduateId, { ...request, directory }));
       },
+      exportEvidence: (graduateId, request) => {
+        const directory = picked.check(request.directory);
+        return call((api) => api.graduates.exportEvidence(graduateId, { ...request, directory }));
+      },
       inspectPackage: (path) => {
         const chosen = picked.check(path);
         return call((api) => api.graduates.inspectPackage(chosen));
@@ -217,6 +222,7 @@ export function registerGraduateHandlers(
       exportPackage: z.tuple([text, ExportRequestSchema]),
       exportFolder: z.tuple([text, text]),
       exportPart: z.tuple([text, ExportPartRequestSchema]),
+      exportEvidence: z.tuple([text, EvidenceRequestSchema]),
       inspectPackage: z.tuple([text]),
       previewImport: z.tuple([text]),
       importPackage: z.union([z.tuple([text]), z.tuple([text, ImportRequestSchema])]),

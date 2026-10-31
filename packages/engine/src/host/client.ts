@@ -231,6 +231,8 @@ export function connectEngine(
         request('graduates.exportFolder', [graduateId, directory]),
       exportPart: (graduateId, partRequest) =>
         request('graduates.exportPart', [graduateId, partRequest]),
+      exportEvidence: (graduateId, evidenceRequest) =>
+        request('graduates.exportEvidence', [graduateId, evidenceRequest]),
       inspectPackage: (path) => request('graduates.inspectPackage', [path]),
       previewImport: (path) => request('graduates.previewImport', [path]),
       importPackage: (path, importRequest) =>

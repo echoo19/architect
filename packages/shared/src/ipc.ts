@@ -47,6 +47,7 @@ import type {
 } from './experiments';
 import type { RuntimeMeasurement } from './measurements';
 import type { ClosedNetwork, RunContact } from './network';
+import type { EvidenceRequest, EvidenceResult } from './evidence-pack';
 import type {
   ModelConfigRead,
   ModelConfigSource,
@@ -825,6 +826,11 @@ export interface ArchitectApi {
     exportFolder(graduateId: string, directory: string): Promise<ExportResult>;
     /** Writes one part of a version on its own: its harness folder, adapter file or report. */
     exportPart(graduateId: string, request: ExportPartRequest): Promise<ExportPartResult>;
+    /**
+     * Writes a version's evidence pack into `request.directory` (decision 094): one folder for a
+     * security reviewer and an offline install, every file hashed in its MANIFEST.json.
+     */
+    exportEvidence(graduateId: string, request: EvidenceRequest): Promise<EvidenceResult>;
     /** Validates a package folder or `.architect.zip` without installing it or loading its code. */
     inspectPackage(path: string): Promise<PackageInspection>;
     /**

@@ -28,6 +28,8 @@ import {
   ImprovementSchema,
   ImprovementStartSchema,
   ImproveOptionsSchema,
+  EvidenceRequestSchema,
+  EvidenceResultSchema,
   ExportPartRequestSchema,
   ExportPartResultSchema,
   ExportRequestSchema,
@@ -495,6 +497,11 @@ export const ENGINE_ROUTES = {
     z.tuple([id, ExportPartRequestSchema]),
     ExportPartResultSchema,
     (api, [graduateId, request]) => api.graduates.exportPart(graduateId, request),
+  ),
+  'graduates.exportEvidence': route(
+    z.tuple([id, EvidenceRequestSchema]),
+    EvidenceResultSchema,
+    (api, [graduateId, request]) => api.graduates.exportEvidence(graduateId, request),
   ),
   'graduates.inspectPackage': route(z.tuple([path]), PackageInspectionSchema, (api, [file]) =>
     api.graduates.inspectPackage(file),
