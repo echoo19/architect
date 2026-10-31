@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Inspector, type InspectorTab } from '@architect/ui';
 import { Bot, ClipboardCheck, GraduationCap, NotebookPen, Wallet } from 'lucide-react';
+import { modelTabsFit } from '../../lib/names';
+import { modelNames } from '../names';
 import { BudgetTab } from './BudgetTab';
 import { EvaluationTab } from './EvaluationTab';
 import type { FinalTestState } from './final-test';
@@ -49,10 +51,13 @@ export function DefineInspector({
   finalTest,
 }: DefineInspectorProps) {
   const change = useUndoableChange(editor);
+  // Models with long names show their tabs by icon, so no tab's name is cut.
+  const iconOnly = !modelTabsFit(modelNames(editor.job));
   const tabs: InspectorTab<DefineTab>[] = DEFINE_TABS.map((value) => ({
     value,
     label: tabLabel(value, editor.job),
     icon: ICONS[value],
+    iconOnly: iconOnly && (value === 'teacher' || value === 'student'),
   }));
   const props = { editor, change };
   return (
