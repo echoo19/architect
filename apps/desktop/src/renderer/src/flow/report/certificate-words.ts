@@ -23,7 +23,7 @@ function confidence(delta: number): string {
 }
 
 /**
- * The certificate's one sentence: "When Tutor answers, it is wrong on at most 8% of requests like
+ * The certificate's one sentence: "When Academy desk answers, it is wrong on at most 8% of requests like
  * these, with 95% confidence. It handed 22% to a person."
  */
 export function certificateSentence(certificate: Issued, name: string): string {

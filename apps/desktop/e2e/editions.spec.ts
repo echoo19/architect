@@ -119,7 +119,7 @@ test('switches in Settings without a restart, and the personal edition has no La
   await expect(palette).toBeHidden();
 });
 
-test('the personal home opens the chat used last, and Describe offers no tutor', async () => {
+test('the personal home opens the chat used last, and Describe offers no Academy desk', async () => {
   await stubEngine(launched.app, SAMPLE_ENGINE);
   await reloadAt('/');
   await expect(page).toHaveURL(/#\/agents\/[^/]+\/chats\/[^/]+$/);
@@ -130,10 +130,10 @@ test('the personal home opens the chat used last, and Describe offers no tutor',
   await goTo(page, '/new');
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import a job file' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Try the tutor' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Try the Academy desk' })).toHaveCount(0);
 });
 
-test('the Lab home leads with its places, and Describe offers the tutor too', async () => {
+test('the Lab home leads with its places, and Describe offers the Academy desk too', async () => {
   await updateSettings(page, { edition: 'lab' });
   await goTo(page, '/');
   await expect(page.getByRole('heading', { name: 'Lab', level: 1 })).toBeVisible();
@@ -142,7 +142,7 @@ test('the Lab home leads with its places, and Describe offers the tutor too', as
     'page',
   );
   await goTo(page, '/new');
-  await expect(page.getByRole('button', { name: 'Try the tutor' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try the Academy desk' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await goTo(page, '/models');
   await expect(page).toHaveURL(/#\/models$/);

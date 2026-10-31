@@ -203,7 +203,7 @@ test("says plainly why a config can't be sized", async () => {
 
 test('writes Slurm and Kubernetes bundles from a field export and shows the commands', async () => {
   // Folders named as a person's would be, so the screen reads as it would for them.
-  const exported = join(folders, 'Architect', 'exports', 'tutor');
+  const exported = join(folders, 'Architect', 'exports', 'academy-desk');
   await mkdir(join(exported, 'sft'), { recursive: true });
   // A bundle takes only a verified export: every sft file listed in the manifest with its hash.
   const demonstrations = `${JSON.stringify({ messages: [{ role: 'assistant', content: 'ANSWER: 12' }] })}\n`;
@@ -212,8 +212,8 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
     format: FIELD_EXPORT_FORMAT,
     created_at: '2026-10-30T00:00:00.000Z',
     job: {
-      id: 'tutor',
-      name: 'Tutor',
+      id: 'academy-desk',
+      name: 'Academy desk',
       format: 1,
       created_at: '2026-10-30T00:00:00.000Z',
       sha256: sha256('job'),
@@ -247,7 +247,7 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
   const submit = bundle.getByRole('region', { name: 'Submit command' });
   await expect(submit).toContainText('sbatch submit.sbatch');
   await expect(bundle).toContainText('Architect writes this bundle and never submits it.');
-  await expect(bundle).toContainText(/…[\\/]exports[\\/]tutor/);
+  await expect(bundle).toContainText(/…[\\/]exports[\\/]academy-desk/);
   await expect(bundle).not.toContainText(folders);
   const slurm = join(out, 'moe-235b-slurm');
   const written = TrainBundleSchema.parse(

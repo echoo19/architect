@@ -135,13 +135,13 @@ describe('the engine host', () => {
     expect(types.indexOf('eval.finished')).toBeLessThan(types.indexOf('graduate.ready'));
   });
 
-  it("makes the tutor's sample job with its train academies, and seals the one it never sees", async () => {
+  it("makes the Academy desk's sample job with its train academies, and seals the one it never sees", async () => {
     world.deps.academyJobFile = fileURLToPath(
       new URL('../../../examples/academy/job/job.json', import.meta.url),
     );
     const { client } = await connect();
     const job = await client.jobs.createSample('academy');
-    expect(job.name).toBe('Tutor');
+    expect(job.name).toBe('Academy desk');
     expect(job.organizations?.map((org) => org.id)).toEqual([
       'copperfield',
       'thistlewood',

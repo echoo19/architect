@@ -57,11 +57,11 @@ export const DESK_COUNTEREXAMPLE: Counterexample = {
   createdAt: at(62),
 };
 
-/** Tutor's question lookup on a "Full" practice test, where each place holds two questions. */
+/** Academy desk's question lookup on a "Full" practice test, where each place holds two questions. */
 const LOOKUP: Counterexample = {
   id: 'cex_lookup',
-  jobId: LAB.tutorJob,
-  runId: LAB.tutorRun,
+  jobId: LAB.academyDeskJob,
+  runId: LAB.academyDeskRun,
   round: 2,
   taskId: 'copperfield-diagnose-03',
   attemptId: 'att_copperfield_diagnose_03',
@@ -113,7 +113,7 @@ const LOOKUP: Counterexample = {
   steps: 4,
   hashes: { original: hash('6'), reduced: hash('7') },
   repair: {
-    runId: LAB.tutorRun,
+    runId: LAB.academyDeskRun,
     round: 2,
     codeHash: hash('8'),
     passed: true,
@@ -137,7 +137,7 @@ const LOOKUP: Counterexample = {
 
 const { repair: _repaired, ...unrepaired } = LOOKUP;
 
-/** Tutor's history helper, which counted 0.125 for 1/8 as a wrong answer. Not repaired yet. */
+/** Academy desk's history helper, which counted 0.125 for 1/8 as a wrong answer. Not repaired yet. */
 const HISTORY: Counterexample = {
   ...unrepaired,
   id: 'cex_history',
@@ -172,4 +172,4 @@ const HISTORY: Counterexample = {
   createdAt: at(45),
 };
 
-export const TUTOR_COUNTEREXAMPLES: Counterexample[] = [LOOKUP, HISTORY];
+export const ACADEMY_DESK_COUNTEREXAMPLES: Counterexample[] = [LOOKUP, HISTORY];

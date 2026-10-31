@@ -18,7 +18,7 @@ export interface ProcessResources {
   /** The agent host's entry, started as a utility process. */
   agentHostEntry: string;
   sampleJobFile: string;
-  /** The tutor's job, with its academies beside it. */
+  /** The Academy desk's job, with its academies beside it. */
   academyJobFile: string;
   /** The ready-made agent's package, which a build that doesn't ship it leaves out. */
   sampleAgentFile: string;

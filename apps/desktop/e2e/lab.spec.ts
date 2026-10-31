@@ -63,7 +63,7 @@ test('offers the ways in on a fresh install', async () => {
   await expect(page.getByRole('heading', { name: 'Lab', level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Describe a field' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Try the tutor' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try the Academy desk' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try the sample job' })).toBeVisible();
   await expect(places().getByRole('button', { name: 'Lab' })).toHaveAttribute(
     'aria-current',
@@ -105,29 +105,29 @@ test('shows what needs the person and what runs, then what finished, spent and s
   );
   await expect(running.getByRole('button', { name: /Parts counter/ })).toContainText('53%');
 
-  // Tutor was tested on the academies it trained on, on one it never saw and on a real one.
+  // Academy desk was tested on the academies it trained on, on one it never saw and on a real one.
   const finished = card('Recently finished');
-  const tutor = finished.getByRole('button', { name: /^Tutor/ });
-  await expect(tutor).toContainText('Taught on');
-  await expect(tutor).toContainText('Never seen');
-  await expect(tutor).toContainText('Real');
-  await expect(tutor).toContainText('90%');
+  const academyDesk = finished.getByRole('button', { name: /^Academy desk/ });
+  await expect(academyDesk).toContainText('Taught on');
+  await expect(academyDesk).toContainText('Never seen');
+  await expect(academyDesk).toContainText('Real');
+  await expect(academyDesk).toContainText('90%');
   await expect(finished.getByRole('button', { name: /Clinic intake/ })).toContainText('92%');
 
   // Spark's spending against each run's cap; the part counter's is near its cap.
   const spend = card('Spend');
-  await expect(spend.getByRole('meter', { name: 'Tutor, Spark' })).toHaveAttribute(
+  await expect(spend.getByRole('meter', { name: 'Academy desk, Spark' })).toHaveAttribute(
     'aria-valuetext',
     '$2.84 of $5.00',
   );
   await expect(spend).toContainText('$0.61');
 
   await expect(
-    card('Fields').getByRole('button', { name: /Tutor.*3 organizations/ }),
+    card('Fields').getByRole('button', { name: /Academy desk.*3 organizations/ }),
   ).toBeVisible();
   // The versions Models lists as active.
   await expect(
-    card('Agents').getByRole('button', { name: 'Open Tutor', exact: true }),
+    card('Agents').getByRole('button', { name: 'Open Academy desk', exact: true }),
   ).toContainText('Version 2');
   await capture('lab-dark.png');
   await card('Agents').scrollIntoViewIfNeeded();
@@ -137,8 +137,8 @@ test('shows what needs the person and what runs, then what finished, spent and s
   await needs.getByRole('button', { name: /Returns desk/ }).click();
   await expect(page).toHaveURL(/#\/runs\/run_returns\/train$/);
   await goTo(page, '/');
-  await tutor.click();
-  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.tutorRun}/report$`));
+  await academyDesk.click();
+  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.academyDeskRun}/report$`));
   await goTo(page, '/');
   await card('Agents').getByRole('button', { name: 'Open Service desk' }).click();
   await expect(page).toHaveURL(new RegExp(`#/agents/${STORY.graduateId}/chats/${CHATS.fresh.id}$`));
@@ -155,10 +155,10 @@ test('leads to each place from the sidebar and the command palette', async () =>
   await places().getByRole('button', { name: 'Fields' }).click();
   await expect(page).toHaveURL(/#\/fields$/);
   const fields = page.getByRole('table', { name: 'Fields' });
-  await expect(fields.getByRole('row', { name: /Tutor/ })).toContainText('3');
-  await fields.getByRole('row', { name: /Tutor/ }).click();
-  await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.tutorJob}$`));
-  await expect(page.getByRole('heading', { name: 'Tutor', level: 1 })).toBeVisible();
+  await expect(fields.getByRole('row', { name: /Academy desk/ })).toContainText('3');
+  await fields.getByRole('row', { name: /Academy desk/ }).click();
+  await expect(page).toHaveURL(new RegExp(`#/fields/${LAB.academyDeskJob}$`));
+  await expect(page.getByRole('heading', { name: 'Academy desk', level: 1 })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Organizations' })).toBeVisible();
 
   await places().getByRole('button', { name: 'Experiments' }).click();
@@ -180,7 +180,7 @@ test('leads to each place from the sidebar and the command palette', async () =>
   // Sorted by name; a click on a header sorts by it, again the other way.
   await expect(models.getByRole('row').nth(2)).toContainText('Service desk');
   await models.getByRole('button', { name: 'Agent' }).click();
-  await expect(models.getByRole('row').nth(2)).toContainText('Tutor');
+  await expect(models.getByRole('row').nth(2)).toContainText('Academy desk');
   await models.getByRole('button', { name: 'Agent' }).click();
   await capture('places-models-dark.png');
 

@@ -34,7 +34,7 @@ import {
 } from './support/organizations';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-/** The tutor's job as it ships: its academies, tasks and checker, read-only. */
+/** The Academy desk's job as it ships: its academies, tasks and checker, read-only. */
 const ACADEMY_JOB = join(REPO, 'examples', 'academy', 'job');
 /** An academy export with records only: no question text, errors, hints, staff or videos. */
 const STEMLESS_ACADEMY = join(REPO, 'examples', 'academy', 'test', 'fixtures', 'records');
@@ -127,7 +127,7 @@ describe('a job with organizations, when it is made', () => {
     world = await createWorld();
     engine = openEngine(world);
     opened.push({ engine, world });
-    // The tutor's job, with a real-style academy that has records but no question text, errors,
+    // The Academy desk's job, with a real-style academy that has records but no question text, errors,
     // hints, staff, topics, videos or staff notes, and a policy without the optional rows.
     const dir = join(world.root, 'academy');
     cpSync(ACADEMY_JOB, dir, { recursive: true });
