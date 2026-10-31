@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { cn, IconButton, ProgressStepper } from '@architect/ui';
+import { useEffect, type ReactNode } from 'react';
+import { cn, IconButton, ProgressStepper, StepTransition, travel, useTravel } from '@architect/ui';
 import { X } from 'lucide-react';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
@@ -29,7 +29,16 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   children: ReactNode;
 }
 
-/** The "Make" layout: a header with the step pills over the flat ground. */
+/**
+ * Where the last flow screen stood among its steps. Each step is a screen of its own, so the
+ * next one reads this to come in from the side the person is moving toward.
+ */
+let lastStep = -1;
+
+/**
+ * The "Make" layout: a header with the step pills over the flat ground. The header stays put
+ * while the step's content slides in from the side of the step chosen, and the pill follows.
+ */
 export function FlowShell<Step extends string = FlowStep>({
   title,
   step,
@@ -42,6 +51,11 @@ export function FlowShell<Step extends string = FlowStep>({
   children,
 }: FlowShellProps<Step>) {
   const pills: readonly string[] = steps ?? FLOW_STEPS;
+  const index = pills.indexOf(step);
+  const direction = useTravel(step, index, travel(lastStep, index));
+  useEffect(() => {
+    lastStep = index;
+  }, [index]);
   return (
     <div className="flex h-full flex-col bg-ground">
       {/*
@@ -55,11 +69,15 @@ export function FlowShell<Step extends string = FlowStep>({
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>
         </div>
-        <ProgressStepper steps={pills} current={pills.indexOf(step)} attention={attention ?? []} />
+        <ProgressStepper steps={pills} current={index} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden scroll-quiet">
+          <StepTransition transitionKey={step} direction={direction} appear className="h-full">
+            {children}
+          </StepTransition>
+        </main>
         {aside}
       </div>
       {footer && (
