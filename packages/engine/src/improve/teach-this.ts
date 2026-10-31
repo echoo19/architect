@@ -14,6 +14,8 @@ import {
   type JsonSchemaObject,
   type MentorCompletionRequest,
   type TeachingOverview,
+  type WorkspaceChat,
+  type WorkspaceMessage,
 } from '@architect/shared';
 import { z } from 'zod';
 import { formatUsd } from '../loop/budget';
@@ -23,10 +25,17 @@ import { newestVersion } from '../loop/job-versions';
 import type { JobLibrary } from '../loop/jobs';
 import { connectMentor } from '../loop/setup';
 import { isoNow } from '../loop/time';
-import { MentorGate } from '../mentor/gate';
+import { MentorGate, type LeakDetector } from '../mentor/gate';
 import type { EngineStore } from '../store/engine-store';
 import type { GraduateRecord } from '../store/records';
-import { exchangeIn, exchangeParts } from './exchange';
+import {
+  consultationExchange,
+  exchangeIn,
+  exchangeParts,
+  exchangeText,
+  teamChatAgents,
+  type ExchangeText,
+} from './exchange';
 
 /** The most the mentor's reading of one correction may cost, shown beside the consent. */
 export const CORRECTION_CAP_USD = 0.25;
@@ -170,6 +179,19 @@ async function trainingApplies(job: Job, deps: EngineHostDeps): Promise<boolean>
   return (job.budget.maxComputeUsd ?? 0) > 0 && job.sharing?.remoteTraining === true;
 }
 
+/** Scans with each job's leak detector: a text leaks when it matches any one's locked test. */
+function everyDetector(detectors: readonly LeakDetector[]): LeakDetector {
+  return {
+    scan(text) {
+      const scans = detectors.map((detector) => detector.scan(text));
+      return {
+        leaked: scans.some((scan) => scan.leaked),
+        matchedIds: scans.flatMap((scan) => scan.matchedIds),
+      };
+    },
+  };
+}
+
 export interface TeachThisContext {
   store: EngineStore;
   jobs: JobLibrary;
@@ -290,10 +312,73 @@ export class TeachThis {
   }
 
   /**
+   * The agent a correction goes to, the version that wrote what it corrects, and every agent
+   * whose words are in the exchange. In a team chat (decision 100) a flagged teammate's answer
+   * goes to that teammate, and the exchange can carry the words of the lead and of every
+   * teammate the chat asked so far, so each of them is involved.
+   */
+  private flagged(
+    chat: WorkspaceChat,
+    messages: readonly WorkspaceMessage[],
+    messageId: string,
+    request: CorrectionRequest,
+  ): { agent: GraduateRecord; version: number; exchange: ExchangeText; involved: string[] } {
+    const lead = this.agent(chat.graduateId);
+    const exchange = exchangeIn(messages, messageId);
+    if (chat.teamId === undefined) {
+      if (request.step !== undefined) throw new Error('Only a team reply asks a teammate.');
+      const version = exchange.reply.graduateVersion ?? chat.graduateVersion;
+      if (version === undefined) throw new Error("That reply doesn't say which version wrote it.");
+      return { agent: lead, version, exchange: exchangeText(exchange), involved: [lead.id] };
+    }
+    const involved = teamChatAgents(messages, messageId, lead.id);
+    if (request.step === undefined) {
+      const version = exchange.reply.graduateVersion ?? chat.graduateVersion;
+      if (version === undefined) throw new Error("That reply doesn't say which version wrote it.");
+      return { agent: lead, version, exchange: exchangeText(exchange), involved };
+    }
+    const asked = consultationExchange(exchange.reply, request.step, lead.name);
+    return {
+      agent: this.agent(asked.graduateId),
+      version: asked.version,
+      exchange: asked,
+      involved,
+    };
+  }
+
+  /**
+   * The job of every agent whose words would go to the mentor, each of which must allow sharing
+   * corrections. An agent no longer here leaves that unknown, so nothing goes.
+   */
+  private async sharingJobs(involved: readonly string[]): Promise<Job[]> {
+    const jobs: Job[] = [];
+    for (const graduateId of involved) {
+      const agent = this.ctx.store.graduates.get(graduateId);
+      if (!agent) {
+        throw new GuardError(
+          'permission',
+          "Nothing was sent: an agent whose words are in this exchange was removed, so whether its job shares corrections can't be checked.",
+        );
+      }
+      const job = await this.jobOf(agent);
+      if (job.sharing?.corrections !== true) {
+        throw new GuardError(
+          'permission',
+          involved.length === 1
+            ? `${job.name} keeps corrections on this computer. Allow sharing corrections with the mentor in the job's data settings to use Teach this.`
+            : `${job.name} keeps corrections on this computer, and ${agent.name}'s words are in this exchange. Allow sharing corrections with the mentor in that job's data settings to use Teach this here.`,
+        );
+      }
+      if (!jobs.some((each) => each.id === job.id)) jobs.push(job);
+    }
+    return jobs;
+  }
+
+  /**
    * The mentor reads one reply's exchange and the person's correction, and proposes a lesson.
-   * It needs the job's permission to share corrections and the person's consent to this one;
-   * every request passes the leak check against the locked test, under a cap of
-   * `CORRECTION_CAP_USD`. Nothing is queued yet.
+   * It needs the person's consent to this one and the permission to share corrections of every
+   * job whose agent's words are in it; the whole request passes each of those jobs' leak checks
+   * against its locked test, under a cap of `CORRECTION_CAP_USD`. Nothing is queued yet.
    */
   async propose(
     chatId: string,
@@ -302,14 +387,14 @@ export class TeachThis {
   ): Promise<Correction> {
     const { store, deps } = this.ctx;
     const chat = must(store.chats.get(chatId), `There is no chat "${chatId}".`);
-    const agent = this.agent(chat.graduateId);
+    const { agent, version, exchange, involved } = this.flagged(
+      chat,
+      store.messages.list(chatId),
+      messageId,
+      request,
+    );
     const job = await this.jobOf(agent);
-    if (job.sharing?.corrections !== true) {
-      throw new GuardError(
-        'permission',
-        `${job.name} keeps corrections on this computer. Allow sharing corrections with the mentor in the job's data settings to use Teach this.`,
-      );
-    }
+    const jobs = await this.sharingJobs(involved);
     if (!request.consent) {
       throw new GuardError(
         'permission',
@@ -319,12 +404,10 @@ export class TeachThis {
     if (job.mentor.kind !== 'model') {
       throw new Error(`${job.mentor.label} can't read a correction in this build.`);
     }
-    const exchange = exchangeIn(store.messages.list(chatId), messageId);
-    const version = exchange.reply.graduateVersion ?? chat.graduateVersion;
-    if (version === undefined) throw new Error("That reply doesn't say which version wrote it.");
     const parts = exchangeParts(exchange, request);
+    const detectors = await Promise.all(jobs.map((each) => deps.vault.leakDetector(each.id)));
     const gate = new MentorGate({
-      leakDetector: await deps.vault.leakDetector(job.id),
+      leakDetector: everyDetector(detectors),
       authorize: (maxUsd) => {
         if (maxUsd === null) {
           throw new GuardError(
@@ -356,6 +439,7 @@ export class TeachThis {
       version,
       chatId,
       messageId,
+      ...(request.step === undefined ? {} : { step: request.step }),
       wrong: request.wrong,
       ...(request.wanted === undefined ? {} : { wanted: request.wanted }),
       ...(request.evidence === undefined ? {} : { evidence: request.evidence }),
