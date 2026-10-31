@@ -66,7 +66,8 @@ export function noCertificateSentence(
 
 /**
  * Where a check ran: the taught organizations' final test, new tasks at one it was taught on (a
- * certification after the fact, decision 079), or one it never saw, by name.
+ * certification after the fact, decision 079), or one it never saw, by name, said to be measured
+ * before it was taught on once a later version of the field teaches on it (decision 089).
  */
 export function checkPlace(check: CertificateCheck): string {
   if (check.seen) {
@@ -74,7 +75,8 @@ export function checkPlace(check: CertificateCheck): string {
       ? 'Final test, organizations it was taught on'
       : `New tasks at ${check.orgName}`;
   }
-  return check.orgName ?? 'An organization it never saw';
+  const place = check.orgName ?? 'An organization it never saw';
+  return check.taughtLater === true ? `${place}, measured before it was taught on` : place;
 }
 
 /** "Answered 31 of 40, 1 wrong", or that it handed every one to a person. */

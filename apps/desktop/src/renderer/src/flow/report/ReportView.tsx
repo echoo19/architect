@@ -67,6 +67,8 @@ interface ReportViewProps {
   comparisonReport: QueryState<ComparisonReport | null>;
   /** The run's own final test on this computer, when its own ran online and it was taken since. */
   here: ReportCard | null;
+  /** The grid by organization as the Lab shows it, with what can be done there; else the plain grid. */
+  organizations?: (grid: OrgGrid) => ReactNode;
 }
 
 /** The meter's memory figures, where a meter read the final test here, for the run's details. */
@@ -177,6 +179,7 @@ export function ReportView({
   bare,
   comparisonReport,
   here,
+  organizations,
 }: ReportViewProps) {
   const { test } = report;
   const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
@@ -261,7 +264,7 @@ export function ReportView({
 
       {grid && (
         <StaggerItem>
-          <Organizations grid={grid} />
+          {organizations ? organizations(grid) : <Organizations grid={grid} />}
         </StaggerItem>
       )}
 

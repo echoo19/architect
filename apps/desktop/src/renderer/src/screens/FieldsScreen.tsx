@@ -181,7 +181,7 @@ const TABS = [
 ] as const;
 
 /** One field: its overview, organizations, tasks, candidates and assets, a tab each. */
-export function FieldScreen({ jobId }: { jobId: string }) {
+export function FieldScreen({ jobId, tab }: { jobId: string; tab?: FieldTab }) {
   const read = useQuery(fieldKey(jobId), () => readField(jobId));
   if (!read.data) {
     return (
@@ -199,11 +199,11 @@ export function FieldScreen({ jobId }: { jobId: string }) {
       </PlacePage>
     );
   }
-  return <Field field={read.data} />;
+  return <Field field={read.data} opensOn={tab ?? 'overview'} />;
 }
 
-function Field({ field }: { field: FieldSummary }) {
-  const [tab, setTab] = useState<FieldTab>('overview');
+function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
+  const [tab, setTab] = useState<FieldTab>(opensOn);
   const { job } = field;
   return (
     <PlacePage

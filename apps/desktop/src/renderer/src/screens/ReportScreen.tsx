@@ -22,12 +22,15 @@ import {
   useComparisonReport,
   useReportEvidence,
 } from '../flow/report/evidence';
+import { LabOrganizations } from '../flow/report/LearnFromOrg';
+import type { OrgGrid } from '../flow/report/org-grid';
 import { ReportView } from '../flow/report/ReportView';
 import { useLocalCard } from '../flow/report/use-retest';
 import { reportVerdict } from '../flow/report/verdict';
 import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 
@@ -156,20 +159,30 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
   const { graduate, installation, verdict, here } = useReportAgent(report);
+  const lab = useEdition() === 'lab';
+  const shownJob = job.status === 'success' ? job.data : null;
+  const shownRun = run.data?.run ?? null;
   return (
     <ReportView
       report={report}
       verdict={verdict}
-      job={job.status === 'success' ? job.data : null}
+      job={shownJob}
       graduate={graduate}
       comparison={comparison}
       capabilities={capabilities}
       evidence={evidence}
       bare={bare.data ?? null}
-      run={run.data?.run ?? null}
+      run={shownRun}
       installation={installation}
       comparisonReport={comparisonReport}
       here={here}
+      {...(lab
+        ? {
+            organizations: (grid: OrgGrid) => (
+              <LabOrganizations grid={grid} report={report} job={shownJob} run={shownRun} />
+            ),
+          }
+        : {})}
     />
   );
 }
