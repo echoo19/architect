@@ -169,6 +169,7 @@ describe("a version's evidence pack", () => {
       ok: true,
       checked: result.files.length - 1,
       problems: [],
+      manifestSha256: result.manifestSha256,
       agent: { name: 'Service desk', version: 1 },
     });
   });

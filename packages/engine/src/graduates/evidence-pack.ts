@@ -423,10 +423,11 @@ export async function writeEvidencePack(
 export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
   const problems: string[] = [];
   let manifest;
+  let manifestSha256;
   try {
-    manifest = EvidenceManifestSchema.parse(
-      readFileJson(await readFile(join(dir, EVIDENCE_MANIFEST_FILE), 'utf8')),
-    );
+    const text = await readFile(join(dir, EVIDENCE_MANIFEST_FILE), 'utf8');
+    manifest = EvidenceManifestSchema.parse(readFileJson(text));
+    manifestSha256 = sha256Bytes(text);
   } catch {
     return {
       ok: false,
@@ -486,6 +487,7 @@ export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
     ok: problems.length === 0,
     checked: manifest.files.length,
     problems,
+    manifestSha256,
     ...(pack === null ? {} : { agent: { name: pack.agent.name, version: pack.version } }),
   };
 }

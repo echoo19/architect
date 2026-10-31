@@ -218,6 +218,8 @@ export const EvidenceCheckSchema = z.object({
   /** Files whose hash and size were checked against MANIFEST.json. */
   checked: z.number().int().nonnegative(),
   problems: z.array(z.string()),
+  /** SHA-256 of MANIFEST.json as found, to compare with the one its author read out. */
+  manifestSha256: Sha256Schema.optional(),
   agent: z.object({ name: z.string(), version: z.number().int().positive() }).optional(),
 });
 export type EvidenceCheck = z.infer<typeof EvidenceCheckSchema>;

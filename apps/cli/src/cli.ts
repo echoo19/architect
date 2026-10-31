@@ -14,6 +14,7 @@ import { field } from './commands/field';
 import { inspect } from './commands/inspect';
 import { install } from './commands/install';
 import { list } from './commands/list';
+import { pack } from './commands/pack';
 import { publish } from './commands/publish';
 import { reward } from './commands/reward';
 import { run } from './commands/run';
@@ -35,6 +36,7 @@ const HANDLERS: Readonly<Record<CommandName, Command>> = {
   serve,
   inspect,
   verify,
+  pack,
   export: exportCommand,
   publish,
   field,
