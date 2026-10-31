@@ -13,25 +13,25 @@ export interface DoneStepProps {
 
 export function DoneStep({ mentor, student, percent }: DoneStepProps) {
   const readyMade = useHasSampleAgent();
-  const gaps = [
-    student.state === 'missing' && `Agents can't run until ${student.name} is downloaded.`,
-    mentor.state === 'missing' && 'Training a new agent needs a teacher.',
-  ].filter(Boolean);
   // What the next screen offers to try first; a build without the ready-made agent has no such
   // offer, so the line doesn't name it.
   const offered = readyMade ? 'the sample job or a ready-made agent' : 'the sample job';
 
   return (
     <>
-      <StepIntro title="You're set up">
-        Next, describe a job. {mentor.name} teaches {student.name} until it can do the job alone. On
-        the next screen you can try {offered} first, if you like.
-      </StepIntro>
+      <StepIntro title="You're set up">Next, describe a job. Or try {offered} first.</StepIntro>
       <Panel
         aria-label="Setup"
         className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
-        <SettingsRow label={student.name} info="The model your agents run on.">
+        <SettingsRow
+          label={student.name}
+          info={
+            student.state === 'missing'
+              ? "The model your agents run on; they can't run until it's downloaded."
+              : 'The model your agents run on.'
+          }
+        >
           {student.state === 'ready' ? (
             <StatusValue done>Ready</StatusValue>
           ) : student.state === 'downloading' ? (
@@ -43,7 +43,14 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
             <StatusValue done={false}>Not downloaded</StatusValue>
           )}
         </SettingsRow>
-        <SettingsRow label={mentor.name} info="Teaches it while an agent trains.">
+        <SettingsRow
+          label={mentor.name}
+          info={
+            mentor.state === 'missing'
+              ? 'Teaches it while an agent trains; no new agent can train without one.'
+              : 'Teaches it while an agent trains.'
+          }
+        >
           {mentor.state === 'connected' ? (
             <StatusValue done>Connected</StatusValue>
           ) : mentor.state === 'ready' ? (
@@ -55,7 +62,6 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
           )}
         </SettingsRow>
       </Panel>
-      {gaps.length > 0 && <p className="-mt-4 text-small text-fg">{gaps.join(' ')}</p>}
     </>
   );
 }

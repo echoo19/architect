@@ -163,9 +163,7 @@ test('offers it on the last screen of setup and on the screen after it', async (
   await open('/welcome', { onboarded: false });
   await walkToTheEndOfSetup();
   await expect(
-    page.getByText(
-      'On the next screen you can try the sample job or a ready-made agent first, if you like.',
-    ),
+    page.getByText('Next, describe a job. Or try the sample job or a ready-made agent first.'),
   ).toBeVisible();
   await capture('sample-agent-welcome-dark.png');
 
@@ -190,9 +188,7 @@ test('offers it on the last screen of setup and on the screen after it', async (
 test('offers nothing, and says nothing of it, in a build that does not ship the agent', async () => {
   await open('/welcome', { onboarded: false, sampleAgent: false });
   await walkToTheEndOfSetup();
-  await expect(
-    page.getByText('On the next screen you can try the sample job first, if you like.'),
-  ).toBeVisible();
+  await expect(page.getByText('Next, describe a job. Or try the sample job first.')).toBeVisible();
   await page.getByRole('button', { name: 'Get started' }).click();
   await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
   await expect(sampleJob()).toBeVisible();

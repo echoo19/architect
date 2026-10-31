@@ -83,8 +83,7 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
   return (
     <>
       <StepIntro title="Your agent's model">
-        Architect trains an agent for any job you describe. {names.mentor}, a large AI, teaches{' '}
-        {names.student}, a small one that runs on {device}, so your agent works offline.
+        {names.student} runs your agents on {device}, so they work offline.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         {local.status === 'error' && !local.data && (
