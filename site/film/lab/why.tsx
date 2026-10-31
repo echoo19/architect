@@ -180,7 +180,7 @@ function RequestCard({ t, request }: { t: number; request: Request }) {
 }
 
 /** The Lab's window under a camera, as the walkthrough draws it. */
-function World({
+export function World({
   view,
   children,
   style,

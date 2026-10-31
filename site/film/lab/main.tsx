@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MotionProvider } from '@architect/ui';
 import { filmTime, LabFilm, playedTime, WALKTHROUGH, type Measured } from './film';
 import { WHY_FROM, WHY_LENGTH, WhyScene } from './why';
+import { TEAM_BACK, TEAM_FROM, TEAM_LENGTH, TeamScene } from './team';
 import './lab.css';
 
 /**
@@ -19,8 +20,12 @@ declare global {
   }
 }
 
-/** The film's length as played: the walkthrough, and the why scene inside it. */
-const RUNTIME = WALKTHROUGH + WHY_LENGTH;
+/** When the team scene starts, in the walkthrough as played, and what of it the scene stands in for. */
+const TEAM_AT = playedTime(TEAM_FROM);
+const TEAM_SKIP = playedTime(TEAM_BACK) - TEAM_AT;
+
+/** The film's length as played: the walkthrough, and the why and team scenes inside it. */
+const RUNTIME = WALKTHROUGH + WHY_LENGTH + TEAM_LENGTH - TEAM_SKIP;
 /** When the why scene starts, in the film as played. */
 const WHY_AT = playedTime(WHY_FROM);
 
@@ -28,13 +33,17 @@ const host = document.getElementById('root');
 if (!host) throw new Error('The page has no #root element.');
 const root = createRoot(host);
 
-/** The frame for a moment of the film as played: the why scene, or the walkthrough around it. */
+/** The frame for a moment of the film as played: a scene of its own, or the walkthrough around them. */
 function scene(played: number, measured: Measured) {
   if (played >= WHY_AT && played < WHY_AT + WHY_LENGTH) {
     return <WhyScene t={played - WHY_AT} measured={measured} />;
   }
   const walked = played < WHY_AT ? played : played - WHY_LENGTH;
-  return <LabFilm t={filmTime(walked)} measured={measured} />;
+  if (walked >= TEAM_AT && walked < TEAM_AT + TEAM_LENGTH) {
+    return <TeamScene t={walked - TEAM_AT} measured={measured} />;
+  }
+  const resumed = walked < TEAM_AT ? walked : walked - TEAM_LENGTH + TEAM_SKIP;
+  return <LabFilm t={filmTime(resumed)} measured={measured} />;
 }
 
 function draw(played: number, measured: Measured, measuring = false) {

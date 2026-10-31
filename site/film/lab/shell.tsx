@@ -10,9 +10,10 @@ import {
   Library,
   Plus,
   Settings,
+  Users,
   X,
 } from 'lucide-react';
-import { SPECIALISTS } from './data';
+import { SPECIALISTS, TEAM } from './data';
 import { mix, outQuart, span } from './time';
 
 /**
@@ -57,7 +58,26 @@ export interface SidebarState {
   agents: number;
   /** The rest of the sidebar's contents. */
   rest: number;
+  /**
+   * How far the agents' list has scrolled down to the team under them, from 0 to 1. Left out,
+   * the list holds only the agents, as the walkthrough's Lab has them.
+   */
+  team?: number;
 }
+
+/** Where the list starts, under New agent, and where it ends, over Settings. */
+const LIST = { top: 342, bottom: 572 } as const;
+
+/** How far the list scrolls to bring the team's agents up to the first agent's row. */
+export const TEAM_SCROLL = ROW.agent(SPECIALISTS.length) + CHAT_ROW - ROW.agent(0);
+
+/** The team's rows once the list has scrolled to them: its two agents, the team, its chat. */
+export const TEAM_ROW = {
+  agent: (index: number) => ROW.agent(index),
+  team: ROW.agent(2) + 10,
+  chat: ROW.agent(2) + 10 + ROW.height,
+  chatHeight: CHAT_ROW,
+} as const;
 
 export function Sidebar({ state, style }: { state: SidebarState; style?: CSSProperties }) {
   const chatOpen = state.chat * CHAT_ROW;
@@ -95,7 +115,38 @@ export function Sidebar({ state, style }: { state: SidebarState; style?: CSSProp
           <Ellipsis size={16} strokeWidth={1.8} aria-hidden />
         </div>
       </div>
-      <div style={{ opacity: state.agents }}>
+      {state.team === undefined ? (
+        <Agents chatOpen={chatOpen} chat={state.chat} shown={state.agents} />
+      ) : (
+        <div
+          className="absolute inset-x-0 overflow-hidden"
+          style={{ top: LIST.top, height: LIST.bottom - LIST.top }}
+        >
+          <div
+            className="absolute inset-x-0"
+            style={{ top: -LIST.top, transform: `translateY(${-state.team * TEAM_SCROLL}px)` }}
+          >
+            <Agents chatOpen={chatOpen} chat={state.chat} shown={state.agents} />
+            <TeamRows top={TEAM_SCROLL} shown={Math.min(1, state.team * 3)} />
+          </div>
+        </div>
+      )}
+      <div style={{ opacity: state.rest }}>
+        <div className="absolute bottom-[68px] left-3 right-3 border-t border-line" />
+        <div className="absolute bottom-[16px] left-3 right-3 flex h-10 items-center gap-2.5 px-2.5">
+          <Settings size={16} strokeWidth={1.8} aria-hidden />
+          Settings
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/** The Lab's agents in the sidebar, and the chat open under the academy desk. */
+function Agents({ chatOpen, chat, shown }: { chatOpen: number; chat: number; shown: number }) {
+  return (
+    <>
+      <div style={{ opacity: shown }}>
         {SPECIALISTS.map((agent, index) => (
           <div
             key={agent.name}
@@ -112,19 +163,44 @@ export function Sidebar({ state, style }: { state: SidebarState; style?: CSSProp
       >
         <div
           className="flex h-9 items-center truncate pl-11 pr-2.5"
-          style={{ opacity: outQuart(span(state.chat, 0.4, 0.6)) }}
+          style={{ opacity: outQuart(span(chat, 0.4, 0.6)) }}
         >
           Vito missed question 6
         </div>
       </div>
-      <div style={{ opacity: state.rest }}>
-        <div className="absolute bottom-[68px] left-3 right-3 border-t border-line" />
-        <div className="absolute bottom-[16px] left-3 right-3 flex h-10 items-center gap-2.5 px-2.5">
-          <Settings size={16} strokeWidth={1.8} aria-hidden />
-          Settings
+    </>
+  );
+}
+
+/** The team's agents, the team and its chat, `top` pixels under where the agents start. */
+function TeamRows({ top, shown }: { top: number; shown: number }) {
+  return (
+    <div style={{ opacity: shown }}>
+      {[TEAM.lead, TEAM.teammate].map((name, index) => (
+        <div
+          key={name}
+          className="absolute left-3 right-3"
+          style={{ top: top + TEAM_ROW.agent(index) }}
+        >
+          <AgentRow name={name} />
         </div>
+      ))}
+      <div
+        className="absolute left-3 right-3 flex h-10 items-center gap-2.5 px-2.5"
+        style={{ top: top + TEAM_ROW.team }}
+      >
+        <span className="flex size-5 shrink-0 items-center justify-center">
+          <Users size={16} strokeWidth={1.8} aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1 truncate font-medium">{TEAM.name}</span>
       </div>
-    </aside>
+      <div
+        className="absolute left-3 right-3 flex h-9 items-center pl-11 pr-2.5"
+        style={{ top: top + TEAM_ROW.chat }}
+      >
+        <span className="min-w-0 truncate">{TEAM.chat}</span>
+      </div>
+    </div>
   );
 }
 
