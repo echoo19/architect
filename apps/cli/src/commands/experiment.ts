@@ -302,7 +302,7 @@ async function run(
     printDoc(ctx.io.stdout, ExperimentDocSchema, { format: EXPERIMENT_FORMAT, experiment: record });
   }
   const reason = record.reason === undefined ? '' : ` ${record.reason}`;
-  const out = flag(values, 'json') ? ctx.io.stderr : ctx.io.stdout;
+  const out = ctx.io.stderr;
   switch (record.status) {
     case 'finished':
       line(out, `Finished ${id}. Read the results with: architect experiment report ${id}`);

@@ -171,9 +171,7 @@ const rateOf = (score: Score): number => (score.total === 0 ? 0 : (score.pass * 
  * The candidate that did best on the organizations it trained on; on a tie, the newest, so
  * candidates come newest first. Null before any took its final test.
  */
-export function bestCandidate<T extends { scores: OrgScores }>(
-  candidates: readonly T[],
-): T | null {
+export function bestCandidate<T extends { scores: OrgScores }>(candidates: readonly T[]): T | null {
   let best: T | null = null;
   for (const candidate of candidates) {
     const seen = candidate.scores.seen;
