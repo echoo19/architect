@@ -54,6 +54,7 @@ test('opens a hidden, sandboxed window', async () => {
       'secrets',
       'settings',
       'teach',
+      'teams',
       'workspace',
     ],
   });
