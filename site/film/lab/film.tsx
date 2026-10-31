@@ -26,30 +26,37 @@ import { LogoMark } from '@architect/ui';
 
 export const DURATION = 163;
 
+/** When the lockup comes in over the wall at the end. */
+const LOCKUP = 156.6;
+
 /**
  * The cut is authored on one clock and played on another: each stretch of the authored time
  * below is played over a new length, so a beat can be given room for its narration without
  * moving every cue inside it. Everything in a stretch keeps moving, only slower or faster.
  */
 const STRETCHES: readonly (readonly [number, number, number])[] = [
-  [24.6, 43.5, 17.4],
-  [59.6, 72.4, 15.2],
-  [72.4, 83.3, 13.2],
-  [84.6, 100.4, 17.3],
-  [100.4, 114.0, 17.0],
-  [114.0, 124.6, 12.5],
-  [124.6, 143.2, 20.5],
-  [143.2, 150.4, 8.0],
-  [150.4, DURATION, 11.6],
+  [6.1, 10.0, 1.7],
+  [15.4, 22.0, 4.8],
+  [24.6, 43.5, 15.6],
+  [45.0, 56.2, 9.8],
+  [59.6, 72.4, 13.6],
+  [72.4, 83.3, 11.6],
+  [84.6, 100.4, 15.2],
+  [100.4, 114.0, 14.4],
+  [114.0, 124.6, 10.0],
+  [124.6, 143.2, 18.0],
+  [143.2, 150.4, 7.0],
+  [150.4, LOCKUP, 5.2],
+  [LOCKUP, DURATION, 4.9],
 ];
 
-/** The film's length as played, in seconds. */
-export const RUNTIME = STRETCHES.reduce(
+/** The walkthrough's length as played, in seconds. */
+export const WALKTHROUGH = STRETCHES.reduce(
   (total, [from, to, length]) => total + length - (to - from),
   DURATION,
 );
 
-/** The authored time for a moment of the film as played. */
+/** The authored time for a moment of the walkthrough as played. */
 export function filmTime(played: number): number {
   let authored = 0;
   let clock = 0;
@@ -61,6 +68,20 @@ export function filmTime(played: number): number {
     authored = to;
   }
   return Math.min(DURATION, authored + (played - clock));
+}
+
+/** When an authored moment of the walkthrough is played, in seconds. */
+export function playedTime(authored: number): number {
+  let clock = 0;
+  let last = 0;
+  for (const [from, to, length] of STRETCHES) {
+    if (authored < from) return clock + (authored - last);
+    clock += from - last;
+    if (authored < to) return clock + ((authored - from) / (to - from)) * length;
+    clock += length;
+    last = to;
+  }
+  return clock + (authored - last);
 }
 
 const FRAME = { width: 1920, height: 1080 } as const;
@@ -113,7 +134,7 @@ const MOMENT = {
   terminalOut: 142.6,
   choose: 147.5,
   wall: 150.4,
-  lockup: 156.6,
+  lockup: LOCKUP,
 } as const;
 
 const pageAt = (id: PageId) => PAGES.find((page) => page.id === id)?.at ?? 0;
@@ -121,18 +142,18 @@ const pageAt = (id: PageId) => PAGES.find((page) => page.id === id)?.at ?? 0;
 /** Rects of named parts of the window, measured once at build, in window pixels. */
 export type Measured = ReadonlyMap<string, { x: number; y: number; w: number; h: number }>;
 
-interface Framing {
+export interface Framing {
   cx: number;
   cy: number;
   s: number;
 }
 
-const FULL: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 1.53 };
-const FLOW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2 + 2, s: 1.61 };
+export const FULL: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 1.53 };
+export const FLOW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2 + 2, s: 1.61 };
 const WALL_GAP = { x: 150, y: 130 };
 const WALL: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 0.47 };
 
-function frameOf(measured: Measured, name: string, pad = 44, max = 1.85): Framing {
+export function frameOf(measured: Measured, name: string, pad = 44, max = 1.85): Framing {
   const rect = measured.get(name);
   if (!rect) return FULL;
   const s = Math.min(FRAME.width / (rect.w + 2 * pad), FRAME.height / (rect.h + 2 * pad), max);
@@ -173,7 +194,7 @@ const SHOTS: readonly Shot[] = [
  * A push onto a place page's content: the frame's left edge falls in the gutter right of the
  * sidebar, so nothing is cut at the frame's edge, and its top sits in the gap above `top`.
  */
-function content(top: number, s = 2.197): Framing {
+export function content(top: number, s = 2.197): Framing {
   return { cx: 258 + FRAME.width / 2 / s, cy: top + FRAME.height / 2 / s, s };
 }
 
@@ -182,7 +203,7 @@ function framed(measured: Measured, name: string, pad?: number, max?: number): F
   return frameOf(measured, name, pad, max);
 }
 
-function camera(measured: Measured, t: number): Framing {
+export function camera(measured: Measured, t: number): Framing {
   let current = FULL;
   SHOTS.forEach((shot, index) => {
     if (t < shot.at) return;
@@ -358,7 +379,7 @@ function renderPage(id: PageId, lt: number): ReactNode {
 const FINAL = 999;
 
 /** One window of the app. `still` draws a page in its finished state, as the wall at the end does. */
-function AppWindow({
+export function AppWindow({
   t,
   still,
   measuring,
