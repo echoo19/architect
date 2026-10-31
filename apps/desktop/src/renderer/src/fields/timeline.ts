@@ -272,7 +272,7 @@ export function fieldTimeline(
       stage: 'tested',
       at: item.endedAt ?? item.startedAt,
       sentence: `${item.model}, trained elsewhere, took the final test with harness v${item.harnessVersion}: ${scoresPhrase(reportScores(item.card))}`,
-      link: { place: 'Compute', to: { path: paths.compute() } },
+      link: { place: 'Compute', to: { path: paths.compute({ jobId }) } },
     });
   }
 
@@ -310,7 +310,7 @@ export function fieldTimeline(
       stage: 'exported',
       at: records.exported.at,
       sentence: `Exported the field's training examples to ${shortPath(records.exported.dir)}`,
-      link: { place: 'Compute', to: { path: paths.compute() } },
+      link: { place: 'Compute', to: { path: paths.compute({ jobId }) } },
     });
   }
 

@@ -11,6 +11,7 @@ import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
 import { applyChoices, type JobChoices } from '../jobs/choices';
+import { withFieldExport } from '../settings/schema';
 import type { SettingsStore } from '../settings/store';
 
 /** Sends one request to the engine process. */
@@ -24,13 +25,15 @@ const text = z.string().min(1);
  * conversation that drafts a job talks to the teacher the person chose in Settings, which only
  * this process reads, so each of its calls carries it to the engine. A job that is new, whether
  * the sample job, a job file or a drafted job, starts from the teacher and model the person chose
- * (`choices`); a job that already exists keeps what it has.
+ * (`choices`); a job that already exists keeps what it has. A field export written is recorded
+ * in settings, so Compute can offer it after a restart; its folder is still opened only once the
+ * person chooses it again.
  */
 export function registerEngineHandlers(
   router: IpcRouter,
   call: EngineCall,
   picked: PickedPaths,
-  settings: Pick<SettingsStore, 'get'>,
+  settings: Pick<SettingsStore, 'get' | 'update'>,
   choices: () => Promise<JobChoices>,
 ): void {
   /** A job just made, saved again with the person's choices unless it already has them. */
@@ -115,9 +118,19 @@ export function registerEngineHandlers(
       teachOn: (jobId, org) => call((api) => api.jobs.teachOn(jobId, org)),
       fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
       tasks: (jobId, split) => call((api) => api.jobs.tasks(jobId, split)),
-      exportField: (jobId, directory) => {
+      exportField: async (jobId, directory) => {
         const chosen = picked.check(directory);
-        return call((api) => api.jobs.exportField(jobId, chosen));
+        const manifest = await call((api) => api.jobs.exportField(jobId, chosen));
+        const record = {
+          jobId,
+          name: manifest.job.name,
+          dir: chosen,
+          at: new Date().toISOString(),
+        };
+        await settings.update({
+          fieldExports: withFieldExport(settings.get().fieldExports ?? [], record),
+        });
+        return manifest;
       },
     },
     {
