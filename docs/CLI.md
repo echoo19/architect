@@ -208,7 +208,7 @@ Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 ### field export
 
 ```bash
-architect field export Tutor --out ./tutor-field [--json]
+architect field export "Academy desk" --out ./academy-desk-field [--json]
 ```
 
 Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
@@ -223,7 +223,7 @@ Nothing of the locked test or of an organization the job never trains on goes in
 ### reward score
 
 ```bash
-architect reward score --env ./tutor-field/env < attempts.jsonl > scores.jsonl
+architect reward score --env ./academy-desk-field/env < attempts.jsonl > scores.jsonl
 ```
 
 Scores attempts at the field's train tasks with the job's own checker, for a training framework that runs its own rollouts. It reads one JSON request per line on stdin and writes one score per line on stdout, in order, until stdin ends. It makes no network calls and starts no server.
@@ -254,7 +254,7 @@ Architect never submits a bundle and never holds cluster credentials. Experiment
 ### certify
 
 ```bash
-architect certify Tutor --version 2 --job tutor --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
+architect certify "Academy desk" --version 2 --job "Academy desk" --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
 ```
 
 Certifies a version that is already frozen, without training it again (decision 079). The calibration tasks come from the taught organizations of the job you name, and none of them is a task, or of a family, that the version's own run (or a run it was improved from) saw or was tested on; a family whose name differs only in case or punctuation, or a request worded the same, counts as seen. If fewer than `--calibration-size` are left, it says how many there are. The tasks are sealed in the vault, then the version makes k attempts at each with no teacher, and the certificate is filed on that version for good. `--check` names an organization of the job to test the certified bound at: one it never saw, or one it was taught on, with tasks new to it; one its run was already tested on is refused.
