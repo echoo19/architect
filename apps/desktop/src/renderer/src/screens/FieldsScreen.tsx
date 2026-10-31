@@ -169,11 +169,11 @@ const TABS = [
   { value: 'overview', label: 'Overview', icon: <LayoutGrid strokeWidth={1.8} /> },
   { value: 'organizations', label: 'Organizations', icon: <Building2 strokeWidth={1.8} /> },
   { value: 'tasks', label: 'Tasks', icon: <ListChecks strokeWidth={1.8} /> },
-  { value: 'candidates', label: 'Candidates', icon: <Boxes strokeWidth={1.8} /> },
+  { value: 'candidates', label: 'Versions', icon: <Boxes strokeWidth={1.8} /> },
   { value: 'assets', label: 'Assets', icon: <Package strokeWidth={1.8} /> },
 ] as const;
 
-/** One field: its overview, organizations, tasks, candidates and assets, a tab each. */
+/** One field: its overview, organizations, tasks, versions and assets, a tab each. */
 export function FieldScreen({ jobId }: { jobId: string }) {
   const read = useQuery(fieldKey(jobId), () => readField(jobId));
   if (!read.data) {
