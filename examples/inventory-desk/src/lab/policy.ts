@@ -110,7 +110,12 @@ function usableText(policy: Policy, minimum: string): string {
 }
 
 function nothingText(policy: Policy): string {
-  return `A compound that has no lot in date gets reason ${policy.codes.expired}; one with lots in date that can't make up a re-test gets reason ${policy.codes.low}.`;
+  return `First, whether a re-test can be drawn at all: a compound that has no lot in date gets reason ${policy.codes.expired}; one with lots in date that can't make up a re-test gets reason ${policy.codes.low}.`;
+}
+
+/** The limit counts the rows the re-test would add, one per lot drawn, with those already held. */
+function limitText(policy: Policy, most: string): string {
+  return `A re-test that can be drawn is allocated and reserved only if the compound's rows in reservations.csv, with one new row for each lot drawn, come to no more than ${most}; otherwise it gets reason ${policy.codes.limit} and no row.`;
 }
 
 const ROWS =
@@ -152,7 +157,7 @@ function tablePolicy(name: string, today: string, policy: Policy): string[] {
     '',
     '## Reservations',
     '',
-    'A compound that already has as many reservations in reservations.csv as the table allows gets no new one, whatever its lots, with the reservation-limit code. Otherwise a compound with no lot in date gets the no-lot-in-date code, and one with lots in date that cannot make up a re-test gets the too-little code.',
+    "First, whether a re-test can be drawn at all: a compound with no lot in date gets the no-lot-in-date code, and one with lots in date that cannot make up a re-test gets the too-little code. A re-test that can be drawn is allocated and reserved only if the compound's rows in reservations.csv, with one new row for each lot drawn, come to no more than the reservations per compound in the table; otherwise it gets the reservation-limit code and no row.",
     '',
     ROWS,
     '',
@@ -177,7 +182,7 @@ function prosePolicy(name: string, today: string, policy: Policy): string[] {
     '',
     `${usableText(policy, minimum)} We draw from ${CHOICES[policy.choose]} first. How much of a compound is usable is the free volume of its usable lots together.`,
     '',
-    `A compound that already has ${word(policy.maxHolds)} reservations in reservations.csv gets no new one, whatever its lots, with reason ${policy.codes.limit}. ${nothingText(policy)}`,
+    `${nothingText(policy)} ${limitText(policy, word(policy.maxHolds))}`,
     '',
     ROWS,
   ];
@@ -198,8 +203,8 @@ function bulletPolicy(name: string, today: string, policy: Policy): string[] {
     `- ${usableText(policy, minimum)}`,
     `- Draw from ${CHOICES[policy.choose]} first.`,
     '- Usable: the free volume of the usable lots together.',
-    `- Limit: a compound with ${policy.maxHolds} reservations already in reservations.csv gets no new one, whatever its lots, reason ${policy.codes.limit}.`,
     `- ${nothingText(policy)}`,
+    `- Limit: ${limitText(policy, String(policy.maxHolds))}`,
     `- ${ROWS}`,
   ];
 }

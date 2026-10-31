@@ -1,8 +1,11 @@
 import vm from 'node:vm';
-import type { CsvRow } from '@architect/example-assay-desk';
+import { writeDate } from '@architect/example-assay-desk';
+import type { CsvRow, DateForm } from '@architect/example-assay-desk';
 import type { CheckResult, JsonValue, Task } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { DESK_STYLES } from '../src/lab/style';
+import { writeVolume } from '../src/lab/volume';
+import type { Unit } from '../src/lab/volume';
 import { job, orgOf, paramsOf } from './helpers';
 
 /**
@@ -12,7 +15,13 @@ import { job, orgOf, paramsOf } from './helpers';
 
 type Draw = { lot: string; location: string; amount_ul: number };
 type Allocation = { compound: string; draws: Draw[]; reason: string | null };
-type Reservation = { allocations: Allocation[]; reserved_on: string; unit: string; ids: string[] };
+type Reservation = {
+  allocations: Allocation[];
+  reserved_on: string;
+  unit: Unit;
+  date_form: DateForm;
+  ids: string[];
+};
 
 const ofType = (type: string) => job.tasksOfType(type);
 const params = <T>(task: Task) => paramsOf(task) as unknown as T;
@@ -27,8 +36,11 @@ const asked = (task: Task, answer: JsonValue, added: CsvRow[] = []) =>
 
 const asJson = (value: unknown) => value as JsonValue;
 
-/** The rows a reservation task's plan adds, each amount written by `amount`. */
-function planRows(plan: Reservation, amount = (ul: number) => `${ul} µL`): CsvRow[] {
+/** The rows a reservation task's plan adds, written the lab's way unless `amount` says otherwise. */
+function planRows(
+  plan: Reservation,
+  amount = (ul: number) => writeVolume(Math.round(ul * 1000), plan.unit),
+): CsvRow[] {
   const draws = plan.allocations.flatMap((a) =>
     a.draws.map((d) => ({ compound: a.compound, ...d })),
   );
@@ -37,7 +49,7 @@ function planRows(plan: Reservation, amount = (ul: number) => `${ul} µL`): CsvR
     compound_id: d.compound,
     lot: d.lot,
     amount: amount(d.amount_ul),
-    reserved_on: plan.reserved_on,
+    reserved_on: writeDate(plan.reserved_on, plan.date_form),
   }));
 }
 
@@ -141,8 +153,10 @@ describe('lot_pick', () => {
             ...truth(p),
             draws: [{ lot: 'ANY', location: 'ANY', amount_ul: 1 }],
           }),
-          `draws for ${p.compound} should be empty`,
+          `draws for ${p.compound} should be an empty list`,
         );
+        const { draws: _, ...missing } = truth(p);
+        failsWith(asked(task, missing), `draws for ${p.compound} should be an empty list`);
       }
     }
   });
@@ -199,21 +213,53 @@ describe('allocation', () => {
 describe('reservation', () => {
   const tasks = ofType('reserve');
 
-  it('passes the truth, its rows in any order and their amounts and dates written any way', () => {
+  it("passes the truth written the lab's way, its rows in any order, µL typed uL", () => {
     for (const task of tasks) {
       const plan = params<Reservation>(task);
       const rows = planRows(plan);
       expect(asked(task, answerOf(plan), rows), task.id).toMatchObject({ pass: true });
-      const [y, m, d] = plan.reserved_on.split('-');
-      const other = planRows(plan, (ul) => `${ul / 1000} mL`)
+      const typed = rows
         .reverse()
-        .map((row) => ({ ...row, reserved_on: `${Number(m)}/${Number(d)}/${y}` }));
-      expect(asked(task, answerOf(plan), other), task.id).toMatchObject({ pass: true });
-      const bare = planRows(plan, (ul) =>
-        String(plan.unit === 'mL' ? ul / 1000 : plan.unit === 'nL' ? ul * 1000 : ul),
-      );
-      expect(asked(task, answerOf(plan), bare), task.id).toMatchObject({ pass: true });
+        .map((row) => ({ ...row, amount: row.amount!.replace('µL', 'uL') }));
+      expect(asked(task, answerOf(plan), typed), task.id).toMatchObject({ pass: true });
     }
+  });
+
+  it("fails an amount or a date not written the lab's way, even when its value is right", () => {
+    let checked = 0;
+    for (const task of tasks) {
+      const plan = params<Reservation>(task);
+      const rows = planRows(plan);
+      if (rows.length === 0) continue;
+      const other = (['uL', 'mL', 'nL'] as const).find((u) => u !== plan.unit)!;
+      const otherForm = (['iso', 'us', 'dmy'] as const).find((f) => f !== plan.date_form)!;
+      const [first, ...rest] = rows;
+      const ul = plan.allocations.flatMap((a) => a.draws)[0]!.amount_ul;
+      const written = (row: CsvRow): CsvRow[] => [{ ...first!, ...row }, ...rest];
+      const unitless = writeVolume(Math.round(ul * 1000), plan.unit).split(' ')[0]!;
+      for (const amount of [writeVolume(Math.round(ul * 1000), other), unitless]) {
+        failsWith(asked(task, answerOf(plan), written({ amount })), 'amount is');
+      }
+      const date = writeDate(plan.reserved_on, otherForm);
+      failsWith(asked(task, answerOf(plan), written({ reserved_on: date })), 'reserved_on is');
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThan(20);
+  });
+
+  it("fails Fenwick's demo reservation in mL, as a bare number, or with a US date", () => {
+    const task = tasks.find((t) => t.org === 'fenwick')!;
+    const plan = params<Reservation>(task);
+    const [row] = planRows(plan);
+    expect(row).toMatchObject({ amount: '20 µL', reserved_on: '2026-10-14' });
+    expect(asked(task, answerOf(plan), [row!])).toMatchObject({ pass: true });
+    for (const amount of ['0.02 mL', '20', '20000 nL']) {
+      failsWith(asked(task, answerOf(plan), [{ ...row!, amount }]), 'amount is');
+    }
+    failsWith(
+      asked(task, answerOf(plan), [{ ...row!, reserved_on: '10/14/2026' }]),
+      'reserved_on is',
+    );
   });
 
   it('fails a row for a compound with nothing to draw, a wrong lot, amount, date or id, and a missing row', () => {

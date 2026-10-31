@@ -11,6 +11,6 @@ Each re-test takes 0.015 mL of stock. A lot's free volume is its quantity less e
 
 A re-test may be made up from several lots. Every lot that is in date and has free volume is usable; take from them in order, everything free from each until the re-test has 0.015 mL, and from the last only what is still needed. We draw from the lot with the most free volume first. How much of a compound is usable is the free volume of its usable lots together.
 
-A compound that already has two reservations in reservations.csv gets no new one, whatever its lots, with reason cap. A compound that has no lot in date gets reason exp; one with lots in date that can't make up a re-test gets reason low.
+First, whether a re-test can be drawn at all: a compound that has no lot in date gets reason exp; one with lots in date that can't make up a re-test gets reason low. A re-test that can be drawn is allocated and reserved only if the compound's rows in reservations.csv, with one new row for each lot drawn, come to no more than two; otherwise it gets reason cap and no row.
 
 New rows in reservations.csv: reservation_id numbered on from the last row, compound_id, lot, amount (in our unit, the number and the unit, as the file writes them), and reserved_on, the day of the request written the way we write dates. One row per lot drawn from, and none for a compound with nothing to draw.

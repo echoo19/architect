@@ -21,6 +21,8 @@ import { allocationValue } from '../src/tasks/build';
  *      too little free). Largest: L1. Combined, first expiring: L2's 15, then 5 from L1; largest:
  *      20 from L1.
  * C-2: one lot, expired. C-3: one lot of 12 µL, in date. C-4: in date, but three holds already.
+ * C-5: L7 15 µL with two holds of 1 µL (13 free) and L8 10 µL, both in date: one lot can't serve
+ *      a re-test, two combined can (13 + 7), but two holds and two new rows make four.
  */
 
 const POLICY: Policy = {
@@ -51,6 +53,8 @@ const LOTS: Lot[] = [
   lot('C-2', 'L4', 200, '2026-10-01'),
   lot('C-3', 'L5', 12, '2027-06-01'),
   lot('C-4', 'L6', 500, '2027-06-01'),
+  lot('C-5', 'L7', 15, '2027-03-01'),
+  lot('C-5', 'L8', 10, '2027-04-01'),
 ];
 
 const hold = (id: string, compound: string, lotId: string, ul: number): Hold => ({
@@ -66,6 +70,8 @@ const HOLDS: Hold[] = [
   hold('H-2', 'C-4', 'L6', 5),
   hold('H-3', 'C-4', 'L6', 5),
   hold('H-4', 'C-4', 'L6', 5),
+  hold('H-5', 'C-5', 'L7', 1),
+  hold('H-6', 'C-5', 'L7', 1),
 ];
 
 const store = (policy: Partial<Policy> = {}): Store => ({
@@ -101,7 +107,21 @@ describe('the rules', () => {
     ]);
   });
 
-  it('give the reason a compound has nothing to draw, the limit first', () => {
+  it('count the rows a re-test would add against the limit, after the draw', () => {
+    expect(allocate(store(), 'C-5').reason).toBe('LOW');
+    expect(allocate(store({ combine: true }), 'C-5').reason).toBe('MAX');
+    expect(allocate(store({ combine: true, maxHolds: 4 }), 'C-5').draws).toEqual([
+      { lot: 'L7', location: 'RACK:L7', amount: 13_000 },
+      { lot: 'L8', location: 'RACK:L8', amount: 7_000 },
+    ]);
+    const expired = {
+      ...store(),
+      lots: LOTS.map((l) => (l.lot === 'L6' ? { ...l, expires: '2026-01-01' } : l)),
+    };
+    expect(allocate(expired, 'C-4').reason).toBe('OLD');
+  });
+
+  it('give the reason a compound has nothing to draw', () => {
     expect(allocate(store(), 'C-2').reason).toBe('OLD');
     expect(allocate(store(), 'C-3').reason).toBe('LOW');
     expect(allocate(store(), 'C-4').reason).toBe('MAX');
@@ -116,7 +136,7 @@ describe("the reference's code", () => {
       style: { ...DESK_STYLES[0]!, policy },
       assay: { id: 'hand', name: 'Hand Lab', today: '2026-10-14', compounds: [], lists: [] },
       store: { ...store(), policy },
-      chain: { list: { plate: 'P', compounds: [], queued: true }, short: '' },
+      chain: { list: { plate: 'P', compounds: [], take: 0 }, short: '' },
     } satisfies Desk;
     return new AgentTools(new JobFiles(deskFiles(desk, new Random(1))), '2026-10-14');
   }
@@ -127,9 +147,9 @@ describe("the reference's code", () => {
         for (const combine of [false, true]) {
           const policy: Policy = { ...POLICY, unit, dateForm, combine };
           const run = tools(policy).run<{ allocations: JsonValue[] }>(
-            allocateCode(policy, '2026-10-14', ['C-1', 'C-2', 'C-3', 'C-4']),
+            allocateCode(policy, '2026-10-14', ['C-1', 'C-2', 'C-3', 'C-4', 'C-5']),
           );
-          const truth = ['C-1', 'C-2', 'C-3', 'C-4'].map((c) =>
+          const truth = ['C-1', 'C-2', 'C-3', 'C-4', 'C-5'].map((c) =>
             allocationValue(allocate({ ...store(), policy }, c)),
           );
           expect(run.allocations, `${unit} ${dateForm} ${combine}`).toEqual(truth);

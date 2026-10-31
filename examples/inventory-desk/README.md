@@ -4,7 +4,7 @@ The Inventory desk runs a screening lab's compound store. A scientist asks it ho
 
 The labs are the Assay desk's (`examples/assay-desk`): the same four made-up labs, with the same roles and the same working days. Three are for teaching (Fenwick Screening Core, Alder Row Biosciences, Saltmarsh Institute Assay Lab) and one, Corvid Hill Discovery, is kept back: the Inventory desk is never taught on it, and it is there to show whether what it learned carries over to a lab it has never seen. Every lab, compound, lot and storage name is invented.
 
-The two desks work as a team. The store holds every compound on the Assay desk's plates, and the lists of compounds the Inventory desk allocates and reserves are the ones the Assay desk sends for a re-test: the inconclusive and borderline compounds of a plate that passed QC, taken from the Assay desk's own expected answers. The generator builds the Assay desk's labs from its seeds through its package, so the two jobs always agree.
+The two desks work as a team. The store holds every compound on the Assay desk's plates, and every list of compounds the Inventory desk allocates and reserves is one the Assay desk would queue for a re-test, taken from its own expected answers: all of a passing plate's inconclusive and borderline compounds when they fit its cap per plate, else exactly as many as the cap. The generator builds the Assay desk's labs from its seeds through its package, so the two jobs always agree.
 
 ## How the labs differ
 
@@ -32,8 +32,9 @@ The policies all say the same things in their own words:
 - At a lab that doesn't combine lots, a lot is usable when it is in date and has at least one re-test's stock free, and a re-test draws its stock from the first usable lot. At a lab that combines, every lot in date with free volume is usable, and a re-test takes everything free from each lot in order until it has its stock, and from the last only what it still needs.
 - The order is the lab's: the lot that expires first, or the one with the most free volume.
 - How much of a compound is usable is the free volume of its usable lots together.
-- A compound that already has the lab's most reservations gets no new one, whatever its lots (the limit code). Otherwise a compound with no lot in date gets the no-lot-in-date code, and one whose lots in date can't make up a re-test gets the too-little code.
-- A reservation adds one row per lot drawn from: the id numbered on from the file, the compound, the lot, the amount in the lab's unit and the day of the request in the lab's date form. A compound with nothing to draw gets no row.
+- First, whether a re-test can be drawn at all: a compound with no lot in date gets the no-lot-in-date code, and one whose lots in date can't make up a re-test gets the too-little code.
+- A re-test that can be drawn is allocated and reserved only if the compound's rows in reservations.csv, with one new row for each lot drawn, come to no more than the lab's limit; otherwise it gets the limit code. So at a lab that combines lots, a compound one row under the limit can't take a re-test drawn from two lots.
+- A reservation adds one row per lot drawn from: the id numbered on from the file, the compound, the lot, the amount as a number and the lab's unit, and the day of the request in the lab's date form. A compound with nothing to draw gets no row.
 
 ## Files
 
@@ -57,10 +58,10 @@ The agent may write only to `reservations.csv`, and the job asks before every wr
 | ---------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `usable`   | "How much FWC-10882 do we have that we can actually use?"                                            | the usable volume in µL within 0.05, and the usable lots as a set (`usable_volume`)                   |
 | `pick_lot` | "Which lot of FWC-12919 should I pull for a re-test, and where is it?"                               | each lot drawn, its location and amount, or the lab's reason code when there is nothing (`lot_pick`)  |
-| `allocate` | "Assay desk sent these from FW-0413 for a re-test: FWC-11734, FWC-11854 and FWC-11866. Which lot does each come from?"                 | the same for every compound of the list, none missing and none added (`allocation`)                   |
+| `allocate` | "Assay desk sent these from FW-0416 for a re-test: FWC-12928, FWC-12949, FWC-12976 and FWC-12988. Which lot does each come from?"                 | the same for every compound of the list, none missing and none added (`allocation`)                   |
 | `reserve`  | "Please put holds on stock for the FW-0418 re-tests: FWC-13399 and FWC-13444."                       | the rows added to reservations.csv, and which compounds were reserved and why not the others (`reservation`) |
 
-Every lab asks for a lot of a compound with nothing in date, one too short, one at its reservation limit, one whose first-expiring lot is not its largest, and at a lab that combines lots one drawn from two lots. Most lists have a compound with nothing to draw.
+Every lab asks for a lot of a compound with nothing in date, one too short, one at its reservation limit, one whose first-expiring lot is not its largest, and at a lab that combines lots one drawn from two lots. The `allocate` and `reserve` tasks of a lab go through the same eight lists, each pair in one family; most lists have a compound with nothing to draw.
 
 ## The team demo with the Assay desk
 
@@ -76,7 +77,7 @@ The other labs' lists: Alder Row AR-2214 (ARX000492 draws 0.015 mL from LOT934; 
 
 ## Checker
 
-`src/checker.js`, copied into the job folder, holds the four validators. It reads no clock and no randomness. Volumes pass within 0.05 µL, lists of lots and compounds compare as sets, ids and locations pass whatever their case, spaces and punctuation, and a row's amount may be written in µL, mL or nL (or as a bare number in the lab's unit) and its date in any of the three forms. A reservation passes when it adds exactly the rows the lab's rules draw, in any order, numbered on from the file, with no old row changed. A failure's reason starts with the field or table that is wrong. The expected values come from the true lots and holds, before any file wrote them (`src/lab/stock.ts`).
+`src/checker.js`, copied into the job folder, holds the four validators. It reads no clock and no randomness. Volumes pass within 0.05 µL, lists of lots and compounds compare as sets, and ids and locations pass whatever their case, spaces and punctuation. A compound with nothing to draw needs its reason and an empty `draws` list. A new row is graded against the format the lab's policy states: its amount a number and the lab's unit (`20 µL`, or `20 uL`, at Fenwick; `0.02 mL`, a bare `20` or a date written `10/14/2026` fail there), its date in the lab's form. A reservation passes when it adds exactly the rows the lab's rules draw, in any order, numbered on from the file, with no old row changed. A failure's reason starts with the field or table that is wrong. The expected values come from the true lots and holds, before any file wrote them (`src/lab/stock.ts`).
 
 ## Reference solutions
 
@@ -89,9 +90,9 @@ The other labs' lists: Alder Row AR-2214 (ARX000492 draws 0.015 mL from LOT934; 
 - The four labs differ in every number and code, the taught labs use all three units, date forms and policy styles, both orders and both ways of combining, and the lab never seen has numbers and a pairing of rules no taught lab uses.
 - The rules in policy.md, in every style, read back to the ones the lab was built with.
 - Every inventory row reads back to its lot's true volume and dates, and the share written in another unit stays in its range, none in the first rows. No reservation holds more than its lot has.
-- Free volume, the cutoff, the order of lots, combining and every reason match a store worked by hand, both in the generator's rules and in the reference's code, in every unit and date form.
-- The checker passes the ground truth and the same values written other ways, and fails the common mistakes for the right reason: a volume off, a missing or extra lot, a wrong lot, amount or location, a missing or wrong reason, a draw for a compound with nothing to draw, a missing, extra or repeated compound, a row for a compound with nothing to draw, a wrong amount, date or id, a missing or repeated row, a changed old row, and a write from a task that only asks.
-- The tasks split into the sizes the job asks for, with every family in one split, and every list comes from the Assay desk's re-test candidates.
+- Free volume, the cutoff, the order of lots, combining, every reason and the limit counted with the new rows match a store worked by hand, both in the generator's rules and in the reference's code, in every unit and date form.
+- The checker passes the ground truth with ids and lists written other ways, and fails the common mistakes for the right reason: a volume off, a missing or extra lot, a wrong lot, amount or location, a missing or wrong reason, draws missing or not empty for a compound with nothing to draw, a missing, extra or repeated compound, a row for a compound with nothing to draw, a wrong amount, date or id, an amount or date not written the lab's way, a missing or repeated row, a changed old row, and a write from a task that only asks.
+- The tasks split into the sizes the job asks for, with every family in one split, and every list is exactly one the Assay desk queues, within its cap per plate.
 - The demo's list at every lab is one the Assay desk queues whole, it has a compound with nothing to draw and one that can be drawn, and this README gives Fenwick's true values.
 - The reference solutions' calls are replayed through the engine's own tools on each lab's files, the text they get back is compared, and every task passes the engine's checker.
 

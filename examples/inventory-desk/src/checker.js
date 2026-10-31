@@ -12,8 +12,8 @@
 //
 // Volumes pass within the task's tolerance, in microlitres; lists of lots and compounds compare
 // as sets, rows in any order. Ids and locations pass however their case, spaces and punctuation
-// are written. A row's amount may be written in µL, mL or nL, or as a bare number in the lab's
-// unit, and its date in any of the three forms the labs write.
+// are written. A new row is written as the lab's policy says: its amount a number and the lab's
+// unit (µL may be typed uL), its date in the lab's form.
 
 var validators = {};
 
@@ -127,8 +127,8 @@ function allocationProblem(given, expected, tolerance) {
     if (!sameText(given.reason, expected.reason)) {
       return `reason for ${compound} is ${show(given.reason)} but should be ${expected.reason}: it has nothing to draw.`;
     }
-    if (Array.isArray(given.draws) && given.draws.length > 0) {
-      return `draws for ${compound} should be empty: it has nothing to draw (${expected.reason}).`;
+    if (!Array.isArray(given.draws) || given.draws.length > 0) {
+      return `draws for ${compound} should be an empty list: it has nothing to draw (${expected.reason}).`;
     }
     return null;
   }
@@ -193,10 +193,10 @@ function rowsProblem(params, ctx) {
     seen.push(key);
     const amount = volumeOf(row.amount, params.unit);
     if (amount === null || Math.abs(amount - draw.amount) > params.tolerance) {
-      return `amount is ${show(row.amount)} but should be ${draw.amount} µL (lot ${draw.lot}, row ${id}).`;
+      return `amount is ${show(row.amount)} but should be ${draw.amount} µL, written as a number and ${UNITS[params.unit].text} (lot ${draw.lot}, row ${id}).`;
     }
-    if (dayOf(row.reserved_on) !== params.reserved_on) {
-      return `reserved_on is ${show(row.reserved_on)} but should be ${params.reserved_on} (row ${id}).`;
+    if (dayOf(row.reserved_on, params.date_form) !== params.reserved_on) {
+      return `reserved_on is ${show(row.reserved_on)} but should be ${params.reserved_on}, written ${FORMS[params.date_form]} (row ${id}).`;
     }
   }
   const missing = wanted.find((w) => !seen.includes(idKey(w.compound) + '/' + idKey(w.lot)));
@@ -247,29 +247,43 @@ function setProblem(field, given, expected) {
   return null;
 }
 
-// Microlitres in a cell such as "20 µL", "0.02 mL", "20000 nL", or a bare number in `unit`.
+// Each unit a lab may write in: how it is written after the number, and microlitres in one.
+const UNITS = {
+  uL: { text: 'µL', pattern: /^[µμu]l$/i, ul: 1 },
+  mL: { text: 'mL', pattern: /^ml$/i, ul: 1000 },
+  nL: { text: 'nL', pattern: /^nl$/i, ul: 0.001 },
+};
+
+// Microlitres in a cell written as a number and the lab's unit ("20 µL" at a lab that writes µL),
+// or null when the unit is missing or another one.
 function volumeOf(cell, unit) {
-  const match = /^\s*(\d+(?:\.\d+)?)\s*([µμu]l|ml|nl)?\s*$/i.exec(text(cell));
-  if (!match) return null;
-  const per = { ul: 1, ml: 1000, nl: 0.001 };
-  const written = match[2] ? match[2].toLowerCase().replace(/^[µμ]/, 'u') : unit.toLowerCase();
-  return Number(match[1]) * per[written];
+  const match = /^\s*(\d+(?:\.\d+)?)\s*(\S+)\s*$/.exec(text(cell));
+  if (!match || !UNITS[unit].pattern.test(match[2])) return null;
+  return Number(match[1]) * UNITS[unit].ul;
 }
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-// A date written 2026-10-14, 10/14/2026 or 14-Oct-2026, as YYYY-MM-DD, or null.
-function dayOf(cell) {
+// How each date form is named, as the policies name it.
+const FORMS = {
+  iso: 'year-month-day',
+  us: 'month/day/year',
+  dmy: 'day-month-year',
+};
+
+// A date written in the lab's form (2026-10-14, 10/14/2026 or 14-Oct-2026), as YYYY-MM-DD, or
+// null when it is written another way.
+function dayOf(cell, form) {
   const value = text(cell);
   const two = (n) => String(n).padStart(2, '0');
-  let match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (match) return value;
-  match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
-  if (match) return `${match[3]}-${two(match[1])}-${two(match[2])}`;
-  match = /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/.exec(value);
+  if (form === 'iso') return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+  if (form === 'us') {
+    const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
+    return match ? `${match[3]}-${two(match[1])}-${two(match[2])}` : null;
+  }
+  const match = /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/.exec(value);
   const month = match ? MONTHS.indexOf(match[2].toLowerCase()) : -1;
-  if (month >= 0) return `${match[3]}-${two(month + 1)}-${two(match[1])}`;
-  return null;
+  return month >= 0 ? `${match[3]}-${two(month + 1)}-${two(match[1])}` : null;
 }
 
 // An id with case, spaces and punctuation set aside.

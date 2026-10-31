@@ -22,9 +22,6 @@ export const PER_SKILL = 8;
 /** Microlitres an answer's volume may be off by. */
 export const VOLUME_TOLERANCE = 0.05;
 
-/** The most compounds in one list. */
-const LIST_SIZE = 4;
-
 export interface CompoundRequest {
   compound: string;
 }
@@ -51,8 +48,8 @@ export function buildTasks(random: Random, desk: Desk): Task[] {
   return [
     ...usableTasks(random.fork('usable'), context),
     ...pickTasks(random.fork('pick_lot'), context),
-    ...listTasks(random.fork('allocate'), context, 'allocate', lists.allocate),
-    ...listTasks(random.fork('reserve'), context, 'reserve', lists.reserve),
+    ...listTasks(random.fork('allocate'), context, 'allocate', lists),
+    ...listTasks(random.fork('reserve'), context, 'reserve', lists),
   ];
 }
 
@@ -127,33 +124,30 @@ class Context {
   }
 
   /**
-   * The lists the allocate and reserve tasks go through. The demo's list comes first in both, as
-   * the Assay desk gives it; the rest are the other plates' lists, cut into lists of at most
-   * four, those with a compound that has nothing to draw first.
+   * The lists the allocate and reserve tasks go through, each exactly a list the Assay desk
+   * queues: all of a plate's re-tests when they fit its cap, else as many as the cap, here taken
+   * in plate order a cap's worth at a time. The demo's list comes first; then the others, those
+   * with a compound that has nothing to draw first. An allocate task and a reserve task share
+   * each list, and its family.
    */
-  lists(random: Random): { allocate: ListRequest[]; reserve: ListRequest[] } {
+  lists(random: Random): ListRequest[] {
     const chain = this.desk.chain.list;
     const pieces = this.desk.assay.lists
       .filter((list) => list.plate !== chain.plate)
-      .flatMap((list) => {
-        const count = Math.ceil(list.compounds.length / LIST_SIZE);
-        return Array.from({ length: count }, (_, i) => ({
+      .flatMap((list) =>
+        Array.from({ length: Math.floor(list.compounds.length / list.take) }, (_, i) => ({
           plate: list.plate,
-          compounds: list.compounds.filter((_, at) => at % count === i),
-        }));
-      });
+          compounds: list.compounds.slice(i * list.take, (i + 1) * list.take),
+        })),
+      );
     const short = (list: ListRequest) =>
       list.compounds.some((c) => allocate(this.store, c).reason !== null);
     const shuffled = random.shuffle(pieces);
     const ordered = [...shuffled.filter(short), ...shuffled.filter((l) => !short(l))];
-    const others = PER_SKILL - 1;
-    if (ordered.length < others * 2) {
-      throw new Error(`${this.id} has ${ordered.length} lists to re-test, not ${others * 2}`);
+    if (ordered.length < PER_SKILL - 1) {
+      throw new Error(`${this.id} has ${ordered.length} lists to re-test, not ${PER_SKILL - 1}`);
     }
-    const first = { plate: chain.plate, compounds: chain.compounds };
-    const toAllocate = ordered.filter((_, i) => i % 2 === 0).slice(0, others);
-    const toReserve = ordered.filter((_, i) => i % 2 === 1).slice(0, others);
-    return { allocate: [first, ...toAllocate], reserve: [first, ...toReserve] };
+    return [{ plate: chain.plate, compounds: chain.compounds }, ...ordered.slice(0, PER_SKILL - 1)];
   }
 }
 
@@ -291,6 +285,7 @@ function listTasks(
           allocations: values,
           reserved_on: store.today,
           unit: store.policy.unit,
+          date_form: store.policy.dateForm,
           ids: nextIds(
             store.holds.map((h) => h.id),
             draws,

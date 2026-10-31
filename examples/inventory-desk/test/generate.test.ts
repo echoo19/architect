@@ -270,24 +270,26 @@ describe('the tasks', () => {
     }
   });
 
-  it("take their lists of compounds from the Assay desk's re-test candidates", () => {
-    const candidates = new Map<string, string[]>();
+  it('give every list exactly as the Assay desk queues it, within its cap per plate', () => {
+    const plans = new Map<string, { candidates: string[]; take: number }>();
     for (const task of assay.tasks().filter((t) => t.type === 'plate_report')) {
-      const plan = (
-        paramsOf(task).retests as {
-          plates: { plate: string; candidates: { compound: string }[] }[];
-        }
-      ).plates[0]!;
-      candidates.set(
-        plan.plate,
-        plan.candidates.map((c) => c.compound),
-      );
+      const retests = paramsOf(task).retests as {
+        plates: { plate: string; candidates: { compound: string }[]; take: number }[];
+      };
+      const plan = retests.plates[0]!;
+      plans.set(plan.plate, {
+        candidates: plan.candidates.map((c) => c.compound),
+        take: plan.take,
+      });
     }
-    for (const task of job
-      .allTasks()
-      .filter((t) => t.type === 'allocate' || t.type === 'reserve')) {
+    const lists = job.allTasks().filter((t) => t.type === 'allocate' || t.type === 'reserve');
+    expect(lists).toHaveLength(64);
+    for (const task of lists) {
       const { plate, compounds } = task.meta!.request as { plate: string; compounds: string[] };
-      for (const c of compounds) expect(candidates.get(plate), task.id).toContain(c);
+      const plan = plans.get(plate)!;
+      expect(compounds.length, task.id).toBe(Math.min(plan.take, plan.candidates.length));
+      expect(new Set(compounds).size, task.id).toBe(compounds.length);
+      for (const c of compounds) expect(plan.candidates, task.id).toContain(c);
     }
   });
 });
