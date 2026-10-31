@@ -130,3 +130,41 @@ export const ROUNDS: readonly Round[] = [
   },
   { number: '03', title: 'A helper for the policy numbers', before: 67, after: 97, kept: true },
 ];
+
+/**
+ * The team demo at Fenwick Screening Core (examples/inventory-desk/README.md, "The team demo with
+ * the Assay desk"), as the team chat shows it (apps/desktop/e2e/fixtures-teams.ts and
+ * docs/screenshots/team-*.png). Inventory desk leads and asks Assay desk. The values are the
+ * examples' own: fenwick-plate_report-01 in examples/assay-desk, fenwick-reserve-01 in
+ * examples/inventory-desk, and Fenwick's retests.csv (5 rows) and reservations.csv (162 rows).
+ */
+export const TEAM = {
+  name: 'Screening logistics',
+  lead: 'Inventory desk',
+  teammate: 'Assay desk',
+  org: 'Fenwick Screening Core',
+  chat: "Reserve stock for FW-0418's re-tests",
+  request: "Reserve stock for FW-0418's re-tests.",
+  asked: 'Which compounds on plate FW-0418 need a re-test, and why? Queue them in retests.csv.',
+  code: "const plate = wells('FW-0418');",
+  output: ['0.7689', 'FWC-13399 INCONCLUSIVE', 'FWC-13444 BORDERLINE'],
+  answer:
+    'FW-0418 passes QC (Z′ 0.7689). 2 compounds need a re-test: FWC-13399 is inconclusive and FWC-13444 is borderline. I queued them as RT-0006 and RT-0007.',
+  /** The first line of the answer, as the lead's step shows it. */
+  meta: 'FW-0418 passes QC (Z′ 0.7689). 2 compounds need a re-test: …',
+  reply: 'FW-0418 passed QC, and Assay desk queued its 2 re-tests.',
+  allocations: [
+    {
+      compound: 'FWC-13399',
+      text: "nothing usable (LOW-VOLUME). None of its 3 lots has 20 µL free, and Fenwick doesn't combine lots.",
+    },
+    {
+      compound: 'FWC-13444',
+      text: '20 µL from lot FL-04159 in rack VR-06:E08. It expires on 2026-12-07, the first of its usable lots, and the hold below is for it.',
+    },
+  ],
+  hold: {
+    columns: ['reservation_id', 'compound_id', 'lot', 'amount', 'reserved_on'],
+    row: ['HOLD-0163', 'FWC-13444', 'FL-04159', '20 µL', '2026-10-14'],
+  },
+} as const;

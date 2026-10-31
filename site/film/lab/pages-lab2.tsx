@@ -8,7 +8,8 @@ import {
 import {
   CircleCheck,
   CircleX,
-  Cpu,
+  CloudCog,
+  Container,
   FlaskConical,
   Layers,
   Network,
@@ -324,13 +325,15 @@ const METHODS = [
   { label: 'Full', Icon: Network },
 ] as const;
 
+/** The bundle's targets, as the app's Compute lists them (compute/Targets.tsx). */
 const TARGETS = [
   { label: 'Slurm', Icon: Server },
-  { label: 'Kubernetes', Icon: Cpu },
+  { label: 'Kubernetes', Icon: Container },
+  { label: 'SkyPilot', Icon: CloudCog },
 ] as const;
 
 /** The command a Slurm bundle is submitted with, typed out in turn. */
-const SUBMIT = 'sbatch train.sbatch';
+const SUBMIT = 'sbatch submit.sbatch';
 
 /**
  * Compute: a training plan for a large open model, sized from its own configuration, and a launch
@@ -400,7 +403,7 @@ export function ComputePage({ lt }: { lt: number }) {
             bodyClass="gap-4 px-6 pb-6"
             frame="bundle"
           >
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {TARGETS.map(({ label, Icon }, index) => (
                 <span
                   key={label}

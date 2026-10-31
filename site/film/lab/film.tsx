@@ -40,12 +40,17 @@ const STRETCHES: readonly (readonly [number, number, number])[] = [
   [24.6, 43.5, 15.6],
   [45.0, 56.2, 9.8],
   [59.6, 72.4, 13.6],
-  [72.4, 83.3, 11.6],
+  [72.4, 83.3, 9.7],
   [84.6, 100.4, 15.2],
   [100.4, 114.0, 14.4],
-  [114.0, 124.6, 10.0],
-  [124.6, 143.2, 18.0],
-  [143.2, 150.4, 7.0],
+  // Compute: the plan, a held moment passed over quickly, the cluster bundle, and the way out.
+  [114.0, 116.9, 2.2],
+  [116.9, 118.9, 0.5],
+  [118.9, 122.6, 2.35],
+  [122.6, 124.6, 1.5],
+  [124.6, 143.0, 16.5],
+  // 143.0 to 143.8 is the team scene's: it ends on the first screen coming in (team.tsx).
+  [143.8, 150.4, 5.4],
   [150.4, LOCKUP, 5.2],
   [LOCKUP, DURATION, 4.9],
 ];
@@ -124,7 +129,7 @@ const PAGES: readonly PageSpan[] = [
 ];
 
 /** Moments inside pages, in film seconds. */
-const MOMENT = {
+export const MOMENT = {
   handoff: 10.8,
   drawerIn: 72.4,
   drawerOut: 83.3,
@@ -137,7 +142,7 @@ const MOMENT = {
   lockup: LOCKUP,
 } as const;
 
-const pageAt = (id: PageId) => PAGES.find((page) => page.id === id)?.at ?? 0;
+export const pageAt = (id: PageId) => PAGES.find((page) => page.id === id)?.at ?? 0;
 
 /** Rects of named parts of the window, measured once at build, in window pixels. */
 export type Measured = ReadonlyMap<string, { x: number; y: number; w: number; h: number }>;
@@ -279,6 +284,21 @@ function Cursor({ measured, t }: { measured: Measured; t: number }) {
     outQuart(span(t, click.at - 1.1, 0.25)),
     1 - outQuart(span(t, click.at + 0.4, 0.3)),
   );
+  return <Pointer x={x} y={y} shown={shown} press={press} />;
+}
+
+/** The pointer, at a point of the window, pressed by `press` from 0 to 1. */
+export function Pointer({
+  x,
+  y,
+  shown,
+  press,
+}: {
+  x: number;
+  y: number;
+  shown: number;
+  press: number;
+}) {
   return (
     <svg
       width={22}
