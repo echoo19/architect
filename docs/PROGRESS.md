@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat, night), `site/why` (from `field/main`): Why we made this
+
+- *Done:* the home page has a "Why we made this" section under the film and the specialists line (`site/src/components/Why.tsx`, words in `content.ts` as `WHY`). Our reason from SPEC.md, then a plain line that Y Combinator's Requests for Startups for Winter 2027 came out after the build began (first commit Oct 27), then Own Your Intelligence (Jon Xu), AI for the Air-Gapped Economy (Brad Flora) and Vertical Foundation Models (Diana Hu): each title linked to its anchor, its author, one verbatim sentence (checked on the page) and one line on what Architect does; the third says no large model has been trained yet. Two columns that share one edge on wide windows, stacked at 390; hairlines between rows, no cards; the quote's opening mark hangs in the margin on wide windows and hyphenated words never break. Scroll reveal as elsewhere; reduced motion shows it as is. The README (a new section after the intro) and the submission draft in `docs/HACKATHON.md` have the same paragraph with the three links.
+- *Decision 092:* the site test now allows `https://www.ycombinator.com/rfs#` citation links besides the repository; the page still fetches from nobody.
+- *Open:* the README's older "Where it fits" also discusses Vertical Foundation Models; the owner may want it folded into the new section. Not merged or pushed.
+
 ## 2026-11-01 (Sun), `lab/timeline-learned` (from `field/main`): the timeline shows Learned from
 
 - *Done:* the field timeline (091) has a "Learned from" stage (089). A version made by teaching on a never-seen organization opens with a row for the version it was made from; the earlier field gets a row for each later version taught on one of its never-seen organizations. Each row opens the other field. Read from `jobs.field` (`versionOf`, `taughtIn`) and, for a later version's date, `jobs.get`; no new engine call, `FieldSummary` unchanged.
