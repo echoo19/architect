@@ -2,6 +2,7 @@ import {
   ARM_LABELS,
   armInSentence,
   ArmIdSchema,
+  mentorPricing,
   MENTOR_PRESETS,
   type AdapterProtocol,
   type ArmId,
@@ -16,6 +17,7 @@ import { percentile } from '../report/report-card';
 import { MAX_FINDINGS } from '../loop/intervene';
 import { lockedTestsOf } from './field';
 import type { ProbeReading, SweepAttempt } from './records';
+import { teacherOf, type ModelTeacher } from './teacher';
 
 /** Decision 037's arms, in its order. */
 export const ARM_ORDER: readonly ArmId[] = ArmIdSchema.options;
@@ -73,6 +75,8 @@ export interface ComparisonConfig {
   lockedTests?: number;
   /** The attempts a certified job's locked test adds (decision 077), set like `lockedTests`. */
   certifyAttempts?: number;
+  /** The teacher arm's model when it isn't the field's teacher (decision 095). */
+  teacher?: ModelTeacher;
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
@@ -115,6 +119,8 @@ export interface ModelInputs {
   sparkAttemptUsd: ProjectionInput;
   localSeconds: ProjectionInput;
   jobUsd: ProjectionInput;
+  /** The teacher as the agent, per task, when the teacher arm is asked for (decision 095). */
+  teacherAttemptUsd?: ProjectionInput;
 }
 
 const mean = (values: readonly number[]) =>
@@ -190,6 +196,9 @@ export function modelInputs(
   const spark = sparkPricing(job);
   const usdOf = (tokens: { inputTokens: number; outputTokens: number }) =>
     (tokens.inputTokens * spark.inputPerM + tokens.outputTokens * spark.outputPerM) / 1_000_000;
+  const teacher = config.arms.includes('teacher') ? teacherOf(job, config.teacher) : null;
+  const teacherPricing =
+    typeof teacher === 'object' && teacher !== null ? mentorPricing(teacher) : undefined;
   const localLatencies = probe.attempts.map((attempt) => attempt.latencyMs);
   const calibrationNote = `${calibration.length} calibration attempts on hosted Glimmer`;
   return {
@@ -282,6 +291,22 @@ export function modelInputs(
       source: 'assumed',
       note: `its whole authorization, ${config.jobMinutes} minutes on one L40S at $${JOB_PRICE_PER_HOUR.toFixed(2)} an hour, the most it can cost`,
     },
+    ...(teacherPricing === undefined || typeof teacher !== 'object' || teacher === null
+      ? {}
+      : {
+          teacherAttemptUsd: {
+            name: `${teacher.label} as the agent, per task`,
+            value:
+              ((measured ? inputTokens : 30_000) * teacherPricing.inputPerM +
+                (measured ? outputTokens : 2_000) * teacherPricing.outputPerM) /
+              1_000_000,
+            unit: 'USD',
+            source: 'assumed',
+            note: measured
+              ? `the student's measured tokens per attempt at ${teacher.label}'s price`
+              : `30,000 tokens in and 2,000 out at ${teacher.label}'s price`,
+          },
+        }),
   };
 }
 
@@ -349,6 +374,9 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
       return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.reference };
     case 'reference-targeted':
       return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.referenceTargeted };
+    case 'teacher':
+      // Its own run: the check tasks once at the start, then the final test, and no teaching.
+      return { ...none, hosted: dev + test, oneAtATime: test };
     case 'repeat': {
       const repeated = (['bare', 'draft', 'targeted'] as const).filter((other) =>
         funded.has(other),
@@ -399,6 +427,7 @@ export function studentCapOf(arm: ArmId, projected: number, config: ComparisonCo
 /** Why an arm can't run here whatever money is left, or null. */
 function prerequisite(
   arm: ArmId,
+  job: Job,
   config: ComparisonConfig,
   funded: ReadonlySet<ArmId>,
 ): string | null {
@@ -414,6 +443,10 @@ function prerequisite(
       return needs('bare');
     case 'reference-targeted':
       return needs('targeted');
+    case 'teacher': {
+      const teacher = teacherOf(job, config.teacher);
+      return typeof teacher === 'string' ? teacher : null;
+    }
     case 'repeat':
       return ['bare', 'draft', 'targeted'].some((other) => funded.has(other as ArmId))
         ? null
@@ -464,7 +497,12 @@ export function project(
   for (const arm of ARM_ORDER) {
     if (!requested.has(arm)) continue;
     const need = needOf(arm, job, config, funded);
-    const studentUsd = need.hosted * inputs.studentUsd.value;
+    // The teacher arm's attempts are the teacher's, at its own price; every other arm's the student's.
+    const attemptUsd =
+      arm === 'teacher'
+        ? (inputs.teacherAttemptUsd?.value ?? inputs.studentUsd.value)
+        : inputs.studentUsd.value;
+    const studentUsd = need.hosted * attemptUsd;
     const sparkEstimate =
       need.sparkCalls * inputs.sparkCallUsd.value +
       need.sparkAttempts * inputs.sparkAttemptUsd.value;
@@ -485,7 +523,7 @@ export function project(
     total.sparkUsd += sparkUsd;
     total.computeUsd += computeUsd;
     total.localMinutes += localMinutes;
-    let reason = prerequisite(arm, config, funded);
+    let reason = prerequisite(arm, job, config, funded);
     const blockedBy = reason === null ? null : ('prerequisite' as const);
     const studentReserve = studentCapOf(arm, studentUsd, config);
     // Decision 037 runs the fixed arm only with $5 of student credit left after the repeat.

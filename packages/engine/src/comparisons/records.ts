@@ -111,6 +111,8 @@ export const PlanSettingsSchema = z.object({
   student: z.string(),
   providers: z.array(z.string()).nullable(),
   localModel: z.string(),
+  /** The teacher arm's model as `model at address`, when it isn't the field's teacher. */
+  teacher: z.string().nullable().default(null),
 });
 export type PlanSettings = z.infer<typeof PlanSettingsSchema>;
 

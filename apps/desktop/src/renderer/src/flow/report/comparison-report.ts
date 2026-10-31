@@ -59,6 +59,8 @@ export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
       return `${mentor} doing the tasks itself, no setup`;
     case 'reference-targeted':
       return `${mentor} doing the tasks itself, with ${student}'s final setup`;
+    case 'teacher':
+      return `${mentor} doing the job itself, untaught, in a run of its own`;
     case 'repeat':
       return 'The first three, tested a second time';
     case 'fixed':

@@ -62,6 +62,7 @@ export const ARM_NAMES: Record<ArmId, string> = {
   targeted: 'Targeted mentoring',
   reference: 'Spark reference',
   'reference-targeted': 'Spark, targeted harness',
+  teacher: 'Spark alone',
   repeat: 'Decoding repeat',
   fixed: 'Fixed intervention',
   'weights-one-shot': 'One-shot adapter',
@@ -75,6 +76,7 @@ export const ARM_DESCRIPTIONS: Record<ArmId, string> = {
   targeted: "Spark edits the harness round by round from Glimmer's failures",
   reference: 'Spark takes the test itself, with a blank harness',
   'reference-targeted': 'Spark takes the test itself, with the taught harness',
+  teacher: 'Spark does the job itself in a run of its own, with no teaching',
   repeat: 'The finished arms tested again on a new seed, to show the noise',
   fixed: 'Spark may use one kind of change only',
   'weights-one-shot': "Retrains Glimmer's weights once on verified examples",
@@ -95,8 +97,18 @@ export const SPARK_ARMS: readonly ArmId[] = [
   'fixed',
 ];
 
-/** Arms the hosted student answers in, so a student cap of their own means something. */
-export const STUDENT_ARMS: readonly ArmId[] = ['bare', 'draft', 'targeted', 'repeat', 'fixed'];
+/**
+ * Arms paid from the budget for the models under test, so a cap of their own there means
+ * something: the hosted student's, and the teacher's when it is the agent (decision 095).
+ */
+export const STUDENT_ARMS: readonly ArmId[] = [
+  'bare',
+  'draft',
+  'targeted',
+  'teacher',
+  'repeat',
+  'fixed',
+];
 
 /**
  * A new experiment's plan before the person changes it: the runner's usual arms and seeds, on a
@@ -279,7 +291,9 @@ export function skillsOf(row: ArmRow): { type: string; label: string }[] {
 
 /** A row's name: the arm's, with its configuration when the arm has more than one. */
 export function rowLabel(row: ArmRow): string {
-  const name = ARM_NAMES[row.arm];
+  // The teacher arm names the model that did the job, which may be one the person chose.
+  const name =
+    row.arm === 'teacher' && row.model !== null ? `${row.model} alone` : ARM_NAMES[row.arm];
   return row.configuration === null ? name : `${name} (${row.configuration})`;
 }
 
@@ -320,6 +334,39 @@ export interface Measured {
   backend: BackendTable;
   rows: ArmRow[];
   pairs: Paired[];
+}
+
+/** One arm's final test where it answered, with what 1,000 requests like it cost there. */
+export interface CostRow {
+  key: string;
+  row: ArmRow;
+  model: string;
+  runsOn: NonNullable<ArmRow['runsOn']>;
+  perThousandUsd: number | null;
+}
+
+/**
+ * Accuracy against cost (decision 095): each arm's own final-test result under the first seed, on
+ * every backend it ran on, with the model that answered, where, and what 1,000 requests cost there,
+ * from the attempts' recorded charges. Empty for a report made before rows said so.
+ */
+export function costRowsOf(report: ComparisonReport): CostRow[] {
+  const seed = report.plan.testSeeds[0];
+  return report.backends.flatMap((backend) =>
+    backend.rows.flatMap((row) => {
+      if (row.seed !== seed || row.model === null || row.runsOn === null) return [];
+      if (row.configuration !== null && row.configuration !== 'H1/A1') return [];
+      return [
+        {
+          key: `${backend.backend}-${row.arm}-${row.configuration ?? ''}`,
+          row,
+          model: row.model,
+          runsOn: row.runsOn,
+          perThousandUsd: row.perThousandUsd,
+        },
+      ];
+    }),
+  );
 }
 
 /** Where the student ran, in a word or two. */

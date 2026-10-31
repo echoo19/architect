@@ -7,12 +7,32 @@ import {
   PinnedInputsSchema,
   ProjectionSchema,
 } from './comparisons';
+import { ProviderIdSchema } from './job';
+import { TokenPricingSchema } from './models';
 import { StudyBriefSchema } from './study';
 
 /*
  * Experiments: comparisons the app plans, preregisters, runs and reads through the comparisons
  * runner (decisions 045, 051 and 074). Not the per-round experiments of mentoring (`Experiment`).
  */
+
+/**
+ * The model the teacher arm runs as the agent under test, when it isn't the field's own teacher:
+ * any model an OpenAI-compatible endpoint serves, by its address and the name of its stored key.
+ */
+export const ArmModelSchema = z
+  .object({
+    provider: ProviderIdSchema,
+    label: z.string().min(1),
+    baseUrl: z.url(),
+    model: z.string().min(1),
+    /** The name of the key in the app's secret store, never the key; none for a local model. */
+    secretRef: z.string().min(1).optional(),
+    /** Its price, when no preset knows it. */
+    pricing: TokenPricingSchema.optional(),
+  })
+  .strict();
+export type ArmModel = z.infer<typeof ArmModelSchema>;
 
 /** One arm asked for, with its own caps where the person set them; the runner's otherwise. */
 export const ExperimentArmSchema = z
@@ -22,8 +42,14 @@ export const ExperimentArmSchema = z
     sparkUsd: z.number().nonnegative().optional(),
     /** Hosted student dollars this arm may spend; its projection times the headroom when absent. */
     studentUsd: z.number().nonnegative().optional(),
+    /** The teacher arm's model, when it isn't the field's teacher (decision 095). */
+    model: ArmModelSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine((item) => item.model === undefined || item.arm === 'teacher', {
+    message: 'Only the teacher arm takes a model of its own.',
+    path: ['model'],
+  });
 export type ExperimentArm = z.infer<typeof ExperimentArmSchema>;
 
 /** The totals an experiment may spend, each a hard cap. */

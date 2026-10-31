@@ -145,7 +145,7 @@ const MAX_RESUMES = 5;
 const REGRESSION_PER_TYPE = 10;
 
 const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
-  ['bare', 'draft'],
+  ['bare', 'draft', 'teacher'],
   ['targeted', 'fixed'],
   ['weights-one-shot', 'weights-targeted'],
 ];
@@ -329,6 +329,8 @@ function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSet
     student: models.student,
     providers: models.providers === undefined ? null : [...models.providers],
     localModel: models.localModel,
+    teacher:
+      config.teacher === undefined ? null : `${config.teacher.model} at ${config.teacher.baseUrl}`,
   };
 }
 
@@ -894,7 +896,9 @@ async function identities(
   const weights = funded('weights-one-shot') || funded('weights-targeted');
   const backends: BackendId[] = [
     'hosted',
-    ...(funded('reference') || funded('reference-targeted') ? (['reference'] as const) : []),
+    ...(funded('reference') || funded('reference-targeted') || funded('teacher')
+      ? (['reference'] as const)
+      : []),
     ...(config.localOllama || weights ? (['local-ollama'] as const) : []),
     ...(weights ? (['local-llama.cpp'] as const) : []),
   ];
@@ -909,6 +913,27 @@ async function identities(
 /** The hosted attempts an arm's projection counts. */
 function projectedHosted(plan: PlanRecord, arm: ArmId): number {
   return plan.projection.arms.find((item) => item.arm === arm)?.hostedAttempts ?? 0;
+}
+
+/**
+ * What one of the teacher arm's attempts costs: its own attempts' price once it has some, its
+ * projection's before (the student's tokens at the teacher's price). Null for every other arm,
+ * whose attempts are the student's.
+ */
+function teacherPrice(
+  arm: ArmId,
+  plan: PlanRecord,
+  credit: Credit,
+  engine: ComparisonEngine,
+): number | null {
+  if (arm !== 'teacher') return null;
+  const run = armRun(engine.store, arm);
+  const own = run === null ? null : credit.ownPrice(run.run.id);
+  if (own !== null) return own;
+  const projected = plan.projection.arms.find((item) => item.arm === arm);
+  return projected === undefined || projected.hostedAttempts === 0
+    ? null
+    : projected.studentUsd / projected.hostedAttempts;
 }
 
 /** What an arm needs and what is left, when the student's credit can't pay for it. */
@@ -930,14 +955,15 @@ function fundingShort(
   config: ComparisonConfig,
 ): Short | null {
   const price = credit.price();
-  const need = projectedHosted(plan, arm) * price * config.headroom;
+  const priceFor = (other: ArmId) => teacherPrice(other, plan, credit, engine) ?? price;
+  const need = projectedHosted(plan, arm) * priceFor(arm) * config.headroom;
   const floor = arm === 'fixed' ? Math.max(5, need) : need;
   let held = 0;
   for (const other of ARM_ORDER) {
     const run = armRun(engine.store, other);
     if (run === null || run.run.status === 'finished') continue;
     const spent = credit.development(run.run.id);
-    held += Math.max(0, projectedHosted(plan, other) * price * config.headroom - spent);
+    held += Math.max(0, projectedHosted(plan, other) * priceFor(other) * config.headroom - spent);
   }
   if (plan.funded.includes('repeat') && ARM_PRIORITY[arm] > ARM_PRIORITY.repeat) {
     const repeated = REPEATED.filter((other) => plan.funded.includes(other)).length;
@@ -948,7 +974,7 @@ function fundingShort(
   return {
     arm,
     stage: 'start',
-    priceUsd: price,
+    priceUsd: priceFor(arm),
     needUsd: floor,
     leftUsd: left,
     capUsd: plan.caps.studentUsd,

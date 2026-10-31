@@ -9,6 +9,7 @@ import {
   costUsd,
   GLIMMER_TRAINING_BASE,
   HarnessSchema,
+  MENTOR_PRESETS,
   STUDENT_PRESETS,
   TRAINER_OUTPUT_FORMAT,
   TrainerJobSchema,
@@ -82,6 +83,11 @@ const HOSTED_PRICE: TokenPricing = (() => {
   if (!pricing) throw new Error('The hosted Glimmer preset has no price.');
   return pricing;
 })();
+
+/** What a model's calls are billed at: a teacher's preset price, else hosted Glimmer's. */
+function priceOf(model: string): TokenPricing {
+  return MENTOR_PRESETS.find((preset) => preset.model === model)?.pricing ?? HOSTED_PRICE;
+}
 
 /** A number in [0, 1) fixed by its parts, so every fake outcome is the same on every run. */
 function chance(...parts: readonly (string | number)[]): number {
@@ -164,10 +170,13 @@ export class DryRunRuntime extends FakeRuntime {
     return { inputTokens: 2 * call.inputTokens, outputTokens: 2 * call.outputTokens };
   }
 
-  /** What the provider bills for a call of this usage, when it reports a charge. */
-  billedFor(usage: { inputTokens: number; outputTokens: number }): number | undefined {
+  /**
+   * What the provider bills for a call of this usage to a model, when it reports a charge: a
+   * teacher taking the test as the agent at its own price, the student at hosted Glimmer's.
+   */
+  billedFor(usage: { inputTokens: number; outputTokens: number }, model = ''): number | undefined {
     if (this.billing === null || this.unreported) return undefined;
-    return this.billing * costUsd(HOSTED_PRICE, usage);
+    return this.billing * costUsd(priceOf(model), usage);
   }
 
   /** Each task in turn, each reported as it finishes, as the real runtime reports them. */
@@ -186,7 +195,7 @@ export class DryRunRuntime extends FakeRuntime {
       for (const step of trace.steps) {
         if (step.kind !== 'model') continue;
         step.usage = { ...call };
-        const billed = ctx.student.isLocal ? undefined : this.billedFor(call);
+        const billed = ctx.student.isLocal ? undefined : this.billedFor(call, ctx.student.model);
         if (billed !== undefined) step.costUsd = billed;
       }
       trace.usage = this.usageOf(options.seed);
@@ -401,7 +410,7 @@ class DryRunStudent implements StudentAdapter {
     const usage = this.isLocal
       ? { inputTokens: 300, outputTokens: 80 }
       : this.runtime.usageOf(request.seed);
-    const billed = this.isLocal ? undefined : this.runtime.billedFor(usage);
+    const billed = this.isLocal ? undefined : this.runtime.billedFor(usage, this.model);
     yield {
       type: 'done',
       usage,
