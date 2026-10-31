@@ -313,17 +313,33 @@ export const MODEL_VERSIONS: Record<string, GraduateVersion[]> = {
   [MINI_ID]: MINI_VERSIONS,
 };
 
+/** Each version's report card, by agent and number: `grd_academy_desk:2`. */
+export const MODEL_REPORTS: Readonly<Record<string, ReportCard>> = REPORTS;
+
 /**
  * The Lab's stand-in, then the registry's channels on top: every agent's versions, each
  * version's report card by agent and number, harness diffs, history, and promotion that moves
- * the active version. Every call is recorded in `globalThis.modelCalls`.
+ * the active version. `more` adds versions after an agent's own, with their cards. Every call is
+ * recorded in `globalThis.modelCalls`.
  */
-export async function installModelsFake(app: ElectronApplication): Promise<void> {
+export async function installModelsFake(
+  app: ElectronApplication,
+  more: { versions: GraduateVersion[]; reports: Record<string, ReportCard> } = {
+    versions: [],
+    reports: {},
+  },
+): Promise<void> {
   await stubLab(app);
+  const versions = Object.fromEntries(
+    Object.entries(MODEL_VERSIONS).map(([id, list]) => [
+      id,
+      [...list, ...more.versions.filter((version) => version.graduateId === id)],
+    ]),
+  );
   const data = {
     agents: AGENTS,
-    versions: MODEL_VERSIONS,
-    reports: REPORTS,
+    versions,
+    reports: { ...REPORTS, ...more.reports },
     diffs: DIFFS,
     history: HISTORY,
   };

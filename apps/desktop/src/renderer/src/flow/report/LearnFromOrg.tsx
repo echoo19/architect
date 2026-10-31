@@ -1,63 +1,29 @@
-import { useState } from 'react';
-import type { FieldView, Job, ReportCard, Run, Score } from '@architect/shared';
+import { Fragment, useState } from 'react';
+import type { FieldView, Job, ReportCard, Run } from '@architect/shared';
 import { Button } from '@architect/ui';
 import { api } from '../../api/client';
+import { graduatesApi } from '../../api/graduates';
 import { useQuery } from '../../api/query';
 import { bestCandidate, readField } from '../../fields/model';
 import { newerVersion, TeachOnDialog } from '../../fields/TeachOn';
-import { formatPercent } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { Section } from '../ledger';
-import { organizationGrid, type OrgGrid } from './org-grid';
+import { places } from './before-after';
+import type { OrgGrid } from './org-grid';
 import { Organizations } from './Organizations';
 
 /*
- * Learning from a never-seen organization in the Lab (decision 089): the report's grid offers to
- * teach on each one in a new version of the field, and a version made that way shows each
- * organization before and after, against the best version of the field it came from.
+ * Later versions of a field in the Lab: the report's grid offers to teach on each never-seen
+ * organization in a new version (decision 089), and a version made that way, or by carrying the
+ * field to another model (decision 094), shows each organization and its skills before and
+ * after: against the best version of the field it came from, or the version it carried.
  */
 
-/** A score as rows say it, with where the organization stood: "65% · 31 of 48, never seen". */
-function said(score: Score, standing: string): string {
-  return `${formatPercent(score)} · ${score.pass} of ${score.total}, ${standing}`;
-}
-
-interface Place {
-  org: string;
-  name: string;
-  before: string | null;
-  after: string | null;
-}
-
-/** Each organization's final test before, in the best version of the earlier field, and now. */
-function places(
-  before: ReportCard | null,
-  report: ReportCard,
-  job: Job | null,
-  run: Run | null,
-  moved: string,
-): Place[] {
-  const columns = (card: ReportCard | null) =>
-    organizationGrid(card?.test.perOrg)?.groups.flatMap((group) => group.columns) ?? [];
-  const standing = (seen: boolean) => (seen ? 'taught on' : 'never seen');
-  const rows: Place[] = columns(before).map((column) => ({
-    org: column.org,
-    name: column.name,
-    before: said(column.score, standing(column.group === 'seen')),
-    after: null,
-  }));
-  for (const column of columns(report)) {
-    const now = said(column.score, standing(column.group === 'seen'));
-    const row = rows.find((item) => item.org === column.org);
-    if (row) row.after = now;
-    else rows.push({ org: column.org, name: column.name, before: null, after: now });
-  }
-  // The organization now taught on has no final test here: its check tasks say how it does.
-  const movedId = job?.organizations?.find((org) => org.name === moved)?.id;
-  const checks = run?.devByOrg?.find((score) => score.org === movedId);
-  const row = rows.find((item) => item.org === movedId);
-  if (row && checks) row.after = said(checks, 'check tasks, taught on');
-  return rows;
+/** The card a later version is read against: the version it carried, else the earlier best. */
+async function earlierCard(versionOf: NonNullable<FieldView['versionOf']>) {
+  const carried = versionOf.model?.carried;
+  if (carried !== undefined) return graduatesApi.report(carried.graduateId, carried.version);
+  return bestCandidate((await readField(versionOf.jobId)).candidates)?.report ?? null;
 }
 
 function BeforeAfter({
@@ -71,11 +37,11 @@ function BeforeAfter({
   job: Job | null;
   run: Run | null;
 }) {
-  const earlier = useQuery(`field-best:${versionOf.jobId}`, async () =>
-    bestCandidate((await readField(versionOf.jobId)).candidates),
-  );
+  const earlier = useQuery(`field-earlier:${report.jobId}`, () => earlierCard(versionOf));
   if (earlier.status !== 'success') return null;
-  const rows = places(earlier.data?.report ?? null, report, job, run, versionOf.org);
+  const rows = places(earlier.data, report, job, run, versionOf.org);
+  const { model } = versionOf;
+  const heading = (name: string, on: string | undefined) => (on ? `${name} · ${on}` : name);
   return (
     <Section title="Before and after" id="before-after">
       <div className="overflow-x-auto border-b border-line">
@@ -87,22 +53,33 @@ function BeforeAfter({
             <tr>
               <th className="w-[30%]" />
               <th scope="col" className="pb-3 pl-6 text-left font-medium">
-                {versionOf.name}
+                {heading(versionOf.name, model?.from)}
               </th>
               <th scope="col" className="pb-3 pl-6 text-left font-medium">
-                {job?.name ?? 'This version'}
+                {heading(job?.name ?? 'This version', model?.to)}
               </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.org} className="border-t border-line">
-                <th scope="row" className="py-3.5 pr-4 text-left font-normal">
-                  {row.name}
-                </th>
-                <td className="py-3.5 pl-6 tabular-nums">{row.before ?? '–'}</td>
-                <td className="py-3.5 pl-6 tabular-nums">{row.after ?? '–'}</td>
-              </tr>
+              <Fragment key={row.org}>
+                <tr className="border-t border-line">
+                  <th scope="row" className="py-3.5 pr-4 text-left font-medium">
+                    {row.name}
+                  </th>
+                  <td className="py-3.5 pl-6 tabular-nums">{row.before ?? '–'}</td>
+                  <td className="py-3.5 pl-6 tabular-nums">{row.after ?? '–'}</td>
+                </tr>
+                {row.skills.map((skill) => (
+                  <tr key={skill.type} className="text-small">
+                    <th scope="row" className="pb-2.5 pl-4 pr-4 text-left font-normal">
+                      {skill.label}
+                    </th>
+                    <td className="pb-2.5 pl-6 tabular-nums">{skill.before ?? '–'}</td>
+                    <td className="pb-2.5 pl-6 tabular-nums">{skill.after ?? '–'}</td>
+                  </tr>
+                ))}
+              </Fragment>
             ))}
           </tbody>
         </table>

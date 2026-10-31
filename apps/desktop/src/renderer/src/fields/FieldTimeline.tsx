@@ -3,6 +3,7 @@ import type { StudyState } from '@architect/shared';
 import { Card, CardRow, RowIcon, Skeleton } from '@architect/ui';
 import {
   ArrowRight,
+  ArrowRightLeft,
   BookOpen,
   ChevronRight,
   ClipboardCheck,
@@ -38,6 +39,7 @@ export type FieldTabTarget = 'organizations' | 'assets';
 
 const STAGE_ICONS: Record<Stage, ReactNode> = {
   learned: <GitFork strokeWidth={1.8} aria-hidden />,
+  moved: <ArrowRightLeft strokeWidth={1.8} aria-hidden />,
   studied: <BookOpen strokeWidth={1.8} aria-hidden />,
   taught: <GraduationCap strokeWidth={1.8} aria-hidden />,
   tested: <ClipboardCheck strokeWidth={1.8} aria-hidden />,
@@ -52,9 +54,15 @@ async function readRecords(
 ): Promise<Omit<TimelineRecords, 'study' | 'exported'>> {
   const jobId = field.job.id;
   const runIds = new Set(field.runs.map((run) => run.id));
-  const taught = field.view.sealed.flatMap((org) =>
-    org.taughtIn ? [{ ...org.taughtIn, org: org.name }] : [],
-  );
+  const { nextVersion } = field.view;
+  const later: ({ jobId: string; name: string } & ({ org: string } | { model: string }))[] = [
+    ...field.view.sealed.flatMap((org) =>
+      org.taughtIn ? [{ ...org.taughtIn, org: org.name }] : [],
+    ),
+    ...(nextVersion?.model === undefined
+      ? []
+      : [{ jobId: nextVersion.jobId, name: nextVersion.name, model: nextVersion.model }]),
+  ];
   const [counterexamples, qualifications, experiments, registry, laterVersions] = await Promise.all(
     [
       mentoringApi.fieldCounterexamples(jobId),
@@ -62,7 +70,10 @@ async function readRecords(
       experimentsApi.list(),
       loadRegistry(),
       Promise.all(
-        taught.map(async (later) => ({ ...later, at: (await api.job(later.jobId)).createdAt })),
+        later.map(async (version) => ({
+          ...version,
+          at: (await api.job(version.jobId)).createdAt,
+        })),
       ),
     ],
   );
@@ -145,7 +156,7 @@ export function Timeline({
             <CardRow
               icon={<Lead at={shortDate(entry.at)} icon={STAGE_ICONS[entry.stage]} />}
               title={entry.sentence}
-              detail={STAGE_WORDS[entry.stage]}
+              detail={entry.word ?? STAGE_WORDS[entry.stage]}
               end={end(entry.link)}
               onClick={() => follow(entry.link)}
             />

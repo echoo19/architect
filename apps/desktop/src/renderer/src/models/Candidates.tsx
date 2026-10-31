@@ -2,13 +2,22 @@ import { AgentAvatar, Button, Card, CardRow } from '@architect/ui';
 import { Columns2 } from 'lucide-react';
 import { shortDate } from '../flow/format';
 import { formatPercent } from '../lib/format';
-import { comparable, imported, scoresOf, type ModelRow } from './registry';
+import { changesModel, versionModel } from './model-change';
+import { comparable, imported, rowKey, scoresOf, type ModelRow } from './registry';
 
-/** Where a candidate came from, in a few words: a run here, an improvement of a version, or another computer. */
-export function originOf(row: ModelRow): string {
+/**
+ * Where a candidate came from, in a few words: a run here, an improvement of a version, the
+ * field carried to another model from a version (decision 094), or another computer.
+ */
+export function originOf(row: ModelRow, rows: readonly ModelRow[]): string {
   const { version } = row;
   if (imported(version)) return 'Imported';
-  if (version.parent !== undefined) return `Improvement of v${version.parent}`;
+  if (version.parent !== undefined) {
+    const parent = rows.find((other) => other.key === rowKey(row.agent.id, version.parent ?? 0));
+    return parent && changesModel(version, parent.version)
+      ? `On ${versionModel(version)}, from v${version.parent}`
+      : `Improvement of v${version.parent}`;
+  }
   return 'From training';
 }
 
@@ -43,7 +52,7 @@ export function Candidates({
             icon={<AgentAvatar name={row.agent.name} />}
             title={name}
             detail={[
-              originOf(row),
+              originOf(row, rows),
               shortDate(row.version.createdAt),
               seen === null ? 'No final test' : `Final test ${formatPercent(seen)}`,
             ].join(' · ')}

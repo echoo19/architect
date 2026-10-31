@@ -243,8 +243,17 @@ export function compareScores(a: ModelRow, b: ModelRow): Comparison {
   if (a.report.jobId !== b.report.jobId) {
     return { kind: 'apart', reason: "They weren't measured on the same tasks." };
   }
-  const before = measuredCells(a.report);
-  const after = measuredCells(b.report);
+  return compareCards(a.report, b.report);
+}
+
+/**
+ * Two cards side by side, cell by cell, where both measured the same skill at the same
+ * organization on as many tasks: for cards of one job, or of a field and its version carried to
+ * another model, whose final test is the same sealed one (decision 094).
+ */
+export function compareCards(earlier: ReportCard, later: ReportCard): Comparison {
+  const before = measuredCells(earlier);
+  const after = measuredCells(later);
   const find = (cells: Measured[], type: string, org: string) =>
     cells.find((cell) => cell.type === type && cell.org === org);
 

@@ -22,6 +22,7 @@ import {
   VersionTag,
 } from '@architect/ui';
 import {
+  ArrowRightLeft,
   ArrowUpRight,
   BadgeCheck,
   Columns2,
@@ -44,6 +45,7 @@ import { HarnessFiles } from '../components/HarnessFiles';
 import { ProblemState } from '../components/ProblemState';
 import { shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
+import { MoveVersionDialog } from '../fields/MoveToModel';
 import { openAgent } from '../lab/open-agent';
 import { changeSummary } from '../flow/train/diff';
 import { sentence } from '../flow/train/evidence-words';
@@ -154,6 +156,7 @@ function PanelHeader({
   const move = moveFor(version, active?.version.version ?? null);
   const [moving, setMoving] = useState<VersionMove | null>(null);
   const [certifying, setCertifying] = useState(false);
+  const [carrying, setCarrying] = useState(false);
   const others = rows.filter((other) => comparable(row, other));
 
   return (
@@ -211,6 +214,12 @@ function PanelHeader({
             Certify
           </Button>
         )}
+        {version.runId !== undefined && (
+          <Button size="sm" onClick={() => setCarrying(true)}>
+            <ArrowRightLeft size={14} strokeWidth={1.8} aria-hidden />
+            Move to another model
+          </Button>
+        )}
         {version.active && (
           <Button size="sm" onClick={() => useAgentSettingsUi.getState().show(agent.id, 'export')}>
             <Package size={14} strokeWidth={1.8} aria-hidden />
@@ -233,6 +242,17 @@ function PanelHeader({
         </Button>
       </div>
       {certifying && <CertifyDialog row={row} onClose={() => setCertifying(false)} />}
+      {carrying && (
+        <MoveVersionDialog
+          jobId={version.manifest.contract.jobId}
+          from={{
+            graduateId: agent.id,
+            version: version.version,
+            name: `${agent.name} v${version.version}`,
+          }}
+          onClose={() => setCarrying(false)}
+        />
+      )}
       {moving && active && (
         <MoveDialog
           agent={agent}

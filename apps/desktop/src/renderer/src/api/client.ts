@@ -31,6 +31,7 @@ import {
   WorkspaceMessageSchema,
   type ArchitectApi,
   type AddOrganizationRequest,
+  type MoveToModelRequest,
   type AttemptQuery,
   type DraftOrganization,
   type Job,
@@ -200,6 +201,9 @@ export const flowApi = {
   /** Teaches on a never-seen organization in a new version of the field; returns that version. */
   teachOn: (jobId: string, org: string) =>
     read('jobs.teachOn', FieldViewSchema, bridge().jobs.teachOn(jobId, org)),
+  /** Carries a field to another model in a new version; returns that version. */
+  moveToModel: (jobId: string, request: MoveToModelRequest) =>
+    read('jobs.moveToModel', FieldViewSchema, bridge().jobs.moveToModel(jobId, request)),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
   roundDiff: (runId: string, round: number) =>
