@@ -1,4 +1,4 @@
-import { glimmerBuild, StudentBuildKeySchema } from '@architect/shared';
+import { allowedHostsOf, glimmerBuild, StudentBuildKeySchema } from '@architect/shared';
 import { z } from 'zod';
 import type { IpcRouter } from '../ipc/router';
 import type { ModelPulls } from '../ollama/pulls';
@@ -12,10 +12,12 @@ export function registerOllamaHandlers(
   pulls: ModelPulls,
 ): void {
   const baseUrl = () => ollamaBaseUrl(settings.get().defaultStudent);
+  // The default student may name an Ollama elsewhere: held to the closed network (decision 098).
+  const network = { allowed: () => allowedHostsOf(settings.get().closedNetwork) };
   router.registerHandlers(
     'ollama',
     {
-      status: () => ollamaStatus(baseUrl()),
+      status: () => ollamaStatus(baseUrl(), network),
       pull: (model) => pulls.pull(baseUrl(), model),
       install: (build) => pulls.install(baseUrl(), glimmerBuild(build)),
     },

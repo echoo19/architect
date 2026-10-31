@@ -114,3 +114,40 @@ export function contactsLine(contacts: readonly RunContact[]): string {
   if (inside === 0) return `Contacted ${hosts}, with no closed network on`;
   return `Contacted ${hosts}, ${inside} of them inside the network`;
 }
+
+/** Where Ollama pulls a model whose name names no registry. */
+export const OLLAMA_REGISTRY = 'registry.ollama.ai';
+
+const OLLAMA_HOST = /^[A-Za-z0-9][A-Za-z0-9._-]*(:\d{1,5})?$/;
+const OLLAMA_PART = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const OLLAMA_TAG = /^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/;
+
+/**
+ * Why `name` isn't a model name Ollama pulls, or null when it is: `[registry/][namespace/]model`
+ * with an optional `:tag`, as Ollama reads one (`muse-glimmer:30b`, `hf.co/owner/repo:Q4_K_M`).
+ */
+export function ollamaNameProblem(name: string): string | null {
+  const plain = "isn't a model name Ollama can pull. Use a name such as muse-glimmer:30b.";
+  if (name.length === 0 || name.length > 200 || /\s/.test(name)) return `"${name}" ${plain}`;
+  const slash = name.lastIndexOf('/');
+  const colon = name.lastIndexOf(':');
+  const tagged = colon > slash;
+  const path = tagged ? name.slice(0, colon) : name;
+  if (tagged && !OLLAMA_TAG.test(name.slice(colon + 1))) return `"${name}" ${plain}`;
+  const parts = path.split('/');
+  if (parts.length > 3) return `"${name}" ${plain}`;
+  const [first, ...rest] = parts;
+  const host = parts.length === 3 ? first : undefined;
+  if (host !== undefined && !OLLAMA_HOST.test(host)) return `"${name}" ${plain}`;
+  const names = host === undefined ? parts : rest;
+  if (!names.every((part) => OLLAMA_PART.test(part))) return `"${name}" ${plain}`;
+  return null;
+}
+
+/** The registry Ollama would pull `name` from: the one it names, or Ollama's own. */
+export function ollamaRegistryOf(name: string): string {
+  const slash = name.lastIndexOf('/');
+  const colon = name.lastIndexOf(':');
+  const parts = (colon > slash ? name.slice(0, colon) : name).split('/');
+  return parts.length === 3 ? (parts[0] ?? OLLAMA_REGISTRY).toLowerCase() : OLLAMA_REGISTRY;
+}

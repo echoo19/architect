@@ -161,10 +161,10 @@ async function localRuntime(
 }
 
 /** Ollama's models, each with how it sits in memory when it is loaded right now. */
-async function ollamaRuntime(baseUrl: string): Promise<LocalRuntime> {
-  const status = await ollamaStatus(baseUrl);
+async function ollamaRuntime(baseUrl: string, network?: NetworkDeps): Promise<LocalRuntime> {
+  const status = await ollamaStatus(baseUrl, network);
   if (!status.running) return { running: false, baseUrl, models: [] };
-  const loaded = await loadedOllamaModels(baseUrl, AbortSignal.timeout(LOCAL_TIMEOUT_MS));
+  const loaded = await loadedOllamaModels(baseUrl, AbortSignal.timeout(LOCAL_TIMEOUT_MS), network);
   return {
     running: true,
     baseUrl,
@@ -187,6 +187,8 @@ export interface LocalRuntimeOptions {
   lmStudioBaseUrl?: string;
   /** The GPU, found once per run of the app: it doesn't change while the app is open. */
   gpu: () => Promise<GpuInfo | null>;
+  /** The closed network (decision 098): an Ollama named elsewhere is inside only when it names it. */
+  network?: NetworkDeps;
 }
 
 /**
@@ -196,9 +198,14 @@ export interface LocalRuntimeOptions {
 export async function detectLocalRuntimes(options: LocalRuntimeOptions): Promise<LocalRuntimes> {
   const lmStudioBaseUrl = options.lmStudioBaseUrl ?? LMSTUDIO_BASE_URL;
   const [ollama, lmstudio, gpu] = await Promise.all([
-    ollamaRuntime(options.ollamaBaseUrl),
+    ollamaRuntime(options.ollamaBaseUrl, options.network),
     localRuntime(lmStudioBaseUrl, async (signal) => ({
-      models: await listModels({ provider: 'lmstudio', baseUrl: lmStudioBaseUrl, signal }),
+      models: await listModels({
+        provider: 'lmstudio',
+        baseUrl: lmStudioBaseUrl,
+        signal,
+        ...(options.network === undefined ? {} : { network: options.network }),
+      }),
     })),
     options.gpu(),
   ]);

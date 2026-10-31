@@ -81,7 +81,11 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
       testStudent: (endpoint) => testStudent(endpoint, keys, keyDestinationProblem, network),
       listModels: (source) => listConnectionModels(source, keys, keyDestinationProblem, network),
       detectLocal: () =>
-        detectLocalRuntimes({ ollamaBaseUrl: ollamaBaseUrl(settings.get().defaultStudent), gpu }),
+        detectLocalRuntimes({
+          ollamaBaseUrl: ollamaBaseUrl(settings.get().defaultStudent),
+          gpu,
+          network,
+        }),
       add: (request) => addConnection(request, stores),
       remove: (source) => removeConnection(source, stores),
       signIn: async () => {
