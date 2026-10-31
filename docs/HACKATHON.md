@@ -56,7 +56,7 @@ You describe a field of work, or bring one: several organizations that do it, fo
 
 Two more pieces make the result something you can trust:
 
-- **Certified answers.** After qualification Architect states a certificate: how often the specialist is wrong when it answers, with a stated bound and confidence, and how much it handed to a person. A sealed calibration set the teacher never sees sets the point where it answers or hands off, and the report checks whether the bound held on organizations it never saw. The form is built and tested. A live certificate has not been measured yet.
+- **Certified answers.** After qualification Architect states a certificate: how often the specialist is wrong when it answers, with a stated bound and confidence, and how much it handed to a person. A sealed calibration set the teacher never sees sets the point where it answers or hands off, and the report checks whether the bound held on organizations it never saw. The form is built and tested. Its first live run, on the third field run's Academy desk, issued no certificate, because that Academy desk was confidently wrong too often.
 - **Counterexample-guided repair.** When a tool Spark wrote gives a wrong result, Architect shrinks the failing case until little is left, Spark repairs the tool against it, and the case stays in the field's regression suite.
 
 The path to fine-tuning and clusters is labeled experimental. Architect exports checker-verified training examples and an outcome scorer, sizes a training job from a model's own configuration, and writes launch bundles for a Slurm cluster or Kubernetes. These are validated against stand-ins and simulated schedulers. No model has been trained on a field, and no cluster job has run.
@@ -68,7 +68,9 @@ What it makes, as examples: Returns desk, Service desk, Academy desk, a pricing 
 **Results:** all from the reports in `docs/comparisons`.
 - Academy desk, taught on three generated academies and tested on a sealed set of 120 tasks, passed 99 of 120 where Glimmer on a blank setup passed 54. On Harborview Prep, an academy it never saw, it passed 43 of 48 against 24, a difference of 39.6 points (95% interval 22.9 to 53.7). On the real academy, an anonymized one it never saw, it passed 12 of 24 against 9 and the interval includes zero, so no gain is shown there.
 - Returns desk: teaching took Glimmer from 44 to 58 of 60 requests it had never seen, in a comparison published before the run. It cost 42 cents of Spark.
-- Glimmer on the owner's own GPU: the same Academy desk passed 103 of 120 locally against 99 hosted, a difference of +3.3 points with an interval of -4.3 to +11.0.
+- Glimmer on the owner's own GPU: the same Academy desk passed 103 of 120 locally against 99 hosted, a difference of +3.3 points with an interval of -4.3 to +11.0, so no difference is shown.
+- A third Academy desk run, taught on three other generated academies: on Juniper Study House, which neither model saw, it passed 31 of 48 against 15 for a blank setup, +33.3 points (95% interval +16.2 to +47.5). On a second snapshot of the real academy it did worse, 3 of 30 against 13, -33.3 points (-50.3 to -14.2). Replaying its tools after the test points to why: its diagnose instructions never loaded on the real academy's wording, every history attempt ran out of steps, and no setup could pass the assign tasks.
+- The first live certificate, on that Academy desk with hosted Glimmer (60 calibration tasks, five attempts each, at most 10% wrong at 95% confidence): no certificate. Answering only when all five attempts agreed, it would have answered 46 of 60 and been wrong on 14, an upper bound of 43.5%. On the real academy it got 0 of 10. The run also found a flaw, five "no answer" results counted as agreement, which was fixed afterwards. It cost $4.42.
 
 All numbers come from one seed per arm. The gains come from rewritten instructions and tools, not trained weights.
 
