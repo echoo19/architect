@@ -1,5 +1,12 @@
 import { useRef, useState } from 'react';
-import type { Job, StudyBrief, StudyClaim, StudyState, TaskPlan } from '@architect/shared';
+import {
+  organizationNoun,
+  type Job,
+  type StudyBrief,
+  type StudyClaim,
+  type StudyState,
+  type TaskPlan,
+} from '@architect/shared';
 import { Button, Collapse, Disclosure, Heading, Reveal, Tooltip } from '@architect/ui';
 import { BookOpen, Check, CircleAlert, CircleHelp, Sparkles } from 'lucide-react';
 import { flowApi } from '../../api/client';
@@ -74,7 +81,7 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
       <Collapse open={state === 'unstudied'}>
         <div className="flex flex-wrap items-center justify-between gap-4 pb-1 pt-1">
           <p className="m-0 max-w-[560px] text-body text-pretty">
-            {`${mentor} reads each academy's files and tells you what it understood before anything is taught.`}
+            {`${mentor} reads each ${organizationNoun(job)}'s files and tells you what it understood before anything is taught.`}
           </p>
           <Button variant="primary" loading={busy} onClick={() => void studyNow()}>
             <BookOpen size={16} strokeWidth={1.8} aria-hidden />

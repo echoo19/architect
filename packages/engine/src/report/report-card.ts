@@ -222,5 +222,6 @@ export function computeReportCard(input: ReportCardInput): ReportCard {
     requirements: p95LatencyMs ? { passRate, p95LatencyMs } : { passRate },
     overclaim: input.readyClaimed ? !requirementsMet : null,
     ...(input.tasks === undefined ? {} : { tasks: input.tasks }),
+    ...(job.organizationNoun === undefined ? {} : { organizationNoun: job.organizationNoun }),
   };
 }

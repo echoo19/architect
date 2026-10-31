@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GraduateSummary } from '@architect/shared';
+import { organizationNoun, type GraduateSummary } from '@architect/shared';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +34,7 @@ const trigger =
 /**
  * Which organization's records an agent from a several-organization job works on, and a way to
  * move it to another: choosing one asks for that organization's records folder and binds the
- * agent's records to it, as the settings' folder row does. "Another academy" binds a folder of
+ * agent's records to it, as the settings' folder row does. "Another <organization>" binds a folder of
  * the person's own records once it holds the files and columns the agent was trained with; the
  * header then says the agent wasn't tested there, since no report number applies to it. Writes
  * still ask as they did.
@@ -47,6 +47,7 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
   if (orgs.length === 0 || installation.data === undefined) return null;
   const folder = installation.data.bindings['data'];
   const current = currentOrganization(orgs, folder);
+  const noun = organizationNoun(report.data ?? {});
 
   const choose = async (org: AgentOrganization) => {
     setChoosing(true);
@@ -67,12 +68,12 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
   };
 
   const own = folder !== undefined && current?.org === null;
-  const label = `Organization: ${current?.name ?? 'not chosen'}${own ? ', not tested at this academy' : ''}`;
+  const label = `Organization: ${current?.name ?? 'not chosen'}${own ? `, not tested at this ${noun}` : ''}`;
   const chooseOwn = async () => {
     setChoosing(true);
-    const next = await attempt(`Couldn't move ${agent.name} to another academy`, async () => {
+    const next = await attempt(`Couldn't move ${agent.name} to another ${noun}`, async () => {
       const [picked] = await architect().files.pick({
-        title: 'Choose the folder that holds your academy’s records',
+        title: `Choose the folder that holds your ${noun}’s records`,
         directory: true,
       });
       if (!picked) return null;
@@ -95,7 +96,7 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
           <button type="button" className={trigger} disabled={choosing} aria-label={label}>
             <Building2 size={15} strokeWidth={1.8} aria-hidden />
             {current?.name ?? 'Choose an organization'}
-            {own && <span className="font-normal text-fg-dim">Not tested at this academy</span>}
+            {own && <span className="font-normal text-fg-dim">{`Not tested at this ${noun}`}</span>}
             <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
           </button>
         </DropdownMenuTrigger>
@@ -120,7 +121,7 @@ export function OrganizationMenu({ agent }: { agent: GraduateSummary }) {
           icon={<FolderOpen strokeWidth={1.8} aria-hidden />}
           shortcut={own ? <Check strokeWidth={2} aria-label="Current" /> : null}
         >
-          Another academy…
+          {`Another ${noun}…`}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

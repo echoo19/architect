@@ -216,6 +216,18 @@ export const OrganizationSchema = z.object({
 });
 export type Organization = z.infer<typeof OrganizationSchema>;
 
+/** A lowercase, singular word for one organization: "academy", "clinic", "branch office". */
+export const OrganizationNounSchema = z
+  .string()
+  .min(1)
+  .max(30)
+  .regex(/^[a-z][a-z -]*[a-z]$|^[a-z]$/, 'is not a lowercase word');
+
+/** The word for one of a job's organizations, as the app writes it. */
+export function organizationNoun(job: { organizationNoun?: string | undefined }): string {
+  return job.organizationNoun ?? 'organization';
+}
+
 export const JobSchema = z.object({
   format: z.literal(JOB_FORMAT),
   id: z.string().min(1),
@@ -271,6 +283,11 @@ export const JobSchema = z.object({
       'Each organization needs its own id.',
     )
     .optional(),
+  /**
+   * The word the app uses for one of the job's organizations, such as "academy" or "clinic",
+   * lowercase and singular. Absent: "organization".
+   */
+  organizationNoun: OrganizationNounSchema.optional(),
 });
 export type Job = z.infer<typeof JobSchema>;
 

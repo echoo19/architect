@@ -37,6 +37,7 @@ Every field is checked against `JobSchema` in `packages/shared/src/job.ts` when 
 | `splits` | `seed`, and how many tasks go to `calibration`, `train` (practice), `dev` (check tasks) and `test` (the final test). They must add up to the tasks of the organizations it is taught on. |
 | `evaluation` | `trainBatch`, `minDevGain`, `maxTypeRegression`, optional `devRepeats` and `patience`, optional `certify` (decision 077). |
 | `organizations` | Optional. Leave it out for one organization. Otherwise each organization the job serves: `id` (lowercase letters, digits, `-` and `_`; it is a folder name), `name`, `synthetic` (`true` for generated records, `false` for real ones), and `role`: `train` (taught on) or `transfer` (never seen). At least one must be `train`. |
+| `organizationNoun` | Optional. The word the app uses for one organization, lowercase and singular, such as `academy` or `clinic`: "Another academy…", "Not tested at this academy". Absent: `organization`. |
 
 ## tasks.jsonl
 

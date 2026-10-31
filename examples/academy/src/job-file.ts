@@ -175,5 +175,6 @@ export function buildJob(organizations: readonly Organization[]): Job {
       certify: { k: 5, epsilon: 0.1, delta: 0.05, calibration: 60 },
     },
     organizations,
+    organizationNoun: 'academy',
   });
 }
