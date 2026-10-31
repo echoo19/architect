@@ -1,7 +1,7 @@
 /**
  * Planning a training job for a cluster (docs/SCALE.md, decision 072): the memory a model needs,
- * counted from its config.json, the GPUs and nodes it fits on, and launch bundles for Slurm and
- * Kubernetes that the user submits with their own tools. Experimental: nothing here has run on a
+ * counted from its config.json, the GPUs and nodes it fits on, and launch bundles for Slurm,
+ * Kubernetes and SkyPilot that the user submits with their own tools. Experimental: nothing here has run on a
  * cluster.
  */
 export { fetchModelConfig, parseModelConfig } from './config';
@@ -26,6 +26,9 @@ export {
   LORA_TARGETS,
   PYTORCHJOB_FILE,
   SBATCH_FILE,
+  SKYPILOT_CLUSTER,
+  SKYPILOT_FILE,
+  skyAccelerator,
   TRAINER_SCRIPT,
   writeTrainBundle,
   type BundleInput,
