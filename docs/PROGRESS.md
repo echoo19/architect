@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night, by this computer's clock), study reads recordings (branch `study/recordings`, from `field/main`)
+
+- *Done:* decision 087. "Add recordings" on Define's study section sends a taught organization's WAV files to Muse Voice Transcribe (`muse-voice-transcribe-1.0`, `POST /v1/asr/transcribe`) after a dialog shows each file's length and cost, the line that they go to Meta, and the job's new `sharing.recordings` setting. Transcripts land in `orgs/<id>/data/<name>.transcript.txt` with `recordings.json` (source hash, seconds, cost); the study reads and quotes them like any file. $1 cap a batch; sealed organizations refused before any file is read; video asks for a WAV export. Tests: engine `recordings.test.ts` (fake endpoint), e2e `recordings.spec.ts`, screenshot `docs/screenshots/study-recordings-dark.png`.
+- *Live check:* a 7.8 s Windows speech clip through Architect's own adapter: 1.8 s, 7 billed seconds, $0.00035 (docs/MODELS.md).
+- *Next:* review and merge into `field/main`. Not merged or pushed.
+
 ## 2026-11-01 (Sun, early), HANDOFF for the next Claude Code session (start here)
 
 The previous session ended with work in flight. Read CLAUDE.md, then this entry, then the entries below it back to Oct 30, then `docs/FIELD.md`, `docs/PLATFORM.md`, `docs/SCALE.md`, `docs/CERTIFY.md` and `docs/JOB_FORMAT.md`.
