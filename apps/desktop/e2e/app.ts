@@ -154,10 +154,17 @@ export async function infoTipText(
  * Why Start training is held, from the tooltip on what wraps the disabled button, or null when
  * it isn't held. The footer holds only its buttons, so a held one says why in its tooltip.
  */
-export async function startHeldBy(page: Page): Promise<string | null> {
-  const start = page.getByRole('button', { name: 'Start training' });
-  if (await start.isEnabled()) return null;
-  const wrap = start.locator('xpath=..');
+export function startHeldBy(page: Page): Promise<string | null> {
+  return heldBy(page, page.getByRole('button', { name: 'Start training' }));
+}
+
+/**
+ * Why a button is disabled, from the tooltip on what wraps it, or null when it is enabled. A
+ * disabled button says why in its tooltip, never in a sentence beside it.
+ */
+export async function heldBy(page: Page, button: Locator): Promise<string | null> {
+  if (await button.isEnabled()) return null;
+  const wrap = button.locator('xpath=..');
   await wrap.focus();
   const tooltip = page.getByRole('tooltip');
   await expect(tooltip).toBeVisible();

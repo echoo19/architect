@@ -349,12 +349,6 @@ function PlanCard({
           <ErrorState layout="inline" title="Couldn't read the config" message={problem} />
         )}
         {read && plan && <ModelFacts read={read} plan={plan} />}
-        {read === null && field === null && (
-          <p className="m-0 text-ui">
-            Enter a model on Hugging Face, or choose its config.json, to see the GPUs training it
-            takes.
-          </p>
-        )}
         <ChoiceTiles<TrainMethod>
           aria-label="Method"
           columns={3}

@@ -12,7 +12,7 @@ import {
   TrainBundleSchema,
   type FieldExportManifest,
 } from '@architect/shared';
-import { goTo, launchApp, settle, type LaunchedApp } from './app';
+import { goTo, heldBy, infoTipText, launchApp, settle, type LaunchedApp } from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, OLLAMA_READY, stubEngine } from './fixtures';
 import { FIELD_JOB } from './fixtures-field';
 import { FLOW, FLOW_ENGINE } from './fixtures-flow';
@@ -186,8 +186,10 @@ test("opened from a field, plans its student's model at once and offers its earl
   const bundle = region('Bundle');
   await expect(bundle).toContainText(`Field export of ${FIELD_JOB.name}`);
   await expect(bundle).toContainText(/…[\\/]exports[\\/]academy-desk/);
-  await expect(bundle).toContainText('Choose the field export again.');
-  await expect(bundle.getByRole('button', { name: 'Write bundle' })).toBeDisabled();
+  // The button is held, and says why when asked, not in a line beside it.
+  expect(await heldBy(page, bundle.getByRole('button', { name: 'Write bundle' }))).toBe(
+    'Choose the field export again.',
+  );
   await capture('compute-field-export-dark.png', bundle);
 });
 
@@ -207,7 +209,9 @@ test('writes a SkyPilot bundle from the export once it is chosen again, and show
 
   const submit = bundle.getByRole('region', { name: 'Submit command' });
   await expect(submit).toContainText('sky launch -c architect-train sky.yaml');
-  await expect(bundle).toContainText('Architect writes this bundle and never submits it.');
+  expect(await infoTipText(page, bundle, 'the bundle')).toContain(
+    'Architect writes this bundle and never submits it.',
+  );
   const [written] = await readdir(out);
   if (written === undefined) throw new Error('No bundle was written.');
   expect(written).toMatch(/skypilot$/);

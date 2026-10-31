@@ -14,7 +14,15 @@ import {
   type ModelConfig,
   type TrainMethod,
 } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import {
+  goTo,
+  heldBy,
+  infoTipText,
+  launchApp,
+  settle,
+  updateSettings,
+  type LaunchedApp,
+} from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, OLLAMA_READY, stubEngine } from './fixtures';
 
 /*
@@ -240,8 +248,7 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
 
   const bundle = region('Bundle');
   const write = bundle.getByRole('button', { name: 'Write bundle' });
-  await expect(write).toBeDisabled();
-  await expect(bundle).toContainText('Choose a field export.');
+  expect(await heldBy(page, write)).toBe('Choose a field export.');
   await picks(exported);
   await bundle.getByRole('button', { name: 'Choose' }).first().click();
   await picks(out);
@@ -250,7 +257,9 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
 
   const submit = bundle.getByRole('region', { name: 'Submit command' });
   await expect(submit).toContainText('sbatch submit.sbatch');
-  await expect(bundle).toContainText('Architect writes this bundle and never submits it.');
+  expect(await infoTipText(page, bundle, 'the bundle')).toContain(
+    'Architect writes this bundle and never submits it.',
+  );
   await expect(bundle).toContainText(/…[\\/]exports[\\/]academy-desk/);
   await expect(bundle).not.toContainText(folders);
   const slurm = join(out, 'moe-235b-slurm');

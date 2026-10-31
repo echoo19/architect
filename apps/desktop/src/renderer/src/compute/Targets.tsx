@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ClusterTarget, HubTokenStatus } from '@architect/shared';
-import { Badge, Button, Card, CardGrid, CardRow, Skeleton } from '@architect/ui';
+import { Badge, Button, Card, CardGrid, CardRow, InfoTip, Skeleton } from '@architect/ui';
 import { Cloud, CloudCog, Container, Laptop, Network, Server } from 'lucide-react';
 import { useHubToken, useLlamaServer, useLocalRuntimes } from '../api/hooks';
 import { formatBytes } from '../lib/format';
@@ -21,10 +21,6 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
       <span className="min-w-0 truncate text-right tabular-nums">{children}</span>
     </div>
   );
-}
-
-function Lead({ children }: { children: ReactNode }) {
-  return <p className="m-0 pb-3 text-ui">{children}</p>;
 }
 
 const clusterIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
@@ -71,8 +67,15 @@ export function Targets() {
 
   return (
     <CardGrid className="items-stretch 2xl:grid-cols-2">
-      <Card title="This computer" icon={<Laptop aria-hidden />}>
-        <Lead>Runs Glimmer and serves its adapters. Trains nothing here.</Lead>
+      <Card
+        title="This computer"
+        icon={<Laptop aria-hidden />}
+        action={
+          <InfoTip about="this computer">
+            Runs Glimmer and serves its adapters. Trains nothing here.
+          </InfoTip>
+        }
+      >
         <Fact label="GPU">
           {local.data === undefined
             ? loading
@@ -99,12 +102,14 @@ export function Targets() {
         title="Hugging Face Jobs"
         icon={<Cloud aria-hidden />}
         action={
-          token.data === undefined ? undefined : (
-            <Badge>{hasToken ? 'Ready' : 'Needs a token'}</Badge>
-          )
+          <span className="flex items-center gap-1">
+            <InfoTip about="Hugging Face Jobs">
+              Trains a LoRA adapter for Glimmer on one rented GPU, within its compute cap.
+            </InfoTip>
+            {token.data !== undefined && <Badge>{hasToken ? 'Ready' : 'Needs a token'}</Badge>}
+          </span>
         }
       >
-        <Lead>Trains a LoRA adapter for Glimmer on one rented GPU, within its compute cap.</Lead>
         <Fact label="Token">
           {token.data === undefined ? (
             loading
@@ -124,9 +129,6 @@ export function Targets() {
         wide
         flush
       >
-        <p className="m-0 px-6 pb-3 text-ui">
-          Architect writes a bundle for your cluster. You submit it with your own tools.
-        </p>
         {CLUSTERS.map((cluster) => (
           <CardRow
             key={cluster.target}

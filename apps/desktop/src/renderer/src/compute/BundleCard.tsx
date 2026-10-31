@@ -15,9 +15,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  InfoTip,
   RowIcon,
+  Tooltip,
 } from '@architect/ui';
-import { ChevronDown, FolderInput, FolderOutput, TriangleAlert } from 'lucide-react';
+import { ChevronDown, FolderInput, FolderOutput } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { computeApi } from '../api/compute';
 import { CopyButton } from '../components/CopyButton';
@@ -134,7 +136,16 @@ export function BundleCard({
   const command = written ? `cd "${written.dir}"\n${written.bundle.submit}` : null;
 
   return (
-    <Card title="Bundle" flush action={<Badge>Experimental</Badge>}>
+    <Card
+      title="Bundle"
+      flush
+      action={
+        <span className="flex items-center gap-1">
+          <Badge>Experimental</Badge>
+          <InfoTip about="the bundle">{CLUSTER_NOTE}</InfoTip>
+        </span>
+      }
+    >
       <div className="px-6 pb-5">
         <ChoiceTiles<ClusterTarget>
           aria-label="Target"
@@ -210,16 +221,20 @@ export function BundleCard({
         }
       />
       <div className="flex items-center justify-end gap-4 border-t border-line px-6 py-4">
-        {blocker && <span className="text-ui">{blocker}</span>}
-        <Button
-          variant="primary"
-          size="md"
-          disabled={blocker !== null}
-          loading={writing}
-          onClick={() => void write()}
-        >
-          Write bundle
-        </Button>
+        {blocker === null ? (
+          <Button variant="primary" size="md" loading={writing} onClick={() => void write()}>
+            Write bundle
+          </Button>
+        ) : (
+          // A disabled button takes no pointer, so what holds it back hangs on the span around it.
+          <Tooltip content={blocker}>
+            <span tabIndex={0} className="rounded-control">
+              <Button variant="primary" size="md" disabled>
+                Write bundle
+              </Button>
+            </span>
+          </Tooltip>
+        )}
       </div>
       {written && command && (
         <section
@@ -241,10 +256,6 @@ export function BundleCard({
           </div>
         </section>
       )}
-      <div className="flex items-start gap-3 border-t border-line px-6 py-4 text-ui">
-        <TriangleAlert size={16} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0" />
-        <p className="m-0">{CLUSTER_NOTE}</p>
-      </div>
     </Card>
   );
 }
