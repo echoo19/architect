@@ -53,7 +53,6 @@ blue as the only accents. The rest of this file spells out what that means in pr
 | `mentor` | `#f0b470` | Spark |
 | `danger` | `#ff6b5e` | failures, destructive actions, errors |
 | `ring` | `rgb(244 244 242 / 0.6)` | keyboard focus ring, 2px, offset 2px |
-| `sheen` | white at 3.5%, fading to nothing within 120px | a card's fixed top light |
 | `rim` / `rim-hover` | `rgb(255 255 255 / 0.07)` / `0.13`, inset 1px | a card's or a float's edge; the rim under the pointer |
 | `rim-top` | `rgb(255 255 255 / 0.06)`, inset 1px along the top | the lit top edge |
 | `float` | `rgb(24 24 24 / 0.8)` with `blur(20px) saturate(1.2)` | what floats; solid `raised` where blur is missing |
@@ -115,9 +114,8 @@ Nothing below 13px except keyboard hints.
 
 Two materials, and nothing else makes depth (`surface-card` and `surface-float` in `theme.css`).
 
-- **A card** (`Card`, `Panel`, `DataTable`, a card built on a flow screen) is the card fill lit
-  faintly from above: the `sheen` fades out within its first 120px whatever its height, a soft
-  `rim`, and a brighter hairline along its top edge (`rim-top`). No backdrop blur and no grain on
+- **A card** (`Card`, `Panel`, `DataTable`, a card built on a flow screen) is the flat card fill, a soft
+  `rim`, and a brighter hairline along its top edge (`rim-top`); no gradient, as everywhere. No backdrop blur and no grain on
   cards. The light is fixed; it never moves, animates or brightens.
 - **What floats** (menus, popovers, selects, tooltips, toasts, dialogs, the drawer, the palette and
   the inspector) is `float`: slightly see-through with a light blur, the same rims, and the one

@@ -150,12 +150,12 @@
 }
 
 /*
- * The two materials (docs/DESIGN.md, Material). A card rests on the ground, lit faintly from
- * above with a soft rim; what floats is slightly see-through with a light blur and the one shadow.
+ * The two materials (docs/DESIGN.md, Material). A card rests on the ground, flat, with a soft rim
+ * and a brighter top edge; what floats is slightly see-through with a light blur and the one shadow.
  * Where a browser can't blur, the float is the solid raised fill.
  */
 @utility surface-card {
-  background: var(--ui-sheen), var(--ui-card);
+  background-color: var(--ui-card);
   box-shadow: var(--ui-rim-top), var(--ui-rim);
 }
 
