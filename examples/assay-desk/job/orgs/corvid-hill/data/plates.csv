@@ -1,0 +1,9 @@
+plate_id,layout,instrument,read_on,export_file
+CH-0904,384,Orbit 2,2026-10-20,orbit_export.csv
+CH-0908,96,Lumen 3,2026-10-20,lumen_export.csv
+CH-0912,96,Lumen 3,10/20/2026,lumen_export.csv
+CH-0916,96,Lumen 3,2026-10-22,lumen_export.csv
+CH-0920,384,Kestrel HT,2026-10-22,kestrel_export.csv
+CH-0924,384,Orbit 2,2026-10-22,orbit_export.csv
+CH-0928,96,Orbit 2,26-Oct-2026,orbit_export.csv
+CH-0932,96,Kestrel HT,2026-10-26,kestrel_export.csv

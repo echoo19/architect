@@ -1,0 +1,9 @@
+plate_id,layout,instrument,read_on,export_file
+SALT-014,384w,Orbit 2,28-Oct-2026,orbit_export.csv
+SALT-017,96w,Lumen 3,28-Oct-2026,lumen_export.csv
+SALT-020,96w,Lumen 3,2026-10-28,lumen_export.csv
+SALT-023,384w,Orbit 2,30-Oct-2026,orbit_export.csv
+SALT-026,96w,Orbit 2,30-Oct-2026,orbit_export.csv
+SALT-029,96w,Lumen 3,30-Oct-2026,lumen_export.csv
+SALT-032,384w,Orbit 2,2026-11-03,orbit_export.csv
+SALT-035,384w,Lumen 3,03-Nov-2026,lumen_export.csv
