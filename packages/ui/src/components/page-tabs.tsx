@@ -46,7 +46,7 @@ export function PageTabs<T extends string>({
     >
       <Tabs.List
         aria-label={props['aria-label']}
-        className="inline-flex self-start rounded-full bg-field p-[3px] shadow-edge"
+        className="inline-flex self-start rounded-full bg-field p-1 shadow-edge"
       >
         {tabs.map((tab) => (
           <Tabs.Trigger
@@ -60,7 +60,7 @@ export function PageTabs<T extends string>({
               onValueChange(tab.value);
             }}
             className={cn(
-              'relative flex h-9 items-center gap-2 rounded-full px-4 text-ui font-medium',
+              'relative flex h-8 items-center gap-2 rounded-full px-4 text-ui font-medium',
               'transition-colors duration-150 hover:bg-hover',
             )}
           >

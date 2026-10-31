@@ -151,7 +151,7 @@ export function Inspector<T extends string>({
               size="md"
               onClick={() => update({ tab, folded: false })}
             >
-              <PanelRightOpen size={16} strokeWidth={1.7} aria-hidden />
+              <PanelRightOpen size={16} strokeWidth={1.8} aria-hidden />
             </IconButton>
           </Tooltip>
           <div className="my-1 h-px w-6 bg-line" />
@@ -180,10 +180,10 @@ export function Inspector<T extends string>({
           className="flex min-h-0 flex-1 flex-col"
         >
           {header}
-          <div className="flex items-center gap-2 px-4 pb-2 pt-3">
+          <div className="flex items-center gap-2 px-5 pb-2 pt-3">
             <Tabs.List
               aria-label={props['aria-label']}
-              className="flex min-w-0 flex-1 rounded-full bg-field p-[3px] shadow-edge"
+              className="flex min-w-0 flex-1 rounded-full bg-field p-1 shadow-edge"
             >
               {tabs.map((t) => (
                 <Tabs.Trigger
@@ -212,13 +212,13 @@ export function Inspector<T extends string>({
                 size="md"
                 onClick={() => update({ tab, folded: true })}
               >
-                <PanelRightClose size={16} strokeWidth={1.7} aria-hidden />
+                <PanelRightClose size={16} strokeWidth={1.8} aria-hidden />
               </IconButton>
             </Tooltip>
           </div>
           <Tabs.Content
             value={tab}
-            className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3 scroll-quiet focus-visible:outline-none"
+            className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3 scroll-quiet focus-visible:outline-none"
           >
             <StepTransition transitionKey={tab} kind="tab">
               {children(tab)}

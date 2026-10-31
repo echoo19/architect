@@ -44,7 +44,7 @@ export function NavItem({
       className={cn(
         'relative flex w-full min-w-0 shrink-0 items-center gap-2.5 rounded-control text-left',
         'transition-colors duration-150',
-        nested ? 'h-9 pl-[38px] pr-2.5' : 'h-10 px-2.5',
+        nested ? 'h-9 pl-11 pr-2.5' : 'h-10 px-2.5',
         current ? !indicator && 'bg-selected' : 'hover:bg-hover',
         className,
       )}
