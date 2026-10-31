@@ -51,6 +51,9 @@ test('runs from its archive, with the sandbox and the sample job beside it', asy
     // The Assay desk's job comes with all four labs, the one it never sees included.
     join(where.resources, 'assay-job', 'tasks.jsonl'),
     join(where.resources, 'assay-job', 'orgs', 'corvid-hill', 'data', 'orbit_export.csv'),
+    // So does the Inventory desk's, with all four labs' compound stores.
+    join(where.resources, 'inventory-job', 'checker.js'),
+    join(where.resources, 'inventory-job', 'orgs', 'corvid-hill', 'data', 'inventory.csv'),
     // The data the ready-made agent works on always comes along.
     join(where.resources, 'sample-agent', 'data', 'orders.csv'),
   ]) {

@@ -9,8 +9,8 @@ import { FLOW_ENGINE, recordedCalls, stubRecorded, taskPlan } from './fixtures-f
 
 /*
  * The science lab, offered in the Lab edition only, on a stand-in engine: one offer opens a
- * choice of its two specialists, Sweep desk and Assay desk, and choosing one makes its job and
- * opens Define without the organization it is never taught on. The personal edition doesn't
+ * choice of its three specialists, Sweep desk, Assay desk and Inventory desk, and choosing one
+ * makes its job and opens Define without the organization it is never taught on. The personal edition doesn't
  * offer it.
  */
 
@@ -32,6 +32,12 @@ function shipped(folder: string): Job {
 const SPECIALISTS = [
   { name: 'Sweep desk', sample: 'sweep-desk', job: shipped('sweep-desk'), unseen: /Fennick/ },
   { name: 'Assay desk', sample: 'assay-desk', job: shipped('assay-desk'), unseen: /Corvid/ },
+  {
+    name: 'Inventory desk',
+    sample: 'inventory-desk',
+    job: shipped('inventory-desk'),
+    unseen: /Corvid/,
+  },
 ] as const;
 
 let launched: LaunchedApp;
