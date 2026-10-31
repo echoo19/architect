@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { ACADEMY, ROUNDS } from './data';
-import { clamp, count, grouped, inOutCubic, mix, outQuart, rise, span, ui } from './time';
+import { clamp, count, inOutCubic, mix, outQuart, rise, span, ui } from './time';
 
 /** The column the guided flow's screens are set in. */
 function Column({ children, style }: { children: ReactNode; style?: CSSProperties }) {
@@ -499,23 +499,22 @@ const tableGrid =
 /**
  * A counterexample in the round's drawer: the question lookup Spark wrote crashed on tests laid
  * out as "Full", and the failing case shrinks from 2,312 rows to 4 (docs/DECISIONS.md 078, on the
- * academy's practice data). Then the repair passes both cases.
+ * academy's practice data). The reduced size is shown only once the table has shrunk, and only
+ * as the run's own figure: no count in between is ever on screen. Then the repair passes both
+ * cases.
  */
 export function CounterexampleDrawer({ lt }: { lt: number }) {
   const shrink = outQuart(span(lt, 2.0, 2.6));
-  const rows = Math.round(mix(2312, 4, Math.pow(shrink, 0.35)));
+  const reduced = ui(lt, 3.1, 0.3);
   const questions = outQuart(span(lt, 4.6, 0.6));
   const repaired = ui(lt, 6.0, 0.35);
   const cases = outQuart(span(lt, 6.8, 0.7));
   let removed = 0;
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between border-b border-line px-6 pb-4 pt-5">
-        <div className="flex flex-col gap-1">
-          <span className="font-display text-h2 font-semibold">The question lookup</span>
-          <span className="text-ui">A helper Spark wrote, failing on practice data</span>
-        </div>
-        <X size={18} strokeWidth={1.8} className="mt-1" aria-hidden />
+      <div className="flex items-center justify-between border-b border-line px-6 pb-4 pt-5">
+        <span className="font-display text-h2 font-semibold">The question lookup</span>
+        <X size={18} strokeWidth={1.8} aria-hidden />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         <div
@@ -535,11 +534,11 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
               size={20}
               strokeWidth={2}
               className="self-center"
-              style={{ opacity: ui(lt, 1.8, 0.3) }}
+              style={{ opacity: ui(lt, 3.0, 0.3) }}
               aria-hidden
             />
-            <span style={{ opacity: ui(lt, 1.9, 0.3) }}>
-              {grouped(rows)} {rows === 1 ? 'row' : 'rows'}
+            <span style={{ opacity: reduced, transform: `translateX(${(1 - reduced) * -8}px)` }}>
+              4 rows
             </span>
           </div>
           <div className="flex flex-col gap-1.5">

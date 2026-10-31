@@ -54,6 +54,3 @@ export function during(t: number, at: number, until = Infinity, fade = 0.3): num
 export function count(t: number, at: number, dur: number, from: number, to: number): number {
   return Math.round(mix(from, to, outQuart(span(t, at, dur))));
 }
-
-/** A number with thousands grouped, as the app writes counts. */
-export const grouped = (value: number) => value.toLocaleString('en-US');
