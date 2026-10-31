@@ -17,6 +17,7 @@ import {
 } from './estimates';
 import { InspectorRow, Issue, KeyIfMissing } from './fields';
 import type { InspectorTabProps } from './inspector-tabs';
+import { NetworkRow } from './NetworkRow';
 
 /** The teacher's models as tiles: open weights on a host you pick are marked as a server. */
 const OPEN_HOSTS: readonly MentorPreset['provider'][] = ['baseten', 'modal'];
@@ -95,6 +96,7 @@ export function TeacherTab({ editor, change }: InspectorTabProps) {
         </ModelPicker>
         {note && <p className="m-0 pt-1 text-small text-pretty">{note}</p>}
       </div>
+      <NetworkRow urls={mentor.kind === 'model' ? [mentor.baseUrl] : []} />
       {mentor.kind === 'model' && (
         <div className="flex flex-col">
           <InspectorRow label={`How hard ${name} thinks`}>

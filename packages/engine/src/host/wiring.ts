@@ -6,6 +6,7 @@ import {
   createMuseVoiceTranscriber,
   createStudent,
   mentorCanAct,
+  type NetworkDeps,
   type StudentDeps,
 } from '@architect/adapters';
 import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE, type StudentEndpoint } from '@architect/shared';
@@ -31,6 +32,7 @@ import {
   templateHarness,
 } from '@architect/harness';
 import type {
+  ContactRecorder,
   EngineHostDeps,
   SampleAgentFiles,
   TaskChecker,
@@ -94,6 +96,22 @@ export interface EngineWiringOptions {
    * mentor's menu.
    */
   adapterRuntime?: AdapterServing;
+  /**
+   * The closed network's hosts right now (decision 098), or undefined while none is on. Every
+   * adapter made here refuses any other host, this computer aside, before it sends anything.
+   */
+  allowedHosts?: () => readonly string[] | undefined;
+}
+
+/** The closed network an adapter is held to, telling `contacted` where each request goes. */
+function networkFor(
+  options: Pick<EngineWiringOptions, 'allowedHosts'>,
+  contacted: ContactRecorder | undefined,
+): NetworkDeps {
+  return {
+    ...(options.allowedHosts === undefined ? {} : { allowed: options.allowedHosts }),
+    ...(contacted === undefined ? {} : { contacted }),
+  };
 }
 
 /** The training worker over `<data>/training`, its backends, and what the loop needs of it. */
@@ -101,7 +119,11 @@ function trainingWiring(options: EngineWiringOptions, trainerDir: string): Train
   const store = new FileTrainingStore(options.dataDir);
   const recipe = loadRecipe(trainerDir);
   const token = options.huggingFaceToken ?? (async () => undefined);
-  const hub = new HfJobsBackend({ hub: new HubClient({ token }), recipe, token });
+  const hubClient = new HubClient({
+    token,
+    ...(options.allowedHosts === undefined ? {} : { allowedHosts: options.allowedHosts }),
+  });
+  const hub = new HfJobsBackend({ hub: hubClient, recipe, token });
   const standIn = new StandInBackend({
     stateDir: join(options.dataDir, 'training', 'stand-in'),
     // The stand-in shapes its adapter for the default student's base, from Ollama's store.
@@ -230,18 +252,29 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       readPackaged: readPackageHarness,
     },
     adapters: {
-      createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
-      createStudent: (endpoint, adapterOptions) =>
-        createStudent(endpoint, { ...adapterOptions, ...followedQuietSettings(endpoint, options) }),
-      createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
+      createMentor: (config, { contacted, ...mentorOptions }) =>
+        createMentor(config, { ...mentorOptions, network: networkFor(options, contacted) }),
+      createStudent: (endpoint, { contacted, ...adapterOptions }) =>
+        createStudent(endpoint, {
+          ...adapterOptions,
+          ...followedQuietSettings(endpoint, options),
+          network: networkFor(options, contacted),
+        }),
+      createActor: (config, { contacted, ...actorOptions }) =>
+        createMentorActor(config, { ...actorOptions, network: networkFor(options, contacted) }),
       canAct: (config) => mentorCanAct(config),
-      createTranscriber: (transcriberOptions) => createMuseVoiceTranscriber(transcriberOptions),
+      createTranscriber: ({ contacted, ...transcriberOptions }) =>
+        createMuseVoiceTranscriber({
+          ...transcriberOptions,
+          network: networkFor(options, contacted),
+        }),
       ...(adapterRuntime === undefined
         ? {}
         : {
             createAdapterStudent: (request, studentOptions) =>
               createLlamaCppStudent(adapterRuntime.access(request), {
                 ...(studentOptions.label === undefined ? {} : { label: studentOptions.label }),
+                network: networkFor(options, studentOptions.contacted),
               }),
           }),
     },

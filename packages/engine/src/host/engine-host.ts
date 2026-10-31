@@ -68,6 +68,11 @@ export interface EngineHostOptions {
    */
   hub?: HubClient;
   /**
+   * The closed network's hosts while it is on (decision 098), for the Hub client made here when
+   * none is given: a Hub outside it is refused before anything is sent.
+   */
+  allowedHosts?: () => readonly string[] | undefined;
+  /**
    * The comparisons runner's environment on an experiment's data folder (decision 074): its
    * models, keys and training compute. Without it experiments can be planned and read, not run.
    */
@@ -158,6 +163,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     options.hub ??
     new HubClient({
       token: hubTokenResolver({ saved: () => options.deps.secrets.get('huggingface') }),
+      ...(options.allowedHosts === undefined ? {} : { allowedHosts: options.allowedHosts }),
     });
   const experiments = new ExperimentService({
     dir: join(paths.root, 'experiments'),

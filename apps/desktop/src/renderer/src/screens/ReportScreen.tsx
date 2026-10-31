@@ -203,6 +203,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
       installation={installation}
       comparisonReport={comparisonReport}
       here={here}
+      contacts={run.data?.contacts}
       {...(lab
         ? {
             organizations: (grid: OrgGrid) => (

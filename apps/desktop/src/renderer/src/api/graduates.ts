@@ -1,5 +1,6 @@
 import {
   CertificationSchema,
+  EvidenceResultSchema,
   ExportPartResultSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -20,6 +21,7 @@ import {
   VersionEventSchema,
   type BindRequest,
   type CertifyRequest,
+  type EvidenceRequest,
   type ExportPartRequest,
   type ExportRequest,
   type HubInstallRequest,
@@ -123,6 +125,12 @@ export const graduatesApi = {
       'graduates.exportPart',
       ExportPartResultSchema,
       architect().graduates.exportPart(graduateId, request),
+    ),
+  exportEvidence: (graduateId: string, request: EvidenceRequest) =>
+    read(
+      'graduates.exportEvidence',
+      EvidenceResultSchema,
+      architect().graduates.exportEvidence(graduateId, request),
     ),
   previewImport: (path: string) =>
     read('graduates.previewImport', ImportPreviewSchema, architect().graduates.previewImport(path)),

@@ -1,8 +1,10 @@
 import {
+  assertInsideNetwork,
   createMentor,
   createStudent,
   listModels,
   loadedOllamaModels,
+  type NetworkDeps,
   type verifyKey,
 } from '@architect/adapters';
 import {
@@ -37,6 +39,24 @@ export type KeyDestinationCheck = (ref: string, url: string) => string | null;
 
 const ADD_KEY_HINT = 'Add the key in Settings, then test again.';
 
+/**
+ * The closed network's refusal of a request to `url` (decision 098), or null when it may go. A
+ * check from Settings is held to the network as teaching is, and refused before any key is read.
+ */
+function outsideOf(
+  network: NetworkDeps | undefined,
+  service: string,
+  url: string,
+): AdapterError | null {
+  try {
+    assertInsideNetwork(network, service, url);
+    return null;
+  } catch (error) {
+    if (error instanceof AdapterError) return error;
+    throw error;
+  }
+}
+
 /** A local runtime answers at once; anything slower counts as not running. */
 const LOCAL_TIMEOUT_MS = 3_000;
 
@@ -51,6 +71,7 @@ export async function testMentor(
   config: MentorConfig,
   keys: KeyLookup,
   checkDestination: KeyDestinationCheck = keyDestinationProblem,
+  network?: NetworkDeps,
 ): Promise<ConnectionTest> {
   if (config.kind !== 'model') {
     return {
@@ -59,14 +80,16 @@ export async function testMentor(
       hint: 'Choose a model API instead.',
     };
   }
-  if (config.secretRef === undefined) return createMentor(config).testConnection();
+  const outside = outsideOf(network, config.label, config.baseUrl);
+  if (outside !== null) return { ok: false, error: outside.message };
+  if (config.secretRef === undefined) return createMentor(config, { network }).testConnection();
   const problem = checkDestination(config.secretRef, config.baseUrl);
   if (problem !== null) return { ok: false, error: problem };
   const apiKey = await keys(config.secretRef);
   if (!apiKey) {
     return { ok: false, error: `No key is saved for ${config.label}.`, hint: ADD_KEY_HINT };
   }
-  return createMentor(config, { apiKey }).testConnection();
+  return createMentor(config, { apiKey, network }).testConnection();
 }
 
 /** Checks that the student's server answers and has the model. */
@@ -74,7 +97,10 @@ export async function testStudent(
   endpoint: StudentEndpoint,
   keys: KeyLookup,
   checkDestination: KeyDestinationCheck = keyDestinationProblem,
+  network?: NetworkDeps,
 ): Promise<ConnectionTest> {
+  const outside = outsideOf(network, new URL(endpoint.baseUrl).host, endpoint.baseUrl);
+  if (outside !== null) return { ok: false, error: outside.message };
   let apiKey: string | undefined;
   if (endpoint.secretRef !== undefined) {
     const problem = checkDestination(endpoint.secretRef, endpoint.baseUrl);
@@ -85,7 +111,7 @@ export async function testStudent(
       return { ok: false, error: `No key is saved for ${host}.`, hint: ADD_KEY_HINT };
     }
   }
-  return createStudent(endpoint, { apiKey }).testConnection();
+  return createStudent(endpoint, { apiKey, network }).testConnection();
 }
 
 /**
@@ -96,7 +122,10 @@ export async function listConnectionModels(
   source: ModelSource,
   keys: KeyLookup,
   checkDestination: KeyDestinationCheck = keyDestinationProblem,
+  network?: NetworkDeps,
 ): Promise<ModelEntry[]> {
+  const outside = outsideOf(network, new URL(source.baseUrl).host, source.baseUrl);
+  if (outside !== null) throw outside;
   const needsKey = source.secretRef !== undefined && source.provider !== 'openrouter';
   let apiKey: string | undefined;
   if (needsKey && source.secretRef !== undefined) {
@@ -112,6 +141,7 @@ export async function listConnectionModels(
     provider: source.provider,
     baseUrl: source.baseUrl,
     ...(apiKey === undefined ? {} : { apiKey }),
+    ...(network === undefined ? {} : { network }),
   });
 }
 

@@ -383,3 +383,46 @@ describe('removeConnection', () => {
     ).rejects.toThrow('Ollama has no key to remove.');
   });
 });
+
+describe('under a closed network', () => {
+  const network = { allowed: ['spark.lab.internal'] };
+  const outside = mentor('https://api.example.com');
+
+  it('refuses a test or a model list outside it before any key is read', async () => {
+    const read = vi.fn(keys);
+    const allow = () => null;
+    const tested = await testMentor(outside, read, allow, network);
+    expect(tested).toMatchObject({ ok: false });
+    expect(tested.ok ? '' : tested.error).toContain(
+      'api.example.com is outside the closed network',
+    );
+    const student = await testStudent(
+      {
+        runtime: 'openai_compatible',
+        baseUrl: 'https://api.example.com/v1',
+        model: 'm',
+        contextLength: 16_384,
+        secretRef: 'meta',
+      },
+      read,
+      allow,
+      network,
+    );
+    expect(student).toMatchObject({ ok: false });
+    await expect(
+      listConnectionModels(
+        { provider: 'other', baseUrl: 'https://api.example.com/v1', secretRef: 'meta' },
+        read,
+        allow,
+        network,
+      ),
+    ).rejects.toMatchObject({ code: 'outside_network' });
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it('lets a host on this computer through', async () => {
+    const server = await modelHost();
+    const tested = await testMentor(mentor(server.url), keys, () => null, network);
+    expect(tested.ok, tested.ok ? '' : tested.error).toBe(true);
+  });
+});

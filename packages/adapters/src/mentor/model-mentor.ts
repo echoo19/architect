@@ -84,6 +84,7 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = 
     },
     secrets: apiKey ? [apiKey] : [],
     fetch: deps.fetch,
+    network: deps.network,
     retry: deps.retry,
     timeouts: deps.timeouts,
   });

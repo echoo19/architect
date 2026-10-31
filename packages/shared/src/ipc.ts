@@ -51,6 +51,8 @@ import type {
   ExperimentStart,
 } from './experiments';
 import type { RuntimeMeasurement } from './measurements';
+import type { ClosedNetwork, RunContact } from './network';
+import type { EvidenceRequest, EvidenceResult } from './evidence-pack';
 import type {
   ModelConfigRead,
   ModelConfigSource,
@@ -123,6 +125,11 @@ export interface AppSettings {
    * restart. Recorded by the main process when an export is written, never by the renderer.
    */
   fieldExports?: FieldExportRecord[];
+  /**
+   * The Lab's closed network (decision 098): while on, teaching reaches only these hosts and this
+   * computer, and every adapter refuses any other. Off when absent.
+   */
+  closedNetwork?: ClosedNetwork;
 }
 
 /** A field export the app wrote: the field, its name then, the folder it went to, and when. */
@@ -358,6 +365,11 @@ export interface RunDetail {
    * took. Such a run ends in a candidate version measured on dev, never in a locked test.
    */
   improves?: RunImprovement;
+  /**
+   * Every host the run contacted, with how many requests went there (decision 098); absent for a
+   * run that has recorded none, such as one from before they were recorded.
+   */
+  contacts?: RunContact[];
 }
 
 export interface FileDiff {
@@ -843,6 +855,11 @@ export interface ArchitectApi {
     exportFolder(graduateId: string, directory: string): Promise<ExportResult>;
     /** Writes one part of a version on its own: its harness folder, adapter file or report. */
     exportPart(graduateId: string, request: ExportPartRequest): Promise<ExportPartResult>;
+    /**
+     * Writes a version's evidence pack into `request.directory` (decision 098): one folder for a
+     * security reviewer and an offline install, every file hashed in its MANIFEST.json.
+     */
+    exportEvidence(graduateId: string, request: EvidenceRequest): Promise<EvidenceResult>;
     /** Validates a package folder or `.architect.zip` without installing it or loading its code. */
     inspectPackage(path: string): Promise<PackageInspection>;
     /**

@@ -111,6 +111,8 @@ export interface RealEnvironmentOptions {
   getSecret?(ref: string): Promise<string | undefined>;
   /** The Hugging Face token for training compute; Hugging Face's own lookup when absent. */
   huggingFaceToken?: () => Promise<string | undefined>;
+  /** The closed network's hosts (decision 098), which the arms' teachers and students are held to. */
+  allowedHosts?: () => readonly string[] | undefined;
 }
 
 /** A GGUF's chat template, by the sha256 of its text, read from the header alone. */
@@ -246,6 +248,7 @@ export function realEnvironment(options: RealEnvironmentOptions): {
       trainerDir: options.trainerDir,
       huggingFaceToken: token,
       adapterRuntime,
+      ...(options.allowedHosts === undefined ? {} : { allowedHosts: options.allowedHosts }),
     }),
     gpu,
     COMPARISON_PURPOSE,

@@ -30,6 +30,7 @@ import {
 import { reportBeside } from '../comparisons/records';
 import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
 import { addedQualificationView } from '../loop/qualify-added';
+import { writeEvidencePack } from '../graduates/evidence-pack';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -173,6 +174,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     const visible = [...(await jobs.tasks(jobId, 'train')), ...(await jobs.tasks(jobId, 'dev'))];
     const prompts = new Map(visible.map((task) => [task.id, task.prompt]));
     const retests = retestsOf(runId);
+    const contacts = store.runs.contacts(runId);
     return {
       run: record.run,
       job: await jobs.forRun(record),
@@ -188,6 +190,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       lineage: await lineageOf(record),
       ...(retests.length === 0 ? {} : { retests }),
       ...(record.improves === undefined ? {} : { improves: record.improves }),
+      ...(contacts.length === 0 ? {} : { contacts }),
     };
   }
 
@@ -555,6 +558,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       exportPackage: (graduateId, request) => exportPackage(packages, graduateId, request),
       exportFolder: (graduateId, directory) => exportPackage(packages, graduateId, { directory }),
       exportPart: (graduateId, request) => exportPart(packages, graduateId, request),
+      exportEvidence: (graduateId, request) =>
+        writeEvidencePack({ library: graduates }, graduateId, request),
       inspectPackage: (path) => inspectPackage(packages, path),
       previewImport: (path) => previewImport(packages, path),
       importPackage: (path, request) => importPackage(packages, path, request),

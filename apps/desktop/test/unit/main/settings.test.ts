@@ -89,6 +89,17 @@ describe('SettingsStore', () => {
     });
   });
 
+  it('keeps a closed network, and reads a damaged one as none', async () => {
+    const store = await SettingsStore.open(file);
+    await store.update({ closedNetwork: { on: true, hosts: ['spark.lab.internal'] } });
+    expect((await SettingsStore.open(file)).get().closedNetwork).toEqual({
+      on: true,
+      hosts: ['spark.lab.internal'],
+    });
+    await writeFile(file, JSON.stringify({ onboarded: true, closedNetwork: { on: 'yes' } }));
+    expect((await SettingsStore.open(file)).get().closedNetwork).toBeUndefined();
+  });
+
   it('reads past a theme that an earlier version stored, and never writes it back', async () => {
     for (const theme of ['dark', 'light', 'system', 'sepia']) {
       await writeFile(file, JSON.stringify({ theme, onboarded: true, steps: 'expanded' }));
@@ -180,6 +191,19 @@ describe('settings patches', () => {
   it('never name the program Architect runs: only a file the user picks becomes llama-server', () => {
     expect(
       AppSettingsPatchSchema.safeParse({ llamaServerPath: 'C:\\Temp\\anything.exe' }).success,
+    ).toBe(false);
+  });
+
+  it('name the hosts of a closed network, each a host and no more', () => {
+    expect(
+      AppSettingsPatchSchema.parse({
+        closedNetwork: { on: true, hosts: [' Spark.Lab.Internal '] },
+      }),
+    ).toEqual({ closedNetwork: { on: true, hosts: ['spark.lab.internal'] } });
+    expect(
+      AppSettingsPatchSchema.safeParse({
+        closedNetwork: { on: true, hosts: ['https://spark.lab.internal/v1'] },
+      }).success,
     ).toBe(false);
   });
 

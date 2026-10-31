@@ -28,6 +28,8 @@ import {
   ImprovementSchema,
   ImprovementStartSchema,
   ImproveOptionsSchema,
+  EvidenceRequestSchema,
+  EvidenceResultSchema,
   ExportPartRequestSchema,
   ExportPartResultSchema,
   ExportRequestSchema,
@@ -505,6 +507,11 @@ export const ENGINE_ROUTES = {
     ExportPartResultSchema,
     (api, [graduateId, request]) => api.graduates.exportPart(graduateId, request),
   ),
+  'graduates.exportEvidence': route(
+    z.tuple([id, EvidenceRequestSchema]),
+    EvidenceResultSchema,
+    (api, [graduateId, request]) => api.graduates.exportEvidence(graduateId, request),
+  ),
   'graduates.inspectPackage': route(z.tuple([path]), PackageInspectionSchema, (api, [file]) =>
     api.graduates.inspectPackage(file),
   ),
@@ -627,6 +634,7 @@ const ADAPTER_ERROR_CODES: readonly AdapterErrorCode[] = [
   'bad_response',
   'aborted',
   'blocked',
+  'outside_network',
 ];
 
 const HUB_ERROR_CODES: readonly HubErrorCode[] = [

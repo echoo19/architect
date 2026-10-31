@@ -10,6 +10,7 @@ export type CommandName =
   | 'serve'
   | 'inspect'
   | 'verify'
+  | 'pack'
   | 'export'
   | 'publish'
   | 'field'
@@ -112,11 +113,34 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
     help: [JSON_HELP],
   },
   verify: {
-    usage: 'architect verify <agent> [--no-model-check] [--json]',
-    summary: 'Run the installation checks again on this computer.',
+    usage:
+      'architect verify <agent> [--no-model-check] [--json] | architect verify --pack <folder>',
+    summary: 'Run the installation checks again on this computer, or check an evidence pack.',
+    args: 0,
+    maxArgs: 1,
+    options: { 'no-model-check': { type: 'boolean' }, pack: { type: 'string' }, ...json },
+    help: [
+      '  --no-model-check        skip the check that loads the model once',
+      '  --pack <folder>         check every file of an evidence pack against its MANIFEST.json',
+      JSON_HELP,
+    ],
+  },
+  pack: {
+    usage: 'architect pack <agent> --out <folder> [--version N] [--with-weights] [--json]',
+    summary: "Write a version's evidence pack for a security review and an offline install.",
     args: 1,
-    options: { 'no-model-check': { type: 'boolean' }, ...json },
-    help: ['  --no-model-check        skip the check that loads the model once', JSON_HELP],
+    options: {
+      out: { type: 'string' },
+      version: { type: 'string' },
+      'with-weights': { type: 'boolean' },
+      ...json,
+    },
+    help: [
+      '  --out <folder>          the folder to write the pack into',
+      '  --version <n>           a version other than the active one',
+      "  --with-weights          also copy the base model's file, when it is on this computer",
+      JSON_HELP,
+    ],
   },
   export: {
     usage: 'architect export <agent> --output <file.architect.zip> [options]',

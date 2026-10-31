@@ -37,8 +37,8 @@ function report(status: EngineStatus): void {
 }
 
 function follow(settings: Omit<EngineSettings, 'type'>): void {
-  const { localThreads, localCooldown, llamaServerPath, ollamaUrl } = settings;
-  followed = { localThreads, localCooldown, llamaServerPath, ollamaUrl };
+  const { localThreads, localCooldown, llamaServerPath, ollamaUrl, allowedHosts } = settings;
+  followed = { localThreads, localCooldown, llamaServerPath, ollamaUrl, allowedHosts };
 }
 
 async function start(message: EngineStart, ports: readonly PortMain[]): Promise<EngineHost> {
@@ -72,7 +72,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
   const host = await createEngineHost({
     dataDir: message.dataDir,
     // Publishing and installing go to the Hub HF_ENDPOINT names, huggingface.co by default.
-    hub: hubClient(savedHubKey),
+    hub: hubClient(savedHubKey, () => followed.allowedHosts),
     deps: createEngineDeps({
       dataDir: message.dataDir,
       sandboxEntryPath: message.sandboxEntryPath,
@@ -88,6 +88,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       huggingFaceToken: hubTokenResolver({ saved: savedHubKey }),
       localThreads: () => followed.localThreads,
       localCooldown: () => followed.localCooldown,
+      allowedHosts: () => followed.allowedHosts,
       adapterRuntime,
     }),
     adapterRuntime,
@@ -106,6 +107,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
         log,
         getSecret,
         huggingFaceToken: hubTokenResolver({ saved: savedHubKey }),
+        allowedHosts: () => followed.allowedHosts,
       }),
   });
   host.serve(asEnginePort(requests));

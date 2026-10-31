@@ -28,7 +28,7 @@ Relative paths are read from the folder you typed the command in. `node apps/cli
 
 ## Commands
 
-Results go to stdout and everything else (steps, progress, messages) to stderr, so stdout can be read by a script. `list`, `install`, `inspect`, `verify`, `export` and `publish` print JSON with `--json`, as do the Lab's `field` and `experiment` commands (below, with the app's own keys), with snake_case keys and a `format` naming what it is. An agent is named by its name as `architect list` shows it (`service-desk`) or by its id (`grd_...`).
+Results go to stdout and everything else (steps, progress, messages) to stderr, so stdout can be read by a script. `list`, `install`, `inspect`, `verify`, `pack`, `export` and `publish` print JSON with `--json`, as do the Lab's `field` and `experiment` commands (below, with the app's own keys), with snake_case keys and a `format` naming what it is. An agent is named by its name as `architect list` shows it (`service-desk`) or by its id (`grd_...`).
 
 ### list
 
@@ -196,6 +196,27 @@ architect verify service-desk [--no-model-check] [--json]
 ```
 
 Runs the active version's installation checks again: platform and memory, the harness against its hash, its tools loading in the sandbox, its folders and their files, and the model, with one short request. They say whether it runs on this computer. They are not an evaluation, and never show as one; the author's results are under `inspect`. Exits 0 when ready and 3 otherwise.
+
+```bash
+architect verify --pack ./service-desk-v2-evidence [--json]
+```
+
+Checks an evidence pack (see `pack`) where it is, with the network guard on. It needs no data folder and no agent, so it runs on a reviewer's computer with no network. Every file MANIFEST.json lists must be there with its size and SHA-256, and nothing else may be. `evidence.json` must read, and the package inside must pass its own check and be the version `evidence.json` names. Copied weights must be the base model the version names. It prints each problem in plain words and the SHA-256 of MANIFEST.json, to compare with the one the author read out. Exits 0 when everything matches and 3 otherwise.
+
+### pack
+
+```bash
+architect pack service-desk --out ./reviews [--version 2] [--with-weights] [--json]
+```
+
+Writes `<name>-v<n>-evidence/` into the folder (decision 098): one folder for a security reviewer and an offline install. It holds:
+
+- `package/`: the version byte for byte. `architect install <pack>/package` installs it on a computer with no network.
+- `evidence.json`: the harness and model hashes, the tools with their permissions and the sandbox they run in, the graduates' network guard checked against every host teaching reached, those hosts with their request counts, the changes kept and reverted, the final test per organization (taught on, never seen, real), the locked test's score and the certificate if there is one.
+- `README.md`: the same, in a few plain lines.
+- `MANIFEST.json`: the SHA-256 and size of every other file.
+
+Nothing from the locked test's tasks or a never-seen organization's files goes in, only scores. The base model is named by its hash; `--with-weights` copies its file from Ollama's store into `weights/` when it is on this computer. The command prints the SHA-256 of MANIFEST.json. The app writes the same pack from a version's panel in Models (Export evidence).
 
 ### export
 
@@ -434,6 +455,10 @@ Every command ends on its own: a run that needs an approval nobody can give fail
 The command reads the app's own settings file for local models, as the app does: quiet mode's thread cap for a local student and for llama-server, the llama-server chosen in Settings (else the one on `PATH`), and the default student's Ollama when it is on this computer. A version with an adapter runs on llama.cpp (decision 041), with a llama-server of the command's own (`local-runtime/cli` in the data folder) that stops when the command ends.
 
 The command takes the GPU in turns with the open app (decision 046). A run holds it from the start of its reply to the end, except while it waits for an approval: the app's idle llama-server stops first, and a check or a training step waits for the reply. When the app is answering a chat, or checking an agent, the run waits its turn for up to 5 minutes, then exits 1 with an error that says what holds the GPU.
+
+## A closed network
+
+When the app's Lab has a closed network on (Settings, Privacy; decision 098), the commands that teach (`experiment`, `certify` and the engine work behind `field`) follow it too, and so does every Hub request (`install hf://`, `publish`, `train plan --model`): they read it from the app's `settings.json` at every request, and a teacher, student or Hub outside it is refused with exit 1 (`model_outside_network`) and a message that names the host. Graduates are held to less whatever it says: `run` and `serve` reach only the model on this computer.
 
 ## What it doesn't do yet
 

@@ -8,6 +8,7 @@ import {
   JobContractSchema,
   type Harness,
   type Job,
+  type OrgTypeResult,
   type PermissionMode,
   type ReportCard,
 } from '@architect/shared';
@@ -46,6 +47,8 @@ export interface GraduateOptions {
   baseModel?: string;
   /** The certificate on the version's report card (decision 077). */
   certificate?: ReportCard['certificate'];
+  /** The final test at each organization, for a field's version (decision 068). */
+  perOrg?: OrgTypeResult[];
 }
 
 const CREATED_AT = '2026-11-05T18:00:00.000Z';
@@ -110,8 +113,13 @@ export async function addGraduate(
 
   const harness = fixtureHarness(job.name, options.harness);
   const facts = fixtureFacts(options.id, job, harness);
-  if (options.certificate !== undefined) {
-    facts.report = { ...reportFor(job), certificate: options.certificate };
+  if (options.certificate !== undefined || options.perOrg !== undefined) {
+    const report = reportFor(job);
+    facts.report = {
+      ...report,
+      ...(options.certificate === undefined ? {} : { certificate: options.certificate }),
+      test: { ...report.test, ...(options.perOrg === undefined ? {} : { perOrg: options.perOrg }) },
+    };
   }
   const baseModel = options.baseModel ?? facts.base.name;
   facts.base = { ...facts.base, name: baseModel };

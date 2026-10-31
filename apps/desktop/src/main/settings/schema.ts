@@ -1,5 +1,6 @@
 import {
   AppSettingsSchema,
+  ClosedNetworkSchema,
   CustomEndpointSchema,
   DEFAULT_STUDENT,
   FieldExportRecordSchema,
@@ -93,6 +94,7 @@ const StoredSettingsSchema = z.object({
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),
   llamaServerPath: z.string().min(1).optional().catch(undefined),
   fieldExports: StoredExportsSchema,
+  closedNetwork: ClosedNetworkSchema.optional().catch(undefined),
 }) satisfies z.ZodType<AppSettings>;
 
 export function settingsFromStored(raw: unknown): AppSettings {

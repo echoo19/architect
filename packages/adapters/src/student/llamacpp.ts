@@ -66,6 +66,7 @@ export function createLlamaCppStudent(
         headers: { authorization: `Bearer ${lease.apiKey}` },
         secrets: [lease.apiKey],
         fetch: deps.fetch,
+        network: deps.network,
         retry: deps.retry,
         timeouts: deps.timeouts,
       });

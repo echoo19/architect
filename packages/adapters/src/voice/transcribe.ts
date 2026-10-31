@@ -36,6 +36,7 @@ export function createMuseVoiceTranscriber(deps: TranscriberDeps): Transcriber {
     headers: { authorization: `Bearer ${apiKey}` },
     secrets: [apiKey],
     fetch: deps.fetch,
+    network: deps.network,
     retry: deps.retry,
   });
   return {

@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { EngineClient } from '@architect/engine';
 import type { AgentHostClient } from '@architect/engine/agent-host';
+import { allowedHostsOf } from '@architect/shared';
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
 import { launchEngineProcess, type EngineProcess } from './engine/process';
@@ -137,6 +138,7 @@ async function start(): Promise<void> {
       localCooldown: quietCooldown(settings.get()),
       llamaServerPath: runtime.llamaServerPath,
       ollamaUrl: runtime.ollamaUrl,
+      allowedHosts: allowedHostsOf(settings.get().closedNetwork),
     };
   };
   let engineProcess: EngineProcess | null = null;

@@ -12,7 +12,8 @@ import {
 import { open } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
-import { isLoopbackUrl } from '@architect/shared';
+import { outsideNetwork } from '@architect/adapters';
+import { AdapterError, insideNetwork, isLoopbackUrl } from '@architect/shared';
 import { z } from 'zod';
 
 export const HF_ENDPOINT = 'https://huggingface.co';
@@ -73,6 +74,11 @@ export interface HubClientOptions {
   /** Read from the app's secret store when a request needs it; never logged or saved. */
   token: () => Promise<string | undefined>;
   fetch?: typeof fetch;
+  /**
+   * The closed network's hosts while it is on (decision 098): a request to any other, a redirect
+   * included, is refused with `outside_network` before it is sent.
+   */
+  allowedHosts?: () => readonly string[] | undefined;
   /** Per request, downloads and uploads aside. Default 60 seconds. */
   timeoutMs?: number;
 }
@@ -294,7 +300,17 @@ export class HubClient {
   }
 
   private get fetch(): typeof fetch {
-    return this.options.fetch ?? ((input, init) => fetch(input, init));
+    const send = this.options.fetch ?? ((input, init) => fetch(input, init));
+    const { allowedHosts } = this.options;
+    if (allowedHosts === undefined) return send;
+    return (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const hosts = allowedHosts();
+      if (hosts !== undefined && !insideNetwork(url, hosts)) {
+        return Promise.reject(outsideNetwork('Hugging Face', url));
+      }
+      return send(input, init);
+    };
   }
 
   /** The token when there is one: reading a public repository needs none. */
@@ -360,6 +376,7 @@ export class HubClient {
         ),
       });
     } catch (error) {
+      if (error instanceof AdapterError) throw error;
       throw new HubError(
         'network',
         `Hugging Face could not be reached: ${messageOf(error)}`,
@@ -781,6 +798,7 @@ export class HubClient {
         ),
       } as RequestInit);
     } catch (error) {
+      if (error instanceof AdapterError) throw error;
       throw new HubError(
         'network',
         `The upload of ${path} broke off: ${messageOf(error)}`,
@@ -938,6 +956,7 @@ export class HubClient {
           ...(signal ? { signal } : {}),
         });
       } catch (error) {
+        if (error instanceof AdapterError) throw error;
         throw new HubError(
           'network',
           `The download of ${path} failed: ${messageOf(error)}`,
