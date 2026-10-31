@@ -93,6 +93,7 @@ export function createAnthropicMentor(
     headers: { 'x-api-key': apiKey, 'anthropic-version': ANTHROPIC_VERSION },
     secrets: apiKey ? [apiKey] : [],
     fetch: deps.fetch,
+    network: deps.network,
     retry: deps.retry,
     timeouts: deps.timeouts,
   });

@@ -6,7 +6,12 @@ import {
   runtimeSettingsOf,
   type LocalRuntimeSettings,
 } from '@architect/engine/local-runtime';
-import { DEFAULT_STUDENT, StudentEndpointSchema } from '@architect/shared';
+import {
+  allowedHostsOf,
+  ClosedNetworkSchema,
+  DEFAULT_STUDENT,
+  StudentEndpointSchema,
+} from '@architect/shared';
 import { z } from 'zod';
 
 /**
@@ -22,6 +27,7 @@ const StoredSchema = z.object({
     model: DEFAULT_STUDENT.model,
     contextLength: DEFAULT_STUDENT.contextLength,
   })),
+  closedNetwork: ClosedNetworkSchema.optional().catch(undefined),
 });
 
 /**
@@ -30,16 +36,28 @@ const StoredSchema = z.object({
  * default student's Ollama when it is on this computer. A missing or unreadable file means the
  * app's defaults, as when the app starts.
  */
-export function appRuntimeSettings(
-  dataDir: string,
-  logicalCores: number = cpus().length,
-): LocalRuntimeSettings {
+function storedSettings(dataDir: string): z.infer<typeof StoredSchema> {
   let raw: unknown = {};
   try {
     raw = JSON.parse(readFileSync(join(dataDir, 'settings.json'), 'utf8'));
   } catch {
     // No settings yet, or a file the app would start from defaults over too.
   }
-  const settings = StoredSchema.parse(typeof raw === 'object' && raw !== null ? raw : {});
+  return StoredSchema.parse(typeof raw === 'object' && raw !== null ? raw : {});
+}
+
+export function appRuntimeSettings(
+  dataDir: string,
+  logicalCores: number = cpus().length,
+): LocalRuntimeSettings {
+  const settings = storedSettings(dataDir);
   return runtimeSettingsOf(settings, quietThreadCap(settings.quietLocalModels, logicalCores));
+}
+
+/**
+ * The closed network's hosts from the app's settings (decision 094), or undefined while none is
+ * on: a command teaches inside the same walls the app does.
+ */
+export function appAllowedHosts(dataDir: string): string[] | undefined {
+  return allowedHostsOf(storedSettings(dataDir).closedNetwork);
 }

@@ -24,6 +24,7 @@ import { improvementNote, improvementPlan, returnLessons } from '../improve/impr
 import type { EngineStore } from '../store/engine-store';
 import type { RunProtocol, StoredRun } from '../store/records';
 import { configurationKey } from './configuration';
+import { recordingContacts } from './contacts';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
 import { errorMessage, must } from './errors';
@@ -743,7 +744,10 @@ export class RunController {
       store,
       paths,
       jobs,
-      deps,
+      // Every host the run's adapters reach is recorded with the run (decision 094).
+      deps: recordingContacts(deps, (host, inside) =>
+        store.runs.recordContact(runId, host, inside),
+      ),
       clock: this.clock,
       concurrency: this.concurrency,
       libraryLock: this.libraryLock,

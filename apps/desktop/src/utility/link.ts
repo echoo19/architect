@@ -17,6 +17,8 @@ const FollowedSettingsSchema = z.object({
   llamaServerPath: z.string().min(1).optional(),
   /** The Ollama whose models are unloaded before llama-server starts. */
   ollamaUrl: z.url().optional(),
+  /** The closed network's hosts while it is on (decision 094); teaching may reach no others. */
+  allowedHosts: z.array(z.string().min(1)).optional(),
 });
 
 export const EngineStartSchema = FollowedSettingsSchema.extend({

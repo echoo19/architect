@@ -513,4 +513,20 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE jobs ADD COLUMN version_of TEXT;
     `,
   },
+  {
+    version: 23,
+    name: 'run_hosts',
+    sql: `
+      -- Every host a run's adapters contacted, with how many requests went there and whether a
+      -- closed network admitted all of them (decision 094). Never a path, a body or a key.
+      CREATE TABLE run_hosts (
+        run_id TEXT NOT NULL,
+        host TEXT NOT NULL,
+        requests INTEGER NOT NULL,
+        inside INTEGER NOT NULL,
+        first_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, host)
+      );
+    `,
+  },
 ];

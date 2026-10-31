@@ -30,6 +30,7 @@ export * from './mentor';
 export * from './mentoring';
 export * from './models';
 export * from './net';
+export * from './network';
 export * from './qualification';
 export * from './package';
 export * from './report';

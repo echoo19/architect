@@ -312,30 +312,44 @@ export interface AdapterServeRequest {
   scales: Readonly<Record<string, number>>;
 }
 
+/**
+ * Told the host of every request a run's adapters send, just before it goes (decision 094):
+ * `inside` when a closed network was on and admitted it. Never a path, a body or a key.
+ */
+export type ContactRecorder = (host: string, inside: boolean) => void;
+
+/** What every adapter is made with besides its own options: who hears where its requests go. */
+export interface Contacted {
+  contacted?: ContactRecorder;
+}
+
 export interface AdapterDeps {
   /** `apiKey` is absent for a mentor that takes none, such as a model on this computer. */
-  createMentor(config: MentorConfig, options: { apiKey?: string }): MentorAdapter;
+  createMentor(config: MentorConfig, options: { apiKey?: string } & Contacted): MentorAdapter;
   createStudent(
     endpoint: StudentEndpoint,
-    options: { apiKey?: string; label?: string },
+    options: { apiKey?: string; label?: string } & Contacted,
   ): StudentAdapter;
   /**
    * The mentor's model as an agent with the student's tools, for verified corrections and
    * references. Absent where a build can't run one; the runner then refuses what needs it.
    */
-  createActor?(config: MentorConfig, options: { apiKey?: string }): ActorAdapter;
+  createActor?(config: MentorConfig, options: { apiKey?: string } & Contacted): ActorAdapter;
   /** Whether `createActor` can make this mentor an agent; assumed so when absent. */
   canAct?(config: MentorConfig): boolean;
   /**
    * A student on llama.cpp with adapters, to measure a candidate adapter on and off on one
    * server. Absent where no adapter runtime is set up; weights interventions are then refused.
    */
-  createAdapterStudent?(request: AdapterServeRequest, options: { label?: string }): StudentAdapter;
+  createAdapterStudent?(
+    request: AdapterServeRequest,
+    options: { label?: string } & Contacted,
+  ): StudentAdapter;
   /**
    * Muse Voice Transcribe, for a taught organization's recordings (decision 087). Absent where a
    * build has none; transcribing is then refused.
    */
-  createTranscriber?(options: { apiKey: string }): Transcriber;
+  createTranscriber?(options: { apiKey: string } & Contacted): Transcriber;
 }
 
 export interface SecretDeps {

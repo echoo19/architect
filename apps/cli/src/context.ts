@@ -11,7 +11,7 @@ import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub'
 import { appDataDir, type LocalRuntimeSettings } from '@architect/engine/local-runtime';
 import { CliError } from './exit';
 import type { CliIo } from './io';
-import { appRuntimeSettings } from './runtime-settings';
+import { appAllowedHosts, appRuntimeSettings } from './runtime-settings';
 import { trainerDir } from './trainer';
 
 /** What one command works with, opened when first needed and closed when it ends. */
@@ -83,6 +83,8 @@ export class CliContext {
     if (this.engineHost) return this.engineHost;
     this.library();
     const { env } = this.io;
+    // Teaching from here is held to the app's closed network, read as each adapter asks.
+    const allowedHosts = () => appAllowedHosts(this.dataDir);
     // An experiment calls hosted models with keys from the environment and uses no GPU here.
     this.engineHost = await createEngineHost({
       dataDir: this.dataDir,
@@ -101,10 +103,12 @@ export class CliContext {
             log,
             getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
             huggingFaceToken: hubTokenResolver({ env }),
+            allowedHosts,
           })),
       deps: createEngineDeps({
         dataDir: this.dataDir,
         getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
+        allowedHosts,
         ...(this.io.sandboxEntryPath === undefined
           ? {}
           : { sandboxEntryPath: this.io.sandboxEntryPath }),

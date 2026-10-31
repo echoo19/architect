@@ -46,6 +46,7 @@ import {
 } from './job';
 import { TokenPricingSchema, type GpuInfo, type StudentBuild } from './models';
 import { LineageEntrySchema } from './lineage';
+import { ClosedNetworkSchema, RunContactSchema } from './network';
 import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
 import { InstallationSchema, InstallStatusSchema, VersionSourceSchema } from './versions';
@@ -80,6 +81,7 @@ export const AppSettingsSchema = z.object({
   onboarded: z.boolean(),
   llamaServerPath: z.string().min(1).optional(),
   fieldExports: z.array(FieldExportRecordSchema).max(200).optional(),
+  closedNetwork: ClosedNetworkSchema.optional(),
 }) satisfies z.ZodType<AppSettings>;
 
 /**
@@ -200,6 +202,7 @@ export const RunDetailSchema = z.object({
   lineage: z.array(LineageEntrySchema),
   retests: z.array(RetestSchema).optional(),
   improves: RunImprovementSchema.optional(),
+  contacts: z.array(RunContactSchema).optional(),
 }) satisfies z.ZodType<RunDetail>;
 
 export const FileDiffSchema = z.object({

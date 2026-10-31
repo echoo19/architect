@@ -173,6 +173,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     const visible = [...(await jobs.tasks(jobId, 'train')), ...(await jobs.tasks(jobId, 'dev'))];
     const prompts = new Map(visible.map((task) => [task.id, task.prompt]));
     const retests = retestsOf(runId);
+    const contacts = store.runs.contacts(runId);
     return {
       run: record.run,
       job: await jobs.forRun(record),
@@ -188,6 +189,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       lineage: await lineageOf(record),
       ...(retests.length === 0 ? {} : { retests }),
       ...(record.improves === undefined ? {} : { improves: record.improves }),
+      ...(contacts.length === 0 ? {} : { contacts }),
     };
   }
 

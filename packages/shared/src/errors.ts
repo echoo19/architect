@@ -85,7 +85,9 @@ export type AdapterErrorCode =
   | 'bad_request'
   | 'bad_response'
   | 'aborted'
-  | 'blocked';
+  | 'blocked'
+  /** The host is outside the closed network the Lab names (decision 094). */
+  | 'outside_network';
 
 const RETRYABLE: ReadonlySet<AdapterErrorCode> = new Set([
   'rate_limit',

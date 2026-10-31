@@ -19,6 +19,6 @@ export { createOpenAICompatibleStudent } from './student/openai-compatible';
 export { createLlamaCppStudent } from './student/llamacpp';
 export { isLoopbackUrl } from './loopback';
 export { createMuseVoiceTranscriber, type TranscriberDeps } from './voice/transcribe';
-export type { AdapterDeps, Following, MentorDeps, StudentDeps } from './deps';
+export type { AdapterDeps, Following, MentorDeps, NetworkDeps, StudentDeps } from './deps';
 export type { Timeouts } from './http/client';
 export type { RetryOptions, Sleep } from './http/retry';

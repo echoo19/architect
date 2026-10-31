@@ -1,9 +1,11 @@
 import { AdapterError } from '@architect/shared';
 import type { z } from 'zod';
 import { readChunks, readText } from './body';
+import type { NetworkDeps } from '../deps';
 import { badResponse, HttpError } from './errors';
 import { describeErrorBody, failureForStatus, parseRetryAfter, redact } from './failures';
 import { RequestGuard } from './guard';
+import { admit } from './network';
 import { withRetries, type RetryOptions } from './retry';
 
 export interface Timeouts {
@@ -36,6 +38,11 @@ export interface HttpClientOptions {
   /** Limits for streamed replies. */
   timeouts?: Partial<Timeouts>;
   retry?: RetryOptions;
+  /**
+   * The closed network the client is held to: a base URL outside it is refused here, and every
+   * request is checked again before it is sent.
+   */
+  network?: NetworkDeps;
 }
 
 export interface RequestOptions {
@@ -89,6 +96,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
   const fetchImpl: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
   const secrets = options.secrets ?? [];
   const streamTimeouts: Timeouts = { ...STREAM_TIMEOUTS, ...options.timeouts };
+  admit(options.network, service, baseUrl, false);
 
   async function send(
     method: Method,
@@ -97,6 +105,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     request: RequestOptions,
     timeouts: Timeouts,
   ): Promise<{ response: Response; guard: RequestGuard }> {
+    admit(options.network, service, baseUrl + path, true);
     const guard = new RequestGuard(request.signal, service);
     try {
       guard.arm(timeouts.headersMs);

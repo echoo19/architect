@@ -22,6 +22,7 @@ import {
   type Lesson,
   type ReferenceRecord,
   type ReportCard,
+  type RunContact,
   type RunStatus,
   type RuntimeMeasurement,
   type SplitName,
@@ -119,6 +120,13 @@ export interface EngineStore {
     list(jobId?: string): StoredRun[];
     /** Oldest first, so interrupted runs resume in the order they started. */
     withStatus(statuses: readonly RunStatus[]): StoredRun[];
+    /**
+     * Counts one request from the run to `host`; it stays inside only while every request there
+     * was inside a closed network (decision 094).
+     */
+    recordContact(runId: string, host: string, inside: boolean): void;
+    /** The hosts the run contacted, in the order it first reached them. */
+    contacts(runId: string): RunContact[];
   };
   rounds: {
     insert(record: StoredRound): void;
@@ -1021,6 +1029,26 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
           )
           .map(runFromRow);
       },
+      recordContact: (runId, host, inside) => {
+        sql.run(
+          `INSERT INTO run_hosts (run_id, host, requests, inside, first_at)
+           VALUES (:run_id, :host, 1, :inside, :at)
+           ON CONFLICT (run_id, host) DO UPDATE SET
+             requests = requests + 1, inside = MIN(inside, excluded.inside)`,
+          { run_id: runId, host, inside: flag(inside), at: new Date().toISOString() },
+        );
+      },
+      contacts: (runId) =>
+        sql
+          .all(
+            'SELECT host, requests, inside FROM run_hosts WHERE run_id = :run_id ORDER BY first_at, rowid',
+            { run_id: runId },
+          )
+          .map((row) => ({
+            host: String(row['host']),
+            requests: Number(row['requests']),
+            inside: Number(row['inside']) === 1,
+          })),
     },
 
     rounds: {

@@ -56,6 +56,7 @@ export function createMentorActor(config: MentorConfig, deps: MentorDeps = {}): 
     },
     secrets: apiKey ? [apiKey] : [],
     fetch: deps.fetch,
+    network: deps.network,
     retry: deps.retry,
     timeouts: deps.timeouts,
   });

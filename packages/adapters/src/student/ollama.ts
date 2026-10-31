@@ -59,6 +59,7 @@ export function createOllamaStudent(
     service: OLLAMA_SERVICE,
     modelNotFoundHint: `Pull ${endpoint.model} first.`,
     fetch: deps.fetch,
+    network: deps.network,
     retry: deps.retry,
     timeouts: deps.timeouts,
   });

@@ -618,6 +618,7 @@ const ADAPTER_ERROR_CODES: readonly AdapterErrorCode[] = [
   'bad_response',
   'aborted',
   'blocked',
+  'outside_network',
 ];
 
 const HUB_ERROR_CODES: readonly HubErrorCode[] = [
