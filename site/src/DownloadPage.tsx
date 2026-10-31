@@ -5,8 +5,9 @@ import { Header } from './components/Header';
 import { AppleMark, WindowsMark } from './components/OsMarks';
 
 /**
- * The download page: what the one download holds, in a line, then a button for each system with
- * its one note under it. The button for the computer the page is open on is the solid one.
+ * The download page: what the one download holds, in a line, then a button for each system in the
+ * home page's order, and one row under them with the version, the Intel Mac's download and what to
+ * do if Windows warns. The button for the computer the page is open on is the solid one.
  */
 
 const beat = (index: number) => ({ '--i': index }) as CSSProperties;
@@ -16,21 +17,18 @@ function System({
   name,
   mark,
   href,
-  children,
 }: {
   os: 'mac' | 'windows';
   name: string;
   mark: ReactNode;
   href: string;
-  children: ReactNode;
 }) {
   return (
-    <li className="flex flex-col gap-3">
+    <li>
       <a className="btn btn-os w-full" data-for={os} href={href}>
         {mark}
         Download for {name}
       </a>
-      <p className="t-small m-0 text-center text-pretty">{children}</p>
     </li>
   );
 }
@@ -50,27 +48,28 @@ export function DownloadPage() {
           One download, two editions: Architect for one job, Architect Lab for a whole field.
         </p>
         <ul
-          className="enter m-0 mt-12 grid w-full max-w-[560px] list-none gap-6 p-0 sm:grid-cols-2 sm:gap-3"
+          className="enter m-0 mt-12 grid w-full max-w-[560px] list-none gap-3 p-0 sm:grid-cols-2"
           style={beat(2)}
         >
-          <System os="mac" name="macOS" mark={<AppleMark size={18} />} href={MAC_DMG}>
-            For Apple silicon.{' '}
-            <a className="link-inline" href={MAC_INTEL_DMG}>
-              Intel Mac
-            </a>
-          </System>
           <System
             os="windows"
             name="Windows"
             mark={<WindowsMark size={16} />}
             href={WINDOWS_INSTALLER}
-          >
-            If Windows warns you, choose More info, then Run anyway.
-          </System>
+          />
+          <System os="mac" name="macOS" mark={<AppleMark size={18} />} href={MAC_DMG} />
         </ul>
-        <a className="link-quiet t-small enter mt-12 tabular-nums" style={beat(3)} href={RELEASES}>
-          Version {APP_VERSION}
-        </a>
+        <p className="t-small enter m-0 mt-8 text-center text-pretty tabular-nums" style={beat(3)}>
+          <a className="link-quiet" href={RELEASES}>
+            Version {APP_VERSION}
+          </a>
+          <span aria-hidden> · </span>
+          <a className="link-inline" href={MAC_INTEL_DMG}>
+            Intel Mac
+          </a>
+          <span aria-hidden> · </span>
+          <span className="inline-block">If Windows warns you: More info, then Run anyway</span>
+        </p>
       </main>
       <Footer page="download" />
     </div>
