@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LocalEndpointSchema, loopbackEndpointIssue } from '../src';
+import { LocalEndpointSchema, loopbackEndpointIssue, StudentConfigSchema } from '../src';
 
 describe('a model server on this computer', () => {
   it.each([
@@ -32,5 +32,17 @@ describe('a model server on this computer', () => {
     expect(
       LocalEndpointSchema.safeParse({ baseUrl: 'http://localhost:1', model: ' ' }).success,
     ).toBe(false);
+  });
+
+  it('keeps the student a graduate runs on at an address on this computer', () => {
+    const student = (baseUrl: string) =>
+      StudentConfigSchema.safeParse({
+        label: 'Tutor',
+        local: { runtime: 'openai_compatible', baseUrl, model: 'tutor-ft' },
+      });
+    expect(student('http://127.0.0.1:8000/v1').success).toBe(true);
+    const remote = student('https://api.together.xyz/v1');
+    expect(remote.success).toBe(false);
+    expect(remote.error?.issues[0]?.path).toEqual(['local', 'baseUrl']);
   });
 });
