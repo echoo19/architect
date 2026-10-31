@@ -60,7 +60,7 @@ const METHODS = [
  * Compute: where training runs, a training job planned from a model's own config.json with its
  * memory term by term, and a bundle for a cluster the person submits themselves (decision 072).
  * Opened from a field, the plan starts from its student's model and the bundle from its latest
- * export (decision 092).
+ * export (decision 093).
  */
 export function ComputeScreen({
   jobId,
