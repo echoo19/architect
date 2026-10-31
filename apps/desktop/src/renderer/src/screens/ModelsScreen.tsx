@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, EmptyState, Input, Segmented, Skeleton } from '@architect/ui';
+import { Button, EmptyState, Input, Segmented, SidePresence, Skeleton } from '@architect/ui';
 import { Boxes, Search } from 'lucide-react';
 import { ProblemState } from '../components/ProblemState';
 import { navigate, paths } from '../lib/router';
@@ -110,20 +110,22 @@ export function ModelsScreen({ open: asked }: { open?: string | undefined }) {
           )}
         </PlacePage>
       </div>
-      {open && (
-        <ModelPanel
-          key={open.key}
-          row={open}
-          rows={rows}
-          onClose={close}
-          onOpen={(row) => setOpenKey(row.key)}
-          onCompare={(other) => {
-            const [before, after] = ordered(open, other);
-            setComparing([before.key, after.key]);
-          }}
-          onMoved={registry.reload}
-        />
-      )}
+      <SidePresence show={open !== undefined}>
+        {open && (
+          <ModelPanel
+            key={open.key}
+            row={open}
+            rows={rows}
+            onClose={close}
+            onOpen={(row) => setOpenKey(row.key)}
+            onCompare={(other) => {
+              const [before, after] = ordered(open, other);
+              setComparing([before.key, after.key]);
+            }}
+            onMoved={registry.reload}
+          />
+        )}
+      </SidePresence>
     </div>
   );
 }

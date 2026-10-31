@@ -135,7 +135,7 @@ function BriefCard({ brief, mentor, noun }: { brief: StudyBrief; mentor: string;
   return (
     <article
       aria-label="The brief"
-      className="flex flex-col overflow-hidden rounded-card bg-card px-6 pb-2 pt-1 shadow-edge"
+      className="flex flex-col overflow-hidden rounded-card surface-card px-6 pb-2 pt-1"
     >
       <SheetRow label="Skills" align="start">
         <ul className="m-0 flex list-none flex-col gap-3 p-0">

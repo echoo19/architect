@@ -71,7 +71,7 @@ export function Toaster() {
               initial={enter}
               animate={{ ...floating.animate, y: 0 }}
               exit={floating.exit}
-              className="flex items-start gap-3 rounded-card bg-raised py-4 pl-5 pr-3 shadow-float data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
+              className="flex items-start gap-3 rounded-card surface-float py-4 pl-5 pr-3 data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
             >
               {entry.tone === 'danger' && (
                 <CircleAlert size={16} className="mt-1 shrink-0 text-danger" aria-hidden />

@@ -113,10 +113,27 @@ export interface AppSettings {
    * its folder. Absent: the first one on PATH.
    */
   llamaServerPath?: string;
+  /**
+   * Each field's latest export from the app, newest first, so Compute can offer it after a
+   * restart. Recorded by the main process when an export is written, never by the renderer.
+   */
+  fieldExports?: FieldExportRecord[];
 }
 
-/** What the renderer may change in settings: everything but the program Architect runs. */
-export type AppSettingsPatch = Partial<Omit<AppSettings, 'llamaServerPath'>>;
+/** A field export the app wrote: the field, its name then, the folder it went to, and when. */
+export interface FieldExportRecord {
+  jobId: string;
+  name: string;
+  dir: string;
+  /** ISO time it was written. */
+  at: string;
+}
+
+/**
+ * What the renderer may change in settings: everything but the program Architect runs and the
+ * exports it recorded.
+ */
+export type AppSettingsPatch = Partial<Omit<AppSettings, 'llamaServerPath' | 'fieldExports'>>;
 
 /** llama.cpp's llama-server on this computer, as Settings shows it. */
 export interface LlamaServerStatus {
@@ -473,6 +490,8 @@ export interface ArchitectApi {
       filters?: { name: string; extensions: string[] }[];
       multiple?: boolean;
       directory?: boolean;
+      /** Where the dialog opens, such as a folder chosen before a restart. */
+      defaultPath?: string;
     }): Promise<string[]>;
     /**
      * The system's save dialog, for a file to write, such as a job file: the file chosen, or null

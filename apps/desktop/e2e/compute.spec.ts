@@ -114,14 +114,18 @@ test('shows each target with what it can do, the clusters as bundles only', asyn
   await expect(computer).toContainText('Ready · build 10472');
   await expect(region('Hugging Face Jobs')).toContainText('Ready');
   await expect(region('Hugging Face Jobs')).toContainText('HF_TOKEN');
-  for (const name of ['Slurm', 'Kubernetes']) {
-    await expect(region(name).getByText('Bundle only')).toBeVisible();
+  const clusters = region('Clusters');
+  await expect(clusters.getByText('Bundle only')).toBeVisible();
+  for (const command of [
+    'sbatch submit.sbatch',
+    'kubectl apply -f pytorchjob.yaml',
+    'sky launch -c architect-train sky.yaml',
+  ]) {
+    await expect(clusters).toContainText(command);
   }
   // No model is planned until the person enters one.
   await expect(region('Training plan').getByLabel('Model')).toHaveValue('');
   await expect(region('Memory on each GPU')).toHaveCount(0);
-  await expect(region('Slurm')).toContainText('sbatch submit.sbatch');
-  await expect(region('Kubernetes')).toContainText('kubectl apply -f pytorchjob.yaml');
   await capture('compute-dark.png');
 });
 

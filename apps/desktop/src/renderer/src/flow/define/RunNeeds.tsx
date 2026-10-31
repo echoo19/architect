@@ -21,7 +21,7 @@ export function RunNeeds({ needs, onAction, busyId = null }: RunNeedsProps) {
       <div className="pb-10">
         <section
           aria-label="Before it can start"
-          className="overflow-hidden rounded-card bg-card shadow-edge"
+          className="overflow-hidden rounded-card surface-card"
         >
           <ul className="m-0 flex list-none flex-col p-0">
             {needs.map((need) => (

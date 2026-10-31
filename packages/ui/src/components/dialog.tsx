@@ -1,4 +1,12 @@
-import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { cn } from '../lib/cn';
@@ -8,6 +16,33 @@ import { useEnterFrom } from '../motion/provider';
 import { springs } from '../motion/springs';
 
 const DialogOpen = createContext(false);
+
+/** Where on screen the dialog was opened from: the middle of the control that had focus. */
+type Origin = { x: number; y: number } | null;
+const DialogOrigin = createContext<Origin>(null);
+
+function originOf(element: Element | null): Origin {
+  if (!element || element === document.body) return null;
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) return null;
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+/**
+ * The point a dialog grows from, noted as it opens: the control that opened it still has focus
+ * then, since focus moves into the dialog only after it mounts. Without one, it grows from its
+ * own middle.
+ */
+function useOpenedFrom(open: boolean): Origin {
+  const [state, setState] = useState<{ open: boolean; origin: Origin }>({ open, origin: null });
+  if (state.open !== open) {
+    setState({
+      open,
+      origin: open && typeof document !== 'undefined' ? originOf(document.activeElement) : null,
+    });
+  }
+  return state.origin;
+}
 
 /** Whether the dialog or drawer around is open. Its content stays mounted while it leaves. */
 export function useDialogOpen(): boolean {
@@ -26,11 +61,14 @@ export function Dialog({
   ...props
 }: ComponentProps<typeof RadixDialog.Root>) {
   const [isOpen, setOpen] = useOpenState({ open, defaultOpen, onOpenChange });
+  const origin = useOpenedFrom(isOpen);
   return (
     <DialogOpen.Provider value={isOpen}>
-      <RadixDialog.Root {...props} open={isOpen} onOpenChange={setOpen}>
-        {children}
-      </RadixDialog.Root>
+      <DialogOrigin.Provider value={origin}>
+        <RadixDialog.Root {...props} open={isOpen} onOpenChange={setOpen}>
+          {children}
+        </RadixDialog.Root>
+      </DialogOrigin.Provider>
     </DialogOpen.Provider>
   );
 }
@@ -78,7 +116,19 @@ export function DialogContent({
   className,
 }: DialogContentProps) {
   const open = useDialogOpen();
+  const origin = useContext(DialogOrigin);
   const floating = useFloatingMotion();
+  const content = useRef<HTMLDivElement>(null);
+  // Grows from the control that opened it: its scale is centred on that point, so the few
+  // pixels it travels as it grows lead from there. Set before the first frame is drawn.
+  useLayoutEffect(() => {
+    const element = content.current;
+    if (!open || !element || !origin) return;
+    const box = element.getBoundingClientRect();
+    const x = Math.round(origin.x - box.left);
+    const y = Math.round(origin.y - box.top);
+    element.style.transformOrigin = `${x}px ${y}px`;
+  }, [open, origin]);
   return (
     <RadixDialog.Portal forceMount>
       <AnimatePresence>
@@ -91,10 +141,11 @@ export function DialogContent({
             {...(description ? {} : { 'aria-describedby': undefined })}
           >
             <motion.div
+              ref={content}
               {...floating}
               className={cn(
                 'fixed left-1/2 top-1/2 z-50 w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2',
-                'overflow-hidden rounded-card bg-raised shadow-float outline-none',
+                'overflow-hidden rounded-card surface-float outline-none',
                 sizes[size],
                 className,
               )}

@@ -4,6 +4,12 @@
 
 A large model teaches a small one by rewriting its instructions and tools. Every change is tested on work neither model has seen, and Architect certifies when the result can be trusted. For a whole field, "unseen" means organizations the small model was never taught on, one of them real. [See it on the website](https://echoo19.github.io/architect/).
 
+## Why we made this
+
+Most teams that build with AI rent it, and every request sends their data to someone else's model. Architect works the other way round: a large model teaches a small one the work and then leaves. What's left runs on the team's own computer and comes with a record of what it can and can't do.
+
+We started building Architect on October 27, 2026. Y Combinator's Requests for Startups for Winter 2027 came out after that, and three of them ask for what we were already making: [Own Your Intelligence](https://www.ycombinator.com/rfs#own-your-intelligence) (Jon Xu), [AI for the Air-Gapped Economy](https://www.ycombinator.com/rfs#ai-for-the-air-gapped-economy) (Brad Flora) and [Vertical Foundation Models](https://www.ycombinator.com/rfs#vertical-foundation-models) (Diana Hu). [The website](https://echoo19.github.io/architect/#why) quotes each one next to what Architect does about it.
+
 ## What you can make with it
 
 The specialists are what the system makes. They are examples, not the product.

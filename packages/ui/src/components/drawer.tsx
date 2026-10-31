@@ -64,7 +64,7 @@ export function DrawerContent({
               {...floating}
               className={cn(
                 'fixed bottom-3 right-3 top-3 z-50 flex w-[min(600px,calc(100vw-24px))] flex-col',
-                'overflow-hidden rounded-card bg-raised shadow-float outline-none',
+                'overflow-hidden rounded-card surface-float outline-none',
                 className,
               )}
             >

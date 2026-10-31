@@ -39,7 +39,7 @@ export function SidePanel({ content, onClose }: SidePanelProps) {
         ref={panel}
         tabIndex={-1}
         aria-label={label}
-        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-card bg-card outline-none shadow-edge"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-card surface-card outline-none"
       >
         <div className="flex min-h-[52px] shrink-0 items-center justify-between gap-3 border-b border-line py-1.5 pl-5 pr-2">
           <span className="truncate text-body font-medium">

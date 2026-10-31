@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   BadgeCheck,
   Columns2,
+  Cpu,
   FileText,
   FolderTree,
   GitBranch,
@@ -105,7 +106,7 @@ export function ModelPanel({
 
   return (
     <div className="flex h-full shrink-0 flex-col">
-      <div className="app-drag h-12 shrink-0 border-l border-line" />
+      <div className="app-drag h-12 shrink-0" />
       <Inspector<PanelTab>
         aria-label="Model"
         tabs={TABS}
@@ -156,7 +157,7 @@ function PanelHeader({
   const others = rows.filter((other) => comparable(row, other));
 
   return (
-    <div className="flex flex-col gap-4 border-b border-line px-5 pb-4">
+    <div className="flex flex-col gap-4 border-b border-line px-4 pb-4 pt-4">
       <div className="flex items-start gap-3">
         <AgentAvatar name={agent.name} size="md" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -216,6 +217,20 @@ function PanelHeader({
             Export
           </Button>
         )}
+        <Button
+          size="sm"
+          onClick={() =>
+            navigate(
+              paths.compute({
+                jobId: version.manifest.contract.jobId,
+                model: version.manifest.model.base.name,
+              }),
+            )
+          }
+        >
+          <Cpu size={14} strokeWidth={1.8} aria-hidden />
+          Plan cluster training
+        </Button>
       </div>
       {certifying && <CertifyDialog row={row} onClose={() => setCertifying(false)} />}
       {moving && active && (

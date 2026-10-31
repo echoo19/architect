@@ -129,7 +129,7 @@ export function ChatComposer({
           shape="round"
           size="sm"
           onClick={onJumpToLatest}
-          className="absolute -top-12 left-1/2 z-10 -translate-x-1/2 bg-raised shadow-float"
+          className="absolute -top-12 left-1/2 z-10 -translate-x-1/2 surface-float"
         >
           <ArrowDown size={16} strokeWidth={1.8} aria-hidden />
         </IconButton>

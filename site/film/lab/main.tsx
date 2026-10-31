@@ -1,7 +1,8 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { MotionProvider } from '@architect/ui';
-import { filmTime, LabFilm, RUNTIME, type Measured } from './film';
+import { filmTime, LabFilm, playedTime, WALKTHROUGH, type Measured } from './film';
+import { WHY_FROM, WHY_LENGTH, WhyScene } from './why';
 import './lab.css';
 
 /**
@@ -18,21 +19,35 @@ declare global {
   }
 }
 
+/** The film's length as played: the walkthrough, and the why scene inside it. */
+const RUNTIME = WALKTHROUGH + WHY_LENGTH;
+/** When the why scene starts, in the film as played. */
+const WHY_AT = playedTime(WHY_FROM);
+
 const host = document.getElementById('root');
 if (!host) throw new Error('The page has no #root element.');
 const root = createRoot(host);
 
-function draw(t: number, measured: Measured, measuring = false) {
+/** The frame for a moment of the film as played: the why scene, or the walkthrough around it. */
+function scene(played: number, measured: Measured) {
+  if (played >= WHY_AT && played < WHY_AT + WHY_LENGTH) {
+    return <WhyScene t={played - WHY_AT} measured={measured} />;
+  }
+  const walked = played < WHY_AT ? played : played - WHY_LENGTH;
+  return <LabFilm t={filmTime(walked)} measured={measured} />;
+}
+
+function draw(played: number, measured: Measured, measuring = false) {
   flushSync(() => {
     root.render(
       <MotionProvider instant>
-        <LabFilm t={t} measured={measured} measuring={measuring} />
+        {measuring ? <LabFilm t={0} measured={measured} measuring /> : scene(played, measured)}
       </MotionProvider>,
     );
   });
   for (const animation of document.getAnimations()) {
     animation.pause();
-    animation.currentTime = t * 1000;
+    animation.currentTime = played * 1000;
   }
 }
 
@@ -73,7 +88,7 @@ window.__ready = false;
 // The renderer waits for the returned promise: one painted frame after the new state, so a large
 // scroll is never captured from the frame before it.
 window.__seek = (time: number) => {
-  draw(filmTime(Math.min(RUNTIME, Math.max(0, time))), measured);
+  draw(Math.min(RUNTIME, Math.max(0, time)), measured);
   return new Promise<void>((done) => requestAnimationFrame(() => done()));
 };
 

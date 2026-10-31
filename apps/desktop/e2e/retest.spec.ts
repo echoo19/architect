@@ -382,7 +382,8 @@ test('says it fell short on this computer when it passed online', async () => {
   const offer = page.getByRole('region', { name: 'Test on this computer' });
   await expect(offer).toContainText('Below the target on this computer');
   await expect(offer).toContainText('67% · 40 of 60');
-  await expect(page.getByText('Not ready', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk finished training' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: / is ready$/ })).toHaveCount(0);
   await expect(page.getByText("It missed the job's target on this computer:")).toBeVisible();
   await expect(page.getByText('It scored 54 of 60 on its final test, run online.')).toBeVisible();
   await expect(page.getByText('You can still use it.')).toBeVisible();

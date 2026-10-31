@@ -49,6 +49,46 @@ export const SPECIALISTS = {
 /** The README's list of what Architect makes. */
 export const README_SPECIALISTS = `${REPO}#what-you-can-make-with-it`;
 
+/**
+ * Why Architect exists, under the film: our reason, then the three requests from Y Combinator that
+ * came out after the build began and ask for the same thing. Each quote is one sentence, verbatim,
+ * linked to its request.
+ */
+export const WHY = {
+  title: 'Why we made this',
+  reason:
+    "Most teams that build with AI rent it, and every request sends their data to someone else's model. Architect works the other way round: a large model teaches a small one the work and then leaves. What's left runs on the team's own computer and comes with a record of what it can and can't do.",
+  after:
+    "We started building Architect on October 27, 2026. Y Combinator's Requests for Startups for Winter 2027 came out after that, and three of them ask for what we were already making.",
+  requests: [
+    {
+      title: 'Own Your Intelligence',
+      author: 'Jon Xu',
+      href: 'https://www.ycombinator.com/rfs#own-your-intelligence',
+      quote:
+        'Someone has to turn workflows into evals, expertise into training data, production failures into improvements, and carry all of it forward with each new base model.',
+      answer:
+        "In Architect, a field's checks come from its workflow, and its verified examples from the organization's own material. Each failure becomes a logged change to the agent, and the same field can be taught again on a new base model.",
+    },
+    {
+      title: 'AI for the Air-Gapped Economy',
+      author: 'Brad Flora',
+      href: 'https://www.ycombinator.com/rfs#ai-for-the-air-gapped-economy',
+      quote: "The most valuable data in the world isn't in the cloud.",
+      answer:
+        "What Architect makes runs on the organization's own computer. It makes no network calls except to the model running beside it, and a test checks that.",
+    },
+    {
+      title: 'Vertical Foundation Models',
+      author: 'Diana Hu',
+      href: 'https://www.ycombinator.com/rfs#vertical-foundation-models',
+      quote: 'The hard part is getting high-quality, vertical-specific, verifiable rewards.',
+      answer:
+        'In Architect, every field ends with a checker that gives the same answer every time. It is exported as a reward a training framework can call, along with training examples the checker verified and sealed tests the model never saw. No large model has been trained with them yet.',
+    },
+  ],
+} as const;
+
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
