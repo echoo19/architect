@@ -1,21 +1,29 @@
 import { useState, type ReactNode } from 'react';
-import type {
-  ArmId,
-  ArmRow,
-  BackendId,
-  ComparisonReport,
-  ExperimentInput,
+import {
+  ExperimentDispositionSchema,
+  type ArmId,
+  type ArmReport,
+  type ArmRow,
+  type BackendId,
+  type ComparisonReport,
+  type ExperimentInput,
 } from '@architect/shared';
 import { armInSentence } from '@architect/shared';
 import {
   DataTable,
+  DetailList,
   Disclosure,
+  Drawer,
+  DrawerContent,
+  DrawerSection,
   IntervalPlot,
   Panel,
   Segmented,
   type IntervalGroup,
 } from '@architect/ui';
 import { formatAnswerTime, formatCost } from '../flow/format';
+import { DISPOSITIONS } from '../flow/train/evidence-words';
+import { formatPercent } from '../lib/format';
 import {
   ARM_NAMES,
   BACKEND_NAMES,
@@ -299,6 +307,167 @@ function SpendTable({
   );
 }
 
+/** "83% · 30 of 36", or null for nothing measured. */
+const scoreText = (score: { pass: number; total: number } | null) =>
+  score === null || score.total === 0
+    ? null
+    : `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+
+/** The harness version an arm froze, and its hash as a person reads it: "v3 · 61b8a9d". */
+const versionText = (frozen: NonNullable<ArmReport['frozen']>) =>
+  `v${frozen.harnessVersion} · ${frozen.harnessHash.replace(/^sha256[:-]/, '').slice(0, 7)}`;
+
+/** Each arm's run: its rounds, its check tasks at the last kept change, and the version it froze. */
+function RunsTable({ arms, onOpen }: { arms: readonly ArmReport[]; onOpen: (arm: ArmId) => void }) {
+  return (
+    <DataTable
+      aria-label="Each arm's run"
+      rows={arms}
+      rowKey={(arm) => arm.arm}
+      onRowClick={(arm) => onOpen(arm.arm)}
+      columns={[
+        { key: 'arm', header: 'Arm', cell: (arm) => ARM_NAMES[arm.arm] },
+        {
+          key: 'rounds',
+          header: 'Rounds',
+          align: 'end',
+          width: '88px',
+          cell: (arm) => arm.rounds?.used ?? null,
+        },
+        {
+          key: 'kept',
+          header: 'Kept',
+          align: 'end',
+          width: '76px',
+          cell: (arm) =>
+            arm.rounds === null
+              ? null
+              : arm.experiments.filter((round) => round.disposition === 'kept').length,
+        },
+        {
+          key: 'check',
+          header: 'Check tasks',
+          align: 'end',
+          width: '176px',
+          cell: (arm) => scoreText(arm.dev.kept?.after ?? arm.dev.baseline),
+        },
+        {
+          key: 'version',
+          header: 'Version',
+          align: 'end',
+          width: '156px',
+          cell: (arm) =>
+            arm.frozen === null ? null : (
+              <span className="font-mono text-small">{versionText(arm.frozen)}</span>
+            ),
+        },
+      ]}
+    />
+  );
+}
+
+/** What came of a round, in the Train screen's words; the runner's own word when it is new. */
+function Disposition({ value }: { value: string }) {
+  const known = ExperimentDispositionSchema.safeParse(value);
+  if (!known.success) return <span className="shrink-0">{value}</span>;
+  const { label, tone } = DISPOSITIONS[known.data];
+  return <span className={`shrink-0 ${tone}`}>{label}</span>;
+}
+
+/** An arm's run as the runner recorded it: each round and what came of it, and its version. */
+function ArmRun({ arm }: { arm: ArmReport }) {
+  const { frozen } = arm;
+  return (
+    <DrawerContent
+      title={ARM_NAMES[arm.arm]}
+      subtitle={arm.runId === null ? undefined : <span className="font-mono">{arm.runId}</span>}
+    >
+      <div className="flex flex-col gap-7">
+        <DrawerSection title="Rounds">
+          {arm.experiments.length === 0 ? (
+            <p className="m-0 text-ui">{arm.rounds === null ? 'It has no rounds' : 'None'}</p>
+          ) : (
+            <ol className="m-0 flex list-none flex-col p-0">
+              {arm.experiments.map((round) => (
+                <li
+                  key={round.round}
+                  className="flex items-baseline gap-3 border-t border-line py-2.5 text-ui first:border-t-0"
+                >
+                  <span className="w-16 shrink-0 text-small">Round {round.round}</span>
+                  <span className="min-w-0 flex-1 text-pretty">{round.title}</span>
+                  <Disposition value={round.disposition} />
+                </li>
+              ))}
+            </ol>
+          )}
+        </DrawerSection>
+        <DrawerSection title="Check tasks">
+          <DetailList
+            items={[
+              { label: 'At the start', value: scoreText(arm.dev.baseline) ?? '–' },
+              ...(arm.dev.kept
+                ? [
+                    {
+                      label: `After round ${arm.dev.kept.round}`,
+                      value: scoreText(arm.dev.kept.after) ?? '–',
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </DrawerSection>
+        <DrawerSection title="Version">
+          {frozen === null ? (
+            <p className="m-0 text-ui">Its harness wasn't frozen</p>
+          ) : (
+            <DetailList
+              items={[
+                { label: 'Harness', value: versionText(frozen) },
+                { label: 'Model', value: frozen.localModel },
+                { label: 'Runs on', value: frozen.backend },
+                ...(frozen.adapter
+                  ? [{ label: 'Adapter', value: frozen.adapter.sha256.slice(0, 7) }]
+                  : []),
+                { label: 'Final-test seeds', value: frozen.testSeeds.join(', ') },
+              ]}
+            />
+          )}
+        </DrawerSection>
+      </div>
+    </DrawerContent>
+  );
+}
+
+/**
+ * Each arm's run beside the paper: a row opens what it did round by round and the version of
+ * its harness it froze. The runs are the experiment's own, kept with it.
+ */
+function ArmRuns({ report, input }: { report: ComparisonReport; input: ExperimentInput }) {
+  const asked = new Set(input.arms.map((item) => item.arm));
+  const arms = report.arms.filter((arm) => asked.has(arm.arm) && arm.runId !== null);
+  const [open, setOpen] = useState<ArmId | null>(null);
+  const [shown, setShown] = useState(false);
+  const chosen = arms.find((arm) => arm.arm === open);
+  if (arms.length === 0) return null;
+  return (
+    <TableExhibit
+      label="Table 4"
+      caption="Each arm's run: its rounds, its check tasks, and the version of its harness it froze."
+    >
+      <RunsTable
+        arms={arms}
+        onOpen={(arm) => {
+          setOpen(arm);
+          setShown(true);
+        }}
+      />
+      <Drawer open={shown} onOpenChange={setShown}>
+        {chosen && <ArmRun arm={chosen} />}
+      </Drawer>
+    </TableExhibit>
+  );
+}
+
 /** The released results: summary, the figure and tables for where the student ran, the notes. */
 export function Results({ report, input }: { report: ComparisonReport; input: ExperimentInput }) {
   const figures = figuresOf(report);
@@ -357,6 +526,7 @@ export function Results({ report, input }: { report: ComparisonReport; input: Ex
       >
         <SpendTable report={report} input={input} measured={measured} />
       </TableExhibit>
+      <ArmRuns report={report} input={input} />
       {report.disclosures.length > 0 && (
         <Disclosure label="Notes from the report">
           <ul className="m-0 flex max-w-[76ch] list-disc flex-col gap-2 pl-5 text-ui text-pretty">

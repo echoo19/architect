@@ -18,15 +18,15 @@ A read-only audit on Nov 1 (all 207 screenshots, the routes, the places' code) f
 
 ## Places that lead to each other
 
-1. Results in the Lab: "Open in Models" and "Open field"; Close returns to the field it came from (`ReportScreen.tsx`, `FlowShell.tsx`).
-2. Model panel: "Open chat" and "Open results" (`ModelPanel.tsx`).
-3. Lab: an Experiments card; running experiments under Running and a paused one ("needs funding") under Needs you (`lab/cards.tsx`, `lab/items.ts`).
-4. Experiment results: each arm links to its run's report and version (`experiments/Results.tsx`).
-5. Compute's bundle: "Use the latest export of…" with a field picker; Assets' export toast links to Compute (`compute/BundleCard.tsx`, `fields/Assets.tsx`).
-6. One way to start a field: the Lab's "Describe a field" (card and empty state) calls the same `newField()` as Fields (`lab/cards.tsx`, `LabScreen.tsx`).
-7. Field page rows ("Versions") open Models with that version's panel open (`fields/Candidates.tsx`, a `paths.models` key).
-8. Back links: field page → Fields; Train and Results → their field.
-9. Qualifying lives in four places (Organizations → Qualify, Models → Certify, Compute → Qualify a trained model, `architect certify`): keep them, but every result shows on the version's panel in Models.
+1. ~~Results in the Lab: "Open in Models" and "Open field"; Close returns to the field it came from (`ReportScreen.tsx`, `FlowShell.tsx`).~~
+2. ~~Model panel: "Open chat" and "Open results" (`ModelPanel.tsx`).~~
+3. ~~Lab: an Experiments card; running experiments under Running and a paused one ("needs funding") under Needs you (`lab/cards.tsx`, `lab/items.ts`).~~
+4. ~~Experiment results: each arm links to its run's report and version (`experiments/Results.tsx`).~~ An arm's run lives in the experiment's own records, not the app's, so Table 4 opens it in a drawer (its rounds, check tasks and frozen harness version) rather than on the Results screen.
+5. ~~Compute's bundle: "Use the latest export of…" with a field picker; Assets' export toast links to Compute (`compute/BundleCard.tsx`, `fields/Assets.tsx`).~~ The picker lists the exports written since Architect started: a folder from an earlier session must be chosen again (the main process opens only folders the person chose).
+6. ~~One way to start a field: the Lab's "Describe a field" (card and empty state) calls the same `newField()` as Fields (`lab/cards.tsx`, `LabScreen.tsx`).~~
+7. ~~Field page rows ("Versions") open Models with that version's panel open (`fields/Candidates.tsx`, a `paths.models` key).~~ A version no agent holds yet opens its results.
+8. ~~Back links: field page → Fields; Train and Results → their field.~~
+9. ~~Qualifying lives in four places (Organizations → Qualify, Models → Certify, Compute → Qualify a trained model, `architect certify`): keep them, but every result shows on the version's panel in Models.~~
 
 ## One look
 

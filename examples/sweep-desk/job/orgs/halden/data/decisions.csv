@@ -1,0 +1,4 @@
+decision_id,sweep_id,decided_on,lr,warmup,decision
+D-018,sw-11,2026-09-13,0.0006,0,keep
+D-019,sw-13,2026-09-19,0.001,0,keep
+D-020,sw-23,2026-10-16,0.002,0,keep

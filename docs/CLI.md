@@ -1,6 +1,6 @@
 # The architect command
 
-`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, `install` from Hugging Face and `train plan --model`, which reads a model's `config.json`, go online, to Hugging Face itself.
+`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, `install` from Hugging Face and `train plan --model`, which reads a model's `config.json`, go online, to Hugging Face itself. The exception is `experiment start` and `experiment resume`, which run an experiment on the hosted models it names and spend what its caps allow.
 
 Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened. Other apps on the same computer can use an agent through `architect serve`, which answers like an OpenAI-compatible chat endpoint.
 
@@ -28,7 +28,7 @@ Relative paths are read from the folder you typed the command in. `node apps/cli
 
 ## Commands
 
-Results go to stdout and everything else (steps, progress, messages) to stderr, so stdout can be read by a script. `list`, `install`, `inspect`, `verify`, `export` and `publish` print JSON with `--json`, with snake_case keys and a `format` naming what it is. An agent is named by its name as `architect list` shows it (`service-desk`) or by its id (`grd_...`).
+Results go to stdout and everything else (steps, progress, messages) to stderr, so stdout can be read by a script. `list`, `install`, `inspect`, `verify`, `export` and `publish` print JSON with `--json`, as do the Lab's `field` and `experiment` commands (below, with the app's own keys), with snake_case keys and a `format` naming what it is. An agent is named by its name as `architect list` shows it (`service-desk`) or by its id (`grd_...`).
 
 ### list
 
@@ -220,6 +220,48 @@ Writes what a field job has taught so far into one new folder, for training a mo
 
 Nothing of the final test or of an organization the job has never seen goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
 
+### field list, status and add-org
+
+```bash
+architect field list [--json]
+architect field status "Academy desk" [--json]
+architect field add-org "Academy desk" --folder ./maple --name "Maple Grove" --never-seen [--generated] [--json]
+```
+
+A field is named by its id or its name. `list` and `status` read what the Fields place reads: for each field, the organizations it is taught on, those it never sees (generated) and the real ones it never sees, how many versions took the final test, the best version's scores on each of the three kinds, and how many versions hold a certificate. The best version is the one with the highest score on the organizations it was taught on, as in the app. A kind that was not tested shows `-` (null in JSON), never zero. `status` adds each organization by name with its files, and each version's scores and certificate. These are your own results, so they carry the names of your never-seen organizations, as the app does; nothing is sent anywhere.
+
+`add-org` adds one more never-seen organization to a field after it was made (decision 085), through the same call as the app, so it refuses what the app refuses: a folder that is missing or lacks the files the field's organizations have, a name already used, a field of one organization, a field with no final test yet. The folder holds the organization's records and a `tasks.jsonl` (unless the field was drafted). `--never-seen` is required, to say it is kept for the final test and never taught on; `--generated` says its records were generated, and they are taken as real otherwise. It prints the field as `status` does. Qualifying a version on it is done in the app.
+
+### experiment
+
+```bash
+architect experiment plan "Academy desk" --arms bare,draft,targeted \
+  --hypothesis "Targeted mentoring passes more of the final test than Glimmer alone." \
+  --primary targeted-bare:unseen [--seeds 101,102] [--student-usd 15 --spark-usd 10 --wall-minutes 720] [--json]
+architect experiment preregister <id>
+architect experiment start <id>          # runs until it ends; Ctrl+C pauses it
+architect experiment resume <id> [--confirm-study <token>] [--confirm] [--student-cap-usd N] [--drop-arm <arm>]
+architect experiment pause|stop <id>
+architect experiment status <id> [--json]
+architect experiment report <id> [--json]
+architect experiment list [--json]
+```
+
+These are the app's experiments (decision 074) over the same engine calls, so an experiment made here shows in the app's Experiments place, and one made there can be read or run here. Nothing about what an experiment is changes: planning spends nothing, preregistering freezes the arms, seeds and caps with a hash, and every cap is a hard cap.
+
+- **`plan`** takes a field in the library, or a job folder. `--arms` names the arms (`bare`, `draft`, `targeted`, `reference`, `reference-targeted`, `repeat`, `fixed`, `weights-one-shot`, `weights-targeted`). `--primary a-b:group` is arm a's pass rate less arm b's on `all` of the final test, the organizations the arms are taught on (`seen`) or those they have never seen (`unseen`); `all` is the default. Seeds, rounds and caps start from the app's defaults (final-test seed 101, mentoring seed 1, 4 rounds, $15 for hosted Glimmer, $10 for Spark, no compute, 720 minutes); `--seeds`, `--mentoring-seed`, `--rounds`, `--student-usd`, `--spark-usd`, `--compute-usd` and `--wall-minutes` change them. It prints the id and what the plan would cost at the prices assumed so far.
+- **`preregister`** needs the hypothesis and, when two or more arms are compared, a primary comparison; it exits 3 without them, and 3 again once frozen.
+- **`start` and `resume`** run the experiment in the command and return when it ends, so they spend: they call the hosted models the experiment names, with keys from `<PROVIDER>_API_KEY` in the environment (for example `OPENROUTER_API_KEY`), and use no GPU on this computer. On a field, Spark studies the organizations first: the run stops with exit 3 and the brief to read (`status` shows it with its token), and `resume <id> --confirm-study <token>` goes on once you have read it. The same exit 3 means the caps cut the plan down (`--confirm` goes ahead with the arms that fit) or an arm can't be paid for at what an attempt cost (`--student-cap-usd` raises Glimmer's cap, `--drop-arm` drops the arm; decision 081). Ctrl+C pauses it with exit 130; the time it ran still counts against its wall clock, and `resume` goes on.
+- **`pause`** pauses an experiment running in the same command, so from a terminal the way to pause is Ctrl+C where `start` runs. **`stop`** ends an experiment for good and keeps what it measured.
+- **`status`** shows where it stands: the record, each arm's status, what has been spent, whether the final tests were released, and Spark's brief when it waits.
+- **`report`** prints the runner's report as Markdown, or as JSON with `--json`, **only once the final tests were released**. Until then it prints nothing on stdout and exits 4. Nothing about the final test or a never-seen organization is in `status` or any other output before the release: the commands print what the experiments API returns, parsed with the shared schemas, which drop anything they don't name.
+
+Only one process should work on an experiment at a time: opening the data folder while the app runs an experiment pauses it, as closing the app would.
+
+### JSON for the Lab commands
+
+`--json` writes one document to stdout with a `format`, validated against the schemas in `packages/shared/src/lab-cli.ts` (and `experiments.ts` for the records), so a script can parse it with the same code: `architect.field-list/1`, `architect.field-status/1`, `architect.experiment-plan/1` (`plan`), `architect.experiment/1` (`preregister`, `pause`, `stop`), `architect.experiment-status/1`, `architect.experiment-list/1` and `architect.experiment-report/1`. `start` and `resume` print `architect.experiment/1` as well, with the record as it ended. Their keys are the app's own records' (camelCase, as in `experiment.json`), not the snake_case of run results. Messages and progress go to stderr; a failure prints once, with what to do, and the exit code says what kind it was.
+
 ### reward score
 
 ```bash
@@ -352,8 +394,8 @@ An approval nobody could give looks like this, with exit 3:
 | 0 | `succeeded` | It did what was asked. |
 | 1 | `runtime_error` | Something failed while running: the model runtime isn't there or failed, the Hub couldn't be reached or an upload broke off, `--timeout` ran out, or a fault. |
 | 2 | `invalid_input` | The command line or the request is malformed, or names an agent, file, package, repository or revision that isn't there; a package is damaged or unsafe. |
-| 3 | `not_permitted` | A requirement or permission isn't met: a change that needs approval, a folder that isn't bound or granted, an installation that is blocked or needs attention, a model that isn't on this computer, a missing Hugging Face token, scan findings not accepted, a public repository for a private publication. |
-| 4 | `task_failed` | The agent ran and didn't do the task: it refused it, stopped without an answer in the steps it had, or ended on a reply it couldn't use. |
+| 3 | `not_permitted` | A requirement or permission isn't met: an experiment that waits for you (Spark's brief to confirm, a plan the caps cut down, money for an arm), or that is frozen or in another state than the command needs, a change that needs approval, a folder that isn't bound or granted, an installation that is blocked or needs attention, a model that isn't on this computer, a missing Hugging Face token, scan findings not accepted, a public repository for a private publication. |
+| 4 | `task_failed` | The agent ran and didn't do the task: it refused it, stopped without an answer in the steps it had, or ended on a reply it couldn't use. For an experiment: it ended paused, stopped or incomplete, or `report` has no released results. |
 | 130 | `cancelled` | Ctrl+C or a stop signal ended it. A second Ctrl+C ends the process at once. |
 
 Every command ends on its own: a run that needs an approval nobody can give fails at once, and a model that stops answering is given up on after the adapter's limits (five minutes of silence), or sooner with `--timeout`.

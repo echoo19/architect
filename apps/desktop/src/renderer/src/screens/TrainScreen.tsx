@@ -98,6 +98,7 @@ export function TrainScreen({ runId }: { runId: string }) {
       title={live?.job.name ?? 'Training'}
       step={improving ? 'Improve' : 'Train'}
       {...(improving ? { steps: IMPROVE_STEPS } : {})}
+      field={live && !live.improves ? live.job.id : undefined}
       actions={live && <RunControls live={live} onStop={() => setStopping(true)} />}
     >
       <div

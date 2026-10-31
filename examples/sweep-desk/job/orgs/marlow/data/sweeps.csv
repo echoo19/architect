@@ -1,0 +1,9 @@
+sweep_id,name,model,grid,baseline,started_on
+sweep_1,1B lr x warmup v2,1B,learning_rate=2e-4/3e-4/6e-4/1e-3; warmup_steps=0/1000/2000,learning_rate=3e-4; warmup_steps=0,2026-09-17
+sweep_3,160M lr x warmup v2,160M,learning_rate=2e-4/3e-4/6e-4/1e-3; warmup_steps=0/500/1000,learning_rate=3e-4; warmup_steps=0,2026-09-21
+sweep_5,160M lr x warmup (rerun),160M,learning_rate=1e-4/2e-4/3e-4/6e-4; warmup_steps=0/1000/2000,learning_rate=2e-4; warmup_steps=0,2026-09-25
+sweep_7,1B lr x warmup,1B,learning_rate=6e-4/1e-3/2e-3/3e-3; warmup_steps=0/1000/2000,learning_rate=1e-3; warmup_steps=0,2026-10-01
+sweep_9,160M lr x warmup v2,160M,learning_rate=6e-4/1e-3/2e-3/3e-3; warmup_steps=0/500/2000,learning_rate=1e-3; warmup_steps=0,2026-10-05
+sweep_11,1B lr x warmup,1B,learning_rate=3e-4/6e-4/1e-3/2e-3; warmup_steps=0/1000/2000,learning_rate=6e-4; warmup_steps=0,2026-10-12
+sweep_13,1B lr x warmup (rerun),1B,learning_rate=3e-4/6e-4/1e-3/2e-3; warmup_steps=0/500/2000,learning_rate=6e-4; warmup_steps=0,2026-10-18
+sweep_15,160M lr x warmup (rerun),160M,learning_rate=2e-4/3e-4/6e-4/1e-3; warmup_steps=0/1000/2000,learning_rate=3e-4; warmup_steps=0,2026-10-23

@@ -1,11 +1,10 @@
 import type {
   Correction,
+  ExperimentRecord,
   GraduateSummary,
   Improvement,
   JobSummary,
-  OrgTypeResult,
   RunPhase,
-  Score,
   WorkspaceChat,
 } from '@architect/shared';
 import { formatPercent } from '../lib/format';
@@ -20,7 +19,8 @@ import { paths } from '../lib/router';
 type LatestRun = NonNullable<JobSummary['latestRun']>;
 
 /** What waits for the person, by kind. */
-export type NeedKind = 'question' | 'results' | 'approval' | 'lessons' | 'promote' | 'failed';
+export type NeedKind =
+  'question' | 'results' | 'approval' | 'lessons' | 'promote' | 'failed' | 'experiment';
 
 export interface Need {
   key: string;
@@ -50,6 +50,41 @@ export function jobNeeds(jobs: readonly JobSummary[]): Need[] {
     if (run.status === 'failed') return at('failed', 'Stopped on an error', paths.train(run.id));
     return [];
   });
+}
+
+/**
+ * Experiments paused for the person: one that can't pay for an arm at what an attempt really
+ * cost (decision 081), or one waiting for Spark's brief to be confirmed or a cut plan accepted.
+ */
+export function experimentNeeds(experiments: readonly ExperimentRecord[]): Need[] {
+  return experiments.flatMap((experiment): Need[] => {
+    const detail =
+      experiment.status === 'needs_funding'
+        ? 'Needs funding'
+        : experiment.status === 'waiting'
+          ? 'Waits for you'
+          : null;
+    return detail === null
+      ? []
+      : [
+          {
+            key: `experiment:${experiment.id}`,
+            kind: 'experiment',
+            title: experiment.input.name,
+            detail,
+            target: { path: paths.experiment(experiment.id) },
+          },
+        ];
+  });
+}
+
+/** Experiments under way: calibrating, or running their arms. */
+export function runningExperiments(
+  experiments: readonly ExperimentRecord[],
+): readonly ExperimentRecord[] {
+  return experiments.filter(
+    (experiment) => experiment.status === 'running' || experiment.status === 'calibrating',
+  );
 }
 
 /** Chats where an agent waits for the person to approve a change. */
@@ -175,30 +210,4 @@ export function runWord(run: Pick<LatestRun, 'status' | 'phase'>): string {
   return words[run.phase];
 }
 
-export interface OrgScores {
-  /** Organizations it trained on. */
-  seen: Score | null;
-  /** Generated organizations it never saw. */
-  unseen: Score | null;
-  /** Real organizations it never saw. */
-  real: Score | null;
-}
-
-function add(total: Score | null, result: OrgTypeResult): Score {
-  return { pass: (total?.pass ?? 0) + result.pass, total: (total?.total ?? 0) + result.total };
-}
-
-/**
- * A final test's results by kind of organization: the ones it trained on, generated ones it
- * never saw, and real ones it never saw. A kind with no tasks is null: not measured. An
- * organization added to the field later is left out, so candidates compare on the same ones.
- */
-export function orgScores(perOrg: readonly OrgTypeResult[]): OrgScores {
-  const scores: OrgScores = { seen: null, unseen: null, real: null };
-  for (const result of perOrg) {
-    if (result.total === 0 || result.addedLater === true) continue;
-    const kind = result.seen ? 'seen' : result.synthetic ? 'unseen' : 'real';
-    scores[kind] = add(scores[kind], result);
-  }
-  return scores;
-}
+export { orgScores, type OrgScores } from '@architect/shared';

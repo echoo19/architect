@@ -76,11 +76,55 @@ describe('tasks from an academy folder without question text', () => {
     }
   });
 
-  it('number the first assignment A-0001 when the file has none', () => {
-    const assigns = tasks.filter((t) => t.type === 'assign');
+  it('accept any new assignment ids when the file is empty and the policy states no format', () => {
+    const assigns = tasks.filter(
+      (t) => t.type === 'assign' && Number(paramsOf(t).expected_count) > 1,
+    );
     expect(assigns.length).toBeGreaterThan(0);
-    const first = assigns.find((t) => Number(paramsOf(t).expected_count) > 0)!;
+    for (const task of assigns) {
+      expect(paramsOf(task).assignment_ids, task.id).toBeNull();
+      const { tools, answer } = solve(task);
+      const rows = [...tools.appendedTo('assignments.csv')];
+      const withIds = (ids: readonly (string | null)[]) =>
+        rows.map((row, i) => ({ ...row, assignment_id: ids[i] ?? null }));
+      const check = (appended: readonly CsvRow[]) => job.check(task, context(appended, answer));
+      expect(check(rows), task.id).toMatchObject({ pass: true });
+      expect(check(withIds(rows.map((_, i) => `row-${i + 7}`))), task.id).toMatchObject({
+        pass: true,
+      });
+      expect(check(withIds(rows.map(() => 'X-1'))).reason).toMatch(
+        /^assignment_id: X-1 is used twice/,
+      );
+      expect(check(withIds(rows.map((_, i) => (i === 0 ? '' : `B-${i}`)))).reason).toMatch(
+        /^assignment_id: a new row has no id/,
+      );
+      const wrong = rows.map((row, i) => ({
+        ...row,
+        student_id: i === 0 ? 'S-nobody' : (row.student_id ?? null),
+      }));
+      expect(check(wrong).pass, task.id).toBe(false);
+    }
+  });
+
+  it('keep the numbering when the file has ids or the policy states the first one', () => {
+    const stated = new Map([
+      ...files,
+      [
+        'policy.md',
+        `${files.get('policy.md')!}
+Number from A-0001 when the file is empty.
+`,
+      ],
+    ]);
+    const numbered = buildRecordTasks(stated, options).filter((t) => t.type === 'assign');
+    const first = numbered.find((t) => Number(paramsOf(t).expected_count) > 0)!;
     expect((paramsOf(first).assignment_ids as string[])[0]).toBe('A-0001');
+    passedByTheReference(numbered, stated);
+    const { academy, files: all } = buildAcademy(2088);
+    const built = buildRecordTasks(all, { org: 'x', seed: 3, asOf: academy.style.today });
+    for (const task of built.filter((t) => t.type === 'assign')) {
+      expect(Array.isArray(paramsOf(task).assignment_ids), task.id).toBe(true);
+    }
   });
 
   it('are passed by the reference and failed by a wrong answer, with no staff notes file', () => {

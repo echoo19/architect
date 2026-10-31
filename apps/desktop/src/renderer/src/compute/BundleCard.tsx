@@ -5,11 +5,29 @@ import {
   type TrainingPlan,
   type WrittenTrainBundle,
 } from '@architect/shared';
-import { Badge, Button, Card, CardRow, ChoiceTiles } from '@architect/ui';
-import { Container, FolderInput, FolderOutput, Server, TriangleAlert } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  CardRow,
+  ChoiceTiles,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@architect/ui';
+import {
+  ChevronDown,
+  Container,
+  FolderInput,
+  FolderOutput,
+  Server,
+  TriangleAlert,
+} from 'lucide-react';
 import { flowApi } from '../api/client';
 import { computeApi } from '../api/compute';
 import { CopyButton } from '../components/CopyButton';
+import { newestFirst, useFieldExports, type FieldExport } from '../fields/exports';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { bundleBlocker, planRequest, type PlanSettings } from './model';
@@ -28,6 +46,33 @@ const icon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 export const CLUSTER_NOTE =
   'Architect writes this bundle and never submits it. It is checked against simulated schedulers only; GPU runs, large models and training gains are unverified.';
 
+/** The fields exported in this session, each offering the folder of its latest export. */
+function LatestExport({
+  exports,
+  onPick,
+}: {
+  exports: readonly FieldExport[];
+  onPick: (dir: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm">
+          Use the latest export of…
+          <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {exports.map((item) => (
+          <DropdownMenuItem key={item.jobId} onSelect={() => onPick(item.dir)}>
+            {item.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /**
  * A launch bundle for Slurm or Kubernetes, written from the plan with a field export's verified
  * demonstrations, and the command that submits it with the person's own tools. Experimental.
@@ -42,7 +87,10 @@ export function BundleCard({
   settings: PlanSettings;
 }) {
   const [target, setTarget] = useState<ClusterTarget>('slurm');
-  const [exportDir, setExportDir] = useState<string | null>(null);
+  const exports = newestFirst(useFieldExports((state) => state.latest));
+  // The newest export of this session to start with, so one written a moment ago is ready.
+  const [exportDir, setExportDir] = useState<string | null>(exports[0]?.dir ?? null);
+  const exported = exports.find((item) => item.dir === exportDir);
   const [parentDir, setParentDir] = useState<string | null>(null);
   const [writing, setWriting] = useState(false);
   const [written, setWritten] = useState<WrittenTrainBundle | null>(null);
@@ -98,19 +146,22 @@ export function BundleCard({
             <FolderInput {...icon} />
           </Tile>
         }
-        title="Field export"
+        title={exported ? `Field export of ${exported.name}` : 'Field export'}
         detail={
           <span className="font-mono" title={exportDir ?? undefined}>
             {exportDir === null ? 'None chosen' : shortPath(exportDir)}
           </span>
         }
         end={
-          <Button
-            size="sm"
-            onClick={() => void choose('Choose a field export', (dir) => setExportDir(dir))}
-          >
-            Choose
-          </Button>
+          <span className="flex items-center gap-2">
+            {exports.length > 0 && <LatestExport exports={exports} onPick={setExportDir} />}
+            <Button
+              size="sm"
+              onClick={() => void choose('Choose a field export', (dir) => setExportDir(dir))}
+            >
+              Choose
+            </Button>
+          </span>
         }
       />
       <CardRow

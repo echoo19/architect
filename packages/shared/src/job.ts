@@ -305,10 +305,12 @@ export const JobSchema = z.object({
 export type Job = z.infer<typeof JobSchema>;
 
 /**
- * The sample jobs shipped with the app: the service desk, and Academy desk, a staff-facing agent for
- * test-prep academies, taught at three of them and tested at one it never sees.
+ * The sample jobs shipped with the app: the service desk; Academy desk, a staff-facing agent for
+ * test-prep academies; and the science lab's two specialists, Sweep desk, which reads a research
+ * group's training runs, and Assay desk, which reads screening labs' plate-reader exports. Each
+ * field job is taught at three organizations and tested at one it never sees.
  */
-export const SampleJobSchema = z.enum(['home-services', 'academy']);
+export const SampleJobSchema = z.enum(['home-services', 'academy', 'sweep-desk', 'assay-desk']);
 export type SampleJob = z.infer<typeof SampleJobSchema>;
 
 /** The organizations a job trains on: every listed one whose role is `train`. */

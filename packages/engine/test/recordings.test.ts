@@ -229,11 +229,12 @@ describe('transcribing a taught organization’s recordings', () => {
   it('refuses an organization kept for the final test, before reading or sending anything', async () => {
     await recordings().share(job.id, true);
     const missing = join(world.root, 'never-read.wav');
+    // Each attempt starts only when it is awaited, so neither rejects without a handler.
     for (const attempt of [
-      recordings().quote(job.id, 'harbor', [missing]),
-      recordings().transcribe(job.id, { org: 'harbor', paths: [missing], consent: true }),
+      () => recordings().quote(job.id, 'harbor', [missing]),
+      () => recordings().transcribe(job.id, { org: 'harbor', paths: [missing], consent: true }),
     ]) {
-      const error = await attempt.catch((caught: unknown) => caught);
+      const error = await attempt().catch((caught: unknown) => caught);
       expect(error).toBeInstanceOf(GuardError);
       expect((error as GuardError).guard).toBe('split');
     }

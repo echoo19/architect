@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream';
+import type { ExperimentEnvironment } from '@architect/engine';
 import type { ServerCommand } from '@architect/engine/local-runtime';
 import type { Machine } from '@architect/shared';
 
@@ -38,6 +39,11 @@ export interface CliIo {
    * set it.
    */
   machine?: Machine;
+  /**
+   * The environment experiments run in, instead of the real one with hosted models and keys from
+   * the environment. Only tests set it.
+   */
+  experimentEnvironment?: (dataDir: string, log: (line: string) => void) => ExperimentEnvironment;
 }
 
 /** Sets up interrupts for one command: a controller that aborts on the first Ctrl+C. */

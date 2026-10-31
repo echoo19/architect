@@ -1,0 +1,180 @@
+{
+  "format": 1,
+  "id": "sample-assay-desk",
+  "name": "Assay desk",
+  "description": "The Assay desk helps a screening lab read its plate-reader exports. It works only from the lab's own files: its plates, each instrument's export, the well map and the lab's policy. It normalizes wells to percent inhibition against the plate's own controls, works out a plate's Z′ and whether it passes, calls hits by the lab's rule, judges replicates, and queues re-tests for failed plates and borderline or inconclusive compounds. It only writes to retests.csv.",
+  "summary": "Reads a screening lab's plate exports by the lab's own rules.",
+  "does": [
+    "Normalizes wells to percent inhibition against the plate’s controls",
+    "Works out Z′ and passes or fails a plate",
+    "Calls hits and judges replicates by the lab's rule",
+    "Queues re-tests the policy calls for"
+  ],
+  "doesNot": [
+    "Never calls hits on a plate that fails QC",
+    "Never changes past re-test requests",
+    "Asks before it adds to the re-test queue"
+  ],
+  "createdAt": "2026-10-30T00:00:00.000Z",
+  "businessDate": "2026-11-16",
+  "taskTypes": [
+    {
+      "id": "normalize",
+      "label": "Normalize",
+      "description": "Percent inhibition of named wells, against the plate’s own controls."
+    },
+    {
+      "id": "hits",
+      "label": "Hits",
+      "description": "A plate's hits by the lab's rule."
+    },
+    {
+      "id": "qc",
+      "label": "Plate QC",
+      "description": "A plate's Z′, and whether it passes."
+    },
+    {
+      "id": "replicates",
+      "label": "Replicates",
+      "description": "Whether a compound's wells agree, and its call."
+    },
+    {
+      "id": "retest_plan",
+      "label": "Re-test plan",
+      "description": "Queue the re-tests the policy calls for."
+    },
+    {
+      "id": "plate_report",
+      "label": "Plate report",
+      "description": "The whole read of a plate: QC, hits and re-tests."
+    }
+  ],
+  "data": {
+    "files": [
+      {
+        "name": "policy.md",
+        "kind": "text",
+        "access": "read",
+        "description": "The lab's rules for reading a plate, in its own words: its controls, percent inhibition, the Z′ a plate needs to pass, the hit rule, replicates, borderline compounds and how to queue re-tests, with the lab's numbers and reason codes."
+      },
+      {
+        "name": "plates.csv",
+        "kind": "table",
+        "access": "read",
+        "description": "Every plate the lab read: plate_id, layout (96 or 384 wells), instrument, read_on, and export_file, the export that holds its wells."
+      },
+      {
+        "name": "compounds.csv",
+        "kind": "table",
+        "access": "read",
+        "description": "The well map: for each well of each plate, the compound in it, or the policy's code for a control well, and its concentration in µM."
+      },
+      {
+        "name": "lumen_export.csv",
+        "kind": "table",
+        "access": "read",
+        "optional": true,
+        "description": "The Lumen 3 plate reader's export: Plate ID, Well, Counts, one row per well, for every plate read on it. A lab without the instrument has no such file."
+      },
+      {
+        "name": "kestrel_export.csv",
+        "kind": "table",
+        "access": "read",
+        "optional": true,
+        "description": "The Kestrel HT plate reader's export: Barcode, Row, Col, RFU, one row per well, for every plate read on it. A lab without the instrument has no such file."
+      },
+      {
+        "name": "orbit_export.csv",
+        "kind": "table",
+        "access": "read",
+        "optional": true,
+        "description": "The Orbit 2 plate reader's export: Plate, Well Position, Raw Signal, one row per well, for every plate read on it. A lab without the instrument has no such file."
+      },
+      {
+        "name": "retests.csv",
+        "kind": "table",
+        "access": "write",
+        "description": "The re-test queue: whole plates and single compounds to run again. New requests go here."
+      }
+    ]
+  },
+  "permissions": {
+    "writes": "ask",
+    "unseenFiles": "never"
+  },
+  "checker": {
+    "kind": "module",
+    "path": "checker.js"
+  },
+  "requirements": {
+    "passRate": 0.9
+  },
+  "budget": {
+    "maxRounds": 8,
+    "maxMentorUsd": 5,
+    "maxWallMinutes": 240
+  },
+  "mentor": {
+    "kind": "model",
+    "provider": "meta",
+    "label": "Muse Spark 1.3",
+    "baseUrl": "https://api.meta.ai/v1",
+    "model": "muse-spark-1.3",
+    "reasoningEffort": "medium",
+    "secretRef": "meta"
+  },
+  "student": {
+    "label": "Glimmer",
+    "local": {
+      "runtime": "ollama",
+      "baseUrl": "http://127.0.0.1:11434",
+      "model": "muse-glimmer:30b",
+      "contextLength": 16384
+    },
+    "trainOn": "local"
+  },
+  "startingHarness": {
+    "kind": "blank"
+  },
+  "splits": {
+    "seed": 20261031,
+    "calibration": 12,
+    "train": 60,
+    "dev": 36,
+    "test": 36
+  },
+  "evaluation": {
+    "trainBatch": 12,
+    "minDevGain": 2,
+    "maxTypeRegression": 1,
+    "devRepeats": 1,
+    "patience": 4
+  },
+  "organizations": [
+    {
+      "id": "fenwick",
+      "name": "Fenwick Screening Core",
+      "synthetic": true,
+      "role": "train"
+    },
+    {
+      "id": "alder-row",
+      "name": "Alder Row Biosciences",
+      "synthetic": true,
+      "role": "train"
+    },
+    {
+      "id": "saltmarsh",
+      "name": "Saltmarsh Institute Assay Lab",
+      "synthetic": true,
+      "role": "train"
+    },
+    {
+      "id": "corvid-hill",
+      "name": "Corvid Hill Discovery",
+      "synthetic": true,
+      "role": "transfer"
+    }
+  ],
+  "organizationNoun": "lab"
+}

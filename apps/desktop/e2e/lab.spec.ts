@@ -162,7 +162,14 @@ test('leads to each place from the sidebar and the command palette', async () =>
   await expect(page.getByRole('tab', { name: 'Organizations' })).toBeVisible();
 
   await places().getByRole('button', { name: 'Experiments' }).click();
-  await expect(page.getByRole('heading', { name: 'No experiments yet' })).toBeVisible();
+  // The Lab's two experiments, the one running and the one waiting for money.
+  const experiments = page.getByRole('table', { name: 'Experiments' });
+  await expect(
+    experiments.getByRole('row', { name: /Targeted against one-shot draft/ }),
+  ).toBeVisible();
+  await expect(experiments.getByRole('row', { name: /Draft on the service desk/ })).toContainText(
+    'Needs funding',
+  );
   await capture('places-experiments-dark.png');
   await page.getByRole('button', { name: 'New experiment' }).click();
   await expect(page).toHaveURL(/#\/experiments\/new$/);
