@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { isLoopbackHostname } from './net';
 
 /*
- * A closed network (decision 095): the hosts teaching may reach, for a team whose data can't
+ * A closed network (decision 098): the hosts teaching may reach, for a team whose data can't
  * leave its building. This computer is always inside it. A graduate is held to less: it reaches
  * only the model runtime on this computer (invariant 3), whatever this setting says.
  */

@@ -28,7 +28,7 @@ export interface ListModelsOptions {
   apiKey?: string;
   fetch?: typeof fetch;
   signal?: AbortSignal;
-  /** The closed network (decision 095): a list or key check outside it is refused, nothing sent. */
+  /** The closed network (decision 098): a list or key check outside it is refused, nothing sent. */
   network?: NetworkDeps;
 }
 

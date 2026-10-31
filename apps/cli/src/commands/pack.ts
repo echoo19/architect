@@ -15,7 +15,7 @@ const WEIGHTS: Record<WeightsState, string> = {
 };
 
 /**
- * Writes a version's evidence pack (decision 095): one folder for a security reviewer and an
+ * Writes a version's evidence pack (decision 098): one folder for a security reviewer and an
  * offline install, every file hashed in its MANIFEST.json. Nothing in it reaches the network.
  */
 export async function pack(ctx: CliContext, parsed: Parsed): Promise<CliOutcome> {

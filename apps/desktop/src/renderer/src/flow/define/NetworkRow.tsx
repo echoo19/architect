@@ -11,7 +11,7 @@ function listed(hosts: readonly string[]): string {
 }
 
 /**
- * While the Lab's closed network is on (decision 095), whether the models these addresses reach
+ * While the Lab's closed network is on (decision 098), whether the models these addresses reach
  * are inside it; one outside it is refused when teaching starts, so the row says which and where
  * to add it. Nothing while no closed network is on.
  */

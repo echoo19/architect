@@ -15,7 +15,7 @@ export interface AdapterDeps {
 }
 
 /**
- * A closed network (decision 095) as an adapter follows it. A host outside it is refused when the
+ * A closed network (decision 098) as an adapter follows it. A host outside it is refused when the
  * adapter is made and again before every request, so nothing is sent there.
  */
 export interface NetworkDeps {

@@ -40,7 +40,7 @@ export type KeyDestinationCheck = (ref: string, url: string) => string | null;
 const ADD_KEY_HINT = 'Add the key in Settings, then test again.';
 
 /**
- * The closed network's refusal of a request to `url` (decision 095), or null when it may go. A
+ * The closed network's refusal of a request to `url` (decision 098), or null when it may go. A
  * check from Settings is held to the network as teaching is, and refused before any key is read.
  */
 function outsideOf(

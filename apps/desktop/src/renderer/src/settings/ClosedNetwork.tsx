@@ -15,7 +15,7 @@ import type { TabProps } from './SettingsModal';
 const OFF: ClosedNetwork = { on: false, hosts: [] };
 
 /**
- * The Lab's closed network (decision 095): while it is on, teaching reaches only the hosts named
+ * The Lab's closed network (decision 098): while it is on, teaching reaches only the hosts named
  * here and this computer, and anything else is refused before a request is sent. Graduates are
  * held to less whatever it says: they reach only the model on this computer.
  */

@@ -75,7 +75,7 @@ export interface HubClientOptions {
   token: () => Promise<string | undefined>;
   fetch?: typeof fetch;
   /**
-   * The closed network's hosts while it is on (decision 095): a request to any other, a redirect
+   * The closed network's hosts while it is on (decision 098): a request to any other, a redirect
    * included, is refused with `outside_network` before it is sent.
    */
   allowedHosts?: () => readonly string[] | undefined;

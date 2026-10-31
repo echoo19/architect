@@ -1199,7 +1199,7 @@ Tests: engine `experiments-library.test.ts` (a library field planned, refused wi
 
 **Consequences.** A comparison on a field taught by another model is reported on that model, so its numbers are not Spark's; the report's own prose (`markdown.ts`, the runner's reasons) still says "Glimmer" in places and is a follow-up. A job file that names a model at a cluster address imports with it only after that address is added in Settings. Tests: engine `comparisons-model.test.ts` (`fieldModels`, a cluster pair priced and named), `experiments.test.ts` (the models frozen in the preregistration and its file); desktop `job-choices.test.ts` (`applyFileModels`, including a key never sent to another host and an agent never run elsewhere), `engine-handlers.test.ts`, renderer `models.test.ts` (roles), `experiments.test.ts` (names), `imported-job.test.ts`; hidden e2e `any-model.spec.ts` and `job-files.spec.ts`, screenshots `models-connections-dark.png`, `settings-add-endpoint-dark.png`, `experiment-design-any-model-dark.png`.
 
-## 095. Teaching can be held to a closed network, and a version's evidence is one hashed folder
+## 098. Teaching can be held to a closed network, and a version's evidence is one hashed folder
 
 **Context.** Y Combinator's "AI for the Air-Gapped Economy" (`docs/RFS.md`) asks for teaching inside the walls and for deployment tooling a security reviewer accepts. Graduates already reach only the local runtime (invariant 3). Teaching could reach any host its teacher and student named, nothing recorded where it went, and a reviewer had to piece a version's evidence together from the app.
 

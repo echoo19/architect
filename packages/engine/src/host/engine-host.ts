@@ -68,7 +68,7 @@ export interface EngineHostOptions {
    */
   hub?: HubClient;
   /**
-   * The closed network's hosts while it is on (decision 095), for the Hub client made here when
+   * The closed network's hosts while it is on (decision 098), for the Hub client made here when
    * none is given: a Hub outside it is refused before anything is sent.
    */
   allowedHosts?: () => readonly string[] | undefined;

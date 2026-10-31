@@ -744,7 +744,7 @@ export class RunController {
       store,
       paths,
       jobs,
-      // Every host the run's adapters reach is recorded with the run (decision 095).
+      // Every host the run's adapters reach is recorded with the run (decision 098).
       deps: recordingContacts(deps, (host, inside) =>
         store.runs.recordContact(runId, host, inside),
       ),

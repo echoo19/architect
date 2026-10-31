@@ -55,7 +55,7 @@ export function appRuntimeSettings(
 }
 
 /**
- * The closed network's hosts from the app's settings (decision 095), or undefined while none is
+ * The closed network's hosts from the app's settings (decision 098), or undefined while none is
  * on: a command teaches inside the same walls the app does.
  */
 export function appAllowedHosts(dataDir: string): string[] | undefined {

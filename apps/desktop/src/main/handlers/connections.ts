@@ -55,7 +55,7 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
         ? { configured: settings.get().llamaServerPath ?? null }
         : { command: deps.llamaServerCommand },
     );
-  // Settings' checks, lists and sign-in are held to the closed network as teaching is (decision 095).
+  // Settings' checks, lists and sign-in are held to the closed network as teaching is (decision 098).
   const network = { allowed: () => allowedHostsOf(settings.get().closedNetwork) };
   const stores = {
     verifyKey: (options: Parameters<typeof verifyKey>[0]) => verifyKey({ ...options, network }),

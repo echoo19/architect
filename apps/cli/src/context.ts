@@ -120,7 +120,7 @@ export class CliContext {
 
   /**
    * The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file, held to
-   * the app's closed network while it is on (decision 095).
+   * the app's closed network while it is on (decision 098).
    */
   hub(): HubClient {
     this.hubClient ??= new HubClient({

@@ -111,7 +111,7 @@ export interface RealEnvironmentOptions {
   getSecret?(ref: string): Promise<string | undefined>;
   /** The Hugging Face token for training compute; Hugging Face's own lookup when absent. */
   huggingFaceToken?: () => Promise<string | undefined>;
-  /** The closed network's hosts (decision 095), which the arms' teachers and students are held to. */
+  /** The closed network's hosts (decision 098), which the arms' teachers and students are held to. */
   allowedHosts?: () => readonly string[] | undefined;
 }
 

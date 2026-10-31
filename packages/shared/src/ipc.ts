@@ -121,7 +121,7 @@ export interface AppSettings {
    */
   fieldExports?: FieldExportRecord[];
   /**
-   * The Lab's closed network (decision 095): while on, teaching reaches only these hosts and this
+   * The Lab's closed network (decision 098): while on, teaching reaches only these hosts and this
    * computer, and every adapter refuses any other. Off when absent.
    */
   closedNetwork?: ClosedNetwork;
@@ -361,7 +361,7 @@ export interface RunDetail {
    */
   improves?: RunImprovement;
   /**
-   * Every host the run contacted, with how many requests went there (decision 095); absent for a
+   * Every host the run contacted, with how many requests went there (decision 098); absent for a
    * run that has recorded none, such as one from before they were recorded.
    */
   contacts?: RunContact[];
@@ -844,7 +844,7 @@ export interface ArchitectApi {
     /** Writes one part of a version on its own: its harness folder, adapter file or report. */
     exportPart(graduateId: string, request: ExportPartRequest): Promise<ExportPartResult>;
     /**
-     * Writes a version's evidence pack into `request.directory` (decision 095): one folder for a
+     * Writes a version's evidence pack into `request.directory` (decision 098): one folder for a
      * security reviewer and an offline install, every file hashed in its MANIFEST.json.
      */
     exportEvidence(graduateId: string, request: EvidenceRequest): Promise<EvidenceResult>;

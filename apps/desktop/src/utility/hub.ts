@@ -15,7 +15,7 @@ export function hubEndpoint(env: NodeJS.ProcessEnv = process.env): string {
 /**
  * The Hub client the engine publishes and installs with. The token is looked up the standard way
  * whenever a request needs one, and the key saved in the app goes only to huggingface.co, never to
- * another Hub HF_ENDPOINT names. While a closed network is on (decision 095), a Hub outside it is
+ * another Hub HF_ENDPOINT names. While a closed network is on (decision 098), a Hub outside it is
  * refused before anything is sent.
  */
 export function hubClient(

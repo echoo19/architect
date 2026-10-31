@@ -313,7 +313,7 @@ export interface AdapterServeRequest {
 }
 
 /**
- * Told the host of every request a run's adapters send, just before it goes (decision 095):
+ * Told the host of every request a run's adapters send, just before it goes (decision 098):
  * `inside` when a closed network was on and admitted it. Never a path, a body or a key.
  */
 export type ContactRecorder = (host: string, inside: boolean) => void;
