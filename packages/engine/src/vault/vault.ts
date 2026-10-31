@@ -11,11 +11,13 @@ import {
 import { dirname, join } from 'node:path';
 import {
   GuardError,
+  OrganizationSchema,
   TaskSchema,
   type Organization,
   type SealedHashes,
   type Task,
 } from '@architect/shared';
+import { z } from 'zod';
 import { writeFileAtomic } from '../data/atomic-write';
 import {
   createLeakDetector,
@@ -38,6 +40,20 @@ const TRANSFER_DIR = 'transfer';
 const CERTIFICATIONS_DIR = 'certifications';
 /** Beside each certification's tasks, their prints for the leak detector. */
 const PRINTS_SUFFIX = '.prints.json';
+/** Where organizations sealed after the job was made keep their files and tasks (decision 085). */
+const ADDED_DIR = 'added';
+/** Written last in an added organization's folder, so its presence is what makes it sealed. */
+const ADDED_SEAL = 'seal.json';
+const ADDED_TASKS = 'tasks.jsonl';
+
+/** An organization's seal beside the job's: its files' and tasks' hashes and its tasks' prints. */
+const AddedSealSchema = z.object({
+  org: OrganizationSchema,
+  files: z.array(z.object({ name: z.string(), sha256: z.string() })),
+  tasksSha256: z.string(),
+  prints: FingerprintSchema.shape.tasks,
+});
+type AddedSeal = z.infer<typeof AddedSealSchema>;
 
 /** The tasks a version is certified on after the fact: calibration, and each check by organization. */
 export interface CertificationSets {
@@ -211,7 +227,11 @@ export class Vault {
     // Tasks a version was certified on after the fact are held to it like the test's (079).
     return createLeakDetector({
       ...fingerprint,
-      tasks: [...fingerprint.tasks, ...this.certificationPrints(jobId)],
+      tasks: [
+        ...fingerprint.tasks,
+        ...this.certificationPrints(jobId),
+        ...this.added(jobId).flatMap((seal) => seal.prints),
+      ],
     });
   }
 
@@ -221,7 +241,7 @@ export class Vault {
    */
   transferIdentifiers(jobId: string): { id: string; name: string }[] {
     if (!this.isSealed(jobId)) return [];
-    return (this.fingerprint(jobId).transfer ?? []).map(({ org }) => ({
+    return [...(this.fingerprint(jobId).transfer ?? []), ...this.added(jobId)].map(({ org }) => ({
       id: org.id,
       name: org.name,
     }));
@@ -232,13 +252,154 @@ export class Vault {
    * own view of their field. No id, file name or task leaves, and nothing here may reach a
    * mentor: the leak gate holds every request to not naming one.
    */
-  sealedOrganizations(jobId: string): { name: string; synthetic: boolean; files: number }[] {
+  sealedOrganizations(
+    jobId: string,
+  ): { name: string; synthetic: boolean; files: number; addedLater?: true }[] {
     if (!this.isSealed(jobId)) return [];
-    return (this.fingerprint(jobId).transfer ?? []).map(({ org, files }) => ({
-      name: org.name,
-      synthetic: org.synthetic,
-      files: files.length,
-    }));
+    return [
+      ...(this.fingerprint(jobId).transfer ?? []).map(({ org, files }) => ({
+        name: org.name,
+        synthetic: org.synthetic,
+        files: files.length,
+      })),
+      ...this.added(jobId).map(({ org, files }) => ({
+        name: org.name,
+        synthetic: org.synthetic,
+        files: files.length,
+        addedLater: true as const,
+      })),
+    ];
+  }
+
+  /**
+   * Seals an organization the job never trains on after the job was made (decision 085), in its
+   * own folder beside the job's seal, which is left exactly as it was. Its files are kept and
+   * hashed; its tasks are fingerprinted as the test's are (decision 082), against `others`, the
+   * tasks the mentor may see, and `data`, the taught organizations' files as the mentor is shown
+   * them, with its id and name as test content, and their prints join the job's leak detector.
+   * Refused when the job's test isn't sealed, when its id or name is taken, when a task is of
+   * another organization or shares an id with a sealed or visible task, and when a task has
+   * nothing of its own to be recognized by; nothing is written then.
+   */
+  addOrganization(
+    jobId: string,
+    organization: TransferOrganization,
+    tasks: readonly Task[],
+    others: readonly Task[],
+    data: readonly string[],
+  ): void {
+    const { org, files } = organization;
+    if (!this.isSealed(jobId)) {
+      throw new GuardError('split', `The test split of job ${jobId} has not been sealed.`);
+    }
+    if (
+      this.transferIdentifiers(jobId).some((item) => item.id === org.id || item.name === org.name)
+    ) {
+      throw new GuardError('split', `An organization called ${org.name} is already sealed.`);
+    }
+    if (tasks.length === 0) throw new Error(`${org.name} has no tasks to seal.`);
+    const parsed = tasks.map((task) => TaskSchema.parse(task));
+    const stranger = parsed.find((task) => task.org !== org.id);
+    if (stranger !== undefined) {
+      throw new GuardError('split', `Task ${stranger.id} isn't one of ${org.name}'s tasks.`);
+    }
+    const fingerprint = this.fingerprint(jobId);
+    const taken = new Set([
+      ...fingerprint.tasks.map((print) => print.id),
+      ...(fingerprint.certify?.tasks ?? []).map((print) => print.id),
+      ...this.added(jobId).flatMap((seal) => seal.prints.map((print) => print.id)),
+      ...others.map((task) => task.id),
+    ]);
+    const ids = new Set<string>();
+    for (const task of parsed) {
+      if (taken.has(task.id) || ids.has(task.id)) {
+        throw new GuardError(
+          'split',
+          `Task id ${task.id} is already taken in this field; give ${org.name}'s tasks ids of their own.`,
+        );
+      }
+      ids.add(task.id);
+    }
+    const content = `${parsed.map((task) => JSON.stringify(task)).join('\n')}\n`;
+    const prints = fingerprintTests(jobId, parsed, others, data, sha256(content), () => [
+      org.id,
+      org.name,
+    ]).tasks;
+    const blank = prints.find(
+      (print) => print.prompt === null && print.grams.length === 0 && print.values.length === 0,
+    );
+    if (blank !== undefined) {
+      throw new GuardError(
+        'split',
+        `Task ${blank.id} can't be sealed: everything it says is also in the data or in other tasks, so a leak of it couldn't be recognized. Give it some wording or a value of its own, such as an id with digits.`,
+      );
+    }
+    const folder = this.addedDir(jobId, org.id);
+    rmSync(folder, { recursive: true, force: true });
+    const kept = files.map((file) => {
+      const target = join(folder, 'data', file.name);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, file.content);
+      return { name: file.name, sha256: sha256(file.content) };
+    });
+    writeFileAtomic(join(folder, ADDED_TASKS), content);
+    const seal: AddedSeal = { org, files: kept, tasksSha256: sha256(content), prints };
+    writeFileAtomic(join(folder, ADDED_SEAL), `${JSON.stringify(seal)}\n`);
+  }
+
+  /**
+   * The organizations sealed after the job was made, for the engine alone: the runner looks one
+   * up by the name the person gave it. Never for a mentor.
+   */
+  addedOrganizations(jobId: string): Organization[] {
+    return this.isSealed(jobId) ? this.added(jobId).map(({ org }) => org) : [];
+  }
+
+  /**
+   * An organization's tasks sealed after the job was made, for a frozen version's test on it
+   * after the mentor is released. A file changed since it was sealed is refused.
+   */
+  openAdded(jobId: string, orgId: string, proof: MentorReleased): Task[] {
+    if (!isMentorReleased(proof)) {
+      throw new GuardError(
+        'split',
+        'A sealed organization opens only after the mentor has been released.',
+      );
+    }
+    const seal = this.added(jobId).find(({ org }) => org.id === orgId);
+    if (seal === undefined) {
+      throw new GuardError('split', `No organization added later to job ${jobId} has that id.`);
+    }
+    const content = readFileSync(join(this.addedDir(jobId, orgId), ADDED_TASKS), 'utf8');
+    if (sha256(content) !== seal.tasksSha256) {
+      throw new GuardError(
+        'split',
+        `A sealed organization's tasks of job ${jobId} changed after they were sealed.`,
+      );
+    }
+    return content
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => TaskSchema.parse(JSON.parse(line)));
+  }
+
+  /** Every organization sealed beside the job's seal, read from its own seal file. */
+  private added(jobId: string): AddedSeal[] {
+    const folder = join(this.dir(jobId), ADDED_DIR);
+    if (!existsSync(folder)) return [];
+    return readdirSync(folder)
+      .filter((name) => existsSync(join(folder, name, ADDED_SEAL)))
+      .sort()
+      .map((name) =>
+        AddedSealSchema.parse(JSON.parse(readFileSync(join(folder, name, ADDED_SEAL), 'utf8'))),
+      );
+  }
+
+  private addedDir(jobId: string, orgId: string): string {
+    if (!OrganizationSchema.shape.id.safeParse(orgId).success) {
+      throw new Error(`"${orgId}" is not a valid organization id.`);
+    }
+    return join(this.dir(jobId), ADDED_DIR, orgId);
   }
 
   /**
@@ -337,7 +498,23 @@ export class Vault {
       }
       dataDirs[org.id] = folder;
     }
-    return { organizations: transfer.map(({ org }) => org), dataDirs };
+    const added = this.added(jobId);
+    for (const { org, files } of added) {
+      const folder = join(this.addedDir(jobId, org.id), 'data');
+      for (const file of files) {
+        if (sha256(readFileSync(join(folder, file.name))) !== file.sha256) {
+          throw new GuardError(
+            'split',
+            `A sealed organization's file of job ${jobId} changed after it was sealed.`,
+          );
+        }
+      }
+      dataDirs[org.id] = folder;
+    }
+    return {
+      organizations: [...transfer, ...added].map(({ org }) => org),
+      dataDirs,
+    };
   }
 
   /**

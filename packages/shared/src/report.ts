@@ -27,6 +27,8 @@ export const OrgTypeResultSchema = z.object({
   synthetic: z.boolean(),
   pass: z.number().int().nonnegative(),
   total: z.number().int().nonnegative(),
+  /** Tested after the run, on an organization sealed after its job was made (decision 085). */
+  addedLater: z.literal(true).optional(),
 });
 export type OrgTypeResult = z.infer<typeof OrgTypeResultSchema>;
 

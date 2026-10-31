@@ -33,6 +33,7 @@ import {
   ExportReviewSchema,
   FieldExportManifestSchema,
   FieldViewSchema,
+  AddOrganizationRequestSchema,
   FileDiffSchema,
   FolderFitSchema,
   GraduateSettingsSchema,
@@ -173,6 +174,11 @@ export const ENGINE_ROUTES = {
     api.jobs.confirmStudy(jobId, token),
   ),
   'jobs.field': route(z.tuple([id]), FieldViewSchema, (api, [jobId]) => api.jobs.field(jobId)),
+  'jobs.addOrganization': route(
+    z.tuple([id, AddOrganizationRequestSchema]),
+    FieldViewSchema,
+    (api, [jobId, request]) => api.jobs.addOrganization(jobId, request),
+  ),
   'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>
     api.jobs.fieldAssets(jobId),
   ),
@@ -189,6 +195,9 @@ export const ENGINE_ROUTES = {
   'runs.pause': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.pause(runId)),
   'runs.resume': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.resume(runId)),
   'runs.stop': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.stop(runId)),
+  'runs.qualify': route(z.tuple([id, z.string().min(1)]), z.void(), (api, [runId, org]) =>
+    api.runs.qualify(runId, org),
+  ),
   'runs.retest': route(z.tuple([id, StudentTargetSchema]), z.void(), (api, [runId, target]) =>
     api.runs.retest(runId, target),
   ),

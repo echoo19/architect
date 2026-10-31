@@ -19,6 +19,7 @@ import {
   JsonValueSchema,
   MachineSchema,
   ModelBindingSchema,
+  OrgTypeResultSchema,
   PackageManifestSchema,
   PublicationSchema,
   RoundSchema,
@@ -196,6 +197,25 @@ export const StoredRetestSchema = z.object({
 });
 export type StoredRetest = z.infer<typeof StoredRetestSchema>;
 export type RetestStatus = StoredRetest['status'];
+
+/**
+ * A frozen version's locked test on an organization sealed after its job was made (decision
+ * 085). Its attempts are the run's, under split `test` and round `seq`, which the run's own
+ * locked test (round null) never uses, so its card and totals stay as they were.
+ */
+export const StoredQualificationSchema = z.object({
+  runId: z.string(),
+  orgId: z.string(),
+  orgName: z.string(),
+  seq: z.number().int().positive(),
+  status: z.enum(['testing', 'paused', 'finished']),
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+  /** Each skill's result there, once finished. */
+  results: z.array(OrgTypeResultSchema).optional(),
+});
+export type StoredQualification = z.infer<typeof StoredQualificationSchema>;
 
 /**
  * A frozen version certified after the fact (decision 079). Its attempts are the run's, under

@@ -29,6 +29,7 @@ import {
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ArchitectApi,
+  type AddOrganizationRequest,
   type AttemptQuery,
   type DraftOrganization,
   type Job,
@@ -179,6 +180,11 @@ export const flowApi = {
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
   /** Takes a finished run's frozen agent through its final test again on the other endpoint. */
   retest: (runId: string, target: StudentTarget) => bridge().runs.retest(runId, target),
+  /** Tests a finished run's frozen agent on an organization added to its field later. */
+  qualify: (runId: string, org: string) => bridge().runs.qualify(runId, org),
+  /** Seals a never-seen organization into a field from a folder the person picked. */
+  addOrganization: (jobId: string, request: AddOrganizationRequest) =>
+    read('jobs.addOrganization', FieldViewSchema, bridge().jobs.addOrganization(jobId, request)),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
   roundDiff: (runId: string, round: number) =>

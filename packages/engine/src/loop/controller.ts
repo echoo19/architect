@@ -31,6 +31,7 @@ import { isTerminal } from './plan';
 import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
 import { RepeatSession, repeatRefusal } from './repeat';
 import { CertifySession } from './posthoc';
+import { QualifySession, qualifyRefusal } from './qualify';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -87,7 +88,8 @@ type Turn =
   | { kind: 'retest'; runId: string; target: StudentTarget }
   | { kind: 'repeat'; runId: string; target: StudentTarget }
   | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] }
-  | { kind: 'certify'; runId: string; certificationId: string };
+  | { kind: 'certify'; runId: string; certificationId: string }
+  | { kind: 'qualify'; runId: string; orgId: string };
 
 /** A re-test's, a repeat's or a reference's key among the sessions holding a turn. */
 function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
@@ -100,6 +102,8 @@ function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
       return `${turn.runId}/reference/${turn.split}`;
     case 'certify':
       return `${turn.runId}/certify/${turn.certificationId}`;
+    case 'qualify':
+      return `${turn.runId}/qualify/${turn.orgId}`;
   }
 }
 
@@ -397,6 +401,46 @@ export class RunController {
   }
 
   /**
+   * Queues a finished run's frozen version for its locked test on an organization sealed after
+   * its job was made, named as the person named it (decision 085). It never changes the run, and
+   * its results join the report's organizations. Asking again only resumes one an error paused.
+   */
+  async qualify(runId: string, orgName: string): Promise<void> {
+    const record = this.get(runId);
+    const refusal = qualifyRefusal(record);
+    if (refusal !== null) throw new Error(refusal);
+    const { store, deps } = this.options;
+    const org = (await deps.vault.addedOrganizations(record.run.jobId)).find(
+      (item) => item.name === orgName,
+    );
+    if (org === undefined) {
+      throw new Error(`No organization called ${orgName} was added to this run's field.`);
+    }
+    const turn: Turn = { kind: 'qualify', runId, orgId: org.id };
+    const existing = store.qualifications.get(runId, org.id);
+    if (existing?.status === 'finished') {
+      throw new Error(`This run's version was already qualified at ${orgName}.`);
+    }
+    if (existing?.status === 'testing' && this.isScheduled(turn)) {
+      throw new Error(`This run's version is already being qualified at ${orgName}.`);
+    }
+    if (existing === null) {
+      store.qualifications.insert({
+        runId,
+        orgId: org.id,
+        orgName: org.name,
+        seq: store.qualifications.list(runId).length + 1,
+        status: 'testing',
+        startedAt: isoNow(this.clock),
+      });
+    } else if (existing.status === 'paused') {
+      const { error: _error, ...rest } = existing;
+      store.qualifications.update({ ...rest, status: 'testing' });
+    }
+    this.schedule(turn);
+  }
+
+  /**
    * Lifts a run's hold on its locked test (decision 045). A comparison releases its arms only
    * once every one of them is frozen, so no locked result exists while any arm still learns.
    * A run held and parked is queued again; one not frozen yet takes its test once it is.
@@ -496,6 +540,10 @@ export class RunController {
     }
     for (const { runId, id } of store.certifications.withStatus('certifying')) {
       const turn: Turn = { kind: 'certify', runId, certificationId: id };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, orgId } of store.qualifications.withStatus('testing')) {
+      const turn: Turn = { kind: 'qualify', runId, orgId };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     this.pump();
@@ -684,7 +732,9 @@ export class RunController {
           ? new RepeatSession(context, turn.target)
           : turn.kind === 'certify'
             ? new CertifySession(context, turn.certificationId)
-            : new ReferenceSession(context, turn.split);
+            : turn.kind === 'qualify'
+              ? new QualifySession(context, turn.orgId)
+              : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))

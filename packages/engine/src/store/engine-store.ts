@@ -43,6 +43,7 @@ import {
   StoredInstallationSchema,
   StoredPublicationSchema,
   StoredRepeatSchema,
+  StoredQualificationSchema,
   StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
@@ -60,6 +61,7 @@ import {
   type StoredInstallation,
   type StoredPublication,
   type StoredRepeat,
+  type StoredQualification,
   type StoredRetest,
   type StoredRound,
   type StoredRun,
@@ -153,6 +155,16 @@ export interface EngineStore {
     get(runId: string, target: StudentTarget): StoredRetest | null;
     /** Oldest first, so interrupted re-tests resume in the order they started. */
     withStatus(status: RetestStatus): StoredRetest[];
+  };
+  /** Frozen versions tested on organizations added to their field later (decision 085). */
+  qualifications: {
+    /** Fails if the run already has one at that organization. */
+    insert(qualification: StoredQualification): void;
+    update(qualification: StoredQualification): void;
+    get(runId: string, orgId: string): StoredQualification | null;
+    /** A run's, oldest first. */
+    list(runId: string): StoredQualification[];
+    withStatus(status: StoredQualification['status']): StoredQualification[];
   };
   /** Locked tests taken again under the declared seeds a run deferred (decision 045). */
   repeats: {
@@ -561,6 +573,21 @@ function retestParams(retest: StoredRetest): Params {
     started_at: retest.startedAt,
     ended_at: retest.endedAt ?? null,
   };
+}
+
+function qualificationParams(qualification: StoredQualification): Params {
+  return {
+    run_id: qualification.runId,
+    org_id: qualification.orgId,
+    seq: qualification.seq,
+    status: qualification.status,
+    body: json(qualification),
+    started_at: qualification.startedAt,
+  };
+}
+
+function qualificationFromRow(row: Row): StoredQualification {
+  return StoredQualificationSchema.parse(fromJson(row.body));
 }
 
 function retestFromRow(row: Row): StoredRetest {
@@ -1092,6 +1119,31 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             status,
           })
           .map(retestFromRow),
+    },
+
+    qualifications: {
+      insert: (qualification) => sql.insert('qualifications', qualificationParams(qualification)),
+      update: (qualification) =>
+        sql.update('qualifications', qualificationParams(qualification), ['run_id', 'org_id']),
+      get: (runId, orgId) => {
+        const row = sql.one(
+          'SELECT * FROM qualifications WHERE run_id = :run_id AND org_id = :org_id',
+          { run_id: runId, org_id: orgId },
+        );
+        return row ? qualificationFromRow(row) : null;
+      },
+      list: (runId) =>
+        sql
+          .all('SELECT * FROM qualifications WHERE run_id = :run_id ORDER BY seq', {
+            run_id: runId,
+          })
+          .map(qualificationFromRow),
+      withStatus: (status) =>
+        sql
+          .all('SELECT * FROM qualifications WHERE status = :status ORDER BY started_at, rowid', {
+            status,
+          })
+          .map(qualificationFromRow),
     },
 
     repeats: {

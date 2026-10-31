@@ -1,7 +1,12 @@
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { EngineApi } from '@architect/engine';
-import { DraftOrganizationSchema, type DraftTurn, type Job } from '@architect/shared';
+import {
+  AddOrganizationRequestSchema,
+  DraftOrganizationSchema,
+  type DraftTurn,
+  type Job,
+} from '@architect/shared';
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
@@ -94,6 +99,10 @@ export function registerEngineHandlers(
       study: (jobId) => call((api) => api.jobs.study(jobId)),
       confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
       field: (jobId) => call((api) => api.jobs.field(jobId)),
+      addOrganization: (jobId, request) => {
+        const chosen = { ...request, folder: picked.check(request.folder) };
+        return call((api) => api.jobs.addOrganization(jobId, chosen));
+      },
       fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
       tasks: (jobId, split) => call((api) => api.jobs.tasks(jobId, split)),
       exportField: (jobId, directory) => {
@@ -105,6 +114,7 @@ export function registerEngineHandlers(
       importFile: z.tuple([text]),
       exportFile: z.tuple([text, text]),
       exportField: z.tuple([text, text]),
+      addOrganization: z.tuple([text, AddOrganizationRequestSchema]),
       draftStart: z.tuple([text, z.array(text)]),
       draftField: z.tuple([text, z.array(DraftOrganizationSchema).min(1)]),
     },
@@ -116,6 +126,7 @@ export function registerEngineHandlers(
     resume: (runId) => call((api) => api.runs.resume(runId)),
     stop: (runId) => call((api) => api.runs.stop(runId)),
     retest: (runId, target) => call((api) => api.runs.retest(runId, target)),
+    qualify: (runId, org) => call((api) => api.runs.qualify(runId, org)),
     get: (runId) => call((api) => api.runs.get(runId)),
     list: (jobId) => call((api) => api.runs.list(jobId)),
     attempt: (attemptId) => call((api) => api.runs.attempt(attemptId)),

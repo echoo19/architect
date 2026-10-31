@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CheckOutcomeSchema } from './checker';
 import { JsonValueSchema } from './json';
+import { ScoreSchema } from './lineage';
 
 /** The format of a field export's `MANIFEST.json` (docs/SCALE.md, the contract). */
 export const FIELD_EXPORT_FORMAT = 'architect.field-export/1';
@@ -96,6 +97,23 @@ export const FieldFileSchema = z.object({
 export type FieldFile = z.infer<typeof FieldFileSchema>;
 
 /**
+ * A frozen version's locked test on an organization sealed after its job was made (decision
+ * 085): queued or running, paused with the reason, or finished with its score there.
+ */
+export const QualificationSchema = z.object({
+  runId: z.string(),
+  /** The organization, by the name the person gave it. */
+  org: z.string(),
+  status: z.enum(['testing', 'paused', 'finished']),
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+  /** Every task there, all skills together, once finished. */
+  score: ScoreSchema.optional(),
+});
+export type Qualification = z.infer<typeof QualificationSchema>;
+
+/**
  * What a field is made of, for the person's own page (the app, never a mentor): the
  * organizations it trains on with their files, and the sealed ones by name and kind with how
  * many files each holds, never which. A job without organizations has one entry, its `data/`,
@@ -117,9 +135,27 @@ export const FieldViewSchema = z.object({
       name: z.string(),
       synthetic: z.boolean(),
       files: z.number().int().nonnegative(),
+      /** Sealed after the job was made, beside its seal (decision 085). */
+      addedLater: z.literal(true).optional(),
     }),
   ),
   /** Tasks in the locked test; null before the job's test split is sealed. */
   lockedTestTasks: z.number().int().nonnegative().nullable(),
+  /** Each frozen version's test on an organization added later, by run and organization name. */
+  qualifications: z.array(QualificationSchema).optional(),
 });
 export type FieldView = z.infer<typeof FieldViewSchema>;
+
+/**
+ * A never-seen organization added to a field after it was made (decision 085): the folder that
+ * holds its records (and its tasks, as `tasks.jsonl`, unless the job was drafted), its name, and
+ * whether its records were generated.
+ */
+export const AddOrganizationRequestSchema = z
+  .object({
+    folder: z.string().min(1),
+    name: z.string().trim().min(1).max(60),
+    synthetic: z.boolean(),
+  })
+  .strict();
+export type AddOrganizationRequest = z.infer<typeof AddOrganizationRequestSchema>;

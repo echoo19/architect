@@ -157,6 +157,31 @@ function generateAt(item: OrgFiles, inputs: readonly TypeInput[], passRate: numb
 }
 
 /**
+ * The tasks of a never-seen organization added to a drafted field later (decision 085): the
+ * field's own kinds of task, made from that organization's folder by the same template step and
+ * seed rule as the field's own, each marked with the organization. A kind its files can't make is
+ * simply absent there.
+ */
+export async function addedOrganizationTasks(
+  org: Organization,
+  folder: string,
+  inputs: readonly TypeInput[],
+  passRate: number,
+): Promise<Task[]> {
+  const listed = await readdir(folder, { withFileTypes: true });
+  const files = listed
+    .filter((item) => item.isFile() && READ.has(extname(item.name).toLowerCase()))
+    .map((item) => join(folder, item.name));
+  const generation = generateAt({ org, attached: await readAttachments(files) }, inputs, passRate);
+  return generation.tasks.map((task) => ({
+    ...task,
+    id: `${org.id}-${task.id}`,
+    family: `${org.id}:${task.family}`,
+    org: org.id,
+  }));
+}
+
+/**
  * What is wrong with the kinds of task at each organization taught on, in the words the teacher is
  * told, which name no value of a row it was not shown. A kind its files support too few requests
  * of is a problem the first time; the second time it is left to `makeFieldTasks`.

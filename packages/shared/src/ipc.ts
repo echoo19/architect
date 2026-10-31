@@ -14,7 +14,7 @@ import type { Counterexample } from './counterexamples';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
 import type { StudyState } from './study';
-import type { FieldExportManifest, FieldView } from './field-export';
+import type { AddOrganizationRequest, FieldExportManifest, FieldView } from './field-export';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type {
@@ -532,6 +532,13 @@ export interface ArchitectApi {
      */
     field(jobId: string): Promise<FieldView>;
     /**
+     * Seals a never-seen organization into a field after it was made (decision 085): its files,
+     * checked against the job's own, and its tasks, from a `tasks.jsonl` in the folder or, for a
+     * drafted field, made from its files the way the field's were. Its own seal sits beside the
+     * job's; nothing that was sealed before changes. Returns the field as it is now.
+     */
+    addOrganization(jobId: string, request: AddOrganizationRequest): Promise<FieldView>;
+    /**
      * The field export as it would be written now (decision 071), built and checked in memory
      * with nothing written: its counts and what it leaves out.
      */
@@ -558,6 +565,12 @@ export interface ArchitectApi {
      * filed. Each endpoint is re-tested once: asking again only resumes a re-test an error paused.
      */
     retest(runId: string, target: StudentTarget): Promise<void>;
+    /**
+     * Tests a finished run's frozen graduate on an organization added to its field later, named
+     * as the person named it, with no mentor (decision 085). Its results join the report's
+     * organizations, marked as added later. Asking again only resumes one an error paused.
+     */
+    qualify(runId: string, org: string): Promise<void>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
     /**
