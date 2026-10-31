@@ -83,8 +83,8 @@ export interface FakeHub {
   setStage(id: string, stage: string, message?: string): void;
   /** Fails the next request to a path that starts with this prefix, with this status. */
   failNext(prefix: string, status: number, error: string): void;
-  /** Fails the next upload to the upload host with this status, or drops its connection. */
-  failNextUpload(status: number | 'drop'): void;
+  /** Fails the next upload to the upload host with this status, drops it, or redirects it. */
+  failNextUpload(status: number | 'drop' | { redirect: string }): void;
   close(): Promise<void>;
 }
 
@@ -140,7 +140,7 @@ export async function startFakeHub(options: FakeHubOptions = {}): Promise<FakeHu
   const repos = new Map<string, Repo>();
   const jobs = new Map<string, FakeJob>();
   const failures: { prefix: string; status: number; error: string }[] = [];
-  const uploadFailures: (number | 'drop')[] = [];
+  const uploadFailures: (number | 'drop' | { redirect: string })[] = [];
   const blobs = new Map<string, Buffer>();
   const lfs = new Map<string, Buffer>();
   /** Multipart uploads in progress: the parts received, by number, with their ETags. */
@@ -181,6 +181,11 @@ export async function startFakeHub(options: FakeHubOptions = {}): Promise<FakeHu
         return;
       }
       const body = await readBody(request);
+      if (typeof failure === 'object') {
+        response.writeHead(307, { location: failure.redirect });
+        response.end();
+        return;
+      }
       if (failure !== undefined) {
         response.writeHead(failure, { 'content-type': 'application/xml' });
         response.end('<Error><Code>InternalError</Code></Error>');
