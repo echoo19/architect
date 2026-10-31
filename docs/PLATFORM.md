@@ -11,6 +11,10 @@ Architect ships as two versions of one app:
 
 One codebase, one installer and one test suite. The edition is a setting chosen on the welcome screen ("Teach an agent one job" or "Run a lab") and switchable in Settings; the shell, the home, the sidebar, the command palette and the Describe screen's offers follow it. The engine and the CLI are the same in both. The site's download page offers both. Every change keeps both editions working: the personal edition's screens and specs are the regression guard for the pre-pivot product.
 
+## The pitch (owner, Nov 1)
+
+**The training system for your own AI.** A large model teaches a small one by rewriting its instructions and tools; every change is tested on work neither model has seen; Architect certifies when the result can be trusted. The specialists below are what the system makes, never the pitch itself.
+
 ## Demo sets (owner, Nov 1)
 
 The platform is the product; the specialists are what it makes. They are shown as sets:
