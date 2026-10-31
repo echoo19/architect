@@ -441,7 +441,7 @@ The command takes the GPU in turns with the open app (decision 046). A run holds
 
 ## A closed network
 
-When the app's Lab has a closed network on (Settings, Privacy; decision 095), the commands that teach (`experiment`, `certify` and the engine work behind `field`) follow it too: they read it from the app's `settings.json` at every request, and a teacher or student outside it is refused with exit 1 (`model_outside_network`) and a message that names the host. Graduates are held to less whatever it says: `run` and `serve` reach only the model on this computer.
+When the app's Lab has a closed network on (Settings, Privacy; decision 095), the commands that teach (`experiment`, `certify` and the engine work behind `field`) follow it too, and so does every Hub request (`install hf://`, `publish`, `train plan --model`): they read it from the app's `settings.json` at every request, and a teacher, student or Hub outside it is refused with exit 1 (`model_outside_network`) and a message that names the host. Graduates are held to less whatever it says: `run` and `serve` reach only the model on this computer.
 
 ## What it doesn't do yet
 

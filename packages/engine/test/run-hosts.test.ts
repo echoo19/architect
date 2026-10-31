@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { AdapterError, contactsLine, mentorPreset, type MentorConfig } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { startFakeOllama, type FakeOllama } from './agent-host/fake-ollama';
+import { HubClient } from '../src/hub/client';
 import { createEngineDeps } from '../src/host/wiring';
+import { connectTeacher, connectTranscriber } from '../src/loop/setup';
 import { recordingContacts } from '../src/loop/contacts';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 
@@ -93,5 +95,52 @@ describe("a run's hosts", () => {
     expect(contactsLine(store.runs.contacts('run_a'))).toBe(
       'Contacted 1 host, with no closed network on',
     );
+  });
+});
+
+describe('requests outside a run', () => {
+  const allowedHosts = () => ['spark.lab.internal'];
+
+  async function refusal(promise: Promise<unknown>): Promise<AdapterError> {
+    const error = await promise.then(
+      () => null,
+      (reason: unknown) => reason,
+    );
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe('outside_network');
+    return error as AdapterError;
+  }
+
+  it('refuse drafting, study and transcription outside the network, before a key is sent', async () => {
+    const asked: string[] = [];
+    const deps = createEngineDeps({
+      dataDir: dir,
+      getSecret: async (ref) => {
+        asked.push(ref);
+        return 'key-123456';
+      },
+      allowedHosts,
+    });
+    // Drafting and study reach their teacher this way; no run records it, but it is refused.
+    await refusal(connectTeacher(deps, hostedMentor()));
+    const error = await refusal(connectTranscriber(deps));
+    expect(error.message).toContain('outside the closed network');
+    // The key was read, but nothing carried it anywhere.
+    expect(asked.length).toBeGreaterThan(0);
+  });
+
+  it("refuse a Hub outside the network, a training plan's config read included", async () => {
+    const urls: string[] = [];
+    const hub = new HubClient({
+      token: async () => undefined,
+      allowedHosts,
+      fetch: (async (input: string | URL | Request) => {
+        urls.push(String(input));
+        return new Response('{}');
+      }) as typeof fetch,
+    });
+    const error = await refusal(hub.revision('meta/muse-glimmer-30b'));
+    expect(error.message).toContain('Hugging Face at huggingface.co is outside the closed network');
+    expect(urls).toEqual([]);
   });
 });

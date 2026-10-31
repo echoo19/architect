@@ -89,6 +89,7 @@ export class CliContext {
     this.engineHost = await createEngineHost({
       dataDir: this.dataDir,
       recover: false,
+      allowedHosts,
       localRuntime: () => this.localRuntime(),
       experimentEnvironment:
         this.io.experimentEnvironment ??
@@ -117,11 +118,15 @@ export class CliContext {
     return this.engineHost;
   }
 
-  /** The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file. */
+  /**
+   * The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file, held to
+   * the app's closed network while it is on (decision 095).
+   */
   hub(): HubClient {
     this.hubClient ??= new HubClient({
       endpoint: this.io.env['HF_ENDPOINT'] || HF_ENDPOINT,
       token: hubTokenResolver({ env: this.io.env }),
+      allowedHosts: () => appAllowedHosts(this.dataDir),
     });
     return this.hubClient;
   }

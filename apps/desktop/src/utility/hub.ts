@@ -15,11 +15,20 @@ export function hubEndpoint(env: NodeJS.ProcessEnv = process.env): string {
 /**
  * The Hub client the engine publishes and installs with. The token is looked up the standard way
  * whenever a request needs one, and the key saved in the app goes only to huggingface.co, never to
- * another Hub HF_ENDPOINT names.
+ * another Hub HF_ENDPOINT names. While a closed network is on (decision 095), a Hub outside it is
+ * refused before anything is sent.
  */
-export function hubClient(saved: SavedKey, env: NodeJS.ProcessEnv = process.env): HubClient {
+export function hubClient(
+  saved: SavedKey,
+  allowedHosts: () => readonly string[] | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): HubClient {
   const endpoint = hubEndpoint(env);
-  return new HubClient({ endpoint, token: hubTokenResolver({ saved, env, endpoint }) });
+  return new HubClient({
+    endpoint,
+    token: hubTokenResolver({ saved, env, endpoint }),
+    allowedHosts,
+  });
 }
 
 /**

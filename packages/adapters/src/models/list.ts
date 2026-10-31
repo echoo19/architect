@@ -1,6 +1,7 @@
 import { looksLikeChatModel, PROVIDERS, type ModelEntry, type ProviderId } from '@architect/shared';
 import { z } from 'zod';
 import { ANTHROPIC_VERSION } from '../anthropic/messages';
+import type { NetworkDeps } from '../deps';
 import { createHttpClient } from '../http/client';
 import { modelId } from '../openai/models';
 import { fetchModels, OLLAMA_SERVICE } from '../student/ollama-api';
@@ -27,6 +28,8 @@ export interface ListModelsOptions {
   apiKey?: string;
   fetch?: typeof fetch;
   signal?: AbortSignal;
+  /** The closed network (decision 095): a list or key check outside it is refused, nothing sent. */
+  network?: NetworkDeps;
 }
 
 function serviceOf(provider: ProviderId, baseUrl: string): string {
@@ -62,16 +65,27 @@ export async function listModels(options: ListModelsOptions): Promise<ModelEntry
         headers: { 'x-api-key': apiKey ?? '', 'anthropic-version': ANTHROPIC_VERSION },
         secrets,
         fetch: options.fetch,
+        network: options.network,
       });
       return chatOnly(await listAnthropicModels(http, signal));
     }
     case 'openrouter': {
       // The catalogue is public, so the key stays home.
-      const http = createHttpClient({ baseUrl, service, fetch: options.fetch });
+      const http = createHttpClient({
+        baseUrl,
+        service,
+        fetch: options.fetch,
+        network: options.network,
+      });
       return chatOnly(await listOpenRouterModels(http, signal));
     }
     case 'ollama': {
-      const http = createHttpClient({ baseUrl, service: OLLAMA_SERVICE, fetch: options.fetch });
+      const http = createHttpClient({
+        baseUrl,
+        service: OLLAMA_SERVICE,
+        fetch: options.fetch,
+        network: options.network,
+      });
       const models = await fetchModels(http, signal);
       return chatOnly(models.map((model) => ({ id: model.name, sizeBytes: model.sizeBytes })));
     }
@@ -82,6 +96,7 @@ export async function listModels(options: ListModelsOptions): Promise<ModelEntry
         headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {},
         secrets,
         fetch: options.fetch,
+        network: options.network,
       });
       const list = await http.getJson('/models', ListWire, { signal });
       return chatOnly((Array.isArray(list) ? list : list.data).map(toEntry)).sort((a, b) =>
@@ -106,6 +121,7 @@ export async function verifyKey(
       headers: { authorization: `Bearer ${options.apiKey}` },
       secrets: [options.apiKey],
       fetch: options.fetch,
+      network: options.network,
     });
     await checkOpenRouterKey(http, options.signal);
   }

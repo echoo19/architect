@@ -1,7 +1,7 @@
 import { AdapterError } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createMentor, createStudent } from '../src';
+import { createMentor, createStudent, listModels, verifyKey } from '../src';
 import type { NetworkDeps } from '../src/deps';
 import { createHttpClient } from '../src/http/client';
 import { mentorConfig, studentEndpoint } from './helpers/configs';
@@ -128,5 +128,43 @@ describe('a closed network', () => {
       ['spark.lab.internal', false],
       ['spark.lab.internal', true],
     ]);
+  });
+});
+
+describe('model lists and key checks under a closed network', () => {
+  it('are refused outside it before anything is sent, key and all', async () => {
+    const { fetch, urls } = recordingFetch();
+    const network: NetworkDeps = { allowed: ['vllm.lab.internal:8000'] };
+    for (const run of [
+      () =>
+        listModels({
+          provider: 'openrouter',
+          baseUrl: 'https://openrouter.ai/api/v1',
+          fetch,
+          network,
+        }),
+      () =>
+        verifyKey({
+          provider: 'openrouter',
+          baseUrl: 'https://openrouter.ai/api/v1',
+          apiKey: API_KEY,
+          fetch,
+          network,
+        }),
+    ]) {
+      const error = await run().catch((reason: unknown) => reason);
+      expect(error).toBeInstanceOf(AdapterError);
+      expect((error as AdapterError).code).toBe('outside_network');
+      expect((error as AdapterError).message).not.toContain(API_KEY);
+    }
+    expect(urls).toEqual([]);
+    const inside = await listModels({
+      provider: 'other',
+      baseUrl: 'http://vllm.lab.internal:8000/v1',
+      fetch,
+      network,
+    });
+    expect(inside).toEqual([]);
+    expect(urls).toEqual(['http://vllm.lab.internal:8000/v1/models']);
   });
 });

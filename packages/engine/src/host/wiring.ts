@@ -119,7 +119,11 @@ function trainingWiring(options: EngineWiringOptions, trainerDir: string): Train
   const store = new FileTrainingStore(options.dataDir);
   const recipe = loadRecipe(trainerDir);
   const token = options.huggingFaceToken ?? (async () => undefined);
-  const hub = new HfJobsBackend({ hub: new HubClient({ token }), recipe, token });
+  const hubClient = new HubClient({
+    token,
+    ...(options.allowedHosts === undefined ? {} : { allowedHosts: options.allowedHosts }),
+  });
+  const hub = new HfJobsBackend({ hub: hubClient, recipe, token });
   const standIn = new StandInBackend({
     stateDir: join(options.dataDir, 'training', 'stand-in'),
     // The stand-in shapes its adapter for the default student's base, from Ollama's store.

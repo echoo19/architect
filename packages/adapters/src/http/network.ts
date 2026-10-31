@@ -27,3 +27,15 @@ export function admit(
   if (allowed !== undefined && !inside) throw outsideNetwork(service, url);
   if (contact) network.contacted?.(contactHost(url), inside);
 }
+
+/**
+ * Refuses a request the app is about to make on a person's behalf, outside an adapter, such as a
+ * sign-in's key exchange, when a closed network is on and `url` isn't inside it.
+ */
+export function assertInsideNetwork(
+  network: NetworkDeps | undefined,
+  service: string,
+  url: string,
+): void {
+  admit(network, service, url, false);
+}

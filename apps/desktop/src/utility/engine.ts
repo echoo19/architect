@@ -72,7 +72,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
   const host = await createEngineHost({
     dataDir: message.dataDir,
     // Publishing and installing go to the Hub HF_ENDPOINT names, huggingface.co by default.
-    hub: hubClient(savedHubKey),
+    hub: hubClient(savedHubKey, () => followed.allowedHosts),
     deps: createEngineDeps({
       dataDir: message.dataDir,
       sandboxEntryPath: message.sandboxEntryPath,
