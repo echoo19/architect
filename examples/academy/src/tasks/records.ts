@@ -165,7 +165,7 @@ export class Records {
    */
   idsAreFree(): boolean {
     return (
-      this.rows('assignments.csv').length === 0 && !/A-0001/.test(this.files.text('policy.md'))
+      this.rows('assignments.csv').length === 0 && !/\bA-0001\b/.test(this.files.text('policy.md'))
     );
   }
 

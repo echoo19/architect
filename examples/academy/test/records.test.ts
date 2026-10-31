@@ -100,7 +100,7 @@ describe('tasks from an academy folder without question text', () => {
       );
       const wrong = rows.map((row, i) => ({
         ...row,
-        student_id: i === 0 ? 'S-nobody' : row.student_id,
+        student_id: i === 0 ? 'S-nobody' : (row.student_id ?? null),
       }));
       expect(check(wrong).pass, task.id).toBe(false);
     }
