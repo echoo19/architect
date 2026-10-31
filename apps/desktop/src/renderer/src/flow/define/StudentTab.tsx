@@ -1,7 +1,9 @@
 import { studentPricing, type StudentTarget } from '@architect/shared';
-import { ChoiceTiles, type ChoiceTile } from '@architect/ui';
-import { Cloud, Laptop } from 'lucide-react';
+import { Button, ChoiceTiles, type ChoiceTile } from '@architect/ui';
+import { Cloud, Cpu, Laptop } from 'lucide-react';
 import { currentPlatform, deviceLabel } from '../../lib/platform';
+import { navigate, paths } from '../../lib/router';
+import { useEdition } from '../../shell/edition';
 import {
   hostedFromChoice,
   localModelName,
@@ -17,12 +19,15 @@ import { TYPING_PAUSE_MS } from './use-job-editor';
 
 /**
  * The agent's model: the one it runs on here, where it practices, the online copy that practices
- * faster, and how much it reads at once.
+ * faster, and how much it reads at once. In the Lab, a cluster training plan for it is one step
+ * away.
  */
 export function StudentTab({ editor, change }: InspectorTabProps) {
   const { job, issues } = editor;
   const { local, hosted, trainOn } = job.student;
   const { student } = modelNames(job);
+  // Clusters are the Lab's: the personal edition has no Compute.
+  const lab = useEdition() === 'lab';
   const hostedPreset = hosted ? presetOf(hosted) : undefined;
   const hostedPrice = hosted ? studentPricing(hosted) : undefined;
   const places: readonly ChoiceTile<StudentTarget>[] = [
@@ -135,6 +140,16 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
           )
         }
       />
+      {lab && (
+        <Button
+          size="sm"
+          className="self-start"
+          onClick={() => navigate(paths.compute({ jobId: job.id }))}
+        >
+          <Cpu size={14} strokeWidth={1.8} aria-hidden />
+          Plan cluster training
+        </Button>
+      )}
     </div>
   );
 }

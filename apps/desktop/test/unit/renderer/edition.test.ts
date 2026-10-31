@@ -28,6 +28,7 @@ describe('editions', () => {
       '/experiments/exp_1',
       '/models',
       '/compute',
+      '/compute/fields/job_1',
     ]) {
       expect(isLabOnly(parsePath(path)), path).toBe(true);
     }
