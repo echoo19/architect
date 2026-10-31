@@ -83,6 +83,7 @@ const oneOrg = (jobId: string): FieldView => ({
 const EARLIER_RUN = 'run_academy_desk_earlier';
 const EARLIER_REPORT: ReportCard = {
   ...FIELD_REPORT,
+  jobId: LAB.academyDeskJob,
   runId: EARLIER_RUN,
   createdAt: at(-1_440),
   test: {
@@ -232,7 +233,12 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
   await stubByKey(app, 'runs:list', RUNS);
   await stubByKey(app, 'reports:list', REPORT_TARGETS);
   await stubByKey(app, 'reports:get', {
-    [LAB.academyDeskRun]: { ...FIELD_REPORT, runId: LAB.academyDeskRun, name: 'Academy desk' },
+    [LAB.academyDeskRun]: {
+      ...FIELD_REPORT,
+      jobId: LAB.academyDeskJob,
+      runId: LAB.academyDeskRun,
+      name: 'Academy desk',
+    },
     [EARLIER_RUN]: EARLIER_REPORT,
     run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
   });

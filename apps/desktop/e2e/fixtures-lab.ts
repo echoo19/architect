@@ -1,5 +1,7 @@
 import {
+  ExperimentRecordSchema,
   ImprovementSchema,
+  type ExperimentRecord,
   type GraduateSummary,
   type Improvement,
   type Job,
@@ -137,7 +139,9 @@ const DETAILS = Object.fromEntries(
 
 const REPORTS = Object.fromEntries(
   Object.entries(ENTRIES).flatMap(([key, entry]) =>
-    entry.report ? [[runId(key), { ...entry.report, runId: runId(key), name: entry.name }]] : [],
+    entry.report
+      ? [[runId(key), { ...entry.report, jobId: jobId(key), runId: runId(key), name: entry.name }]]
+      : [],
   ),
 );
 
@@ -163,9 +167,53 @@ const IMPROVEMENT: Improvement = ImprovementSchema.parse({
   candidateVersion: 3,
 });
 
+/** An experiment on one of the Lab's fields, as the engine keeps it. */
+function experiment(
+  id: string,
+  name: string,
+  job: string,
+  status: ExperimentRecord['status'],
+  extra: Partial<ExperimentRecord> = {},
+): ExperimentRecord {
+  return ExperimentRecordSchema.parse({
+    id,
+    input: {
+      name,
+      jobId: jobId(job),
+      arms: [{ arm: 'bare' }, { arm: 'draft' }, { arm: 'targeted' }],
+      seeds: { mentoring: 1, lockedTest: [101] },
+      rounds: 4,
+      caps: { studentUsd: 15, sparkUsd: 10, computeUsd: 0, wallMinutes: 720 },
+    },
+    job: { id: jobId(job), name: ENTRIES[job]?.name ?? job, splitsSeed: 7 },
+    status,
+    preregistration: null,
+    calibratedAt: at(300),
+    runningMs: 0,
+    createdAt: at(300),
+    updatedAt: at(600),
+    ...extra,
+  });
+}
+
+/**
+ * The Lab's experiments, newest first: one running on Academy desk, and one on the service desk
+ * paused before its release because an arm can't be paid for at what an attempt really cost.
+ */
+export const LAB_EXPERIMENTS: ExperimentRecord[] = [
+  experiment('cmp_targeted', 'Targeted against one-shot draft', 'academy_desk', 'running', {
+    runningMs: 47 * 60_000,
+  }),
+  experiment('cmp_funding', 'Draft on the service desk', 'desk', 'needs_funding', {
+    reason: 'The targeted arm needs $4.20 more of Glimmer than its cap.',
+    runningMs: 22 * 60_000,
+  }),
+];
+
 const BASE: EngineReplies = {
   'graduates:list': LAB_AGENTS,
   'jobs:list': LAB_JOBS,
+  'experiments:list': LAB_EXPERIMENTS,
   'connections:detectLocal': LOCAL_WITH_GLIMMER,
   'connections:llamaServer': LLAMA_SERVER_READY,
   'graduates:hasSampleAgent': false,
