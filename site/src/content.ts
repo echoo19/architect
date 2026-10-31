@@ -16,11 +16,11 @@ export const MAC_INTEL_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-x64.
 export const REPORTS = `${REPO}/tree/main/docs/comparisons`;
 
 export const HERO = {
-  title: "Turn your organization's files into a specialist that runs on your computer.",
+  title: 'The training system for your own AI.',
   /** Two sentences, each on its own line where there is room. */
   line: [
-    'Spark, a large model, studies your files and teaches Glimmer, a small one.',
-    'Glimmer is tested on work it never saw, then runs offline on your files.',
+    'A large model teaches a small one by rewriting its instructions and tools.',
+    'Every change is tested on work neither model has seen, and Architect certifies when the result can be trusted.',
   ],
 } as const;
 
