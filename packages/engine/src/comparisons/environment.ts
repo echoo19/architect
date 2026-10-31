@@ -131,6 +131,7 @@ async function ollamaVersion(baseUrl: string, network?: NetworkDeps): Promise<st
   try {
     const response = await fetch(new URL('/api/version', baseUrl), {
       signal: AbortSignal.timeout(3_000),
+      redirect: 'manual',
     });
     if (!response.ok) return null;
     const body = (await response.json()) as { version?: unknown };
