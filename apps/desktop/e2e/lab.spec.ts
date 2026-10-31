@@ -187,7 +187,7 @@ test('leads to each place from the sidebar and the command palette', async () =>
   // Sorted by name; a click on a header sorts by it, again the other way.
   await expect(models.getByRole('row').nth(2)).toContainText('Academy desk');
   await models.getByRole('button', { name: 'Agent' }).click();
-  await expect(models.getByRole('row').nth(2)).toContainText('Service desk');
+  await expect(models.getByRole('row').nth(2)).toContainText('Sweep desk');
   await models.getByRole('button', { name: 'Agent' }).click();
   await capture('places-models-dark.png');
 

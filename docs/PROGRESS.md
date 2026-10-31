@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun), `lab/science-standins` (from `field/main`): the science lab in the stand-in engine
+
+- *Done:* the stand-in engine has the science lab beside the other fields (`docs/PLATFORM.md`, "Demo sets"). `e2e/fixtures-science.ts`: Sweep desk, with its job, groups, skills and files read from `examples/sweep-desk` (Halden Lab, Quill Systems Group and Marlow Learning Group taught on; Fennick Research never seen), two finished runs (4 and 6 rounds), one agent version from each (v1 81% taught on, 65% never seen; v2 92%, 77%), and a confirmed study; Assay desk from `examples/assay-desk`, studied but not taught. `e2e/fixtures-science-experiment.ts`: a finished experiment, "Targeted against Glimmer alone" (Glimmer alone, one-shot draft, targeted mentoring on 84 final-test tasks). Every count comes from one pass or fail per task, so skills, groups and pairs add up, and the targeted arm matches the best candidate. The Lab, Fields, Models, Experiments and the field timeline show it. **All of these scores are stand-ins for screenshots, not measured results.** Sweep desk has not been measured yet.
+- *Tests:* hidden e2e `e2e/lab-science.spec.ts`; screenshots `docs/screenshots/lab-science-{home,field,timeline,orgs,experiment}-dark.png`. Expectations updated where a spec counts: `fields.spec.ts` (Fields table 7 rows, now 9), `models.spec.ts` (11 rows, not 9; sorted by Never seen, Sweep desk v1 now comes first), `lab.spec.ts` (Models sorted by name in reverse now starts with Sweep desk). The experiments stand-in can start with experiments it already holds, and the engine's testing entry exports `counted` and `pairedDifference`.
+- *Open:* `e2e/retest.spec.ts` "says it fell short on this computer when it passed online" fails here ("Not ready" is missing). It uses none of the changed fixtures, so the failure is older than this branch. Nothing is merged or pushed.
+
 ## 2026-11-01 (Sun), `lab/timeline-learned` (from `field/main`): the timeline shows Learned from
 
 - *Done:* the field timeline (091) has a "Learned from" stage (089). A version made by teaching on a never-seen organization opens with a row for the version it was made from; the earlier field gets a row for each later version taught on one of its never-seen organizations. Each row opens the other field. Read from `jobs.field` (`versionOf`, `taughtIn`) and, for a later version's date, `jobs.get`; no new engine call, `FieldSummary` unchanged.

@@ -14,6 +14,13 @@ import type { ElectronApplication } from '@playwright/test';
 import { LLAMA_SERVER_READY, LOCAL_WITH_GLIMMER, type EngineReplies, stubEngine } from './fixtures';
 import { FIELD_AGENT, FIELD_CHAT, FIELD_JOB, FIELD_REPORT } from './fixtures-field';
 import { stubByKey } from './fixtures-flow';
+import {
+  ASSAY_DESK_JOB,
+  SWEEP_DESK_AGENT,
+  SWEEP_DESK_ID,
+  SWEEP_DESK_JOB,
+  SWEEP_REPORT,
+} from './fixtures-science';
 import { FINISHED, FLAGGED } from './fixtures-teaching';
 import { AGENT_WITH_VERSIONS } from './fixtures-versions';
 import { CHATS } from './fixtures-workspace';
@@ -50,12 +57,19 @@ export const MINI_AGENT: GraduateSummary = {
 };
 
 /** Every agent, as Models lists them. */
-export const LAB_AGENTS: GraduateSummary[] = [AGENT_WITH_VERSIONS, ACADEMY_DESK_AGENT, MINI_AGENT];
+export const LAB_AGENTS: GraduateSummary[] = [
+  AGENT_WITH_VERSIONS,
+  ACADEMY_DESK_AGENT,
+  MINI_AGENT,
+  SWEEP_DESK_AGENT,
+];
 
 interface Entry {
   name: string;
-  run: Partial<JobRun> & Pick<JobRun, 'status' | 'phase'>;
+  /** Absent for a field not taught yet. */
+  run?: Partial<JobRun> & Pick<JobRun, 'status' | 'phase'>;
   job: Job;
+  taskCount?: number;
   /** What the run's records say it spent and how far it got. */
   totals?: Partial<RunDetail['run']['totals']>;
   report?: ReportCard;
@@ -100,6 +114,15 @@ const ENTRIES: Record<string, Entry> = {
     totals: { mentorUsd: 0.62, rounds: 7 },
     report: storyReport,
   },
+  sweep_desk: {
+    name: 'Sweep desk',
+    run: { status: 'finished', phase: 'done', accepted: true },
+    job: SWEEP_DESK_JOB,
+    taskCount: 192,
+    totals: { mentorUsd: SWEEP_REPORT.cost.mentorUsd, rounds: SWEEP_REPORT.cost.rounds },
+    report: SWEEP_REPORT,
+  },
+  assay_desk: { name: 'Assay desk', job: ASSAY_DESK_JOB, taskCount: 192 },
 };
 
 const jobId = (key: string) => `job_${key}`;
@@ -109,32 +132,42 @@ export const LAB_JOBS: JobSummary[] = Object.entries(ENTRIES).map(([key, entry])
   id: jobId(key),
   name: entry.name,
   createdAt: AT,
-  taskCount: 170,
-  latestRun: {
-    id: runId(key),
-    method: 'architect',
-    devCurrent: null,
-    devBaseline: null,
-    ...entry.run,
-  },
+  taskCount: entry.taskCount ?? 170,
+  ...(entry.run
+    ? {
+        latestRun: {
+          id: runId(key),
+          method: 'architect' as const,
+          devCurrent: null,
+          devBaseline: null,
+          ...entry.run,
+        },
+      }
+    : {}),
 }));
 
 export const DETAILS = Object.fromEntries(
-  Object.entries(ENTRIES).map(([key, entry]) => [
-    runId(key),
-    {
-      ...detail,
-      run: makeRun({
-        id: runId(key),
-        jobId: jobId(key),
-        status: entry.run.status,
-        phase: entry.run.phase,
-        devCurrent: entry.run.devCurrent ?? detail.run.devCurrent,
-        totals: { ...detail.run.totals, ...entry.totals },
-      }),
-      job: { ...entry.job, id: jobId(key), name: entry.name },
-    } satisfies RunDetail,
-  ]),
+  Object.entries(ENTRIES).flatMap(([key, { run, ...entry }]) =>
+    run
+      ? [
+          [
+            runId(key),
+            {
+              ...detail,
+              run: makeRun({
+                id: runId(key),
+                jobId: jobId(key),
+                status: run.status,
+                phase: run.phase,
+                devCurrent: run.devCurrent ?? detail.run.devCurrent,
+                totals: { ...detail.run.totals, ...entry.totals },
+              }),
+              job: { ...entry.job, id: jobId(key), name: entry.name },
+            } satisfies RunDetail,
+          ],
+        ]
+      : [],
+  ),
 );
 
 const REPORTS = Object.fromEntries(
@@ -197,8 +230,9 @@ function experiment(
 }
 
 /**
- * The Lab's experiments, newest first: one running on Academy desk, and one on the service desk
- * paused before its release because an arm can't be paid for at what an attempt really cost.
+ * The Lab's experiments, newest first: one running on Academy desk, one on the service desk
+ * paused before its release because an arm can't be paid for at what an attempt really cost, and
+ * one finished on Sweep desk, its results released.
  */
 export const LAB_EXPERIMENTS: ExperimentRecord[] = [
   experiment('cmp_targeted', 'Targeted against one-shot draft', 'academy_desk', 'running', {
@@ -207,6 +241,21 @@ export const LAB_EXPERIMENTS: ExperimentRecord[] = [
   experiment('cmp_funding', 'Draft on the service desk', 'desk', 'needs_funding', {
     reason: 'The targeted arm needs $4.20 more of Glimmer than its cap.',
     runningMs: 22 * 60_000,
+  }),
+  experiment('cmp_sweep', 'Targeted against Glimmer alone', 'sweep_desk', 'finished', {
+    preregistration: {
+      at: at(-200),
+      sha256: '8d41c2e07b9a3f65d1e48c20a7f93b6e5c0d24a19f7e83b6c5a0d1e2f3b4c5d6',
+      pinned: {
+        jobId: jobId('sweep_desk'),
+        name: 'Sweep desk',
+        job: '4c'.repeat(32),
+        tasks: '9e'.repeat(32),
+        data: 'b1'.repeat(32),
+        checker: '07'.repeat(32),
+      },
+    },
+    runningMs: 214 * 60_000,
   }),
 ];
 
@@ -229,16 +278,19 @@ export async function stubLab(app: ElectronApplication): Promise<void> {
     [STORY.graduateId]: Object.values(CHATS),
     [ACADEMY_DESK_ID]: [{ ...FIELD_CHAT, graduateId: ACADEMY_DESK_ID, updatedAt: at(600) }],
     [MINI_ID]: [],
+    [SWEEP_DESK_ID]: [],
   });
   await stubByKey(app, 'teach:list', {
     [STORY.graduateId]: FLAGGED,
     [ACADEMY_DESK_ID]: [],
     [MINI_ID]: [],
+    [SWEEP_DESK_ID]: [],
   });
   await stubByKey(app, 'teach:improvements', {
     [STORY.graduateId]: [IMPROVEMENT],
     [ACADEMY_DESK_ID]: [],
     [MINI_ID]: [],
+    [SWEEP_DESK_ID]: [],
   });
 }
 
@@ -246,4 +298,6 @@ export const LAB = {
   academyDeskRun: runId('academy_desk'),
   deskRun: runId('desk'),
   academyDeskJob: jobId('academy_desk'),
+  sweepDeskJob: jobId('sweep_desk'),
+  assayDeskJob: jobId('assay_desk'),
 };

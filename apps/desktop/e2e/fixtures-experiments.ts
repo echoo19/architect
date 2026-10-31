@@ -3,6 +3,7 @@ import {
   ComparisonReportSchema,
   ProjectionSchema,
   type ComparisonReport,
+  type ExperimentRecord,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 
@@ -40,15 +41,22 @@ function experimentsData(report: ComparisonReport) {
   };
 }
 
-/** Installs the stand-in; `report` is what a finished experiment reads, such as the recorded one. */
+/**
+ * Installs the stand-in; `report` is what a finished experiment reads, such as the recorded one,
+ * and `kept` the experiments it already holds, such as a finished one.
+ */
 export async function installExperimentsFake(
   app: ElectronApplication,
   report: ComparisonReport,
+  kept: readonly ExperimentRecord[] = [],
 ): Promise<void> {
   // Sent untyped: the report's types are too deep for Playwright to unbox, and it is ours anyway.
-  const sent: unknown = experimentsData(report);
+  const sent: unknown = { data: experimentsData(report), kept };
   await app.evaluate(({ BrowserWindow, ipcMain }, raw) => {
-    const data = raw as ReturnType<typeof experimentsData>;
+    const { data, kept } = raw as {
+      data: ReturnType<typeof experimentsData>;
+      kept: Record[];
+    };
     type Record = {
       id: string;
       input: { jobId?: string; jobDir?: string; name: string };
@@ -61,7 +69,7 @@ export async function installExperimentsFake(
       createdAt: string;
       updatedAt: string;
     };
-    const records: Record[] = [];
+    const records: Record[] = [...kept];
     const now = () => new Date().toISOString();
     const broadcast = (channel: string, payload: unknown) => {
       for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload);

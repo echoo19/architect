@@ -58,8 +58,8 @@ const panel = () => page.getByRole('complementary', { name: 'Model' });
 test('lists every agent and version with its scores, and filters and searches them', async () => {
   await openModels();
   await expect(row(/Academy desk Mini/)).toBeVisible();
-  // Three agents, seven versions, under a header of two rows.
-  await expect(table().getByRole('row')).toHaveCount(9);
+  // Four agents, nine versions, under a header of two rows.
+  await expect(table().getByRole('row')).toHaveCount(11);
   await expect(table().getByRole('columnheader', { name: 'Final test' })).toBeVisible();
 
   // Academy desk's active version: seen, unseen and real apart, and its check tasks on their own.
@@ -98,7 +98,7 @@ test('lists every agent and version with its scores, and filters and searches th
 
   // Sorted by name; the unseen column sorts with unmeasured versions last either way.
   await table().getByRole('button', { name: 'Never seen' }).click();
-  await expect(table().getByRole('row').nth(2)).toContainText('Academy desk');
+  await expect(table().getByRole('row').nth(2)).toContainText('Sweep desk');
   await table().getByRole('button', { name: 'Never seen' }).click();
   await expect(table().getByRole('row').nth(2)).toContainText('Academy desk Mini');
   await expect(table().getByRole('row').last()).toContainText('Service desk');
