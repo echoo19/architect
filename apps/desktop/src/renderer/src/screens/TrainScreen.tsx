@@ -12,6 +12,7 @@ import { useQuery, type QueryState } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
+import { AttemptsSheet } from '../flow/train/AttemptsSheet';
 import { Budget } from '../flow/train/Budget';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
@@ -41,6 +42,7 @@ import { useLiveRun } from '../flow/train/use-live-run';
 import { useQuestion } from '../flow/train/use-question';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from '../shell/edition';
 import { FlowShell, IMPROVE_STEPS } from '../shell/FlowShell';
 import { StopImprovementDialog } from '../workspace/teach/StopImprovement';
 
@@ -55,7 +57,8 @@ type DrawerView =
   | { kind: 'attempt'; attempt: ListedAttempt; openAt?: number; notes?: StepNote[] }
   | { kind: 'finding'; attemptId: string; openAt: number; notes: StepNote[] }
   | { kind: 'round'; index: number }
-  | { kind: 'lesson'; lessonId: string };
+  | { kind: 'lesson'; lessonId: string }
+  | { kind: 'attempts' };
 
 /** The drawer's views, newest last. It stays set while the drawer animates closed. */
 function useDrawerStack() {
@@ -135,6 +138,7 @@ type DrawerStack = ReturnType<typeof useDrawerStack>;
 /** The board and its drawer, which read the run's mentoring records together. */
 function LiveTraining({ live, drawer }: { live: LiveRun; drawer: DrawerStack }) {
   const records = useMentoringRecords(live.run.id, live.job.id);
+  const lab = useEdition() === 'lab';
   return (
     <>
       <TrainBoard
@@ -143,6 +147,7 @@ function LiveTraining({ live, drawer }: { live: LiveRun; drawer: DrawerStack }) 
         onOpenAttempt={(attempt) => drawer.show({ kind: 'attempt', attempt })}
         onOpenRound={(round) => drawer.show({ kind: 'round', index: round.index })}
         onOpenLesson={(lesson) => drawer.show({ kind: 'lesson', lessonId: lesson.id })}
+        onShowAllAttempts={lab ? () => drawer.show({ kind: 'attempts' }) : undefined}
       />
       <Drawer
         open={drawer.open && drawer.top !== null}
@@ -225,6 +230,17 @@ function DrawerBody({
         />
       );
     }
+    case 'attempts':
+      return (
+        <AttemptsSheet
+          runId={live.run.id}
+          job={live.job}
+          rounds={live.rounds}
+          mentor={names.mentor}
+          onOpen={(attempt) => drawer.push({ kind: 'attempt', attempt })}
+          onBack={onBack}
+        />
+      );
   }
 }
 
@@ -335,12 +351,14 @@ function TrainBoard({
   onOpenAttempt,
   onOpenRound,
   onOpenLesson,
+  onShowAllAttempts,
 }: {
   live: LiveRun;
   records: QueryState<MentoringRecords>;
   onOpenAttempt: (attempt: ListedAttempt) => void;
   onOpenRound: (round: Round) => void;
   onOpenLesson: (lesson: ListedLesson) => void;
+  onShowAllAttempts: (() => void) | undefined;
 }) {
   const { run, job, improves } = live;
   const names = modelNames(job);
@@ -433,6 +451,7 @@ function TrainBoard({
           mentor={names.mentor}
           ended={hasEnded(run)}
           onOpen={onOpenAttempt}
+          onShowAll={onShowAllAttempts}
         />
       </StaggerItem>
     </Stagger>
