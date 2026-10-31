@@ -3,6 +3,7 @@ import { Button, EmptyState, Input, Segmented, Skeleton } from '@architect/ui';
 import { Boxes, Search } from 'lucide-react';
 import { ProblemState } from '../components/ProblemState';
 import { navigate, paths } from '../lib/router';
+import { Candidates } from '../models/Candidates';
 import { CompareView } from '../models/CompareView';
 import { useRegistry } from '../models/load';
 import { ModelPanel } from '../models/ModelPanel';
@@ -81,11 +82,21 @@ export function ModelsScreen() {
               }
             />
           ) : (
-            <Registry
-              rows={rows}
-              openKey={open ? open.key : null}
-              onOpen={(row) => setOpenKey(row.key)}
-            />
+            <div className="flex flex-col gap-6">
+              <Candidates
+                rows={rows}
+                onOpen={(row) => setOpenKey(row.key)}
+                onCompare={(candidate, active) => {
+                  const [before, after] = ordered(active, candidate);
+                  setComparing([before.key, after.key]);
+                }}
+              />
+              <Registry
+                rows={rows}
+                openKey={open ? open.key : null}
+                onOpen={(row) => setOpenKey(row.key)}
+              />
+            </div>
           )}
         </PlacePage>
       </div>
