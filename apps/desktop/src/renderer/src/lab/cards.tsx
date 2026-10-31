@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import {
+  orgCounts,
   RunEventSchema,
   type ExperimentRecord,
   type GraduateSummary,
@@ -36,11 +37,12 @@ import {
 } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
-import { fetchQuery } from '../api/query';
+import { fetchQuery, useQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
 import { minutesText, STATUS_WORDS as EXPERIMENT_WORDS } from '../experiments/model';
 import { newField } from '../fields/new-field';
+import { orgCountText } from '../fields/parts';
 import { Counted } from '../flow/counted';
 import { formatCost, shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
@@ -443,6 +445,8 @@ function FinishedRow({ row }: { row: RunRow }) {
   const card = report.data;
   const perOrg = card?.test.perOrg;
   const scores = perOrg && perOrg.length > 0 ? orgScores(perOrg) : null;
+  // A field with no real organization has no Real figure at all, rather than a dash.
+  const hasReal = perOrg?.some((result) => !result.seen && !result.synthetic) ?? false;
   return (
     <li>
       <CardRow
@@ -469,7 +473,9 @@ function FinishedRow({ row }: { row: RunRow }) {
                     score={scores.unseen}
                     hint="Generated ones it never saw"
                   />
-                  <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
+                  {hasReal && (
+                    <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
+                  )}
                 </>
               ) : (
                 <Figure label="Passed" score={card.test.score} hint="Final test" />
@@ -567,7 +573,6 @@ export function SpendCard({ rows }: { rows: readonly RunRow[] }) {
 
 function FieldRow({ jobId }: { jobId: string }) {
   const job = useJob(jobId);
-  const orgs = job.data?.organizations;
   if (!job.data) {
     return job.status === 'error' ? (
       <li className="border-t border-line px-6 py-3">
@@ -582,7 +587,24 @@ function FieldRow({ jobId }: { jobId: string }) {
       <li aria-busy="true" className="sr-only" />
     );
   }
-  if (!orgs) return null;
+  return job.data.organizations ? <FieldCounts jobId={jobId} name={job.data.name} /> : null;
+}
+
+/** A field's row, with its organizations counted as the Fields table counts them. */
+function FieldCounts({ jobId, name }: { jobId: string; name: string }) {
+  const view = useQuery(`field-view:${jobId}`, () => api.field(jobId));
+  if (view.status === 'error') {
+    return (
+      <li className="border-t border-line px-6 py-3">
+        <ProblemState
+          layout="inline"
+          error={view.error}
+          title="Couldn't read this field"
+          onRetry={view.reload}
+        />
+      </li>
+    );
+  }
   return (
     <li>
       <CardRow
@@ -591,8 +613,8 @@ function FieldRow({ jobId }: { jobId: string }) {
             <Library strokeWidth={1.8} aria-hidden />
           </RowIcon>
         }
-        title={job.data.name}
-        detail={orgs.length === 1 ? 'One organization' : `${orgs.length} organizations`}
+        title={name}
+        detail={view.data ? orgCountText(orgCounts(view.data)) : undefined}
         end={chevron}
         onClick={() => navigate(paths.field(jobId))}
       />

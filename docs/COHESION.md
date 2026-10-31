@@ -16,6 +16,8 @@ A read-only audit on Nov 1 (all 207 screenshots, the routes, the places' code) f
 | the job's own noun for an organization (`organizationNoun`) | ~~hard-coded "academy" in `flow/define/Recordings.tsx` and `StudyReview.tsx`~~ |
 | training (to the person) | ~~run (keep internal)~~ |
 
+One exception to the model names: a list whose rows can have different models (Experiments, which spans fields since decision 094) heads its spend columns "Teacher" and "Student" and names each row's model under its figure ("$1.20 of $5.00 / Spark"). The comparison report's Markdown names the comparison's own models (`renderMarkdown(report, names)`). A field's organizations are counted in one line, by the Fields table's counts: "3 taught on · 2 never seen, 1 real" (the Lab's Fields card and a field page's title).
+
 ## Places that lead to each other
 
 1. ~~Results in the Lab: "Open in Models" and "Open field"; Close returns to the field it came from (`ReportScreen.tsx`, `FlowShell.tsx`).~~
@@ -31,7 +33,7 @@ A read-only audit on Nov 1 (all 207 screenshots, the routes, the places' code) f
 ## One look
 
 - ~~One score format: "83% · 30 of 36" in rows, "30/36" only inside grids, no decimals (`lib/format.ts`, `experiments/NumberRow.tsx`).~~
-- ~~Unmeasured cells show "–" read as "None" (`flow/report/Organizations.tsx`).~~
+- ~~Unmeasured cells show "–" read as "None" (`flow/report/Organizations.tsx`).~~ A kind of organization the field doesn't have is absent, not a dash: no "Real" figure in the Lab's Recently finished and no "Real" column on a field's Versions when the field has no real organization.
 - ~~One error pattern (`ProblemState`): drop the red filled banner (`flow/define/RuleReview.tsx`).~~
 - ~~Pills only where they carry a state; "New field" and "New experiment" alike (both with or both without an icon); Stop the same in Train and Experiments.~~
 - ~~No eyebrow labels ("Spark's finding").~~
