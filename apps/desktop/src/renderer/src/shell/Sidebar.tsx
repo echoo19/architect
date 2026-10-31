@@ -74,10 +74,13 @@ export function Sidebar({ route }: { route: Route }) {
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 border-r border-line bg-ground px-3 pb-3.5">
-      {/* The top strip drags the window; on macOS the traffic lights sit at its left. */}
+      {/*
+        The top strip drags the window. It is the native title bar's 56px, so the wordmark sits on
+        the line of the traffic lights on macOS and of a chat's title.
+      */}
       <div
         className={cn(
-          'app-drag -mx-3 flex h-12 shrink-0 items-center gap-2.5 px-5.5 pt-5',
+          'app-drag -mx-3 flex h-14 shrink-0 items-center gap-2 px-5',
           isMac() && 'pl-[78px]',
         )}
       >
@@ -264,7 +267,7 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
         </div>
       </div>
       {!list && chats.entry.status === 'loading' && (
-        <div className="flex flex-col gap-2.5 py-1.5 pl-[38px]" aria-busy="true">
+        <div className="flex flex-col gap-2.5 py-1.5 pl-11" aria-busy="true">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-3 w-20" />
         </div>
@@ -275,7 +278,7 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
           error={chats.entry.error}
           title="Couldn't load chats"
           onRetry={chats.reload}
-          className="py-1.5 pl-[38px] pr-2.5"
+          className="py-1.5 pl-11 pr-2.5"
         />
       )}
       {list?.map((chat, index) => {

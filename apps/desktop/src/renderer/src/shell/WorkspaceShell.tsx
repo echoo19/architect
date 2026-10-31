@@ -30,7 +30,7 @@ function sidebarOrder(route: Route): number {
 /**
  * The sidebar of places and agents on the left, the current screen on the right. A new page
  * rises in from the side of the sidebar the person moved toward: from below going down the
- * places, from above going up.
+ * places, from above going up. Coming back from the flow or setup, the page rises in too.
  */
 export function WorkspaceShell({ route, children }: { route: Route; children: ReactNode }) {
   useWorkspaceEvents();
@@ -44,6 +44,7 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
           transitionKey={key}
           kind="place"
           direction={direction}
+          appear
           className="flex min-h-0 flex-1 flex-col"
         >
           {children}

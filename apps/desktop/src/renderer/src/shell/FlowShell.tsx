@@ -60,9 +60,10 @@ export function FlowShell<Step extends string = FlowStep>({
     <div className="flex h-full flex-col bg-ground">
       {/*
         Two equal grid tracks keep the steps centered in the window. The side columns take the
-        insets for the macOS traffic lights and the Windows and Linux window controls.
+        insets for the macOS traffic lights and the Windows and Linux window controls. It is 56px
+        tall, the native title bar's height, so the window controls end on its hairline.
       */}
-      <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2.5">
+      <header className="app-drag grid min-h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2">
         <div className={cn('flex min-w-0 items-center gap-2', isMac() && 'pl-17')}>
           <IconButton label="Close" onClick={onClose ?? (() => navigate(paths.home()))}>
             <X size={18} strokeWidth={1.8} aria-hidden />
