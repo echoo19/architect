@@ -65,8 +65,8 @@ There is one theme. The window, the native title bar and `color-scheme` are alwa
 | `hero` | 56 / 1.0 | one number or one sentence that is the point of the screen |
 | `title` | 40 / 1.05 | page title |
 | `h1` | 28 / 1.15 | section title on a long page |
-| `h2` | 20 / 1.3 | card title |
-| `body` | 15 / 1.55 | reading text, chat |
+| `h2` | 20 / 1.3 | a heading on the ground, outside any card; an empty state's title; a dialog's title |
+| `body` | 15 / 1.55 | reading text, chat; a card's or a panel's title, in Inter Tight 600 |
 | `ui` | 14 / 1.45 | controls, rows, tables |
 | `small` | 13 / 1.45 | the smallest text; use rarely |
 
@@ -81,6 +81,28 @@ Nothing below 13px except keyboard hints.
 - Spacing is on a 4px grid. Cards pad 24; rows are 48 tall; page gutters are 40, content max
   width 1120 for reading pages.
 
+## One set of parts
+
+Every screen is built from the same few measures, so two screens never disagree about what a row,
+a strip or a title is. When a new part needs a size, it takes one from this table.
+
+| Part | Measure |
+|---|---|
+| Window chrome | the sidebar's top strip is 56 tall, its wordmark on the line of the macOS traffic lights and a chat's title; a page's 48px top strip drags the window; a flow or setup header is 56 tall, the native title bar's height, so the window controls end on its hairline; a page's side panel runs the full height with its edge unbroken |
+| Page title | 40px Inter Tight 600, in a 48px row under the 48px strip that drags the window; 32px to the content |
+| Card and panel title | 15px Inter Tight 600 in a 56px row; an optional 16px icon before it, one control after it |
+| Heading on the ground | 20px (`h2`), for a section of a page outside any card ("By organization", "Rounds") |
+| Side padding | 24 in cards, panels, tables and dialogs; 20 in the inspector; 40 for a page |
+| Rows | 48 for one line, 56 for a title with a detail line; inspector control rows 40; sidebar rows 40, nested 36 |
+| Hairlines | `line` between rows and around cards; `line-strong` around controls; a row never gets a box of its own |
+| Strips (Segmented, PageTabs, the inspector's tabs) | one shape: a pill on `field` with a hairline, 4px inside, 32px segments, so the strip is 40 tall like a control; the selected segment is `raised` with a strong edge and slides |
+| Controls | buttons 44 / 40 / 36 / 32; icon buttons 40 / 36 / 32 / 28; fields 40; all radius 12, chips and strips full |
+| Icons | Lucide at stroke 1.8: 16 in rows, controls and titles, 14 in small buttons, 20 in an empty state's tile; marks of 13 or less at 2.2 |
+| Hover, selected, chosen | hover `hover` in 150ms; the selected row or tab `selected`; a chosen tile or card `selected` with a light edge |
+| Empty and error states | a 48px tile with a 20px icon, a 20px title, at most one line under it, at most two buttons; inside a card, one quiet line instead |
+| Toasts | `raised`, radius 20, at the bottom right, one at a time per kind (`key`); an Undo is the toast's one button |
+| Scrollbars | 10px, shown only while the pointer is over the region (`scroll-quiet`), in the sidebar, a page, the inspector and tables |
+
 ## Places and their parts
 
 The sidebar leads with Architect's places, an icon and a word each: Lab, Fields, Experiments,
@@ -90,7 +112,8 @@ right. In the personal edition (decision 076) there are no places: New agent and
 and the wordmark reads "Architect" instead of "Architect Lab".
 
 - **Card and CardGrid.** A card is the flat card surface with a title row: the title at 15px Inter
-  Tight, an optional 16px icon before it and one optional control after it. Rows inside a card
+  Tight, an optional 16px icon before it and one optional control after it. A `Panel` is the same
+  surface for the flow screens, and its title is set the same way. Rows inside a card
   (`CardRow`) run edge to edge, split by hairlines, with a 36px icon tile or an avatar at the left
   and a figure, a status word or a chevron at the right. A grid holds one column on a narrow
   window and two or three on a wide one; rows of cards on one page share their columns so their
@@ -105,9 +128,11 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   "Teacher" and "Student". A new version is shown beside the one in use with both scores, never
   as simply "ready". A change in a score carries its unit ("+25 points"), and a count agrees
   with its number ("1 task").
+- **Sidebar.** Rows are `NavItem`s: 40px, a 16px icon, the label, and a status word or spinner at
+  the right. The current page's row takes the selected fill, which slides between the places.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
-  teacher, the student, teaching, evaluation, budget). Its tabs are a segmented strip whose
-  selected fill slides between them; a button folds it to a 56px rail of the tabs' icons, and
+  teacher, the student, teaching, evaluation, budget). Its tabs are the same pill strip as every
+  other, lined up with its content 20px in, whose selected fill slides between them; a button folds it to a 56px rail of the tabs' icons, and
   opening it there lands on that tab. It is 400px wide, room for up to five tabs by name, so no
   name is cut and none is reduced to an icon. A screen may head it with what it is about (a
   model's name) and may open it on a tab, such as Budget from a line that sends the person there.
@@ -142,19 +167,49 @@ The app uses the `motion` library through `@architect/ui` (screens import the wr
 | Name | Setting | Use |
 |---|---|---|
 | `snappy` | spring, 0.25 s, bounce 0.15 | controls, toggles, segmented indicators, press |
-| `smooth` | spring, 0.36 s, bounce 0 | layout changes, pages, cards, disclosures |
+| `smooth` | spring, 0.36 s, bounce 0 | layout changes, flow steps, cards, disclosures, the inspector's width |
+| `settle` | spring, 0.28 s, bounce 0 | what changes many times a minute: a place, a tab's content, the sidebar's fill |
 | `exit` | 0.16 s ease-in | anything leaving |
+| `leave` | 0.10 s ease-in | a page or a tab's content making way for the next |
 
-- **Press:** controls scale to 0.97 while pressed.
-- **Pages and flow steps:** the new page slides in 24px from the side the user is moving toward
-  and fades in; the old one fades out and does the reverse. No page ever cuts.
+Nothing bounces past where it lands but a control's own indicator, and that by a hair. Motion is
+for what a person does; nothing loops except a spinner while work runs.
+
+What these come to, measured from the springs themselves (a throwaway probe of `motion-dom`'s
+spring, since hidden runs complete every transition at once):
+
+| Change | Old page gone | New one within half a pixel | Overshoot |
+|---|---|---|---|
+| A place (8px rise) | 100 ms | 240 ms after the click | none |
+| A flow step (24px slide) | 100 ms | 330 ms after the click | none |
+| A tab's content (6px rise) | 100 ms | 230 ms after the click | none |
+| The sidebar's fill, 300px away | | 265 ms | none |
+| A segmented indicator, 100px away | | 135 ms | 0.6px |
+
+- **Press:** controls scale to 0.97 while pressed. Rows and cards don't scale; they take the hover
+  fill.
+- **Places:** the old page fades out in 100ms, then the new one rises 8px into place with `settle`:
+  from below when the person moved down the sidebar, from above when they moved up. The sidebar
+  never moves; its selected fill slides to the new place.
+- **Flow steps:** each step (Describe, Define, Train, Results; an import's stages) slides in 24px
+  from the side the person is moving toward with `smooth`, while the header stays put; the
+  stepper's pill slides from the step left to the step reached. Coming into the flow from a place
+  counts as moving forward.
+- **Tabs:** the indicator slides between tabs with `snappy`; the content fades out in 100ms and
+  the new tab's rises 6px with `settle`. It never travels sideways, so a wide table under the
+  tabs never shows a scrollbar for a moment.
 - **Lists and sections:** on first mount, items rise 12px and fade in, 30ms apart, at most 8 in a
-  stagger. Later inserts expand into place; removals collapse.
-- **Shared elements:** the segmented indicator, the selected tab, the selected row and a card that
-  opens into a detail move with `layoutId`, so the eye can follow them.
+  stagger (cards in a grid, the Lab's columns, a sidebar agent's chats). Later inserts expand into
+  place; removals collapse.
+- **Shared elements:** the segmented indicator, the selected tab, the sidebar's selected place,
+  the stepper's current pill and the selected row move with `layoutId`, so the eye can follow them.
 - **Disclosures** animate their height; they never jump.
-- **Dialogs and menus** scale from 0.97 and fade in; on exit they fade out faster than they came.
-- **Progress** bars and rings spring to their value.
+- **The inspector** folds to its rail and opens again by springing its width with `smooth`; its
+  content is clipped, never squeezed.
+- **Dialogs, menus and toasts** scale from 0.97 and fade in; a toast also rises 12px, and the
+  others close up the gap with a layout spring. On exit they fade out faster than they came.
+- **Numbers** that change while a person watches (a run's check score in the Lab, rounds, tasks,
+  scores on the training screen) roll to their new value; meters and progress spring to theirs.
 - **Reduced motion:** with the system setting on, or when `ARCHITECT_HIDDEN=1` runs the app for
   tests and screenshots, every transition completes instantly. Captures never show a frame from the
   middle of an animation.
