@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@architect/ui';
-import { ChevronRight, Layers } from 'lucide-react';
+import { ChevronRight, CircleAlert, Layers } from 'lucide-react';
 import { CodeView } from '../components/CodeView';
 import {
   answerText,
@@ -236,8 +236,17 @@ function ConsultRow({
             <StepRow key={item.id} step={item} onOpenPanel={onOpenPanel} />
           ))}
           {answer !== '' && (
-            <li className="whitespace-pre-wrap break-words py-[5px] text-fg text-pretty">
-              {answer}
+            <li className="flex items-start gap-2 whitespace-pre-wrap break-words py-[5px] text-fg text-pretty">
+              {/* An ask that failed, or was refused before the teammate began, says why. */}
+              {view.outcome === 'error' && (
+                <CircleAlert
+                  size={13}
+                  strokeWidth={2.2}
+                  aria-label="Failed"
+                  className="mt-[3px] shrink-0 text-danger"
+                />
+              )}
+              <span className="min-w-0">{answer}</span>
             </li>
           )}
           {!working && (

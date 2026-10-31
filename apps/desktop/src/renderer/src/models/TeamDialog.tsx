@@ -16,8 +16,9 @@ import {
 } from '@architect/ui';
 import { MessagesSquare, Trash2 } from 'lucide-react';
 import { useVersions } from '../api/graduates';
+import { toError } from '../api/query';
 import { refreshTeams, removeTeam, teamsApi } from '../api/teams';
-import { attempt } from '../lib/notify';
+import { ProblemState } from '../components/ProblemState';
 import { useTeamChats } from '../workspace/store';
 import {
   defaultRole,
@@ -80,6 +81,8 @@ function TeamForm({
   const [defaults, setDefaults] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
+  // Said in the dialog, beside what can be changed: such as an agent that can't join a team.
+  const [failure, setFailure] = useState<Error | null>(null);
 
   if (removing && team) {
     return <RemoveTeam team={team} onBack={() => setRemoving(false)} onRemoved={onDone} />;
@@ -103,14 +106,17 @@ function TeamForm({
   const save = async () => {
     if (lead === undefined || problem !== null) return;
     setSaving(true);
+    setFailure(null);
     const input = teamInput(name, lead, picks, defaults);
-    const saved = await attempt(
-      team ? `Couldn't save ${team.name}` : "Couldn't make the team",
-      () => (team ? teamsApi.update(team.id, input) : teamsApi.create(input)),
-    );
-    setSaving(false);
-    if (!saved) return;
+    try {
+      await (team ? teamsApi.update(team.id, input) : teamsApi.create(input));
+    } catch (error) {
+      setFailure(toError(error));
+      setSaving(false);
+      return;
+    }
     await refreshTeams();
+    setSaving(false);
     onDone();
   };
 
@@ -175,6 +181,13 @@ function TeamForm({
             </ul>
           )}
         </fieldset>
+        {failure && (
+          <ProblemState
+            layout="inline"
+            error={failure}
+            title={team ? `Couldn't save ${team.name}` : "Couldn't make the team"}
+          />
+        )}
       </div>
       <DialogFooter>
         {team && (
@@ -276,14 +289,20 @@ function RemoveTeam({
   const chats = useTeamChats(team.id);
   const count = chats.entry.data?.length;
   const [busy, setBusy] = useState(false);
+  // Such as a team still answering in one of its chats, which stays until its replies stop.
+  const [failure, setFailure] = useState<Error | null>(null);
   const remove = async () => {
     setBusy(true);
-    const done = await attempt(`Couldn't remove ${team.name}`, async () => {
+    setFailure(null);
+    try {
       await removeTeam(team.id);
-      return true;
-    });
+    } catch (error) {
+      setFailure(toError(error));
+      setBusy(false);
+      return;
+    }
     setBusy(false);
-    if (done) onRemoved();
+    onRemoved();
   };
   return (
     <DialogContent title={`Remove ${team.name}?`}>
@@ -295,6 +314,14 @@ function RemoveTeam({
             ? 'It has no chats. Its agents stay as they are.'
             : `Its ${count === 1 ? 'chat is' : `${count} chats are`} removed with it. Its agents stay as they are.`}
       </p>
+      {failure && (
+        <ProblemState
+          layout="inline"
+          error={failure}
+          title={`Couldn't remove ${team.name}`}
+          className="px-6 pt-4"
+        />
+      )}
       <DialogFooter>
         <Button size="md" onClick={onBack}>
           Keep it

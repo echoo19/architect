@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { stubEngineFailure } from './fixtures';
 import {
   installTeamsFake,
   TEAM,
@@ -89,6 +90,14 @@ test('a team is made in Models, from a lead and a teammate', async () => {
   const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks it for` });
   await expect(role).toHaveValue("Reads a screening lab's plate exports by the lab's own rules.");
   await capture('team-new-dark.png');
+
+  // The engine's refusal shows in the dialog, beside what can be changed.
+  const refusal = `${teammate.name} has a helper called ask_teammate, the name of the tool a team's lead asks its teammates with, so it can't join a team.`;
+  await stubEngineFailure(launched.app, { 'teams:create': refusal });
+  await dialog.getByRole('button', { name: 'Make team' }).click();
+  await expect(dialog).toContainText("Couldn't make the team");
+  await expect(dialog).toContainText(refusal);
+  await installTeamsFake(launched.app, teamWorld());
 
   await dialog.getByRole('button', { name: 'Make team' }).click();
   await expect(dialog).toHaveCount(0);
