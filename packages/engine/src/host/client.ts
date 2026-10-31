@@ -111,6 +111,7 @@ export function connectEngine(
       field: (jobId) => request('jobs.field', [jobId]),
       fieldAssets: (jobId) => request('jobs.fieldAssets', [jobId]),
       exportField: (jobId, directory) => request('jobs.exportField', [jobId, directory]),
+      tasks: (jobId, split) => request('jobs.tasks', [jobId, split]),
     },
     runs: {
       start: (jobId, options) => request('runs.start', [jobId, options]),
@@ -123,6 +124,8 @@ export function connectEngine(
       attempt: (attemptId) => request('runs.attempt', [attemptId]),
       trace: (attemptId) => request('runs.trace', [attemptId]),
       roundDiff: (runId, round) => request('runs.roundDiff', [runId, round]),
+      attempts: (runId, query) => request('runs.attempts', [runId, query ?? null]),
+      harnessFiles: (runId, version) => request('runs.harnessFiles', [runId, version]),
       runtimeMeasurements: (runId) => request('runs.runtimeMeasurements', [runId]),
       onEvent(listener) {
         listeners.add(listener);
@@ -192,6 +195,8 @@ export function connectEngine(
       history: (graduateId) => request('graduates.history', [graduateId]),
       report: (graduateId, version) => request('graduates.report', [graduateId, version ?? null]),
       harnessDiff: (from, to) => request('graduates.harnessDiff', [from, to]),
+      harnessFiles: (graduateId, version) =>
+        request('graduates.harnessFiles', [graduateId, version]),
       acceptVersion: (graduateId, version) =>
         request('graduates.acceptVersion', [graduateId, version]),
       rejectVersion: (graduateId, version) =>

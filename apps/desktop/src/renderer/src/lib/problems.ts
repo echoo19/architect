@@ -37,6 +37,7 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
     next: 'Free some space, then try again.',
   },
   guard_split: { cause: 'This matches a question from the final test.' },
+  split_sealed: { cause: 'These tasks are sealed, so only how many there are is shown.' },
   guard_budget: { cause: 'That would cost more than the limit allows.' },
   rule_unconfirmed: {
     cause: "The rule for this job isn't confirmed yet.",

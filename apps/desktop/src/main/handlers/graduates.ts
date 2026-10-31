@@ -100,6 +100,8 @@ export function registerGraduateHandlers(
       history: (graduateId) => call((api) => api.graduates.history(graduateId)),
       report: (graduateId, number) => call((api) => api.graduates.report(graduateId, number)),
       harnessDiff: (from, to) => call((api) => api.graduates.harnessDiff(from, to)),
+      harnessFiles: (graduateId, number) =>
+        call((api) => api.graduates.harnessFiles(graduateId, number)),
       acceptVersion: (graduateId, number) =>
         call((api) => api.graduates.acceptVersion(graduateId, number)),
       rejectVersion: (graduateId, number) =>
@@ -198,6 +200,7 @@ export function registerGraduateHandlers(
     {
       report: z.union([z.tuple([text]), z.tuple([text, version])]),
       harnessDiff: z.tuple([VersionPickSchema, VersionPickSchema]),
+      harnessFiles: z.tuple([text, version]),
       acceptVersion: z.tuple([text, version]),
       rejectVersion: z.tuple([text, version]),
       promote: z.tuple([text, version]),

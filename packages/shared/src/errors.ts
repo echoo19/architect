@@ -23,6 +23,7 @@ export const ERROR_CODES = [
   'package_changed',
   'disk_full',
   'guard_split',
+  'split_sealed',
   'guard_budget',
   'rule_unconfirmed',
   'rule_changed',

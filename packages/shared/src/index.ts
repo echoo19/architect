@@ -1,4 +1,5 @@
 export * from './adapters';
+export * from './browse';
 export * from './cells';
 export * from './chat';
 export * from './checker';
