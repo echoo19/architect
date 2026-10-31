@@ -239,9 +239,10 @@ export const ArmRowSchema = z.object({
   /** Where it answered: a hosted provider, or this computer. Null in an older report. */
   runsOn: RunsOnSchema.nullable().default(null),
   /**
-   * What 1,000 requests like these cost where it answered: its attempts' recorded charges, each
-   * what the provider billed or else the listed price of the usage it reported, over the attempts,
-   * times 1,000. Zero on this computer; null when a charge isn't known or in an older report.
+   * What 1,000 requests like these cost where it answered: the tokens each attempt recorded, at
+   * the listed price of the model that answered, over the attempts, times 1,000, counted the same
+   * way for every row (decision 096). Zero on this computer; null when the price isn't known, an
+   * attempt recorded no usage, or in an older report.
    */
   perThousandUsd: z.number().nonnegative().nullable().default(null),
 });

@@ -567,7 +567,7 @@ export function Results({
       {costRowsOf(report).length > 0 && (
         <TableExhibit
           label="Table 2"
-          caption="Final-test pass rate against what 1,000 requests cost, by the model that answered and where it ran, from the attempts' recorded charges."
+          caption="Final-test pass rate against what 1,000 requests cost, by the model that answered and where it ran: the tokens each attempt recorded, at that model's listed price."
         >
           <CostTable report={report} arms={arms} />
         </TableExhibit>

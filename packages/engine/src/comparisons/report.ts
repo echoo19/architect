@@ -4,6 +4,10 @@ import {
   ARM_PRIORITY,
   COMPARISON_REPORT_FORMAT,
   ComparisonReportSchema,
+  costUsd,
+  FREE_PRICING,
+  mentorPricing,
+  studentPricing,
   type AdapterCell,
   type ArmCaps,
   type ArmId,
@@ -24,6 +28,7 @@ import {
   type Spend,
   type StudyRecord,
   type TaskSweep,
+  type TokenPricing,
 } from '@architect/shared';
 import { configurationKey } from '../loop/configuration';
 import type { LoopDeps } from '../loop/deps';
@@ -178,44 +183,58 @@ function labelOf(input: ReportInput, slice: Slice): string {
 }
 
 /**
+ * What 1,000 requests like these attempts cost, all counted one way whoever answered: the tokens
+ * each attempt recorded, at the listed price of the model that answered (free on this computer),
+ * over the attempts, times 1,000. Null when the price isn't known or any attempt recorded no
+ * usage, since a partial sum would read as a cheaper model.
+ */
+export function perThousandOf(
+  attempts: readonly Pick<StoredAttempt, 'usage'>[],
+  pricing: TokenPricing | undefined,
+): number | null {
+  if (attempts.length === 0 || pricing === undefined) return null;
+  const free = pricing.inputPerM === 0 && pricing.outputPerM === 0;
+  if (!free && attempts.some((attempt) => attempt.usage.inputTokens === 0)) return null;
+  const usd = attempts.reduce((sum, attempt) => sum + costUsd(pricing, attempt.usage), 0);
+  return (1000 * usd) / attempts.length;
+}
+
+/**
  * The model that answered a slice, where it ran, and what 1,000 requests like its attempts cost
- * there: from the attempts' recorded charges, or the reference record's for a Spark reference.
+ * there (`perThousandOf`): Spark for its references, the teacher for the teacher alone, the
+ * student on its hosted copy or on this computer for every other arm.
  */
 function servingOf(
   input: ReportInput,
   slice: Slice,
   attempts: readonly StoredAttempt[],
 ): Pick<ArmRow, 'model' | 'runsOn' | 'perThousandUsd'> {
-  const { store } = input.engine;
   const { base } = input;
-  const perThousand = (usd: number | null) =>
-    usd === null || attempts.length === 0 ? null : (1000 * usd) / attempts.length;
+  const at = (
+    model: string,
+    endpoint: { baseUrl: string } | null,
+    pricing: TokenPricing | undefined,
+  ) => ({
+    model,
+    runsOn: endpoint === null ? ('this_computer' as const) : runsOnOf(endpoint.baseUrl),
+    perThousandUsd: perThousandOf(attempts, endpoint === null ? FREE_PRICING : pricing),
+  });
   if (REFERENCE_ON[slice.arm] !== undefined) {
-    const record = store.references.get(slice.run.run.id, 'test');
     const mentor = base.mentor;
-    return {
-      model: mentor.label,
-      runsOn: mentor.kind === 'model' ? runsOnOf(mentor.baseUrl) : 'this_computer',
-      perThousandUsd: perThousand(record?.spentUsd ?? null),
-    };
+    return mentor.kind === 'model'
+      ? at(mentor.label, mentor, mentorPricing(mentor))
+      : at(mentor.label, null, undefined);
   }
-  const ids = new Set(attempts.map((attempt) => attempt.id));
-  const usd = studentLines(store, slice.run.run.id, (attempt) => ids.has(attempt.id)).usd;
   if (slice.arm === 'teacher') {
     const teacher = teacherOf(base, input.config.teacher);
-    return {
-      model: teacherName(input),
-      runsOn: typeof teacher === 'string' ? 'hosted' : runsOnOf(teacher.baseUrl),
-      perThousandUsd: perThousand(usd),
-    };
+    return typeof teacher === 'string'
+      ? { model: teacherName(input), runsOn: 'hosted', perThousandUsd: null }
+      : at(teacherName(input), teacher, mentorPricing(teacher));
   }
-  const endpoint = slice.target === 'local' ? null : base.student.hosted;
-  return {
-    model: base.student.label,
-    runsOn:
-      endpoint === null || endpoint === undefined ? 'this_computer' : runsOnOf(endpoint.baseUrl),
-    perThousandUsd: perThousand(usd),
-  };
+  const hosted = slice.target === 'local' ? undefined : base.student.hosted;
+  return hosted === undefined
+    ? at(base.student.label, null, undefined)
+    : at(base.student.label, hosted, studentPricing(hosted));
 }
 
 function attemptsOf(store: EngineStore, slice: Slice): StoredAttempt[] {
