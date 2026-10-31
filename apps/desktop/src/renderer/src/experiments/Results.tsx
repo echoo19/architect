@@ -24,9 +24,10 @@ import {
 import { formatAnswerTime, formatCost } from '../flow/format';
 import { DISPOSITIONS } from '../flow/train/evidence-words';
 import { formatPercent } from '../lib/format';
+import type { ModelNames } from '../flow/train/phase';
 import {
-  ARM_NAMES,
-  BACKEND_NAMES,
+  armNames,
+  backendNames,
   VERDICT_WORDS,
   countIn,
   figuresOf,
@@ -96,8 +97,12 @@ function passes(pair: { both: number; aOnly: number; bOnly: number }, side: 'a' 
   return pair.both + (side === 'a' ? pair.aOnly : pair.bOnly);
 }
 
+/** The arms by name, as a released experiment's figures and tables call them. */
+type ArmNames = Record<ArmId, string>;
+
 /** What the experiment found, in a few sentences: the leading pairing and what it cost. */
-function Summary({ report }: { report: ComparisonReport }) {
+function Summary({ report, names }: { report: ComparisonReport; names: ModelNames }) {
+  const arms = armNames(names);
   const lead = leadPair(report);
   const { totals } = report;
   // A simulation says so first, so none of its figures is read as a measured result.
@@ -108,7 +113,7 @@ function Summary({ report }: { report: ComparisonReport }) {
     const { pair } = lead;
     const verdict = verdictOf(pair.difference);
     sentences.push(
-      `${ARM_NAMES[pair.a]} passed ${passes(pair, 'a')} of ${pair.scenarios} final-test tasks and ${armInSentence(ARM_NAMES[pair.b])} ${passes(pair, 'b')}, under seed ${pair.seed}.`,
+      `${arms[pair.a]} passed ${passes(pair, 'a')} of ${pair.scenarios} final-test tasks and ${armInSentence(arms[pair.b])} ${passes(pair, 'b')}, under seed ${pair.seed}.`,
       `Task by task, the difference is ${points(pair.difference.rate)} points, with a 95% interval from ${points(pair.difference.low)} to ${points(pair.difference.high)}, so ${
         verdict === 'gain'
           ? 'a gain is shown.'
@@ -123,13 +128,17 @@ function Summary({ report }: { report: ComparisonReport }) {
   sentences.push(
     `${report.dryRun ? 'As simulated, it would have spent' : 'In all it spent'} ${formatCost(
       totals.sparkUsd,
-    )} of Spark${totals.studentUsd === null ? '' : ` and ${formatCost(totals.studentUsd)} of Glimmer`}.`,
+    )} of ${names.mentor}${totals.studentUsd === null ? '' : ` and ${formatCost(totals.studentUsd)} of ${names.student}`}.`,
   );
   return <p className="m-0 max-w-[68ch] text-body text-pretty">{sentences.join(' ')}</p>;
 }
 
 /** Each row of a figure on each group of the final test, with its 95% interval. */
-function plotGroups(rows: readonly ArmRow[], groups: readonly TestGroup[]): IntervalGroup[] {
+function plotGroups(
+  rows: readonly ArmRow[],
+  groups: readonly TestGroup[],
+  arms: ArmNames,
+): IntervalGroup[] {
   return groups.map((group) => ({
     label: group.label,
     rows: rows.map((row) => {
@@ -138,10 +147,10 @@ function plotGroups(rows: readonly ArmRow[], groups: readonly TestGroup[]): Inte
       const tone =
         row.arm === 'reference' || row.arm === 'reference-targeted' ? 'mentor' : 'student';
       return count === null
-        ? { id, label: rowLabel(row), estimate: null, tone }
+        ? { id, label: rowLabel(row, arms), estimate: null, tone }
         : {
             id,
-            label: rowLabel(row),
+            label: rowLabel(row, arms),
             estimate: count.pass / count.total,
             low: count.low,
             high: count.high,
@@ -151,7 +160,7 @@ function plotGroups(rows: readonly ArmRow[], groups: readonly TestGroup[]): Inte
   }));
 }
 
-function PairsTable({ measured }: { measured: Measured }) {
+function PairsTable({ measured, arms }: { measured: Measured; arms: ArmNames }) {
   return (
     <DataTable
       aria-label="Paired comparisons"
@@ -159,7 +168,7 @@ function PairsTable({ measured }: { measured: Measured }) {
       rowKey={(pair) => pair.label}
       empty="No two arms here ran on the same tasks."
       columns={[
-        { key: 'pair', header: 'Pair', cell: (pair) => pairName(pair) },
+        { key: 'pair', header: 'Pair', cell: (pair) => pairName(pair, arms) },
         { key: 'wins', header: 'Won', align: 'end', width: '76px', cell: (pair) => pair.aOnly },
         { key: 'losses', header: 'Lost', align: 'end', width: '76px', cell: (pair) => pair.bOnly },
         {
@@ -193,7 +202,15 @@ function PairsTable({ measured }: { measured: Measured }) {
 }
 
 /** Each skill of one arm in each group: the tasks it passed of those it had. */
-function SkillTable({ rows, groups }: { rows: readonly ArmRow[]; groups: readonly TestGroup[] }) {
+function SkillTable({
+  rows,
+  groups,
+  arms,
+}: {
+  rows: readonly ArmRow[];
+  groups: readonly TestGroup[];
+  arms: ArmNames;
+}) {
   const [chosen, setChosen] = useState<ArmId | undefined>(rows[0]?.arm);
   const row = rows.find((item) => item.arm === chosen) ?? rows[0];
   if (!row) return null;
@@ -207,13 +224,13 @@ function SkillTable({ rows, groups }: { rows: readonly ArmRow[]; groups: readonl
             aria-label="Arm"
             value={row.arm}
             onValueChange={setChosen}
-            options={rows.map((item) => ({ value: item.arm, label: ARM_NAMES[item.arm] }))}
+            options={rows.map((item) => ({ value: item.arm, label: arms[item.arm] }))}
           />
         )
       }
     >
       <DataTable
-        aria-label={`Skills of ${ARM_NAMES[row.arm]}`}
+        aria-label={`Skills of ${arms[row.arm]}`}
         rows={skillsOf(row)}
         rowKey={(skill) => skill.type}
         columns={[
@@ -237,13 +254,16 @@ function SpendTable({
   report,
   input,
   measured,
+  names,
 }: {
   report: ComparisonReport;
   input: ExperimentInput;
   measured: Measured | undefined;
+  names: ModelNames;
 }) {
   const asked = new Set(input.arms.map((item) => item.arm));
   const arms = report.arms.filter((arm) => asked.has(arm.arm));
+  const named = armNames(names);
   const latency = (arm: ArmId) =>
     measured?.rows.find((row) => row.arm === arm && row.configuration === null)?.latencyMs ?? null;
   const against = (used: number | null, cap: number | null) =>
@@ -258,16 +278,16 @@ function SpendTable({
       rows={arms}
       rowKey={(arm) => arm.arm}
       columns={[
-        { key: 'arm', header: 'Arm', cell: (arm) => ARM_NAMES[arm.arm] },
+        { key: 'arm', header: 'Arm', cell: (arm) => named[arm.arm] },
         {
           key: 'spark',
-          header: 'Spark',
+          header: names.mentor,
           align: 'end',
           cell: (arm) => against(arm.spent.sparkUsd, arm.caps.sparkUsd),
         },
         {
           key: 'student',
-          header: 'Glimmer',
+          header: names.student,
           align: 'end',
           cell: (arm) => against(arm.spent.studentUsd, arm.caps.studentUsd),
         },
@@ -318,7 +338,15 @@ const versionText = (frozen: NonNullable<ArmReport['frozen']>) =>
   `v${frozen.harnessVersion} · ${frozen.harnessHash.replace(/^sha256[:-]/, '').slice(0, 7)}`;
 
 /** Each arm's run: its rounds, its check tasks at the last kept change, and the version it froze. */
-function RunsTable({ arms, onOpen }: { arms: readonly ArmReport[]; onOpen: (arm: ArmId) => void }) {
+function RunsTable({
+  arms,
+  named,
+  onOpen,
+}: {
+  arms: readonly ArmReport[];
+  named: ArmNames;
+  onOpen: (arm: ArmId) => void;
+}) {
   return (
     <DataTable
       aria-label="Each arm's run"
@@ -326,7 +354,7 @@ function RunsTable({ arms, onOpen }: { arms: readonly ArmReport[]; onOpen: (arm:
       rowKey={(arm) => arm.arm}
       onRowClick={(arm) => onOpen(arm.arm)}
       columns={[
-        { key: 'arm', header: 'Arm', cell: (arm) => ARM_NAMES[arm.arm] },
+        { key: 'arm', header: 'Arm', cell: (arm) => named[arm.arm] },
         {
           key: 'rounds',
           header: 'Rounds',
@@ -375,11 +403,11 @@ function Disposition({ value }: { value: string }) {
 }
 
 /** An arm's run as the runner recorded it: each round and what came of it, and its version. */
-function ArmRun({ arm }: { arm: ArmReport }) {
+function ArmRun({ arm, named }: { arm: ArmReport; named: ArmNames }) {
   const { frozen } = arm;
   return (
     <DrawerContent
-      title={ARM_NAMES[arm.arm]}
+      title={named[arm.arm]}
       subtitle={arm.runId === null ? undefined : <span className="font-mono">{arm.runId}</span>}
     >
       <div className="flex flex-col gap-7">
@@ -442,7 +470,15 @@ function ArmRun({ arm }: { arm: ArmReport }) {
  * Each arm's run beside the paper: a row opens what it did round by round and the version of
  * its harness it froze. The runs are the experiment's own, kept with it.
  */
-function ArmRuns({ report, input }: { report: ComparisonReport; input: ExperimentInput }) {
+function ArmRuns({
+  report,
+  input,
+  named,
+}: {
+  report: ComparisonReport;
+  input: ExperimentInput;
+  named: ArmNames;
+}) {
   const asked = new Set(input.arms.map((item) => item.arm));
   const arms = report.arms.filter((arm) => asked.has(arm.arm) && arm.runId !== null);
   const [open, setOpen] = useState<ArmId | null>(null);
@@ -456,20 +492,31 @@ function ArmRuns({ report, input }: { report: ComparisonReport; input: Experimen
     >
       <RunsTable
         arms={arms}
+        named={named}
         onOpen={(arm) => {
           setOpen(arm);
           setShown(true);
         }}
       />
       <Drawer open={shown} onOpenChange={setShown}>
-        {chosen && <ArmRun arm={chosen} />}
+        {chosen && <ArmRun arm={chosen} named={named} />}
       </Drawer>
     </TableExhibit>
   );
 }
 
 /** The released results: summary, the figure and tables for where the student ran, the notes. */
-export function Results({ report, input }: { report: ComparisonReport; input: ExperimentInput }) {
+export function Results({
+  report,
+  input,
+  names,
+}: {
+  report: ComparisonReport;
+  input: ExperimentInput;
+  /** The models it ran, as every line names them. */
+  names: ModelNames;
+}) {
+  const arms = armNames(names);
   const figures = figuresOf(report);
   const [where, setWhere] = useState<BackendId | undefined>(figures[0]?.backend.backend);
   const measured = figures.find((figure) => figure.backend.backend === where) ?? figures[0];
@@ -477,19 +524,19 @@ export function Results({ report, input }: { report: ComparisonReport; input: Ex
   const seed = report.plan.testSeeds[0];
   return (
     <div className="flex max-w-[960px] flex-col gap-10">
-      <Summary report={report} />
+      <Summary report={report} names={names} />
       {measured && (
         <div className="flex flex-col gap-4">
           {figures.length > 1 && (
             <div className="flex items-center justify-between gap-4 px-1">
-              <span className="text-ui font-medium">Where Glimmer ran</span>
+              <span className="text-ui font-medium">Where {names.student} ran</span>
               <Segmented<BackendId>
-                aria-label="Where Glimmer ran"
+                aria-label={`Where ${names.student} ran`}
                 value={measured.backend.backend}
                 onValueChange={setWhere}
                 options={figures.map((figure) => ({
                   value: figure.backend.backend,
-                  label: BACKEND_NAMES[figure.backend.backend],
+                  label: backendNames(names)[figure.backend.backend],
                 }))}
               />
             </div>
@@ -500,7 +547,7 @@ export function Results({ report, input }: { report: ComparisonReport; input: Ex
           >
             <IntervalPlot
               aria-label={`Final-test pass rate, ${measured.backend.label}`}
-              groups={plotGroups(measured.rows, groups)}
+              groups={plotGroups(measured.rows, groups, arms)}
             />
           </Figure>
         </div>
@@ -510,7 +557,7 @@ export function Results({ report, input }: { report: ComparisonReport; input: Ex
           label="Table 1"
           caption="Pairs of arms, task by task. A gain counts only when the whole interval is above zero."
         >
-          <PairsTable measured={measured} />
+          <PairsTable measured={measured} arms={arms} />
         </TableExhibit>
       )}
       {measured && (
@@ -518,15 +565,16 @@ export function Results({ report, input }: { report: ComparisonReport; input: Ex
           key={measured.backend.backend}
           rows={measured.rows.filter((row) => row.configuration === null)}
           groups={groups}
+          arms={arms}
         />
       )}
       <TableExhibit
         label="Table 3"
         caption="What each arm spent of its caps, and how long its answers took."
       >
-        <SpendTable report={report} input={input} measured={measured} />
+        <SpendTable report={report} input={input} measured={measured} names={names} />
       </TableExhibit>
-      <ArmRuns report={report} input={input} />
+      <ArmRuns report={report} input={input} named={arms} />
       {report.disclosures.length > 0 && (
         <Disclosure label="Notes from the report">
           <ul className="m-0 flex max-w-[76ch] list-disc flex-col gap-2 pl-5 text-ui text-pretty">
