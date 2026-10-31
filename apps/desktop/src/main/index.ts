@@ -104,10 +104,18 @@ async function start(): Promise<void> {
     targets: () => BrowserWindow.getAllWindows().map((window) => window.webContents),
   });
   const picked = new PickedPaths();
-  const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress));
+  const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress), {
+    allowed: () => allowedHostsOf(settings.get().closedNetwork),
+  });
   const keys = (ref: string) => secrets.get(ref);
   const openLink = createLinkOpener((url) => shell.openExternal(url), launch.hidden);
-  const signIns = new SignIns((signal) => signInWithOpenRouter({ openBrowser: openLink, signal }));
+  const signIns = new SignIns((signal) =>
+    signInWithOpenRouter({
+      openBrowser: openLink,
+      signal,
+      network: { allowed: () => allowedHostsOf(settings.get().closedNetwork) },
+    }),
+  );
   registerAppHandlers(router, openLink);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);

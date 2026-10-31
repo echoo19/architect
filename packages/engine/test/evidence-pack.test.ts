@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readPackage } from '@architect/harness';
@@ -250,5 +250,48 @@ describe("a version's evidence pack", () => {
     await expect(
       writeEvidencePack({ library: author.library }, 'grd_desk', { directory: out }),
     ).rejects.toThrow('already exists');
+  });
+});
+
+describe('checking a pack the way a reviewer would', () => {
+  it('holds copied weights to their own bytes, and to a file MANIFEST.json lists', async () => {
+    const { author } = await packedComputer();
+    const weights = join(author.dataDir, 'sha256-0123');
+    await writeFile(weights, 'GGUF base weights');
+    const { folder: pack } = await writeEvidencePack(
+      { library: author.library, modelFile: () => weights },
+      'grd_desk',
+      { directory: await folder('pack'), withWeights: true },
+    );
+    // Take the file out of the manifest and the folder alike, so only evidence.json still names it.
+    const manifestFile = join(pack, 'MANIFEST.json');
+    const manifest = JSON.parse(await readFile(manifestFile, 'utf8')) as {
+      files: { path: string }[];
+    };
+    manifest.files = manifest.files.filter((entry) => !entry.path.startsWith('weights/'));
+    await writeFile(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+    await rm(join(pack, 'weights'), { recursive: true });
+    const check = await verifyEvidencePack(pack);
+    expect(check.problems).toContain(
+      "The model file evidence.json names, weights/sha256-0123.gguf, isn't listed in MANIFEST.json.",
+    );
+  });
+
+  it('refuses a link anywhere in the pack, and never follows it', async () => {
+    const { author } = await packedComputer();
+    const { folder: pack } = await writeEvidencePack({ library: author.library }, 'grd_desk', {
+      directory: await folder('pack'),
+    });
+    const outside = await folder('outside');
+    await writeFile(join(outside, 'secret.txt'), 'not part of any pack');
+    await symlink(
+      outside,
+      join(pack, 'package', 'more'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
+    const check = await verifyEvidencePack(pack);
+    expect(check.ok).toBe(false);
+    expect(check.problems).toContain('package/more is a link, which an evidence pack never holds.');
+    expect(check.problems.join(' ')).not.toContain('secret.txt');
   });
 });

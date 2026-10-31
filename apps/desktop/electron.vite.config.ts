@@ -20,6 +20,9 @@ const STRICT_CSP = [
   "img-src 'self' data:",
   "font-src 'self' data:",
   "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
 ].join('; ');
 
 /** The dev server needs an inline React Refresh preamble and a websocket for hot reload. */
@@ -30,6 +33,9 @@ const DEV_CSP = [
   "img-src 'self' data:",
   "font-src 'self' data:",
   "connect-src 'self' ws://localhost:* http://localhost:*",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
 ].join('; ');
 
 function contentSecurityPolicy(): Plugin {

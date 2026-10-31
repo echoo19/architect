@@ -360,3 +360,87 @@ describe('revisions and downloads', () => {
     });
   });
 });
+
+describe('redirects', () => {
+  /** A host that records whatever reaches it: nothing should. */
+  async function elsewhere(): Promise<{ url: string; hits: string[]; close(): Promise<void> }> {
+    const { createServer } = await import('node:http');
+    const hits: string[] = [];
+    const server = createServer((request, response) => {
+      hits.push(`${request.method} ${request.url} ${request.headers.authorization ?? ''}`);
+      response.end('{}');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address() as { port: number };
+    return {
+      url: `http://127.0.0.1:${address.port}`,
+      hits,
+      close: () => new Promise((resolve) => server.close(() => resolve())),
+    };
+  }
+
+  /** Real requests, except the first one to `path`, which is redirected to `to`. */
+  function redirecting(path: string, to: string): typeof fetch {
+    let done = false;
+    return async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (!done && new URL(url).pathname.startsWith(path)) {
+        done = true;
+        return new Response(null, { status: 307, headers: { location: to } });
+      }
+      return fetch(input, init);
+    };
+  }
+
+  it('follows a read within the Hub, one checked hop at a time, and nothing to another host', async () => {
+    const other = await elsewhere();
+    try {
+      hub = await startFakeHub();
+      const within = new HubClient({
+        endpoint: hub.url,
+        token: async () => FAKE_HUB_TOKEN,
+        fetch: redirecting('/api/models/jake/renamed', `${hub.url}/api/models/${REPO}`),
+      });
+      await within.createRepo(REPO, { private: true });
+      expect(await within.repoInfo('jake/renamed')).toEqual({ private: true });
+
+      const away = new HubClient({
+        endpoint: hub.url,
+        token: async () => FAKE_HUB_TOKEN,
+        fetch: redirecting('/api/models/', `${other.url}/api/models/${REPO}`),
+      });
+      await expect(away.repoInfo(REPO)).rejects.toMatchObject({ name: 'HubError', status: 307 });
+      // A change carries a body, so even a redirect within the Hub isn't followed.
+      const change = new HubClient({
+        endpoint: hub.url,
+        token: async () => FAKE_HUB_TOKEN,
+        fetch: redirecting('/api/repos/create', `${hub.url}/api/repos/create`),
+      });
+      await expect(change.createRepo('jake/other', { private: true })).rejects.toMatchObject({
+        name: 'HubError',
+        status: 307,
+      });
+      expect(other.hits).toEqual([]);
+    } finally {
+      await other.close();
+    }
+  });
+
+  it('never follows an upload host that redirects, so the file goes nowhere else', async () => {
+    const other = await elsewhere();
+    try {
+      const client = await setUp({ lfsThreshold: 1024 });
+      hub.failNextUpload({ redirect: `${other.url}/stolen` });
+      const error = await client
+        .uploadFiles(REPO, [onDisk('adapter/adapter.gguf', adapterBytes(2048))], {
+          summary: 'Publish',
+        })
+        .catch((caught: unknown) => caught);
+      expect(error).toMatchObject({ name: 'HubError', status: 307 });
+      expect((error as HubError).message).toContain('redirected adapter/adapter.gguf');
+      expect(other.hits).toEqual([]);
+    } finally {
+      await other.close();
+    }
+  });
+});

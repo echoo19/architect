@@ -42,12 +42,20 @@ export function ClosedNetworkRows({ settings, update }: TabProps) {
       <SettingsRow
         label="Teaching reaches only these hosts"
         meta="And this computer. Any other is refused before anything is sent."
+        error={settings.closedNetworkProblem}
       >
-        <Switch
-          aria-label="Closed network"
-          checked={network.on}
-          onCheckedChange={(on) => save({ ...network, on })}
-        />
+        <div className="flex items-center gap-3">
+          {settings.closedNetworkProblem !== undefined && (
+            <Button size="xs" onClick={() => save(network)}>
+              Keep these hosts
+            </Button>
+          )}
+          <Switch
+            aria-label="Closed network"
+            checked={network.on}
+            onCheckedChange={(on) => save({ ...network, on })}
+          />
+        </div>
       </SettingsRow>
       {network.on && (
         <div role="list" aria-label="Hosts inside the network">

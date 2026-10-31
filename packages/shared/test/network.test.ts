@@ -5,6 +5,8 @@ import {
   contactsLine,
   insideNetwork,
   networkHostProblem,
+  ollamaNameProblem,
+  ollamaRegistryOf,
 } from '../src/network';
 
 describe('a closed network', () => {
@@ -42,6 +44,10 @@ describe('a closed network', () => {
     expect(insideNetwork('http://vllm.lab.internal:8001/v1', hosts)).toBe(false);
     expect(insideNetwork('https://api.example.com/v1', hosts)).toBe(false);
     expect(insideNetwork('not a url', hosts)).toBe(false);
+    // 127.0.0.0/8 mapped into IPv6 is this computer, as the graduates' guard counts it.
+    expect(insideNetwork('http://[::ffff:127.0.0.1]:8080/v1', [])).toBe(true);
+    expect(insideNetwork('http://[::ffff:7f00:1]:8080/v1', [])).toBe(true);
+    expect(insideNetwork('http://[::ffff:10.0.0.1]:8080/v1', [])).toBe(false);
     expect(contactHost('https://Spark.lab.internal/v1/chat?key=private')).toBe(
       'spark.lab.internal',
     );
@@ -63,5 +69,20 @@ describe('a closed network', () => {
     expect(contactsLine([at('a', true), at('b', false), at('c', true)])).toBe(
       'Contacted 3 hosts, 2 of them inside the network',
     );
+  });
+});
+
+describe('Ollama model names', () => {
+  it('reads the registry a name pulls from, and refuses what is not a name', () => {
+    expect(ollamaRegistryOf('muse-glimmer:30b')).toBe('registry.ollama.ai');
+    expect(ollamaRegistryOf('library/muse-glimmer')).toBe('registry.ollama.ai');
+    expect(ollamaRegistryOf('hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS')).toBe('hf.co');
+    expect(ollamaRegistryOf('Registry.Lab:5000/team/model')).toBe('registry.lab:5000');
+    for (const name of ['muse-glimmer:30b', 'hf.co/unsloth/Muse-Glimmer-30B-GGUF:UD-IQ2_XXS']) {
+      expect(ollamaNameProblem(name)).toBeNull();
+    }
+    for (const name of ['', '../x', 'a/b/c/d', 'a b', 'x:', 'x:tag with space', '/x']) {
+      expect(ollamaNameProblem(name), name).not.toBeNull();
+    }
   });
 });

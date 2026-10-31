@@ -130,6 +130,11 @@ export interface AppSettings {
    * computer, and every adapter refuses any other. Off when absent.
    */
   closedNetwork?: ClosedNetwork;
+  /**
+   * What couldn't be read of the saved closed network, which then stays on with the hosts that
+   * could (decision 098). Set by the main process as it reads the file; saving the network clears it.
+   */
+  closedNetworkProblem?: string;
 }
 
 /** A field export the app wrote: the field, its name then, the folder it went to, and when. */
@@ -145,7 +150,9 @@ export interface FieldExportRecord {
  * What the renderer may change in settings: everything but the program Architect runs and the
  * exports it recorded.
  */
-export type AppSettingsPatch = Partial<Omit<AppSettings, 'llamaServerPath' | 'fieldExports'>>;
+export type AppSettingsPatch = Partial<
+  Omit<AppSettings, 'llamaServerPath' | 'fieldExports' | 'closedNetworkProblem'>
+>;
 
 /** llama.cpp's llama-server on this computer, as Settings shows it. */
 export interface LlamaServerStatus {

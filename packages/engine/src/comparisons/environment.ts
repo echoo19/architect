@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { unloadOllamaModel } from '@architect/adapters';
+import { assertInsideNetwork, unloadOllamaModel, type NetworkDeps } from '@architect/adapters';
 import { writeHarness } from '@architect/harness';
 import {
   AdapterError,
@@ -69,7 +69,7 @@ export function comparisonLease(
 export function clearBeforeColdStart(
   gpu: GpuLease,
   runtime: { stop(): Promise<void> },
-  ollama: { baseUrl: string; models: readonly string[] },
+  ollama: { baseUrl: string; models: readonly string[]; network?: NetworkDeps },
 ): (signal?: AbortSignal) => Promise<void> {
   return async (signal) => {
     const hold = await gpu.hold('llama-server', COMPARISON_PURPOSE, signal);
@@ -77,7 +77,7 @@ export function clearBeforeColdStart(
       await runtime.stop();
       for (const model of ollama.models) {
         try {
-          await unloadOllamaModel(ollama.baseUrl, model, signal);
+          await unloadOllamaModel(ollama.baseUrl, model, signal, ollama.network);
         } catch (error) {
           // An Ollama that isn't running, or that hasn't the model, has nothing of it loaded.
           const absent =
@@ -122,11 +122,16 @@ function chatTemplateOf(modelPath: string): string | null {
   return `sha256:${createHash('sha256').update(entry.value).digest('hex').slice(0, 16)} (the GGUF's own)`;
 }
 
-/** Ollama's version, from its own API on this computer; null when it doesn't answer. */
-async function ollamaVersion(baseUrl: string): Promise<string | null> {
+/**
+ * Ollama's version, from its own API; null when it doesn't answer. An Ollama outside the closed
+ * network (decision 098) is refused, never asked.
+ */
+async function ollamaVersion(baseUrl: string, network?: NetworkDeps): Promise<string | null> {
+  assertInsideNetwork(network, 'Ollama', new URL('/api/version', baseUrl).href);
   try {
     const response = await fetch(new URL('/api/version', baseUrl), {
       signal: AbortSignal.timeout(3_000),
+      redirect: 'manual',
     });
     if (!response.ok) return null;
     const body = (await response.json()) as { version?: unknown };
@@ -141,7 +146,11 @@ async function ollamaVersion(baseUrl: string): Promise<string | null> {
  * provider it is pinned to, Spark by its model, and this computer's 2-bit build by its GGUF file in
  * Ollama's store, its chat template and the program serving it. Nothing loads a model.
  */
-async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity | null> {
+async function identify(
+  backend: BackendId,
+  job: Job,
+  network?: NetworkDeps,
+): Promise<RuntimeIdentity | null> {
   const hosted = job.student.hosted;
   switch (backend) {
     // The teacher alone is read from its job copy, which holds it as the hosted endpoint.
@@ -196,7 +205,7 @@ async function identify(backend: BackendId, job: Job): Promise<RuntimeIdentity |
         ggufSha256: file.digest,
         runtimeBuild:
           backend === 'local-ollama'
-            ? await ollamaVersion(local.baseUrl)
+            ? await ollamaVersion(local.baseUrl, network)
             : server?.build === undefined
               ? null
               : `b${server.build}`,
@@ -253,8 +262,12 @@ export function realEnvironment(options: RealEnvironmentOptions): {
     gpu,
     COMPARISON_PURPOSE,
   );
+  const network: NetworkDeps = {
+    ...(options.allowedHosts === undefined ? {} : { allowed: options.allowedHosts }),
+  };
   const clear = clearBeforeColdStart(gpu, adapterRuntime, {
     baseUrl: OLLAMA_BASE_URL,
+    network,
     models: STUDENT_PRESETS.filter((item) => item.runtime === 'ollama').map((item) => item.model),
   });
   if (options.meter) {
@@ -270,7 +283,7 @@ export function realEnvironment(options: RealEnvironmentOptions): {
       deps,
       clock: systemClock,
       writeHarness,
-      identify,
+      identify: (backend, job) => identify(backend, job, network),
       // A free GPU, through the lease: the busy error at once when the app has any of it. With no
       // server running, the hold leaves the lease as soon as it is released.
       checkGpu: async () => {

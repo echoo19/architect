@@ -84,6 +84,7 @@ export const AppSettingsSchema = z.object({
   llamaServerPath: z.string().min(1).optional(),
   fieldExports: z.array(FieldExportRecordSchema).max(200).optional(),
   closedNetwork: ClosedNetworkSchema.optional(),
+  closedNetworkProblem: z.string().optional(),
 }) satisfies z.ZodType<AppSettings>;
 
 /**
@@ -95,6 +96,7 @@ export const AppSettingsSchema = z.object({
 export const AppSettingsPatchSchema = AppSettingsSchema.omit({
   llamaServerPath: true,
   fieldExports: true,
+  closedNetworkProblem: true,
 })
   .partial()
   .strict() satisfies z.ZodType<AppSettingsPatch>;

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   copyFile,
   cp,
+  lstat,
   mkdir,
   readdir,
   readFile,
@@ -105,12 +106,17 @@ function readFileJson(text: string): unknown {
 const byPath = (a: { path: string }, b: { path: string }): number =>
   a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
 
-/** Every file under `dir`, as forward-slash paths relative to it. */
-async function filesUnder(dir: string, prefix = ''): Promise<string[]> {
+/**
+ * Every file under `dir`, as forward-slash paths relative to it. Links are never followed: each
+ * one goes in `links` instead, since a pack holds none.
+ */
+async function filesUnder(dir: string, prefix = '', links: string[] = []): Promise<string[]> {
   const found: string[] = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
-    if (entry.isDirectory()) found.push(...(await filesUnder(join(dir, entry.name), path)));
+    if (entry.isSymbolicLink()) links.push(path);
+    else if (entry.isDirectory())
+      found.push(...(await filesUnder(join(dir, entry.name), path, links)));
     else found.push(path);
   }
   return found;
@@ -192,7 +198,7 @@ function readme(pack: EvidencePack, weights: WeightsState): string {
   const lines = [
     `# ${pack.agent.name}, version ${pack.version}: evidence`,
     '',
-    `Every file in this folder is listed with its SHA-256 in ${EVIDENCE_MANIFEST_FILE}. To check them on a computer with no network: \`architect verify --pack <this folder>\`. To install the version offline: \`architect install ${EVIDENCE_PACKAGE_DIR}\`.`,
+    `Every file in this folder is listed with its SHA-256 in ${EVIDENCE_MANIFEST_FILE}. To check them on a computer with no network: \`architect verify --pack <this folder>\`. ${EVIDENCE_MANIFEST_FILE} isn't signed: compare the SHA-256 that check prints with the one the author gives you. To install the version offline: \`architect install ${EVIDENCE_PACKAGE_DIR}\`.`,
     '',
     `- ${EVIDENCE_PACKAGE_DIR}/: the version as it was made, harness ${pack.harness.hash}.`,
     `- ${EVIDENCE_FILE}: the model, the tools and their permissions, the network, the teaching hosts, the changes it kept and its results.`,
@@ -436,10 +442,17 @@ export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
     };
   }
 
+  // Links first, and never followed: a link could point a check at any file on the computer.
+  const links: string[] = [];
+  const present = await filesUnder(dir, '', links);
+  for (const path of links) problems.push(`${path} is a link, which an evidence pack never holds.`);
+  const linked = (path: string) =>
+    links.some((link) => path === link || path.startsWith(`${link}/`));
   const listed = new Set(manifest.files.map((entry) => entry.path));
   for (const entry of manifest.files) {
+    if (linked(entry.path)) continue;
     const file = join(dir, ...entry.path.split('/'));
-    const info = await stat(file).catch(() => null);
+    const info = await lstat(file).catch(() => null);
     if (!info?.isFile()) {
       problems.push(`${entry.path} is missing.`);
     } else if (info.size !== entry.size || (await sha256File(file)) !== entry.sha256) {
@@ -448,7 +461,7 @@ export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
       );
     }
   }
-  for (const path of await filesUnder(dir)) {
+  for (const path of present) {
     if (path !== EVIDENCE_MANIFEST_FILE && !listed.has(path)) {
       problems.push(`${path} isn't listed in ${EVIDENCE_MANIFEST_FILE}.`);
     }
@@ -460,7 +473,7 @@ export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
   } catch {
     problems.push(`${EVIDENCE_FILE} is missing or doesn't read as an evidence pack's.`);
   }
-  if (pack !== null) {
+  if (pack !== null && links.length === 0) {
     const read = await readPackage(join(dir, EVIDENCE_PACKAGE_DIR)).catch((error: unknown) => {
       problems.push(
         error instanceof PackageError
@@ -472,16 +485,8 @@ export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
     if (read !== null && read.digest !== pack.package.digest) {
       problems.push(`${EVIDENCE_PACKAGE_DIR}/ isn't the version ${EVIDENCE_FILE} names.`);
     }
-    const { weights, base } = pack.model;
-    if (
-      weights.state === 'copied' &&
-      base.digest?.startsWith('sha256:') === true &&
-      weights.sha256 !== base.digest.slice('sha256:'.length)
-    ) {
-      problems.push(
-        `The model file in ${EVIDENCE_WEIGHTS_DIR}/ isn't ${base.name}, the base the version names.`,
-      );
-    }
+    if (pack.model.weights.state === 'copied')
+      problems.push(...(await weightsProblems(dir, pack, listed)));
   }
   return {
     ok: problems.length === 0,
@@ -490,4 +495,42 @@ export async function verifyEvidencePack(dir: string): Promise<EvidenceCheck> {
     manifestSha256,
     ...(pack === null ? {} : { agent: { name: pack.agent.name, version: pack.version } }),
   };
+}
+
+/**
+ * Copied weights, checked by their own bytes: the file `evidence.json` names must be listed in
+ * MANIFEST.json and there, its SHA-256 the one `evidence.json` gives, and that the base model's.
+ */
+async function weightsProblems(
+  dir: string,
+  pack: EvidencePack,
+  listed: ReadonlySet<string>,
+): Promise<string[]> {
+  const { weights, base } = pack.model;
+  const path = weights.path;
+  if (path === undefined || weights.sha256 === undefined) {
+    return [`${EVIDENCE_FILE} says the model file was copied but doesn't name it and its hash.`];
+  }
+  if (!path.startsWith(`${EVIDENCE_WEIGHTS_DIR}/`) || !listed.has(path)) {
+    return [
+      `The model file ${EVIDENCE_FILE} names, ${path}, isn't listed in ${EVIDENCE_MANIFEST_FILE}.`,
+    ];
+  }
+  const file = join(dir, ...path.split('/'));
+  const info = await lstat(file).catch(() => null);
+  if (!info?.isFile()) return [`The model file ${path} is missing.`];
+  const actual = await sha256File(file);
+  const problems: string[] = [];
+  if (actual !== weights.sha256) {
+    problems.push(`The model file ${path} isn't the one ${EVIDENCE_FILE} names.`);
+  }
+  if (
+    base.digest?.startsWith('sha256:') === true &&
+    actual !== base.digest.slice('sha256:'.length)
+  ) {
+    problems.push(
+      `The model file in ${EVIDENCE_WEIGHTS_DIR}/ isn't ${base.name}, the base the version names.`,
+    );
+  }
+  return problems;
 }

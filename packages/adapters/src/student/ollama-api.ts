@@ -1,8 +1,16 @@
-import type { OllamaStatus, PullProgress } from '@architect/shared';
+import {
+  AdapterError,
+  ollamaNameProblem,
+  ollamaRegistryOf,
+  type OllamaStatus,
+  type PullProgress,
+} from '@architect/shared';
+import type { NetworkDeps } from '../deps';
 import { createHttpClient, type HttpClient } from '../http/client';
 import { badResponse, cutOff, HttpError } from '../http/errors';
 import { withDetail } from '../http/failures';
 import { readNdjson } from '../http/ndjson';
+import { assertInsideNetwork } from '../http/network';
 import {
   AnyObjectWire,
   CreateWire,
@@ -20,21 +28,30 @@ export type OllamaModelEntry = OllamaStatus['models'][number];
 /** Pulls go quiet while Ollama checks a multi-gigabyte download, so the silence limit is long. */
 const PULL_TIMEOUTS = { headersMs: 60_000, idleMs: 300_000 };
 
-function createOllamaClient(baseUrl: string): HttpClient {
-  return createHttpClient({ baseUrl, service: OLLAMA_SERVICE });
+/**
+ * A client for Ollama at `baseUrl`. With a closed network on (decision 098), an Ollama that isn't
+ * on this computer is inside only when the network names it, like any other host.
+ */
+function createOllamaClient(baseUrl: string, network?: NetworkDeps): HttpClient {
+  return createHttpClient({ baseUrl, service: OLLAMA_SERVICE, network });
 }
 
 /** The version of the Ollama server at `baseUrl`. Fails with a network error if none is running. */
-export async function ollamaVersion(baseUrl: string, signal?: AbortSignal): Promise<string> {
-  return fetchVersion(createOllamaClient(baseUrl), signal);
+export async function ollamaVersion(
+  baseUrl: string,
+  signal?: AbortSignal,
+  network?: NetworkDeps,
+): Promise<string> {
+  return fetchVersion(createOllamaClient(baseUrl, network), signal);
 }
 
 /** The models that are downloaded, with their size on disk and digest. */
 export async function listOllamaModels(
   baseUrl: string,
   signal?: AbortSignal,
+  network?: NetworkDeps,
 ): Promise<OllamaModelEntry[]> {
-  return fetchModels(createOllamaClient(baseUrl), signal);
+  return fetchModels(createOllamaClient(baseUrl, network), signal);
 }
 
 export async function fetchVersion(http: HttpClient, signal?: AbortSignal): Promise<string> {
@@ -60,8 +77,11 @@ export interface LoadedModel {
 export async function loadedOllamaModels(
   baseUrl: string,
   signal?: AbortSignal,
+  network?: NetworkDeps,
 ): Promise<LoadedModel[]> {
-  const { models } = await createOllamaClient(baseUrl).getJson('/api/ps', PsWire, { signal });
+  const { models } = await createOllamaClient(baseUrl, network).getJson('/api/ps', PsWire, {
+    signal,
+  });
   return models.map((model) => ({
     name: model.name,
     totalBytes: model.size,
@@ -91,8 +111,9 @@ export async function unloadOllamaModel(
   baseUrl: string,
   model: string,
   signal?: AbortSignal,
+  network?: NetworkDeps,
 ): Promise<void> {
-  await unloadModel(createOllamaClient(baseUrl), model, signal);
+  await unloadModel(createOllamaClient(baseUrl, network), model, signal);
 }
 
 /** The digest of a model's weights: the blob its Modelfile's first FROM line names. */
@@ -124,8 +145,9 @@ export async function makeTextOnlyModel(
   baseUrl: string,
   spec: TextOnlyModel,
   signal?: AbortSignal,
+  network?: NetworkDeps,
 ): Promise<void> {
-  const http = createOllamaClient(baseUrl);
+  const http = createOllamaClient(baseUrl, network);
   const shown = await http.postJson('/api/show', { model: spec.from }, ShowModelfileWire, {
     signal,
     model: spec.from,
@@ -159,10 +181,17 @@ export async function pullOllamaModel(
   model: string,
   onProgress: (progress: PullProgress) => void,
   signal?: AbortSignal,
+  network?: NetworkDeps,
 ): Promise<void> {
+  const problem = ollamaNameProblem(model);
+  if (problem !== null) throw new AdapterError('bad_request', problem);
+  // Ollama downloads it from its registry on this request's behalf: the closed network must name
+  // that host too, Ollama's own for a name that names none.
+  assertInsideNetwork(network, 'The model registry', `https://${ollamaRegistryOf(model)}/`);
   const http = createHttpClient({
     baseUrl,
     service: OLLAMA_SERVICE,
+    network,
     modelNotFoundHint: 'Check the spelling of the model name.',
     timeouts: PULL_TIMEOUTS,
   });

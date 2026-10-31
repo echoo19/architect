@@ -123,7 +123,10 @@ export function PrivacyTab({ settings, update }: TabProps) {
       <SettingsRow label="Usage data">
         <SettingsValue>Never collected</SettingsValue>
       </SettingsRow>
-      {settings.edition === 'lab' && <ClosedNetworkRows settings={settings} update={update} />}
+      {/* The Lab's; shown in either edition while it is on, so it can always be turned off. */}
+      {(settings.edition === 'lab' || settings.closedNetwork?.on === true) && (
+        <ClosedNetworkRows settings={settings} update={update} />
+      )}
     </>
   );
 }

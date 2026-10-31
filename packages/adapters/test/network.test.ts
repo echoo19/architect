@@ -1,12 +1,21 @@
 import { AdapterError } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createMentor, createStudent, listModels, verifyKey } from '../src';
+import {
+  createMentor,
+  createStudent,
+  listModels,
+  listOllamaModels,
+  ollamaVersion,
+  pullOllamaModel,
+  unloadOllamaModel,
+  verifyKey,
+} from '../src';
 import type { NetworkDeps } from '../src/deps';
 import { createHttpClient } from '../src/http/client';
 import { mentorConfig, studentEndpoint } from './helpers/configs';
 import { fakeOllama } from './helpers/student';
-import { startServer, stopServers } from './helpers/server';
+import { sendJson, startServer, stopServers } from './helpers/server';
 
 afterEach(stopServers);
 
@@ -166,5 +175,70 @@ describe('model lists and key checks under a closed network', () => {
     });
     expect(inside).toEqual([]);
     expect(urls).toEqual(['http://vllm.lab.internal:8000/v1/models']);
+  });
+});
+
+describe('redirects', () => {
+  it('are never followed: the body and the key never reach the host they point to', async () => {
+    const elsewhere = await startServer((_req, res) => sendJson(res, 200, { data: [] }));
+    const first = await startServer((_req, res) => {
+      res.writeHead(307, { location: `${elsewhere.url}/v1/steal?token=private` });
+      res.end();
+    });
+    const contacts: string[] = [];
+    const client = createHttpClient({
+      baseUrl: `${first.url}/v1`,
+      service: 'Teacher',
+      headers: { 'x-api-key': API_KEY },
+      secrets: [API_KEY],
+      retry: { sleep: async () => {}, random: () => 0 },
+      network: { allowed: [], contacted: (host) => contacts.push(host) },
+    });
+    const error = await client
+      .postJson('/messages', { secret: 'prompt' }, Models)
+      .catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe('bad_response');
+    expect((error as AdapterError).message).toContain(
+      `answered with a redirect to ${new URL(elsewhere.url).host}, which Architect doesn't follow`,
+    );
+    expect((error as AdapterError).message).not.toContain('private');
+    expect(first.requests).toHaveLength(1);
+    expect(elsewhere.requests).toHaveLength(0);
+    // Only the host that was asked is recorded: nothing went to the other one.
+    expect(contacts).toEqual([new URL(first.url).host]);
+  });
+});
+
+describe('Ollama under a closed network', () => {
+  const network: NetworkDeps = { allowed: ['hf.co'] };
+
+  it('refuses an Ollama that is not on this computer and not named, before asking it', async () => {
+    const far = 'http://ollama.lab.example:11434';
+    for (const ask of [
+      () => ollamaVersion(far, undefined, network),
+      () => listOllamaModels(far, undefined, network),
+      () => unloadOllamaModel(far, 'muse-glimmer:30b', undefined, network),
+    ]) {
+      await expect(ask()).rejects.toMatchObject({ code: 'outside_network' });
+    }
+  });
+
+  it("refuses a pull from a registry the network doesn't name, and a name that isn't one", async () => {
+    const server = await startServer(fakeOllama({ models: [] }));
+    const progress = () => undefined;
+    await expect(
+      pullOllamaModel(server.url, 'evil.example/team/model:latest', progress, undefined, network),
+    ).rejects.toMatchObject({ code: 'outside_network' });
+    // A name with no registry is pulled from Ollama's own, which this network doesn't name.
+    await expect(
+      pullOllamaModel(server.url, 'muse-glimmer:30b', progress, undefined, network),
+    ).rejects.toMatchObject({ code: 'outside_network' });
+    for (const name of ['../../etc', 'a/b/c/d', 'evil.example/ x', 'model:bad tag']) {
+      await expect(pullOllamaModel(server.url, name, progress)).rejects.toMatchObject({
+        code: 'bad_request',
+      });
+    }
+    expect(server.requests).toEqual([]);
   });
 });

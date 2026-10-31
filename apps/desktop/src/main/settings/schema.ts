@@ -1,6 +1,6 @@
 import {
   AppSettingsSchema,
-  ClosedNetworkSchema,
+  readClosedNetwork,
   CustomEndpointSchema,
   DEFAULT_STUDENT,
   FieldExportRecordSchema,
@@ -94,11 +94,20 @@ const StoredSettingsSchema = z.object({
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),
   llamaServerPath: z.string().min(1).optional().catch(undefined),
   fieldExports: StoredExportsSchema,
-  closedNetwork: ClosedNetworkSchema.optional().catch(undefined),
-}) satisfies z.ZodType<AppSettings>;
+}) satisfies z.ZodType<Omit<AppSettings, 'closedNetwork' | 'closedNetworkProblem'>>;
 
+/**
+ * A settings file's settings. The closed network fails closed (decision 098): a damaged one stays on
+ * with the hosts that read, and says what was wrong, instead of falling back to off.
+ */
 export function settingsFromStored(raw: unknown): AppSettings {
-  return StoredSettingsSchema.parse(typeof raw === 'object' && raw !== null ? raw : {});
+  const record = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
+  const { network, problem } = readClosedNetwork(record['closedNetwork']);
+  return {
+    ...StoredSettingsSchema.parse(record),
+    ...(network === undefined ? {} : { closedNetwork: network }),
+    ...(problem === undefined ? {} : { closedNetworkProblem: problem }),
+  };
 }
 
 /** The list with this endpoint added, or put in place of one at the same address. */
