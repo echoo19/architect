@@ -8,7 +8,7 @@ import { installExperimentsFake } from './fixtures-experiments';
 import { recordedComparisonReport } from './recorded';
 
 /*
- * Any model in every role (decision 093), against the stand-in engine: the Connections view on
+ * Any model in every role (decision 094), against the stand-in engine: the Connections view on
  * Models, with a hosted API, a cluster's vLLM and SGLang servers and the runtimes here, each with
  * the roles it can fill; and an experiment designed on a field taught by other models than Spark
  * and Glimmer, every label naming them. Nothing here reaches a provider or a cluster.

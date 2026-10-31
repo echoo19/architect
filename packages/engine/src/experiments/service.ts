@@ -325,7 +325,7 @@ export class ExperimentService {
       if (problem !== null) throw new CodedError('experiment_state', problem);
       return { pinned: pinInputs(dir, job), models: fieldModels(job) };
     });
-    // The models are frozen with the plan, so a rerun names the same ones (decision 093).
+    // The models are frozen with the plan, so a rerun names the same ones (decision 094).
     const preregistration = {
       at: isoNow(this.options.clock),
       sha256: hashOf(record.input, pinned),

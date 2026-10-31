@@ -24,7 +24,7 @@ import type { ComparisonFiles } from './records';
 
 /**
  * Which mentor and hosted student a comparison runs, and how OpenRouter routes it: a preset by
- * its key, or the field's own model by its whole address (decision 093). The providers pin the
+ * its key, or the field's own model by its whole address (decision 094). The providers pin the
  * hosted student to one serving of the model; `localModel` is the build on this computer every
  * graduate is pinned to when it freezes, the one local tests run on, and the base adapters use.
  */
@@ -42,7 +42,7 @@ export const DEFAULT_MODELS: ComparisonModels = {
 const isGlimmer = (model: string) => GLIMMER_BUILDS.some((build) => build.model === model);
 
 /**
- * The models a comparison on this field runs (decision 093): the field's own teacher and the
+ * The models a comparison on this field runs (decision 094): the field's own teacher and the
  * hosted copy of its student, each by its preset key where a preset is that model at that
  * address, and the defaults where the field has none (a coding agent teaches, or the student has
  * no hosted copy). A field on Glimmer keeps the defaults' routing and the build that fits here.

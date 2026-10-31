@@ -63,7 +63,7 @@ export function armStatusWord(arm: ArmReport, experiment: ExperimentStatus): str
 
 /**
  * The short names of the models an experiment runs, as every line names them: the field's own
- * teacher and student (decision 093), "Spark" and "Glimmer" by default.
+ * teacher and student (decision 094), "Spark" and "Glimmer" by default.
  */
 export function experimentNames(detail: Pick<ExperimentDetail, 'names'>): ModelNames {
   return {

@@ -140,7 +140,7 @@ export type ExperimentStatus = z.infer<typeof ExperimentStatusSchema>;
 
 /**
  * The models a comparison runs: the field's own teacher and hosted student where it has them,
- * the defaults otherwise (decision 093). A preset goes by its key, any other model by its whole
+ * the defaults otherwise (decision 094). A preset goes by its key, any other model by its whole
  * address; a key's value is never here, only the name it is stored under.
  */
 export const ExperimentModelsSchema = z.object({

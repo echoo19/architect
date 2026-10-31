@@ -147,7 +147,7 @@ describe('experiment plans', () => {
     expect(primaryText(primary)).toBe(
       'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
     );
-    // On a field of other models, the arms go by their names (decision 093).
+    // On a field of other models, the arms go by their names (decision 094).
     const names = experimentNames({ names: { mentor: 'Qwen3 235B on vLLM', student: 'Qwen' } });
     expect(names).toEqual({ mentor: 'Qwen3 235B', student: 'Qwen' });
     expect(primaryText(primary, armNames(names))).toBe(
