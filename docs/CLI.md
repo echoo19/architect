@@ -141,10 +141,26 @@ curl http://127.0.0.1:8420/v1/chat/completions \
     "certified": false,
     "agreement": null,
     "handedOff": false,
+    "answer": null,
+    "certificate": { "standing": "not_certified", "errorBound": null, "confidence": null },
     "steps": [{ "tool": "read", "detail": "data/invoices.csv", "status": "done", "summary": "3 rows", "ms": 2 }],
     "proposedChange": null,
     "refusal": null
   }
+}
+```
+
+A certified version's reply carries its answer and where it stands. Here 4 of its 5 attempts agreed, and it answers only when at least 4 do:
+
+```json
+"architect": {
+  "version": 3,
+  "certified": true,
+  "agreement": { "agreed": 4, "attempts": 5, "required": 4 },
+  "handedOff": false,
+  "answer": { "student": "S-104", "missed": 3 },
+  "certificate": { "standing": "within", "errorBound": 0.08, "confidence": 0.95 },
+  ...
 }
 ```
 
@@ -153,6 +169,7 @@ Any OpenAI client works with the base URL, the token as its API key, and the age
 - **This computer only.** It listens on 127.0.0.1 and nowhere else; `--host` is refused (exit 3). Every request needs the bearer token, so another account or program on the computer can't use the agent without it. The token is new each start and printed once; `--token-file` reads one of your own (one word, at least 16 characters) and prints none.
 - **The same agent.** Each request runs through the same agent host as `run` and a chat in the app: the active version, its harness, tools, folders and permissions, under the same network guard, so the agent reaches nothing but the model on this computer. Requests are answered one at a time, in order. A request's earlier user and assistant messages are its history; system and developer messages are left out, since the agent's own instructions say how it works, and sampling settings and a client's own tools are ignored.
 - **Certified answers.** A version with a certificate (decision 077) makes its attempts at each request and answers with the agreed answer, or hands the request to a person. `architect.certified`, `agreement` (`agreed` of `attempts`, and how many are `required`) and `handedOff` say which.
+- **The answer and its standing.** `architect.answer` is the structured answer: the JSON of the reply's `ANSWER:` line, parsed, or `null` when the reply has none, handed the request off, or refused it. `architect.certificate.standing` says where the reply stands against the version's certificate: `within` (enough attempts agreed, so the certificate's bound covers it), `handed_off` (too few agreed; the reply asks for a person instead of answering), `refused` (outside the agent's job; no attempt was made) or `not_certified` (a version with no issued certificate, which answers as it always did). `errorBound` and `confidence` are the certificate's: when it answers, it is wrong on at most `errorBound` of requests like its calibration ones, with that confidence; both are `null` without a certificate. A plain OpenAI client reads `choices` as usual and can ignore `architect`; the message itself is OpenAI's, with nothing added to it.
 - **No writes.** The server never changes a file, even when the agent's writes are allowed in the app. A change the agent wants comes back in `architect.proposedChange`, with the rows (`diff`) or lines (`patch`), for a person to make in the app or with `architect run`.
 - **Errors** are OpenAI-style (`{"error": {"message", "type", "code"}}`): 401 without the right token, 400 for a malformed request or `"stream": true` (streaming isn't served yet), 404 for another model, 403 when the agent may not run (its model isn't on this computer, say), 409 when `--version` is no longer the active version, 502 when the model or its reply failed.
 - **Stopping.** Ctrl+C stops taking requests, stops the replies running (their callers get 503) and exits 130. A port in use exits 1.

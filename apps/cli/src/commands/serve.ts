@@ -336,14 +336,19 @@ class Endpoint {
     const { agent } = this.session;
     const version = library.versions(agent.id).find((listed) => listed.version === number);
     if (!version) throw new Error(`Version ${number} of ${agent.name} isn't on this computer.`);
-    let required: number | null = null;
+    let certified: ServedVersion['certified'] = null;
     if (version.manifest.evidence.files?.report !== undefined) {
       const { certificate } = await library.report(agent.id, number);
       // As the agent host follows it: an issued certificate with more than one attempt.
-      if (certificate?.issued === true && certificate.k >= 2)
-        required = certificate.threshold.votes;
+      if (certificate?.issued === true && certificate.k >= 2) {
+        certified = {
+          required: certificate.threshold.votes,
+          errorBound: certificate.threshold.bound,
+          confidence: 1 - certificate.delta,
+        };
+      }
     }
-    const served = { version: number, harnessHash: version.manifest.harness.hash, required };
+    const served = { version: number, harnessHash: version.manifest.harness.hash, certified };
     this.versions.set(number, served);
     return served;
   }

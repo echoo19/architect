@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
+import { parseAnswerLine } from '@architect/engine/agent-host';
 import {
   ChatCompletionSchema,
   type ChatCompletion,
   type ChatCompletionRequest,
   type CliOutcome,
+  type ServedCertificate,
 } from '@architect/shared';
 import { CliError, type Failure } from '../exit';
 import { outcomeOf, runSteps } from '../run/result';
@@ -77,8 +79,11 @@ export function conversationOf(request: ChatCompletionRequest): Conversation {
 export interface ServedVersion {
   version: number;
   harnessHash: string;
-  /** For a certified version: how many attempts must agree before it answers. Null otherwise. */
-  required: number | null;
+  /**
+   * For a certified version: how many attempts must agree before it answers, and the bound its
+   * answers are wrong within, with its confidence. Null otherwise.
+   */
+  certified: { required: number; errorBound: number; confidence: number } | null;
 }
 
 /** An HTTP response: its status and its JSON body. */
@@ -128,10 +133,25 @@ export function completionOf(reply: Reply, served: ServedVersion, model: string)
   const note = message.blocks.find((block) => block.kind === 'note');
   const attempts = message.steps.filter((step) => step.kind === 'attempt');
   const agreed = attempts.filter((step) => step.meta === 'agrees').length;
+  const { certified } = served;
   const agreement =
-    served.required !== null && attempts.length > 0
-      ? { agreed, attempts: attempts.length, required: served.required }
+    certified !== null && attempts.length > 0
+      ? { agreed, attempts: attempts.length, required: certified.required }
       : null;
+  const handedOff = agreement !== null && agreement.agreed < agreement.required;
+  const refused = refusal?.kind === 'refusal';
+  const certificate: ServedCertificate = {
+    standing:
+      certified === null
+        ? 'not_certified'
+        : refused
+          ? 'refused'
+          : handedOff || agreement === null
+            ? 'handed_off'
+            : 'within',
+    errorBound: certified?.errorBound ?? null,
+    confidence: certified?.confidence ?? null,
+  };
   const said = message.text.trim();
   const content = [
     said === '' && refusal?.kind === 'refusal'
@@ -159,9 +179,11 @@ export function completionOf(reply: Reply, served: ServedVersion, model: string)
     architect: {
       version: served.version,
       harnessHash: served.harnessHash,
-      certified: served.required !== null,
+      certified: certified !== null,
       agreement,
-      handedOff: agreement !== null && agreement.agreed < agreement.required,
+      handedOff,
+      answer: handedOff || refused ? null : parseAnswerLine(message.text).answer,
+      certificate,
       steps: runSteps(message.steps),
       proposedChange:
         approval === null
