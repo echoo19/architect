@@ -232,8 +232,17 @@ async function start(): Promise<void> {
     async () => currentChoices(settings, secrets),
   );
   registerGraduateHandlers(router, (request) => engine.call(request), graduates, picked);
-  registerTeamHandlers(router);
-  registerWorkspaceHandlers(router, (request) => agentHost.call(request), graduates);
+  registerTeamHandlers(
+    router,
+    (request) => engine.call(request),
+    (request) => agentHost.call(request),
+  );
+  registerWorkspaceHandlers(
+    router,
+    (request) => agentHost.call(request),
+    graduates,
+    () => engine.call((api) => api.teams.list()),
+  );
   engine.start();
   stopOnQuit([agentHost, engine]);
 

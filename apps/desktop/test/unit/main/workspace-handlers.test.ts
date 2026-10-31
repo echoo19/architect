@@ -1,7 +1,16 @@
 import type { AgentHostClient } from '@architect/engine/agent-host';
+import type { Team } from '@architect/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { registerWorkspaceHandlers } from '../../../src/main/handlers/workspace';
 import { routerHarness } from './router-harness';
+
+const TEAM: Team = {
+  id: 'team_1',
+  name: 'Lab review',
+  members: [{ graduateId: 'grd_1' }, { graduateId: 'grd_broken' }],
+  createdAt: '2026-11-05T09:00:00.000Z',
+  updatedAt: '2026-11-05T09:00:00.000Z',
+};
 
 function setup(failures: Record<string, string> = {}) {
   const { router, call } = routerHarness();
@@ -12,12 +21,15 @@ function setup(failures: Record<string, string> = {}) {
   const host = {
     listChats: vi.fn(async () => []),
     createChat: vi.fn(async (graduateId: string) => ({ id: 'cht_1', graduateId })),
+    createTeamChat: vi.fn(async (teamId: string) => ({ id: 'cht_2', graduateId: 'grd_1', teamId })),
     decide: vi.fn(async () => undefined),
   };
-  registerWorkspaceHandlers(router, (request) => request(host as unknown as AgentHostClient), {
-    settled: () => opening,
-    failure: (graduateId) => failures[graduateId],
-  });
+  registerWorkspaceHandlers(
+    router,
+    (request) => request(host as unknown as AgentHostClient),
+    { settled: () => opening, failure: (graduateId) => failures[graduateId] },
+    async () => [TEAM],
+  );
   return { host, call, settle };
 }
 
@@ -47,6 +59,19 @@ describe('workspace handlers', () => {
       ok: true,
       value: { id: 'cht_1', graduateId: 'grd_1' },
     });
+  });
+
+  it("refuse a new team chat when any agent in the team couldn't be opened", async () => {
+    const reason = "The data of the job it was trained for isn't in Architect.";
+    const { host, call, settle } = setup({ grd_broken: reason });
+    settle();
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    expect(await call('workspace:createTeamChat', 'team_1')).toEqual({
+      ok: false,
+      error: { message: reason },
+    });
+    errors.mockRestore();
+    expect(host.createTeamChat).not.toHaveBeenCalled();
   });
 
   it('pass decisions through unchanged', async () => {

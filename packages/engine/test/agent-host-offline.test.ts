@@ -170,6 +170,82 @@ describe('a graduate in the workspace', () => {
     expect(JSON.stringify(observed)).not.toContain('example.com');
   }, 60_000);
 
+  it('answers as a team, lead and teammate each on the local model, and reaches nothing else', async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), 'architect-offline-team-'));
+    const connectionLog = join(dataDir, 'connections.jsonl');
+    const model: FakeOllama = await startFakeOllama([
+      {
+        toolCalls: [
+          {
+            name: 'ask_teammate',
+            arguments: { member: 'Sweep desk', request: 'How many invoices are there?' },
+          },
+        ],
+      },
+      { toolCalls: [{ name: 'read', arguments: { path: 'data/invoices.csv' } }] },
+      { text: 'Three.\nANSWER: 3' },
+      { text: 'Sweep desk counts 3 invoices.' },
+    ]);
+    const store = openEngineStore(new DataPaths(dataDir).database);
+    const lead = await addGraduate(dataDir, store, {
+      id: 'grd_assay',
+      baseUrl: model.url,
+      job: { name: 'Assay desk' },
+    });
+    const sweep = await addGraduate(dataDir, store, {
+      id: 'grd_sweep',
+      baseUrl: model.url,
+      job: { name: 'Sweep desk' },
+    });
+    const at = '2026-11-05T18:00:00.000Z';
+    store.teams.insert({
+      id: 'team_lab',
+      name: 'Lab review',
+      members: [{ graduateId: lead.id }, { graduateId: sweep.id }],
+      createdAt: at,
+      updatedAt: at,
+    });
+    store.close();
+    const host = startHostProcess(dataDir, connectionLog);
+    cleanup = async () => {
+      await host.stop();
+      await model.close();
+      await rm(dataDir, { recursive: true, force: true });
+    };
+    const { client } = host;
+
+    await client.openGraduate(lead.id);
+    await client.openGraduate(sweep.id);
+    const chat = await client.createTeamChat('team_lab');
+    const replied = settledReply(client, chat.id);
+    await client.send(chat.id, 'How many invoices does Sweep desk have?');
+    expect(await replied).toMatchObject({
+      status: 'done',
+      text: 'Sweep desk counts 3 invoices.',
+      team: true,
+      consultations: [{ graduateId: 'grd_sweep', outcome: 'answered', text: 'Three.\nANSWER: 3' }],
+    });
+    expect(model.chats()).toHaveLength(4);
+
+    expect(await client.blockedConnections()).toEqual([]);
+    const stderr = await host.stop();
+    expect(stderr).not.toContain(BLOCKED_LOG_PREFIX);
+    const observed = await readConnections(connectionLog);
+    const connects = observed.filter((entry) => entry.type === 'connect');
+    expect(connects.length).toBeGreaterThan(0);
+    for (const { host: target, port, guarded } of connects) {
+      expect({ target, port: String(port), guarded }).toEqual({
+        target: '127.0.0.1',
+        port: new URL(model.url).port,
+        guarded: true,
+      });
+    }
+    for (const entry of observed) {
+      if (entry.type === 'connected') expect(isLoopbackHost(entry.address ?? '')).toBe(true);
+      if (entry.type === 'lookup') expect(isLoopbackHost(String(entry.name))).toBe(true);
+    }
+  }, 60_000);
+
   it('serves a version with an adapter through llama-server on 127.0.0.1, and reaches nothing else', async () => {
     const dataDir = await mkdtemp(join(tmpdir(), 'architect-offline-adapter-'));
     const connectionLog = join(dataDir, 'connections.jsonl');

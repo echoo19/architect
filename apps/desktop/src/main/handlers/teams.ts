@@ -1,18 +1,35 @@
+import { TeamInputSchema } from '@architect/shared';
+import { z } from 'zod';
 import type { IpcRouter } from '../ipc/router';
+import type { EngineCall } from './engine';
+import type { AgentHostCall } from './workspace';
 
-/** Said for a team request until the engine serves teams. */
-export const TEAMS_UNAVAILABLE = "Teams aren't available in this build yet.";
+const text = z.string().min(1);
 
-const unavailable = (): never => {
-  throw new Error(TEAMS_UNAVAILABLE);
-};
-
-/** The teams domain. Every request is refused until the engine serves teams. */
-export function registerTeamHandlers(router: IpcRouter): void {
-  router.registerHandlers('teams', {
-    list: unavailable,
-    create: unavailable,
-    update: unavailable,
-    remove: unavailable,
-  });
+/**
+ * The teams domain, forwarded to the engine (decision 100). A team's replies run in the agent
+ * host, so removing a team stops them there first, and only then do the team and its chats go.
+ */
+export function registerTeamHandlers(
+  router: IpcRouter,
+  call: EngineCall,
+  agentHost: AgentHostCall,
+): void {
+  router.registerHandlers(
+    'teams',
+    {
+      list: () => call((api) => api.teams.list()),
+      create: (input) => call((api) => api.teams.create(input)),
+      update: (teamId, input) => call((api) => api.teams.update(teamId, input)),
+      remove: async (teamId) => {
+        await agentHost((host) => host.closeTeam(teamId));
+        await call((api) => api.teams.remove(teamId));
+      },
+    },
+    {
+      create: z.tuple([TeamInputSchema]),
+      update: z.tuple([text, TeamInputSchema]),
+      remove: z.tuple([text]),
+    },
+  );
 }

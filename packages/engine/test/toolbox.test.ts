@@ -6,7 +6,7 @@ import { openAgentFiles, type AgentFiles, type OutputFolder } from '../src/files
 import { createSandbox } from '../src/sandbox/sandbox';
 import type { Sandbox } from '../src/sandbox/types';
 import type { ApproveWrite } from '../src/tools/builtins';
-import { createToolbox, type Toolbox } from '../src/tools/toolbox';
+import { createToolbox, type ExtraTool, type Toolbox } from '../src/tools/toolbox';
 import {
   makeHarness,
   makeJobDir,
@@ -474,5 +474,55 @@ unpaid.reduce((sum, row) => sum + Number(row.total_cents), 0)`,
     expect(() => createToolbox({ harness, files, sandbox, today: '2026-11-03' })).toThrow(
       /name of a built-in tool/,
     );
+  });
+});
+
+describe('a tool the runner adds to one run', () => {
+  const extra = (name: string): ExtraTool => ({
+    spec: { name, description: 'Asks a teammate.', parameters: { type: 'object' } },
+    run: async (asked) => ({ value: `asked ${String(asked.arguments.member)}` }),
+  });
+
+  async function open() {
+    job = makeJobDir();
+    return openAgentFiles({ dataDir: job.dataDir, files: SAMPLE_FILES, mode: 'scratch' });
+  }
+
+  it('is offered after the others and runs on its own terms', async () => {
+    const files = await open();
+    const toolbox = createToolbox({
+      harness: makeHarness(),
+      files,
+      sandbox,
+      today: '2026-11-03',
+      extraTools: [extra('ask_teammate')],
+    });
+    expect(toolbox.specs.at(-1)?.name).toBe('ask_teammate');
+    const outcome = await toolbox.run(call('ask_teammate', { member: 'Sweep desk' }));
+    expect(outcome).toMatchObject({ result: 'asked Sweep desk' });
+  });
+
+  it('may not share a name with a built-in or a harness tool', async () => {
+    const files = await open();
+    const helper = {
+      name: 'price_job',
+      description: 'x',
+      parameters: { type: 'object' as const },
+      code: 'function run() {}',
+    };
+    for (const [name, tools] of [
+      ['read', []],
+      ['price_job', [helper]],
+    ] as const) {
+      expect(() =>
+        createToolbox({
+          harness: makeHarness({ tools: [...tools] }),
+          files,
+          sandbox,
+          today: '2026-11-03',
+          extraTools: [extra(name)],
+        }),
+      ).toThrow(`The tool ${name} has the name of another tool this run offers.`);
+    }
   });
 });
