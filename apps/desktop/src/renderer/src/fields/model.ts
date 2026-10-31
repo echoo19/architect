@@ -26,6 +26,8 @@ export interface Candidate {
 export interface FieldSummary {
   job: Job;
   view: FieldView;
+  /** Every run of the job, as the engine lists them. */
+  runs: Run[];
   /** Newest first. */
   candidates: Candidate[];
   /** The newest change to the job or any of its runs. */
@@ -63,7 +65,7 @@ export async function readField(jobId: string): Promise<FieldSummary> {
     candidatesOf(jobId),
   ]);
   const lastActivity = runs.reduce((at, run) => newer(at, run.updatedAt), job.createdAt);
-  return { job, view, candidates, lastActivity };
+  return { job, view, runs, candidates, lastActivity };
 }
 
 export const fieldKey = (jobId: string) => `field:${jobId}`;

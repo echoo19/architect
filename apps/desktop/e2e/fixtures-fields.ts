@@ -11,7 +11,8 @@ import type { ElectronApplication } from '@playwright/test';
 import { ACADEMY_DESK_COUNTEREXAMPLES } from './fixtures-counterexamples';
 import { FIELD_ORGS, FIELD_REPORT } from './fixtures-field';
 import { stubByKey, taskPlan } from './fixtures-flow';
-import { LAB, LAB_JOBS, ACADEMY_DESK_ID, stubLab } from './fixtures-lab';
+import { LAB, LAB_AGENTS, LAB_JOBS, ACADEMY_DESK_ID, stubLab } from './fixtures-lab';
+import { MODEL_VERSIONS } from './fixtures-models';
 import { at, makeRun, storyReport } from './story';
 
 /*
@@ -249,6 +250,19 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
     ),
   });
   await stubByKey(app, 'jobs:fieldAssets', { [LAB.academyDeskJob]: ACADEMY_DESK_ASSETS });
+  // The timeline's reads: each agent's versions, none certified after the fact, and no model
+  // trained elsewhere qualified on any field.
+  await stubByKey(app, 'graduates:versions', MODEL_VERSIONS);
+  await stubByKey(
+    app,
+    'graduates:certifications',
+    Object.fromEntries(LAB_AGENTS.map((agent) => [agent.id, []])),
+  );
+  await stubByKey(
+    app,
+    'runs:qualifications',
+    Object.fromEntries(LAB_JOBS.map((job) => [job.id, []])),
+  );
   await stubByKey(
     app,
     'mentoring:fieldCounterexamples',
