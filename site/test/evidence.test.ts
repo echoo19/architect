@@ -63,7 +63,11 @@ describe('the results page', () => {
         const key = GROUPS[index]?.short;
         const rows = SKILL_ROWS.filter((row) => row.group === key);
         const field =
-          arm.name === 'Tutor' ? 'tutor' : arm.name.startsWith('Glimmer') ? 'bare' : 'draft';
+          arm.name === 'Academy desk'
+            ? 'academyDesk'
+            : arm.name.startsWith('Glimmer')
+              ? 'bare'
+              : 'draft';
         expect(rows.reduce((sum, row) => sum + row[field], 0)).toBe(group.passed);
         expect(rows.reduce((sum, row) => sum + row.of, 0)).toBe(GROUPS[index]?.n);
         expect(group.low).toBeLessThanOrEqual((group.passed / (GROUPS[index]?.n ?? 1)) * 100);
@@ -79,8 +83,11 @@ describe('the results page', () => {
   });
 
   it('adds up the local run and gives the report its numbers', () => {
-    const report = readFileSync(join(ROOT, 'docs', 'comparisons', 'tutor-1-local.md'), 'utf8');
-    const tutor = FIELD_ARMS.find((each) => each.name === 'Tutor');
+    const report = readFileSync(
+      join(ROOT, 'docs', 'comparisons', 'academy-desk-1-local.md'),
+      'utf8',
+    );
+    const academyDesk = FIELD_ARMS.find((each) => each.name === 'Academy desk');
     for (const row of LOCAL_ROWS) {
       expect(row.wins + row.losses).toBeLessThanOrEqual(row.n);
       expect(((row.wins - row.losses) / row.n) * 100).toBeCloseTo(row.diff, 0);
@@ -89,7 +96,7 @@ describe('the results page', () => {
       expect(report).toContain(`${row.local}/${row.n}`);
       expect(report).toContain(`${row.hosted}/${row.n}`);
       const index = GROUPS.findIndex((group) => group.short === row.group);
-      const hosted = index < 0 ? tutor?.all.passed : tutor?.groups[index]?.passed;
+      const hosted = index < 0 ? academyDesk?.all.passed : academyDesk?.groups[index]?.passed;
       expect(row.hosted).toBe(hosted);
     }
     expect(LOCAL_ROWS.slice(0, 3).reduce((sum, row) => sum + row.local, 0)).toBe(

@@ -78,12 +78,18 @@ describe('Card and CardGrid', () => {
   });
 
   it('makes a row a button only when it opens something', () => {
-    const still = renderToStaticMarkup(createElement(CardRow, { title: 'Tutor', end: '82%' }));
+    const still = renderToStaticMarkup(
+      createElement(CardRow, { title: 'Academy desk', end: '82%' }),
+    );
     expect(still).not.toContain('<button');
     const opens = renderToStaticMarkup(
-      createElement(CardRow, { title: 'Tutor', onClick: () => undefined, label: 'Open Tutor' }),
+      createElement(CardRow, {
+        title: 'Academy desk',
+        onClick: () => undefined,
+        label: 'Open Academy desk',
+      }),
     );
-    expect(opens).toContain('<button type="button" aria-label="Open Tutor"');
+    expect(opens).toContain('<button type="button" aria-label="Open Academy desk"');
   });
 });
 
@@ -242,12 +248,12 @@ describe('Inspector', () => {
         children: createElement(Inspector<'teacher' | 'budget'>, {
           'aria-label': 'Model',
           tabs,
-          header: createElement('h2', null, 'Tutor v3'),
+          header: createElement('h2', null, 'Academy desk v3'),
           children: (tab: string) => `content of ${tab}`,
         }),
       }),
     );
-    expect(html).toMatch(/<h2>Tutor v3<\/h2>.*role="tablist"/);
+    expect(html).toMatch(/<h2>Academy desk v3<\/h2>.*role="tablist"/);
   });
 
   it('reads back the tab and fold it kept, and ignores what no longer fits', () => {
@@ -319,7 +325,7 @@ describe('DataTable', () => {
     score: number | null;
   }
   const rows: Model[] = [
-    { name: 'Tutor', score: 0.8 },
+    { name: 'Academy desk', score: 0.8 },
     { name: 'Service desk', score: null },
     { name: 'Returns desk', score: 0.6 },
   ];
@@ -338,11 +344,11 @@ describe('DataTable', () => {
     const score = columns[1];
     expect(sortRows(rows, score, 'ascending').map((r) => r.name)).toEqual([
       'Returns desk',
-      'Tutor',
+      'Academy desk',
       'Service desk',
     ]);
     expect(sortRows(rows, score, 'descending').map((r) => r.name)).toEqual([
-      'Tutor',
+      'Academy desk',
       'Returns desk',
       'Service desk',
     ]);
@@ -387,7 +393,7 @@ describe('DataTable', () => {
         columns: grouped,
         rows,
         rowKey: (row) => row.name,
-        selectedKey: 'Tutor',
+        selectedKey: 'Academy desk',
       }),
     );
     expect(html).toMatch(/scope="colgroup" colSpan="2"[^>]*><span[^>]*>Final test<\/span>/);

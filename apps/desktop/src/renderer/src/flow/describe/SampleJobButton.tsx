@@ -15,8 +15,8 @@ const OFFERS = {
     Icon: FlaskConical,
   },
   academy: {
-    label: 'Try the tutor',
-    says: 'Tutor, a tutor for test-prep academies: taught at three, tested at one it never saw',
+    label: 'Try the Academy desk',
+    says: 'Academy desk, for the staff of test-prep academies: taught at three, tested at one it never saw',
     Icon: GraduationCap,
   },
   'sweep-desk': {
@@ -28,7 +28,7 @@ const OFFERS = {
 
 /**
  * The offer to start from a sample job Architect trains an agent for, to watch it work: the small
- * service desk, Tutor, the tutor, or Sweep desk, a science lab's reader of training runs. It sits beside the offer of a ready-made agent, so they read
+ * service desk, or Academy desk, the staff-facing agent for test-prep academies. It sits beside the offer of a ready-made agent, so they read
  * as one choice: watch one being made, or open one that is made.
  */
 export function SampleJobButton({

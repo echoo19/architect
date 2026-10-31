@@ -18,7 +18,7 @@ export interface ProcessResources {
   /** The agent host's entry, started as a utility process. */
   agentHostEntry: string;
   sampleJobFile: string;
-  /** The tutor's job, with its academies beside it. */
+  /** The Academy desk's job, with its academies beside it. */
   academyJobFile: string;
   /** Sweep desk's job, with its research groups beside it. */
   sweepDeskJobFile: string;

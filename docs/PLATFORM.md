@@ -11,6 +11,20 @@ Architect ships as two versions of one app:
 
 One codebase, one installer and one test suite. The edition is a setting chosen on the welcome screen ("Teach an agent one job" or "Run a lab") and switchable in Settings; the shell, the home, the sidebar, the command palette and the Describe screen's offers follow it. The engine and the CLI are the same in both. The site's download page offers both. Every change keeps both editions working: the personal edition's screens and specs are the regression guard for the pre-pivot product.
 
+## The pitch (owner, Nov 1)
+
+**The training system for your own AI.** A large model teaches a small one by rewriting its instructions and tools; every change is tested on work neither model has seen; Architect certifies when the result can be trusted. The specialists below are what the system makes, never the pitch itself.
+
+## Demo sets (owner, Nov 1)
+
+The platform is the product; the specialists are what it makes. They are shown as sets:
+
+- *Business:* Returns desk (`examples/gear-returns`), Service desk (`examples/home-services`), a pricing desk Spark drafted from a repair shop's files.
+- *Academies:* Academy desk across several academies, one of them real (`examples/academy`). It is a staff-facing operations specialist (it diagnoses missed questions, sets practice in the academy's records and flags students for staff), never a chatbot for students.
+- *Science lab (R&D in two layers: Architect is an R&D platform, and the specialists it makes do R&D):* Sweep desk for ML research groups (`examples/sweep-desk`: best configuration by the group's rule, early stopping, diverged runs, whether a change helped with a paired interval, proposed next runs) and Assay desk for screening labs (`examples/assay-desk`: normalization to controls, hits by the lab's rule, Z-prime plate QC, replicates, a re-test plan).
+
+Every set uses the same places, words and checks; no set gets screens of its own.
+
 ## The flow stays the spine
 
 Describe a field → Study and define it → Teach → Qualify → Use. Everything new hangs off that line. A newcomer can follow it without opening anything else; an expert finds every control one step away, in an inspector or on a page of its own.

@@ -60,7 +60,7 @@ test('offers a science lab in the Lab edition and starts Sweep desk from it', as
   await goTo(page, '/');
   await expect(page.getByRole('heading', { name: 'Nothing in the lab yet' })).toBeVisible();
   const offer = page.getByRole('button', { name: 'Try a science lab' });
-  await expect(page.getByRole('button', { name: 'Try the tutor' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try the Academy desk' })).toBeVisible();
   await offer.hover();
   await expect(page.getByRole('tooltip')).toContainText("reads a research group's training runs");
   await settle(page);

@@ -12,7 +12,7 @@ import { createWorld, openEngine, type Engine, type World } from './fakes/world'
  * computer standing in for the model: no real model, no GPU, no money.
  */
 
-const MODEL = 'tutor-ft-7b';
+const MODEL = 'academy-desk-ft-7b';
 
 let world: World;
 let engine: Engine;

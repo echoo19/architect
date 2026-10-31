@@ -18,7 +18,7 @@ import { installation } from './fixtures-versions';
 import { AGENT, CHATS, engineSeed, installFakeEngine } from './fixtures-workspace';
 
 /*
- * Tutor from a job with several organizations, against the stand-in engine: the report's skill by
+ * Academy desk from a job with several organizations, against the stand-in engine: the report's skill by
  * organization grid, and the workspace naming the organization whose records it works on, with
  * one control to move it to another (decision 070).
  */

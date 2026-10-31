@@ -7,7 +7,7 @@ import { JobLibrary } from '../../src/loop/jobs';
 import { DataPaths } from '../../src/loop/paths';
 import { openEngineStore } from '../../src/store/engine-store';
 
-/** The tutor's job as it ships: four academies, one of them never trained on. */
+/** The Academy desk's job as it ships: four academies, one of them never trained on. */
 export const ACADEMY_JOB_FILE = fileURLToPath(
   new URL('../../../../examples/academy/job/job.json', import.meta.url),
 );

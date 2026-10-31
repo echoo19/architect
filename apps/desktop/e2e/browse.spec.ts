@@ -4,7 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { SAMPLE_ENGINE, stubEngine } from './fixtures';
-import { stubAttempts, stubFieldTasks, stubHarnessFiles, TUTOR_TASKS } from './fixtures-browse';
+import {
+  stubAttempts,
+  stubFieldTasks,
+  stubHarnessFiles,
+  ACADEMY_DESK_TASKS,
+} from './fixtures-browse';
 import { stubFields } from './fixtures-fields';
 import { LAB } from './fixtures-lab';
 import { installModelsFake } from './fixtures-models';
@@ -65,14 +70,14 @@ const calls = (name: string) =>
 test("browses a field's practice and check tasks, with the sealed splits counted only", async () => {
   await stubFields(launched.app);
   await stubFieldTasks(launched.app);
-  await openAt(`/fields/${LAB.tutorJob}`);
-  await expect(page.getByRole('heading', { name: 'Tutor', level: 1 })).toBeVisible();
+  await openAt(`/fields/${LAB.academyDeskJob}`);
+  await expect(page.getByRole('heading', { name: 'Academy desk', level: 1 })).toBeVisible();
   await page.getByRole('tab', { name: 'Tasks' }).click();
 
   const practice = page.getByRole('table', { name: 'Practice tasks' });
-  await expect(practice.getByRole('row')).toHaveCount(TUTOR_TASKS.train.length + 1);
+  await expect(practice.getByRole('row')).toHaveCount(ACADEMY_DESK_TASKS.train.length + 1);
   await expect(
-    page.getByRole('radio', { name: `Practice ${TUTOR_TASKS.train.length}` }),
+    page.getByRole('radio', { name: `Practice ${ACADEMY_DESK_TASKS.train.length}` }),
   ).toBeVisible();
   // The final test and the calibration tasks are counts behind a lock, never rows.
   await expect(page.getByText('Final test 72 tasks')).toBeVisible();

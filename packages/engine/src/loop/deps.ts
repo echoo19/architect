@@ -420,7 +420,7 @@ export interface SampleAgentFiles {
 export interface EngineHostDeps extends LoopDeps {
   /** The sample job's `job.json`, shipped with the app, with `tasks.jsonl` and `data/` beside it. */
   sampleJobFile?: string;
-  /** The tutor's job, with its academies at `orgs/<id>/data/` beside it. */
+  /** The Academy desk's job, with its academies at `orgs/<id>/data/` beside it. */
   academyJobFile?: string;
   /** Sweep desk's job, with its research groups at `orgs/<id>/data/` beside it. */
   sweepDeskJobFile?: string;

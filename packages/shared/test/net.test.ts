@@ -25,8 +25,15 @@ describe('a model server on this computer', () => {
 
   it('parses an endpoint with its default context and refuses a remote one', () => {
     expect(
-      LocalEndpointSchema.parse({ baseUrl: ' http://127.0.0.1:8000/v1 ', model: 'tutor-ft' }),
-    ).toEqual({ baseUrl: 'http://127.0.0.1:8000/v1', model: 'tutor-ft', contextLength: 16_384 });
+      LocalEndpointSchema.parse({
+        baseUrl: ' http://127.0.0.1:8000/v1 ',
+        model: 'academy-desk-ft',
+      }),
+    ).toEqual({
+      baseUrl: 'http://127.0.0.1:8000/v1',
+      model: 'academy-desk-ft',
+      contextLength: 16_384,
+    });
     const remote = LocalEndpointSchema.safeParse({ baseUrl: 'http://10.0.0.4:8000', model: 'm' });
     expect(remote.success).toBe(false);
     expect(
@@ -37,8 +44,8 @@ describe('a model server on this computer', () => {
   it('keeps the student a graduate runs on at an address on this computer', () => {
     const student = (baseUrl: string) =>
       StudentConfigSchema.safeParse({
-        label: 'Tutor',
-        local: { runtime: 'openai_compatible', baseUrl, model: 'tutor-ft' },
+        label: 'Academy desk',
+        local: { runtime: 'openai_compatible', baseUrl, model: 'academy-desk-ft' },
       });
     expect(student('http://127.0.0.1:8000/v1').success).toBe(true);
     const remote = student('https://api.together.xyz/v1');
