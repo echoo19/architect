@@ -2,6 +2,38 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, early), HANDOFF for the next Claude Code session (start here)
+
+The previous session ended with work in flight. Read CLAUDE.md, then this entry, then the entries below it back to Oct 30, then `docs/FIELD.md`, `docs/PLATFORM.md`, `docs/SCALE.md`, `docs/CERTIFY.md` and `docs/JOB_FORMAT.md`.
+
+**Branches**
+- `main` = release 0.6.1 (Lab, two editions, the path to field models, certified answers). The site deploys from `main`.
+- `field/main` = the integration branch, green (`pnpm check`, 3,785 tests) and pushed at `7a9f8522`: everything in `main` plus the tutor's public name, `architect serve` (080), the runner's pause rule (081), the leak fingerprint fix (082), experiments on library fields (074 amended), several-organization fields (083), post-hoc certification (079), the developer browsers (084) and the unified parts and motion pass. It has not been merged to `main`: open a PR, wait for Linux CI, merge, then release 0.7.0 (steps in the Oct 30 entry; run `pnpm build`, `pnpm package` and the stand-in e2e incl. `engine.spec.ts` and `hub.spec.ts` before tagging).
+- Fallback: `base/one-job` / tag `base-one-job` is the pre-pivot product.
+
+**Unfinished lanes (their agents stopped when the session ended; finish or redo them)**
+- `lab/orgs-later` (worktree `.claude/worktrees/agent-a5537ddabb2c931ad`): no commits yet, uncommitted edits in progress. Goal, decision 085: add a never-seen organization to an existing field later and qualify a frozen version on it through the retest path (sealed with 082's rules and guard); per-organization check scores while training; candidates in Models; the organization word from the job (`organizationNoun`, default "organization", tutor job "academy"). Look at the worktree's diff before continuing; keep it Lab-only and additive.
+- `lab/bring-back-model` (worktree `.claude/worktrees/agent-a1092fd0cded7f906`): two commits (a loopback-only student address; qualifying a model trained elsewhere on a finished run's locked test through a local endpoint). Still to do: the Student tab choice and the Compute "Qualify a trained model" card with e2e and a screenshot, `docs/SCALE.md` "Coming back", decision 086. No real model is called in tests.
+
+**The third tutor run** (outside the repo, `C:/JakeOS/projects/architect-runs/phil-3/`, code pinned in `architect-runs/runtree` at `13ee093c`)
+- Plan in `PLAN.md` (bare vs the taught tutor on the second run's unopened tasks; caps $9 OpenRouter, $3 Spark; counterexamples switched off by a run patch, as the second run registered). Every arm froze and the locked tests were released at 01:25 ET on Nov 1. The runner process ended with the session, so the locked tests may be incomplete. Resume with `run.sh` (recorded attempts aren't repeated; check `run.log` and `SPEND.md` first; never tune or rerun anything after a locked result).
+- Then write `phil-3/tutor-3.md` (style of `docs/comparisons/tutor-1.md`), `MISSES.md` and `FROZEN.md`, copy the write-up into `docs/comparisons/tutor-3.md`, and certify the frozen taught tutor with decision 079 (`architect certify ... --student <hosted preset>`, k = 5, about $5): rebuild `runtree` at the current tip first, between runs.
+- OpenRouter has about $15 left (Nov 1, 02:00 ET). Attempts cost about $0.008 to $0.011 each. Cap at 1.5x to 2x the measured price; the runner now pauses instead of dropping an arm.
+
+**Rules that matter**
+- Public name is "Tutor"; never "Phil" in the repo, site, app, demos or film. The real academy is only "Real academy"; its data lives outside the repo (`architect-runs/academy-real*`), never committed.
+- No local GPU unless the owner says so for a stated window. Hosted inference only, frugally; check `/credits` first.
+- Codex (GPT-6 Sol/Astra) is out of credits until Nov 4, 3:01 AM; use an independent Claude reviewer with an adversarial brief for invariant-touching changes.
+- Don't run a blanket `sed` over the repo: limit to `git ls-files` (it corrupted gitignored build outputs once; rebuild and repackage before a release).
+- Known flaky: `comparison-protocol.test.ts` "resumes a repeat after a restart" under full-suite load; `editions.spec.ts` beside unit tests. Rerun before treating as real.
+- Each lane on its own branch from `field/main`; merge when `pnpm check` passes; resolve DECISIONS/PROGRESS conflicts by keeping both entries in number order.
+
+**Next, in order**
+1. Finish the third run and its write-up; certify its tutor; put the numbers in the README, the results paper (`site/src/evidence.ts` is the single source) and the Lab's sample.
+2. Finish `lab/orgs-later` and `lab/bring-back-model`.
+3. Watch the motion pass in a real window once (owner's machine), then the full stand-in e2e suite, PR to `main`, release 0.7.0.
+4. Owner: the film (it still shows the one-job story; new narration needs the owner's OK on the picture first), the real academy's drafted policy, whether question text can be exported. Submission closes Nov 4, 9 PM ET (`docs/HACKATHON.md`).
+
 ## 2026-10-31 (Sat, afternoon), status (start the next session here)
 
 - *Merged since midday:* post-hoc certification (079, with its calibration set fingerprinted like the test); the app-wide rename to "Tutor" (no "Phil" anywhere in the repo); the developer browsers (084: a field's practice and check tasks, a run's attempts behind "Show all", a version's files read-only); one set of parts and calm motion across the app (40px pill strips everywhere, one `NavItem` with a sliding selection, page fades of 0.1 s, places rising 8px, flow steps sliding 24px, counting numbers; hidden runs and reduced motion stay instant; timings in `docs/DESIGN.md`). `pnpm check` passes (3,785 tests).
