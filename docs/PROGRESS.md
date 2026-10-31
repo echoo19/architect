@@ -18,6 +18,11 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - *Tests:* `e2e/links.spec.ts` (every link, plus the personal edition); `fields.spec.ts` follows the Versions tab. Screenshots `links-*-dark.png`, and the Lab's recaptured.
 - *Open:* the words builder (`cohesion/words`) renames vocabulary in some of the same files (FieldsScreen, Candidates, Assets); expect small merge conflicts. Not merged or pushed.
 
+## 2026-11-01 (Sun), `cli/lab-commands` (from `field/main`): fields and experiments from the command line
+
+- *Done:* decision 090. `architect field list | status | add-org` and `architect experiment plan | preregister | start | resume | pause | stop | status | report | list`, over the same engine calls as the Fields and Experiments places; JSON documents parsed with shared schemas (`packages/shared/src/lab-cli.ts`); exit codes as in `docs/CLI.md`; Ctrl+C pauses a running experiment. The field summary functions the Fields place used moved to `packages/shared` so both share them. Tests in `apps/cli/test/lab-field.test.ts` and `lab-experiment.test.ts` run on fakes (no model, no spend), including that nothing of a never-seen organization or the final test prints before the release.
+- *Open:* calibration isn't a command (`start` prices and studies); a real run with hosted models (`start` with keys in the environment) is untested here by design. Not merged or pushed.
+
 ## 2026-11-01 (Sun), `app/rename-academy-desk` (from `field/main`): the academy agent is Academy desk
 
 - *Done:* decision 088. The owner's name for the academy agent is "Academy desk", a staff-facing operations specialist (diagnoses missed questions, sets practice in the academy's records, flags students for staff), never "Tutor" and never something students chat with. Renamed in the app (sample button, fixtures, e2e specs; `sample-tutor.spec.ts` is now `sample-academy-desk.spec.ts`), the academy example (job name, description, policies, README; the job regenerated, tasks unchanged), README, CLAUDE.md, docs, the comparisons (`academy-desk-1*.md`) and the results paper. The Academy desk screenshots were recaptured and `start-tutor-dark.png` is now `start-academy-desk-dark.png`.

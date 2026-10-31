@@ -8,6 +8,7 @@ import {
   type Parsed,
 } from './args';
 import { certify } from './commands/certify';
+import { experiment } from './commands/experiment';
 import { exportCommand } from './commands/export';
 import { field } from './commands/field';
 import { inspect } from './commands/inspect';
@@ -37,6 +38,7 @@ const HANDLERS: Readonly<Record<CommandName, Command>> = {
   export: exportCommand,
   publish,
   field,
+  experiment,
   reward,
   train,
   certify,
