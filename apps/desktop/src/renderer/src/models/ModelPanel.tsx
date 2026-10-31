@@ -1,5 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { Score, VersionEvent } from '@architect/shared';
+import type {
+  AddedQualification,
+  Certification,
+  Qualification,
+  Score,
+  VersionEvent,
+} from '@architect/shared';
 import {
   AgentAvatar,
   Button,
@@ -22,29 +28,37 @@ import {
   FileText,
   FolderTree,
   GitBranch,
+  MessageSquare,
   Package,
   Undo2,
   X,
 } from 'lucide-react';
+import { api } from '../api/client';
+import { computeApi } from '../api/compute';
 import { graduatesApi } from '../api/graduates';
 import { useQuery } from '../api/query';
+import { useImprovements } from '../api/teaching';
 import { FilePatch } from '../components/FilePatch';
 import { HarnessFiles } from '../components/HarnessFiles';
 import { ProblemState } from '../components/ProblemState';
 import { shortDate } from '../flow/format';
+import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
+import { openAgent } from '../lab/open-agent';
 import { changeSummary } from '../flow/train/diff';
 import { sentence } from '../flow/train/evidence-words';
 import { formatPercent, formatUsd } from '../lib/format';
 import { shortModelName } from '../lib/names';
+import { navigate, paths } from '../lib/router';
 import { MoveDialog } from '../workspace/settings/MoveDialog';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { MOVE_WORDS, moveFor, type VersionMove } from '../workspace/settings/versions';
-import { CertifyDialog } from './CertifyDialog';
+import { CertifyDialog, certificationsKey } from './CertifyDialog';
 import {
   baseModelOf,
   CHECK_HINT,
   comparable,
   fieldOf,
+  imported,
   rowKey,
   runtimeName,
   scoresOf,
@@ -155,6 +169,7 @@ function PanelHeader({
             {STATUS_WORDS[statusOf(version)]} · {fieldOf(version)}
           </span>
         </div>
+        <OpenLinks row={row} />
         <Tooltip content="Close" side="left">
           <IconButton label="Close" size="md" onClick={onClose}>
             <X size={16} strokeWidth={1.8} aria-hidden />
@@ -219,6 +234,39 @@ function PanelHeader({
   );
 }
 
+/**
+ * Where a version leads: the chat its agent answers in, for the version chats run on, and the
+ * results of the run that made it here, a training run's or an improvement's.
+ */
+function OpenLinks({ row }: { row: ModelRow }) {
+  const { agent, version } = row;
+  const improvements = useImprovements(agent.id);
+  const runId = imported(version) ? undefined : version.runId;
+  const improved = improvements.data?.some((item) => item.runId === runId) === true;
+  return (
+    <>
+      {version.active && (
+        <Tooltip content="Open chat" side="bottom">
+          <IconButton label="Open chat" size="md" onClick={() => openAgent(agent)}>
+            <MessageSquare size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
+      )}
+      {runId !== undefined && improvements.data && (
+        <Tooltip content="Open results" side="bottom">
+          <IconButton
+            label="Open results"
+            size="md"
+            onClick={() => navigate(improved ? paths.improvement(runId) : paths.report(runId))}
+          >
+            <FileText size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
+      )}
+    </>
+  );
+}
+
 /** One fact of a panel: its name, and its value at the right. */
 function Fact({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -276,6 +324,7 @@ function ReportTab({ row }: { row: ModelRow }) {
           </div>
         )}
       </section>
+      <Qualified row={row} />
       <dl className="m-0 flex flex-col">
         <Fact label="Check tasks" hint={CHECK_HINT}>
           {scores.check ? (
@@ -318,6 +367,129 @@ function ReportTab({ row }: { row: ModelRow }) {
         <Fact label="Created">{shortDate(version.createdAt)}</Fact>
       </dl>
     </div>
+  );
+}
+
+/** "83% · 30 of 36". */
+const scoreText = (score: Score) => `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+
+const STATE_WORDS = {
+  testing: 'Testing',
+  certifying: 'Certifying',
+  paused: 'Paused',
+  finished: 'Finished',
+} as const;
+
+interface Result {
+  key: string;
+  label: string;
+  detail: string | null;
+  value: string;
+  hint?: string;
+}
+
+function certificationResult(item: Certification): Result | null {
+  if (item.status === 'planned') return null;
+  const figure = certificateFigure(item.certificate);
+  return {
+    key: `certification:${item.id}`,
+    label: 'Certified',
+    detail: shortDate(item.endedAt ?? item.createdAt),
+    value:
+      item.status === 'finished'
+        ? (figure ?? 'Not certified')
+        : `${STATE_WORDS[item.status]}, ${item.done} of ${item.plan.attempts}`,
+    ...(item.certificate ? { hint: certificateHint(item.certificate) } : {}),
+  };
+}
+
+function addedResult(item: AddedQualification): Result {
+  return {
+    key: `added:${item.org}`,
+    label: `At ${item.org}`,
+    detail: shortDate(item.endedAt ?? item.startedAt),
+    value:
+      item.status === 'finished' && item.score ? scoreText(item.score) : STATE_WORDS[item.status],
+  };
+}
+
+function trainedResult(item: Qualification): Result {
+  return {
+    key: `trained:${item.id}`,
+    label: item.model,
+    detail: shortDate(item.endedAt ?? item.startedAt),
+    value:
+      item.status === 'finished' && item.card
+        ? scoreText(item.card.test.score)
+        : STATE_WORDS[item.status],
+  };
+}
+
+/**
+ * Every result measured on this version after its own final test, wherever it was started:
+ * its certifications (Models, Certify, or `architect certify`), its final test at an organization
+ * added to the field later (Organizations, Qualify), and models trained elsewhere that took its
+ * final test under its harness (Compute, Qualify a trained model).
+ */
+function Qualified({ row }: { row: ModelRow }) {
+  const runId = imported(row.version) ? undefined : row.version.runId;
+  return runId === undefined ? null : <QualifiedList row={row} runId={runId} />;
+}
+
+function QualifiedList({ row, runId }: { row: ModelRow; runId: string }) {
+  const { agent, version } = row;
+  const jobId = row.report?.jobId ?? version.manifest.contract.jobId;
+  const certifications = useQuery(certificationsKey(row), () =>
+    graduatesApi.certifications(agent.id, version.version),
+  );
+  const field = useQuery(`version-field:${jobId}`, () => api.field(jobId));
+  const trained = useQuery(`qualifications:${jobId}`, () => computeApi.qualifications(jobId));
+  const reads = [certifications, field, trained];
+  const failed = reads.find((query) => query.status === 'error');
+  const results = [
+    ...(certifications.data ?? []).flatMap((item) => certificationResult(item) ?? []),
+    ...(field.data?.qualifications ?? []).filter((item) => item.runId === runId).map(addedResult),
+    ...(trained.data ?? []).filter((item) => item.runId === runId).map(trainedResult),
+  ];
+  return (
+    <section aria-label="Qualified" className="flex flex-col gap-1">
+      <Heading>Qualified</Heading>
+      {failed?.error ? (
+        <ProblemState
+          layout="inline"
+          error={failed.error}
+          title="Couldn't read its qualifications"
+          onRetry={failed.reload}
+        />
+      ) : reads.some((query) => query.status === 'loading') ? (
+        <Skeleton className="h-10 w-full" />
+      ) : results.length === 0 ? (
+        <p className="m-0 py-2 text-ui">None yet</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col p-0">
+          {results.map((result) => (
+            <li
+              key={result.key}
+              className="flex min-h-10 items-center justify-between gap-4 border-t border-line py-2 text-ui first:border-t-0"
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate">{result.label}</span>
+                {result.detail && <span className="text-small">{result.detail}</span>}
+              </span>
+              {result.hint ? (
+                <Tooltip content={result.hint} side="left">
+                  <span tabIndex={0} className="shrink-0 tabular-nums">
+                    {result.value}
+                  </span>
+                </Tooltip>
+              ) : (
+                <span className="shrink-0 tabular-nums">{result.value}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
