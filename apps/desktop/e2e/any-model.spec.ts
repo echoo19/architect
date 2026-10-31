@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { META_API_BASE_URL } from '@architect/shared';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, LOCAL_WITH_GLIMMER, stubEngine } from './fixtures';
@@ -9,8 +10,8 @@ import { recordedComparisonReport } from './recorded';
 
 /*
  * Any model in every role (decision 094), against the stand-in engine: the Connections view on
- * Models, with a hosted API, a cluster's vLLM and SGLang servers and the runtimes here, each with
- * the roles it can fill; and an experiment designed on a field taught by other models than Spark
+ * Models, with the Meta Model API first, other hosted APIs, a cluster's vLLM and SGLang servers
+ * and the runtimes here, each with the roles it can fill; and an experiment designed on a field taught by other models than Spark
  * and Glimmer, every label naming them. Nothing here reaches a provider or a cluster.
  */
 
@@ -46,7 +47,7 @@ test.beforeAll(async () => {
   await mkdir(OUT_DIR, { recursive: true });
   await stubEngine(launched.app, {
     ...EMPTY_ENGINE,
-    'secrets:status': { openrouter: true, anthropic: true },
+    'secrets:status': { meta: true, openrouter: true, anthropic: true },
     'connections:detectLocal': LOCAL_WITH_GLIMMER,
     'connections:huggingFace': { source: null },
     'jobs:list': [
@@ -83,7 +84,10 @@ test('lists every connection on Models with how it stands and the roles it can f
   const row = (name: string) => table.getByRole('row', { name: new RegExp(name) });
 
   // Hosted keys first, then the endpoints added by address, then the runtimes on this computer.
-  await expect(table.getByRole('row')).toHaveCount(2 + 6);
+  await expect(table.getByRole('row')).toHaveCount(2 + 7);
+  await expect(table.locator('tbody tr').first()).toContainText('Meta');
+  await expect(row('Meta')).toContainText(META_API_BASE_URL);
+  await expect(row('Meta')).toContainText('Key saved');
   await expect(row('Anthropic')).toContainText('Key saved');
   await expect(row('gpu-node-7:8000')).toContainText(VLLM);
   await expect(row('Ollama')).toContainText('Running · 1 model');
@@ -91,6 +95,7 @@ test('lists every connection on Models with how it stands and the roles it can f
 
   // Any of them can teach; a cluster serves the copy it practices on; agents run only here.
   const yes = (name: string) => row(name).getByLabel('Yes');
+  await expect(yes('Meta')).toHaveCount(1);
   await expect(yes('Anthropic')).toHaveCount(1);
   await expect(yes('OpenRouter')).toHaveCount(2);
   await expect(yes('dgx-02.lab:30000')).toHaveCount(2);
