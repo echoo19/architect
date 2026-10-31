@@ -8,7 +8,6 @@ import { formatPercent } from '../lib/format';
 import {
   baseModelOf,
   CHECK_HINT,
-  fieldOf,
   runtimeName,
   scoresOf,
   shortHash,
@@ -54,16 +53,6 @@ const scoreColumn = (
     ),
 });
 
-/** A cell of two lines: the value, and a small line under it. */
-function TwoLines({ top, under }: { top: ReactNode; under: ReactNode }) {
-  return (
-    <span className="flex flex-col whitespace-nowrap leading-5">
-      {top}
-      <span className="text-small">{under}</span>
-    </span>
-  );
-}
-
 const NAME: DataColumn<ModelRow> = {
   key: 'name',
   header: 'Agent',
@@ -71,18 +60,13 @@ const NAME: DataColumn<ModelRow> = {
   cell: (row) => (
     <span className="flex items-center gap-3 whitespace-nowrap">
       <AgentAvatar name={row.agent.name} />
-      <TwoLines
-        top={
-          <span className="flex items-center gap-2">
-            {row.agent.name}
-            <span aria-hidden className="font-mono text-small font-normal">
-              v{row.version.version}
-            </span>
-            <span className="sr-only">version {row.version.version}</span>
-          </span>
-        }
-        under={<span className="font-normal">{fieldOf(row.version)}</span>}
-      />
+      <span className="flex items-center gap-2">
+        {row.agent.name}
+        <span aria-hidden className="font-mono text-small font-normal">
+          v{row.version.version}
+        </span>
+        <span className="sr-only">version {row.version.version}</span>
+      </span>
     </span>
   ),
 };
@@ -131,11 +115,16 @@ const COLUMNS: DataColumn<ModelRow>[] = [
     key: 'base',
     header: 'Base model',
     sortValue: (row) => baseModelOf(row.version),
+    // What it runs on shows on hover and in the panel.
     cell: (row) => (
-      <TwoLines
-        top={baseModelOf(row.version)}
-        under={runtimeName(row.version.manifest.model.runtime.compatible[0])}
-      />
+      <Tooltip
+        content={`Runs on ${runtimeName(row.version.manifest.model.runtime.compatible[0])}`}
+        side="top"
+      >
+        <span tabIndex={0} className="whitespace-nowrap">
+          {baseModelOf(row.version)}
+        </span>
+      </Tooltip>
     ),
   },
   {
@@ -176,8 +165,11 @@ function withCertificates(rows: readonly ModelRow[]): DataColumn<ModelRow>[] {
   return [...COLUMNS.slice(0, status), CERTIFIED, ...COLUMNS.slice(status)];
 }
 
-/** Beside an open panel, which shows the rest: the agent, its scores and its status. */
-const NARROW: DataColumn<ModelRow>[] = [NAME, ...SCORES, STATUS];
+/**
+ * Beside an open panel, which shows the rest: the agent, its final test and its status. The check
+ * tasks lead the panel, so the table leaves them out and its Status column stays in view.
+ */
+const NARROW: DataColumn<ModelRow>[] = [NAME, ...SCORES.slice(0, 3), STATUS];
 
 /** Every agent and version: what it runs on, how it was made, and how its final test went. */
 export function RegistryTable({
