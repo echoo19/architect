@@ -25,6 +25,15 @@ The platform is the product; the specialists are what it makes. They are shown a
 
 Every set uses the same places, words and checks; no set gets screens of its own.
 
+## Any model, any cluster, every setting (owner, Nov 1)
+
+The owner: "this whole thing should connect smoothly and be versatile (for demos its muse models tho). should show the strength by highlighting compatibility with any models and gpu clusters and the true customizability like real enterprise r&d science and ml tools." The demos run on Muse Spark and Muse Glimmer; the product works with whatever a team uses. What that means, each item small:
+
+- *Any model in every role.* The teacher and the student can come from any connected provider or any OpenAI-compatible address (vLLM, SGLang, TGI or llama-server on a cluster node as much as a hosted API). A job keeps its models through a job file, an experiment runs on its field's models, and every label names the chosen models rather than Spark and Glimmer. Graduates still run only on this computer (invariant 3).
+- *One view of connections.* Models shows every connected provider and address with its status and the roles it can fill.
+- *Clusters one step from the work.* A training plan starts from the field's own student model and is reachable from the Student tab, a version in Models and an experiment's weights arm. Exports survive a restart. Bundles cover Slurm, Kubernetes and SkyPilot (any cloud); Architect writes them and never submits them or holds credentials.
+- *The science lab is shown, not only offered.* Sweep desk has stand-in fields and an experiment for screenshots, and one measured comparison on hosted models.
+
 ## The flow stays the spine
 
 Describe a field → Study and define it → Teach → Qualify → Use. Everything new hangs off that line. A newcomer can follow it without opening anything else; an expert finds every control one step away, in an inspector or on a page of its own.
