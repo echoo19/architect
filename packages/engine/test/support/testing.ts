@@ -23,6 +23,7 @@ export {
 export { FAKE_HUB_TOKEN, startFakeHub, type FakeHub, type FakeHubOptions } from './fake-hub';
 export { SAMPLE_CONTENT } from './fixtures';
 export { ACADEMY_JOB_FILE, importJobInto } from './field';
+export { experimentWorld, type ExperimentWorld } from './experiment-world';
 export { THIS_MACHINE } from './machine';
 export { openEngineStore } from '../../src/store/engine-store';
 

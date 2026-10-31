@@ -3,6 +3,7 @@ import {
   AdapterError,
   ApprovalRequiredError,
   CLI_EXIT_CODES,
+  CodedError,
   GuardError,
   PackageError,
   type CliOutcome,
@@ -70,6 +71,18 @@ function hubFailure(error: HubError): Failure {
   }
 }
 
+/**
+ * Engine errors whose code says which exit they are: a request naming something that isn't
+ * there is invalid input; one the experiment's state or its frozen plan refuses is not permitted.
+ */
+const CODED_OUTCOMES: Partial<Record<string, Exclude<CliOutcome, 'succeeded'>>> = {
+  not_a_job: 'invalid_input',
+  job_not_found: 'invalid_input',
+  experiment_not_found: 'invalid_input',
+  experiment_state: 'not_permitted',
+  experiment_frozen: 'not_permitted',
+};
+
 /** What went wrong, sorted into the outcome its exit code reports. */
 export function failureOf(error: unknown): Failure {
   if (error instanceof CliError) {
@@ -95,6 +108,10 @@ export function failureOf(error: unknown): Failure {
   }
   if (error instanceof GuardError) {
     return { outcome: 'not_permitted', code: `guard_${error.guard}`, message: error.message };
+  }
+  if (error instanceof CodedError) {
+    const outcome = CODED_OUTCOMES[error.code];
+    if (outcome !== undefined) return { outcome, code: error.code, message: error.message };
   }
   if (error instanceof HubError) return hubFailure(error);
   if (error instanceof AdapterError) {

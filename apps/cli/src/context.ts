@@ -1,12 +1,18 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
-import { createEngineDeps, createEngineHost, type EngineHost } from '@architect/engine';
+import {
+  createEngineDeps,
+  createEngineHost,
+  realEnvironment,
+  type EngineHost,
+} from '@architect/engine';
 import { openLocalLibrary, type LocalLibrary } from '@architect/engine/graduates';
 import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub';
 import { appDataDir, type LocalRuntimeSettings } from '@architect/engine/local-runtime';
 import { CliError } from './exit';
 import type { CliIo } from './io';
 import { appRuntimeSettings } from './runtime-settings';
+import { trainerDir } from './trainer';
 
 /** What one command works with, opened when first needed and closed when it ends. */
 export class CliContext {
@@ -77,10 +83,25 @@ export class CliContext {
     if (this.engineHost) return this.engineHost;
     this.library();
     const { env } = this.io;
+    // An experiment calls hosted models with keys from the environment and uses no GPU here.
     this.engineHost = await createEngineHost({
       dataDir: this.dataDir,
       recover: false,
       localRuntime: () => this.localRuntime(),
+      experimentEnvironment:
+        this.io.experimentEnvironment ??
+        ((dataDir, log) =>
+          realEnvironment({
+            dataDir,
+            appDataDir: this.dataDir,
+            trainerDir: trainerDir(env),
+            meter: false,
+            parallel: 2,
+            commit: null,
+            log,
+            getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
+            huggingFaceToken: hubTokenResolver({ env }),
+          })),
       deps: createEngineDeps({
         dataDir: this.dataDir,
         getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
