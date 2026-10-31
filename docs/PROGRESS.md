@@ -15,13 +15,13 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 - *Done:* decision 091. The field page's Overview has a Timeline card under the grid: studied, taught (rounds, kept changes, counterexamples), tested (by kind of organization, an organization added later, a model trained elsewhere), certified (and where it held on never-seen organizations), compared and exported, oldest first, each row linked to the place that holds it, then one next step from what is missing. Only existing reads (`fields/timeline.ts` is pure; `FieldTimeline.tsx` reads); `FieldSummary` now carries the job's runs.
 - *Tests:* `test/unit/renderer/field-timeline.test.ts`; hidden e2e `e2e/field-timeline.spec.ts`, screenshot `docs/screenshots/field-timeline-dark.png`. The Fields stand-in answers versions, certifications and trained-elsewhere qualifications.
-- *Open:* exports show only in the session that wrote them, bundles and `architect serve` aren't recorded, and "Learned from" (089, `lab/adopt-org`) isn't on `field/main` yet, so those stages don't show. `field-overview-dark.png` recaptured (the timeline starts below the grid). Not merged or pushed.
+- *Open:* exports show only in the session that wrote them, bundles and `architect serve` aren't recorded; "Learned from" (089) now merged, but the timeline does not yet show it as a stage. `field-overview-dark.png` recaptured (the timeline starts below the grid). Not merged or pushed.
 
 ## 2026-10-31 (Sat, night), "Learn from it" (branch `lab/adopt-org`, from `field/main`)
 
 - *Done:* decision 089. After a final test or a qualification shows a never-seen organization, the Lab offers "Teach on it" (the report's grid and the field's Organizations). It makes the next version of the field as a new job (`Academy desk v2`, migration 22 records what it came from): the organization's files become material, its tasks practice and check tasks (families whole), every other sealed organization is resealed with fresh prints (082's rules), and the earlier field, its runs, cards and certificates stay as they were, read as "measured before it was taught on". "Seal a fresh cohort" on the new version reuses adding an organization later; with no never-seen real organization left, the page says so. Improve teaches on the newest version; a version made this way shows "Before and after" per organization on its report.
 - *Tests:* engine `teach-on.test.ts`; renderer unit tests; hidden e2e `learn-from-org.spec.ts` with three screenshots (`learn-from-org-*.png`); `field-add-org-dark.png` retaken (the qualify card now has Teach on it).
-- *Next:* review and merge into `field/main`. Not pushed. The Real academy has one cohort today, so teaching on it leaves no never-seen real organization until a second export is sealed.
+- *Merged* into `field/main` on Nov 1. The Real academy has one cohort today, so teaching on it leaves no never-seen real organization until a second export is sealed.
 
 ## 2026-11-01 (Sun), `cohesion/links` (from `field/main`): the Lab's places lead to each other
 
