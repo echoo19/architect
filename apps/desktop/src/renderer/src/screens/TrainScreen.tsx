@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Finding, ListedAttempt, ListedLesson, Round, RunStatus } from '@architect/shared';
 import { Drawer, DrawerContent, Skeleton, Stagger, StaggerItem } from '@architect/ui';
-import { CircleAlert } from 'lucide-react';
 import {
   mentoringApi,
   mentoringKeys,
@@ -383,18 +382,11 @@ function TrainBoard({
       )}
       {run.status === 'failed' && (
         <StaggerItem>
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-card bg-danger-soft px-5 py-4"
-          >
-            <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-            <div className="flex flex-col gap-0.5">
-              <span className="font-medium">
-                {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
-              </span>
-              <span className="text-pretty">{run.error ?? 'It stopped without saying why.'}</span>
-            </div>
-          </div>
+          <ProblemState
+            error={new Error(run.error ?? 'It stopped without saying why.')}
+            title={improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
+            className="py-8"
+          />
         </StaggerItem>
       )}
       {run.status === 'paused' && run.error !== undefined && (
@@ -461,7 +453,7 @@ function TrainBoard({
 
 function TrainSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading the run" className="flex flex-col gap-10">
+    <div aria-busy="true" aria-label="Loading the training" className="flex flex-col gap-10">
       <Skeleton className="h-8 w-2/3" />
       <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[232px_minmax(0,1fr)]">
         <Skeleton className="h-24 w-48" />

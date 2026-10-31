@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { Button, DataTable, EmptyState, PageTabs, Skeleton } from '@architect/ui';
-import {
-  Boxes,
-  Building2,
-  FlaskConical,
-  LayoutGrid,
-  Library,
-  ListChecks,
-  Package,
-} from 'lucide-react';
+import { Boxes, Building2, LayoutGrid, Library, ListChecks, Package, Plus } from 'lucide-react';
 import { useJobs } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
@@ -39,6 +31,7 @@ export function FieldsScreen() {
       title="Fields"
       action={
         <Button variant="primary" size="md" onClick={newField}>
+          <Plus size={16} aria-hidden />
           New field
         </Button>
       }
@@ -50,7 +43,7 @@ export function FieldsScreen() {
           <FieldList ids={jobs.data.map((job) => job.id)} />
         )
       ) : jobs.status === 'error' ? (
-        <ProblemState error={jobs.error} title="Couldn't load your jobs" onRetry={jobs.reload} />
+        <ProblemState error={jobs.error} title="Couldn't load your fields" onRetry={jobs.reload} />
       ) : (
         <Skeleton className="h-48 rounded-card" />
       )}
@@ -110,7 +103,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'sealed',
           header: 'Never seen',
           group: ORGANIZATIONS,
-          hint: 'Organizations kept from teaching for the final test, real ones included',
+          hint: 'Generated organizations kept from teaching for the final test',
           align: 'end',
           cell: (row) => row.counts.sealed,
           sortValue: (row) => row.counts.sealed,
@@ -119,7 +112,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'realOrgs',
           header: 'Real',
           group: ORGANIZATIONS,
-          hint: 'Real organizations among the ones it never sees',
+          hint: 'Real organizations kept from teaching for the final test',
           align: 'end',
           cell: (row) => row.counts.real,
           sortValue: (row) => row.counts.real,
@@ -205,10 +198,10 @@ function Field({ field }: { field: FieldSummary }) {
       action={
         <div className="flex items-center gap-2">
           <Button size="md" onClick={() => navigate(paths.define(job.id))}>
-            Open the job
+            Edit field
           </Button>
           <Button variant="primary" size="md" onClick={() => navigate(paths.newExperiment(job.id))}>
-            <FlaskConical size={16} aria-hidden />
+            <Plus size={16} aria-hidden />
             New experiment
           </Button>
         </div>

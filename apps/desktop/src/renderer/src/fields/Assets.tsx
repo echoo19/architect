@@ -125,7 +125,7 @@ function AssetsView({
         record({ jobId, name: written.job.name, dir: folder });
         toast({
           title: 'Field exported',
-          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the sealed manifest.`,
+          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the final test's manifest, by hash only.`,
           action: { label: 'Open Compute', onClick: () => navigate(paths.compute()) },
         });
       }

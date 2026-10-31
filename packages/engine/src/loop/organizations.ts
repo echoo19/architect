@@ -36,7 +36,7 @@ export function organizationProblem(job: Job, tasks: readonly Task[]): string | 
     (org) => org.role === 'transfer' && !tasks.some((task) => task.org === org.id),
   );
   if (untested !== undefined) {
-    return `${untested.name} is an organization the job never trains on, but no task is for it, so nothing would test it.`;
+    return `${untested.name} is an organization the job has never seen, but no task is for it, so nothing would test it.`;
   }
   return null;
 }

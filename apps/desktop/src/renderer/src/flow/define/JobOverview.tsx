@@ -88,7 +88,11 @@ export function ReadyWhen({ job }: { job: Job }) {
               <NumberTicker value={Math.round(passRate * 100)} kind="percent" />
             </span>
           }
-          label="of new tasks right"
+          label={
+            (job.organizations ?? []).length > 1
+              ? 'on the final test, organizations it was taught on'
+              : 'of new tasks right'
+          }
         />
         {p95LatencyMs !== undefined && (
           <Figure value={formatTimeLimit(p95LatencyMs)} label="per answer" />

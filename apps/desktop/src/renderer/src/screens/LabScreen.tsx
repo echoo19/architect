@@ -132,7 +132,7 @@ function NothingYet() {
     settings.status === 'success'
       ? `A field is one kind of work that many organizations do, like tutoring at academies. ${mentorName(
           settings.data.defaultMentor,
-        )}, the teacher model, teaches ${studentName(
+        )}, a large model, teaches ${studentName(
           settings.data.defaultStudent,
         )}, the small model on this computer, to do it, then tests it on organizations it never saw.`
       : 'A field is one kind of work that many organizations do. Architect teaches an agent to do it, then tests it on organizations it never saw.';

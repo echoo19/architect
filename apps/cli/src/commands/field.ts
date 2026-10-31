@@ -230,7 +230,10 @@ async function addOrganization(
   if (flag(values, 'json')) {
     printDoc(ctx.io.stdout, FieldStatusSchema, { format: FIELD_STATUS_FORMAT, ...status });
   } else {
-    line(ctx.io.stdout, `Added ${request.name} to ${job.name} as an organization it never sees.`);
+    line(
+      ctx.io.stdout,
+      `Added ${request.name} to ${job.name} as an organization it has never seen.`,
+    );
     line(
       ctx.io.stdout,
       `${job.name} now has ${status.organizations.neverSeen + status.organizations.real} never-seen organizations.`,
@@ -280,7 +283,7 @@ async function exportField(ctx: CliContext, parsed: Parsed, job: string): Promis
   );
   line(
     ctx.io.stdout,
-    `  eval/  the locked test and ${counts.sealed_organizations} sealed organizations, by hash only`,
+    `  eval/  the final test and ${counts.sealed_organizations} never-seen organizations, by hash only`,
   );
   line(ctx.io.stdout, 'Left out:');
   for (const entry of manifest.left_out) line(ctx.io.stdout, `  ${entry.what}: ${entry.why}`);

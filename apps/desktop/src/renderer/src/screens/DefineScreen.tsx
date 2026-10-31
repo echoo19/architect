@@ -307,15 +307,12 @@ function DefineEditor({ initial }: { initial: Job }) {
         <Collapse open={taskPlan.status === 'error'}>
           <div className="pb-10">
             {taskPlan.status === 'error' && (
-              <div
-                role="alert"
-                className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
-              >
-                <p className="m-0 max-w-[560px] text-pretty">
-                  {`Couldn't check whether this job has a rule to confirm: ${taskPlan.error.message} Training can't start until it is checked.`}
-                </p>
-                <Button onClick={taskPlan.reload}>Try again</Button>
-              </div>
+              <ProblemState
+                error={taskPlan.error}
+                title="Couldn't check whether this job has a rule to confirm"
+                onRetry={taskPlan.reload}
+                className="py-8"
+              />
             )}
           </div>
         </Collapse>

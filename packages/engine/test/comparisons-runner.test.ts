@@ -219,7 +219,7 @@ describe('the comparisons runner', () => {
     expect(arm('targeted')?.status).toBe('not_run');
     expect(arm('repeat')).toMatchObject({
       status: 'stopped',
-      reason: "The hosted student's budget left didn't pay to run the one-shot draft again.",
+      reason: "Hosted Glimmer's budget left didn't pay to run the one-shot draft again.",
     });
     const hosted = report.backends.find((table) => table.backend === 'hosted');
     expect(hosted?.repeats.map((row) => row.arm)).toEqual(['bare']);
@@ -386,7 +386,7 @@ describe('before anything resumes (decision 051)', () => {
 });
 
 describe('an arm the money no longer pays for (decision 081)', () => {
-  it('pauses before any locked test is released, dropping nothing and releasing nothing', async () => {
+  it('pauses before any final test is released, dropping nothing and releasing nothing', async () => {
     const { world, asked, paused } = await pausedForTargeted();
     expect(paused.outcome).toBe('needs_funding');
     const plan = new ComparisonFiles(world.out).readPlan();
@@ -399,7 +399,7 @@ describe('an arm the money no longer pays for (decision 081)', () => {
     expect(pause.needUsd).toBeGreaterThan(pause.leftUsd);
     expect(paused.report.plan.funding).toEqual(pause);
     expect(fundingMessage(pause)).toMatch(
-      /^Targeted mentoring can't be paid for at what an attempt has really cost \(\$0\.0149\): it needs \$\d+\.\d\d of the hosted student's budget, and \$\d+\.\d\d is left under the \$11\.50 cap\./,
+      /^Targeted mentoring can't be paid for at what an attempt has really cost \(\$0\.0149\): it needs \$\d+\.\d\d of hosted Glimmer's budget, and \$\d+\.\d\d is left under the \$11\.50 cap\./,
     );
     // Bare and draft froze and stay held; the targeted arm never started.
     const arm = (id: string) => paused.report.arms.find((item) => item.arm === id);
@@ -444,7 +444,7 @@ describe('an arm the money no longer pays for (decision 081)', () => {
     expect(journalTotal(world)).toBeLessThanOrEqual(raised);
     // Once released, the cap can't change.
     await expect(runComparison({ ...asked, studentCapUsd: raised + 5 }, world.env)).rejects.toThrow(
-      /the student cap can't change/,
+      /Glimmer's cap can't change/,
     );
   }, 300_000);
 
@@ -464,7 +464,7 @@ describe('an arm the money no longer pays for (decision 081)', () => {
     ]);
     const targeted = report.arms.find((arm) => arm.arm === 'targeted');
     expect(targeted?.status).toBe('not_run');
-    expect(targeted?.reason).toMatch(/^You dropped it before any locked test was released/);
+    expect(targeted?.reason).toMatch(/^You dropped it before any final test was released/);
     const hosted = report.backends.find((table) => table.backend === 'hosted');
     expect(hosted?.rows.map((row) => [row.arm, row.complete])).toEqual([
       ['bare', true],
@@ -569,7 +569,7 @@ describe('the test-release barrier (decision 051)', () => {
       reopened.close();
     }
     expect(again.report.arms.find((arm) => arm.arm === 'draft')?.reason).toMatch(
-      /still developing when the first locked result was released/,
+      /still developing when the first final-test result was released/,
     );
   }, 300_000);
 });
@@ -596,7 +596,7 @@ describe("the student's credit (decision 051)", () => {
       12,
     );
     expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain(
-      "**The hosted student, uncertain: $0.7500.** The journal's 1 request that a crash or a failure cut off, whose charge is not known, counted at the most it could have cost.",
+      "**Hosted Glimmer, uncertain: $0.7500.** The journal's 1 request that a crash or a failure cut off, whose charge is not known, counted at the most it could have cost.",
     );
   }, 300_000);
 
@@ -662,7 +662,7 @@ describe('the GPU window (decision 051)', () => {
     });
     // The first run stops just after the release, before the local re-test.
     world.env.log = (line) => {
-      if (/locked tests? (is|are) released/.test(line)) throw new Error('Closed after release.');
+      if (/final tests? (is|are) released/.test(line)) throw new Error('Closed after release.');
     };
     await expect(runComparison(local, world.env)).rejects.toThrow('Closed after release.');
     world.env.log = () => undefined;
@@ -720,7 +720,7 @@ describe('what the report claims (decision 051)', () => {
     expect(weights?.notes.join(' ')).toMatch(/ended failed: The recipe stopped/);
     expect(weights?.notes.join(' ')).toMatch(/pilot recipe/);
     expect(report.disclosures).toContain(
-      'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: no adapter a real training job made took the locked test.',
+      'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: no adapter a real training job made took the final test.',
     );
     expect(report.disclosures.join(' ')).not.toContain('Adapters trained against NF4');
   }, 300_000);
@@ -739,13 +739,13 @@ describe('what the report claims (decision 051)', () => {
     ]);
     const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
     expect(markdown).toContain(
-      'Seed 101 ran for Bare student, One-shot draft and Targeted mentoring.',
+      'Seed 101 ran for Glimmer alone, One-shot draft and Targeted mentoring.',
     );
     expect(markdown).toContain(
       'Seed 102 was declared for the decoding repeat and was not run, so no result in this report is under it.',
     );
     expect(report.disclosures).toContain(
-      'Every arm ran with one mentoring seed (1). The locked test ran under seed 101. Seed 102 was declared for a decoding repeat that was not run, so no result here is under it.',
+      'Every arm ran with one mentoring seed (1). The final test ran under seed 101. Seed 102 was declared for a decoding repeat that was not run, so no result here is under it.',
     );
     // What the plan never asked for is said to be not run.
     expect(markdown).toContain(
@@ -761,9 +761,9 @@ describe('what the report claims (decision 051)', () => {
     // this world its dev tasks reached the target after the first.
     const targeted = report.arms.find((arm) => arm.arm === 'targeted');
     expect(targeted?.caps.rounds).toBe(2);
-    expect(targeted?.rounds).toEqual({ used: 1, ended: 'done, the dev target was reached' });
+    expect(targeted?.rounds).toEqual({ used: 1, ended: 'done, the check-task target was reached' });
     expect(markdown).toContain(
-      '| Targeted mentoring | complete | 1 of 2, done, the dev target was reached |',
+      '| Targeted mentoring | complete | 1 of 2, done, the check-task target was reached |',
     );
   }, 300_000);
 
@@ -803,6 +803,6 @@ describe('what the report claims (decision 051)', () => {
     expect(row).toMatchObject({ complete: false });
     expect(row?.seeds.map((seed) => seed.score.total)).toEqual([60, 20]);
     expect(report.arms.find((arm) => arm.arm === 'repeat')?.status).toBe('incomplete');
-    expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain('Bare student (partial)');
+    expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain('Glimmer alone (partial)');
   }, 300_000);
 });

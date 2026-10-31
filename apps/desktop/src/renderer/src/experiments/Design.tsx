@@ -440,7 +440,7 @@ function FieldCard({
               ? "Your fields couldn't be read"
               : jobs.data && fields.length === 0
                 ? 'No field has tasks yet'
-                : 'Its tasks, its organizations and its sealed final test'
+                : 'Its tasks, its organizations and its final test'
           }
           end={
             <div className="flex items-center gap-2">

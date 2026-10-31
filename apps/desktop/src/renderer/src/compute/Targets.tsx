@@ -48,7 +48,7 @@ export function Targets() {
   return (
     <CardGrid className="items-stretch 2xl:grid-cols-2">
       <Card title="This computer" icon={<Laptop aria-hidden />}>
-        <Lead>Runs the student and serves its adapters. Trains nothing here.</Lead>
+        <Lead>Runs Glimmer and serves its adapters. Trains nothing here.</Lead>
         <Fact label="GPU">
           {local.data === undefined
             ? loading
@@ -80,9 +80,7 @@ export function Targets() {
           )
         }
       >
-        <Lead>
-          Trains a LoRA adapter for the student on one rented GPU, within its compute cap.
-        </Lead>
+        <Lead>Trains a LoRA adapter for Glimmer on one rented GPU, within its compute cap.</Lead>
         <Fact label="Token">
           {token.data === undefined ? (
             loading

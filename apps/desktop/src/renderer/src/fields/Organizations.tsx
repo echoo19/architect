@@ -23,7 +23,8 @@ import { api, flowApi } from '../api/client';
 import { useGraduates } from '../api/hooks';
 import { setQueryData } from '../api/query';
 import { shortDate } from '../flow/format';
-import { formatBytes, formatPercent, shortPath } from '../lib/format';
+import { modelNames } from '../flow/names';
+import { formatBytes, formatScore, shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { fieldKey, type Candidate, type FieldSummary } from './model';
 import { plural, Quiet, Tile } from './parts';
@@ -119,7 +120,7 @@ export function Organizations({ field }: { field: FieldSummary }) {
         ))}
         {view.sealed.length > 0 && (
           <Quiet className="border-t border-line pb-4 pt-3 text-small">
-            Never seen: sealed in the vault, away from teaching, and opened once for the final test.
+            Never seen: kept in the vault, away from teaching, and opened once for the final test.
           </Quiet>
         )}
         {canAdd && (
@@ -213,7 +214,7 @@ function QualifyCard({ field, org }: { field: FieldSummary; org: Sealed }) {
                     className="tabular-nums"
                     aria-label={`${label} at ${org.name}: ${done.score.pass} of ${done.score.total}`}
                   >
-                    {formatPercent(done.score)} · {done.score.pass}/{done.score.total}
+                    {formatScore(done.score)}
                   </span>
                 ) : done?.status === 'testing' ? (
                   <span className="flex items-center gap-2 text-small">
@@ -237,8 +238,8 @@ function QualifyCard({ field, org }: { field: FieldSummary; org: Sealed }) {
       )}
       {field.candidates.length > 0 && (
         <Quiet className="border-t border-line pb-4 pt-3 text-small">
-          Qualify: the version takes its final test here once, with no teacher, and the result joins
-          its report.
+          Qualify: the version takes its final test here once, with no{' '}
+          {modelNames(field.job).mentor}, and the result joins its report.
         </Quiet>
       )}
     </Card>
@@ -295,7 +296,7 @@ function AddOrganizationDialog({
     <Dialog open onOpenChange={(next) => !next && onClose()}>
       <DialogContent
         title="Add a never-seen organization"
-        description="Sealed beside the final test. The teacher never sees it."
+        description={`Kept beside the final test. ${modelNames(field.job).mentor} never sees it.`}
       >
         <div className="flex flex-col gap-5 px-6 pt-5">
           <Button size="md" className="self-start" onClick={() => void pick()}>

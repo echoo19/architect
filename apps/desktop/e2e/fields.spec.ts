@@ -64,12 +64,12 @@ test('lists each field with its organizations, best candidate and last activity'
   // Five fields under a header of two rows: the organizations, then the best final test.
   await expect(table.getByRole('row')).toHaveCount(7);
 
-  // Academy desk: taught on three academies, sealed from two, one of them real; its best candidate's
+  // Academy desk: taught on three academies, one never seen and one real; its best candidate's
   // final test on each kind.
   const academyDesk = table.getByRole('row', { name: /^Academy desk/ });
   const cells = academyDesk.getByRole('cell');
   await expect(cells.nth(1)).toHaveText('3');
-  await expect(cells.nth(2)).toHaveText('2');
+  await expect(cells.nth(2)).toHaveText('1');
   await expect(cells.nth(3)).toHaveText('1');
   await expect(cells.nth(4)).toHaveText('93%');
   await expect(cells.nth(5)).toHaveText('83%');
@@ -103,7 +103,7 @@ test("shows the best candidate's skill by organization grid, the skills and the 
   await expect(grid.getByRole('columnheader', { name: 'Real academy' })).toBeVisible();
   await expect(grid.getByLabel('Topic history at Real academy, 10 of 10 passed')).toBeVisible();
   // The real academy has no question text, so some skills were never tested there.
-  await expect(grid.getByLabel('Work the question at Real academy, not tested')).toBeAttached();
+  await expect(grid.getByLabel('Work the question at Real academy, None')).toBeAttached();
 
   await expect(card('Skills').getByText('Whole tutoring turn')).toBeVisible();
   await expect(card('Skills').getByText('38 tasks').first()).toBeVisible();
@@ -231,7 +231,7 @@ test("counts the field's assets and exports them to a folder the person picks", 
   await expect(assets).toContainText(
     'Final-test tasks and 2 never-seen organizations, by hash only',
   );
-  await expect(card('Left out')).toContainText('the calibration and dev tasks');
+  await expect(card('Left out')).toContainText('the calibration and check tasks');
   await expect(
     page.getByText('GPU execution, large models and training gains are unverified', {
       exact: false,

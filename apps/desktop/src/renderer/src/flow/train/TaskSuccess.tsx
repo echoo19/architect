@@ -56,7 +56,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
         </span>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Tooltip
-            content={`${names.mentor} never practices on these. It sees only the score, and a change stays only if the score goes up.`}
+            content={`${names.mentor} never teaches from these. It sees only the score, and a change stays only if the score goes up.`}
           >
             <span tabIndex={0} className="cursor-help rounded-mark">
               <EvidenceMark kind="check" className="text-ui">
@@ -103,7 +103,7 @@ function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
         >
           <span className="truncate">{org.name}</span>
           <span className="tabular-nums">
-            {percent(score)}% · {perRun(score.pass)}/{perRun(score.total)}
+            {percent(score)}% · {perRun(score.pass)} of {perRun(score.total)}
           </span>
         </li>
       ))}

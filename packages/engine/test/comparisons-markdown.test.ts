@@ -32,17 +32,17 @@ describe('the seeds the report says ran', () => {
   it('says which seeds ran, and that a declared seed that did not run was not run', () => {
     const text = renderMarkdown(comparisonOne());
     expect(text).toContain(
-      'Locked-test seeds declared in the plan before any arm ran: 101 and 102.',
+      'Final-test seeds declared in the plan before any arm ran: 101 and 102.',
     );
     expect(text).toContain(
-      'Seed 101 ran for Bare student; One-shot draft; Targeted mentoring; and Spark reference, blank harness.',
+      'Seed 101 ran for Glimmer alone; One-shot draft; Targeted mentoring; and Spark reference, blank harness.',
     );
     expect(text).toContain(
       'Seed 102 was declared for the decoding repeat and was not run, so no result in this report is under it.',
     );
     expect(text).not.toContain('Seed 102 ran');
     // The disclosures say the same, and no arm claims a seed it did not run.
-    expect(text).not.toMatch(/locked-test seeds 101(,| and) 102/);
+    expect(text).not.toMatch(/final-test seeds 101(,| and) 102/);
   });
 
   it('says so when the repeat ran, and when nothing has yet', () => {
@@ -52,7 +52,7 @@ describe('the seeds the report says ran', () => {
       { seed: 102, arms: ['bare', 'draft', 'targeted'] },
     ];
     expect(renderMarkdown(repeated)).toContain(
-      'Seed 102 ran for Bare student, One-shot draft and Targeted mentoring.',
+      'Seed 102 ran for Glimmer alone, One-shot draft and Targeted mentoring.',
     );
     const nothing = comparisonOne();
     nothing.plan.seedResults = [
@@ -60,7 +60,7 @@ describe('the seeds the report says ran', () => {
       { seed: 102, arms: [] },
     ];
     expect(renderMarkdown(nothing)).toContain(
-      'No locked test has run, so no seed has a result yet.',
+      'No final test has run, so no seed has a result yet.',
     );
   });
 });
@@ -97,7 +97,7 @@ describe('the settings each arm ran with', () => {
     expect(hosted).toContain(
       '| Arm | Temperature | top_p | top_k | Reasoning | Turn limit | Output tokens a turn |',
     );
-    expect(hosted).toContain('| Bare student | 1 | 0.95 | 64 | low | 16 | 4,096 |');
+    expect(hosted).toContain('| Glimmer alone | 1 | 0.95 | 64 | low | 16 | 4,096 |');
     expect(hosted).toContain('| One-shot draft | 0 | 1 | 64 | high | 30 | 8,192 |');
     expect(hosted).toContain('| Targeted mentoring | 0 | 1 | 64 | high | 30 | 8,192 |');
     expect(text).toContain(
@@ -113,8 +113,10 @@ describe('the settings each arm ran with', () => {
     const report = comparisonOne();
     const hosted = report.backends[0];
     if (hosted === undefined) throw new Error('The fixture has a hosted table.');
-    hosted.rows = [{ ...row('bare', 'Bare student', 43, BLANK), sampling: null }];
-    expect(renderMarkdown(report)).toContain('| Bare student | not recorded | - | - | - | - | - |');
+    hosted.rows = [{ ...row('bare', 'Glimmer alone', 43, BLANK), sampling: null }];
+    expect(renderMarkdown(report)).toContain(
+      '| Glimmer alone | not recorded | - | - | - | - | - |',
+    );
   });
 });
 
@@ -122,7 +124,7 @@ describe('where each frozen agent was measured', () => {
   it('names the local build it is set to run on and says every measurement is hosted', () => {
     const text = renderMarkdown(comparisonOne());
     expect(text).toContain(
-      `Once installed, it is set to run on \`${LOCAL_MODEL}\` on Ollama. All of its measurements here are from the hosted student; that local build was not measured.`,
+      `Once installed, it is set to run on \`${LOCAL_MODEL}\` on Ollama. All of its measurements here are from hosted Glimmer; that local build was not measured.`,
     );
     // The old phrasing read as where it was measured.
     expect(text).not.toMatch(/Frozen: harness version \d+ \(`[0-9a-f]+`\) on ollama/);
@@ -144,7 +146,7 @@ describe('where each frozen agent was measured', () => {
     withArm(report, 'targeted', { measuredOn: ['hosted', 'local-ollama'] });
     const text = renderMarkdown(report);
     expect(text).toContain(
-      'Its locked test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
+      'Its final test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
     );
     expect(text.match(/that local build was not measured/g)).toHaveLength(2);
   });
@@ -156,16 +158,16 @@ describe('the money the report says was spent', () => {
     expect(money).toContain('**Spark: $2.5797.**');
     expect(money).toContain('**Compute: $0.0000.**');
     expect(money).toContain(
-      '**The hosted student, recorded by its attempts: $3.7630.** The cost written down with each attempt, every dollar once: the arms $3.3438, the calibration $0.0935 and the regression check $0.3257.',
+      '**Hosted Glimmer, recorded by its attempts: $3.7630.** The cost written down with each attempt, every dollar once: the arms $3.3438, the calibration $0.0935 and the regression check $0.3257.',
     );
     expect(money).toContain(
-      "**The hosted student, settled by the provider: $3.8075.** The request journal's 5,077 requests with a known charge, all of them billed by the provider. That is $0.0445 more than the attempts record",
+      "**Hosted Glimmer, settled by the provider: $3.8075.** The request journal's 5,077 requests with a known charge, all of them billed by the provider. That is $0.0445 more than the attempts record",
     );
     expect(money).toContain(
-      "**The hosted student, uncertain: $0.1359.** The journal's 10 requests that a crash or a failure cut off, whose charge is not known, each counted at the most it could have cost.",
+      "**Hosted Glimmer, uncertain: $0.1359.** The journal's 10 requests that a crash or a failure cut off, whose charge is not known, each counted at the most it could have cost.",
     );
     expect(money).toContain(
-      'The journal counts $3.9434 in all, settled plus uncertain, of the $15.00 set aside for the hosted student: $0.1804 more than the attempts record.',
+      'The journal counts $3.9434 in all, settled plus uncertain, of the $15.00 set aside for hosted Glimmer: $0.1804 more than the attempts record.',
     );
     expect(money).toContain('not added together');
   });
@@ -230,7 +232,7 @@ describe('the money the report says was spent', () => {
     const report = comparisonOne();
     report.totals.studentUsd = null;
     expect(section(renderMarkdown(report), 'Money')).toContain(
-      '**The hosted student, recorded by its attempts: unknown.**',
+      '**Hosted Glimmer, recorded by its attempts: unknown.**',
     );
     report.credit = null;
     expect(section(renderMarkdown(report), 'Money')).toContain(
@@ -275,8 +277,8 @@ describe('the money the report says was spent', () => {
     expect(section(text, 'Money')).not.toMatch(/4\.64|5\.46|[Pp]rojected/);
     const projected = section(text, 'Projection made before the run, not what was spent');
     expect(projected).toContain('Nothing here was spent; what was spent is under Money and Arms.');
-    expect(projected).toContain('| Projected student | Projected Spark | Projected compute |');
-    expect(projected).toContain('Projected for the funded arms: student $4.64 of $15.00');
+    expect(projected).toContain('| Projected Glimmer | Projected Spark | Projected compute |');
+    expect(projected).toContain('Projected for the funded arms: Glimmer $4.64 of $15.00');
     expect(text).not.toContain('Measurement model and projection');
   });
 });
@@ -286,9 +288,9 @@ describe('the development columns of the arms table', () => {
     const text = renderMarkdown(comparisonOne());
     const arms = section(text, 'Arms');
     expect(arms).toContain(
-      '| # | Arm | Status | Rounds used of the most allowed, and why training ended | Dev, first measurement | Dev, last kept round: before to after |',
+      '| # | Arm | Status | Rounds used of the most allowed, and why training ended | Check tasks, first measurement | Check tasks, last kept round: before to after |',
     );
-    expect(arms).toContain('| 1 | Bare student | complete | - | 24/45 | - |');
+    expect(arms).toContain('| 1 | Glimmer alone | complete | - | 24/45 | - |');
     expect(arms).toContain(
       '| 2 | One-shot draft | complete | 1 of 1, done | 30/45 | round 1: 30/45 to 35/45 (kept without a check) |',
     );
@@ -299,7 +301,7 @@ describe('the development columns of the arms table', () => {
     // One run of 45 is never set beside two runs of 90.
     expect(arms).not.toContain('33/45, 73/90');
     expect(arms).not.toContain('Dev before, after');
-    expect(arms).toContain('The first dev measurement is one run over the dev tasks.');
+    expect(arms).toContain('The first check-task measurement is one run over the check tasks.');
     expect(arms).toContain(
       "Compare a round's before with its after, not with the first measurement.",
     );
@@ -323,10 +325,10 @@ describe('the development columns of the arms table', () => {
   it('keeps the spending in a table of its own, spent of the cap', () => {
     const arms = section(renderMarkdown(comparisonOne()), 'Arms');
     expect(arms).toContain(
-      '| # | Arm | Spark: spent of its cap, tokens | Student: spent of its cap, attempts | Compute | Examples / trained tokens |',
+      '| # | Arm | Spark: spent of its cap, tokens | Glimmer: spent of its cap, attempts | Compute | Examples / trained tokens |',
     );
     expect(arms).toContain(
-      '| 1 | Bare student | $0.00 of $0.00, 0 in / 0 out | $0.85 of $1.00, 105 attempts |',
+      '| 1 | Glimmer alone | $0.00 of $0.00, 0 in / 0 out | $0.85 of $1.00, 105 attempts |',
     );
   });
 });
@@ -338,16 +340,16 @@ describe('the difference in pass rate of each pair', () => {
       '| Paired under seed 101, scenario by scenario | Scenarios | Wins | Losses (regressions) | Both | Neither | First less second, in percentage points (95% interval) | By type (wins/losses) |',
     );
     expect(text).toContain(
-      '| One-shot draft vs Bare student | 60 | 13 | 9 | 34 | 4 | +6.7 (-8.8 to +21.8) |',
+      '| One-shot draft vs Glimmer alone | 60 | 13 | 9 | 34 | 4 | +6.7 (-8.8 to +21.8) |',
     );
     expect(text).toContain(
-      '| Targeted mentoring vs Bare student | 60 | 11 | 9 | 34 | 6 | +3.3 (-11.5 to +18.0) |',
+      '| Targeted mentoring vs Glimmer alone | 60 | 11 | 9 | 34 | 6 | +3.3 (-11.5 to +18.0) |',
     );
     expect(text).toContain(
       '| Targeted mentoring vs One-shot draft | 60 | 3 | 5 | 42 | 10 | -3.3 (-13.4 to +6.6) |',
     );
     expect(text).toContain(
-      '| Spark reference, blank harness vs Bare student | 60 | 17 | 0 | 43 | 0 | +28.3 (+16.8 to +40.8) |',
+      '| Spark reference, blank harness vs Glimmer alone | 60 | 17 | 0 | 43 | 0 | +28.3 (+16.8 to +40.8) |',
     );
   });
 
@@ -356,13 +358,13 @@ describe('the difference in pass rate of each pair', () => {
     const hosted = report.backends[0];
     if (hosted === undefined) throw new Error('The fixture has a hosted table.');
     hosted.paired = [
-      pair('targeted', 'bare', 'Targeted mentoring vs Bare student', {
+      pair('targeted', 'bare', 'Targeted mentoring vs Glimmer alone', {
         wins: 0,
         losses: 0,
         both: 30,
         neither: 30,
       }),
-      pair('draft', 'bare', 'One-shot draft vs Bare student', {
+      pair('draft', 'bare', 'One-shot draft vs Glimmer alone', {
         wins: 60,
         losses: 0,
         both: 0,

@@ -26,7 +26,7 @@ describe("how an arm's rounds ended", () => {
     ['finished', 'patience', 'patience ran out'],
     ['finished', 'usd', 'money ran out'],
     ['finished', 'wall_clock', 'time ran out'],
-    ['finished', 'target_met', 'done, the dev target was reached'],
+    ['finished', 'target_met', 'done, the check-task target was reached'],
     ['finished', undefined, 'done'],
     // Training is over while a locked test waits to be released.
     ['testing', 'rounds', 'cap reached'],

@@ -6,15 +6,15 @@ A read-only audit on Nov 1 (all 207 screenshots, the routes, the places' code) f
 
 | Keep | Replace |
 | --- | --- |
-| check tasks | dev, dev tasks (Assets, comparison notes, CLI text) |
-| final test | locked test, never-seen evaluation, "of new tasks right" on a field job (say "on the final test, organizations it was taught on") |
-| never seen (with "real" as a qualifier) | sealed, it never trains on, never taught on; the Fields "Never seen" count excludes real organizations, as Models does |
-| taught on | trained with, practises on, organizations it was taught on |
-| agent (what you use), version (each build), candidate (a status: a version not in use) | graduated; the Field page's "Candidates" tab becomes "Versions" |
-| Spark, Glimmer (or the chosen models' names) | teacher, student, Bare student ("Glimmer alone"), no teacher ("no Spark"), Runs the student ("Runs Glimmer") |
-| field (Lab), job (personal edition) | "Open the job" on a field page ("Edit field"), "Couldn't load your jobs" ("your fields") |
-| the job's own noun for an organization (`organizationNoun`) | hard-coded "academy" in `flow/define/Recordings.tsx` and `StudyReview.tsx` |
-| training (to the person) | run (keep internal) |
+| check tasks | ~~dev, dev tasks (Assets, comparison notes, CLI text)~~ |
+| final test | ~~locked test, never-seen evaluation, "of new tasks right" on a field job (say "on the final test, organizations it was taught on")~~ |
+| never seen (with "real" as a qualifier) | ~~sealed, it never trains on, never taught on; the Fields "Never seen" count excludes real organizations, as Models does~~ |
+| taught on | ~~trained with, practises on, organizations it was taught on~~ |
+| agent (what you use), version (each build), candidate (a status: a version not in use) | ~~graduated; the Field page's "Candidates" tab becomes "Versions"~~ |
+| Spark, Glimmer (or the chosen models' names) | ~~teacher, student, Bare student ("Glimmer alone"), no teacher ("no Spark"), Runs the student ("Runs Glimmer")~~ |
+| field (Lab), job (personal edition) | ~~"Open the job" on a field page ("Edit field"), "Couldn't load your jobs" ("your fields")~~ |
+| the job's own noun for an organization (`organizationNoun`) | ~~hard-coded "academy" in `flow/define/Recordings.tsx` and `StudyReview.tsx`~~ |
+| training (to the person) | ~~run (keep internal)~~ |
 
 ## Places that lead to each other
 
@@ -30,19 +30,19 @@ A read-only audit on Nov 1 (all 207 screenshots, the routes, the places' code) f
 
 ## One look
 
-- One score format: "83% · 30 of 36" in rows, "30/36" only inside grids, no decimals (`lib/format.ts`, `experiments/NumberRow.tsx`).
-- Unmeasured cells show "–" read as "None" (`flow/report/Organizations.tsx`).
-- One error pattern (`ProblemState`): drop the red filled banner (`flow/define/RuleReview.tsx`).
-- Pills only where they carry a state; "New field" and "New experiment" alike (both with or both without an icon); Stop the same in Train and Experiments.
-- No eyebrow labels ("Spark's finding").
-- Fix the clipped "Go back to this version", the stray scrollbar on export dialogs, a toast covering Start training.
-- Stand-in data that agrees across screens (Service desk never shows academies; the same rounds count the same).
+- ~~One score format: "83% · 30 of 36" in rows, "30/36" only inside grids, no decimals (`lib/format.ts`, `experiments/NumberRow.tsx`).~~
+- ~~Unmeasured cells show "–" read as "None" (`flow/report/Organizations.tsx`).~~
+- ~~One error pattern (`ProblemState`): drop the red filled banner (`flow/define/RuleReview.tsx`).~~
+- ~~Pills only where they carry a state; "New field" and "New experiment" alike (both with or both without an icon); Stop the same in Train and Experiments.~~
+- ~~No eyebrow labels ("Spark's finding").~~
+- ~~Fix the clipped "Go back to this version", the stray scrollbar on export dialogs, a toast covering Start training.~~
+- ~~Stand-in data that agrees across screens (Service desk never shows academies; the same rounds count the same).~~
 
 ## The personal edition
 
-- The Define inspector's Evaluation tab hides Certified answers unless the job already has one.
-- No academy words in Study for other jobs (fixed by the job's noun above).
+- ~~The Define inspector's Evaluation tab hides Certified answers unless the job already has one.~~
+- ~~No academy words in Study for other jobs (fixed by the job's noun above).~~
 
 ## Docs
 
-- `docs/SCALE.md`: "Where it shows" names Fields → Assets and Compute, not a Scale page.
+- ~~`docs/SCALE.md`: "Where it shows" names Fields → Assets and Compute, not a Scale page.~~

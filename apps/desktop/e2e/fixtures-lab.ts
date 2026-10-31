@@ -72,7 +72,7 @@ const ENTRIES: Record<string, Entry> = {
     name: 'Academy desk',
     run: { status: 'finished', phase: 'done', accepted: true },
     job: { ...FIELD_JOB, organizations: ACADEMIES },
-    totals: { mentorUsd: 2.84, rounds: 9 },
+    totals: { mentorUsd: 2.84, rounds: 7 },
     report: { ...FIELD_REPORT, cost: { ...FIELD_REPORT.cost, mentorUsd: 2.84, studentUsd: 0.61 } },
   },
   desk: {

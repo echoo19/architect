@@ -182,19 +182,22 @@ export function bestCandidate<T extends { scores: OrgScores }>(candidates: reado
   return best;
 }
 
-/** How many organizations a field trains on, how many are sealed, and how many of all are real. */
+/**
+ * How many organizations a field is taught on, how many it has never seen, and how many of those
+ * are real: a real one counts as real and not as never seen, as Models groups them.
+ */
 export function orgCounts(view: FieldView): {
   taughtOn: number;
   sealed: number;
   real: number | null;
 } {
-  const kinds = [
-    ...view.organizations.map((org) => org.synthetic),
-    ...view.sealed.map((org) => org.synthetic),
-  ];
+  const real = view.sealed.filter((org) => !org.synthetic).length;
+  // A field of one organization that doesn't say whether it is real has no real count to give.
+  const unsaid =
+    view.sealed.length === 0 && view.organizations.some((org) => org.synthetic === null);
   return {
     taughtOn: view.organizations.length,
-    sealed: view.sealed.length,
-    real: kinds.includes(null) ? null : kinds.filter((synthetic) => synthetic === false).length,
+    sealed: view.sealed.length - real,
+    real: unsaid ? null : real,
   };
 }

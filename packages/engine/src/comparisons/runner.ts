@@ -3,6 +3,7 @@ import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   ARM_LABELS,
+  armInSentence,
   ARM_PRIORITY,
   fundingMessage,
   JobSchema,
@@ -385,7 +386,7 @@ function requirePrice(job: Job): void {
   const hosted = job.student.hosted;
   if (hosted === undefined || studentPricing(hosted) !== undefined) return;
   throw new Error(
-    `The hosted student ${hosted.model} has no known price, so the comparison can't hold it to the student's credit. Nothing was sent.`,
+    `Hosted Glimmer (${hosted.model}) has no known price, so the comparison can't hold it to Glimmer's credit. Nothing was sent.`,
   );
 }
 
@@ -504,7 +505,7 @@ export async function runComparison(
     });
 
     // Cost first: the calibration tasks price an attempt before any arm spends.
-    env.log('Calibration: the bare student on the calibration tasks, on the hosted copy.');
+    env.log('Calibration: Glimmer alone on the calibration tasks, on the hosted copy.');
     const calibration = (
       await sweep({
         name: 'calibration',
@@ -681,7 +682,7 @@ export async function runComparison(
         });
         if (aborted() || waiting.length > 0) {
           env.log(
-            `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every locked test stays held. Run again once they can finish.`,
+            `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every final test stays held. Run again once they can finish.`,
           );
           return {
             outcome: 'incomplete',
@@ -696,7 +697,7 @@ export async function runComparison(
         );
         if (unstarted.length > 0) {
           env.log(
-            `${unstarted.map((arm) => ARM_LABELS[arm]).join(', ')} never started, so every locked test stays held. Run again to start them.`,
+            `${unstarted.map((arm) => ARM_LABELS[arm]).join(', ')} never started, so every final test stays held. Run again to start them.`,
           );
           return {
             outcome: 'incomplete',
@@ -716,7 +717,7 @@ export async function runComparison(
       }
       const released = release(engine, files, credit, base, config, decide);
       env.log(
-        `Every arm is frozen; ${released.length} locked test${released.length === 1 ? ' is' : 's are'} released.`,
+        `Every arm is frozen; ${released.length} final test${released.length === 1 ? ' is' : 's are'} released.`,
       );
       await settle(engine, env, guards, released, aborted);
 
@@ -860,7 +861,7 @@ async function holdBackAfterRelease(
     decide({
       arm,
       kind: 'stopped',
-      reason: `It was still developing when the first locked result was released (${releasedAt}), so it stays where it was: nothing may learn after a locked result exists.`,
+      reason: `It was still developing when the first final-test result was released (${releasedAt}), so it stays where it was: nothing may learn after a final-test result exists.`,
     });
   }
 }
@@ -1025,7 +1026,7 @@ function answerFunding(
   if ((raise === undefined || raise === plan.caps.studentUsd) && drops.length === 0) return plan;
   if (plan.releasedAt !== null) {
     throw new Error(
-      `The locked tests were released at ${plan.releasedAt}, so the student cap can't change and no arm can be dropped any more.`,
+      `The final tests were released at ${plan.releasedAt}, so Glimmer's cap can't change and no arm can be dropped any more.`,
     );
   }
   const pause = plan.funding;
@@ -1046,15 +1047,15 @@ function answerFunding(
     }
     const reason =
       pause?.arm === arm
-        ? `You dropped it before any locked test was released, when at $${pause.priceUsd.toFixed(4)} an attempt it needed $${pause.needUsd.toFixed(2)} and $${Math.max(0, pause.leftUsd).toFixed(2)} was left under the $${pause.capUsd.toFixed(2)} cap.`
-        : 'You dropped it before any locked test was released.';
+        ? `You dropped it before any final test was released, when at $${pause.priceUsd.toFixed(4)} an attempt it needed $${pause.needUsd.toFixed(2)} and $${Math.max(0, pause.leftUsd).toFixed(2)} was left under the $${pause.capUsd.toFixed(2)} cap.`
+        : 'You dropped it before any final test was released.';
     next.decisions.push({ arm, kind: 'dropped', by: 'person', reason, at: now() });
     log(`${ARM_LABELS[arm]}: ${reason}`);
   }
   if (raise !== undefined && raise !== plan.caps.studentUsd) {
     if (raise < plan.caps.studentUsd) {
       throw new Error(
-        `The student cap can only be raised: it is $${plan.caps.studentUsd.toFixed(2)}.`,
+        `Glimmer's cap can only be raised: it is $${plan.caps.studentUsd.toFixed(2)}.`,
       );
     }
     const arm = pause?.arm ?? null;
@@ -1075,7 +1076,7 @@ function answerFunding(
     });
     next.caps = { ...plan.caps, studentUsd: raise };
     log(
-      `The hosted student's cap is raised from $${plan.caps.studentUsd.toFixed(2)} to $${raise.toFixed(2)}, before any locked test was released.`,
+      `Hosted Glimmer's cap is raised from $${plan.caps.studentUsd.toFixed(2)} to $${raise.toFixed(2)}, before any final test was released.`,
     );
   }
   files.writePlan(next);
@@ -1170,7 +1171,7 @@ function release(
       decide({
         arm,
         kind: 'held',
-        reason: `Its final test would cost $${cost.toFixed(2)}, more than the $${Math.max(0, left).toFixed(2)} of the hosted student's budget left after the comparisons before it, so it didn't run.`,
+        reason: `Its final test would cost $${cost.toFixed(2)}, more than the $${Math.max(0, left).toFixed(2)} of hosted Glimmer's budget left after the comparisons before it, so it didn't run.`,
       });
       continue;
     }
@@ -1208,7 +1209,7 @@ async function startArm(
       decide({
         arm,
         kind: 'dropped',
-        reason: `It starts from the ${ARM_LABELS[needs].toLowerCase()} arm, which didn't freeze.`,
+        reason: `It starts from the ${armInSentence(ARM_LABELS[needs])} arm, which didn't freeze.`,
       });
       return;
     }
@@ -1355,7 +1356,7 @@ async function measureAfterRelease(
         decide({
           arm,
           kind: 'dropped',
-          reason: `The ${ARM_LABELS[on].toLowerCase()} arm has no frozen graduate's test to share.`,
+          reason: `The ${armInSentence(ARM_LABELS[on])} arm has no frozen graduate's test to share.`,
         });
         continue;
       }
@@ -1396,7 +1397,7 @@ async function measureAfterRelease(
                 request.config.headroom
               : 0;
           if (cost > left + 1e-9) {
-            skipped.push(ARM_LABELS[arm].toLowerCase());
+            skipped.push(armInSentence(ARM_LABELS[arm]));
             continue;
           }
           left -= cost;
@@ -1409,7 +1410,7 @@ async function measureAfterRelease(
         decide({
           arm: 'repeat',
           kind: 'stopped',
-          reason: `The hosted student's budget left didn't pay to run the ${skipped.join(' and the ')} again.`,
+          reason: `Hosted Glimmer's budget left didn't pay to run the ${skipped.join(' and the ')} again.`,
         });
       }
     }
@@ -1452,9 +1453,7 @@ async function regressionCheck(
     REGRESSION_PER_TYPE * job.taskTypes.length,
     deriveSeed(request.config.mentoringSeed, 'regression'),
   );
-  env.log(
-    `Runtime regression check: the bare student on ${tasks.length} dev tasks of ${job.name}.`,
-  );
+  env.log(`Runtime regression check: Glimmer alone on ${tasks.length} check tasks of ${job.name}.`);
   await sweep({
     name: 'regression',
     job,

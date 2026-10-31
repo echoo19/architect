@@ -38,7 +38,7 @@ import {
   statusMark,
   WORKS_HERE_TITLE,
 } from '../../install/labels';
-import { formatPercent, shortPath } from '../../lib/format';
+import { formatScore, shortPath } from '../../lib/format';
 import { activeVersionName, shortModelName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths, type Route } from '../../lib/router';
@@ -66,7 +66,7 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { met, target } = manifest.requirements.passRate;
   // A test taken on the online copy says so: the agent isn't marked ready until it is taken here.
   const online = testedOn === 'hosted' ? ' online' : '';
-  const result = `${met ? `Passed${online}` : `Needs ${Math.round(target * 100)}%${online}`}: ${score.pass} of ${score.total} (${formatPercent(score)})`;
+  const result = `${met ? `Passed${online}` : `Needs ${Math.round(target * 100)}%${online}`}: ${formatScore(score)}`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
 

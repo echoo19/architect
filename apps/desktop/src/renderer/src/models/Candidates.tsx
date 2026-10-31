@@ -9,7 +9,7 @@ export function originOf(row: ModelRow): string {
   const { version } = row;
   if (imported(version)) return 'Imported';
   if (version.parent !== undefined) return `Improvement of v${version.parent}`;
-  return 'From a run';
+  return 'From training';
 }
 
 /**

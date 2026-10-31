@@ -46,10 +46,10 @@ async function openAt(path: string): Promise<void> {
 }
 
 const ORGS: Organization[] = [
-  { id: 'northside', name: 'Northside Prep', synthetic: true, role: 'train' },
-  { id: 'lakeview', name: 'Lakeview Academy', synthetic: true, role: 'train' },
+  { id: 'northside', name: 'Northside Plumbing', synthetic: true, role: 'train' },
+  { id: 'lakeview', name: 'Lakeview Electric', synthetic: true, role: 'train' },
 ];
-const FIELD: Job = { ...trainedJob, organizations: ORGS, organizationNoun: 'academy' };
+const FIELD: Job = { ...trainedJob, organizations: ORGS, organizationNoun: 'branch' };
 
 function measured(label: string, version: number, pass: [number, number]): Measurement {
   return {
@@ -141,10 +141,10 @@ test('shows the check score at each organization under the score and in the roun
 
   const byOrg = page.getByRole('list', { name: 'Check tasks by organization' });
   await expect(byOrg.getByRole('listitem')).toHaveText([
-    'Northside Prep85% · 17/20',
-    'Lakeview Academy70% · 14/20',
+    'Northside Plumbing85% · 17 of 20',
+    'Lakeview Electric70% · 14 of 20',
   ]);
-  await expect(byOrg.getByLabel('Northside Prep: 17 of 20')).toBeVisible();
+  await expect(byOrg.getByLabel('Northside Plumbing: 17 of 20')).toBeVisible();
   await page.mouse.move(0, 0);
   await settle(page);
   await page.screenshot({
@@ -159,9 +159,9 @@ test('shows the check score at each organization under the score and in the roun
   const table = drawer.getByRole('table', { name: 'Check tasks by type' });
   const row = (name: string) =>
     table.getByRole('row').filter({ has: page.getByRole('cell', { name, exact: true }) });
-  await expect(row('Northside Prep')).toContainText('27 of 40');
-  await expect(row('Northside Prep')).toContainText('34 of 40');
-  await expect(row('Lakeview Academy')).toContainText('28 of 40');
+  await expect(row('Northside Plumbing')).toContainText('27 of 40');
+  await expect(row('Northside Plumbing')).toContainText('34 of 40');
+  await expect(row('Lakeview Electric')).toContainText('28 of 40');
   await page.keyboard.press('Escape');
 });
 

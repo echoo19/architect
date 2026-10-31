@@ -101,7 +101,7 @@ export function reportVerdict(
   }
   return {
     state: 'ready',
-    title: `${name} graduated`,
+    title: `${name} is ready`,
     because: online ? [`It passed on this computer too: ${testResult(local)}.`] : [],
     usable: true,
   };

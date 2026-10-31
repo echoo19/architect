@@ -265,7 +265,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
       {/* Keeps the bar at the bottom when there is little above it. */}
       <div aria-hidden className="min-h-6 flex-1" />
       {/* Pinned over the tab's bottom padding, so nothing scrolls by beneath it. */}
-      <div className="sticky -bottom-6 -mx-7 -mb-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line bg-raised px-7 py-4">
+      <div className="sticky -bottom-6 -mx-6 -mb-6 flex flex-wrap items-center justify-end gap-x-5 gap-y-3 border-t border-line bg-raised px-6 py-4">
         {waiting && !publishing && (
           <p className="m-0 mr-auto flex min-w-0 items-center gap-2 text-small text-fg">
             <CircleAlert size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
