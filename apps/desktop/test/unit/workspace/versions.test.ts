@@ -73,12 +73,12 @@ describe('version moves', () => {
     );
   });
 
-  it('names what each version is to the agent, and each move in plain words', () => {
-    expect(standing(version({ version: 2, active: true }), 2)).toBe('In use');
-    expect(standing(version({ version: 4, state: 'candidate' }), 2)).toBe('New, not in use yet');
-    expect(standing(version({ version: 3 }), 2)).toBe('Newer, not in use');
-    expect(standing(version({ version: 1 }), 2)).toBe('Earlier version');
-    expect(standing(version({ version: 5, state: 'rejected' }), 2)).toBe('Set aside');
+  it('names a version with no move, and each move in plain words', () => {
+    expect(standing(version({ version: 2, active: true }))).toBe('In use');
+    expect(standing(version({ version: 5, state: 'rejected' }))).toBe('Set aside');
+    // The rest have a button, which says what they are to the agent.
+    expect(standing(version({ version: 4, state: 'candidate' }))).toBeNull();
+    expect(standing(version({ version: 1 }))).toBeNull();
     expect(MOVE_WORDS.promote.action).toBe('Use this version');
     expect(MOVE_WORDS.rollback.action).toBe('Go back to this version');
     expect(MOVE_WORDS.promote.title(3)).toBe('Use version 3?');
