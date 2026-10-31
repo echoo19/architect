@@ -197,7 +197,7 @@ export const ServedReplySchema = z.object({
    * none, handed the request off, or refused it.
    */
   answer: JsonValueSchema.nullable(),
-  /** Whether the reply is within the version's certificate or was handed off (decision 095). */
+  /** Whether the reply is within the version's certificate or was handed off (decision 096). */
   certificate: ServedCertificateSchema,
   steps: z.array(RunStepSchema),
   /** A change to a file the agent wanted to make. Nothing was written: approvals stay in the app. */
