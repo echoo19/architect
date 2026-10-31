@@ -1,6 +1,8 @@
 import { useEffect, type ReactNode } from 'react';
 import {
+  orgCounts,
   RunEventSchema,
+  type ExperimentRecord,
   type GraduateSummary,
   type JobSummary,
   type ReportCard,
@@ -14,6 +16,8 @@ import {
   cn,
   IconButton,
   Meter,
+  NumberTicker,
+  RowIcon,
   Skeleton,
   Spinner,
   Tooltip,
@@ -22,6 +26,7 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
+  FlaskConical,
   GraduationCap,
   Library,
   MessageCircleQuestion,
@@ -32,12 +37,16 @@ import {
 } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
-import { fetchQuery } from '../api/query';
+import { fetchQuery, useQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
+import { minutesText, STATUS_WORDS as EXPERIMENT_WORDS } from '../experiments/model';
+import { newField } from '../fields/new-field';
+import { orgCountText } from '../fields/parts';
+import { Counted } from '../flow/counted';
 import { formatCost, shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
-import { formatPercent } from '../lib/format';
+import { formatPercent, percentOf } from '../lib/format';
 import { activeVersionName, agentModelName, mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
@@ -45,6 +54,7 @@ import { useAgentChats } from '../workspace/store';
 import { openAgent } from './open-agent';
 import {
   approvalNeeds,
+  experimentNeeds,
   jobNeeds,
   orgScores,
   runWord,
@@ -54,27 +64,14 @@ import {
   type RunRow,
 } from './items';
 
-/** A row's leading mark: an icon on a quiet tile, in the color of who it is about. */
-function Tile({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'flex size-9 items-center justify-center rounded-control bg-selected [&_svg]:size-4',
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-const NEED_ICONS: Record<NeedKind, { icon: ReactNode; tone: string }> = {
-  question: { icon: <MessageCircleQuestion strokeWidth={1.8} aria-hidden />, tone: 'text-mentor' },
-  results: { icon: <CircleCheck strokeWidth={1.8} aria-hidden />, tone: 'text-student' },
-  approval: { icon: <ShieldCheck strokeWidth={1.8} aria-hidden />, tone: 'text-fg' },
-  lessons: { icon: <GraduationCap strokeWidth={1.8} aria-hidden />, tone: 'text-mentor' },
-  promote: { icon: <ArrowBigUpDash strokeWidth={1.8} aria-hidden />, tone: 'text-student' },
-  failed: { icon: <CircleAlert strokeWidth={1.8} aria-hidden />, tone: 'text-danger' },
+const NEED_ICONS: Record<NeedKind, ReactNode> = {
+  question: <MessageCircleQuestion strokeWidth={1.8} aria-hidden />,
+  results: <CircleCheck strokeWidth={1.8} aria-hidden />,
+  approval: <ShieldCheck strokeWidth={1.8} aria-hidden />,
+  lessons: <GraduationCap strokeWidth={1.8} aria-hidden />,
+  promote: <ArrowBigUpDash strokeWidth={1.8} aria-hidden />,
+  failed: <CircleAlert strokeWidth={1.8} aria-hidden />,
+  experiment: <FlaskConical strokeWidth={1.8} aria-hidden />,
 };
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
@@ -86,12 +83,12 @@ function Quiet({ children, className }: { children: ReactNode; className?: strin
 
 function NeedRow({ need }: { need: Need }) {
   const showSettings = useAgentSettingsUi((state) => state.show);
-  const { icon, tone } = NEED_ICONS[need.kind];
+  const icon = NEED_ICONS[need.kind];
   const target = need.target;
   return (
     <li>
       <CardRow
-        icon={<Tile className={tone}>{icon}</Tile>}
+        icon={<RowIcon>{icon}</RowIcon>}
         title={need.title}
         detail={need.detail}
         end={chevron}
@@ -110,6 +107,7 @@ const NEED_GROUPS: readonly { label: string; kinds: readonly NeedKind[] }[] = [
   { label: 'Approvals', kinds: ['approval'] },
   { label: 'Lessons', kinds: ['lessons'] },
   { label: 'Versions', kinds: ['promote'] },
+  { label: 'Experiments', kinds: ['experiment'] },
 ];
 
 /**
@@ -168,11 +166,13 @@ function AgentNeeds({
 export function NeedsYouCard({
   jobs,
   graduates,
+  experiments,
 }: {
   jobs: readonly JobSummary[];
   graduates: readonly GraduateSummary[];
+  experiments: readonly ExperimentRecord[];
 }) {
-  const fromJobs = jobNeeds(jobs);
+  const fromJobs = [...jobNeeds(jobs), ...experimentNeeds(experiments)];
   return (
     <Card title="Needs you" flush>
       {/* Each agent's rows come from reads of their own; a group shows once it holds a row. */}
@@ -183,7 +183,7 @@ export function NeedsYouCard({
             aria-label={group.label}
             className="hidden has-[li:not([aria-busy])]:block"
           >
-            <h3 className="m-0 px-6 pb-2 pt-4 text-small font-medium">{group.label}</h3>
+            <h3 className="m-0 px-6 pb-2 pt-6 font-sans text-small font-medium">{group.label}</h3>
             <ul className="m-0 flex list-none flex-col p-0">
               {fromJobs
                 .filter((need) => group.kinds.includes(need.kind))
@@ -245,13 +245,13 @@ function RunningRow({ row }: { row: RunRow }) {
         className="flex w-full flex-col gap-3 border-t border-line px-6 py-4 text-left text-ui transition-colors duration-150 hover:bg-hover focus-visible:bg-hover"
       >
         <span className="flex w-full items-center gap-3">
-          <Tile>
+          <RowIcon>
             {paused ? (
               <Pause className="text-mentor" aria-label="Paused" />
             ) : (
               <Spinner tone="mentor" size={16} label="Running" />
             )}
-          </Tile>
+          </RowIcon>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-medium">{row.jobName}</span>
             <span className="truncate text-small">
@@ -267,7 +267,9 @@ function RunningRow({ row }: { row: RunRow }) {
               side="left"
             >
               <span className="font-display text-h2 font-semibold tabular-nums">
-                {formatPercent(dev)}
+                <Counted said={formatPercent(dev)}>
+                  <NumberTicker value={percentOf(dev)} kind="percent" />
+                </Counted>
               </span>
             </Tooltip>
           )}
@@ -294,16 +296,112 @@ function RunningRow({ row }: { row: RunRow }) {
   );
 }
 
-export function RunningCard({ rows }: { rows: readonly RunRow[] }) {
+/** An experiment under way: its name, its field, and the wall clock it has used. */
+function RunningExperiment({ experiment }: { experiment: ExperimentRecord }) {
+  return (
+    <li>
+      <CardRow
+        icon={
+          <RowIcon>
+            <Spinner tone="mentor" size={16} label={EXPERIMENT_WORDS[experiment.status]} />
+          </RowIcon>
+        }
+        title={experiment.input.name}
+        detail={`${EXPERIMENT_WORDS[experiment.status]}, ${experiment.job.name}`}
+        end={
+          experiment.runningMs > 0 ? (
+            <span className="tabular-nums">{minutesText(experiment.runningMs / 60_000)}</span>
+          ) : (
+            chevron
+          )
+        }
+        onClick={() => navigate(paths.experiment(experiment.id))}
+      />
+    </li>
+  );
+}
+
+export function RunningCard({
+  rows,
+  experiments,
+}: {
+  rows: readonly RunRow[];
+  experiments: readonly ExperimentRecord[];
+}) {
   useLiveRuns(rows.map((row) => row.runId));
   return (
     <Card title="Running" flush>
-      {rows.length === 0 ? (
+      {rows.length === 0 && experiments.length === 0 ? (
         <Quiet>Nothing is running</Quiet>
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((row) => (
             <RunningRow key={row.runId} row={row} />
+          ))}
+          {experiments.map((experiment) => (
+            <RunningExperiment key={experiment.id} experiment={experiment} />
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** The newest experiments, each with its field and its state in a word. */
+export function ExperimentsCard({
+  experiments,
+  error,
+  onRetry,
+}: {
+  experiments: readonly ExperimentRecord[] | undefined;
+  error: Error | null;
+  onRetry: () => void;
+}) {
+  return (
+    <Card
+      title="Experiments"
+      flush
+      action={
+        <Tooltip content="New experiment" side="left">
+          <IconButton
+            label="New experiment"
+            size="sm"
+            onClick={() => navigate(paths.newExperiment())}
+          >
+            <Plus size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
+      }
+    >
+      {error ? (
+        <div className="px-6 pb-5">
+          <ProblemState
+            layout="inline"
+            error={error}
+            title="Couldn't read your experiments"
+            onRetry={onRetry}
+          />
+        </div>
+      ) : !experiments ? (
+        <Skeleton aria-busy="true" className="mx-6 mb-5 h-10" />
+      ) : experiments.length === 0 ? (
+        <Quiet>No experiments yet</Quiet>
+      ) : (
+        <ul className="m-0 flex list-none flex-col p-0">
+          {experiments.slice(0, 4).map((experiment) => (
+            <li key={experiment.id}>
+              <CardRow
+                icon={
+                  <RowIcon>
+                    <FlaskConical strokeWidth={1.8} aria-hidden />
+                  </RowIcon>
+                }
+                title={experiment.input.name}
+                detail={experiment.job.name}
+                end={EXPERIMENT_WORDS[experiment.status]}
+                onClick={() => navigate(paths.experiment(experiment.id))}
+              />
+            </li>
           ))}
         </ul>
       )}
@@ -347,13 +445,15 @@ function FinishedRow({ row }: { row: RunRow }) {
   const card = report.data;
   const perOrg = card?.test.perOrg;
   const scores = perOrg && perOrg.length > 0 ? orgScores(perOrg) : null;
+  // A field with no real organization has no Real figure at all, rather than a dash.
+  const hasReal = perOrg?.some((result) => !result.seen && !result.synthetic) ?? false;
   return (
     <li>
       <CardRow
         icon={
-          <Tile className="text-student">
+          <RowIcon>
             <CircleCheck strokeWidth={1.8} aria-hidden />
-          </Tile>
+          </RowIcon>
         }
         title={row.jobName}
         detail={card ? (shortDate(card.createdAt) ?? undefined) : undefined}
@@ -373,7 +473,9 @@ function FinishedRow({ row }: { row: RunRow }) {
                     score={scores.unseen}
                     hint="Generated ones it never saw"
                   />
-                  <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
+                  {hasReal && (
+                    <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
+                  )}
                 </>
               ) : (
                 <Figure label="Passed" score={card.test.score} hint="Final test" />
@@ -424,8 +526,8 @@ function SpendRow({ row }: { row: RunRow }) {
   }
   const { run, job } = detail.data;
   return (
-    <div className="flex flex-col gap-3">
-      <span className="truncate font-medium">{row.jobName}</span>
+    <div className="flex flex-col gap-2">
+      <span className="truncate text-small font-medium">{row.jobName}</span>
       <CapMeter
         tone="mentor"
         label={mentorName(job.mentor)}
@@ -471,7 +573,6 @@ export function SpendCard({ rows }: { rows: readonly RunRow[] }) {
 
 function FieldRow({ jobId }: { jobId: string }) {
   const job = useJob(jobId);
-  const orgs = job.data?.organizations;
   if (!job.data) {
     return job.status === 'error' ? (
       <li className="border-t border-line px-6 py-3">
@@ -486,17 +587,34 @@ function FieldRow({ jobId }: { jobId: string }) {
       <li aria-busy="true" className="sr-only" />
     );
   }
-  if (!orgs) return null;
+  return job.data.organizations ? <FieldCounts jobId={jobId} name={job.data.name} /> : null;
+}
+
+/** A field's row, with its organizations counted as the Fields table counts them. */
+function FieldCounts({ jobId, name }: { jobId: string; name: string }) {
+  const view = useQuery(`field-view:${jobId}`, () => api.field(jobId));
+  if (view.status === 'error') {
+    return (
+      <li className="border-t border-line px-6 py-3">
+        <ProblemState
+          layout="inline"
+          error={view.error}
+          title="Couldn't read this field"
+          onRetry={view.reload}
+        />
+      </li>
+    );
+  }
   return (
     <li>
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <Library strokeWidth={1.8} aria-hidden />
-          </Tile>
+          </RowIcon>
         }
-        title={job.data.name}
-        detail={orgs.length === 1 ? 'One organization' : `${orgs.length} organizations`}
+        title={name}
+        detail={view.data ? orgCountText(orgCounts(view.data)) : undefined}
         end={chevron}
         onClick={() => navigate(paths.field(jobId))}
       />
@@ -512,7 +630,7 @@ export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
       flush
       action={
         <Tooltip content="Describe a field" side="left">
-          <IconButton label="Describe a field" size="sm" onClick={() => navigate(paths.newAgent())}>
+          <IconButton label="Describe a field" size="sm" onClick={newField}>
             <Plus size={16} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </Tooltip>

@@ -1,12 +1,15 @@
 import {
   AppSettingsSchema,
+  readClosedNetwork,
   CustomEndpointSchema,
   DEFAULT_STUDENT,
+  FieldExportRecordSchema,
   MentorConfigSchema,
   mentorPreset,
   StudentEndpointSchema,
   type AppSettings,
   type CustomEndpoint,
+  type FieldExportRecord,
 } from '@architect/shared';
 import { z } from 'zod';
 
@@ -48,6 +51,32 @@ const StoredEndpointsSchema = z
   )
   .catch(() => []);
 
+/** Recorded exports one by one, likewise; a file from before they were kept has none. */
+const StoredExportsSchema = z
+  .array(z.unknown())
+  .transform((entries) =>
+    entries.flatMap((entry): FieldExportRecord[] => {
+      const parsed = FieldExportRecordSchema.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  )
+  .optional()
+  .catch(undefined);
+
+/** The most exports kept: one per field, the oldest dropped first. */
+export const MAX_FIELD_EXPORTS = 200;
+
+/** The list with this export as its field's latest, newest first. */
+export function withFieldExport(
+  list: readonly FieldExportRecord[],
+  record: FieldExportRecord,
+): FieldExportRecord[] {
+  return [record, ...list.filter((entry) => entry.jobId !== record.jobId)].slice(
+    0,
+    MAX_FIELD_EXPORTS,
+  );
+}
+
 /**
  * Reads a settings file leniently: a field that is missing or no longer valid falls back to its
  * default instead of discarding the rest of the user's choices. Files from before endpoints could
@@ -64,10 +93,21 @@ const StoredSettingsSchema = z.object({
   customEndpoints: StoredEndpointsSchema,
   onboarded: z.boolean().catch(() => defaultSettings().onboarded),
   llamaServerPath: z.string().min(1).optional().catch(undefined),
-}) satisfies z.ZodType<AppSettings>;
+  fieldExports: StoredExportsSchema,
+}) satisfies z.ZodType<Omit<AppSettings, 'closedNetwork' | 'closedNetworkProblem'>>;
 
+/**
+ * A settings file's settings. The closed network fails closed (decision 098): a damaged one stays on
+ * with the hosts that read, and says what was wrong, instead of falling back to off.
+ */
 export function settingsFromStored(raw: unknown): AppSettings {
-  return StoredSettingsSchema.parse(typeof raw === 'object' && raw !== null ? raw : {});
+  const record = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
+  const { network, problem } = readClosedNetwork(record['closedNetwork']);
+  return {
+    ...StoredSettingsSchema.parse(record),
+    ...(network === undefined ? {} : { closedNetwork: network }),
+    ...(problem === undefined ? {} : { closedNetworkProblem: problem }),
+  };
 }
 
 /** The list with this endpoint added, or put in place of one at the same address. */

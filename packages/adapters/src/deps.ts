@@ -10,6 +10,25 @@ export interface AdapterDeps {
   retry?: RetryOptions;
   /** Limits for streamed replies: time to the first byte and silence between chunks. */
   timeouts?: Partial<Timeouts>;
+  /** The closed network the adapter is held to, and who hears where its requests go. */
+  network?: NetworkDeps;
+}
+
+/**
+ * A closed network (decision 098) as an adapter follows it. A host outside it is refused when the
+ * adapter is made and again before every request, so nothing is sent there.
+ */
+export interface NetworkDeps {
+  /**
+   * The hosts it may reach besides this computer, or undefined while no closed network is on.
+   * A function is asked at every request, so switching the setting holds adapters already made.
+   */
+  allowed?: Following<readonly string[] | undefined>;
+  /**
+   * Told the host of every request just before it is sent: `inside` when a closed network was on
+   * and admitted it. Never the path, the body or the key.
+   */
+  contacted?(host: string, inside: boolean): void;
 }
 
 export interface MentorDeps extends AdapterDeps {

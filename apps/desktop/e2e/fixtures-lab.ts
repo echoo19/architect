@@ -1,5 +1,7 @@
 import {
+  ExperimentRecordSchema,
   ImprovementSchema,
+  type ExperimentRecord,
   type GraduateSummary,
   type Improvement,
   type Job,
@@ -12,48 +14,62 @@ import type { ElectronApplication } from '@playwright/test';
 import { LLAMA_SERVER_READY, LOCAL_WITH_GLIMMER, type EngineReplies, stubEngine } from './fixtures';
 import { FIELD_AGENT, FIELD_CHAT, FIELD_JOB, FIELD_REPORT } from './fixtures-field';
 import { stubByKey } from './fixtures-flow';
+import {
+  ASSAY_DESK_JOB,
+  SWEEP_DESK_AGENT,
+  SWEEP_DESK_ID,
+  SWEEP_DESK_JOB,
+  SWEEP_REPORT,
+} from './fixtures-science';
 import { FINISHED, FLAGGED } from './fixtures-teaching';
 import { AGENT_WITH_VERSIONS } from './fixtures-versions';
 import { CHATS } from './fixtures-workspace';
 import { AT, at, detail, makeRun, STORY, storyReport, trainedJob } from './story';
 
 /*
- * The Lab against the stand-in engine: Phil's field job finished and qualified, the service desk
+ * The Lab against the stand-in engine: Academy desk's field job finished and qualified, the service desk
  * training, the returns desk asking a question, the clinic intake's results waiting, and the
  * service desk agent with a chat to approve, a lesson to review and a version to weigh. Every
  * figure is one of the shared story's, and the agents are the ones Models lists (version 2 active
- * for the service desk and for Phil), so the Lab agrees with the screens it opens.
+ * for the service desk and for Academy desk), so the Lab agrees with the screens it opens.
  */
 
-export const PHIL_ID = 'grd_phil';
-export const MINI_ID = 'grd_phil_mini';
+export const ACADEMY_DESK_ID = 'grd_academy_desk';
+export const MINI_ID = 'grd_academy_desk_mini';
 
-export const PHIL_AGENT: GraduateSummary = {
+export const ACADEMY_DESK_AGENT: GraduateSummary = {
   ...FIELD_AGENT,
-  id: PHIL_ID,
-  path: 'graduates/phil',
+  id: ACADEMY_DESK_ID,
+  path: 'graduates/academy-desk',
   activeVersion: 2,
   versions: 2,
-  manifest: { ...FIELD_AGENT.manifest, id: PHIL_ID, jobId: 'job_phil' },
+  manifest: { ...FIELD_AGENT.manifest, id: ACADEMY_DESK_ID, jobId: 'job_academy_desk' },
 };
 
 export const MINI_AGENT: GraduateSummary = {
-  ...PHIL_AGENT,
+  ...ACADEMY_DESK_AGENT,
   id: MINI_ID,
-  name: 'Phil Mini',
-  path: 'graduates/phil-mini',
+  name: 'Academy desk Mini',
+  path: 'graduates/academy-desk-mini',
   activeVersion: 1,
   versions: 1,
-  manifest: { ...PHIL_AGENT.manifest, id: MINI_ID, name: 'Phil Mini' },
+  manifest: { ...ACADEMY_DESK_AGENT.manifest, id: MINI_ID, name: 'Academy desk Mini' },
 };
 
 /** Every agent, as Models lists them. */
-export const LAB_AGENTS: GraduateSummary[] = [AGENT_WITH_VERSIONS, PHIL_AGENT, MINI_AGENT];
+export const LAB_AGENTS: GraduateSummary[] = [
+  AGENT_WITH_VERSIONS,
+  ACADEMY_DESK_AGENT,
+  MINI_AGENT,
+  SWEEP_DESK_AGENT,
+];
 
 interface Entry {
   name: string;
-  run: Partial<JobRun> & Pick<JobRun, 'status' | 'phase'>;
+  /** Absent for a field not taught yet. */
+  run?: Partial<JobRun> & Pick<JobRun, 'status' | 'phase'>;
   job: Job;
+  taskCount?: number;
   /** What the run's records say it spent and how far it got. */
   totals?: Partial<RunDetail['run']['totals']>;
   report?: ReportCard;
@@ -66,11 +82,11 @@ const ACADEMIES: Job['organizations'] = [
 ];
 
 const ENTRIES: Record<string, Entry> = {
-  phil: {
-    name: 'Phil',
+  academy_desk: {
+    name: 'Academy desk',
     run: { status: 'finished', phase: 'done', accepted: true },
     job: { ...FIELD_JOB, organizations: ACADEMIES },
-    totals: { mentorUsd: 2.84, rounds: 9 },
+    totals: { mentorUsd: 2.84, rounds: 7 },
     report: { ...FIELD_REPORT, cost: { ...FIELD_REPORT.cost, mentorUsd: 2.84, studentUsd: 0.61 } },
   },
   desk: {
@@ -98,6 +114,15 @@ const ENTRIES: Record<string, Entry> = {
     totals: { mentorUsd: 0.62, rounds: 7 },
     report: storyReport,
   },
+  sweep_desk: {
+    name: 'Sweep desk',
+    run: { status: 'finished', phase: 'done', accepted: true },
+    job: SWEEP_DESK_JOB,
+    taskCount: 192,
+    totals: { mentorUsd: SWEEP_REPORT.cost.mentorUsd, rounds: SWEEP_REPORT.cost.rounds },
+    report: SWEEP_REPORT,
+  },
+  assay_desk: { name: 'Assay desk', job: ASSAY_DESK_JOB, taskCount: 192 },
 };
 
 const jobId = (key: string) => `job_${key}`;
@@ -107,41 +132,53 @@ export const LAB_JOBS: JobSummary[] = Object.entries(ENTRIES).map(([key, entry])
   id: jobId(key),
   name: entry.name,
   createdAt: AT,
-  taskCount: 170,
-  latestRun: {
-    id: runId(key),
-    method: 'architect',
-    devCurrent: null,
-    devBaseline: null,
-    ...entry.run,
-  },
+  taskCount: entry.taskCount ?? 170,
+  ...(entry.run
+    ? {
+        latestRun: {
+          id: runId(key),
+          method: 'architect' as const,
+          devCurrent: null,
+          devBaseline: null,
+          ...entry.run,
+        },
+      }
+    : {}),
 }));
 
-const DETAILS = Object.fromEntries(
-  Object.entries(ENTRIES).map(([key, entry]) => [
-    runId(key),
-    {
-      ...detail,
-      run: makeRun({
-        id: runId(key),
-        jobId: jobId(key),
-        status: entry.run.status,
-        phase: entry.run.phase,
-        devCurrent: entry.run.devCurrent ?? detail.run.devCurrent,
-        totals: { ...detail.run.totals, ...entry.totals },
-      }),
-      job: { ...entry.job, id: jobId(key), name: entry.name },
-    } satisfies RunDetail,
-  ]),
+export const DETAILS = Object.fromEntries(
+  Object.entries(ENTRIES).flatMap(([key, { run, ...entry }]) =>
+    run
+      ? [
+          [
+            runId(key),
+            {
+              ...detail,
+              run: makeRun({
+                id: runId(key),
+                jobId: jobId(key),
+                status: run.status,
+                phase: run.phase,
+                devCurrent: run.devCurrent ?? detail.run.devCurrent,
+                totals: { ...detail.run.totals, ...entry.totals },
+              }),
+              job: { ...entry.job, id: jobId(key), name: entry.name },
+            } satisfies RunDetail,
+          ],
+        ]
+      : [],
+  ),
 );
 
 const REPORTS = Object.fromEntries(
   Object.entries(ENTRIES).flatMap(([key, entry]) =>
-    entry.report ? [[runId(key), { ...entry.report, runId: runId(key), name: entry.name }]] : [],
+    entry.report
+      ? [[runId(key), { ...entry.report, jobId: jobId(key), runId: runId(key), name: entry.name }]]
+      : [],
   ),
 );
 
-const JOBS = Object.fromEntries(
+export const JOBS = Object.fromEntries(
   Object.entries(ENTRIES).map(([key, entry]) => [
     jobId(key),
     { ...entry.job, id: jobId(key), name: entry.name },
@@ -163,9 +200,69 @@ const IMPROVEMENT: Improvement = ImprovementSchema.parse({
   candidateVersion: 3,
 });
 
+/** An experiment on one of the Lab's fields, as the engine keeps it. */
+function experiment(
+  id: string,
+  name: string,
+  job: string,
+  status: ExperimentRecord['status'],
+  extra: Partial<ExperimentRecord> = {},
+): ExperimentRecord {
+  return ExperimentRecordSchema.parse({
+    id,
+    input: {
+      name,
+      jobId: jobId(job),
+      arms: [{ arm: 'bare' }, { arm: 'draft' }, { arm: 'targeted' }],
+      seeds: { mentoring: 1, lockedTest: [101] },
+      rounds: 4,
+      caps: { studentUsd: 15, sparkUsd: 10, computeUsd: 0, wallMinutes: 720 },
+    },
+    job: { id: jobId(job), name: ENTRIES[job]?.name ?? job, splitsSeed: 7 },
+    status,
+    preregistration: null,
+    calibratedAt: at(300),
+    runningMs: 0,
+    createdAt: at(300),
+    updatedAt: at(600),
+    ...extra,
+  });
+}
+
+/**
+ * The Lab's experiments, newest first: one running on Academy desk, one on the service desk
+ * paused before its release because an arm can't be paid for at what an attempt really cost, and
+ * one finished on Sweep desk, its results released.
+ */
+export const LAB_EXPERIMENTS: ExperimentRecord[] = [
+  experiment('cmp_targeted', 'Targeted against one-shot draft', 'academy_desk', 'running', {
+    runningMs: 47 * 60_000,
+  }),
+  experiment('cmp_funding', 'Draft on the service desk', 'desk', 'needs_funding', {
+    reason: 'The targeted arm needs $4.20 more of Glimmer than its cap.',
+    runningMs: 22 * 60_000,
+  }),
+  experiment('cmp_sweep', 'Targeted against Glimmer alone', 'sweep_desk', 'finished', {
+    preregistration: {
+      at: at(-200),
+      sha256: '8d41c2e07b9a3f65d1e48c20a7f93b6e5c0d24a19f7e83b6c5a0d1e2f3b4c5d6',
+      pinned: {
+        jobId: jobId('sweep_desk'),
+        name: 'Sweep desk',
+        job: '4c'.repeat(32),
+        tasks: '9e'.repeat(32),
+        data: 'b1'.repeat(32),
+        checker: '07'.repeat(32),
+      },
+    },
+    runningMs: 214 * 60_000,
+  }),
+];
+
 const BASE: EngineReplies = {
   'graduates:list': LAB_AGENTS,
   'jobs:list': LAB_JOBS,
+  'experiments:list': LAB_EXPERIMENTS,
   'connections:detectLocal': LOCAL_WITH_GLIMMER,
   'connections:llamaServer': LLAMA_SERVER_READY,
   'graduates:hasSampleAgent': false,
@@ -179,19 +276,28 @@ export async function stubLab(app: ElectronApplication): Promise<void> {
   await stubByKey(app, 'jobs:get', JOBS);
   await stubByKey(app, 'workspace:listChats', {
     [STORY.graduateId]: Object.values(CHATS),
-    [PHIL_ID]: [{ ...FIELD_CHAT, graduateId: PHIL_ID, updatedAt: at(600) }],
+    [ACADEMY_DESK_ID]: [{ ...FIELD_CHAT, graduateId: ACADEMY_DESK_ID, updatedAt: at(600) }],
     [MINI_ID]: [],
+    [SWEEP_DESK_ID]: [],
   });
   await stubByKey(app, 'teach:list', {
     [STORY.graduateId]: FLAGGED,
-    [PHIL_ID]: [],
+    [ACADEMY_DESK_ID]: [],
     [MINI_ID]: [],
+    [SWEEP_DESK_ID]: [],
   });
   await stubByKey(app, 'teach:improvements', {
     [STORY.graduateId]: [IMPROVEMENT],
-    [PHIL_ID]: [],
+    [ACADEMY_DESK_ID]: [],
     [MINI_ID]: [],
+    [SWEEP_DESK_ID]: [],
   });
 }
 
-export const LAB = { philRun: runId('phil'), deskRun: runId('desk'), philJob: jobId('phil') };
+export const LAB = {
+  academyDeskRun: runId('academy_desk'),
+  deskRun: runId('desk'),
+  academyDeskJob: jobId('academy_desk'),
+  sweepDeskJob: jobId('sweep_desk'),
+  assayDeskJob: jobId('assay_desk'),
+};

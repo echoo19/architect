@@ -126,15 +126,15 @@ function VersionRow({
       >
         <div className="flex items-center gap-4">
           {score && (
-            <span className="flex flex-col items-end tabular-nums">
+            <span className="flex flex-col items-end whitespace-nowrap tabular-nums">
               <span className="font-mono">{formatPercent(score)}</span>
               <span className="text-small text-fg">
-                {score.pass} of {score.total} passed
+                {score.pass} of {score.total}
               </span>
             </span>
           )}
           {/* The same width on every row, so the scores line up whether or not a row has one. */}
-          <div className="flex w-[168px] justify-end">
+          <div className="flex w-[200px] shrink-0 justify-end">
             {move !== null && (
               <Button size="xs" onClick={() => onMove(move)}>
                 {move === 'promote' ? (

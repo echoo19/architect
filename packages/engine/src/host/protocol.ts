@@ -1,14 +1,22 @@
 import {
   AdapterError,
+  AttemptPageSchema,
+  AttemptQuerySchema,
   BindRequestSchema,
+  browsedSplit,
   CapabilityBreakdownSchema,
   CategorySchema,
+  CertificationSchema,
+  QualificationSchema,
+  QualifyRequestSchema,
+  CertifyRequestSchema,
   CounterexampleSchema,
   ComparisonReportSchema,
   CorrectionRequestSchema,
   CorrectionSchema,
   ClarificationReplySchema,
   CodedError,
+  DraftOrganizationSchema,
   DraftTurnSchema,
   ErrorCodeSchema,
   ExperimentDetailSchema,
@@ -20,6 +28,8 @@ import {
   ImprovementSchema,
   ImprovementStartSchema,
   ImproveOptionsSchema,
+  EvidenceRequestSchema,
+  EvidenceResultSchema,
   ExportPartRequestSchema,
   ExportPartResultSchema,
   ExportRequestSchema,
@@ -27,12 +37,15 @@ import {
   ExportReviewSchema,
   FieldExportManifestSchema,
   FieldViewSchema,
+  AddOrganizationRequestSchema,
+  MoveToModelRequestSchema,
   FileDiffSchema,
   FolderFitSchema,
   GraduateSettingsSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
   GuardError,
+  HarnessFileSchema,
   HubInstallRequestSchema,
   HubInstallResultSchema,
   ImportPreviewSchema,
@@ -59,6 +72,7 @@ import {
   ReferenceOptionsSchema,
   ReferenceRecordSchema,
   ReportCardSchema,
+  RecordingQuoteSchema,
   RuleConfirmationStateSchema,
   RunDetailSchema,
   RunEventSchema,
@@ -69,10 +83,12 @@ import {
   SampleJobSchema,
   StudentTargetSchema,
   StudyStateSchema,
+  TaskListingSchema,
   TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
   TrainBundleRequestSchema,
+  TranscribeRequestSchema,
   TrainingPlanRequestSchema,
   TrainingPlanSchema,
   VersionEventSchema,
@@ -80,7 +96,9 @@ import {
   WrittenTrainBundleSchema,
   type AdapterErrorCode,
   type ArchitectApi,
+  type DraftOrganization,
   type DraftTurn,
+  type Job,
   type MentorConfig,
 } from '@architect/shared';
 import { z } from 'zod';
@@ -89,14 +107,21 @@ import { HubError, type HubErrorCode } from '../hub';
 /**
  * The part of the app's API the engine host serves. The conversation that drafts a job also takes
  * the teacher the person chose in Settings, which only the main process knows, so the renderer's
- * two calls gain a third argument on their way to the engine.
+ * three calls gain a last argument on their way to the engine. An imported job file comes back as
+ * the engine made it; the main process then keeps or replaces its models and says which.
  */
 export type EngineApi = Pick<
   ArchitectApi,
   'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates'
 > & {
-  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply'> & {
+  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply' | 'draftField' | 'importFile'> & {
+    importFile(path: string): Promise<Job>;
     draftStart(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
+    draftField(
+      description: string,
+      organizations: DraftOrganization[],
+      teacher: MentorConfig,
+    ): Promise<DraftTurn>;
     draftReply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn>;
   };
 };
@@ -137,6 +162,12 @@ export const ENGINE_ROUTES = {
     DraftTurnSchema,
     (api, [description, files, teacher]) => api.jobs.draftStart(description, files, teacher),
   ),
+  'jobs.draftField': route(
+    z.tuple([z.string().min(1), z.array(DraftOrganizationSchema).min(1), MentorConfigSchema]),
+    DraftTurnSchema,
+    (api, [description, organizations, teacher]) =>
+      api.jobs.draftField(description, organizations, teacher),
+  ),
   'jobs.draftReply': route(
     z.tuple([id, z.string().min(1), MentorConfigSchema]),
     DraftTurnSchema,
@@ -152,12 +183,44 @@ export const ENGINE_ROUTES = {
   'jobs.confirmStudy': route(z.tuple([id, id]), StudyStateSchema, (api, [jobId, token]) =>
     api.jobs.confirmStudy(jobId, token),
   ),
+  'jobs.quoteRecordings': route(
+    z.tuple([id, id, z.array(z.string().min(1)).min(1).max(20)]),
+    RecordingQuoteSchema,
+    (api, [jobId, org, paths]) => api.jobs.quoteRecordings(jobId, org, paths),
+  ),
+  'jobs.shareRecordings': route(
+    z.tuple([id, z.boolean()]),
+    TaskPlanSchema,
+    (api, [jobId, allowed]) => api.jobs.shareRecordings(jobId, allowed),
+  ),
+  'jobs.transcribe': route(
+    z.tuple([id, TranscribeRequestSchema]),
+    TaskPlanSchema,
+    (api, [jobId, request]) => api.jobs.transcribe(jobId, request),
+  ),
   'jobs.field': route(z.tuple([id]), FieldViewSchema, (api, [jobId]) => api.jobs.field(jobId)),
+  'jobs.addOrganization': route(
+    z.tuple([id, AddOrganizationRequestSchema]),
+    FieldViewSchema,
+    (api, [jobId, request]) => api.jobs.addOrganization(jobId, request),
+  ),
+  'jobs.teachOn': route(z.tuple([id, id]), FieldViewSchema, (api, [jobId, org]) =>
+    api.jobs.teachOn(jobId, org),
+  ),
+  'jobs.moveToModel': route(
+    z.tuple([id, MoveToModelRequestSchema]),
+    FieldViewSchema,
+    (api, [jobId, request]) => api.jobs.moveToModel(jobId, request),
+  ),
   'jobs.fieldAssets': route(z.tuple([id]), FieldExportManifestSchema, (api, [jobId]) =>
     api.jobs.fieldAssets(jobId),
   ),
   'jobs.exportField': route(z.tuple([id, path]), FieldExportManifestSchema, (api, [jobId, dir]) =>
     api.jobs.exportField(jobId, dir),
+  ),
+  // The split stays a name here so the engine refuses one that can't be browsed by its code.
+  'jobs.tasks': route(z.tuple([id, z.string().min(1)]), TaskListingSchema, (api, [jobId, split]) =>
+    api.jobs.tasks(jobId, browsedSplit(split)),
   ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),
@@ -165,8 +228,17 @@ export const ENGINE_ROUTES = {
   'runs.pause': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.pause(runId)),
   'runs.resume': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.resume(runId)),
   'runs.stop': route(z.tuple([id]), z.void(), (api, [runId]) => api.runs.stop(runId)),
+  'runs.qualifyAdded': route(z.tuple([id, z.string().min(1)]), z.void(), (api, [runId, org]) =>
+    api.runs.qualifyAdded(runId, org),
+  ),
   'runs.retest': route(z.tuple([id, StudentTargetSchema]), z.void(), (api, [runId, target]) =>
     api.runs.retest(runId, target),
+  ),
+  'runs.qualify': route(z.tuple([QualifyRequestSchema]), QualificationSchema, (api, [request]) =>
+    api.runs.qualify(request),
+  ),
+  'runs.qualifications': route(z.tuple([id]), z.array(QualificationSchema), (api, [jobId]) =>
+    api.runs.qualifications(jobId),
   ),
   'runs.get': route(z.tuple([id]), RunDetailSchema, (api, [runId]) => api.runs.get(runId)),
   'runs.list': route(z.tuple([id.nullable()]), z.array(RunSchema), (api, [jobId]) =>
@@ -180,6 +252,16 @@ export const ENGINE_ROUTES = {
     z.tuple([id, z.number().int().positive()]),
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
+  ),
+  'runs.attempts': route(
+    z.tuple([id, AttemptQuerySchema.nullable()]),
+    AttemptPageSchema,
+    (api, [runId, query]) => api.runs.attempts(runId, query ?? undefined),
+  ),
+  'runs.harnessFiles': route(
+    z.tuple([id, versionNumber]),
+    z.array(HarnessFileSchema),
+    (api, [runId, version]) => api.runs.harnessFiles(runId, version),
   ),
   'runs.runtimeMeasurements': route(
     z.tuple([id]),
@@ -344,6 +426,27 @@ export const ENGINE_ROUTES = {
     z.array(FileDiffSchema),
     (api, [from, to]) => api.graduates.harnessDiff(from, to),
   ),
+  'graduates.harnessFiles': route(
+    z.tuple([id, versionNumber]),
+    z.array(HarnessFileSchema),
+    (api, [graduateId, version]) => api.graduates.harnessFiles(graduateId, version),
+  ),
+  'graduates.planCertification': route(
+    z.tuple([CertifyRequestSchema]),
+    CertificationSchema,
+    (api, [request]) => api.graduates.planCertification(request),
+  ),
+  'graduates.startCertification': route(z.tuple([id]), CertificationSchema, (api, [certId]) =>
+    api.graduates.startCertification(certId),
+  ),
+  'graduates.discardCertification': route(z.tuple([id]), z.void(), (api, [certId]) =>
+    api.graduates.discardCertification(certId),
+  ),
+  'graduates.certifications': route(
+    z.tuple([id, versionNumber]),
+    z.array(CertificationSchema),
+    (api, [graduateId, version]) => api.graduates.certifications(graduateId, version),
+  ),
   'graduates.acceptVersion': route(
     z.tuple([id, versionNumber]),
     GraduateVersionSchema,
@@ -403,6 +506,11 @@ export const ENGINE_ROUTES = {
     z.tuple([id, ExportPartRequestSchema]),
     ExportPartResultSchema,
     (api, [graduateId, request]) => api.graduates.exportPart(graduateId, request),
+  ),
+  'graduates.exportEvidence': route(
+    z.tuple([id, EvidenceRequestSchema]),
+    EvidenceResultSchema,
+    (api, [graduateId, request]) => api.graduates.exportEvidence(graduateId, request),
   ),
   'graduates.inspectPackage': route(z.tuple([path]), PackageInspectionSchema, (api, [file]) =>
     api.graduates.inspectPackage(file),
@@ -526,6 +634,7 @@ const ADAPTER_ERROR_CODES: readonly AdapterErrorCode[] = [
   'bad_response',
   'aborted',
   'blocked',
+  'outside_network',
 ];
 
 const HUB_ERROR_CODES: readonly HubErrorCode[] = [

@@ -6,7 +6,14 @@ import {
   runtimeSettingsOf,
   type LocalRuntimeSettings,
 } from '@architect/engine/local-runtime';
-import { DEFAULT_STUDENT, StudentEndpointSchema } from '@architect/shared';
+import {
+  allowedHostsOf,
+  readClosedNetwork,
+  unreadableClosedNetwork,
+  type StoredClosedNetwork,
+  DEFAULT_STUDENT,
+  StudentEndpointSchema,
+} from '@architect/shared';
 import { z } from 'zod';
 
 /**
@@ -30,16 +37,75 @@ const StoredSchema = z.object({
  * default student's Ollama when it is on this computer. A missing or unreadable file means the
  * app's defaults, as when the app starts.
  */
+/** Errors a reader on Windows sees for a moment while the app replaces the file by a rename. */
+const BUSY = new Set(['EPERM', 'EBUSY', 'EACCES']);
+
+function pause(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * The settings file's text: null when there is none, undefined when it is there but couldn't be
+ * read even after a few tries.
+ */
+function settingsText(dataDir: string): string | null | undefined {
+  const file = join(dataDir, 'settings.json');
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return readFileSync(file, 'utf8');
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? '';
+      if (code === 'ENOENT') return null;
+      if (!BUSY.has(code) || attempt >= 4) return undefined;
+      pause(50);
+    }
+  }
+}
+
+interface Stored {
+  settings: z.infer<typeof StoredSchema>;
+  network: StoredClosedNetwork;
+}
+
+function storedSettings(dataDir: string): Stored {
+  const text = settingsText(dataDir);
+  if (text === undefined) {
+    return { settings: StoredSchema.parse({}), network: unreadableClosedNetwork() };
+  }
+  let raw: unknown;
+  try {
+    raw = text === null ? {} : JSON.parse(text);
+  } catch {
+    // A file that isn't JSON: the app's defaults, but a closed network it may hold fails closed.
+    return {
+      settings: StoredSchema.parse({}),
+      network: text?.includes('closedNetwork') === true ? unreadableClosedNetwork() : {},
+    };
+  }
+  const record = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
+  return {
+    settings: StoredSchema.parse(record),
+    network: readClosedNetwork(record['closedNetwork']),
+  };
+}
+
 export function appRuntimeSettings(
   dataDir: string,
   logicalCores: number = cpus().length,
 ): LocalRuntimeSettings {
-  let raw: unknown = {};
-  try {
-    raw = JSON.parse(readFileSync(join(dataDir, 'settings.json'), 'utf8'));
-  } catch {
-    // No settings yet, or a file the app would start from defaults over too.
-  }
-  const settings = StoredSchema.parse(typeof raw === 'object' && raw !== null ? raw : {});
+  const { settings } = storedSettings(dataDir);
   return runtimeSettingsOf(settings, quietThreadCap(settings.quietLocalModels, logicalCores));
+}
+
+/**
+ * The closed network's hosts from the app's settings (decision 098), or undefined while none is
+ * on: a command teaches inside the same walls the app does.
+ */
+export function appAllowedHosts(dataDir: string): string[] | undefined {
+  return allowedHostsOf(storedSettings(dataDir).network.network);
+}
+
+/** What couldn't be read of the app's closed network, which then stays on (decision 098). */
+export function appClosedNetworkProblem(dataDir: string): string | undefined {
+  return storedSettings(dataDir).network.problem;
 }

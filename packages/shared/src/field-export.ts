@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { CheckOutcomeSchema } from './checker';
+import { StudentEndpointSchema } from './job';
 import { JsonValueSchema } from './json';
+import { loopbackEndpointIssue } from './net';
+import { ScoreSchema } from './lineage';
 
 /** The format of a field export's `MANIFEST.json` (docs/SCALE.md, the contract). */
 export const FIELD_EXPORT_FORMAT = 'architect.field-export/1';
@@ -96,6 +99,23 @@ export const FieldFileSchema = z.object({
 export type FieldFile = z.infer<typeof FieldFileSchema>;
 
 /**
+ * A frozen version's locked test on an organization sealed after its job was made (decision
+ * 085): queued or running, paused with the reason, or finished with its score there.
+ */
+export const AddedQualificationSchema = z.object({
+  runId: z.string(),
+  /** The organization, by the name the person gave it. */
+  org: z.string(),
+  status: z.enum(['testing', 'paused', 'finished']),
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+  /** Every task there, all skills together, once finished. */
+  score: ScoreSchema.optional(),
+});
+export type AddedQualification = z.infer<typeof AddedQualificationSchema>;
+
+/**
  * What a field is made of, for the person's own page (the app, never a mentor): the
  * organizations it trains on with their files, and the sealed ones by name and kind with how
  * many files each holds, never which. A job without organizations has one entry, its `data/`,
@@ -117,9 +137,83 @@ export const FieldViewSchema = z.object({
       name: z.string(),
       synthetic: z.boolean(),
       files: z.number().int().nonnegative(),
+      /** Sealed after the job was made, beside its seal (decision 085). */
+      addedLater: z.literal(true).optional(),
+      /**
+       * Taught on since in a later version of the job (decision 089). It stays sealed here, so
+       * what this version measured on it stays as it was.
+       */
+      taughtIn: z.object({ jobId: z.string(), name: z.string() }).optional(),
+      /** A fresh cohort of the taught organization of this name, not one of its own (089). */
+      cohortOf: z.string().optional(),
     }),
   ),
+  /**
+   * Set on a later version of a field: the field it came from and this one's version number, with
+   * why it was made. Teaching on one of its never-seen organizations names the organization moved
+   * (decision 089); moving it to another model names both models by their short names and the
+   * version whose harness it carried, when one did (decision 095).
+   */
+  versionOf: z
+    .object({
+      jobId: z.string(),
+      name: z.string(),
+      version: z.number().int().min(2),
+      org: z.string().optional(),
+      model: z
+        .object({
+          from: z.string(),
+          to: z.string(),
+          carried: z
+            .object({ graduateId: z.string(), version: z.number().int().positive() })
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  /** The version made from this one, once there is one, and the model it moved to, if it did. */
+  nextVersion: z
+    .object({ jobId: z.string(), name: z.string(), model: z.string().optional() })
+    .optional(),
   /** Tasks in the locked test; null before the job's test split is sealed. */
   lockedTestTasks: z.number().int().nonnegative().nullable(),
+  /** Each frozen version's test on an organization added later, by run and organization name. */
+  qualifications: z.array(AddedQualificationSchema).optional(),
 });
 export type FieldView = z.infer<typeof FieldViewSchema>;
+
+/**
+ * A never-seen organization added to a field after it was made (decision 085): the folder that
+ * holds its records (and its tasks, as `tasks.jsonl`, unless the job was drafted), its name, and
+ * whether its records were generated.
+ */
+export const AddOrganizationRequestSchema = z
+  .object({
+    folder: z.string().min(1),
+    name: z.string().trim().min(1).max(60),
+    synthetic: z.boolean(),
+    /** A fresh cohort: new work of the taught organization of this name (decision 089). */
+    cohortOf: z.string().trim().min(1).max(60).optional(),
+  })
+  .strict();
+export type AddOrganizationRequest = z.infer<typeof AddOrganizationRequestSchema>;
+
+/**
+ * Carries a field to another model in its next version (decision 095): the model the agent runs
+ * on here, chosen from the models connected, its short name, and the version whose harness it
+ * starts from, else the newest version of the field an agent holds.
+ */
+export const MoveToModelRequestSchema = z
+  .object({
+    student: StudentEndpointSchema.superRefine((endpoint, context) => {
+      const issue = loopbackEndpointIssue(endpoint.baseUrl);
+      if (issue !== null) context.addIssue({ code: 'custom', path: ['baseUrl'], message: issue });
+    }),
+    label: z.string().trim().min(1).max(60),
+    from: z
+      .object({ graduateId: z.string().min(1), version: z.number().int().positive() })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type MoveToModelRequest = z.infer<typeof MoveToModelRequestSchema>;

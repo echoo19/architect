@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  CERT,
+  CERT_ROWS,
   FIELD_ARMS,
   FIELD_PAIRS,
   FIELD_TEST_SIZE,
@@ -16,6 +18,8 @@ import {
   SKILL_ROWS,
   SOURCES,
   TEST_SIZE,
+  THIRD_ROWS,
+  THIRD_TEST_SIZE,
 } from '../src/evidence';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -63,7 +67,11 @@ describe('the results page', () => {
         const key = GROUPS[index]?.short;
         const rows = SKILL_ROWS.filter((row) => row.group === key);
         const field =
-          arm.name === 'Phil' ? 'phil' : arm.name.startsWith('Glimmer') ? 'bare' : 'draft';
+          arm.name === 'Academy desk'
+            ? 'academyDesk'
+            : arm.name.startsWith('Glimmer')
+              ? 'bare'
+              : 'draft';
         expect(rows.reduce((sum, row) => sum + row[field], 0)).toBe(group.passed);
         expect(rows.reduce((sum, row) => sum + row.of, 0)).toBe(GROUPS[index]?.n);
         expect(group.low).toBeLessThanOrEqual((group.passed / (GROUPS[index]?.n ?? 1)) * 100);
@@ -79,8 +87,11 @@ describe('the results page', () => {
   });
 
   it('adds up the local run and gives the report its numbers', () => {
-    const report = readFileSync(join(ROOT, 'docs', 'comparisons', 'phil-1-local.md'), 'utf8');
-    const phil = FIELD_ARMS.find((each) => each.name === 'Phil');
+    const report = readFileSync(
+      join(ROOT, 'docs', 'comparisons', 'academy-desk-1-local.md'),
+      'utf8',
+    );
+    const academyDesk = FIELD_ARMS.find((each) => each.name === 'Academy desk');
     for (const row of LOCAL_ROWS) {
       expect(row.wins + row.losses).toBeLessThanOrEqual(row.n);
       expect(((row.wins - row.losses) / row.n) * 100).toBeCloseTo(row.diff, 0);
@@ -89,7 +100,7 @@ describe('the results page', () => {
       expect(report).toContain(`${row.local}/${row.n}`);
       expect(report).toContain(`${row.hosted}/${row.n}`);
       const index = GROUPS.findIndex((group) => group.short === row.group);
-      const hosted = index < 0 ? phil?.all.passed : phil?.groups[index]?.passed;
+      const hosted = index < 0 ? academyDesk?.all.passed : academyDesk?.groups[index]?.passed;
       expect(row.hosted).toBe(hosted);
     }
     expect(LOCAL_ROWS.slice(0, 3).reduce((sum, row) => sum + row.local, 0)).toBe(
@@ -101,6 +112,46 @@ describe('the results page', () => {
     expect(report).toContain(
       `over ${LOCAL_SPEED.slowestLocal} s locally and ${LOCAL_SPEED.slowestHosted} s hosted`,
     );
+  });
+
+  it('adds up the third run and gives the report its numbers', () => {
+    const report = readFileSync(join(ROOT, 'docs', 'comparisons', 'academy-desk-3.md'), 'utf8');
+    const groups = THIRD_ROWS.filter((row) => row.group !== 'all');
+    const all = THIRD_ROWS.find((row) => row.group === 'all');
+    expect(groups.reduce((sum, row) => sum + row.n, 0)).toBe(THIRD_TEST_SIZE);
+    expect(all?.n).toBe(THIRD_TEST_SIZE);
+    for (const key of ['bare', 'academyDesk'] as const) {
+      expect(groups.reduce((sum, row) => sum + row[key].passed, 0)).toBe(all?.[key].passed);
+    }
+    for (const row of THIRD_ROWS) {
+      expect(row.wins + row.losses + row.both + row.neither).toBe(row.n);
+      expect(row.both + row.losses).toBe(row.bare.passed);
+      expect(row.both + row.wins).toBe(row.academyDesk.passed);
+      expect(((row.wins - row.losses) / row.n) * 100).toBeCloseTo(row.diff, 0);
+      expect(row.low).toBeLessThan(row.diff);
+      expect(row.high).toBeGreaterThan(row.diff);
+      expect(report).toContain(`${row.wins} / ${row.losses}`);
+      expect(report).toContain(`${row.both} / ${row.neither}`);
+    }
+  });
+
+  it('adds up the certificate run and gives the report its numbers', () => {
+    const report = readFileSync(
+      join(ROOT, 'docs', 'comparisons', 'academy-desk-cert-1.md'),
+      'utf8',
+    );
+    for (const row of CERT_ROWS) {
+      expect(row.wrong).toBeLessThanOrEqual(row.answered);
+      expect(row.answered).toBeLessThanOrEqual(CERT.calibration);
+      expect(row.handedOff).toBe(Math.round((1 - row.answered / CERT.calibration) * 100));
+      expect(row.bound).toBeGreaterThan(CERT.target);
+      expect(row.realWrong).toBeLessThanOrEqual(row.realAnswered);
+      expect(row.realAnswered).toBeLessThanOrEqual(CERT.checkTasks);
+      expect(report).toContain(
+        `| ${row.answered} | ${row.wrong} | ${100 - row.handedOff}% | ${row.handedOff}% | ${row.bound.toFixed(1)}% |`,
+      );
+    }
+    expect(report).toContain(`$${CERT.usd.toFixed(2)}`);
   });
 
   it('cites documents that exist', () => {

@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { AdapterError } from '@architect/shared';
+import { AdapterError, capToFund, fundingMessage } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONFIG,
@@ -84,6 +84,39 @@ function paidFor(world: ComparisonWorld) {
 /** The hosted student's spending as the request journal holds it. */
 function journalTotal(world: ComparisonWorld, cap = 1_000): number {
   return new StudentCredit(join(world.out, 'requests.jsonl'), cap, systemClock).total();
+}
+
+/** Locked-test attempts stored for any arm: none may exist before the release. */
+function lockedAttempts(world: ComparisonWorld): number {
+  const store = openEngineStore(new DataPaths(join(world.out, 'data')).database);
+  try {
+    return store.runs
+      .list()
+      .reduce(
+        (sum, run) =>
+          sum + store.attempts.list({ runId: run.run.id }).filter((a) => a.split === 'test').length,
+        0,
+      );
+  } finally {
+    store.close();
+  }
+}
+
+/**
+ * The second halt of a real comparison (decision 081): bare and draft cost half as much again as
+ * calibration priced, so once they froze, the targeted arm no longer fits the cap at the measured
+ * price. Returns the paused comparison.
+ */
+async function pausedForTargeted() {
+  const { world, request } = setUp();
+  world.runtime.beforeAttempt = () => {
+    if (new ComparisonFiles(world.out).readSweep('calibration').length === 15) {
+      world.runtime.costScale = 1.5;
+    }
+  };
+  const asked = asking(request, { caps: { ...CONFIG.caps, studentUsd: 11.5 } });
+  const paused = await runComparison(asked, world.env);
+  return { world, asked, paused };
 }
 
 /** A copy of a job folder in the world's own folder, to change without touching the repo's. */
@@ -170,39 +203,6 @@ describe('the comparisons runner', () => {
     ).rejects.toThrow("This folder's plan was confirmed with other settings (headroom)");
   }, 300_000);
 
-  it("keeps a fixed-size arm whole when prices drift, and drops later arms in 037's order", async () => {
-    const { world, request } = setUp();
-    // Every attempt after calibration reads and writes half as much again.
-    world.runtime.beforeAttempt = () => {
-      if (new ComparisonFiles(world.out).readSweep('calibration').length === 15) {
-        world.runtime.costScale = 1.5;
-      }
-    };
-    const cap = 11.5;
-    const { outcome, report } = await runComparison(
-      asking(request, { caps: { ...CONFIG.caps, studentUsd: cap } }),
-      world.env,
-    );
-    expect(outcome).toBe('finished');
-    const arm = (id: string) => report.arms.find((item) => item.arm === id);
-    // Bare and draft cost more than their caps foresaw, and still took their locked tests whole.
-    expect(arm('bare')).toMatchObject({ status: 'complete' });
-    expect(arm('bare')?.spent.studentUsd ?? 0).toBeGreaterThan(arm('bare')?.caps.studentUsd ?? 0);
-    expect(arm('draft')).toMatchObject({ status: 'complete' });
-    const hosted = report.backends.find((table) => table.backend === 'hosted');
-    expect(hosted?.rows.map((row) => [row.arm, row.scenarios.total, row.complete])).toEqual([
-      ['bare', 60, true],
-      ['draft', 60, true],
-    ]);
-    // At what attempts cost by then, the credit held for arms 1 and 2 left too little for arm 3.
-    expect(arm('targeted')?.status).toBe('not_run');
-    expect(arm('targeted')?.reason).toMatch(
-      /^At what an attempt has cost so far \(\$0\.0149\), it needs \$\d+\.\d\d of the hosted student's budget/,
-    );
-    expect(arm('repeat')?.status).toBe('complete');
-    expect(journalTotal(world)).toBeLessThanOrEqual(cap);
-  }, 300_000);
-
   it("pays for repeats only while the credit lasts, priced at what each arm's test cost", async () => {
     const { world, request } = setUp();
     // Locked tests and repeats read and write three times what calibration did.
@@ -219,7 +219,7 @@ describe('the comparisons runner', () => {
     expect(arm('targeted')?.status).toBe('not_run');
     expect(arm('repeat')).toMatchObject({
       status: 'stopped',
-      reason: "The hosted student's budget left didn't pay to run the one-shot draft again.",
+      reason: "Hosted Glimmer's budget left didn't pay to run the one-shot draft again.",
     });
     const hosted = report.backends.find((table) => table.backend === 'hosted');
     expect(hosted?.repeats.map((row) => row.arm)).toEqual(['bare']);
@@ -385,29 +385,148 @@ describe('before anything resumes (decision 051)', () => {
   }, 300_000);
 });
 
+describe('an arm the money no longer pays for (decision 081)', () => {
+  it('pauses before any final test is released, dropping nothing and releasing nothing', async () => {
+    const { world, asked, paused } = await pausedForTargeted();
+    expect(paused.outcome).toBe('needs_funding');
+    const plan = new ComparisonFiles(world.out).readPlan();
+    expect(plan?.releasedAt).toBeNull();
+    expect(plan?.decisions).toEqual([]);
+    expect(plan?.funding).toMatchObject({ arm: 'targeted', stage: 'start', capUsd: 11.5 });
+    const pause = plan?.funding;
+    if (pause === null || pause === undefined) throw new Error('No pause was recorded.');
+    expect(pause.priceUsd).toBeCloseTo(0.0149, 4);
+    expect(pause.needUsd).toBeGreaterThan(pause.leftUsd);
+    expect(paused.report.plan.funding).toEqual(pause);
+    expect(fundingMessage(pause)).toMatch(
+      /^Targeted mentoring can't be paid for at what an attempt has really cost \(\$0\.0149\): it needs \$\d+\.\d\d of hosted Glimmer's budget, and \$\d+\.\d\d is left under the \$11\.50 cap\./,
+    );
+    // Bare and draft froze and stay held; the targeted arm never started.
+    const arm = (id: string) => paused.report.arms.find((item) => item.arm === id);
+    expect(arm('bare')?.status).toBe('incomplete');
+    expect(arm('draft')?.status).toBe('incomplete');
+    expect(arm('targeted')?.runId).toBeNull();
+    expect(lockedAttempts(world)).toBe(0);
+    expect(journalTotal(world)).toBeLessThanOrEqual(11.5);
+
+    // Run again without an answer: it prices again, pauses again, and still releases nothing.
+    const before = paidFor(world);
+    const again = await runComparison(asked, world.env);
+    expect(again.outcome).toBe('needs_funding');
+    expect(paidFor(world)).toEqual(before);
+    expect(lockedAttempts(world)).toBe(0);
+  }, 300_000);
+
+  it('goes on once the person raises the cap, recorded as an amendment, and holds the new cap', async () => {
+    const { world, asked, paused } = await pausedForTargeted();
+    expect(paused.outcome).toBe('needs_funding');
+    const pause = paused.report.plan.funding;
+    if (pause === null) throw new Error('No pause was recorded.');
+    const raised = capToFund(pause) + 3;
+    const { outcome, report } = await runComparison({ ...asked, studentCapUsd: raised }, world.env);
+    expect(outcome).toBe('finished');
+    const plan = new ComparisonFiles(world.out).readPlan();
+    expect(plan?.caps.studentUsd).toBe(raised);
+    expect(plan?.funding).toBeNull();
+    expect(plan?.amendments).toEqual([
+      expect.objectContaining({
+        arm: 'targeted',
+        fromUsd: 11.5,
+        toUsd: raised,
+        priceUsd: pause.priceUsd,
+      }),
+    ]);
+    expect(plan?.amendments[0]?.armToUsd ?? 0).toBeGreaterThanOrEqual(pause.needUsd - 1e-9);
+    expect(report.arms.find((arm) => arm.arm === 'targeted')?.status).toBe('complete');
+    expect(report.disclosures.some((line) => line.includes('cap was raised from $11.50'))).toBe(
+      true,
+    );
+    expect(journalTotal(world)).toBeLessThanOrEqual(raised);
+    // Once released, the cap can't change.
+    await expect(runComparison({ ...asked, studentCapUsd: raised + 5 }, world.env)).rejects.toThrow(
+      /Glimmer's cap can't change/,
+    );
+  }, 300_000);
+
+  it('releases once the person drops the arm, with the drop recorded as theirs', async () => {
+    const { world, asked, paused } = await pausedForTargeted();
+    expect(paused.outcome).toBe('needs_funding');
+    const { outcome, report } = await runComparison(
+      { ...asked, dropArms: ['targeted'] },
+      world.env,
+    );
+    expect(outcome).toBe('finished');
+    const plan = new ComparisonFiles(world.out).readPlan();
+    expect(plan?.releasedAt).not.toBeNull();
+    expect(plan?.caps.studentUsd).toBe(11.5);
+    expect(plan?.decisions).toEqual([
+      expect.objectContaining({ arm: 'targeted', kind: 'dropped', by: 'person' }),
+    ]);
+    const targeted = report.arms.find((arm) => arm.arm === 'targeted');
+    expect(targeted?.status).toBe('not_run');
+    expect(targeted?.reason).toMatch(/^You dropped it before any final test was released/);
+    const hosted = report.backends.find((table) => table.backend === 'hosted');
+    expect(hosted?.rows.map((row) => [row.arm, row.complete])).toEqual([
+      ['bare', true],
+      ['draft', true],
+    ]);
+    expect(journalTotal(world)).toBeLessThanOrEqual(11.5);
+  }, 300_000);
+});
+
+describe('a final test the money no longer pays for (decision 081)', () => {
+  it('waits before the release instead of holding the test, and goes on once the cap is raised', async () => {
+    const { world, request } = setUp();
+    // The bare arm's attempts cost twice what calibration priced, so its test no longer fits.
+    world.runtime.beforeAttempt = () => {
+      if (new ComparisonFiles(world.out).readSweep('calibration').length === 15) {
+        world.runtime.costScale = 2;
+      }
+    };
+    const asked = asking(request, { arms: ['bare'], caps: { ...CONFIG.caps, studentUsd: 2 } });
+    const paused = await runComparison(asked, world.env);
+    expect(paused.outcome).toBe('needs_funding');
+    const pause = paused.report.plan.funding;
+    expect(pause).toMatchObject({ arm: 'bare', stage: 'test', capUsd: 2 });
+    if (pause === null) throw new Error('No pause was recorded.');
+    expect(paused.report.plan.releasedAt).toBeNull();
+    expect(lockedAttempts(world)).toBe(0);
+
+    const raised = capToFund(pause);
+    const { outcome, report } = await runComparison({ ...asked, studentCapUsd: raised }, world.env);
+    expect(outcome).toBe('finished');
+    expect(report.arms[0]?.status).toBe('complete');
+    expect(report.plan.amendments).toEqual([
+      expect.objectContaining({ arm: 'bare', fromUsd: 2, toUsd: raised, armToUsd: null }),
+    ]);
+    expect(journalTotal(world)).toBeLessThanOrEqual(raised);
+  }, 300_000);
+});
+
 describe('the test-release barrier (decision 051)', () => {
   it('never starts an arm it dropped, though the credit has room for it once others finish', async () => {
     const { world, request } = setUp();
-    // Every attempt after calibration costs half as much again, so the fixed arm is dropped.
+    // Every attempt after calibration costs half as much again, so the fixed arm no longer fits.
     world.runtime.beforeAttempt = () => {
       if (new ComparisonFiles(world.out).readSweep('calibration').length === 15) {
         world.runtime.costScale = 1.5;
       }
     };
-    const dropping = asking(request, {
+    const asked = asking(request, {
       arms: ['bare', 'draft', 'targeted', 'fixed'],
       caps: { ...CONFIG.caps, studentUsd: 20, sparkUsd: 16 },
     });
+    const paused = await runComparison(asked, world.env);
+    // Funded by the plan, then short while the targeted arm still held its share: it waits.
+    expect(paused.outcome).toBe('needs_funding');
+    expect(paused.report.projection?.arms.find((arm) => arm.arm === 'fixed')?.funded).toBe(true);
+    expect(paused.report.plan.funding?.arm).toBe('fixed');
+    const dropping = { ...asked, dropArms: ['fixed'] as const };
     const first = await runComparison(dropping, world.env);
     expect(first.outcome).toBe('finished');
-    // Funded by the plan, then dropped while the targeted arm still held its share.
-    expect(first.report.projection?.arms.find((arm) => arm.arm === 'fixed')?.funded).toBe(true);
     expect(first.report.arms.find((arm) => arm.arm === 'fixed')).toMatchObject({
       status: 'not_run',
     });
-    expect(first.report.arms.find((arm) => arm.arm === 'fixed')?.reason).toMatch(
-      /^At what an attempt has cost so far \(\$\d+\.\d+\), it needs \$\d+\.\d\d of the hosted student's budget/,
-    );
     expect(first.report.plan.releasedAt).not.toBeNull();
     const before = paidFor(world);
     const again = await runComparison(dropping, world.env);
@@ -450,7 +569,7 @@ describe('the test-release barrier (decision 051)', () => {
       reopened.close();
     }
     expect(again.report.arms.find((arm) => arm.arm === 'draft')?.reason).toMatch(
-      /still developing when the first locked result was released/,
+      /still developing when the first final-test result was released/,
     );
   }, 300_000);
 });
@@ -477,7 +596,7 @@ describe("the student's credit (decision 051)", () => {
       12,
     );
     expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain(
-      "**The hosted student, uncertain: $0.7500.** The journal's 1 request that a crash or a failure cut off, whose charge is not known, counted at the most it could have cost.",
+      "**Hosted Glimmer, uncertain: $0.7500.** The journal's 1 request that a crash or a failure cut off, whose charge is not known, counted at the most it could have cost.",
     );
   }, 300_000);
 
@@ -543,7 +662,7 @@ describe('the GPU window (decision 051)', () => {
     });
     // The first run stops just after the release, before the local re-test.
     world.env.log = (line) => {
-      if (/locked tests? (is|are) released/.test(line)) throw new Error('Closed after release.');
+      if (/final tests? (is|are) released/.test(line)) throw new Error('Closed after release.');
     };
     await expect(runComparison(local, world.env)).rejects.toThrow('Closed after release.');
     world.env.log = () => undefined;
@@ -601,7 +720,7 @@ describe('what the report claims (decision 051)', () => {
     expect(weights?.notes.join(' ')).toMatch(/ended failed: The recipe stopped/);
     expect(weights?.notes.join(' ')).toMatch(/pilot recipe/);
     expect(report.disclosures).toContain(
-      'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: no adapter a real training job made took the locked test.',
+      'Harness-only graduate. Remote QLoRA training and adapter loading are built; real end-to-end training is not validated. A01 is not met: no adapter a real training job made took the final test.',
     );
     expect(report.disclosures.join(' ')).not.toContain('Adapters trained against NF4');
   }, 300_000);
@@ -620,17 +739,17 @@ describe('what the report claims (decision 051)', () => {
     ]);
     const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
     expect(markdown).toContain(
-      'Seed 101 ran for Bare student, One-shot draft and Targeted mentoring.',
+      'Seed 101 ran for Glimmer alone, One-shot draft and Targeted mentoring.',
     );
     expect(markdown).toContain(
       'Seed 102 was declared for the decoding repeat and was not run, so no result in this report is under it.',
     );
     expect(report.disclosures).toContain(
-      'Every arm ran with one mentoring seed (1). The locked test ran under seed 101. Seed 102 was declared for a decoding repeat that was not run, so no result here is under it.',
+      'Every arm ran with one mentoring seed (1). The final test ran under seed 101. Seed 102 was declared for a decoding repeat that was not run, so no result here is under it.',
     );
     // What the plan never asked for is said to be not run.
     expect(markdown).toContain(
-      'Not in this comparison, so not run: Spark reference, blank harness; Spark reference, targeted harness; Decoding repeat; Fixed intervention; One-shot adapter; Failure-specific adapter; and the runtime regression check.',
+      'Not in this comparison, so not run: Spark reference, blank harness; Spark reference, targeted harness; Teacher alone; Decoding repeat; Fixed intervention; One-shot adapter; Failure-specific adapter; and the runtime regression check.',
     );
     // No adapter arm ran: no protocol, and one plain statement instead.
     expect(markdown).not.toContain('Adapter protocol');
@@ -642,9 +761,9 @@ describe('what the report claims (decision 051)', () => {
     // this world its dev tasks reached the target after the first.
     const targeted = report.arms.find((arm) => arm.arm === 'targeted');
     expect(targeted?.caps.rounds).toBe(2);
-    expect(targeted?.rounds).toEqual({ used: 1, ended: 'done, the dev target was reached' });
+    expect(targeted?.rounds).toEqual({ used: 1, ended: 'done, the check-task target was reached' });
     expect(markdown).toContain(
-      '| Targeted mentoring | complete | 1 of 2, done, the dev target was reached |',
+      '| Targeted mentoring | complete | 1 of 2, done, the check-task target was reached |',
     );
   }, 300_000);
 
@@ -684,6 +803,6 @@ describe('what the report claims (decision 051)', () => {
     expect(row).toMatchObject({ complete: false });
     expect(row?.seeds.map((seed) => seed.score.total)).toEqual([60, 20]);
     expect(report.arms.find((arm) => arm.arm === 'repeat')?.status).toBe('incomplete');
-    expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain('Bare student (partial)');
+    expect(readFileSync(join(world.out, 'report.md'), 'utf8')).toContain('Glimmer alone (partial)');
   }, 300_000);
 });

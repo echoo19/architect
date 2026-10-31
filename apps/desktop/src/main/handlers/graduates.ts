@@ -2,6 +2,7 @@ import { HubError } from '@architect/engine';
 import {
   BindRequestSchema,
   CodedError,
+  EvidenceRequestSchema,
   ExportPartRequestSchema,
   ExportRequestSchema,
   HubInstallRequestSchema,
@@ -100,6 +101,15 @@ export function registerGraduateHandlers(
       history: (graduateId) => call((api) => api.graduates.history(graduateId)),
       report: (graduateId, number) => call((api) => api.graduates.report(graduateId, number)),
       harnessDiff: (from, to) => call((api) => api.graduates.harnessDiff(from, to)),
+      harnessFiles: (graduateId, number) =>
+        call((api) => api.graduates.harnessFiles(graduateId, number)),
+      planCertification: (request) => call((api) => api.graduates.planCertification(request)),
+      startCertification: (certificationId) =>
+        call((api) => api.graduates.startCertification(certificationId)),
+      discardCertification: (certificationId) =>
+        call((api) => api.graduates.discardCertification(certificationId)),
+      certifications: (graduateId, version) =>
+        call((api) => api.graduates.certifications(graduateId, version)),
       acceptVersion: (graduateId, number) =>
         call((api) => api.graduates.acceptVersion(graduateId, number)),
       rejectVersion: (graduateId, number) =>
@@ -143,6 +153,10 @@ export function registerGraduateHandlers(
       exportPart: (graduateId, request) => {
         const directory = picked.check(request.directory);
         return call((api) => api.graduates.exportPart(graduateId, { ...request, directory }));
+      },
+      exportEvidence: (graduateId, request) => {
+        const directory = picked.check(request.directory);
+        return call((api) => api.graduates.exportEvidence(graduateId, { ...request, directory }));
       },
       inspectPackage: (path) => {
         const chosen = picked.check(path);
@@ -198,6 +212,7 @@ export function registerGraduateHandlers(
     {
       report: z.union([z.tuple([text]), z.tuple([text, version])]),
       harnessDiff: z.tuple([VersionPickSchema, VersionPickSchema]),
+      harnessFiles: z.tuple([text, version]),
       acceptVersion: z.tuple([text, version]),
       rejectVersion: z.tuple([text, version]),
       promote: z.tuple([text, version]),
@@ -207,6 +222,7 @@ export function registerGraduateHandlers(
       exportPackage: z.tuple([text, ExportRequestSchema]),
       exportFolder: z.tuple([text, text]),
       exportPart: z.tuple([text, ExportPartRequestSchema]),
+      exportEvidence: z.tuple([text, EvidenceRequestSchema]),
       inspectPackage: z.tuple([text]),
       previewImport: z.tuple([text]),
       importPackage: z.union([z.tuple([text]), z.tuple([text, ImportRequestSchema])]),

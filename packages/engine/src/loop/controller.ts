@@ -5,10 +5,13 @@ import {
   emptyTotals,
   GuardError,
   newId,
+  QualifyRequestSchema,
   type ImprovementStart,
   type ImproveOptions,
   type Job,
   type Method,
+  type Qualification,
+  type QualifyRequest,
   type ReferenceRecord,
   type Run,
   type RunEvent,
@@ -21,6 +24,7 @@ import { improvementNote, improvementPlan, returnLessons } from '../improve/impr
 import type { EngineStore } from '../store/engine-store';
 import type { RunProtocol, StoredRun } from '../store/records';
 import { configurationKey } from './configuration';
+import { recordingContacts } from './contacts';
 import { systemClock, type Clock, type LoopDeps } from './deps';
 import type { SessionOutcome } from './driver';
 import { errorMessage, must } from './errors';
@@ -30,6 +34,9 @@ import type { DataPaths } from './paths';
 import { isTerminal } from './plan';
 import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } from './reference';
 import { RepeatSession, repeatRefusal } from './repeat';
+import { CertifySession } from './posthoc';
+import { AddedQualifySession, addedQualifyRefusal } from './qualify-added';
+import { newQualification, QualifySession, qualificationView } from './qualify';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -85,7 +92,10 @@ type Turn =
   | { kind: 'run'; runId: string }
   | { kind: 'retest'; runId: string; target: StudentTarget }
   | { kind: 'repeat'; runId: string; target: StudentTarget }
-  | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] };
+  | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] }
+  | { kind: 'certify'; runId: string; certificationId: string }
+  | { kind: 'qualify_added'; runId: string; orgId: string }
+  | { kind: 'qualify'; runId: string; qualificationId: string };
 
 /** A re-test's, a repeat's or a reference's key among the sessions holding a turn. */
 function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
@@ -96,6 +106,12 @@ function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
       return `${turn.runId}/repeat/${turn.target}`;
     case 'reference':
       return `${turn.runId}/reference/${turn.split}`;
+    case 'certify':
+      return `${turn.runId}/certify/${turn.certificationId}`;
+    case 'qualify_added':
+      return `${turn.runId}/qualify-added/${turn.orgId}`;
+    case 'qualify':
+      return `${turn.runId}/qualify/${turn.qualificationId}`;
   }
 }
 
@@ -393,6 +409,46 @@ export class RunController {
   }
 
   /**
+   * Queues a finished run's frozen version for its locked test on an organization sealed after
+   * its job was made, named as the person named it (decision 085). It never changes the run, and
+   * its results join the report's organizations. Asking again only resumes one an error paused.
+   */
+  async qualifyAdded(runId: string, orgName: string): Promise<void> {
+    const record = this.get(runId);
+    const refusal = addedQualifyRefusal(record);
+    if (refusal !== null) throw new Error(refusal);
+    const { store, deps } = this.options;
+    const org = (await deps.vault.addedOrganizations(record.run.jobId)).find(
+      (item) => item.name === orgName,
+    );
+    if (org === undefined) {
+      throw new Error(`No organization called ${orgName} was added to this run's field.`);
+    }
+    const turn: Turn = { kind: 'qualify_added', runId, orgId: org.id };
+    const existing = store.addedQualifications.get(runId, org.id);
+    if (existing?.status === 'finished') {
+      throw new Error(`This run's version was already qualified at ${orgName}.`);
+    }
+    if (existing?.status === 'testing' && this.isScheduled(turn)) {
+      throw new Error(`This run's version is already being qualified at ${orgName}.`);
+    }
+    if (existing === null) {
+      store.addedQualifications.insert({
+        runId,
+        orgId: org.id,
+        orgName: org.name,
+        seq: store.addedQualifications.list(runId).length + 1,
+        status: 'testing',
+        startedAt: isoNow(this.clock),
+      });
+    } else if (existing.status === 'paused') {
+      const { error: _error, ...rest } = existing;
+      store.addedQualifications.update({ ...rest, status: 'testing' });
+    }
+    this.schedule(turn);
+  }
+
+  /**
    * Lifts a run's hold on its locked test (decision 045). A comparison releases its arms only
    * once every one of them is frozen, so no locked result exists while any arm still learns.
    * A run held and parked is queued again; one not frozen yet takes its test once it is.
@@ -451,6 +507,59 @@ export class RunController {
     this.schedule(turn);
   }
 
+  /**
+   * Queues a planned certification of a frozen version, or resumes a paused one (decision 079).
+   * It holds the student like a re-test, and never changes the run.
+   */
+  certify(certificationId: string): void {
+    const { store } = this.options;
+    const stored = store.certifications.get(certificationId);
+    if (stored === null) throw new Error(`There is no certification "${certificationId}".`);
+    if (stored.status === 'finished') throw new Error('This certification has finished.');
+    const turn: Turn = { kind: 'certify', runId: stored.runId, certificationId };
+    if (stored.status === 'certifying' && this.isScheduled(turn)) {
+      throw new Error('This version is already being certified.');
+    }
+    if (stored.status !== 'certifying') {
+      store.certifications.update({ ...stored, status: 'certifying', error: undefined });
+    }
+    this.schedule(turn);
+  }
+
+  /**
+   * Queues a trained model's qualification on a finished run's frozen harness (decision 086), or
+   * resumes the paused one for the same model at the same address. It holds the student like a
+   * re-test, costs nothing, and never changes the run.
+   */
+  qualify(request: QualifyRequest): Qualification {
+    const { store } = this.options;
+    const record = this.get(request.runId);
+    const { endpoint } = QualifyRequestSchema.parse(request);
+    const resumable = store.qualifications
+      .ofJob(record.run.jobId)
+      .find(
+        (item) =>
+          item.runId === record.run.id &&
+          item.model === endpoint.model &&
+          item.baseUrl === endpoint.baseUrl &&
+          item.status !== 'finished',
+      );
+    let stored =
+      resumable ?? newQualification(record, { ...request, endpoint }, isoNow(this.clock));
+    const turn: Turn = { kind: 'qualify', runId: stored.runId, qualificationId: stored.id };
+    if (resumable === undefined) {
+      store.qualifications.insert(stored);
+    } else if (this.isScheduled(turn)) {
+      throw new Error(`${endpoint.model} is already being qualified on this run's harness.`);
+    } else {
+      const { error: _error, ...rest } = resumable;
+      stored = { ...rest, status: 'testing', contextLength: endpoint.contextLength };
+      store.qualifications.update(stored);
+    }
+    this.schedule(turn);
+    return qualificationView(stored);
+  }
+
   /** On startup: runs and re-tests that were active when the app closed resume where they were. */
   recover(): void {
     const { store } = this.options;
@@ -469,6 +578,18 @@ export class RunController {
     }
     for (const { runId, split } of store.references.withStatus('running')) {
       const turn: Turn = { kind: 'reference', runId, split };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, id } of store.certifications.withStatus('certifying')) {
+      const turn: Turn = { kind: 'certify', runId, certificationId: id };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, orgId } of store.addedQualifications.withStatus('testing')) {
+      const turn: Turn = { kind: 'qualify_added', runId, orgId };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, id } of store.qualifications.withStatus('testing')) {
+      const turn: Turn = { kind: 'qualify', runId, qualificationId: id };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     this.pump();
@@ -623,7 +744,10 @@ export class RunController {
       store,
       paths,
       jobs,
-      deps,
+      // Every host the run's adapters reach is recorded with the run (decision 098).
+      deps: recordingContacts(deps, (host, inside) =>
+        store.runs.recordContact(runId, host, inside),
+      ),
       clock: this.clock,
       concurrency: this.concurrency,
       libraryLock: this.libraryLock,
@@ -655,7 +779,13 @@ export class RunController {
         ? new RetestSession(context, turn.target)
         : turn.kind === 'repeat'
           ? new RepeatSession(context, turn.target)
-          : new ReferenceSession(context, turn.split);
+          : turn.kind === 'certify'
+            ? new CertifySession(context, turn.certificationId)
+            : turn.kind === 'qualify_added'
+              ? new AddedQualifySession(context, turn.orgId)
+              : turn.kind === 'qualify'
+                ? new QualifySession(context, turn.qualificationId)
+                : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))

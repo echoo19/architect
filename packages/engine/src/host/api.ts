@@ -1,13 +1,21 @@
 import {
+  ATTEMPT_PAGE_SIZE,
   AttemptSchema,
+  browsedSplit,
   CodedError,
   GraduateSettingsSchema,
   JobSchema,
   TraceSchema,
+  trainOrganizations,
+  type AttemptPage,
+  type AttemptQuery,
   type ClarificationReply,
   type ComparisonReport,
   type ErrorCode,
+  type FieldView,
   type FileDiff,
+  type Harness,
+  type HarnessFile,
   type ListedAttempt,
   type ListedLesson,
   type PublishProgress,
@@ -15,11 +23,14 @@ import {
   type Retest,
   type RunDetail,
   type StudentTarget,
+  type TaskListing,
   type Trace,
   type VersionPick,
 } from '@architect/shared';
 import { reportBeside } from '../comparisons/records';
 import { buildFieldExport, exportField, fieldSource, fieldView } from '../field';
+import { addedQualificationView } from '../loop/qualify-added';
+import { writeEvidencePack } from '../graduates/evidence-pack';
 import { exportPackage, exportPart, reviewExport } from '../graduates/exporter';
 import { installFromHub } from '../graduates/hub-install';
 import { importPackage, inspectPackage, previewImport } from '../graduates/importer';
@@ -28,15 +39,19 @@ import { prepareSampleAgent, sampleAgentAvailable } from '../graduates/sample';
 import type { HubClient } from '../hub';
 import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
+import { certificationView, discardCertification, planCertification } from '../loop/posthoc';
+import { qualificationView } from '../loop/qualify';
 import { TeachThis } from '../improve/teach-this';
 import { isReferenceAttempt } from '../loop/configuration';
 import { JobDrafting } from '../drafting/drafter';
+import { JobRecordings } from '../drafting/recordings';
 import { JobStudy } from '../drafting/studying';
 import type { ExperimentService } from '../experiments/service';
 import { bundleFromRequest, planFromRequest, readModelConfig } from '../training-plan/requests';
 import type { Clock, EngineHostDeps, JobDrafter } from '../loop/deps';
 import { readJsonFile } from '../loop/files';
 import type { JobLibrary } from '../loop/jobs';
+import { labelTaughtLater, taughtLater, withVersions } from '../loop/job-versions';
 import { LineageLog } from '../loop/lineage';
 import type { DataPaths } from '../loop/paths';
 import { capabilityBreakdown, mentoringProgress } from '../loop/progress';
@@ -82,19 +97,45 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`, 'run_not_found');
   /** The run's card from one student endpoint; from its own locked test when none is named. */
-  const reportOf = (record: StoredRun, target: StudentTarget = record.lockedTestOn): ReportCard =>
-    found(
+  const reportOf = (record: StoredRun, target: StudentTarget = record.lockedTestOn): ReportCard => {
+    const card = found(
       store.reports.get(record.run.id, target),
       target === record.lockedTestOn
         ? 'This run has no report card yet.'
         : `This run's graduate hasn't been tested on the ${target} student.`,
     );
+    // An organization added to the field later joins the card's organizations once its frozen
+    // version was qualified there (decision 085); the card as filed is left as it was.
+    const added =
+      target === record.lockedTestOn
+        ? store.addedQualifications.list(record.run.id).flatMap((item) => item.results ?? [])
+        : [];
+    const withAdded =
+      added.length === 0
+        ? card
+        : { ...card, test: { ...card.test, perOrg: [...(card.test.perOrg ?? []), ...added] } };
+    return labelTaughtLater(withAdded, taughtLater(store, record.run.jobId));
+  };
+  /**
+   * A field as the person's page shows it: each run's qualifications on organizations added
+   * later, the version it is of, and its sealed organizations a later version teaches on.
+   */
+  const fieldOf = async (jobId: string): Promise<FieldView> => {
+    const view = fieldView(await jobs.get(jobId), paths);
+    const qualifications = store.runs
+      .list(jobId)
+      .flatMap((record) =>
+        store.addedQualifications.list(record.run.id).map(addedQualificationView),
+      );
+    return withVersions(qualifications.length === 0 ? view : { ...view, qualifications }, store);
+  };
   const lineageOf = (record: StoredRun) =>
     new LineageLog(paths.lineageFile(record.run.jobId, record.run.id)).read();
   const versionsOf = (record: StoredRun) =>
     deps.harness.versions(paths.harnessDir(record.run.jobId, record.run.id));
   const drafter: JobDrafter = new JobDrafting({ jobs, deps, clock: ctx.clock });
   const studying = new JobStudy({ jobs, paths, deps, clock: ctx.clock });
+  const recordings = new JobRecordings({ jobs, paths, deps, clock: ctx.clock });
   const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
   /** Who hears a publication move. Listeners only pass it on, so none of them throws. */
   const publishListeners = new Set<(progress: PublishProgress) => void>();
@@ -107,6 +148,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     return graduates.summary(graduateId);
   };
   const teachThis = new TeachThis({ store, jobs, deps, clock: ctx.clock });
+  const certifying = { store, paths, jobs, deps, clock: ctx.clock };
 
   /** The final tests the run has been put through again, local first. */
   function retestsOf(runId: string): Retest[] {
@@ -132,6 +174,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     const visible = [...(await jobs.tasks(jobId, 'train')), ...(await jobs.tasks(jobId, 'dev'))];
     const prompts = new Map(visible.map((task) => [task.id, task.prompt]));
     const retests = retestsOf(runId);
+    const contacts = store.runs.contacts(runId);
     return {
       run: record.run,
       job: await jobs.forRun(record),
@@ -147,6 +190,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       lineage: await lineageOf(record),
       ...(retests.length === 0 ? {} : { retests }),
       ...(record.improves === undefined ? {} : { improves: record.improves }),
+      ...(contacts.length === 0 ? {} : { contacts }),
     };
   }
 
@@ -272,6 +316,68 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     );
   }
 
+  /**
+   * A split's tasks for the person to browse: practice and check tasks in full, without any of
+   * a sealed organization's, and the calibration and test splits by count alone (decision 084).
+   */
+  async function taskListing(jobId: string, asked: unknown): Promise<TaskListing> {
+    const split = browsedSplit(asked);
+    const job = await jobs.get(jobId);
+    if (split === 'calibration') {
+      return { split, count: (await jobs.tasks(jobId, 'calibration')).length };
+    }
+    if (split === 'test') {
+      const counts = (await deps.vault.isSealed(jobId)) ? await deps.vault.typeCounts(jobId) : {};
+      return { split, count: Object.values(counts).reduce((sum, count) => sum + count, 0) };
+    }
+    const taught = new Set(trainOrganizations(job).map((org) => org.id));
+    const tasks = (await jobs.tasks(jobId, split)).filter(
+      (task) => task.org === undefined || taught.has(task.org),
+    );
+    return { split, count: tasks.length, tasks };
+  }
+
+  /**
+   * A page of the run's practice and check attempts, newest first. Only those two splits are
+   * read, so a locked-test, certificate or calibration attempt is never among them.
+   */
+  async function attemptPage(runId: string, query: AttemptQuery = {}): Promise<AttemptPage> {
+    const record = run(runId);
+    const { jobId } = record.run;
+    const visible = [...(await jobs.tasks(jobId, 'train')), ...(await jobs.tasks(jobId, 'dev'))];
+    const tasks = new Map(visible.map((task) => [task.id, task]));
+    const matching = store.attempts
+      .recent(runId, ['train', 'dev'], Number.MAX_SAFE_INTEGER)
+      .filter(
+        (attempt) =>
+          !isReferenceAttempt(attempt) &&
+          (query.round === undefined || attempt.round === query.round) &&
+          (query.type === undefined || attempt.taskType === query.type) &&
+          (query.org === undefined || tasks.get(attempt.taskId)?.org === query.org) &&
+          (query.passed === undefined || attempt.check.pass === query.passed),
+      );
+    const start = Number(query.cursor ?? 0);
+    const end = start + ATTEMPT_PAGE_SIZE;
+    return {
+      attempts: matching.slice(start, end).map((attempt) => {
+        const task = tasks.get(attempt.taskId);
+        return {
+          ...AttemptSchema.parse(attempt),
+          prompt: task?.prompt,
+          ...(task?.org === undefined ? {} : { org: task.org }),
+        };
+      }),
+      total: matching.length,
+      next: end < matching.length ? String(end) : null,
+    };
+  }
+
+  /** A harness as the files its folder holds, by path. */
+  const filesOf = (harness: Harness): HarnessFile[] =>
+    Object.entries(deps.harness.harnessToFiles(harness))
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([path, content]) => ({ path, content }));
+
   /** A version's harness from its own folder, held to the hash its manifest records. */
   const packagedHarness = ({ graduateId, version }: VersionPick) => {
     const stored = graduates.version(graduateId, version);
@@ -284,22 +390,36 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       get: (jobId) => jobs.get(jobId),
       save: (job) => jobs.save(job),
       createSample: async (sample = 'home-services') => {
-        const file = found(
-          sample === 'academy' ? deps.academyJobFile : deps.sampleJobFile,
-          "The sample job isn't available in this build.",
-        );
+        const files = {
+          'home-services': deps.sampleJobFile,
+          academy: deps.academyJobFile,
+          'sweep-desk': deps.sweepDeskJobFile,
+          'assay-desk': deps.assayJobFile,
+        };
+        const file = found(files[sample], "The sample job isn't available in this build.");
         const { id } = JobSchema.parse(await readJsonFile(file));
         return store.jobs.get(id) ? jobs.get(id) : jobs.importFile(file);
       },
       importFile: (file) => jobs.importFile(file),
       exportFile: (jobId, file) => jobs.exportFile(jobId, file),
       draftStart: (description, files, teacher) => drafter.start(description, files, teacher),
+      draftField: (description, organizations, teacher) =>
+        drafter.startField(description, organizations, teacher),
       draftReply: (sessionId, text, teacher) => drafter.reply(sessionId, text, teacher),
       taskPlan: (jobId) => jobs.taskPlan(jobId),
       confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),
       study: (jobId) => studying.study(jobId),
       confirmStudy: (jobId, token) => jobs.confirmStudy(jobId, token),
-      field: async (jobId) => fieldView(await jobs.get(jobId), paths),
+      field: fieldOf,
+      addOrganization: async (jobId, request) => {
+        await jobs.addOrganization(jobId, request);
+        return fieldOf(jobId);
+      },
+      teachOn: async (jobId, org) => fieldOf((await jobs.teachOn(jobId, org)).id),
+      moveToModel: async (jobId, request) => fieldOf((await jobs.moveToModel(jobId, request)).id),
+      quoteRecordings: (jobId, org, files) => recordings.quote(jobId, org, files),
+      shareRecordings: (jobId, allowed) => recordings.share(jobId, allowed),
+      transcribe: (jobId, request) => recordings.transcribe(jobId, request),
       fieldAssets: async (jobId) => {
         await jobs.get(jobId);
         return buildFieldExport(await fieldSource(store, paths, jobId)).manifest;
@@ -308,6 +428,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         await jobs.get(jobId);
         return exportField(await fieldSource(store, paths, jobId), directory);
       },
+      tasks: taskListing,
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>
@@ -316,11 +437,17 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       resume: (runId) => controller.resume(runId),
       stop: (runId) => controller.stop(runId),
       retest: (runId, target) => controller.retest(runId, target),
+      qualifyAdded: (runId, org) => controller.qualifyAdded(runId, org),
+      qualify: async (request) => controller.qualify(request),
+      qualifications: async (jobId) =>
+        store.qualifications.ofJob(jobId).map((item) => qualificationView(item)),
       get: runDetail,
       list: async (jobId) => store.runs.list(jobId).map(({ run: listed }) => listed),
       attempt,
       trace,
       roundDiff,
+      attempts: attemptPage,
+      harnessFiles: async (runId, version) => filesOf(await versionsOf(run(runId)).load(version)),
       runtimeMeasurements: async (runId) => store.runtimeMeasurements.list(run(runId).run.id),
       onEvent: (listener) => controller.onEvent(listener),
     },
@@ -401,6 +528,22 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       report: (graduateId, version) => graduates.report(graduateId, version),
       harnessDiff: async (from, to) =>
         deps.harness.diffHarness(await packagedHarness(from), await packagedHarness(to)),
+      harnessFiles: async (graduateId, version) =>
+        filesOf(await packagedHarness({ graduateId, version })),
+      planCertification: async (request) =>
+        certificationView(store, await planCertification(certifying, request)),
+      startCertification: async (certificationId) => {
+        controller.certify(certificationId);
+        return certificationView(
+          store,
+          found(store.certifications.get(certificationId), 'There is no such certification.'),
+        );
+      },
+      discardCertification: (certificationId) => discardCertification(certifying, certificationId),
+      certifications: async (graduateId, version) =>
+        store.certifications
+          .list(graduateId, version)
+          .map((item) => certificationView(store, item)),
       acceptVersion: async (graduateId, version) => graduates.acceptVersion(graduateId, version),
       rejectVersion: async (graduateId, version) => graduates.rejectVersion(graduateId, version),
       promote: async (graduateId, version) => checked(graduates.promote(graduateId, version).id),
@@ -415,6 +558,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       exportPackage: (graduateId, request) => exportPackage(packages, graduateId, request),
       exportFolder: (graduateId, directory) => exportPackage(packages, graduateId, { directory }),
       exportPart: (graduateId, request) => exportPart(packages, graduateId, request),
+      exportEvidence: (graduateId, request) =>
+        writeEvidencePack({ library: graduates }, graduateId, request),
       inspectPackage: (path) => inspectPackage(packages, path),
       previewImport: (path) => previewImport(packages, path),
       importPackage: (path, request) => importPackage(packages, path, request),

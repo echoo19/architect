@@ -100,7 +100,7 @@ export function SettingsDialog<T extends string>({
             </div>
             <Tabs.Content
               value={tab}
-              className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 focus-visible:outline-none"
+              className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 scroll-quiet focus-visible:outline-none"
             >
               {children}
             </Tabs.Content>

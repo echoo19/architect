@@ -50,7 +50,11 @@ function Screen({ route }: { route: Route }) {
     case 'field':
       return (
         <WorkspaceShell route={route}>
-          <FieldScreen key={route.jobId} jobId={route.jobId} />
+          <FieldScreen
+            key={`${route.jobId}/${route.tab ?? ''}`}
+            jobId={route.jobId}
+            {...(route.tab === undefined ? {} : { tab: route.tab })}
+          />
         </WorkspaceShell>
       );
     case 'experiments':
@@ -62,7 +66,7 @@ function Screen({ route }: { route: Route }) {
     case 'experiment-new':
       return (
         <WorkspaceShell route={route}>
-          <NewExperimentScreen />
+          <NewExperimentScreen key={route.jobId ?? ''} jobId={route.jobId} />
         </WorkspaceShell>
       );
     case 'experiment':
@@ -74,13 +78,17 @@ function Screen({ route }: { route: Route }) {
     case 'models':
       return (
         <WorkspaceShell route={route}>
-          <ModelsScreen />
+          <ModelsScreen open={route.open} />
         </WorkspaceShell>
       );
     case 'compute':
       return (
         <WorkspaceShell route={route}>
-          <ComputeScreen />
+          <ComputeScreen
+            key={`${route.jobId ?? ''}/${route.model ?? ''}`}
+            jobId={route.jobId}
+            model={route.model}
+          />
         </WorkspaceShell>
       );
     case 'chat':

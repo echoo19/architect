@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { JsonValueSchema } from './json';
 import { EvaluationStatusSchema } from './package';
 import { RowDiffSchema } from './workspace';
 
@@ -126,3 +127,99 @@ export const RunResultSchema = z.object({
   architect: z.object({ cli_version: z.string(), request_format: z.string() }),
 });
 export type RunResult = z.infer<typeof RunResultSchema>;
+
+/**
+ * `architect serve`: one request to POST /v1/chat/completions, as an OpenAI-compatible client
+ * sends it. Fields the agent doesn't use (sampling settings, a client's own tools) pass through
+ * unread: the agent's harness decides how it answers.
+ */
+export const ChatCompletionRequestSchema = z.looseObject({
+  model: z.string().min(1),
+  messages: z
+    .array(
+      z.looseObject({
+        role: z.enum(['system', 'developer', 'user', 'assistant', 'tool']),
+        content: z
+          .union([
+            z.string(),
+            z.array(z.looseObject({ type: z.string(), text: z.string().optional() })),
+          ])
+          .nullable()
+          .optional(),
+      }),
+    )
+    .min(1)
+    .max(200),
+  stream: z.boolean().nullable().optional(),
+});
+export type ChatCompletionRequest = z.infer<typeof ChatCompletionRequestSchema>;
+
+/**
+ * Where a served reply stands against the answering version's certificate (decision 077):
+ * `within` it, answered with enough of its attempts agreeing; `handed_off` to a person, too few
+ * agreed; `refused` as outside the agent's job, with no attempt made; `not_certified`, a version
+ * with no issued certificate, which answers as it always did.
+ */
+export const ServedStandingSchema = z.enum(['within', 'handed_off', 'refused', 'not_certified']);
+export type ServedStanding = z.infer<typeof ServedStandingSchema>;
+
+/** A served reply's certificate: where it stands, and the bound it stands within. */
+export const ServedCertificateSchema = z.object({
+  standing: ServedStandingSchema,
+  /**
+   * For a certified version: when it answers, it is wrong on at most this share of requests like
+   * its calibration ones, with `confidence`. Null when it has no issued certificate.
+   */
+  errorBound: z.number().min(0).max(1).nullable(),
+  confidence: z.number().gt(0).lt(1).nullable(),
+});
+export type ServedCertificate = z.infer<typeof ServedCertificateSchema>;
+
+/** What a served reply says about itself, beside the OpenAI fields: `architect` in the response. */
+export const ServedReplySchema = z.object({
+  /** The version that answered, by its number and harness hash. */
+  version: z.number().int().positive(),
+  harnessHash: z.string(),
+  /** Whether that version answers by agreement under an issued certificate (decision 077). */
+  certified: z.boolean(),
+  /** For a certified reply: how many of its attempts agreed, of how many, and how many must. */
+  agreement: z
+    .object({
+      agreed: z.number().int().nonnegative(),
+      attempts: z.number().int().positive(),
+      required: z.number().int().positive(),
+    })
+    .nullable(),
+  /** Too few attempts agreed, so the reply hands the request to a person instead of answering. */
+  handedOff: z.boolean(),
+  /**
+   * The structured answer: the JSON of the reply's ANSWER line, parsed. Null when the reply gave
+   * none, handed the request off, or refused it.
+   */
+  answer: JsonValueSchema.nullable(),
+  /** Whether the reply is within the version's certificate or was handed off (decision 097). */
+  certificate: ServedCertificateSchema,
+  steps: z.array(RunStepSchema),
+  /** A change to a file the agent wanted to make. Nothing was written: approvals stay in the app. */
+  proposedChange: RunApprovalSchema.nullable(),
+  /** The request was outside the agent's job. */
+  refusal: z.object({ taskType: z.string(), reason: z.string() }).nullable(),
+});
+export type ServedReply = z.infer<typeof ServedReplySchema>;
+
+/** The response to a chat completion request that the agent answered. */
+export const ChatCompletionSchema = z.object({
+  id: z.string(),
+  object: z.literal('chat.completion'),
+  created: z.number().int(),
+  model: z.string(),
+  choices: z.array(
+    z.object({
+      index: z.number().int(),
+      message: z.object({ role: z.literal('assistant'), content: z.string() }),
+      finish_reason: z.enum(['stop', 'length']),
+    }),
+  ),
+  architect: ServedReplySchema,
+});
+export type ChatCompletion = z.infer<typeof ChatCompletionSchema>;

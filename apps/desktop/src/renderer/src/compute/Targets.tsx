@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import type { HubTokenStatus } from '@architect/shared';
-import { Badge, Button, Card, CardGrid, Skeleton } from '@architect/ui';
-import { Cloud, Container, Laptop, Server } from 'lucide-react';
+import type { ClusterTarget, HubTokenStatus } from '@architect/shared';
+import { Badge, Button, Card, CardGrid, CardRow, Skeleton } from '@architect/ui';
+import { Cloud, CloudCog, Container, Laptop, Network, Server } from 'lucide-react';
 import { useHubToken, useLlamaServer, useLocalRuntimes } from '../api/hooks';
 import { formatBytes } from '../lib/format';
 import { useUi } from '../state/ui';
@@ -27,14 +27,38 @@ function Lead({ children }: { children: ReactNode }) {
   return <p className="m-0 pb-3 text-ui">{children}</p>;
 }
 
-/** The command a cluster target's bundle is submitted with, whole. */
-function Command({ children }: { children: string }) {
-  return (
-    <div className="mt-auto flex min-h-9 items-center border-t border-line pt-1 font-mono text-small">
-      {children}
-    </div>
-  );
-}
+const clusterIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
+
+/** The clusters a bundle can be written for: what each runs, and the command that submits it. */
+export const CLUSTERS: readonly {
+  target: ClusterTarget;
+  name: string;
+  icon: ReactNode;
+  lead: string;
+  command: string;
+}[] = [
+  {
+    target: 'slurm',
+    name: 'Slurm',
+    icon: <Server {...clusterIcon} />,
+    lead: 'FSDP across nodes with torchrun',
+    command: 'sbatch submit.sbatch',
+  },
+  {
+    target: 'kubernetes',
+    name: 'Kubernetes',
+    icon: <Container {...clusterIcon} />,
+    lead: 'A PyTorchJob for the Kubeflow operator',
+    command: 'kubectl apply -f pytorchjob.yaml',
+  },
+  {
+    target: 'skypilot',
+    name: 'SkyPilot',
+    icon: <CloudCog {...clusterIcon} />,
+    lead: 'Any cloud or Kubernetes your SkyPilot reaches',
+    command: 'sky launch -c architect-train sky.yaml',
+  },
+];
 
 /** Where training can run, each with what it can do and how it stands now. */
 export function Targets() {
@@ -48,7 +72,7 @@ export function Targets() {
   return (
     <CardGrid className="items-stretch 2xl:grid-cols-2">
       <Card title="This computer" icon={<Laptop aria-hidden />}>
-        <Lead>Runs the student and serves its adapters. Trains nothing here.</Lead>
+        <Lead>Runs Glimmer and serves its adapters. Trains nothing here.</Lead>
         <Fact label="GPU">
           {local.data === undefined
             ? loading
@@ -80,9 +104,7 @@ export function Targets() {
           )
         }
       >
-        <Lead>
-          Trains a LoRA adapter for the student on one rented GPU, within its compute cap.
-        </Lead>
+        <Lead>Trains a LoRA adapter for Glimmer on one rented GPU, within its compute cap.</Lead>
         <Fact label="Token">
           {token.data === undefined ? (
             loading
@@ -95,15 +117,29 @@ export function Targets() {
           )}
         </Fact>
       </Card>
-      <Card title="Slurm" icon={<Server aria-hidden />} action={<Badge>Bundle only</Badge>}>
-        <Lead>
-          Writes an sbatch bundle that runs torchrun with FSDP across nodes. You submit it.
-        </Lead>
-        <Command>sbatch submit.sbatch</Command>
-      </Card>
-      <Card title="Kubernetes" icon={<Container aria-hidden />} action={<Badge>Bundle only</Badge>}>
-        <Lead>Writes a PyTorchJob for the Kubeflow training operator. You apply it.</Lead>
-        <Command>kubectl apply -f pytorchjob.yaml</Command>
+      <Card
+        title="Clusters"
+        icon={<Network aria-hidden />}
+        action={<Badge>Bundle only</Badge>}
+        wide
+        flush
+      >
+        <p className="m-0 px-6 pb-3 text-ui">
+          Architect writes a bundle for your cluster. You submit it with your own tools.
+        </p>
+        {CLUSTERS.map((cluster) => (
+          <CardRow
+            key={cluster.target}
+            icon={
+              <span className="flex size-9 items-center justify-center rounded-control bg-selected">
+                {cluster.icon}
+              </span>
+            }
+            title={cluster.name}
+            detail={cluster.lead}
+            end={<span className="font-mono text-small">{cluster.command}</span>}
+          />
+        ))}
       </Card>
     </CardGrid>
   );

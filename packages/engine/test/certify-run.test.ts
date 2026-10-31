@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import type { Job, Task } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { canonicalAnswer, vote } from '../src/certify/agreement';
+import { answerKey, canonicalAnswer, NO_ANSWER, vote } from '../src/certify/agreement';
 import { JobStudy } from '../src/drafting/studying';
 import { packagedReport } from '../src/graduates/graduation';
 import { buildCertificate, scoreTask } from '../src/loop/certify';
@@ -206,7 +206,13 @@ describe('the certificate', () => {
 
   it('scores a task by its most common answer, ties to the earlier attempt', () => {
     const attempt = (seed: number, key: string, pass: boolean) =>
-      ({ id: `a${seed}`, seed, answerKey: key, check: { pass } }) as StoredAttempt;
+      ({
+        id: `a${seed}`,
+        seed,
+        answerKey: key,
+        stopReason: 'answer',
+        check: { pass },
+      }) as StoredAttempt;
     const seeds = [1, 2, 3, 4];
     expect(
       scoreTask(
@@ -220,6 +226,56 @@ describe('the certificate', () => {
       ),
     ).toEqual({ votes: 2, correct: true });
     expect(vote([] as string[], (key) => key)).toBeNull();
+  });
+
+  describe('an attempt with no answer (decision 099)', () => {
+    const seeds = [1, 2, 3, 4, 5];
+    const attempt = (seed: number, key: string, pass: boolean, stopReason = 'answer') =>
+      ({ id: `a${seed}`, seed, answerKey: key, stopReason, check: { pass } }) as StoredAttempt;
+    /** A certified threshold of 4 of 5: a task is answered when its votes reach it. */
+    const VOTES = 4;
+
+    it('is stored under a key that agrees with nothing', () => {
+      expect(answerKey('run', { answer: null, stopReason: 'answer' })).toBe(NO_ANSWER);
+      expect(answerKey('run', { answer: { total: 1 }, stopReason: 'max_steps' })).toBe(NO_ANSWER);
+      expect(answerKey('run', { answer: null, stopReason: 'refused' })).not.toBe(NO_ANSWER);
+      expect(
+        answerKey('run', { answer: null, stopReason: 'answer' }, [{ path: 'a.md', patch: '+x' }]),
+      ).not.toBe(NO_ANSWER);
+    });
+
+    it('hands a request off when every attempt gave no answer', () => {
+      const none = seeds.map((seed) => attempt(seed, NO_ANSWER, false));
+      expect(scoreTask(none, seeds)).toEqual({ votes: 0, correct: false });
+      const outOfSteps = seeds.map((seed) => attempt(seed, 'same', false, 'max_steps'));
+      expect(scoreTask(outOfSteps, seeds)).toEqual({ votes: 0, correct: false });
+    });
+
+    it('counts only real answers toward the majority', () => {
+      const mixed = [
+        attempt(1, NO_ANSWER, false),
+        attempt(2, 'b', true),
+        attempt(3, NO_ANSWER, false),
+        attempt(4, NO_ANSWER, false),
+        attempt(5, 'b', true),
+      ];
+      const scored = scoreTask(mixed, seeds);
+      expect(scored).toEqual({ votes: 2, correct: true });
+      expect(scored.votes >= VOTES).toBe(false);
+    });
+
+    it('scores real answers as before', () => {
+      const normal = [
+        attempt(1, 'a', true),
+        attempt(2, 'a', true),
+        attempt(3, 'b', false),
+        attempt(4, 'a', true),
+        attempt(5, 'a', true),
+      ];
+      const scored = scoreTask(normal, seeds);
+      expect(scored).toEqual({ votes: 4, correct: true });
+      expect(scored.votes >= VOTES).toBe(true);
+    });
   });
 
   it('reads two answers as one when only key order, row order or trailing space differ', () => {

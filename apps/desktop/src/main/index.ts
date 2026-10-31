@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { EngineClient } from '@architect/engine';
 import type { AgentHostClient } from '@architect/engine/agent-host';
+import { allowedHostsOf } from '@architect/shared';
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import engineEntry from '../utility/engine?modulePath';
 import { launchEngineProcess, type EngineProcess } from './engine/process';
@@ -103,10 +104,18 @@ async function start(): Promise<void> {
     targets: () => BrowserWindow.getAllWindows().map((window) => window.webContents),
   });
   const picked = new PickedPaths();
-  const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress));
+  const pulls = new ModelPulls((progress) => router.emit('ollama', 'onPullProgress', progress), {
+    allowed: () => allowedHostsOf(settings.get().closedNetwork),
+  });
   const keys = (ref: string) => secrets.get(ref);
   const openLink = createLinkOpener((url) => shell.openExternal(url), launch.hidden);
-  const signIns = new SignIns((signal) => signInWithOpenRouter({ openBrowser: openLink, signal }));
+  const signIns = new SignIns((signal) =>
+    signInWithOpenRouter({
+      openBrowser: openLink,
+      signal,
+      network: { allowed: () => allowedHostsOf(settings.get().closedNetwork) },
+    }),
+  );
   registerAppHandlers(router, openLink);
   registerSettingsHandlers(router, settings);
   registerSecretsHandlers(router, secrets);
@@ -137,6 +146,7 @@ async function start(): Promise<void> {
       localCooldown: quietCooldown(settings.get()),
       llamaServerPath: runtime.llamaServerPath,
       ollamaUrl: runtime.ollamaUrl,
+      allowedHosts: allowedHostsOf(settings.get().closedNetwork),
     };
   };
   let engineProcess: EngineProcess | null = null;
@@ -161,6 +171,8 @@ async function start(): Promise<void> {
           sandboxEntryPath: resources.sandboxEntry,
           sampleJobFile: resources.sampleJobFile,
           academyJobFile: resources.academyJobFile,
+          sweepDeskJobFile: resources.sweepDeskJobFile,
+          assayJobFile: resources.assayJobFile,
           sampleAgentFile: resources.sampleAgentFile,
           sampleAgentDataDir: resources.sampleAgentDataDir,
           trainerDir: resources.trainerDir,

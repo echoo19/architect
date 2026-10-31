@@ -8,7 +8,7 @@ import { useFloatingMotion } from '../motion/floating';
 const MenuOpen = createContext(false);
 const PopoverOpen = createContext(false);
 
-const surface = 'z-50 bg-raised shadow-float';
+const surface = 'z-50 surface-float';
 
 export function DropdownMenu({
   open,

@@ -3,6 +3,7 @@ import type {
   CheckOutcome,
   CheckResult,
   Decoding,
+  DraftOrganization,
   DraftTurn,
   FileDiff,
   FileEdit,
@@ -11,6 +12,7 @@ import type {
   Job,
   MentorAdapter,
   MentorConfig,
+  Organization,
   PackageManifest,
   Score,
   SplitConfig,
@@ -20,6 +22,7 @@ import type {
   SuiteResult,
   Task,
   Trace,
+  Transcriber,
   TrainingBackendKind,
   TrainingJobRecord,
   TypeScore,
@@ -27,7 +30,12 @@ import type {
 import type { CounterexampleSearch, FoundCounterexample } from '../counterexamples/find';
 import type { SuiteCase, SuiteContext } from '../counterexamples/suite';
 import type { LeakDetector } from '../mentor/gate';
-import type { OpenedTransfer, TransferOrganization } from '../vault/vault';
+import type {
+  CertificationSets,
+  OpenedTransfer,
+  SealedOrganization,
+  TransferOrganization,
+} from '../vault/vault';
 import type {
   CorrectionContext,
   CorrectionOptions,
@@ -200,6 +208,66 @@ export interface VaultDeps {
   openTransfer(jobId: string, proof: MentorReleased): Awaitable<OpenedTransfer>;
   /** A certified job's calibration split, on the same proof; none for a job without one. */
   openCalibration(jobId: string, proof: MentorReleased): Awaitable<Task[]>;
+  /**
+   * Seals a version's after-the-fact certification tasks in the job's vault, fingerprinted
+   * against `others` and `data` as the test is, and refused when one has nothing of its own to be
+   * recognized by; returns their sha256.
+   */
+  sealCertification(
+    jobId: string,
+    certificationId: string,
+    sets: CertificationSets,
+    others: Task[],
+    data: string[],
+  ): Awaitable<string>;
+  /** Those tasks, on the same proof, as long as they still have the sha256 they were sealed with. */
+  openCertification(
+    jobId: string,
+    certificationId: string,
+    sha256: string,
+    proof: MentorReleased,
+  ): Awaitable<CertificationSets>;
+  /** Takes back the sealed tasks of a certification that never started. */
+  discardCertification(jobId: string, certificationId: string): Awaitable<void>;
+  /**
+   * Writes the sealed part of a job into a job folder that a comparison imports and seals again
+   * in its own vault: the sealed tasks appended to its `tasks.jsonl`, each sealed organization's
+   * files in `orgs/<id>/data/`. Returns the sealed organizations. Never for a mentor.
+   */
+  stageSealed(jobId: string, dir: string): Awaitable<Organization[]>;
+  /**
+   * Seals a never-seen organization beside the job's seal after the job was made (decision 085),
+   * fingerprinted against `others` and `data` as the test is; the job's seal doesn't change.
+   */
+  addOrganization(
+    jobId: string,
+    organization: TransferOrganization,
+    tasks: Task[],
+    others: Task[],
+    data: string[],
+  ): Awaitable<void>;
+  /** The organizations sealed after the job was made; the engine's own, never a mentor's. */
+  addedOrganizations(jobId: string): Awaitable<Organization[]>;
+  /** One of their tasks, on the same proof as the locked test. */
+  openAdded(jobId: string, orgId: string, proof: MentorReleased): Awaitable<Task[]>;
+  /**
+   * A never-seen organization's files and tasks, for the new version of the job that teaches on
+   * it at the person's word (decision 089). The job's own vault doesn't change.
+   */
+  releaseOrganization(jobId: string, orgId: string): Awaitable<SealedOrganization>;
+  /**
+   * Seals that new version: this job's final test without the moved organization (none for a
+   * version carried to another model, decision 095), its
+   * calibration split, and every other sealed organization again, fingerprinted against the new
+   * version's visible tasks and taught files (decision 082).
+   */
+  sealVersion(
+    fromJobId: string,
+    toJobId: string,
+    movedOrgId: string | null,
+    others: Task[],
+    data: string[],
+  ): Awaitable<void>;
 }
 
 /** One run's harness versions (`new HarnessVersions(dir)`). */
@@ -245,25 +313,44 @@ export interface AdapterServeRequest {
   scales: Readonly<Record<string, number>>;
 }
 
+/**
+ * Told the host of every request a run's adapters send, just before it goes (decision 098):
+ * `inside` when a closed network was on and admitted it. Never a path, a body or a key.
+ */
+export type ContactRecorder = (host: string, inside: boolean) => void;
+
+/** What every adapter is made with besides its own options: who hears where its requests go. */
+export interface Contacted {
+  contacted?: ContactRecorder;
+}
+
 export interface AdapterDeps {
   /** `apiKey` is absent for a mentor that takes none, such as a model on this computer. */
-  createMentor(config: MentorConfig, options: { apiKey?: string }): MentorAdapter;
+  createMentor(config: MentorConfig, options: { apiKey?: string } & Contacted): MentorAdapter;
   createStudent(
     endpoint: StudentEndpoint,
-    options: { apiKey?: string; label?: string },
+    options: { apiKey?: string; label?: string } & Contacted,
   ): StudentAdapter;
   /**
    * The mentor's model as an agent with the student's tools, for verified corrections and
    * references. Absent where a build can't run one; the runner then refuses what needs it.
    */
-  createActor?(config: MentorConfig, options: { apiKey?: string }): ActorAdapter;
+  createActor?(config: MentorConfig, options: { apiKey?: string } & Contacted): ActorAdapter;
   /** Whether `createActor` can make this mentor an agent; assumed so when absent. */
   canAct?(config: MentorConfig): boolean;
   /**
    * A student on llama.cpp with adapters, to measure a candidate adapter on and off on one
    * server. Absent where no adapter runtime is set up; weights interventions are then refused.
    */
-  createAdapterStudent?(request: AdapterServeRequest, options: { label?: string }): StudentAdapter;
+  createAdapterStudent?(
+    request: AdapterServeRequest,
+    options: { label?: string } & Contacted,
+  ): StudentAdapter;
+  /**
+   * Muse Voice Transcribe, for a taught organization's recordings (decision 087). Absent where a
+   * build has none; transcribing is then refused.
+   */
+  createTranscriber?(options: { apiKey: string } & Contacted): Transcriber;
 }
 
 export interface SecretDeps {
@@ -351,6 +438,11 @@ export interface LoopDeps {
  */
 export interface JobDrafter {
   start(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
+  startField(
+    description: string,
+    organizations: readonly DraftOrganization[],
+    teacher: MentorConfig,
+  ): Promise<DraftTurn>;
   reply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn>;
 }
 
@@ -365,8 +457,12 @@ export interface SampleAgentFiles {
 export interface EngineHostDeps extends LoopDeps {
   /** The sample job's `job.json`, shipped with the app, with `tasks.jsonl` and `data/` beside it. */
   sampleJobFile?: string;
-  /** The tutor's job, with its academies at `orgs/<id>/data/` beside it. */
+  /** The Academy desk's job, with its academies at `orgs/<id>/data/` beside it. */
   academyJobFile?: string;
+  /** Sweep desk's job, with its research groups at `orgs/<id>/data/` beside it. */
+  sweepDeskJobFile?: string;
+  /** The Assay desk's job, a science lab sample, with its labs at `orgs/<id>/data/` beside it. */
+  assayJobFile?: string;
   /** Absent where the app ships no ready-made agent, which is then never offered. */
   sampleAgent?: SampleAgentFiles;
 }

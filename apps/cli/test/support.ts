@@ -95,6 +95,8 @@ export interface InProcessOptions {
   llamaServerCommand?: CliIo['llamaServerCommand'];
   /** The computer the installation checks see: THIS_MACHINE unless a test names another. */
   machine?: CliIo['machine'];
+  /** The environment experiments run in: a world of fakes. */
+  experimentEnvironment?: CliIo['experimentEnvironment'];
 }
 
 /**
@@ -142,6 +144,9 @@ export async function cli(argv: string[], options: InProcessOptions): Promise<Ca
       ? {}
       : { llamaServerCommand: options.llamaServerCommand }),
     machine: options.machine ?? THIS_MACHINE,
+    ...(options.experimentEnvironment === undefined
+      ? {}
+      : { experimentEnvironment: options.experimentEnvironment }),
   };
   options.interruptWith?.(() => {
     for (const listener of listeners) listener();

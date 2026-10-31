@@ -9,8 +9,14 @@ import { REPO } from './content';
 
 /** The documents the figures come from, by the short name used under each block. */
 export const SOURCES = {
-  phil: { name: 'phil-1.md', path: 'docs/comparisons/phil-1.md' },
-  local: { name: 'phil-1-local.md', path: 'docs/comparisons/phil-1-local.md' },
+  academyDesk: { name: 'academy-desk-1.md', path: 'docs/comparisons/academy-desk-1.md' },
+  local: { name: 'academy-desk-1-local.md', path: 'docs/comparisons/academy-desk-1-local.md' },
+  third: { name: 'academy-desk-3.md', path: 'docs/comparisons/academy-desk-3.md' },
+  thirdMisses: {
+    name: 'academy-desk-3-misses.md',
+    path: 'docs/comparisons/academy-desk-3-misses.md',
+  },
+  cert: { name: 'academy-desk-cert-1.md', path: 'docs/comparisons/academy-desk-cert-1.md' },
   scale: { name: 'SCALE.md', path: 'docs/SCALE.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
@@ -342,8 +348,8 @@ export const MONEY = {
 } as const;
 
 /**
- * The field run: Phil, a tutor for test-prep academies. Final-test tasks are counted per group of
- * organizations, under seed 101, from `phil-1.md`. Intervals are the report's own: Wilson for a
+ * The field run: Academy desk, an operations agent for test-prep academies. Final-test tasks are counted per group of
+ * organizations, under seed 101, from `academy-desk-1.md`. Intervals are the report's own: Wilson for a
  * pass rate, Newcombe for a paired difference.
  */
 export const GROUPS = [
@@ -387,7 +393,7 @@ export const FIELD_ARMS: readonly FieldArm[] = [
     tone: 'plain',
   },
   {
-    name: 'Phil',
+    name: 'Academy desk',
     groups: [
       { passed: 44, low: 80.4, high: 96.7 },
       { passed: 43, low: 77.8, high: 95.5 },
@@ -403,30 +409,30 @@ export const SKILLS = ['Diagnose', 'Solve', 'Hint', 'History', 'Assign', 'Tutori
 export interface SkillRow {
   skill: (typeof SKILLS)[number];
   group: GroupKey;
-  /** Tasks in the cell; passes for the blank setup, the one-shot setup and Phil. */
+  /** Tasks in the cell; passes for the blank setup, the one-shot setup and Academy desk. */
   of: number;
   bare: number;
   draft: number;
-  phil: number;
+  academyDesk: number;
 }
 
 /** Skill by organization. The Real academy had tasks for three skills only. */
 export const SKILL_ROWS: readonly SkillRow[] = [
-  { skill: 'Diagnose', group: 'taught', of: 9, bare: 6, draft: 6, phil: 8 },
-  { skill: 'Diagnose', group: 'harborview', of: 8, bare: 6, draft: 8, phil: 6 },
-  { skill: 'Diagnose', group: 'real', of: 8, bare: 4, draft: 4, phil: 2 },
-  { skill: 'Solve', group: 'taught', of: 6, bare: 6, draft: 6, phil: 6 },
-  { skill: 'Solve', group: 'harborview', of: 8, bare: 8, draft: 8, phil: 8 },
-  { skill: 'Hint', group: 'taught', of: 9, bare: 2, draft: 3, phil: 9 },
-  { skill: 'Hint', group: 'harborview', of: 8, bare: 4, draft: 1, phil: 7 },
-  { skill: 'History', group: 'taught', of: 6, bare: 5, draft: 4, phil: 6 },
-  { skill: 'History', group: 'harborview', of: 8, bare: 5, draft: 2, phil: 8 },
-  { skill: 'History', group: 'real', of: 8, bare: 5, draft: 6, phil: 3 },
-  { skill: 'Assign', group: 'taught', of: 9, bare: 2, draft: 3, phil: 8 },
-  { skill: 'Assign', group: 'harborview', of: 8, bare: 1, draft: 3, phil: 8 },
-  { skill: 'Assign', group: 'real', of: 8, bare: 0, draft: 1, phil: 7 },
-  { skill: 'Tutoring turn', group: 'taught', of: 9, bare: 0, draft: 0, phil: 7 },
-  { skill: 'Tutoring turn', group: 'harborview', of: 8, bare: 0, draft: 0, phil: 6 },
+  { skill: 'Diagnose', group: 'taught', of: 9, bare: 6, draft: 6, academyDesk: 8 },
+  { skill: 'Diagnose', group: 'harborview', of: 8, bare: 6, draft: 8, academyDesk: 6 },
+  { skill: 'Diagnose', group: 'real', of: 8, bare: 4, draft: 4, academyDesk: 2 },
+  { skill: 'Solve', group: 'taught', of: 6, bare: 6, draft: 6, academyDesk: 6 },
+  { skill: 'Solve', group: 'harborview', of: 8, bare: 8, draft: 8, academyDesk: 8 },
+  { skill: 'Hint', group: 'taught', of: 9, bare: 2, draft: 3, academyDesk: 9 },
+  { skill: 'Hint', group: 'harborview', of: 8, bare: 4, draft: 1, academyDesk: 7 },
+  { skill: 'History', group: 'taught', of: 6, bare: 5, draft: 4, academyDesk: 6 },
+  { skill: 'History', group: 'harborview', of: 8, bare: 5, draft: 2, academyDesk: 8 },
+  { skill: 'History', group: 'real', of: 8, bare: 5, draft: 6, academyDesk: 3 },
+  { skill: 'Assign', group: 'taught', of: 9, bare: 2, draft: 3, academyDesk: 8 },
+  { skill: 'Assign', group: 'harborview', of: 8, bare: 1, draft: 3, academyDesk: 8 },
+  { skill: 'Assign', group: 'real', of: 8, bare: 0, draft: 1, academyDesk: 7 },
+  { skill: 'Tutoring turn', group: 'taught', of: 9, bare: 0, draft: 0, academyDesk: 7 },
+  { skill: 'Tutoring turn', group: 'harborview', of: 8, bare: 0, draft: 0, academyDesk: 6 },
 ];
 
 export interface FieldPair {
@@ -446,7 +452,7 @@ export interface FieldPair {
 
 export const FIELD_PAIRS: readonly FieldPair[] = [
   {
-    label: 'Phil against a blank setup',
+    label: 'Academy desk against a blank setup',
     group: 'harborview',
     n: 48,
     wins: 20,
@@ -458,7 +464,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 53.7,
   },
   {
-    label: 'Phil against a blank setup',
+    label: 'Academy desk against a blank setup',
     group: 'real',
     n: 24,
     wins: 9,
@@ -470,7 +476,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 40.2,
   },
   {
-    label: 'Phil against a blank setup',
+    label: 'Academy desk against a blank setup',
     group: 'taught',
     n: 48,
     wins: 24,
@@ -482,7 +488,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 61.7,
   },
   {
-    label: 'Phil against a blank setup',
+    label: 'Academy desk against a blank setup',
     group: 'all',
     n: 120,
     wins: 53,
@@ -494,7 +500,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 47.7,
   },
   {
-    label: 'Phil against the one-shot setup',
+    label: 'Academy desk against the one-shot setup',
     group: 'harborview',
     n: 48,
     wins: 23,
@@ -506,7 +512,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 58.3,
   },
   {
-    label: 'Phil against the one-shot setup',
+    label: 'Academy desk against the one-shot setup',
     group: 'real',
     n: 24,
     wins: 7,
@@ -518,7 +524,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 31.0,
   },
   {
-    label: 'Phil against the one-shot setup',
+    label: 'Academy desk against the one-shot setup',
     group: 'taught',
     n: 48,
     wins: 23,
@@ -579,7 +585,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
   },
 ];
 
-/** Phil's three rounds of teaching, on the 36 check tasks of the taught academies. */
+/** Academy desk's three rounds of teaching, on the 36 check tasks of the taught academies. */
 export const ROUNDS_FIELD: readonly Round[] = [
   {
     n: 1,
@@ -619,8 +625,8 @@ export const FIELD_MONEY = {
 } as const;
 
 /**
- * Phil, frozen, on the same 120 final-test tasks again on the 2-bit Glimmer that runs on one
- * 12 GB graphics card, from `phil-1-local.md`. Hosted passes are Phil's in `FIELD_ARMS`. Wins and
+ * Academy desk, frozen, on the same 120 final-test tasks again on the 2-bit Glimmer that runs on one
+ * 12 GB graphics card, from `academy-desk-1-local.md`. Hosted passes are Academy desk's in `FIELD_ARMS`. Wins and
  * losses are local against hosted, task by task; intervals are the report's Newcombe intervals.
  */
 export interface LocalRow {
@@ -691,3 +697,148 @@ export const LOCAL_SPEED = {
   stepLimitLocal: 11,
   stepLimitHosted: 7,
 } as const;
+
+/**
+ * The third field run, from `academy-desk-3.md`: the blank setup and Academy desk on a sealed test of
+ * 126 tasks, by group. Passes carry the report's Wilson intervals; wins and losses are Academy desk
+ * against the blank setup, task by task, with the report's Newcombe interval.
+ */
+export interface ThirdRow {
+  group: 'taught' | 'juniper' | 'real' | 'all';
+  name: string;
+  n: number;
+  bare: { passed: number; low: number; high: number };
+  academyDesk: { passed: number; low: number; high: number };
+  wins: number;
+  losses: number;
+  both: number;
+  neither: number;
+  diff: number;
+  low: number;
+  high: number;
+}
+
+export const THIRD_TEST_SIZE = 126;
+
+export const THIRD_ROWS: readonly ThirdRow[] = [
+  {
+    group: 'taught',
+    name: 'Taught academies',
+    n: 48,
+    bare: { passed: 15, low: 19.9, high: 45.3 },
+    academyDesk: { passed: 24, low: 36.4, high: 63.6 },
+    wins: 13,
+    losses: 4,
+    both: 11,
+    neither: 20,
+    diff: 18.8,
+    low: 2.0,
+    high: 33.9,
+  },
+  {
+    group: 'juniper',
+    name: 'Juniper Study House',
+    n: 48,
+    bare: { passed: 15, low: 19.9, high: 45.3 },
+    academyDesk: { passed: 31, low: 50.4, high: 76.6 },
+    wins: 18,
+    losses: 2,
+    both: 13,
+    neither: 15,
+    diff: 33.3,
+    low: 16.2,
+    high: 47.5,
+  },
+  {
+    group: 'real',
+    name: 'Real academy',
+    n: 30,
+    bare: { passed: 13, low: 27.4, high: 60.8 },
+    academyDesk: { passed: 3, low: 3.5, high: 25.6 },
+    wins: 0,
+    losses: 10,
+    both: 3,
+    neither: 17,
+    diff: -33.3,
+    low: -50.3,
+    high: -14.2,
+  },
+  {
+    group: 'all',
+    name: 'All groups',
+    n: 126,
+    bare: { passed: 43, low: 26.4, high: 42.8 },
+    academyDesk: { passed: 58, low: 37.6, high: 54.7 },
+    wins: 31,
+    losses: 16,
+    both: 27,
+    neither: 52,
+    diff: 11.9,
+    low: 1.3,
+    high: 22.1,
+  },
+];
+
+/** What the third run cost, from its report. */
+export const THIRD_MONEY = {
+  spark: 0.44,
+  glimmer: 7.35,
+} as const;
+
+/**
+ * The first live certificate run, from `academy-desk-cert-1.md`: the third run's Academy desk, frozen,
+ * on 60 calibration tasks and the Real academy's 10 check tasks, five attempts each. No certificate
+ * was issued. Bounds are the report's one-sided 95% Clopper-Pearson upper bounds, in percent.
+ */
+export const CERT = {
+  calibration: 60,
+  attempts: 5,
+  target: 10,
+  confidence: 95,
+  checkTasks: 10,
+  usd: 4.42,
+  runs: 350,
+} as const;
+
+export interface CertRow {
+  /** How many of the five attempts must agree for Academy desk to answer. */
+  when: string;
+  /** Calibration tasks answered and wrong, of 60, with the share handed off in percent. */
+  answered: number;
+  wrong: number;
+  handedOff: number;
+  bound: number;
+  /** The Real academy's check tasks answered and wrong, of 10. */
+  realAnswered: number;
+  realWrong: number;
+}
+
+export const CERT_ROWS: readonly CertRow[] = [
+  {
+    when: '5 of 5 agree',
+    answered: 46,
+    wrong: 14,
+    handedOff: 23,
+    bound: 43.5,
+    realAnswered: 8,
+    realWrong: 8,
+  },
+  {
+    when: '4 or more of 5',
+    answered: 52,
+    wrong: 16,
+    handedOff: 13,
+    bound: 43.0,
+    realAnswered: 9,
+    realWrong: 9,
+  },
+  {
+    when: '3 or more of 5',
+    answered: 60,
+    wrong: 21,
+    handedOff: 0,
+    bound: 46.4,
+    realAnswered: 10,
+    realWrong: 10,
+  },
+];

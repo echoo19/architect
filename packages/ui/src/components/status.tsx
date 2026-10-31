@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { Check, CircleAlert, CircleCheck, CircleMinus, CircleX } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { springs } from '../motion/springs';
 import { Spinner } from './spinner';
 
 export type BadgeTone = 'outline' | 'neutral' | 'emphasis' | 'student' | 'danger' | 'alert';
@@ -123,6 +125,12 @@ export interface ProgressStepperProps {
   className?: string;
 }
 
+/**
+ * One name for the current step's pill wherever a stepper is drawn: each flow step is a screen of
+ * its own, and the pill slides from the step left to the step arrived at.
+ */
+const STEPPER_PILL = 'progress-stepper-current';
+
 /** The header pills of the new-agent flow: Describe, Define, Train, Graduate. */
 export function ProgressStepper({
   steps,
@@ -144,9 +152,9 @@ export function ProgressStepper({
             key={step}
             aria-current={state === 'current' ? 'step' : undefined}
             className={cn(
-              'flex h-8 items-center px-3.5',
+              'relative isolate flex h-8 items-center px-3.5',
               state === 'done' && 'gap-1.5',
-              state === 'current' && 'rounded-full bg-selected font-medium',
+              state === 'current' && 'font-medium',
             )}
           >
             {state === 'done' &&
@@ -156,6 +164,14 @@ export function ProgressStepper({
                 <Check size={13} strokeWidth={2.2} aria-hidden />
               ))}
             {step}
+            {state === 'current' && (
+              <motion.span
+                layoutId={STEPPER_PILL}
+                transition={springs.smooth}
+                aria-hidden
+                className="absolute inset-0 -z-10 rounded-full bg-selected"
+              />
+            )}
             {state === 'done' && (
               <span className="sr-only">{needs ? ', needs attention' : ', done'}</span>
             )}

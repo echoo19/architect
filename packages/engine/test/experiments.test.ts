@@ -1,6 +1,12 @@
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ExperimentDetail, ExperimentInput, ExperimentRecord } from '@architect/shared';
+import {
+  capToFund,
+  fundingMessage,
+  type ExperimentDetail,
+  type ExperimentInput,
+  type ExperimentRecord,
+} from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { pinInputs } from '../src/comparisons/inputs';
 import { ExperimentService } from '../src/experiments/service';
@@ -44,6 +50,8 @@ function inputFor(jobDir: string, changes: Partial<ExperimentInput> = {}): Exper
   return {
     name: 'Desks',
     jobDir,
+    hypothesis: "Spark's one-shot draft passes more of the final test than Glimmer alone.",
+    primaryComparison: { a: 'draft', b: 'bare', group: 'all' },
     arms: [{ arm: 'bare' }, { arm: 'draft', sparkUsd: 0.8 }],
     seeds: { mentoring: 1, lockedTest: [101, 102] },
     rounds: 2,
@@ -168,6 +176,61 @@ describe('experiments from the app', () => {
 
     await expect(service.resume(id, {})).rejects.toMatchObject({ code: 'experiment_state' });
   }, 300_000);
+
+  it("plans on the field's own models and freezes them with the plan", async () => {
+    const { world, service } = setUp();
+    const { dir } = fieldJob(world);
+    const job = JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8')) as Record<string, unknown>;
+    const pricing = { inputPerM: 0.2, cachedInputPerM: 0.2, outputPerM: 0.6 };
+    const mentor = {
+      kind: 'model',
+      provider: 'other',
+      label: 'Teacher on the cluster',
+      baseUrl: 'http://gpu-node-3:8000/v1',
+      model: 'big-teacher',
+      reasoningEffort: 'medium',
+      pricing,
+    };
+    const hosted = {
+      runtime: 'openai_compatible',
+      baseUrl: 'http://gpu-node-7:8000/v1',
+      model: 'qwen3-32b',
+      contextLength: 16_384,
+      pricing,
+    };
+    writeFileSync(
+      join(dir, 'job.json'),
+      JSON.stringify({
+        ...job,
+        mentor,
+        student: {
+          label: 'Qwen',
+          local: {
+            runtime: 'ollama',
+            baseUrl: 'http://127.0.0.1:11434',
+            model: 'qwen3:32b',
+            contextLength: 16_384,
+          },
+          trainOn: 'hosted',
+          hosted,
+        },
+      }),
+    );
+    const planned = await service.plan(inputFor(dir));
+    expect(planned.names).toEqual({ mentor: 'Teacher on the cluster', student: 'Qwen' });
+    const { id } = planned.experiment;
+    const frozen = await service.preregister(id);
+    expect(frozen.preregistration?.models).toEqual({
+      mentor,
+      student: hosted,
+      localModel: 'qwen3:32b',
+    });
+    const stored = JSON.parse(
+      readFileSync(join(world.root, 'experiments', id, 'preregistration.json'), 'utf8'),
+    ) as { models: unknown };
+    expect(stored.models).toEqual(frozen.preregistration?.models);
+    expect((await service.get(id)).names.mentor).toBe('Teacher on the cluster');
+  });
 
   it('pauses where it is, releases nothing meanwhile, and goes on from there', async () => {
     const { world, service } = setUp();
@@ -321,5 +384,49 @@ describe('experiments from the app', () => {
       status: 'stopped',
       reason: 'Stopped by you.',
     });
+  }, 300_000);
+
+  it('waits for money before any release, and goes on once the person raises the cap', async () => {
+    const { world, service } = setUp();
+    // The bare arm's attempts cost twice what calibration priced, so its final test no longer fits.
+    world.runtime.beforeAttempt = () => {
+      if (world.runtime.attempts.length >= 15) world.runtime.costScale = 2;
+    };
+    let id = '';
+    const settled = (statuses: string[]) =>
+      until(
+        service,
+        () => id,
+        (record) => statuses.includes(record.status),
+      );
+    const { primaryComparison: _pair, ...single } = inputFor(RETURNS_DESK, {
+      arms: [{ arm: 'bare' }],
+      caps: { studentUsd: 2, sparkUsd: 10, computeUsd: 0, wallMinutes: 600 },
+    });
+    const input = single;
+    id = (await service.plan(input)).experiment.id;
+    await service.preregister(id);
+    await expect(service.start(id, { studentCapUsd: 5 })).rejects.toMatchObject({
+      code: 'experiment_state',
+    });
+    const waiting = settled(['needs_funding', 'finished', 'incomplete', 'failed']);
+    await service.start(id, {});
+    expect(await waiting).toMatchObject({ status: 'needs_funding' });
+    const held = await service.get(id);
+    expect(held.released).toBe(false);
+    expect(held.funding).toMatchObject({ arm: 'bare', stage: 'test', capUsd: 2 });
+    if (held.funding === null) throw new Error('No pause was recorded.');
+    expect(held.experiment.reason).toBe(fundingMessage(held.funding));
+
+    const raised = capToFund(held.funding);
+    const ended = settled(['finished', 'incomplete', 'failed', 'needs_funding']);
+    await service.resume(id, { studentCapUsd: raised });
+    expect(await ended).toMatchObject({ status: 'finished' });
+    const result = await service.get(id);
+    expect(result.released).toBe(true);
+    expect(result.funding).toBeNull();
+    expect(result.amendments).toEqual([
+      expect.objectContaining({ arm: 'bare', fromUsd: 2, toUsd: raised }),
+    ]);
   }, 300_000);
 });

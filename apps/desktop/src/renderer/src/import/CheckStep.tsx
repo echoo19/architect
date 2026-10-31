@@ -28,7 +28,7 @@ import {
   runtimeName,
   WEIGHTS_BASE,
 } from '../install/labels';
-import { formatBytes, formatPercent } from '../lib/format';
+import { formatBytes, formatScore } from '../lib/format';
 import { baseModelName, capitalized } from '../lib/names';
 import { useUi } from '../state/ui';
 
@@ -203,8 +203,7 @@ export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
             meta={`The job needed ${Math.round(summary.passRate.target * 100)}%`}
           >
             <SettingsValue>
-              {summary.passRate.met ? 'Passed' : 'Below its target'}: {summary.score.pass} of{' '}
-              {summary.score.total} ({formatPercent(summary.score)})
+              {summary.passRate.met ? 'Passed' : 'Below its target'}: {formatScore(summary.score)}
             </SettingsValue>
           </SettingsRow>
           {tested && (

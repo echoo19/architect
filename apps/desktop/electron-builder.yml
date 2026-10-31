@@ -47,9 +47,21 @@ extraResources:
       - tasks.jsonl
       - checker.js
       - data/**
-  # Phil's job: its tasks, checker and the four academies' records (one it is never taught on).
+  # Academy desk's job: its tasks, checker and the four academies' records (one it is never taught on).
   - from: ../../examples/academy/job
     to: academy-job
+    filter:
+      - job.json
+      - tasks.jsonl
+      - checker.js
+      - orgs/**
+  # Sweep desk's job: its tasks, checker and the four research groups' runs (one never seen).
+  - from: ../../examples/sweep-desk/job
+    to: sweep-desk-job
+  # The Assay desk's job, a science lab sample: its tasks, checker and the four labs' files (one
+  # it is never taught on).
+  - from: ../../examples/assay-desk/job
+    to: assay-job
     filter:
       - job.json
       - tasks.jsonl

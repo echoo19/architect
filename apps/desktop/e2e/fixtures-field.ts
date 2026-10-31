@@ -11,7 +11,7 @@ import type {
 import { AT, graduate, storyReport, trainedJob } from './story';
 
 /*
- * Phil, the academy tutor of the field plan, as a report and an agent: one specialist trained
+ * Academy desk, the academy agent of the field plan, as a report and an agent: one specialist trained
  * with three synthetic academies and tested also on one it never saw and on a real one it never
  * saw (decisions 068 and 070). The real one has no question text, so only some skills are tested
  * there.
@@ -142,7 +142,8 @@ const SCORE = {
 
 export const FIELD_JOB: Job = {
   ...trainedJob,
-  name: 'Phil',
+  name: 'Academy desk',
+  organizationNoun: 'academy',
   summary: 'Helps a student right after a wrong answer, from the academy’s own curriculum.',
   does: [],
   doesNot: ['Changes a grade or a recorded score'],
@@ -151,7 +152,8 @@ export const FIELD_JOB: Job = {
 
 export const FIELD_REPORT: ReportCard = {
   ...storyReport,
-  name: 'Phil',
+  name: 'Academy desk',
+  organizationNoun: 'academy',
   refusedTypes: [],
   topInterventions: [],
   test: {
@@ -182,10 +184,10 @@ export const FIELD_CAPABILITIES: CapabilityBreakdown = {
 
 export const FIELD_AGENT: GraduateSummary = {
   ...graduate,
-  name: 'Phil',
+  name: 'Academy desk',
   manifest: {
     ...graduate.manifest,
-    name: 'Phil',
+    name: 'Academy desk',
     requirements: FIELD_REPORT.requirements,
     test: { score: SCORE, perType: PER_TYPE },
   },

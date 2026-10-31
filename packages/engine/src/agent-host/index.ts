@@ -3,6 +3,7 @@
  * runs it as an Electron utility process and talks to it through `connectAgentHost`.
  */
 
+export { parseAnswerLine } from '../agent/answer';
 export { connectAgentHost } from './client';
 export type { AgentHostClient } from './client';
 export { describeBlocked, installLoopbackOnlyGuard } from './guard/install';

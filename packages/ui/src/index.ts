@@ -7,6 +7,8 @@ export {
   NumberTicker,
   PRESS_SCALE,
   Reveal,
+  STEP_SLIDE,
+  SidePresence,
   Stagger,
   StaggerItem,
   StepTransition,
@@ -16,7 +18,9 @@ export {
   springs,
   staggerDelay,
   stepOffset,
+  travel,
   useInstantMotion,
+  useTravel,
   type CollapseProps,
   type DurationPart,
   type MotionProviderProps,
@@ -25,10 +29,12 @@ export {
   type NumberKind,
   type NumberTickerProps,
   type RevealProps,
+  type SidePresenceProps,
   type StaggerItemProps,
   type StaggerProps,
   type StepDirection,
   type StepTransitionProps,
+  type TransitionKind,
 } from './motion';
 
 export {
@@ -58,9 +64,11 @@ export {
   Card,
   CardGrid,
   CardRow,
+  RowIcon,
   type CardGridProps,
   type CardProps,
   type CardRowProps,
+  type RowIconProps,
 } from './components/card';
 export {
   ChoiceTiles,
@@ -176,6 +184,7 @@ export {
   type TextareaProps,
 } from './components/input';
 export { Kbd, Shortcut, shortcutLabel, type ShortcutProps } from './components/kbd';
+export { NavItem, type NavItemProps } from './components/nav-item';
 export { PageTabs, type PageTab, type PageTabsProps } from './components/page-tabs';
 export { Progress, type ProgressProps } from './components/progress';
 export { ProviderMark, type ProviderMarkProps } from './components/provider-mark';

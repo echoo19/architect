@@ -10,7 +10,13 @@ import {
 import { describeJobData, organizationTexts, type MentorDataFile } from '../mentor/data-files';
 import { MentorGate } from '../mentor/gate';
 import type { BudgetGuard } from './budget';
-import { configurationKey, LLAMA_CPP, STUDENT_CONFIG, type AttemptConfig } from './configuration';
+import {
+  configurationKey,
+  LLAMA_CPP,
+  STUDENT_CONFIG,
+  TRAINED_BACKEND,
+  type AttemptConfig,
+} from './configuration';
 import type {
   HarnessVersionStore,
   LoopDeps,
@@ -101,7 +107,9 @@ export class SessionResources {
     if (config.actor !== 'student') {
       throw new Error(`A ${config.actor} attempt has no student to connect.`);
     }
-    if (config.backend === 'job') return connectStudent(deps, job, target);
+    if (config.backend === 'job' || config.backend.startsWith(TRAINED_BACKEND)) {
+      return connectStudent(deps, job, target);
+    }
     if (config.backend !== LLAMA_CPP) {
       throw new Error(`Architect has no ${config.backend} backend for the student.`);
     }

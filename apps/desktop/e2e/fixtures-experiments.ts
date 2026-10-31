@@ -3,6 +3,7 @@ import {
   ComparisonReportSchema,
   ProjectionSchema,
   type ComparisonReport,
+  type ExperimentRecord,
 } from '@architect/shared';
 import type { ElectronApplication } from '@playwright/test';
 
@@ -14,10 +15,19 @@ import type { ElectronApplication } from '@playwright/test';
  * holds no locked result, as the engine's never does. Screens are built against it.
  */
 
+/** The models an experiment runs, by their labels: the field's own, Spark and Glimmer by default. */
+export interface ExperimentNames {
+  mentor: string;
+  student: string;
+}
+
+const DEFAULT_NAMES: ExperimentNames = { mentor: 'Muse Spark 1.3', student: 'Glimmer' };
+
 /** What the stand-in answers with, made from a comparison's report. */
-function experimentsData(report: ComparisonReport) {
+function experimentsData(report: ComparisonReport, names: ExperimentNames) {
   const projection = ProjectionSchema.parse(report.projection);
   return {
+    names,
     projection,
     calibration: CalibrationCostSchema.parse({
       tasks: report.job.counts.calibration,
@@ -40,18 +50,27 @@ function experimentsData(report: ComparisonReport) {
   };
 }
 
-/** Installs the stand-in; `report` is what a finished experiment reads, such as the recorded one. */
+/**
+ * Installs the stand-in; `report` is what a finished experiment reads, such as the recorded one,
+ * and `names` the models its field runs, and `kept` the experiments it already holds, such as a
+ * finished one.
+ */
 export async function installExperimentsFake(
   app: ElectronApplication,
   report: ComparisonReport,
+  names: ExperimentNames = DEFAULT_NAMES,
+  kept: readonly ExperimentRecord[] = [],
 ): Promise<void> {
   // Sent untyped: the report's types are too deep for Playwright to unbox, and it is ours anyway.
-  const sent: unknown = experimentsData(report);
+  const sent: unknown = { data: experimentsData(report, names), kept };
   await app.evaluate(({ BrowserWindow, ipcMain }, raw) => {
-    const data = raw as ReturnType<typeof experimentsData>;
+    const { data, kept } = raw as {
+      data: ReturnType<typeof experimentsData>;
+      kept: Record[];
+    };
     type Record = {
       id: string;
-      input: { jobDir: string; name: string };
+      input: { jobId?: string; jobDir?: string; name: string };
       job: { id: string; name: string; splitsSeed: number };
       status: string;
       reason?: string;
@@ -61,7 +80,7 @@ export async function installExperimentsFake(
       createdAt: string;
       updatedAt: string;
     };
-    const records: Record[] = [];
+    const records: Record[] = [...kept];
     const now = () => new Date().toISOString();
     const broadcast = (channel: string, payload: unknown) => {
       for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, payload);
@@ -86,10 +105,14 @@ export async function installExperimentsFake(
     const released = (record: Record) => record.status === 'finished';
     const detail = (record: Record) => ({
       experiment: { ...record },
+      names: data.names,
       projection: data.projection,
       calibration: data.calibration,
+      groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
+      funding: null,
+      amendments: [],
       report: released(record) ? data.released : record.status === 'draft' ? null : data.held,
     });
     const handle = (channel: string, reply: (...args: never[]) => unknown) => {
@@ -165,7 +188,9 @@ export async function installExperimentsFake(
       });
     };
     handle('experiments:start', (id: string) => run(id, ['preregistered']));
-    handle('experiments:resume', (id: string) => run(id, ['paused', 'waiting', 'incomplete']));
+    handle('experiments:resume', (id: string) =>
+      run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']),
+    );
     handle('experiments:pause', (id: string) => {
       const record = find(id);
       if (record.status !== 'running') throw coded('experiment_state', `It is ${record.status}.`);

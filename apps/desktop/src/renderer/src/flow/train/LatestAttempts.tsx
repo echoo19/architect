@@ -1,5 +1,5 @@
 import type { Job } from '@architect/shared';
-import { EvidenceMark, Stagger, StaggerItem } from '@architect/ui';
+import { Button, EvidenceMark, Stagger, StaggerItem } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
 import { Appear, useFirstKeys } from '../appear';
 import { taskTitle } from '../format';
@@ -10,13 +10,17 @@ import type { RecentAttempt } from './run-state';
 /** How many of the latest attempts show. */
 const SHOWN = 5;
 
-/** The student's latest attempts, newest first. A row opens its trace. */
+/**
+ * The student's latest attempts, newest first. A row opens its trace; Show all opens every
+ * practice and check attempt of the run, with filters.
+ */
 export function LatestAttempts({
   job,
   attempts,
   mentor,
   ended,
   onOpen,
+  onShowAll,
 }: {
   job: Job;
   attempts: readonly RecentAttempt[];
@@ -24,11 +28,23 @@ export function LatestAttempts({
   ended: boolean;
   mentor: string;
   onOpen: (attempt: RecentAttempt) => void;
+  /** Opens every attempt of the run; the Lab only, so the personal edition's screen stays as it was. */
+  onShowAll?: (() => void) | undefined;
 }) {
   const shown = attempts.slice(0, SHOWN);
   const first = useFirstKeys(shown.map((attempt) => attempt.id));
   return (
-    <Section title="Latest attempts">
+    <Section
+      title="Latest attempts"
+      actions={
+        onShowAll &&
+        attempts.length > 0 && (
+          <Button size="sm" variant="ghost" onClick={onShowAll}>
+            Show all
+          </Button>
+        )
+      }
+    >
       {shown.length === 0 ? (
         <p className="m-0 border-y border-line py-3.5">
           {ended ? 'No attempts' : 'No attempts yet'}
@@ -53,7 +69,7 @@ export function LatestAttempts({
   );
 }
 
-function AttemptRow({
+export function AttemptRow({
   attempt,
   type,
   mentor,

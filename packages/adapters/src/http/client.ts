@@ -1,9 +1,11 @@
 import { AdapterError } from '@architect/shared';
 import type { z } from 'zod';
 import { readChunks, readText } from './body';
+import type { NetworkDeps } from '../deps';
 import { badResponse, HttpError } from './errors';
 import { describeErrorBody, failureForStatus, parseRetryAfter, redact } from './failures';
 import { RequestGuard } from './guard';
+import { admit } from './network';
 import { withRetries, type RetryOptions } from './retry';
 
 export interface Timeouts {
@@ -36,6 +38,11 @@ export interface HttpClientOptions {
   /** Limits for streamed replies. */
   timeouts?: Partial<Timeouts>;
   retry?: RetryOptions;
+  /**
+   * The closed network the client is held to: a base URL outside it is refused here, and every
+   * request is checked again before it is sent.
+   */
+  network?: NetworkDeps;
 }
 
 export interface RequestOptions {
@@ -64,6 +71,13 @@ export interface HttpClient {
     schema: S,
     request?: RequestOptions,
   ): Promise<z.output<S>>;
+  /** POSTs a multipart form, such as a file with its settings, and parses the JSON reply. */
+  postForm<S extends z.ZodType>(
+    path: string,
+    form: FormData,
+    schema: S,
+    request?: RequestOptions,
+  ): Promise<z.output<S>>;
   /** Sends a DELETE with a JSON body and resolves on a success status; any reply body is ignored. */
   delete(path: string, body: unknown, request?: RequestOptions): Promise<void>;
   /** POSTs and resolves once the server has started answering with a success status. */
@@ -74,6 +88,30 @@ export interface HttpClient {
 
 type Method = 'GET' | 'POST' | 'DELETE';
 
+function isRedirect(status: number): boolean {
+  return status >= 300 && status < 400;
+}
+
+/** A redirect, refused: where it pointed, by host alone, since its path can carry secrets. */
+function redirected(response: Response, url: string): HttpError {
+  const location = response.headers.get('location');
+  let target: string | null;
+  try {
+    target = location === null ? null : new URL(location, url).host;
+  } catch {
+    target = null;
+  }
+  void response.body?.cancel();
+  return new HttpError(
+    {
+      code: 'bad_response',
+      summary: `${new URL(url).host} answered with a redirect${target === null ? '' : ` to ${target}`}, which Architect doesn't follow.`,
+      hint: 'Use the address it points to instead.',
+    },
+    { status: response.status },
+  );
+}
+
 export function createHttpClient(options: HttpClientOptions): HttpClient {
   const { service } = options;
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -82,6 +120,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
   const fetchImpl: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
   const secrets = options.secrets ?? [];
   const streamTimeouts: Timeouts = { ...STREAM_TIMEOUTS, ...options.timeouts };
+  admit(options.network, service, baseUrl, false);
 
   async function send(
     method: Method,
@@ -90,6 +129,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     request: RequestOptions,
     timeouts: Timeouts,
   ): Promise<{ response: Response; guard: RequestGuard }> {
+    admit(options.network, service, baseUrl + path, true);
     const guard = new RequestGuard(request.signal, service);
     try {
       guard.arm(timeouts.headersMs);
@@ -97,13 +137,21 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
         method,
         headers: {
           accept: request.accept ?? 'application/json',
-          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          // A form sets its own content type, with the boundary between its parts.
+          ...(body === undefined || body instanceof FormData
+            ? {}
+            : { 'content-type': 'application/json' }),
           ...options.headers,
         },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body:
+          body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
         signal: guard.signal,
+        // Never followed: a redirect would send the body, and the key with it, to a host no
+        // check saw (decision 098). The person is told where it pointed instead.
+        redirect: 'manual',
       });
       guard.disarm();
+      if (isRedirect(response.status)) throw redirected(response, baseUrl + path);
       if (!response.ok) throw await rejection(response, guard, request, timeouts);
       return { response, guard };
     } catch (error) {
@@ -177,6 +225,8 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     getJson: (path, schema, request = {}) => requestJson('GET', path, undefined, schema, request),
     postJson: (path, body, schema, request = {}) =>
       requestJson('POST', path, body, schema, request),
+    postForm: (path, form, schema, request = {}) =>
+      requestJson('POST', path, form, schema, request),
     async delete(path, body, request = {}) {
       const limit = request.timeoutMs ?? QUICK_TIMEOUT_MS;
       const { response, guard } = await send('DELETE', path, body, request, {

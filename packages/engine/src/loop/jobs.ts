@@ -3,6 +3,7 @@ import { copyFile, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'nod
 import { basename, dirname, extname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 import {
   CodedError,
+  GuardError,
   DraftRecordSchema,
   isBaselineMethod,
   JobSchema,
@@ -11,8 +12,14 @@ import {
   StudyRecordSchema,
   TaskSchema,
   trainOrganizations,
+  ORG_ID,
+  slugify,
+  type AddOrganizationRequest,
+  type MoveToModelRequest,
   type DraftRecord,
   type Job,
+  type Organization,
+  type ResourceFile,
   type JobRun,
   type JobSummary,
   type RuleConfirmation,
@@ -25,20 +32,43 @@ import {
 } from '@architect/shared';
 import { z } from 'zod';
 import { calibrationSize } from '../certify/settings';
+import { parseCsv } from '../data/csv';
+import { addedOrganizationTasks } from '../drafting/field';
+import { folderShortfalls, shortfallInWords } from '../graduates/checks';
 import { bindingOf, reportsOf, ruleTypesOf, stateOf, type Binding } from '../drafting/confirmation';
 import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
-import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
+import { recordingsView } from '../drafting/recordings';
+import { isStudied, materialFiles, studyStateOf, transferDetector } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
-import { readDataFile } from '../mentor/data-files';
+import { mentorDataTexts } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
-import type { StoredRun } from '../store/records';
+import type { JobRecord, StoredRun, StoredVersion } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
-import type { Clock, LoopDeps } from './deps';
+import type { Clock, HarnessDeps, LoopDeps } from './deps';
+import { normalizedReply } from '../certify/agreement';
+import { must } from './errors';
 import { readJsonFile, readJsonLines, writeJsonFile, writeJsonLines } from './files';
+import { nextVersion, versionLine } from './job-versions';
+import { familyKey } from './posthoc';
 import { isSafeId, type DataPaths, type VisibleSplit } from './paths';
 import { checkOrganizations, orgDataDir } from './organizations';
 import { isoNow } from './time';
+
+/** Where a version carried to another model keeps the harness it starts from (decision 095). */
+const CARRIED_HARNESS = 'carried-harness';
+
+/** A field's id and name without a version's suffix: "academy-desk", "Academy desk". */
+function baseOf(job: Job): { id: string; name: string } {
+  return {
+    id: job.id.replace(/-v\d+$/, ''),
+    name: job.name.replace(/ v\d+( \(\d+\))?$/, ''),
+  };
+}
+
+function sha256Of(content: Uint8Array): string {
+  return createHash('sha256').update(content).digest('hex');
+}
 
 /** A relative path that stays inside its folder. */
 function insidePath(path: string): string {
@@ -158,6 +188,20 @@ async function readTasks(file: string): Promise<Task[]> {
   });
 }
 
+/**
+ * The job's files as a folder must hold them: each table with the columns the first taught
+ * organization's copy has, so another organization's folder can be checked against them.
+ */
+async function withColumns(job: Job, dataDir: string): Promise<ResourceFile[]> {
+  return Promise.all(
+    job.data.files.map(async (file) => {
+      if (file.kind !== 'table') return file;
+      const content = await readFile(join(dataDir, file.name), 'utf8').catch(() => null);
+      return content === null ? file : { ...file, columns: parseCsv(file.name, content).columns };
+    }),
+  );
+}
+
 /** Copies a file, saying `missing` when it isn't there; an `optional` file that isn't is skipped. */
 async function copyInto(
   from: string,
@@ -197,11 +241,15 @@ export class JobLibrary {
   private readonly taskCache = new Map<string, Task[]>();
   /** The jobs being made now in this process, which an interrupted one is told apart from. */
   private readonly finalizing = new Set<string>();
+  /** The fields a new version is being made of now (decision 089). */
+  private readonly moving = new Set<string>();
 
   constructor(
     private readonly store: EngineStore,
     private readonly paths: DataPaths,
-    private readonly deps: Pick<LoopDeps, 'runtime' | 'vault'>,
+    private readonly deps: Pick<LoopDeps, 'runtime' | 'vault'> & {
+      harness: Pick<HarnessDeps, 'readPackaged'>;
+    },
     private readonly clock: Clock,
     private readonly contracts: ContractBook = new ContractBook(store, clock),
   ) {}
@@ -308,9 +356,10 @@ export class JobLibrary {
   /**
    * Imports a job file with `tasks.jsonl` and a `data/` folder beside it (the sample job ships
    * this way), and the starting harness folder when the job imports one. The tasks are split at
-   * once and the test split is sealed in the vault.
+   * once and the test split is sealed in the vault. `drafting` is what drafting a field from
+   * several organizations' folders left (decision 083), kept beside the job as a drafted job's is.
    */
-  async importFile(file: string): Promise<Job> {
+  async importFile(file: string, drafting?: DraftRecord): Promise<Job> {
     const source = dirname(resolve(file));
     const parsed = await readJobFile(file);
     const job: Job = { ...parsed, id: await this.freshId(parsed.id) };
@@ -356,6 +405,9 @@ export class JobLibrary {
           );
         }
         await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
+      }
+      if (drafting !== undefined) {
+        await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(drafting));
       }
       if (tasks.length > 0) await this.installTasks(kept, tasks, transfer);
 
@@ -531,7 +583,7 @@ export class JobLibrary {
         sealed,
       }),
       ...(confirmation === null ? {} : { confirmation }),
-      ...(study === null ? {} : { study }),
+      ...(study === null ? {} : { study, recordings: await recordingsView(job, this.paths) }),
     };
   }
 
@@ -698,7 +750,7 @@ export class JobLibrary {
     );
   }
 
-  private record(job: Job, taskCount: number): void {
+  private record(job: Job, taskCount: number, versionOf?: JobRecord['versionOf']): void {
     this.store.transaction(() => {
       this.store.jobs.insert({
         id: job.id,
@@ -708,6 +760,7 @@ export class JobLibrary {
         taskCount,
         createdAt: job.createdAt,
         updatedAt: isoNow(this.clock),
+        ...(versionOf === undefined ? {} : { versionOf }),
       });
       this.contracts.ensure(job);
     });
@@ -750,6 +803,522 @@ export class JobLibrary {
     await writeJsonFile(file, await this.get(jobId));
   }
 
+  /**
+   * Seals a never-seen organization into a field after it was made (decision 085). The folder
+   * must hold the job's files with the columns its first taught organization's tables have, as
+   * an agent's own records folder is checked (decision 070). Its tasks come from a `tasks.jsonl`
+   * in the folder, each of the job's kinds and of no other organization, or, for a field drafted
+   * from folders, are made from its files with the field's own kinds of task; anything else is
+   * refused with what to do. The organization's files and tasks go to the vault beside the job's
+   * seal, which doesn't change, and nothing of it is written to the job.
+   */
+  async addOrganization(jobId: string, request: AddOrganizationRequest): Promise<void> {
+    const job = await this.get(jobId);
+    const taught = trainOrganizations(job);
+    const [first] = taught;
+    if (first === undefined) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} serves one organization, so it has no field to add one to. Make a field of several organizations to qualify on one it never saw.`,
+      );
+    }
+    if (!(await this.deps.vault.isSealed(jobId))) {
+      throw new Error(
+        `${job.name} has no sealed final test yet, so nothing can be sealed beside it.`,
+      );
+    }
+    this.requireNewest(job);
+    const cohortOf = request.cohortOf?.trim();
+    if (cohortOf !== undefined && !taught.some((org) => org.name === cohortOf)) {
+      throw new Error(
+        `${job.name} isn't taught on ${cohortOf}, so there is no cohort of it to keep testing on.`,
+      );
+    }
+    const name = request.name.trim();
+    const id = slugify(name);
+    if (!ORG_ID.test(id)) {
+      throw new Error(`"${name}" can't name an organization; use letters or digits in it.`);
+    }
+    const sealed = await this.deps.vault.transferIdentifiers(jobId);
+    if ([...taught, ...sealed].some((org) => org.id === id || org.name === name)) {
+      throw new Error(
+        `${job.name} already has an organization called ${name}. Give it another name.`,
+      );
+    }
+    const folder = resolve(request.folder);
+    if (!(await stat(folder).catch(() => null))?.isDirectory()) {
+      throw new Error(`${folder} isn't a folder.`);
+    }
+    const shortfalls = await folderShortfalls(
+      await withColumns(job, orgDataDir(this.paths.jobDir(jobId), first.id)),
+      folder,
+    );
+    if (shortfalls.length > 0) {
+      throw new Error(
+        `That folder doesn't hold what ${job.name}'s organizations hold. ${shortfalls.map(shortfallInWords).join(' ')}`,
+      );
+    }
+    const org: Organization = {
+      id,
+      name,
+      synthetic: request.synthetic,
+      role: 'transfer',
+      ...(cohortOf === undefined ? {} : { cohortOf }),
+    };
+    const tasks = await this.addedTasks(job, org, folder);
+    const files = (
+      await Promise.all(
+        job.data.files.map(async (file) => {
+          const content = await readFile(join(folder, file.name)).catch((error: unknown) => {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+            throw error;
+          });
+          return content === null ? [] : [{ name: file.name, content }];
+        }),
+      )
+    ).flat();
+    const others = [
+      ...(await this.tasks(jobId, 'calibration')),
+      ...(await this.tasks(jobId, 'train')),
+      ...(await this.tasks(jobId, 'dev')),
+    ];
+    await this.requireFresh(job, org, files, tasks, others);
+    const data = await mentorDataTexts(
+      job.data.files,
+      taught.map((item) => orgDataDir(this.paths.jobDir(jobId), item.id)),
+    );
+    await this.deps.vault.addOrganization(jobId, { org, files }, tasks, others, data);
+  }
+
+  /**
+   * Teaches on a never-seen organization in a new version of the field (decision 089), never in
+   * place: a new job, recorded as this one's next version, whose taught organizations take the
+   * moved one with its files, and whose practice and check tasks take its tasks, split in the
+   * job's own proportion with families whole. Everything else is this job's: its practice, check
+   * and calibration tasks, its final test without the moved organization, and every other sealed
+   * organization, sealed again with prints made afresh for what the new version's teacher may
+   * see (decision 082). This job, its vault, its runs and what they measured stay as they were;
+   * a job that already has a newer version is taught on there instead.
+   */
+  async teachOn(jobId: string, orgName: string): Promise<Job> {
+    // One move at a time per field, so two quick asks can't both make a next version.
+    if (this.moving.has(jobId)) {
+      throw new Error('A new version of this field is being made already. Wait for it.');
+    }
+    this.moving.add(jobId);
+    try {
+      return await this.moveOrganization(jobId, orgName);
+    } finally {
+      this.moving.delete(jobId);
+    }
+  }
+
+  private async moveOrganization(jobId: string, orgName: string): Promise<Job> {
+    const job = await this.get(jobId);
+    const record = must(this.store.jobs.get(jobId), `The job "${jobId}"`);
+    this.requireNewest(job);
+    const taught = trainOrganizations(job);
+    if (taught.length === 0 || !(await this.deps.vault.isSealed(jobId))) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} has no sealed organization to teach on. Make a field of several organizations first.`,
+      );
+    }
+    const identifiers = await this.deps.vault.transferIdentifiers(jobId);
+    const sealed = identifiers.find((org) => org.name === orgName);
+    if (sealed === undefined) {
+      throw new Error(`${job.name} has no never-seen organization called ${orgName}.`);
+    }
+    const released = await this.deps.vault.releaseOrganization(jobId, sealed.id);
+    // Its files become what the teacher reads, so they must not name one that stays sealed.
+    const others = transferDetector(
+      { organizations: [] },
+      identifiers.filter((org) => org.id !== sealed.id),
+    );
+    const naming = released.files.find(
+      (file) => others.scan(Buffer.from(file.content).toString('utf8')).leaked,
+    );
+    if (naming !== undefined) {
+      throw new GuardError(
+        'split',
+        `${orgName}'s ${naming.name} names an organization that stays never seen, so it can't become material the teacher reads. Take the name out of that file first.`,
+      );
+    }
+    const { cohortOf: _cohortOf, ...plain } = released.org;
+    const moved: Organization = { ...plain, role: 'train' };
+    const split = this.practiceAndChecks(job, orgName, released.tasks);
+    const { train, dev } = job.splits;
+    const version = (record.versionOf?.version ?? 1) + 1;
+    const next: Job = {
+      ...job,
+      id: await this.freshId(`${baseOf(job).id}-v${version}`),
+      name: this.versionName(job, version),
+      createdAt: isoNow(this.clock),
+      organizations: [...taught, moved],
+      splits: { ...job.splits, train: train + split.train.length, dev: dev + split.dev.length },
+    };
+    return this.finalize(next, async () => {
+      // The job's own folder, less its runs, its tasks and its job file, which are the new one's.
+      const from = this.paths.jobDir(jobId);
+      const skipped = new Set(
+        ['runs', 'tasks', 'job.json', 'finalizing'].map((name) => join(from, name)),
+      );
+      await cp(from, this.paths.jobDir(next.id), {
+        recursive: true,
+        filter: (path) => !skipped.has(path),
+      });
+      for (const file of released.files) {
+        const target = join(this.paths.orgDataDir(next.id, moved.id), file.name);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, file.content);
+      }
+      const visible = {
+        calibration: await this.tasks(jobId, 'calibration'),
+        train: [...(await this.tasks(jobId, 'train')), ...split.train],
+        dev: [...(await this.tasks(jobId, 'dev')), ...split.dev],
+      };
+      for (const [name, tasks] of Object.entries(visible)) {
+        await writeJsonLines(this.paths.tasksFile(next.id, name as VisibleSplit), tasks);
+      }
+      const data = await mentorDataTexts(
+        next.data.files,
+        [...taught, moved].map((org) => this.paths.orgDataDir(next.id, org.id)),
+      );
+      await this.deps.vault.sealVersion(
+        jobId,
+        next.id,
+        moved.id,
+        [...visible.calibration, ...visible.train, ...visible.dev],
+        data,
+      );
+      await writeJsonFile(this.paths.jobFile(next.id), next);
+      this.record(next, record.taskCount, {
+        jobId,
+        version,
+        reason: 'organization',
+        org: { id: moved.id, name: moved.name },
+      });
+      return next;
+    });
+  }
+
+  /**
+   * Carries the field to another model in a new version (decision 095), never in place: a new
+   * job, recorded as this one's next version for a new model, whose student is the model chosen
+   * and which starts from what the field has. Its harness is the chosen version's, or else the
+   * version of the field an agent holds, copied whole (instructions, skills, helpers, examples
+   * with the verified lessons among them, retrieval); its counterexamples are the field's; its
+   * practice, check and calibration tasks, checker, study, rules and budget are this job's.
+   * Nothing moves out of the vault, so the final test and every never-seen organization are
+   * sealed again as they are, with their prints made afresh against the same visible tasks and
+   * files. This job, its runs and the agent in use stay as they were.
+   */
+  async moveToModel(jobId: string, request: MoveToModelRequest): Promise<Job> {
+    if (this.moving.has(jobId)) {
+      throw new Error('A new version of this field is being made already. Wait for it.');
+    }
+    this.moving.add(jobId);
+    try {
+      return await this.carryToModel(jobId, request);
+    } finally {
+      this.moving.delete(jobId);
+    }
+  }
+
+  private async carryToModel(jobId: string, request: MoveToModelRequest): Promise<Job> {
+    const job = await this.get(jobId);
+    const record = must(this.store.jobs.get(jobId), `The job "${jobId}"`);
+    this.requireNewest(job);
+    const { local } = job.student;
+    if (request.student.model === local.model && request.student.baseUrl === local.baseUrl) {
+      throw new Error(`${job.name} already runs on ${request.label}. Choose another model.`);
+    }
+    if (!(await this.deps.vault.isSealed(jobId))) {
+      throw new CodedError(
+        'not_a_job',
+        `${job.name} has no final test sealed yet, so a version on another model would have nothing to be measured on.`,
+      );
+    }
+    const carried = this.carriedVersion(jobId, request.from);
+    const version = (record.versionOf?.version ?? 1) + 1;
+    const next: Job = {
+      ...job,
+      id: await this.freshId(`${baseOf(job).id}-v${version}`),
+      name: this.versionName(job, version),
+      createdAt: isoNow(this.clock),
+      // The online copy was the earlier model's; the new one practices here until one is chosen.
+      student: {
+        label: request.label,
+        local: request.student,
+        trainOn: 'local',
+      },
+      ...(carried === null
+        ? {}
+        : { startingHarness: { kind: 'import' as const, path: CARRIED_HARNESS } }),
+    };
+    return this.finalize(next, async () => {
+      const from = this.paths.jobDir(jobId);
+      // A harness carried before is replaced by the one carried now, when there is one.
+      const own = ['runs', 'tasks', 'job.json', 'finalizing'];
+      const skipped = new Set(
+        [...own, ...(carried === null ? [] : [CARRIED_HARNESS])].map((name) => join(from, name)),
+      );
+      await cp(from, this.paths.jobDir(next.id), {
+        recursive: true,
+        filter: (path) => !skipped.has(path),
+      });
+      if (carried !== null) {
+        // Read and held to its hash first, so only the harness that version shipped is carried.
+        const folder = this.paths.fromStored(carried.path);
+        await this.deps.harness.readPackaged(folder, carried.manifest);
+        await cp(join(folder, 'harness'), join(this.paths.jobDir(next.id), CARRIED_HARNESS), {
+          recursive: true,
+        });
+      }
+      const visible = {
+        calibration: await this.tasks(jobId, 'calibration'),
+        train: await this.tasks(jobId, 'train'),
+        dev: await this.tasks(jobId, 'dev'),
+      };
+      for (const [name, tasks] of Object.entries(visible)) {
+        await writeJsonLines(this.paths.tasksFile(next.id, name as VisibleSplit), tasks);
+      }
+      const data = await mentorDataTexts(
+        next.data.files,
+        trainOrganizations(next).map((org) => this.paths.orgDataDir(next.id, org.id)),
+      );
+      await this.deps.vault.sealVersion(
+        jobId,
+        next.id,
+        null,
+        [...visible.calibration, ...visible.train, ...visible.dev],
+        data,
+      );
+      await writeJsonFile(this.paths.jobFile(next.id), next);
+      this.record(next, record.taskCount, {
+        jobId,
+        version,
+        reason: 'model',
+        model: {
+          from: { model: local.model, label: job.student.label },
+          to: { model: request.student.model, label: request.label },
+          ...(carried === null
+            ? {}
+            : { carried: { graduateId: carried.graduateId, version: carried.version } }),
+        },
+      });
+      // The regression suite travels with the field: each counterexample, as found, under the
+      // new version, so a helper the new model's teacher changes must still pass it.
+      const suite = this.store.counterexamples.list({ jobId });
+      this.store.transaction(() => {
+        for (const counterexample of suite) {
+          this.store.counterexamples.put({ ...counterexample, id: newId('cex'), jobId: next.id });
+        }
+      });
+      return next;
+    });
+  }
+
+  /**
+   * The agent version whose harness a move to another model carries: the one named, which a
+   * training of this field or an earlier version of it must have made, or else the version in
+   * use that one made, else the newest such version not set aside. Null when none was made.
+   */
+  private carriedVersion(jobId: string, named: MoveToModelRequest['from']): StoredVersion | null {
+    const line = new Set(versionLine(this.store, jobId).map((item) => item.id));
+    const ours = (version: StoredVersion | null): version is StoredVersion => {
+      const made = version?.runId === undefined ? null : this.store.runs.get(version.runId);
+      return made !== null && line.has(made.run.jobId);
+    };
+    if (named !== undefined) {
+      const version = this.store.versions.get(named.graduateId, named.version);
+      if (!ours(version)) {
+        throw new Error(`Version ${named.version} of that agent wasn't made by this field.`);
+      }
+      return version;
+    }
+    const agents = this.store.graduates.list();
+    const newest = (versions: StoredVersion[]) =>
+      versions.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
+    const inUse = agents.flatMap((agent) => {
+      const version =
+        agent.activeVersion === null
+          ? null
+          : this.store.versions.get(agent.id, agent.activeVersion);
+      return ours(version) ? [version] : [];
+    });
+    return (
+      newest(inUse) ??
+      newest(
+        agents.flatMap((agent) =>
+          this.store.versions
+            .list(agent.id)
+            .filter((version) => version.state !== 'rejected' && ours(version)),
+        ),
+      )
+    );
+  }
+
+  /** The name a new version of the field takes, never another job's: "Academy desk v3 (2)". */
+  private versionName(job: Job, version: number): string {
+    const names = new Set(this.store.jobs.list().map((item) => item.name));
+    const base = baseOf(job).name;
+    let name = `${base} v${version}`;
+    for (let n = 2; names.has(name); n += 1) name = `${base} v${version} (${n})`;
+    return name;
+  }
+
+  /** Refuses a field that has a newer version: organizations are added and taught on there. */
+  private requireNewest(job: Job): void {
+    const newer = nextVersion(this.store, job.id);
+    if (newer !== null) {
+      throw new Error(
+        `${job.name} has a newer version, ${newer.name}. Add or teach on organizations there.`,
+      );
+    }
+  }
+
+  /**
+   * A moved organization's tasks as practice and check tasks, in the job's own proportion with
+   * families whole, or why it can't be: it needs at least one of each.
+   */
+  private practiceAndChecks(job: Job, orgName: string, tasks: Task[]) {
+    const count = tasks.length;
+    const { train, dev } = job.splits;
+    const checks = Math.round((count * dev) / Math.max(1, train + dev));
+    const few = `${orgName} has ${count} ${count === 1 ? 'task' : 'tasks'}, too few to give it both practice and check tasks with each family kept whole.`;
+    if (checks === 0 || checks === count) throw new Error(`${few} Add tasks to it first.`);
+    let split;
+    try {
+      split = this.deps.runtime.splitTasks(tasks, {
+        seed: job.splits.seed,
+        calibration: 0,
+        train: count - checks,
+        dev: checks,
+        test: 0,
+      });
+    } catch (error) {
+      throw new Error(`${few} Its families are too large for ${checks} check tasks.`, {
+        cause: error,
+      });
+    }
+    if (split.train.length + split.dev.length !== count) {
+      throw new Error(`${orgName}'s tasks couldn't all be split into practice and check tasks.`);
+    }
+    return split;
+  }
+
+  /**
+   * Refuses tasks of an organization added later that copy a task the teacher may see: the same
+   * request (case, spacing and punctuation aside) or family. A fresh cohort's tables must not be
+   * a taught organization's own, nor its answers a visible task's (a short answer such as a
+   * choice letter repeats by chance, so only longer ones count).
+   */
+  private async requireFresh(
+    job: Job,
+    org: Organization,
+    files: readonly { name: string; content: Uint8Array }[],
+    tasks: readonly Task[],
+    visible: readonly Task[],
+  ): Promise<void> {
+    const prompts = new Map(visible.map((task) => [normalizedReply(task.prompt), task]));
+    const families = new Set(visible.map((task) => familyKey(task.family)));
+    for (const task of tasks) {
+      const copied = prompts.get(normalizedReply(task.prompt));
+      if (copied !== undefined) {
+        throw new Error(
+          `Task "${task.id}" asks what the visible task "${copied.id}" asks, so ${org.name} wouldn't be work it never saw.`,
+        );
+      }
+      if (families.has(familyKey(task.family))) {
+        throw new Error(
+          `Task "${task.id}" is of the family "${task.family}", which the teacher already sees. Give ${org.name}'s tasks families of their own.`,
+        );
+      }
+    }
+    if (org.cohortOf === undefined) return;
+    const answer = (task: Task) => `${task.type}\t${JSON.stringify(task.expected)}`;
+    const what = ({ expected }: Task) =>
+      JSON.stringify(
+        expected.kind === 'answer'
+          ? expected.value
+          : expected.kind === 'facts'
+            ? expected.facts
+            : expected.params,
+      );
+    const answers = new Map(
+      visible
+        .filter((task) => normalizedReply(what(task)).length >= 12)
+        .map((task) => [answer(task), task]),
+    );
+    const same = tasks.find((task) => answers.has(answer(task)));
+    if (same !== undefined) {
+      throw new Error(
+        `Task "${same.id}" expects exactly what the visible task "${answers.get(answer(same))?.id}" expects, so it looks copied from work the teacher sees.`,
+      );
+    }
+    const tables = new Set(
+      job.data.files.filter((file) => file.kind === 'table').map((file) => file.name),
+    );
+    const taught = new Set<string>();
+    for (const item of trainOrganizations(job)) {
+      for (const file of job.data.files) {
+        const content = await readFile(
+          join(this.paths.orgDataDir(job.id, item.id), file.name),
+        ).catch(() => null);
+        if (content !== null) taught.add(sha256Of(content));
+      }
+    }
+    const copy = files.find((file) => tables.has(file.name) && taught.has(sha256Of(file.content)));
+    if (copy !== undefined) {
+      throw new Error(
+        `${copy.name} is the same file as one the teacher was taught on, so it isn't fresh work of ${org.cohortOf}. Seal a later export instead.`,
+      );
+    }
+  }
+
+  /** An added organization's tasks: its folder's `tasks.jsonl`, or a drafted field's kinds made from its files. */
+  private async addedTasks(job: Job, org: Organization, folder: string): Promise<Task[]> {
+    const listed = await readTasks(join(folder, 'tasks.jsonl'));
+    if (listed.length > 0) {
+      const tasks = listed.map((task) => ({ ...task, org: task.org ?? org.id }));
+      const stranger = tasks.find((task) => task.org !== org.id);
+      if (stranger !== undefined) {
+        throw new Error(
+          `Task "${stranger.id}" in tasks.jsonl names the organization "${stranger.org}"; every task there must be ${org.name}'s, with "org": "${org.id}" or none.`,
+        );
+      }
+      checkTasks({ ...job, organizations: [...trainOrganizations(job), org] }, tasks);
+      return tasks;
+    }
+    const draft = await this.drafting(job.id);
+    const inputs = (draft?.source === 'generated' ? draft.types : []).flatMap((type) => {
+      const info = job.taskTypes.find((item) => item.id === type.id);
+      return type.spec === undefined || info === undefined
+        ? []
+        : [
+            {
+              id: info.id,
+              label: info.label,
+              description: info.description ?? info.label,
+              spec: type.spec,
+            },
+          ];
+    });
+    if (inputs.length === 0) {
+      throw new Error(
+        `That folder has no tasks.jsonl, and ${job.name}'s tasks weren't made from its files, so Architect can't make ${org.name}'s. Put its tasks in a tasks.jsonl in the folder, one per line, as docs/JOB_FORMAT.md describes.`,
+      );
+    }
+    const made = await addedOrganizationTasks(org, folder, inputs, job.requirements.passRate);
+    if (made.length === 0) {
+      throw new Error(
+        `${org.name}'s files make no task of the kinds ${job.name} asks, so nothing would test the agent there. Check that the folder holds the same records as the others.`,
+      );
+    }
+    return made;
+  }
+
   async tasks(jobId: string, split: VisibleSplit): Promise<Task[]> {
     const key = `${jobId}/${split}`;
     const cached = this.taskCache.get(key);
@@ -789,11 +1358,10 @@ export class JobLibrary {
       orgs.length === 0
         ? [this.paths.dataDir(job.id)]
         : orgs.map((org) => orgDataDir(this.paths.jobDir(job.id), org.id));
-    const data = (
-      await Promise.all(
-        folders.flatMap((folder) => job.data.files.map((file) => readDataFile(folder, file))),
-      )
-    ).filter((text) => text !== null);
+    // Each file's text, and each table's rows as the mentor is shown them, so what the mentor may
+    // see of these files is left out of the fingerprint (decision 082). Only the organizations the
+    // job trains on are read here: a sealed one's files stay secret and count against a leak.
+    const data = await mentorDataTexts(job.data.files, folders);
     await this.deps.vault.seal(
       job.id,
       [...splits.test, ...sealed],

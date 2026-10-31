@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import {
   FIELD_EXPORT_FORMAT,
   TrainBundleSchema,
+  type ClusterTarget,
   type FieldExportManifest,
   type ModelConfig,
   type TrainBundle,
@@ -26,6 +27,9 @@ import {
   planTraining,
   PYTORCHJOB_FILE,
   SBATCH_FILE,
+  SKYPILOT_CLUSTER,
+  SKYPILOT_FILE,
+  skyAccelerator,
   writeTrainBundle,
   type TrainingPlanInput,
 } from '../src/training-plan';
@@ -111,7 +115,7 @@ function fieldExport(): string {
   return dir;
 }
 
-function bundleFor(target: 'slurm' | 'kubernetes') {
+function bundleFor(target: ClusterTarget) {
   const out = join(temp(), 'bundle');
   const written = writeTrainBundle({
     target,
@@ -221,6 +225,55 @@ function fakeKubectl(argv: string[], cwd: string, bundle: TrainBundle): string {
   return `pytorchjob.kubeflow.org/${job.metadata.name} created`;
 }
 
+interface SkyTask {
+  name: string;
+  workdir: string;
+  num_nodes: number;
+  resources: { accelerators: string; image_id: string };
+  setup: string;
+  run: string;
+}
+
+/**
+ * A stand-in for `sky launch -c <cluster> <task.yaml>`: reads the task as SkyPilot does (only
+ * the fields it knows), checks it asks for the bundle's nodes and GPUs, syncs this folder as its
+ * workdir and runs what is in it. It launches nothing.
+ */
+function fakeSky(argv: string[], cwd: string, bundle: TrainBundle): string {
+  expect(argv.slice(0, 3)).toEqual(['sky', 'launch', '-c']);
+  const cluster = argv[3] ?? '';
+  expect(cluster).toMatch(/^[a-z]([-a-z0-9]*[a-z0-9])?$/);
+  const task = parse(readFileSync(join(cwd, argv[4] ?? ''), 'utf8')) as SkyTask;
+  const known = [
+    'name',
+    'workdir',
+    'num_nodes',
+    'resources',
+    'setup',
+    'run',
+    'envs',
+    'file_mounts',
+  ];
+  for (const key of Object.keys(task)) expect(known).toContain(key);
+  for (const key of Object.keys(task.resources))
+    expect(['accelerators', 'image_id']).toContain(key);
+  expect(task.workdir).toBe('.');
+  expect(task.num_nodes).toBe(bundle.nodes);
+  const [gpu, count] = task.resources.accelerators.split(':');
+  expect(['H100', 'H200', 'A100', 'A100-80GB', 'L40S', 'B200']).toContain(gpu);
+  expect(Number(count)).toBe(bundle.gpus_per_node);
+  expect(task.resources.image_id).toMatch(/^docker:\S+@sha256:[0-9a-f]{64}$/);
+  expect(task.setup).toContain('pip install --no-cache-dir -r requirements.txt');
+  for (const name of ['SKYPILOT_NODE_RANK', 'SKYPILOT_NODE_IPS', 'SKYPILOT_NUM_NODES']) {
+    expect(task.run).toContain(`\${${name}}`);
+  }
+  for (const file of ['requirements.txt', 'train_fsdp.py', 'train.json']) {
+    expect(existsSync(join(cwd, file))).toBe(true);
+  }
+  expect(task.run).toContain('train_fsdp.py --config train.json');
+  return `Launching a new cluster '${cluster}'.`;
+}
+
 /** The submit command exactly as the README gives it, split into arguments. */
 function readmeCommand(dir: string, bundle: TrainBundle): string[] {
   const readme = readFileSync(join(dir, 'README.txt'), 'utf8');
@@ -326,6 +379,82 @@ describe('a Kubernetes bundle', () => {
     );
     const text = readFileSync(join(out, PYTORCHJOB_FILE), 'utf8');
     expect(text.startsWith('# EXPERIMENTAL, NOT RUN')).toBe(true);
+  });
+});
+
+describe('a SkyPilot bundle', () => {
+  it('is a task SkyPilot reads, run on every node from the bundle as its workdir', () => {
+    const { out, written } = bundleFor('skypilot');
+    expect(written.bundle).toMatchObject({
+      target: 'skypilot',
+      nodes: 2,
+      gpus_per_node: 8,
+      submit: `sky launch -c ${SKYPILOT_CLUSTER} ${SKYPILOT_FILE}`,
+    });
+    expect(fakeSky(readmeCommand(out, written.bundle), out, written.bundle)).toContain(
+      SKYPILOT_CLUSTER,
+    );
+    const text = readFileSync(join(out, SKYPILOT_FILE), 'utf8');
+    expect(text.startsWith('# EXPERIMENTAL, NOT RUN')).toBe(true);
+    const task = parse(text) as SkyTask;
+    expect(task.resources.accelerators).toBe('H100:8');
+    // The workdir is the whole folder, so only what a bundle may carry is in it.
+    expect(readdirSync(out).sort()).toEqual(
+      [
+        'README.txt',
+        'bundle.json',
+        'chat_spans.py',
+        'data',
+        'fsdp_config.json',
+        'plan.json',
+        'requirements.txt',
+        SKYPILOT_FILE,
+        'train.json',
+        'train_fsdp.py',
+      ].sort(),
+    );
+    expect(readdirSync(join(out, 'data'))).toEqual(['demonstrations.jsonl']);
+    const readme = readFileSync(join(out, 'README.txt'), 'utf8');
+    expect(readme).toContain('(SkyPilot)');
+    expect(readme).toContain(`sky down ${SKYPILOT_CLUSTER}`);
+    for (const file of written.files) {
+      expect(readFileSync(join(out, file), 'utf8')).not.toMatch(/hf_[A-Za-z0-9]{20,}|HF_TOKEN=\S/);
+    }
+  });
+
+  it.skipIf(BASH === null)('sets up and runs scripts bash can parse', () => {
+    const { out } = bundleFor('skypilot');
+    const task = parse(readFileSync(join(out, SKYPILOT_FILE), 'utf8')) as SkyTask;
+    for (const script of [task.setup, task.run]) {
+      const check = spawnSync(BASH ?? 'bash', ['-n'], { input: script, encoding: 'utf8' });
+      expect(check.stderr).toBe('');
+      expect(check.status).toBe(0);
+    }
+  });
+
+  it('names each GPU the way SkyPilot does, and refuses one it can’t name before writing', () => {
+    expect(skyAccelerator({ name: 'H100 80GB', memoryGb: 80 })).toBe('H100');
+    expect(skyAccelerator({ name: 'h100-80gb', memoryGb: 80 })).toBe('H100');
+    expect(skyAccelerator({ name: 'H200 141GB', memoryGb: 141 })).toBe('H200');
+    expect(skyAccelerator({ name: 'A100 80GB', memoryGb: 80 })).toBe('A100-80GB');
+    expect(skyAccelerator({ name: 'a100-40gb', memoryGb: 40 })).toBe('A100');
+    expect(skyAccelerator({ name: 'L40S 48GB', memoryGb: 48 })).toBe('L40S');
+    expect(skyAccelerator({ name: 'b200', memoryGb: 180 })).toBe('B200');
+    expect(() => skyAccelerator({ name: '96 GB GPU', memoryGb: 96 })).toThrow(BundleError);
+    const outputDir = join(temp(), 'b');
+    expect(() =>
+      writeTrainBundle({
+        target: 'skypilot',
+        plan: planTraining(config('small-1b'), {
+          ...PLAN_INPUT,
+          gpu: { name: '96 GB GPU', memoryGb: 96 },
+        }),
+        trainerDir: TRAINER,
+        exportDir: null,
+        outputDir,
+      }),
+    ).toThrow(/SkyPilot launches GPUs by name/);
+    expect(existsSync(outputDir)).toBe(false);
   });
 });
 

@@ -56,7 +56,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
         </span>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Tooltip
-            content={`${names.mentor} never practices on these. It sees only the score, and a change stays only if the score goes up.`}
+            content={`${names.mentor} never teaches from these. It sees only the score, and a change stays only if the score goes up.`}
           >
             <span tabIndex={0} className="cursor-help rounded-mark">
               <EvidenceMark kind="check" className="text-ui">
@@ -73,9 +73,41 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
             </span>
           )}
         </div>
+        <ByOrganization live={live} runs={runs} />
       </div>
       <CurveChart input={input} geometry={geometry} ended={ended} />
     </section>
+  );
+}
+
+/**
+ * The check score at each organization a field is taught on (decision 085), so it shows where
+ * the number comes from, counted per run of the check tasks as the score above is. Nothing for a
+ * job of one organization.
+ */
+function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
+  const { run, job } = live;
+  const perRun = (value: number) => (runs > 1 ? Math.round((value / runs) * 10) / 10 : value);
+  const rows = (job.organizations ?? []).flatMap((org) => {
+    const score = run.devByOrg?.find((entry) => entry.org === org.id);
+    return score === undefined || score.total === 0 ? [] : [{ org, score }];
+  });
+  if (rows.length === 0) return null;
+  return (
+    <ul aria-label="Check tasks by organization" className="m-0 flex list-none flex-col p-0">
+      {rows.map(({ org, score }) => (
+        <li
+          key={org.id}
+          aria-label={`${org.name}: ${perRun(score.pass)} of ${perRun(score.total)}`}
+          className="flex max-w-80 items-baseline justify-between gap-6 border-t border-line py-1.5 text-ui first:border-t-0"
+        >
+          <span className="truncate">{org.name}</span>
+          <span className="tabular-nums">
+            {percent(score)}% · {perRun(score.pass)} of {perRun(score.total)}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

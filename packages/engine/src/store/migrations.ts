@@ -449,4 +449,84 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX counterexamples_by_run ON counterexamples (run_id, round);
     `,
   },
+  {
+    version: 19,
+    name: 'certifications',
+    sql: `
+      -- A frozen version certified after the fact, on tasks its run never saw (decision 079).
+      CREATE TABLE certifications (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        graduate_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        seq INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE UNIQUE INDEX certifications_once ON certifications (run_id, seq);
+      CREATE INDEX certifications_by_version ON certifications (graduate_id, version, created_at);
+    `,
+  },
+  {
+    version: 20,
+    name: 'qualifications',
+    sql: `
+      -- A model trained elsewhere, served on this computer, taking a finished run's locked test
+      -- under the run's frozen harness (decision 086).
+      CREATE TABLE qualifications (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        job_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX qualifications_by_job ON qualifications (job_id, created_at);
+    `,
+  },
+  {
+    version: 21,
+    name: 'added_qualifications',
+    sql: `
+      -- A frozen version's test on an organization sealed after its job was made (decision 085).
+      CREATE TABLE added_qualifications (
+        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+        org_id TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        body TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, org_id)
+      );
+      CREATE UNIQUE INDEX added_qualifications_once ON added_qualifications (run_id, seq);
+      -- The current check score at each organization a field is taught on.
+      ALTER TABLE runs ADD COLUMN dev_by_org TEXT;
+    `,
+  },
+  {
+    version: 22,
+    name: 'job_versions',
+    sql: `
+      -- A later version of a job, made by teaching on one of its never-seen organizations
+      -- (decision 089): the job it came from, its number and the organization moved.
+      ALTER TABLE jobs ADD COLUMN version_of TEXT;
+    `,
+  },
+  {
+    version: 23,
+    name: 'run_hosts',
+    sql: `
+      -- Every host a run's adapters contacted, with how many requests went there and whether a
+      -- closed network admitted all of them (decision 098). Never a path, a body or a key.
+      CREATE TABLE run_hosts (
+        run_id TEXT NOT NULL,
+        host TEXT NOT NULL,
+        requests INTEGER NOT NULL,
+        inside INTEGER NOT NULL,
+        first_at TEXT NOT NULL,
+        PRIMARY KEY (run_id, host)
+      );
+    `,
+  },
 ];

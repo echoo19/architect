@@ -3,8 +3,10 @@ import {
   RUN_REQUEST_FORMAT,
   RUN_RESULT_FORMAT,
   RunResultSchema,
+  type AgentStep,
   type CliOutcome,
   type RunResult,
+  type RunStep,
   type WorkspaceMessage,
 } from '@architect/shared';
 import cliPackage from '../../package.json' with { type: 'json' };
@@ -78,6 +80,17 @@ export function outcomeOf(reply: Reply): Outcome {
   return { outcome: 'succeeded', failure: null };
 }
 
+/** A reply's steps as a result lists them: the tool, what it acted on and what it found. */
+export function runSteps(steps: readonly AgentStep[]): RunStep[] {
+  return steps.map((step) => ({
+    tool: step.name,
+    detail: step.detail,
+    status: step.status,
+    ...(step.meta === undefined ? {} : { summary: step.meta }),
+    ...(step.ms === undefined ? {} : { ms: step.ms }),
+  }));
+}
+
 export interface ResultInput {
   outcome: Outcome;
   session: AgentSession | null;
@@ -121,13 +134,7 @@ export function runResult(input: ResultInput): RunResult {
           }
         : null,
     inputs: [...input.inputs],
-    steps: steps.map((step) => ({
-      tool: step.name,
-      detail: step.detail,
-      status: step.status,
-      ...(step.meta === undefined ? {} : { summary: step.meta }),
-      ...(step.ms === undefined ? {} : { ms: step.ms }),
-    })),
+    steps: runSteps(steps),
     artifacts: steps
       .filter(
         (step) => WRITE_TOOLS.has(step.name) && step.status === 'done' && step.meta !== 'declined',

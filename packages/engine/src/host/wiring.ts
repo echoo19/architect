@@ -3,8 +3,10 @@ import {
   createLlamaCppStudent,
   createMentor,
   createMentorActor,
+  createMuseVoiceTranscriber,
   createStudent,
   mentorCanAct,
+  type NetworkDeps,
   type StudentDeps,
 } from '@architect/adapters';
 import { DEFAULT_STUDENT, GLIMMER_TRAINING_BASE, type StudentEndpoint } from '@architect/shared';
@@ -30,6 +32,7 @@ import {
   templateHarness,
 } from '@architect/harness';
 import type {
+  ContactRecorder,
   EngineHostDeps,
   SampleAgentFiles,
   TaskChecker,
@@ -65,8 +68,12 @@ export interface EngineWiringOptions {
   getSecret(ref: string): Promise<string | undefined>;
   /** The sample job shipped with the app (`job.json`, with `tasks.jsonl` and `data/` beside it). */
   sampleJobFile?: string;
-  /** The tutor's job shipped with the app, with its academies at `orgs/<id>/data/` beside it. */
+  /** The Academy desk's job shipped with the app, with its academies at `orgs/<id>/data/` beside it. */
   academyJobFile?: string;
+  /** Sweep desk's job shipped with the app, with its research groups beside it. */
+  sweepDeskJobFile?: string;
+  /** The Assay desk's job shipped with the app, with its labs at `orgs/<id>/data/` beside it. */
+  assayJobFile?: string;
   /** The ready-made agent shipped with the app: its package, and the data it works on. */
   sampleAgent?: SampleAgentFiles;
   /** The CPU-thread cap for students on a local runtime right now, if there is one. */
@@ -89,6 +96,22 @@ export interface EngineWiringOptions {
    * mentor's menu.
    */
   adapterRuntime?: AdapterServing;
+  /**
+   * The closed network's hosts right now (decision 098), or undefined while none is on. Every
+   * adapter made here refuses any other host, this computer aside, before it sends anything.
+   */
+  allowedHosts?: () => readonly string[] | undefined;
+}
+
+/** The closed network an adapter is held to, telling `contacted` where each request goes. */
+function networkFor(
+  options: Pick<EngineWiringOptions, 'allowedHosts'>,
+  contacted: ContactRecorder | undefined,
+): NetworkDeps {
+  return {
+    ...(options.allowedHosts === undefined ? {} : { allowed: options.allowedHosts }),
+    ...(contacted === undefined ? {} : { contacted }),
+  };
 }
 
 /** The training worker over `<data>/training`, its backends, and what the loop needs of it. */
@@ -96,7 +119,11 @@ function trainingWiring(options: EngineWiringOptions, trainerDir: string): Train
   const store = new FileTrainingStore(options.dataDir);
   const recipe = loadRecipe(trainerDir);
   const token = options.huggingFaceToken ?? (async () => undefined);
-  const hub = new HfJobsBackend({ hub: new HubClient({ token }), recipe, token });
+  const hubClient = new HubClient({
+    token,
+    ...(options.allowedHosts === undefined ? {} : { allowedHosts: options.allowedHosts }),
+  });
+  const hub = new HfJobsBackend({ hub: hubClient, recipe, token });
   const standIn = new StandInBackend({
     stateDir: join(options.dataDir, 'training', 'stand-in'),
     // The stand-in shapes its adapter for the default student's base, from Ollama's store.
@@ -199,7 +226,20 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       leakDetector: (jobId) => vault.leakDetector(jobId),
       openForLockedTest: (jobId, proof) => vault.openForLockedTest(jobId, proof as MentorReleased),
       openTransfer: (jobId, proof) => vault.openTransfer(jobId, proof as MentorReleased),
+      sealCertification: (jobId, id, sets, others, data) =>
+        vault.sealCertification(jobId, id, sets, others, data),
+      openCertification: (jobId, id, sha256, proof) =>
+        vault.openCertification(jobId, id, sha256, proof as MentorReleased),
+      discardCertification: (jobId, id) => vault.discardCertification(jobId, id),
       openCalibration: (jobId, proof) => vault.openCalibration(jobId, proof as MentorReleased),
+      stageSealed: (jobId, dir) => vault.stageSealed(jobId, dir),
+      addOrganization: (jobId, organization, tasks, others, data) =>
+        vault.addOrganization(jobId, organization, tasks, others, data),
+      addedOrganizations: (jobId) => vault.addedOrganizations(jobId),
+      openAdded: (jobId, orgId, proof) => vault.openAdded(jobId, orgId, proof as MentorReleased),
+      releaseOrganization: (jobId, orgId) => vault.releaseOrganization(jobId, orgId),
+      sealVersion: (fromJobId, toJobId, movedOrgId, others, data) =>
+        vault.sealVersion(fromJobId, toJobId, movedOrgId, others, data),
     },
     harness: {
       versions: (dir) => new HarnessVersions(dir),
@@ -212,23 +252,39 @@ export function createEngineDeps(options: EngineWiringOptions): EngineHostDeps {
       readPackaged: readPackageHarness,
     },
     adapters: {
-      createMentor: (config, mentorOptions) => createMentor(config, mentorOptions),
-      createStudent: (endpoint, adapterOptions) =>
-        createStudent(endpoint, { ...adapterOptions, ...followedQuietSettings(endpoint, options) }),
-      createActor: (config, actorOptions) => createMentorActor(config, actorOptions),
+      createMentor: (config, { contacted, ...mentorOptions }) =>
+        createMentor(config, { ...mentorOptions, network: networkFor(options, contacted) }),
+      createStudent: (endpoint, { contacted, ...adapterOptions }) =>
+        createStudent(endpoint, {
+          ...adapterOptions,
+          ...followedQuietSettings(endpoint, options),
+          network: networkFor(options, contacted),
+        }),
+      createActor: (config, { contacted, ...actorOptions }) =>
+        createMentorActor(config, { ...actorOptions, network: networkFor(options, contacted) }),
       canAct: (config) => mentorCanAct(config),
+      createTranscriber: ({ contacted, ...transcriberOptions }) =>
+        createMuseVoiceTranscriber({
+          ...transcriberOptions,
+          network: networkFor(options, contacted),
+        }),
       ...(adapterRuntime === undefined
         ? {}
         : {
             createAdapterStudent: (request, studentOptions) =>
               createLlamaCppStudent(adapterRuntime.access(request), {
                 ...(studentOptions.label === undefined ? {} : { label: studentOptions.label }),
+                network: networkFor(options, studentOptions.contacted),
               }),
           }),
     },
     secrets: { get: options.getSecret },
     ...(options.sampleJobFile === undefined ? {} : { sampleJobFile: options.sampleJobFile }),
     ...(options.academyJobFile === undefined ? {} : { academyJobFile: options.academyJobFile }),
+    ...(options.sweepDeskJobFile === undefined
+      ? {}
+      : { sweepDeskJobFile: options.sweepDeskJobFile }),
+    ...(options.assayJobFile === undefined ? {} : { assayJobFile: options.assayJobFile }),
     ...(options.sampleAgent === undefined ? {} : { sampleAgent: options.sampleAgent }),
   };
 }

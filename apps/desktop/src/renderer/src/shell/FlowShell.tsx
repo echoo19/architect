@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
-import { cn, IconButton, ProgressStepper } from '@architect/ui';
+import { useEffect, type ReactNode } from 'react';
+import { cn, IconButton, ProgressStepper, StepTransition, travel, useTravel } from '@architect/ui';
 import { X } from 'lucide-react';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from './edition';
 
 const FLOW_STEPS = ['Describe', 'Define', 'Train', 'Results'] as const;
 export type FlowStep = (typeof FLOW_STEPS)[number];
@@ -22,14 +23,25 @@ export interface FlowShellProps<Step extends string = FlowStep> {
   actions?: ReactNode;
   /** A bar pinned under the content, such as Back and Start training. */
   footer?: ReactNode;
-  /** What the close button does; going home when absent. */
+  /** What the close button does; going home when absent, or to `field` in the Lab. */
   onClose?: () => void;
+  /** The field the screen is about, by its job's id: the Lab's close goes back to its page. */
+  field?: string | undefined;
   /** A panel at the content's right, such as an inspector, between the header and the footer. */
   aside?: ReactNode;
   children: ReactNode;
 }
 
-/** The "Make" layout: a header with the step pills over the flat ground. */
+/**
+ * Where the last flow screen stood among its steps. Each step is a screen of its own, so the
+ * next one reads this to come in from the side the person is moving toward.
+ */
+let lastStep = -1;
+
+/**
+ * The "Make" layout: a header with the step pills over the flat ground. The header stays put
+ * while the step's content slides in from the side of the step chosen, and the pill follows.
+ */
 export function FlowShell<Step extends string = FlowStep>({
   title,
   step,
@@ -38,28 +50,41 @@ export function FlowShell<Step extends string = FlowStep>({
   actions,
   footer,
   onClose,
+  field,
   aside,
   children,
 }: FlowShellProps<Step>) {
+  const edition = useEdition();
+  const back = field !== undefined && edition === 'lab' ? paths.field(field) : paths.home();
   const pills: readonly string[] = steps ?? FLOW_STEPS;
+  const index = pills.indexOf(step);
+  const direction = useTravel(step, index, travel(lastStep, index));
+  useEffect(() => {
+    lastStep = index;
+  }, [index]);
   return (
     <div className="flex h-full flex-col bg-ground">
       {/*
         Two equal grid tracks keep the steps centered in the window. The side columns take the
-        insets for the macOS traffic lights and the Windows and Linux window controls.
+        insets for the macOS traffic lights and the Windows and Linux window controls. It is 56px
+        tall, the native title bar's height, so the window controls end on its hairline.
       */}
-      <header className="app-drag grid min-h-[60px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2.5">
+      <header className="app-drag grid min-h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-line bg-ground px-4 py-2">
         <div className={cn('flex min-w-0 items-center gap-2', isMac() && 'pl-17')}>
-          <IconButton label="Close" onClick={onClose ?? (() => navigate(paths.home()))}>
+          <IconButton label="Close" onClick={onClose ?? (() => navigate(back))}>
             <X size={18} strokeWidth={1.8} aria-hidden />
           </IconButton>
           <span className="min-w-0 truncate font-medium">{title}</span>
         </div>
-        <ProgressStepper steps={pills} current={pills.indexOf(step)} attention={attention ?? []} />
+        <ProgressStepper steps={pills} current={index} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden scroll-quiet">
+          <StepTransition transitionKey={step} direction={direction} appear className="h-full">
+            {children}
+          </StepTransition>
+        </main>
         {aside}
       </div>
       {footer && (

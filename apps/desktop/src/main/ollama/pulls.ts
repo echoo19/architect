@@ -1,4 +1,4 @@
-import { makeTextOnlyModel, pullOllamaModel } from '@architect/adapters';
+import { makeTextOnlyModel, pullOllamaModel, type NetworkDeps } from '@architect/adapters';
 import type { PullProgress, StudentBuild } from '@architect/shared';
 
 /** What the last step of the GPU-sized build is called while it runs. */
@@ -8,11 +8,20 @@ const PREPARING = 'Preparing it for your GPU';
 export class ModelPulls {
   private current: { model: string; controller: AbortController } | null = null;
 
-  constructor(private readonly onProgress: (progress: PullProgress) => void) {}
+  /**
+   * `network` is the closed network (decision 098): Ollama and the registry it pulls from must
+   * both be inside it while it is on.
+   */
+  constructor(
+    private readonly onProgress: (progress: PullProgress) => void,
+    private readonly network?: NetworkDeps,
+  ) {}
 
   /** Resolves once the model is ready. A failure is also reported as a last progress update. */
   async pull(baseUrl: string, model: string): Promise<void> {
-    await this.run(model, (signal) => pullOllamaModel(baseUrl, model, this.onProgress, signal));
+    await this.run(model, (signal) =>
+      pullOllamaModel(baseUrl, model, this.onProgress, signal, this.network),
+    );
   }
 
   /**
@@ -39,6 +48,7 @@ export class ModelPulls {
             status: progress.done ? PREPARING : progress.status,
           }),
         signal,
+        this.network,
       );
       this.onProgress({ model: build.model, status: PREPARING, done: false });
       await makeTextOnlyModel(
@@ -51,6 +61,7 @@ export class ModelPulls {
           parameters: source.parameters,
         },
         signal,
+        this.network,
       );
       this.onProgress({ model: build.model, status: 'Done', done: true });
     });

@@ -17,7 +17,8 @@ const TaskPrintSchema = z.object({
   prompt: z.string().nullable(),
   /**
    * Hashes of the word 8-grams of the prompt and of the expected result, as the task states
-   * it and with its keys sorted, that no other task's prompt or expected result contains.
+   * it and with its keys sorted, that no other task's prompt or expected result and none of the
+   * job's data contains. One sealed before decision 082 may still hold the data's n-grams.
    */
   grams: z.array(z.string()),
   /**
@@ -82,10 +83,13 @@ export function fingerprintTests(
 ): Fingerprint {
   const otherPrompts = others.map((task) => words(task.prompt));
   const otherTexts = otherPrompts.map((tokens) => ` ${tokens.join(' ')} `);
+  // The data's own n-grams too: the mentor sees sample rows of the files the job trains on, and a
+  // test task quoting one (a question, an error's name) gives away nothing those rows don't.
   const otherGrams = new Set(
-    others
-      .flatMap((task) => [words(task.prompt), ...expectedWords(task.expected)])
-      .flatMap(gramHashes),
+    [
+      ...others.flatMap((task) => [words(task.prompt), ...expectedWords(task.expected)]),
+      ...data.map(words),
+    ].flatMap(gramHashes),
   );
   const knownWords = [...others.flatMap(taskTexts), ...data].map((text) => words(text).join(' '));
   const known = ` ${knownWords.join(' ')} `;

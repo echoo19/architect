@@ -27,7 +27,7 @@ export function Card({ title, icon, action, wide, flush, children, className }: 
     <StaggerItem className={cn('flex min-w-0 flex-col', wide && 'lg:col-span-2')}>
       <section
         aria-label={title}
-        className={cn('flex min-w-0 flex-1 flex-col rounded-card bg-card shadow-edge', className)}
+        className={cn('flex min-w-0 flex-1 flex-col rounded-card surface-card', className)}
       >
         <div className="flex min-h-14 items-center gap-2.5 pl-6 pr-4 pt-1">
           {icon && <span className="flex shrink-0 [&_svg]:size-4">{icon}</span>}
@@ -42,8 +42,29 @@ export function Card({ title, icon, action, wide, flush, children, className }: 
   );
 }
 
+export interface RowIconProps {
+  /** A 16px Lucide icon. */
+  children: ReactNode;
+  className?: string;
+}
+
+/**
+ * A row's leading icon: 16px at one stroke, in the row's own text colour, centred in a fixed
+ * 24px column (an avatar's width) so the text of every row starts on the same edge. No tile
+ * behind it; an icon is there to say what kind of thing the row is.
+ */
+export function RowIcon({ children, className }: RowIconProps) {
+  return (
+    <span
+      className={cn('flex size-6 shrink-0 items-center justify-center [&_svg]:size-4', className)}
+    >
+      {children}
+    </span>
+  );
+}
+
 export interface CardRowProps {
-  /** A mark before the row's text, such as an icon tile or an avatar. */
+  /** A mark before the row's text: a `RowIcon` or an avatar, both 24px wide. */
   icon?: ReactNode;
   title: ReactNode;
   /** One short line under the title. */
@@ -72,8 +93,8 @@ export function CardRow({
 }: CardRowProps) {
   const body = (
     <>
-      {icon && <span className="flex shrink-0 items-center">{icon}</span>}
-      <span className="flex min-w-0 flex-1 flex-col">
+      {icon && <span className="flex min-w-6 shrink-0 items-center justify-center">{icon}</span>}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate font-medium">{title}</span>
         {detail && <span className="truncate text-small">{detail}</span>}
       </span>

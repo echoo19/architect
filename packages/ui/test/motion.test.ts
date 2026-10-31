@@ -11,6 +11,7 @@ import {
   Reveal,
   StepTransition,
   durationParts,
+  travel,
   motionSettings,
   numberDisplay,
   springs,
@@ -28,6 +29,16 @@ describe('springs', () => {
   it('lets things leave faster than they arrive', () => {
     expect(springs.exit.duration).toBeLessThan(springs.snappy.duration);
     expect(springs.snappy.duration).toBeLessThan(springs.smooth.duration);
+  });
+
+  it('settles what changes often sooner than a flow step, with no overshoot', () => {
+    expect(springs.settle).toEqual({ type: 'spring', duration: 0.28, bounce: 0 });
+    expect(springs.settle.duration).toBeLessThan(springs.smooth.duration);
+  });
+
+  it('clears a page out of the way faster than anything else leaves', () => {
+    expect(springs.leave).toEqual({ type: 'tween', duration: 0.1, ease: 'easeIn' });
+    expect(springs.leave.duration).toBeLessThan(springs.exit.duration);
   });
 
   it('presses a control to 0.97 and floats a layer in from 0.97', () => {
@@ -85,6 +96,23 @@ describe('stepOffset', () => {
   it('slides 24px in from the side the person is moving toward', () => {
     expect(stepOffset(1)).toBe(24);
     expect(stepOffset(-1)).toBe(-24);
+  });
+
+  it('moves a place 8px and a tab 6px, less than a flow step', () => {
+    expect(stepOffset(1, 'place')).toBe(8);
+    expect(stepOffset(-1, 'place')).toBe(-8);
+    expect(stepOffset(1, 'tab')).toBe(6);
+  });
+});
+
+describe('travel', () => {
+  it('goes forward to a later place and back to an earlier one', () => {
+    expect(travel(0, 3)).toBe(1);
+    expect(travel(3, 1)).toBe(-1);
+  });
+
+  it('goes forward when it stays level, as from one chat to another', () => {
+    expect(travel(5, 5)).toBe(1);
   });
 });
 

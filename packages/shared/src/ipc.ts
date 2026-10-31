@@ -1,4 +1,5 @@
 import type { ConnectionTest } from './adapters';
+import type { AttemptPage, AttemptQuery, HarnessFile, TaskListing, TaskSplit } from './browse';
 import type {
   Correction,
   CorrectionRequest,
@@ -8,11 +9,18 @@ import type {
   RunImprovement,
   TeachingOverview,
 } from './corrections';
+import type { Certification, CertifyRequest } from './certification';
 import type { Counterexample } from './counterexamples';
 import type { TaskPlan } from './drafting';
 import type { RuleConfirmationState } from './rules';
+import type { RecordingQuote, TranscribeRequest } from './recordings';
 import type { StudyState } from './study';
-import type { FieldExportManifest, FieldView } from './field-export';
+import type {
+  AddOrganizationRequest,
+  FieldExportManifest,
+  FieldView,
+  MoveToModelRequest,
+} from './field-export';
 import type { RunEvent } from './events';
 import type { GraduateManifest } from './graduate';
 import type {
@@ -43,6 +51,8 @@ import type {
   ExperimentStart,
 } from './experiments';
 import type { RuntimeMeasurement } from './measurements';
+import type { ClosedNetwork, RunContact } from './network';
+import type { EvidenceRequest, EvidenceResult } from './evidence-pack';
 import type {
   ModelConfigRead,
   ModelConfigSource,
@@ -51,6 +61,7 @@ import type {
   TrainingPlanRequest,
   WrittenTrainBundle,
 } from './training-plan';
+import type { Qualification, QualifyRequest } from './qualification';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -109,10 +120,39 @@ export interface AppSettings {
    * its folder. Absent: the first one on PATH.
    */
   llamaServerPath?: string;
+  /**
+   * Each field's latest export from the app, newest first, so Compute can offer it after a
+   * restart. Recorded by the main process when an export is written, never by the renderer.
+   */
+  fieldExports?: FieldExportRecord[];
+  /**
+   * The Lab's closed network (decision 098): while on, teaching reaches only these hosts and this
+   * computer, and every adapter refuses any other. Off when absent.
+   */
+  closedNetwork?: ClosedNetwork;
+  /**
+   * What couldn't be read of the saved closed network, which then stays on with the hosts that
+   * could (decision 098). Set by the main process as it reads the file; saving the network clears it.
+   */
+  closedNetworkProblem?: string;
 }
 
-/** What the renderer may change in settings: everything but the program Architect runs. */
-export type AppSettingsPatch = Partial<Omit<AppSettings, 'llamaServerPath'>>;
+/** A field export the app wrote: the field, its name then, the folder it went to, and when. */
+export interface FieldExportRecord {
+  jobId: string;
+  name: string;
+  dir: string;
+  /** ISO time it was written. */
+  at: string;
+}
+
+/**
+ * What the renderer may change in settings: everything but the program Architect runs and the
+ * exports it recorded.
+ */
+export type AppSettingsPatch = Partial<
+  Omit<AppSettings, 'llamaServerPath' | 'fieldExports' | 'closedNetworkProblem'>
+>;
 
 /** llama.cpp's llama-server on this computer, as Settings shows it. */
 export interface LlamaServerStatus {
@@ -129,6 +169,22 @@ export interface LlamaServerStatus {
   hint?: string;
   /** The oldest build that runs Glimmer. */
   minimumBuild: number;
+}
+
+/** A model a job file named that isn't connected here, and what the job uses in its place. */
+export interface ReplacedModel {
+  /** The teacher, the model on this computer, or the hosted or cluster copy it practices on. */
+  role: 'mentor' | 'student' | 'hosted';
+  /** The file's model, by its label or its id. */
+  from: string;
+  /** What the job uses instead; null when it goes without, as with no hosted copy. */
+  to: string | null;
+}
+
+/** A job file imported: the job as saved, and which of the file's models were replaced. */
+export interface ImportedJob {
+  job: Job;
+  replaced: ReplacedModel[];
 }
 
 /** An OpenAI-compatible endpoint the user added by its address, such as a vLLM server. */
@@ -316,6 +372,11 @@ export interface RunDetail {
    * took. Such a run ends in a candidate version measured on dev, never in a locked test.
    */
   improves?: RunImprovement;
+  /**
+   * Every host the run contacted, with how many requests went there (decision 098); absent for a
+   * run that has recorded none, such as one from before they were recorded.
+   */
+  contacts?: RunContact[];
 }
 
 export interface FileDiff {
@@ -372,6 +433,16 @@ export interface SampleAgent {
 export interface GraduateSettings {
   /** Writes: ask every time, allow without asking, or never. Starts from the job's permission. */
   writeMode: PermissionMode;
+}
+
+/**
+ * One organization of a field drafted from folders (decision 083): its name, the folder that holds
+ * its files, and whether the agent is taught on it (`train`) or never sees it (`transfer`).
+ */
+export interface DraftOrganization {
+  name: string;
+  folder: string;
+  role: 'train' | 'transfer';
 }
 
 export interface DraftTurn {
@@ -459,6 +530,8 @@ export interface ArchitectApi {
       filters?: { name: string; extensions: string[] }[];
       multiple?: boolean;
       directory?: boolean;
+      /** Where the dialog opens, such as a folder chosen before a restart. */
+      defaultPath?: string;
     }): Promise<string[]>;
     /**
      * The system's save dialog, for a file to write, such as a job file: the file chosen, or null
@@ -482,14 +555,20 @@ export interface ArchitectApi {
     createSample(sample?: SampleJob): Promise<Job>;
     /**
      * Imports a job file with its `tasks.jsonl` and `data/` folder beside it, as a new job that
-     * starts from this person's teacher and model. A file that isn't a job file fails with the
-     * code `not_a_job`.
+     * keeps the file's models where they are connected here and takes this person's teacher and
+     * model in place of the others, each of which `replaced` names. A file that isn't a job file
+     * fails with the code `not_a_job`.
      */
-    importFile(path: string): Promise<Job>;
+    importFile(path: string): Promise<ImportedJob>;
     /** Writes the job's settings as a job file. Its tasks and data stay where they are. */
     exportFile(jobId: string, path: string): Promise<void>;
     draftStart(description: string, files: string[]): Promise<DraftTurn>;
     draftReply(sessionId: string, text: string): Promise<DraftTurn>;
+    /**
+     * Starts drafting a field of several organizations, each from its own folder. The teacher reads
+     * only the taught organizations' files; the conversation goes on with `draftReply`.
+     */
+    draftField(description: string, organizations: DraftOrganization[]): Promise<DraftTurn>;
     /**
      * What a job's tasks are: where they came from, the rule behind each type, a few examples of
      * each with their expected answers, and how many sit in each set. The examples never come
@@ -510,10 +589,43 @@ export interface ArchitectApi {
     /** Records that the person confirmed the brief. `token` is the one the brief came with. */
     confirmStudy(jobId: string, token: string): Promise<StudyState>;
     /**
+     * What transcribing these recordings of a taught organization would cost (decision 087), with
+     * nothing sent. An organization kept for the final test is refused.
+     */
+    quoteRecordings(jobId: string, org: string, paths: string[]): Promise<RecordingQuote>;
+    /** Lets the job's recordings go to Meta to be transcribed, or keeps them here again. */
+    shareRecordings(jobId: string, allowed: boolean): Promise<TaskPlan>;
+    /**
+     * Transcribes the recordings with Muse Voice Transcribe into the organization's files, for the
+     * study to read. Needs the job to allow it and `consent`; costs at most the quote's cap.
+     */
+    transcribe(jobId: string, request: TranscribeRequest): Promise<TaskPlan>;
+    /**
      * What the job's field is made of, for the person's own page: the organizations it trains on
      * with their files, and the sealed ones by name and kind only (decision 075).
      */
     field(jobId: string): Promise<FieldView>;
+    /**
+     * Seals a never-seen organization into a field after it was made (decision 085): its files,
+     * checked against the job's own, and its tasks, from a `tasks.jsonl` in the folder or, for a
+     * drafted field, made from its files the way the field's were. Its own seal sits beside the
+     * job's; nothing that was sealed before changes. Returns the field as it is now.
+     */
+    addOrganization(jobId: string, request: AddOrganizationRequest): Promise<FieldView>;
+    /**
+     * Teaches on a never-seen organization in a new version of the field (decision 089): a new
+     * job whose practice and check tasks take the organization's tasks and whose material takes
+     * its files, with every other sealed organization sealed again. The field it came from and
+     * what was measured on it stay as they were. Returns the new version's field.
+     */
+    teachOn(jobId: string, org: string): Promise<FieldView>;
+    /**
+     * Carries a field to another model in a new version (decision 095): a new job on the chosen
+     * model that starts from the field's harness, lessons, counterexamples, tasks and checker,
+     * with every never-seen organization and the final test sealed again as they were. The agent
+     * in use doesn't change. Returns the new version's field.
+     */
+    moveToModel(jobId: string, request: MoveToModelRequest): Promise<FieldView>;
     /**
      * The field export as it would be written now (decision 071), built and checked in memory
      * with nothing written: its counts and what it leaves out.
@@ -521,6 +633,12 @@ export interface ArchitectApi {
     fieldAssets(jobId: string): Promise<FieldExportManifest>;
     /** Writes the field export into an empty folder the person picked, and returns its manifest. */
     exportField(jobId: string, directory: string): Promise<FieldExportManifest>;
+    /**
+     * A split's tasks for the person to browse (decision 084): practice and check tasks in full,
+     * the calibration and test splits by count alone. Any other split is refused with
+     * `split_sealed`, and a sealed organization's tasks are never among them.
+     */
+    tasks(jobId: string, split: TaskSplit): Promise<TaskListing>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;
@@ -535,6 +653,21 @@ export interface ArchitectApi {
      * filed. Each endpoint is re-tested once: asking again only resumes a re-test an error paused.
      */
     retest(runId: string, target: StudentTarget): Promise<void>;
+    /**
+     * Tests a finished run's frozen graduate on an organization added to its field later, named
+     * as the person named it, with no mentor (decision 085). Its results join the report's
+     * organizations, marked as added later. Asking again only resumes one an error paused.
+     */
+    qualifyAdded(runId: string, org: string): Promise<void>;
+    /**
+     * Tests a finished run's frozen harness with a model trained elsewhere and served on this
+     * computer (decision 086): the run's locked test and its never-seen organizations, no mentor,
+     * no money. Files a card for the model and never changes the run. Returns at once; asking
+     * again for the same model resumes one an error paused.
+     */
+    qualify(request: QualifyRequest): Promise<Qualification>;
+    /** The trained models qualified on a field's runs, newest first. */
+    qualifications(jobId: string): Promise<Qualification[]>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
     /**
@@ -544,6 +677,13 @@ export interface ArchitectApi {
     attempt(attemptId: string): Promise<ListedAttempt>;
     trace(attemptId: string): Promise<Trace>;
     roundDiff(runId: string, round: number): Promise<FileDiff[]>;
+    /**
+     * A page of the run's practice and check attempts, newest first, filtered by round, type,
+     * organization and verdict. Locked-test and calibration attempts are never among them.
+     */
+    attempts(runId: string, query?: AttemptQuery): Promise<AttemptPage>;
+    /** The files of one of the run's harness versions, read (never run) and held to its hash. */
+    harnessFiles(runId: string, version: number): Promise<HarnessFile[]>;
     /**
      * What a runtime meter read while the run's locked tests ran on this computer, oldest first:
      * peak memory and a cold start (decision 045). None where no meter ran.
@@ -686,6 +826,20 @@ export interface ArchitectApi {
      * version's harness read from its folder (never run) and held to its manifest's hash.
      */
     harnessDiff(from: VersionPick, to: VersionPick): Promise<FileDiff[]>;
+    /** The files of a version's harness, read from its folder (never run) and held to its hash. */
+    harnessFiles(graduateId: string, version: number): Promise<HarnessFile[]>;
+    /**
+     * Certifies a frozen version after the fact (decision 079): draws calibration tasks its run
+     * never saw from a job's taught organizations, seals them with the check tasks, and projects
+     * the cost. Spends nothing; a request it can't meet is refused with the reason.
+     */
+    planCertification(request: CertifyRequest): Promise<Certification>;
+    /** Starts a planned certification, or resumes a paused one. Returns at once. */
+    startCertification(certificationId: string): Promise<Certification>;
+    /** Takes back a planned certification that never started, with its sealed tasks. */
+    discardCertification(certificationId: string): Promise<void>;
+    /** A version's certifications, newest first. */
+    certifications(graduateId: string, version: number): Promise<Certification[]>;
     acceptVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     rejectVersion(graduateId: string, version: number): Promise<GraduateVersion>;
     /** Makes an accepted version the active one, in one step. Chats already answering finish first. */
@@ -708,6 +862,11 @@ export interface ArchitectApi {
     exportFolder(graduateId: string, directory: string): Promise<ExportResult>;
     /** Writes one part of a version on its own: its harness folder, adapter file or report. */
     exportPart(graduateId: string, request: ExportPartRequest): Promise<ExportPartResult>;
+    /**
+     * Writes a version's evidence pack into `request.directory` (decision 098): one folder for a
+     * security reviewer and an offline install, every file hashed in its MANIFEST.json.
+     */
+    exportEvidence(graduateId: string, request: EvidenceRequest): Promise<EvidenceResult>;
     /** Validates a package folder or `.architect.zip` without installing it or loading its code. */
     inspectPackage(path: string): Promise<PackageInspection>;
     /**

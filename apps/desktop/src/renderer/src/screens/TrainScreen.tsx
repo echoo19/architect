@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Finding, ListedAttempt, ListedLesson, Round, RunStatus } from '@architect/shared';
 import { Drawer, DrawerContent, Skeleton, Stagger, StaggerItem } from '@architect/ui';
-import { CircleAlert } from 'lucide-react';
 import {
   mentoringApi,
   mentoringKeys,
@@ -12,6 +11,7 @@ import { useQuery, type QueryState } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { rate } from '../flow/format';
 import { modelNames, typeLabel } from '../flow/names';
+import { AttemptsSheet } from '../flow/train/AttemptsSheet';
 import { Budget } from '../flow/train/Budget';
 import { CurrentRound } from '../flow/train/CurrentRound';
 import { draftRoundOf, setupOf } from '../flow/train/draft';
@@ -41,6 +41,7 @@ import { useLiveRun } from '../flow/train/use-live-run';
 import { useQuestion } from '../flow/train/use-question';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from '../shell/edition';
 import { FlowShell, IMPROVE_STEPS } from '../shell/FlowShell';
 import { StopImprovementDialog } from '../workspace/teach/StopImprovement';
 
@@ -55,7 +56,8 @@ type DrawerView =
   | { kind: 'attempt'; attempt: ListedAttempt; openAt?: number; notes?: StepNote[] }
   | { kind: 'finding'; attemptId: string; openAt: number; notes: StepNote[] }
   | { kind: 'round'; index: number }
-  | { kind: 'lesson'; lessonId: string };
+  | { kind: 'lesson'; lessonId: string }
+  | { kind: 'attempts' };
 
 /** The drawer's views, newest last. It stays set while the drawer animates closed. */
 function useDrawerStack() {
@@ -96,6 +98,7 @@ export function TrainScreen({ runId }: { runId: string }) {
       title={live?.job.name ?? 'Training'}
       step={improving ? 'Improve' : 'Train'}
       {...(improving ? { steps: IMPROVE_STEPS } : {})}
+      field={live && !live.improves ? live.job.id : undefined}
       actions={live && <RunControls live={live} onStop={() => setStopping(true)} />}
     >
       <div
@@ -135,6 +138,7 @@ type DrawerStack = ReturnType<typeof useDrawerStack>;
 /** The board and its drawer, which read the run's mentoring records together. */
 function LiveTraining({ live, drawer }: { live: LiveRun; drawer: DrawerStack }) {
   const records = useMentoringRecords(live.run.id, live.job.id);
+  const lab = useEdition() === 'lab';
   return (
     <>
       <TrainBoard
@@ -143,6 +147,7 @@ function LiveTraining({ live, drawer }: { live: LiveRun; drawer: DrawerStack }) 
         onOpenAttempt={(attempt) => drawer.show({ kind: 'attempt', attempt })}
         onOpenRound={(round) => drawer.show({ kind: 'round', index: round.index })}
         onOpenLesson={(lesson) => drawer.show({ kind: 'lesson', lessonId: lesson.id })}
+        onShowAllAttempts={lab ? () => drawer.show({ kind: 'attempts' }) : undefined}
       />
       <Drawer
         open={drawer.open && drawer.top !== null}
@@ -225,6 +230,17 @@ function DrawerBody({
         />
       );
     }
+    case 'attempts':
+      return (
+        <AttemptsSheet
+          runId={live.run.id}
+          job={live.job}
+          rounds={live.rounds}
+          mentor={names.mentor}
+          onOpen={(attempt) => drawer.push({ kind: 'attempt', attempt })}
+          onBack={onBack}
+        />
+      );
   }
 }
 
@@ -335,12 +351,14 @@ function TrainBoard({
   onOpenAttempt,
   onOpenRound,
   onOpenLesson,
+  onShowAllAttempts,
 }: {
   live: LiveRun;
   records: QueryState<MentoringRecords>;
   onOpenAttempt: (attempt: ListedAttempt) => void;
   onOpenRound: (round: Round) => void;
   onOpenLesson: (lesson: ListedLesson) => void;
+  onShowAllAttempts: (() => void) | undefined;
 }) {
   const { run, job, improves } = live;
   const names = modelNames(job);
@@ -364,18 +382,11 @@ function TrainBoard({
       )}
       {run.status === 'failed' && (
         <StaggerItem>
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-card bg-danger-soft px-5 py-4"
-          >
-            <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
-            <div className="flex flex-col gap-0.5">
-              <span className="font-medium">
-                {improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
-              </span>
-              <span className="text-pretty">{run.error ?? 'It stopped without saying why.'}</span>
-            </div>
-          </div>
+          <ProblemState
+            error={new Error(run.error ?? 'It stopped without saying why.')}
+            title={improves ? 'Improving stopped on an error' : 'Training stopped on an error'}
+            className="py-8"
+          />
         </StaggerItem>
       )}
       {run.status === 'paused' && run.error !== undefined && (
@@ -433,6 +444,7 @@ function TrainBoard({
           mentor={names.mentor}
           ended={hasEnded(run)}
           onOpen={onOpenAttempt}
+          onShowAll={onShowAllAttempts}
         />
       </StaggerItem>
     </Stagger>
@@ -441,7 +453,7 @@ function TrainBoard({
 
 function TrainSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading the run" className="flex flex-col gap-10">
+    <div aria-busy="true" aria-label="Loading the training" className="flex flex-col gap-10">
       <Skeleton className="h-8 w-2/3" />
       <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[232px_minmax(0,1fr)]">
         <Skeleton className="h-24 w-48" />

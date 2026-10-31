@@ -129,9 +129,7 @@ test('walks from a description to a graduate', async () => {
         exact: false,
       }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('img', { name: /^Teacher: Spark\. Reads what you send/ }),
-  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Spark reads what you send/ })).toBeVisible();
   await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
   await attach.click();
   const chips = page.getByRole('list', { name: 'Attached files' }).getByRole('listitem');
@@ -453,7 +451,7 @@ test('walks from a description to a graduate', async () => {
   // Results: met every requirement, with the baselines beside it. The side-by-side table is part
   // of comparison mode, a researcher's setting, so it goes on to read it and off to capture.
   await resize(REPORT_HEIGHT);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
   await expect(
     page.getByText(
       'Tested on 60 tasks it had never seen, offline on this computer, with Spark disconnected.',
@@ -488,11 +486,11 @@ test("says in the results' details where a drafted job's final test came from", 
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(REPORT_HEIGHT);
   await goTo(page, `/runs/${FLOW.runId}/report`);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
 
   // Behind the run's details: what drafting cost, and what the final test's answers rest on.
   await expect(page.getByText(/independently certified/)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Run details' }).click();
+  await page.getByRole('button', { name: 'Training details' }).click();
   await expect(page.getByText('Drafting the job')).toBeVisible();
   await expect(page.getByText('$0.04, before training')).toBeVisible();
   await expect(
@@ -503,7 +501,7 @@ test("says in the results' details where a drafted job's final test came from", 
   await capture(page, 'flow-report-drafted-dark');
 });
 
-test('says beside the score that a confirmed rule made the expected answers, with the rule under Run details', async () => {
+test('says beside the score that a confirmed rule made the expected answers, with the rule under Training details', async () => {
   const { app, page } = launched;
   await stubFlow();
   const ruled = {
@@ -592,7 +590,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(REPORT_HEIGHT);
   await goTo(page, `/runs/${FLOW.runId}/report`);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
 
   // Right under the score, where it is read: the expected answers follow a rule that was
   // confirmed, and the score doesn't say the rule matches the business.
@@ -631,7 +629,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   const [noteBox, leftBox, detailsBox] = await Promise.all([
     page.getByText(note).boundingBox(),
     leftOut.boundingBox(),
-    page.getByRole('button', { name: 'Run details' }).boundingBox(),
+    page.getByRole('button', { name: 'Training details' }).boundingBox(),
   ]);
   expect(leftBox!.y).toBeGreaterThanOrEqual(noteBox!.y + noteBox!.height);
   expect(leftBox!.y + leftBox!.height).toBeLessThanOrEqual(detailsBox!.y);
@@ -642,7 +640,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
 
   // Behind the run's details: the rule and its version, where it came from, how it was read, what
   // was left out, what each side did, and whether teaching ran.
-  await page.getByRole('button', { name: 'Run details' }).click();
+  await page.getByRole('button', { name: 'Training details' }).click();
   const rule = page.getByRole('region', { name: 'The rule for Ticket totals' });
   // The rule in words is a short numbered list, the file named in a step set in mono.
   const told = rule.locator('ol > li');
@@ -731,7 +729,7 @@ test("keeps Start training off until the job's plan is known, and says so when i
   await page.waitForLoadState('domcontentloaded');
   const alert = page.getByRole('alert').filter({ hasText: "Couldn't check whether this job" });
   await expect(alert).toContainText('The engine did not answer.');
-  await expect(alert).toContainText("Training can't start until it is checked.");
+  await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
   await expect(page.getByText("Couldn't check the job", { exact: true })).toBeVisible();
   await expect(start).toBeDisabled();
   await capture(page, 'flow-define-unreadable-dark');
@@ -817,7 +815,7 @@ test('says what a run needs before it starts, with one action for each', async (
 
   // The teacher's key is one dialog away, opened on the teacher's own provider.
   await needs.getByRole('button', { name: 'Add a Meta key' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Add an API key' });
+  const dialog = page.getByRole('dialog', { name: 'Add a provider or endpoint' });
   await expect(dialog.getByRole('combobox', { name: 'Provider' })).toContainText('Meta');
   await stubEngine(app, {
     'connections:add': { secretRef: 'meta', models: 3 },
@@ -909,7 +907,7 @@ test('still asks for the model on this computer when practice and the final test
   const advanced = page.getByRole('complementary', { name: 'Advanced settings' });
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
-  await where.getByRole('radio', { name: /On the online copy/ }).click();
+  await where.getByRole('radio', { name: /On the hosted or cluster endpoint/ }).click();
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await expect(advanced).toBeHidden();
 
@@ -959,7 +957,7 @@ test('takes the final test on the online copy when asked', async () => {
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
   const here = where.getByRole('radio', { name: /On this computer/ });
-  const online = where.getByRole('radio', { name: /On the online copy/ });
+  const online = where.getByRole('radio', { name: /On the hosted or cluster endpoint/ });
   await expect(here).toBeChecked();
   await expect(here).toContainText('About 2.5 hours for 60 tasks · Free');
   await expect(here).toContainText('The agent is marked ready when it passes.');
@@ -1112,9 +1110,9 @@ test('cannot take the final test online without an online copy to take it on', a
 
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   const where = advanced.getByRole('radiogroup', { name: 'Where the final test runs' });
-  const online = where.getByRole('radio', { name: /On the online copy/ });
+  const online = where.getByRole('radio', { name: /On the hosted or cluster endpoint/ });
   await expect(online).toBeDisabled();
-  await expect(online).toContainText('Choose an online copy under Glimmer first');
+  await expect(online).toContainText('Choose a hosted or cluster endpoint under Glimmer first');
   await expect(where.getByRole('radio', { name: /On this computer/ })).toBeChecked();
 });
 

@@ -1,6 +1,11 @@
 import {
   TrainedAdapterSchema,
   AttemptSchema,
+  CertificateSchema,
+  CertificationInputsSchema,
+  CertificationPlanSchema,
+  CertificationStatusSchema,
+  CertifyRequestSchema,
   DecodingSchema,
   EvaluationStatusSchema,
   GrantsSchema,
@@ -14,8 +19,10 @@ import {
   JsonValueSchema,
   MachineSchema,
   ModelBindingSchema,
+  OrgTypeResultSchema,
   PackageManifestSchema,
   PublicationSchema,
+  QualificationSchema,
   RoundSchema,
   RunImprovementSchema,
   RunSchema,
@@ -192,6 +199,61 @@ export const StoredRetestSchema = z.object({
 export type StoredRetest = z.infer<typeof StoredRetestSchema>;
 export type RetestStatus = StoredRetest['status'];
 
+/**
+ * A frozen version's locked test on an organization sealed after its job was made (decision
+ * 085). Its attempts are the run's, under split `test` and round `seq`, which the run's own
+ * locked test (round null) never uses, so its card and totals stay as they were.
+ */
+export const StoredAddedQualificationSchema = z.object({
+  runId: z.string(),
+  orgId: z.string(),
+  orgName: z.string(),
+  seq: z.number().int().positive(),
+  status: z.enum(['testing', 'paused', 'finished']),
+  error: z.string().optional(),
+  startedAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+  /** Each skill's result there, once finished. */
+  results: z.array(OrgTypeResultSchema).optional(),
+});
+export type StoredAddedQualification = z.infer<typeof StoredAddedQualificationSchema>;
+
+/**
+ * A frozen version certified after the fact (decision 079). Its attempts are the run's, under
+ * split `certify` and round `seq`, which no training round or the run's own certificate uses.
+ * `activeMs` is the time spent attempting, held to the request's cap across sessions. Finished,
+ * it never changes.
+ */
+export const StoredCertificationSchema = z.object({
+  id: z.string(),
+  graduateId: z.string(),
+  version: z.number().int().positive(),
+  runId: z.string(),
+  /** The job whose run made the version: its vault holds the sealed tasks. */
+  jobId: z.string(),
+  seq: z.number().int().positive(),
+  request: CertifyRequestSchema,
+  plan: CertificationPlanSchema,
+  inputs: CertificationInputsSchema,
+  status: CertificationStatusSchema,
+  error: z.string().optional(),
+  activeMs: z.number().nonnegative(),
+  certificate: CertificateSchema.optional(),
+  createdAt: z.iso.datetime(),
+  endedAt: z.iso.datetime().optional(),
+});
+export type StoredCertification = z.infer<typeof StoredCertificationSchema>;
+
+/**
+ * A model trained elsewhere taking a finished run's locked test (decision 086). Its attempts are
+ * the run's, under split `test` and a configuration keyed by this id, so they never mix with the
+ * run's own. Finished, its card is evidence and never changes.
+ */
+export const StoredQualificationSchema = QualificationSchema.extend({
+  contextLength: z.number().int().positive(),
+});
+export type StoredQualification = z.infer<typeof StoredQualificationSchema>;
+
 /** The author's raw reply, saved before it is parsed so a restart never pays for it twice. */
 export const AuthorReplySchema = z.object({
   text: z.string(),
@@ -251,6 +313,36 @@ export const JobRecordSchema = z.object({
   taskCount: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  /**
+   * Set on a later version of a job: the job it came from, this one's version number, and why it
+   * was made. `organization`: one of the job's never-seen organizations moved to taught on
+   * (decision 089). `model`: the field carried to another model, its student's model before and
+   * after, and the agent version whose harness it starts from, when one did (decision 095).
+   * Records from before the reason was kept are all of the first kind.
+   */
+  versionOf: z
+    .object({
+      jobId: z.string(),
+      version: z.number().int().min(2),
+      reason: z.enum(['organization', 'model']).default('organization'),
+      org: z.object({ id: z.string(), name: z.string() }).optional(),
+      model: z
+        .object({
+          from: z.object({ model: z.string(), label: z.string() }),
+          to: z.object({ model: z.string(), label: z.string() }),
+          carried: z
+            .object({ graduateId: z.string(), version: z.number().int().positive() })
+            .optional(),
+        })
+        .optional(),
+    })
+    .refine((made) => (made.reason === 'organization') === (made.org !== undefined), {
+      message: 'names an organization exactly when one was moved',
+    })
+    .refine((made) => (made.reason === 'model') === (made.model !== undefined), {
+      message: 'names the models exactly when the field moved to another one',
+    })
+    .optional(),
 });
 export type JobRecord = z.infer<typeof JobRecordSchema>;
 

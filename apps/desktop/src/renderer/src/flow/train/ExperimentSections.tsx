@@ -241,6 +241,10 @@ export function CheckTasks({
     measured.some((item) => item.perType.some((score) => score.type === type.id)),
   );
   const lost = new Map(experiment.regressions.map((item) => [item.type, item.before - item.after]));
+  // A field's check tasks at each organization it is taught on (decision 085).
+  const orgs = (job.organizations ?? []).filter((org) =>
+    measured.some((item) => item.perOrg?.some((score) => score.org === org.id)),
+  );
   const runs = measured[0]?.seeds.length ?? 1;
   return (
     <DrawerSection
@@ -279,6 +283,19 @@ export function CheckTasks({
               </TableCell>
               {measured.map((item) => {
                 const score = item.perType.find((entry) => entry.type === type.id);
+                return (
+                  <TableCell key={item.label} className="text-right align-top">
+                    {score ? <ScoreCell pass={score.pass} total={score.total} /> : '–'}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          ))}
+          {orgs.map((org) => (
+            <TableRow key={org.id}>
+              <TableCell>{org.name}</TableCell>
+              {measured.map((item) => {
+                const score = item.perOrg?.find((entry) => entry.org === org.id);
                 return (
                   <TableCell key={item.label} className="text-right align-top">
                     {score ? <ScoreCell pass={score.pass} total={score.total} /> : '–'}

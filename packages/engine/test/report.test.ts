@@ -1,4 +1,11 @@
-import { emptyTotals, type LineageEntry, type Round, type Run } from '@architect/shared';
+import {
+  emptyTotals,
+  OrganizationNounSchema,
+  organizationNoun,
+  type LineageEntry,
+  type Round,
+  type Run,
+} from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { computeReportCard, percentile, type ReportCardInput } from '../src/report/report-card';
 import { defaultJob } from './fakes/job';
@@ -140,6 +147,14 @@ describe('computeReportCard', () => {
     expect(computeReportCard(input({ tasks: { source: 'attached' } })).tasks).toEqual({
       source: 'attached',
     });
+  });
+
+  it("carries the job's word for an organization, and nothing when the job has none", () => {
+    expect(computeReportCard(input())).not.toHaveProperty('organizationNoun');
+    const job = defaultJob({ organizationNoun: 'academy' });
+    expect(computeReportCard(input({ job })).organizationNoun).toBe('academy');
+    expect(organizationNoun({})).toBe('organization');
+    expect(OrganizationNounSchema.safeParse('Academy!').success).toBe(false);
   });
 
   it('counts refusals on supported types as failures and reports them', () => {

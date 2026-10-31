@@ -7,19 +7,25 @@ export type CommandName =
   | 'list'
   | 'install'
   | 'run'
+  | 'serve'
   | 'inspect'
   | 'verify'
+  | 'pack'
   | 'export'
   | 'publish'
   | 'field'
+  | 'experiment'
   | 'reward'
-  | 'train';
+  | 'train'
+  | 'certify';
 
 interface CommandSpec {
   usage: string;
   summary: string;
   /** How many arguments it takes besides its options. */
   args: number;
+  /** The most it takes, for a command whose last arguments depend on its action. */
+  maxArgs?: number;
   options: Options;
   /** One line per option, for its help. */
   help: string[];
@@ -83,6 +89,22 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --timeout <seconds>     stop the run after this long',
     ],
   },
+  serve: {
+    usage: 'architect serve <agent> [--port N] [--version N] [--token-file <file>]',
+    summary: 'Serve an agent to other apps on this computer, as a chat completions endpoint.',
+    args: 1,
+    options: {
+      port: { type: 'string' },
+      version: { type: 'string' },
+      'token-file': { type: 'string' },
+      host: { type: 'string' },
+    },
+    help: [
+      '  --port <n>              the port on 127.0.0.1 (default 8420; 0 picks a free one)',
+      '  --version <n>           serve only while this is the active version',
+      '  --token-file <file>     the bearer token callers send, instead of a new one',
+    ],
+  },
   inspect: {
     usage: 'architect inspect <agent | file.architect.zip | folder> [--json]',
     summary: "Show an agent's versions, model, folders, permissions and evidence.",
@@ -91,11 +113,34 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
     help: [JSON_HELP],
   },
   verify: {
-    usage: 'architect verify <agent> [--no-model-check] [--json]',
-    summary: 'Run the installation checks again on this computer.',
+    usage:
+      'architect verify <agent> [--no-model-check] [--json] | architect verify --pack <folder>',
+    summary: 'Run the installation checks again on this computer, or check an evidence pack.',
+    args: 0,
+    maxArgs: 1,
+    options: { 'no-model-check': { type: 'boolean' }, pack: { type: 'string' }, ...json },
+    help: [
+      '  --no-model-check        skip the check that loads the model once',
+      '  --pack <folder>         check every file of an evidence pack against its MANIFEST.json',
+      JSON_HELP,
+    ],
+  },
+  pack: {
+    usage: 'architect pack <agent> --out <folder> [--version N] [--with-weights] [--json]',
+    summary: "Write a version's evidence pack for a security review and an offline install.",
     args: 1,
-    options: { 'no-model-check': { type: 'boolean' }, ...json },
-    help: ['  --no-model-check        skip the check that loads the model once', JSON_HELP],
+    options: {
+      out: { type: 'string' },
+      version: { type: 'string' },
+      'with-weights': { type: 'boolean' },
+      ...json,
+    },
+    help: [
+      '  --out <folder>          the folder to write the pack into',
+      '  --version <n>           a version other than the active one',
+      "  --with-weights          also copy the base model's file, when it is on this computer",
+      JSON_HELP,
+    ],
   },
   export: {
     usage: 'architect export <agent> --output <file.architect.zip> [options]',
@@ -142,12 +187,70 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
     ],
   },
   field: {
-    usage: 'architect field export <job> --out <folder> [--json]',
-    summary:
-      "Export a field's verified demonstrations, outcome scorer and sealed-evaluation manifest.",
-    args: 2,
-    options: { out: { type: 'string' }, ...json },
-    help: ['  --out <folder>          the folder to write, new or empty', JSON_HELP],
+    usage:
+      'architect field list | status <field> | add-org <field> --folder <dir> --name <n> --never-seen | export <field> --out <folder> [--json]',
+    summary: 'List fields, show one, add a never-seen organization to it, or export it.',
+    args: 1,
+    maxArgs: 2,
+    options: {
+      out: { type: 'string' },
+      folder: { type: 'string' },
+      name: { type: 'string' },
+      'never-seen': { type: 'boolean' },
+      generated: { type: 'boolean' },
+      ...json,
+    },
+    help: [
+      '  --folder <dir>          add-org: the folder with its records and tasks.jsonl',
+      '  --name <name>           add-org: what to call the organization',
+      '  --never-seen            add-org: confirm it is kept for the final test, never taught on',
+      '  --generated             add-org: its records were generated; real by default',
+      '  --out <folder>          export: the folder to write, new or empty',
+      JSON_HELP,
+    ],
+  },
+  experiment: {
+    usage:
+      'architect experiment plan <field> --arms a,b --hypothesis "..." --primary a-b:group [options] | preregister|start|resume|pause|stop|status|report <id> | list',
+    summary: 'Plan, preregister, run and read an experiment on a field.',
+    args: 1,
+    maxArgs: 2,
+    options: {
+      name: { type: 'string' },
+      arms: { type: 'string' },
+      hypothesis: { type: 'string' },
+      primary: { type: 'string' },
+      seeds: { type: 'string' },
+      'mentoring-seed': { type: 'string' },
+      rounds: { type: 'string' },
+      'student-usd': { type: 'string' },
+      'spark-usd': { type: 'string' },
+      'compute-usd': { type: 'string' },
+      'wall-minutes': { type: 'string' },
+      confirm: { type: 'boolean' },
+      'confirm-study': { type: 'string' },
+      'student-cap-usd': { type: 'string' },
+      'drop-arm': { type: 'string', multiple: true },
+      ...json,
+    },
+    help: [
+      '  --name <name>           plan: a name for it (the field name by default)',
+      '  --arms <a,b,...>        plan: the arms to compare, such as bare,draft,targeted',
+      '  --hypothesis "<text>"   plan: what you expect and why, in your words',
+      '  --primary <a-b:group>   plan: arm a less arm b, on all, seen (taught on) or unseen (never seen); all by default',
+      '  --seeds <n,n,...>       plan: decoding seeds of the final test (101 by default)',
+      '  --mentoring-seed <n>    plan: the mentoring seed (1 by default)',
+      '  --rounds <n>            plan: refinement rounds at most (4 by default)',
+      '  --student-usd <n>       plan: the most hosted Glimmer may cost (15 by default)',
+      '  --spark-usd <n>         plan: the most Spark may cost (10 by default)',
+      '  --compute-usd <n>       plan: the most training compute may cost (0 by default)',
+      '  --wall-minutes <n>      plan: the longest it may run (720 by default)',
+      '  --confirm               start, resume: go ahead with the arms the caps leave room for',
+      '  --confirm-study <token> start, resume: confirm the brief you read, by its token',
+      "  --student-cap-usd <n>   resume: raise Glimmer's cap, the answer to needs_funding",
+      '  --drop-arm <arm>        resume: drop an arm, the other answer; repeat for more',
+      JSON_HELP,
+    ],
   },
   reward: {
     usage: 'architect reward score [--env <folder>]',
@@ -158,7 +261,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   },
   train: {
     usage:
-      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes --model owner/name --output <folder> [options]',
+      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output <folder> [options]',
     summary: 'Size a training job for a cluster, or write its launch bundle (experimental).',
     args: 1,
     options: {
@@ -190,9 +293,41 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --seq-len <n>           tokens per example (default 4096)',
       '  --micro-batch <n>       examples per GPU per step (default 1)',
       '  --lora-rank <n>         the adapter rank (default 16)',
-      '  --target <t>            bundle: slurm or kubernetes',
+      '  --target <t>            bundle: slurm, kubernetes or skypilot',
       '  --export <folder>       bundle: a field export, whose sft/*.jsonl become the data',
       '  --output <folder>       bundle: an empty or new folder to write it to',
+      JSON_HELP,
+    ],
+  },
+  certify: {
+    usage:
+      'architect certify <agent> --version <n> --job <job> [--k 5] [--epsilon 0.10] [--delta 0.05] [options]',
+    summary: 'Certify a version after the fact, on tasks its run never saw.',
+    args: 1,
+    options: {
+      version: { type: 'string' },
+      job: { type: 'string' },
+      k: { type: 'string' },
+      epsilon: { type: 'string' },
+      delta: { type: 'string' },
+      'calibration-size': { type: 'string' },
+      check: { type: 'string', multiple: true },
+      student: { type: 'string' },
+      'max-usd': { type: 'string' },
+      'max-minutes': { type: 'string' },
+      ...json,
+    },
+    help: [
+      '  --version <n>           the frozen version to certify',
+      '  --job <job>             the job whose taught organizations give the tasks',
+      '  --k <n>                 attempts per task, 1 to 9 (default 5)',
+      '  --epsilon <share>       the most it may be wrong when it answers (default 0.10)',
+      '  --delta <share>         the chance the bound is wrong (default 0.05)',
+      '  --calibration-size <n>  calibration tasks (default 60)',
+      '  --check <org>           an organization to check the bound at; repeat for more',
+      "  --student <preset>      a hosted Glimmer preset instead of this computer's model",
+      '  --max-usd <dollars>     the most it may spend (default 0)',
+      '  --max-minutes <n>       the longest it may take (default 1440)',
       JSON_HELP,
     ],
   },
@@ -203,7 +338,7 @@ export function isCommand(name: string): name is CommandName {
 }
 
 export function usage(): string {
-  const width = 9;
+  const width = 12;
   return [
     'Usage: architect <command> [options]',
     '',
@@ -249,13 +384,14 @@ export function parseCommand(name: CommandName, argv: readonly string[]): Parsed
     );
   }
   const help = parsed.values.help === true;
-  if (!help && parsed.positionals.length !== spec.args) {
+  const most = spec.maxArgs ?? spec.args;
+  if (!help && (parsed.positionals.length < spec.args || parsed.positionals.length > most)) {
     throw new CliError(
       'invalid_input',
       'usage',
       parsed.positionals.length < spec.args
         ? `architect ${name} needs ${spec.args === 1 ? 'an argument' : `${spec.args} arguments`}.`
-        : `architect ${name} takes ${spec.args === 0 ? 'no arguments' : 'one argument'}.`,
+        : `architect ${name} takes ${most === 0 ? 'no arguments' : most === 1 ? 'one argument' : `at most ${most} arguments`}.`,
       `Usage: ${spec.usage}`,
     );
   }

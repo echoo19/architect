@@ -280,3 +280,31 @@ describe('SignIns', () => {
     expect(await second).toBe('sk-or-v1-second');
   });
 });
+
+describe('signing in under a closed network', () => {
+  it('checks the network again just before the key exchange, so one switched on meanwhile holds', async () => {
+    let on = false;
+    const asked: string[] = [];
+    const tab = browser((state) => `code=the-code&state=${state}`);
+    const promise = signInWithOpenRouter({
+      openBrowser: async (url) => {
+        // The person turns the closed network on while the sign-in page is open.
+        on = true;
+        await tab.openBrowser(url);
+      },
+      exchangeUrl: 'https://openrouter.ai/api/v1/auth/keys',
+      fetch: (async (input: string | URL | Request) => {
+        asked.push(String(input));
+        return new Response('{"key":"sk-or-v1-new"}');
+      }) as typeof fetch,
+      network: { allowed: () => (on ? ['spark.lab.internal'] : undefined) },
+      random: pinned,
+    });
+    const error = await promise.then(
+      () => null,
+      (reason: unknown) => reason,
+    );
+    expect(error).toMatchObject({ code: 'outside_network' });
+    expect(asked).toEqual([]);
+  });
+});

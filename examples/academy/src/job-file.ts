@@ -91,7 +91,7 @@ const DATA_FILES: readonly DataFile[] = [
 ];
 
 /**
- * The academy job: one tutor, Phil, for every academy. Each organization's files sit in
+ * The academy job: one agent, the Academy desk, for every academy. Each organization's files sit in
  * orgs/<id>/data/ with the same names; a task names its organization. Tasks of the train
  * academies split as usual; the transfer academy is test-only.
  */
@@ -100,16 +100,17 @@ export function buildJob(organizations: readonly Organization[]): Job {
   return JobSchema.parse({
     format: JOB_FORMAT,
     id: 'sample-academy',
-    name: 'Phil',
+    name: 'Academy desk',
     description:
-      'Phil tutors students at a test-prep academy right after a wrong answer on a practice test. ' +
+      'The Academy desk works for the staff of a test-prep academy when a student gets a practice-test question wrong. ' +
       "It works from the academy's own files: its topic labels, question bank, practice tests, " +
       "every student's answers, the errors and approved hints its explanations use, its lesson " +
       'videos and its tutoring policy. It names what went wrong, gives an approved first hint, ' +
       "reads a student's history on a topic, works questions, assigns follow-up practice and, when " +
-      'the policy says so, leaves a note for the tutor. It only writes to assignments.csv and ' +
+      "the policy says so, leaves a note for the student's tutor. It only writes to assignments.csv and " +
       'staff_notes.csv.',
-    summary: "Tutors a student right after a wrong answer, by the academy's own policy.",
+    summary:
+      "Diagnoses a missed question, sets practice and flags the student for staff, by the academy's own policy.",
     does: [
       'Names the topic, the right choice and the error behind a wrong answer',
       'Gives the approved first hint the policy calls for',
@@ -175,5 +176,6 @@ export function buildJob(organizations: readonly Organization[]): Job {
       certify: { k: 5, epsilon: 0.1, delta: 0.05, calibration: 60 },
     },
     organizations,
+    organizationNoun: 'academy',
   });
 }

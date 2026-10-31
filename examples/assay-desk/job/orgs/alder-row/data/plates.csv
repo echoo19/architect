@@ -1,0 +1,9 @@
+plate_id,layout,instrument,read_on,export_file
+AR-2207,96-well,Kestrel HT,10/13/2026,kestrel_export.csv
+AR-2214,96-well,Orbit 2,10/13/2026,orbit_export.csv
+AR-2221,384-well,Orbit 2,10/13/2026,orbit_export.csv
+AR-2228,384-well,Kestrel HT,2026-10-15,kestrel_export.csv
+AR-2235,96-well,Orbit 2,10/15/2026,orbit_export.csv
+AR-2242,96-well,Kestrel HT,2026-10-15,kestrel_export.csv
+AR-2249,96-well,Kestrel HT,10/19/2026,kestrel_export.csv
+AR-2256,96-well,Orbit 2,10/19/2026,orbit_export.csv

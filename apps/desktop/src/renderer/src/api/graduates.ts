@@ -1,4 +1,6 @@
 import {
+  CertificationSchema,
+  EvidenceResultSchema,
   ExportPartResultSchema,
   ExportResultSchema,
   ExportReviewSchema,
@@ -6,6 +8,7 @@ import {
   FolderFitSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
+  HarnessFileSchema,
   HubInstallResultSchema,
   ImportPreviewSchema,
   ImportResultSchema,
@@ -17,6 +20,8 @@ import {
   SampleAgentSchema,
   VersionEventSchema,
   type BindRequest,
+  type CertifyRequest,
+  type EvidenceRequest,
   type ExportPartRequest,
   type ExportRequest,
   type HubInstallRequest,
@@ -60,6 +65,13 @@ export const graduatesApi = {
       'graduates.harnessDiff',
       z.array(FileDiffSchema),
       architect().graduates.harnessDiff(from, to),
+    ),
+  /** The files of a version's harness, read from its folder. */
+  harnessFiles: (graduateId: string, version: number) =>
+    read(
+      'graduates.harnessFiles',
+      z.array(HarnessFileSchema),
+      architect().graduates.harnessFiles(graduateId, version),
     ),
   installation: (graduateId: string) =>
     read(
@@ -114,6 +126,12 @@ export const graduatesApi = {
       ExportPartResultSchema,
       architect().graduates.exportPart(graduateId, request),
     ),
+  exportEvidence: (graduateId: string, request: EvidenceRequest) =>
+    read(
+      'graduates.exportEvidence',
+      EvidenceResultSchema,
+      architect().graduates.exportEvidence(graduateId, request),
+    ),
   previewImport: (path: string) =>
     read('graduates.previewImport', ImportPreviewSchema, architect().graduates.previewImport(path)),
   importPackage: (path: string, request: ImportRequest) =>
@@ -159,6 +177,28 @@ export const graduatesApi = {
       'graduates.publications',
       z.array(PublicationSchema),
       architect().graduates.publications(graduateId),
+    ),
+  /** Draws and seals the tasks a version's certification takes, and what it will cost. */
+  planCertification: (request: CertifyRequest) =>
+    read(
+      'graduates.planCertification',
+      CertificationSchema,
+      architect().graduates.planCertification(request),
+    ),
+  startCertification: (certificationId: string) =>
+    read(
+      'graduates.startCertification',
+      CertificationSchema,
+      architect().graduates.startCertification(certificationId),
+    ),
+  discardCertification: (certificationId: string) =>
+    architect().graduates.discardCertification(certificationId),
+  /** A version's certifications after the fact, newest first. */
+  certifications: (graduateId: string, version: number) =>
+    read(
+      'graduates.certifications',
+      z.array(CertificationSchema),
+      architect().graduates.certifications(graduateId, version),
     ),
 };
 

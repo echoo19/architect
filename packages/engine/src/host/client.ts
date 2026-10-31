@@ -100,15 +100,24 @@ export function connectEngine(
       exportFile: (jobId, file) => request('jobs.exportFile', [jobId, file]),
       draftStart: (description, files, teacher) =>
         request('jobs.draftStart', [description, files, teacher]),
+      draftField: (description, organizations, teacher) =>
+        request('jobs.draftField', [description, organizations, teacher]),
       draftReply: (sessionId, text, teacher) =>
         request('jobs.draftReply', [sessionId, text, teacher]),
       taskPlan: (jobId) => request('jobs.taskPlan', [jobId]),
       confirmRules: (jobId, token) => request('jobs.confirmRules', [jobId, token]),
       study: (jobId) => request('jobs.study', [jobId]),
       confirmStudy: (jobId, token) => request('jobs.confirmStudy', [jobId, token]),
+      quoteRecordings: (jobId, org, paths) => request('jobs.quoteRecordings', [jobId, org, paths]),
+      shareRecordings: (jobId, allowed) => request('jobs.shareRecordings', [jobId, allowed]),
+      transcribe: (jobId, transcribing) => request('jobs.transcribe', [jobId, transcribing]),
       field: (jobId) => request('jobs.field', [jobId]),
+      addOrganization: (jobId, body) => request('jobs.addOrganization', [jobId, body]),
+      teachOn: (jobId, org) => request('jobs.teachOn', [jobId, org]),
+      moveToModel: (jobId, body) => request('jobs.moveToModel', [jobId, body]),
       fieldAssets: (jobId) => request('jobs.fieldAssets', [jobId]),
       exportField: (jobId, directory) => request('jobs.exportField', [jobId, directory]),
+      tasks: (jobId, split) => request('jobs.tasks', [jobId, split]),
     },
     runs: {
       start: (jobId, options) => request('runs.start', [jobId, options]),
@@ -116,11 +125,16 @@ export function connectEngine(
       resume: (runId) => request('runs.resume', [runId]),
       stop: (runId) => request('runs.stop', [runId]),
       retest: (runId, target) => request('runs.retest', [runId, target]),
+      qualifyAdded: (runId, org) => request('runs.qualifyAdded', [runId, org]),
+      qualify: (qualify) => request('runs.qualify', [qualify]),
+      qualifications: (jobId) => request('runs.qualifications', [jobId]),
       get: (runId) => request('runs.get', [runId]),
       list: (jobId) => request('runs.list', [jobId ?? null]),
       attempt: (attemptId) => request('runs.attempt', [attemptId]),
       trace: (attemptId) => request('runs.trace', [attemptId]),
       roundDiff: (runId, round) => request('runs.roundDiff', [runId, round]),
+      attempts: (runId, query) => request('runs.attempts', [runId, query ?? null]),
+      harnessFiles: (runId, version) => request('runs.harnessFiles', [runId, version]),
       runtimeMeasurements: (runId) => request('runs.runtimeMeasurements', [runId]),
       onEvent(listener) {
         listeners.add(listener);
@@ -190,6 +204,15 @@ export function connectEngine(
       history: (graduateId) => request('graduates.history', [graduateId]),
       report: (graduateId, version) => request('graduates.report', [graduateId, version ?? null]),
       harnessDiff: (from, to) => request('graduates.harnessDiff', [from, to]),
+      harnessFiles: (graduateId, version) =>
+        request('graduates.harnessFiles', [graduateId, version]),
+      planCertification: (certify) => request('graduates.planCertification', [certify]),
+      startCertification: (certificationId) =>
+        request('graduates.startCertification', [certificationId]),
+      discardCertification: (certificationId) =>
+        request('graduates.discardCertification', [certificationId]),
+      certifications: (graduateId, version) =>
+        request('graduates.certifications', [graduateId, version]),
       acceptVersion: (graduateId, version) =>
         request('graduates.acceptVersion', [graduateId, version]),
       rejectVersion: (graduateId, version) =>
@@ -209,6 +232,8 @@ export function connectEngine(
         request('graduates.exportFolder', [graduateId, directory]),
       exportPart: (graduateId, partRequest) =>
         request('graduates.exportPart', [graduateId, partRequest]),
+      exportEvidence: (graduateId, evidenceRequest) =>
+        request('graduates.exportEvidence', [graduateId, evidenceRequest]),
       inspectPackage: (path) => request('graduates.inspectPackage', [path]),
       previewImport: (path) => request('graduates.previewImport', [path]),
       importPackage: (path, importRequest) =>

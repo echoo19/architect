@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 /**
  * The engine's test fakes and fixtures, for tests in other packages (the command line's) that
  * need the same ones: one fake Hub, one fake Ollama, one stand-in llama-server, one way to make a
- * graduate, and one computer to run on.
+ * graduate, one computer to run on, and the comparisons' counting, for stand-in reports.
  */
 export type { ObservedConnection } from '../agent-host/connection-observer';
 export {
@@ -23,7 +23,9 @@ export {
 export { FAKE_HUB_TOKEN, startFakeHub, type FakeHub, type FakeHubOptions } from './fake-hub';
 export { SAMPLE_CONTENT } from './fixtures';
 export { ACADEMY_JOB_FILE, importJobInto } from './field';
+export { experimentWorld, type ExperimentWorld } from './experiment-world';
 export { THIS_MACHINE } from './machine';
+export { counted, pairedDifference } from '../../src/comparisons/stats';
 export { openEngineStore } from '../../src/store/engine-store';
 
 /** The agent host's process entry, as the desktop app starts it. */

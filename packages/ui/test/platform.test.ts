@@ -12,6 +12,7 @@ import {
   Inspector,
   IntervalPlot,
   Meter,
+  NavItem,
   ToggleRow,
   intervalPercent,
   intervalText,
@@ -22,6 +23,30 @@ import {
 } from '../src';
 
 const icon = createElement('svg', { 'data-icon': true });
+
+describe('NavItem', () => {
+  const row = (props: Partial<Parameters<typeof NavItem>[0]>) =>
+    renderToStaticMarkup(
+      createElement(NavItem, { onClick: () => undefined, children: 'Models', ...props }),
+    );
+
+  it('marks the page on screen, and only that row', () => {
+    expect(row({ current: true })).toContain('aria-current="page"');
+    expect(row({})).not.toContain('aria-current');
+  });
+
+  it('draws the selected fill as the sliding piece when its rows share one', () => {
+    const sliding = row({ current: true, indicator: 'sidebar' });
+    expect(sliding).toMatch(/<span aria-hidden="true" class="absolute inset-0[^"]*bg-selected/);
+    expect(sliding).not.toMatch(/<button[^>]*class="[^"]*bg-selected/);
+    expect(row({ current: true })).toMatch(/<button[^>]*class="[^"]*bg-selected/);
+  });
+
+  it('keeps hover off the current row and on the others', () => {
+    expect(row({ current: true, indicator: 'sidebar' })).not.toContain('hover:bg-hover');
+    expect(row({})).toContain('hover:bg-hover');
+  });
+});
 
 describe('Card and CardGrid', () => {
   it('names its region by its title and puts the action in the title row', () => {
@@ -36,7 +61,7 @@ describe('Card and CardGrid', () => {
     expect(html).toContain('aria-label="Needs you"');
     expect(html).toMatch(/<h2[^>]*>Needs you<\/h2><button>See all<\/button>/);
     expect(html).toContain('Spark asks');
-    expect(html).toContain('rounded-card bg-card shadow-edge');
+    expect(html).toContain('rounded-card surface-card');
   });
 
   it('spans two columns when wide, and lays cards out in a grid', () => {
@@ -53,12 +78,18 @@ describe('Card and CardGrid', () => {
   });
 
   it('makes a row a button only when it opens something', () => {
-    const still = renderToStaticMarkup(createElement(CardRow, { title: 'Phil', end: '82%' }));
+    const still = renderToStaticMarkup(
+      createElement(CardRow, { title: 'Academy desk', end: '82%' }),
+    );
     expect(still).not.toContain('<button');
     const opens = renderToStaticMarkup(
-      createElement(CardRow, { title: 'Phil', onClick: () => undefined, label: 'Open Phil' }),
+      createElement(CardRow, {
+        title: 'Academy desk',
+        onClick: () => undefined,
+        label: 'Open Academy desk',
+      }),
     );
-    expect(opens).toContain('<button type="button" aria-label="Open Phil"');
+    expect(opens).toContain('<button type="button" aria-label="Open Academy desk"');
   });
 });
 
@@ -217,12 +248,12 @@ describe('Inspector', () => {
         children: createElement(Inspector<'teacher' | 'budget'>, {
           'aria-label': 'Model',
           tabs,
-          header: createElement('h2', null, 'Phil v3'),
+          header: createElement('h2', null, 'Academy desk v3'),
           children: (tab: string) => `content of ${tab}`,
         }),
       }),
     );
-    expect(html).toMatch(/<h2>Phil v3<\/h2>.*role="tablist"/);
+    expect(html).toMatch(/<h2>Academy desk v3<\/h2>.*role="tablist"/);
   });
 
   it('reads back the tab and fold it kept, and ignores what no longer fits', () => {
@@ -294,7 +325,7 @@ describe('DataTable', () => {
     score: number | null;
   }
   const rows: Model[] = [
-    { name: 'Phil', score: 0.8 },
+    { name: 'Academy desk', score: 0.8 },
     { name: 'Service desk', score: null },
     { name: 'Returns desk', score: 0.6 },
   ];
@@ -313,11 +344,11 @@ describe('DataTable', () => {
     const score = columns[1];
     expect(sortRows(rows, score, 'ascending').map((r) => r.name)).toEqual([
       'Returns desk',
-      'Phil',
+      'Academy desk',
       'Service desk',
     ]);
     expect(sortRows(rows, score, 'descending').map((r) => r.name)).toEqual([
-      'Phil',
+      'Academy desk',
       'Returns desk',
       'Service desk',
     ]);
@@ -362,7 +393,7 @@ describe('DataTable', () => {
         columns: grouped,
         rows,
         rowKey: (row) => row.name,
-        selectedKey: 'Phil',
+        selectedKey: 'Academy desk',
       }),
     );
     expect(html).toMatch(/scope="colgroup" colSpan="2"[^>]*><span[^>]*>Final test<\/span>/);

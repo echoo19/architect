@@ -5,12 +5,19 @@ export type Route =
   /** The Lab: what needs the person, what runs, what just finished and what it cost. */
   | { name: 'home' }
   | { name: 'fields' }
-  | { name: 'field'; jobId: string }
+  /** A field, on its Organizations tab when asked: where a new version of it opens. */
+  | { name: 'field'; jobId: string; tab?: 'organizations' }
   | { name: 'experiments' }
-  | { name: 'experiment-new' }
+  /** Designing an experiment, on a field of the library when one is named. */
+  | { name: 'experiment-new'; jobId?: string }
   | { name: 'experiment'; experimentId: string }
-  | { name: 'models' }
-  | { name: 'compute' }
+  /** Models, with one version's panel open when `open` names it (`graduateId:version`). */
+  | { name: 'models'; open?: string }
+  /**
+   * Compute, planning for a field when `jobId` names one: its student's model, or `model` when a
+   * version of it runs on another (the name a runtime serves it under).
+   */
+  | { name: 'compute'; jobId?: string; model?: string }
   | { name: 'welcome' }
   | { name: 'chat'; graduateId: string; chatId: string }
   | { name: 'new' }
@@ -27,12 +34,19 @@ const segment = (value: string) => encodeURIComponent(value);
 export const paths = {
   home: () => '/',
   fields: () => '/fields',
-  field: (jobId: string) => `/fields/${segment(jobId)}`,
+  field: (jobId: string, tab?: 'organizations') =>
+    tab === undefined ? `/fields/${segment(jobId)}` : `/fields/${segment(jobId)}/${tab}`,
   experiments: () => '/experiments',
-  newExperiment: () => '/experiments/new',
+  newExperiment: (jobId?: string) =>
+    jobId === undefined ? '/experiments/new' : `/experiments/new/${segment(jobId)}`,
   experiment: (experimentId: string) => `/experiments/${segment(experimentId)}`,
-  models: () => '/models',
-  compute: () => '/compute',
+  models: (open?: string) => (open === undefined ? '/models' : `/models/${segment(open)}`),
+  compute: (field?: { jobId: string; model?: string | undefined }) =>
+    field === undefined
+      ? '/compute'
+      : field.model === undefined
+        ? `/compute/fields/${segment(field.jobId)}`
+        : `/compute/fields/${segment(field.jobId)}/${segment(field.model)}`,
   welcome: () => '/welcome',
   chat: (graduateId: string, chatId: string) =>
     `/agents/${segment(graduateId)}/chats/${segment(chatId)}`,
@@ -65,13 +79,26 @@ export function parsePath(path: string): Route {
   if (first === 'import' && exactly(1)) return { name: 'import' };
   if (first === 'fields' && exactly(1)) return { name: 'fields' };
   if (first === 'fields' && id && exactly(2)) return { name: 'field', jobId: id };
+  if (first === 'fields' && id && third === 'organizations' && exactly(3)) {
+    return { name: 'field', jobId: id, tab: 'organizations' };
+  }
   if (first === 'experiments' && exactly(1)) return { name: 'experiments' };
   if (first === 'experiments' && id === 'new' && exactly(2)) return { name: 'experiment-new' };
+  if (first === 'experiments' && id === 'new' && third && exactly(3)) {
+    return { name: 'experiment-new', jobId: third };
+  }
   if (first === 'experiments' && id && exactly(2)) {
     return { name: 'experiment', experimentId: id };
   }
   if (first === 'models' && exactly(1)) return { name: 'models' };
+  if (first === 'models' && id && exactly(2)) return { name: 'models', open: id };
   if (first === 'compute' && exactly(1)) return { name: 'compute' };
+  if (first === 'compute' && id === 'fields' && third && exactly(3)) {
+    return { name: 'compute', jobId: third };
+  }
+  if (first === 'compute' && id === 'fields' && third && fourth && exactly(4)) {
+    return { name: 'compute', jobId: third, model: fourth };
+  }
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };
   }

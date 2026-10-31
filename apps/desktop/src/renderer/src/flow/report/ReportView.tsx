@@ -1,14 +1,24 @@
 import type { ReactNode } from 'react';
 import {
+  contactsLine,
   type ComparisonReport,
   type GraduateSummary,
   type Installation,
   type Job,
   type ReportCard,
   type Run,
+  type RunContact,
 } from '@architect/shared';
-import { DetailList, Disclosure, Heading, Stagger, StaggerItem, Stat } from '@architect/ui';
-import { CircleMinus } from 'lucide-react';
+import {
+  DetailList,
+  Disclosure,
+  Heading,
+  Stagger,
+  StaggerItem,
+  Stat,
+  Tooltip,
+} from '@architect/ui';
+import { CircleMinus, Network } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
@@ -67,6 +77,25 @@ interface ReportViewProps {
   comparisonReport: QueryState<ComparisonReport | null>;
   /** The run's own final test on this computer, when its own ran online and it was taken since. */
   here: ReportCard | null;
+  /** The grid by organization as the Lab shows it, with what can be done there; else the plain grid. */
+  organizations?: (grid: OrgGrid) => ReactNode;
+  /** Every host the run contacted (decision 098), when it recorded any. */
+  contacts?: readonly RunContact[] | undefined;
+}
+
+/** Where the run went, in one line, with each host and its requests on hover. */
+function Contacts({ contacts }: { contacts: readonly RunContact[] }) {
+  const hosts = contacts
+    .map(({ host, requests }) => `${host}: ${requests} ${requests === 1 ? 'request' : 'requests'}`)
+    .join(', ');
+  return (
+    <Tooltip content={hosts} side="bottom">
+      <p tabIndex={0} className="m-0 flex w-fit items-center gap-2 text-pretty">
+        <Network size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
+        {contactsLine(contacts)}
+      </p>
+    </Tooltip>
+  );
 }
 
 /** The meter's memory figures, where a meter read the final test here, for the run's details. */
@@ -99,7 +128,7 @@ function beforeTraining(
 
 /**
  * What the final test covered, said once: its new tasks, and for a job with organizations, how
- * many came from the ones it trained with and how many from the ones it never saw.
+ * many came from the ones it was taught on and how many from the ones it had never seen.
  */
 function testedOn(report: ReportCard, grid: OrgGrid | null): string {
   const unseen = grid?.groups.filter((group) => group.group !== 'seen').flatMap((g) => g.columns);
@@ -108,7 +137,7 @@ function testedOn(report: ReportCard, grid: OrgGrid | null): string {
   }
   const tasks = unseen.reduce((sum, column) => sum + column.score.total, 0);
   const places = unseen.length === 1 ? 'an organization' : `${unseen.length} organizations`;
-  return `Tested on ${report.test.score.total} new tasks from the organizations it trained with and ${tasks} from ${places} it never saw`;
+  return `Tested on ${report.test.score.total} new tasks from the organizations it was taught on and ${tasks} from ${places} it had never seen`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -177,6 +206,8 @@ export function ReportView({
   bare,
   comparisonReport,
   here,
+  organizations,
+  contacts,
 }: ReportViewProps) {
   const { test } = report;
   const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
@@ -211,6 +242,7 @@ export function ReportView({
           {verdict.because.length > 0 && (
             <p className="m-0 max-w-[620px] text-pretty">{verdict.because.join(' ')}</p>
           )}
+          {contacts && contacts.length > 0 && <Contacts contacts={contacts} />}
         </header>
       </StaggerItem>
 
@@ -226,7 +258,9 @@ export function ReportView({
           <Stat
             size="xl"
             value={formatRate(test.score)}
-            label="of new tasks right"
+            label={
+              grid ? 'on the final test, organizations it was taught on' : 'of new tasks right'
+            }
             note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
             noteFont="text"
           />
@@ -261,7 +295,7 @@ export function ReportView({
 
       {grid && (
         <StaggerItem>
-          <Organizations grid={grid} />
+          {organizations ? organizations(grid) : <Organizations grid={grid} />}
         </StaggerItem>
       )}
 
@@ -380,7 +414,7 @@ export function ReportView({
       </StaggerItem>
 
       <StaggerItem>
-        <Disclosure label="Run details">
+        <Disclosure label="Training details">
           <DetailList
             items={[
               {

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CheckerConfigSchema } from './checker';
 import { DataFileSchema } from './data';
 import { AllowedInterventionsSchema } from './interventions';
+import { loopbackEndpointIssue } from './net';
 import {
   DEFAULT_MENTOR_PRESET,
   DEFAULT_STUDENT,
@@ -37,22 +38,26 @@ export type ReasoningEffort = z.infer<typeof ReasoningEffortSchema>;
 
 export const ProviderIdSchema = z.enum(PROVIDER_IDS);
 
+/** A mentor that is a model at an address: a preset, an added endpoint or a runtime here. */
+export const ModelMentorSchema = z.object({
+  kind: z.literal('model'),
+  provider: ProviderIdSchema,
+  label: z.string().min(1),
+  baseUrl: z.url(),
+  model: z.string().min(1),
+  reasoningEffort: ReasoningEffortSchema.default('medium'),
+  /** Name of the key in the app's secret store. Never the key itself. None for a local model. */
+  secretRef: z.string().min(1).optional(),
+  /**
+   * The price the cap is kept with, when no preset knows it: OpenRouter's listed price when the
+   * model was chosen, or what the user entered for an endpoint they added.
+   */
+  pricing: TokenPricingSchema.optional(),
+});
+export type ModelMentor = z.infer<typeof ModelMentorSchema>;
+
 export const MentorConfigSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('model'),
-    provider: ProviderIdSchema,
-    label: z.string().min(1),
-    baseUrl: z.url(),
-    model: z.string().min(1),
-    reasoningEffort: ReasoningEffortSchema.default('medium'),
-    /** Name of the key in the app's secret store. Never the key itself. None for a local model. */
-    secretRef: z.string().min(1).optional(),
-    /**
-     * The price the cap is kept with, when no preset knows it: OpenRouter's listed price when the
-     * model was chosen, or what the user entered for an endpoint they added.
-     */
-    pricing: TokenPricingSchema.optional(),
-  }),
+  ModelMentorSchema,
   z.object({
     kind: z.literal('coding_agent'),
     agent: z.literal('claude_code'),
@@ -85,8 +90,15 @@ export type StudentTarget = z.infer<typeof StudentTargetSchema>;
 
 export const StudentConfigSchema = z.object({
   label: z.string().min(1),
-  /** Where the graduate runs, and where its locked test runs unless the run picks the hosted copy. */
-  local: StudentEndpointSchema,
+  /**
+   * Where the graduate runs, and where its locked test runs unless the run picks the hosted copy.
+   * A graduate makes no call off this computer (invariant 3), so the address must be this
+   * computer's: an OpenAI-compatible server here counts only when it is bound to loopback.
+   */
+  local: StudentEndpointSchema.superRefine((endpoint, context) => {
+    const issue = loopbackEndpointIssue(endpoint.baseUrl);
+    if (issue !== null) context.addIssue({ code: 'custom', path: ['baseUrl'], message: issue });
+  }),
   /** Where training attempts run. `hosted` uses the same weights on a remote endpoint. */
   trainOn: StudentTargetSchema.default('local'),
   hosted: StudentEndpointSchema.optional(),
@@ -188,6 +200,11 @@ export const DataSharingSchema = z.object({
    * Corrections never leave this computer otherwise.
    */
   corrections: z.boolean(),
+  /**
+   * The taught organizations' recordings may go to Meta to be transcribed for the study (decision
+   * 087). Absent means no.
+   */
+  recordings: z.boolean().optional(),
 });
 export type DataSharing = z.infer<typeof DataSharingSchema>;
 
@@ -213,8 +230,25 @@ export const OrganizationSchema = z.object({
   /** Generated from seeds, or a real organization's records. */
   synthetic: z.boolean(),
   role: z.enum(['train', 'transfer']),
+  /**
+   * A fresh cohort (decision 089): new work of the taught organization of this name, sealed as
+   * never seen, which is not an organization of its own.
+   */
+  cohortOf: z.string().min(1).optional(),
 });
 export type Organization = z.infer<typeof OrganizationSchema>;
+
+/** A lowercase, singular word for one organization: "academy", "clinic", "branch office". */
+export const OrganizationNounSchema = z
+  .string()
+  .min(1)
+  .max(30)
+  .regex(/^[a-z][a-z -]*[a-z]$|^[a-z]$/, 'is not a lowercase word');
+
+/** The word for one of a job's organizations, as the app writes it. */
+export function organizationNoun(job: { organizationNoun?: string | undefined }): string {
+  return job.organizationNoun ?? 'organization';
+}
 
 export const JobSchema = z.object({
   format: z.literal(JOB_FORMAT),
@@ -271,14 +305,21 @@ export const JobSchema = z.object({
       'Each organization needs its own id.',
     )
     .optional(),
+  /**
+   * The word the app uses for one of the job's organizations, such as "academy" or "clinic",
+   * lowercase and singular. Absent: "organization".
+   */
+  organizationNoun: OrganizationNounSchema.optional(),
 });
 export type Job = z.infer<typeof JobSchema>;
 
 /**
- * The sample jobs shipped with the app: the service desk, and Phil, a tutor taught at three
- * academies and tested at one it never sees.
+ * The sample jobs shipped with the app: the service desk; Academy desk, a staff-facing agent for
+ * test-prep academies; and the science lab's two specialists, Sweep desk, which reads a research
+ * group's training runs, and Assay desk, which reads screening labs' plate-reader exports. Each
+ * field job is taught at three organizations and tested at one it never sees.
  */
-export const SampleJobSchema = z.enum(['home-services', 'academy']);
+export const SampleJobSchema = z.enum(['home-services', 'academy', 'sweep-desk', 'assay-desk']);
 export type SampleJob = z.infer<typeof SampleJobSchema>;
 
 /** The organizations a job trains on: every listed one whose role is `train`. */

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { buildPackage, type VersionFacts } from '../src/graduates/build';
 import { JobLibrary } from '../src/loop/jobs';
 import { reportFor } from './agent-host/graduates';
+import { readPackaged } from './fakes/harness';
 import { FakeRuntime, FakeVault } from './fakes/runtime';
 import { harnessWith, newComputer, THIS_MACHINE, type Computer } from './support/computer';
 import { makeJob } from './support/fixtures';
@@ -21,7 +22,7 @@ async function setup(): Promise<{ computer: Computer; jobs: JobLibrary }> {
   const jobs = new JobLibrary(
     computer.store,
     computer.paths,
-    { runtime, vault: new FakeVault(runtime) },
+    { runtime, vault: new FakeVault(runtime), harness: { readPackaged } },
     computer.clock,
     computer.contracts,
   );

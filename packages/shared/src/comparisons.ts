@@ -21,6 +21,7 @@ export const ArmIdSchema = z.enum([
   'targeted',
   'reference',
   'reference-targeted',
+  'teacher',
   'repeat',
   'fixed',
   'weights-one-shot',
@@ -29,16 +30,22 @@ export const ArmIdSchema = z.enum([
 export type ArmId = z.infer<typeof ArmIdSchema>;
 
 export const ARM_LABELS: Record<ArmId, string> = {
-  bare: 'Bare student',
+  bare: 'Glimmer alone',
   draft: 'One-shot draft',
   targeted: 'Targeted mentoring',
   reference: 'Spark reference, blank harness',
   'reference-targeted': 'Spark reference, targeted harness',
+  teacher: 'Teacher alone',
   repeat: 'Decoding repeat',
   fixed: 'Fixed intervention',
   'weights-one-shot': 'One-shot adapter',
   'weights-targeted': 'Failure-specific adapter',
 };
+
+/** An arm's name inside a sentence: lower case, except where it starts with a model's name. */
+export function armInSentence(label: string): string {
+  return /^(Spark|Glimmer)\b/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1);
+}
 
 /**
  * Decision 037's place of each arm; both weights arms are its seventh. Spark with the targeted
@@ -50,6 +57,7 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
   targeted: 3,
   reference: 4,
   'reference-targeted': 4,
+  teacher: 4,
   repeat: 5,
   fixed: 6,
   'weights-one-shot': 7,
@@ -58,10 +66,16 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
 
 /**
  * Where a comparison's attempts ran. Arms are compared only within one backend: the hosted copy
- * of the student, Spark itself as a reference, or this computer's 2-bit build on Ollama, or on
- * llama-server with adapters.
+ * of the student, Spark itself as a reference, the teacher alone as the agent in a run of its own
+ * (decision 096), or this computer's 2-bit build on Ollama, or on llama-server with adapters.
  */
-export const BackendIdSchema = z.enum(['hosted', 'reference', 'local-ollama', 'local-llama.cpp']);
+export const BackendIdSchema = z.enum([
+  'hosted',
+  'reference',
+  'teacher',
+  'local-ollama',
+  'local-llama.cpp',
+]);
 export type BackendId = z.infer<typeof BackendIdSchema>;
 
 /**
@@ -179,6 +193,10 @@ export const PassTargetSchema = z.object({
 });
 export type PassTarget = z.infer<typeof PassTargetSchema>;
 
+/** Where a model answers: through a hosted provider, or on this computer. */
+export const RunsOnSchema = z.enum(['hosted', 'this_computer']);
+export type RunsOn = z.infer<typeof RunsOnSchema>;
+
 /** One arm's locked-test result on one backend, under one decoding seed. */
 export const ArmRowSchema = z.object({
   arm: ArmIdSchema,
@@ -216,6 +234,17 @@ export const ArmRowSchema = z.object({
   sampling: DecodingSchema.nullable(),
   /** False when fewer scenarios ran than the locked test holds: a paused or capped evaluation. */
   complete: z.boolean(),
+  /** The model that answered, by its name; null in a report made before rows named it. */
+  model: z.string().nullable().default(null),
+  /** Where it answered: a hosted provider, or this computer. Null in an older report. */
+  runsOn: RunsOnSchema.nullable().default(null),
+  /**
+   * What 1,000 requests like these cost where it answered: the tokens each attempt recorded, at
+   * the listed price of the model that answered, over the attempts, times 1,000, counted the same
+   * way for every row (decision 096). Zero on this computer; null when the price isn't known, an
+   * attempt recorded no usage, or in an older report.
+   */
+  perThousandUsd: z.number().nonnegative().nullable().default(null),
 });
 export type ArmRow = z.infer<typeof ArmRowSchema>;
 
@@ -510,6 +539,57 @@ export const TaskSweepSchema = z.object({
 });
 export type TaskSweep = z.infer<typeof TaskSweepSchema>;
 
+/**
+ * A comparison paused because an arm can't be paid for at what an attempt has really cost
+ * (decision 081). Nothing is released while it stands: the person raises the student cap or
+ * drops the arm.
+ */
+export const FundingPauseSchema = z.object({
+  arm: ArmIdSchema,
+  /** `start`: the arm hasn't started; `test`: it froze, and its locked test can't be paid for. */
+  stage: z.enum(['start', 'test']),
+  /** What a hosted attempt has cost so far. */
+  priceUsd: z.number().nonnegative(),
+  /** What the arm needs at that price, with the runner's headroom. */
+  needUsd: z.number().nonnegative(),
+  /** What is left under the cap after what was paid and what the arms before it hold. */
+  leftUsd: z.number(),
+  /** The student cap it is held to now. */
+  capUsd: z.number().nonnegative(),
+  at: z.iso.datetime(),
+});
+export type FundingPause = z.infer<typeof FundingPauseSchema>;
+
+/** The least student cap that pays for the paused arm, rounded up to the cent. */
+export function capToFund(pause: FundingPause): number {
+  return Math.ceil((pause.capUsd + pause.needUsd - Math.max(0, pause.leftUsd)) * 100) / 100;
+}
+
+/** The pause said plainly: which arm, what it needs, what is left, and the two ways on. */
+export function fundingMessage(pause: FundingPause): string {
+  const usd = (value: number) => `$${value.toFixed(2)}`;
+  const what =
+    pause.stage === 'start'
+      ? `${ARM_LABELS[pause.arm]} can't be paid for`
+      : `${ARM_LABELS[pause.arm]}'s final test can't be paid for`;
+  return `${what} at what an attempt has really cost ($${pause.priceUsd.toFixed(4)}): it needs ${usd(pause.needUsd)} of hosted Glimmer's budget, and ${usd(Math.max(0, pause.leftUsd))} is left under the ${usd(pause.capUsd)} cap. It waits for you, and no final test is released: raise the cap to at least ${usd(capToFund(pause))}, or drop the arm.`;
+}
+
+/** The person raised the student cap before any locked test was released (decision 081). */
+export const CapAmendmentSchema = z.object({
+  /** The arm the comparison paused for, when it paused. */
+  arm: ArmIdSchema.nullable(),
+  fromUsd: z.number().nonnegative(),
+  toUsd: z.number().nonnegative(),
+  /** The arm's own student cap, raised to what it needs at the measured price; null if unchanged. */
+  armFromUsd: z.number().nonnegative().nullable(),
+  armToUsd: z.number().nonnegative().nullable(),
+  /** What a hosted attempt had cost when the cap was raised. */
+  priceUsd: z.number().nonnegative(),
+  at: z.iso.datetime(),
+});
+export type CapAmendment = z.infer<typeof CapAmendmentSchema>;
+
 export const ComparisonReportSchema = z.object({
   format: z.literal(COMPARISON_REPORT_FORMAT),
   generatedAt: z.iso.datetime(),
@@ -540,6 +620,10 @@ export const ComparisonReportSchema = z.object({
     adapterProtocol: AdapterProtocolSchema,
     /** When development closed and the locked tests were released; no arm developed after it. */
     releasedAt: z.iso.datetime().nullable(),
+    /** Why it waits for the person before any locked test is released, when it does. */
+    funding: FundingPauseSchema.nullable().default(null),
+    /** Each raise of the student cap the person made before the release. */
+    amendments: z.array(CapAmendmentSchema).default([]),
   }),
   /** The job and the regression check's job, pinned when the plan was made. */
   inputs: z

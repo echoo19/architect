@@ -18,7 +18,7 @@ import { installation } from './fixtures-versions';
 import { AGENT, CHATS, engineSeed, installFakeEngine } from './fixtures-workspace';
 
 /*
- * Phil from a job with several organizations, against the stand-in engine: the report's skill by
+ * Academy desk from a job with several organizations, against the stand-in engine: the report's skill by
  * organization grid, and the workspace naming the organization whose records it works on, with
  * one control to move it to another (decision 070).
  */
@@ -126,10 +126,10 @@ test('shows each skill at each organization, trained-with, never-seen and real a
   });
   await reloadAt(`/runs/${SAMPLE.runId}/report`);
 
-  // The headline is the academies it trained with; the ones it never saw are counted apart.
+  // The headline is the academies it was taught on; the ones it never saw are counted apart.
   await expect(
     page.getByText(
-      'Tested on 72 new tasks from the organizations it trained with and 66 from 2 organizations it never saw',
+      'Tested on 72 new tasks from the organizations it was taught on and 66 from 2 organizations it had never seen',
       { exact: false },
     ),
   ).toBeVisible();
@@ -160,8 +160,8 @@ test('shows each skill at each organization, trained-with, never-seen and real a
     '9/10',
   ]);
   // A skill the real academy's records can't check is left empty there, not scored zero.
-  await expect(row('First hint').getByRole('cell')).toHaveText(['3/4', '4/4', '4/4', '5/6', '']);
-  await expect(grid.getByLabel('First hint at Real academy, not tested')).toBeAttached();
+  await expect(row('First hint').getByRole('cell')).toHaveText(['3/4', '4/4', '4/4', '5/6', '–']);
+  await expect(grid.getByLabel('First hint at Real academy, None')).toBeAttached();
   await expect(row('All skills').getByRole('cell')).toHaveText([
     '22/24',
     '22/24',
@@ -174,7 +174,7 @@ test('shows each skill at each organization, trained-with, never-seen and real a
   await expect(page.getByRole('table', { name: 'Results by task type' })).toBeVisible();
 
   // The headline's figures at the top, the grid whole below them.
-  await page.getByText('of new tasks right').evaluate((label) => {
+  await page.getByText('on the final test, organizations it was taught on').evaluate((label) => {
     const figures = label.closest('.border-y') ?? label;
     let box = figures.parentElement;
     while (box && !/auto|scroll/.test(getComputedStyle(box).overflowY)) box = box.parentElement;

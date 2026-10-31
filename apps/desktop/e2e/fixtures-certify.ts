@@ -4,7 +4,7 @@ import { AGENT } from './fixtures-workspace';
 import { AT, storyReport } from './story';
 
 /*
- * Certified answers (decision 077) as the stand-in engine serves them: Phil's certificate,
+ * Certified answers (decision 077) as the stand-in engine serves them: Academy desk's certificate,
  * calibrated on 77 tasks of the academies it was taught on, 5 attempts each, with its bound
  * checked on the final test and on the two academies it never saw. The bounds are the exact
  * Clopper-Pearson bounds of these counts at δ = 0.05.
@@ -21,7 +21,7 @@ const curve = [
 const ASSUMPTION =
   'Requests like the calibration ones, drawn the same way from the organizations it was taught on, answered with a checked answer or file changes. An organization it never saw tests this assumption rather than inheriting the guarantee. A chat reply in words alone is given only when its attempts say the same thing, and the bound does not cover it.';
 
-export const PHIL_CERTIFICATE: Certificate = {
+export const ACADEMY_DESK_CERTIFICATE: Certificate = {
   issued: true,
   n: 77,
   k: 5,
@@ -55,10 +55,16 @@ export const PHIL_CERTIFICATE: Certificate = {
   ],
 };
 
-export const CERTIFIED_REPORT: ReportCard = { ...FIELD_REPORT, certificate: PHIL_CERTIFICATE };
+export const CERTIFIED_REPORT: ReportCard = {
+  ...FIELD_REPORT,
+  certificate: ACADEMY_DESK_CERTIFICATE,
+};
 
 /** The service desk's report, certified, for its chats in the personal edition. */
-export const CERTIFIED_DESK_REPORT: ReportCard = { ...storyReport, certificate: PHIL_CERTIFICATE };
+export const CERTIFIED_DESK_REPORT: ReportCard = {
+  ...storyReport,
+  certificate: ACADEMY_DESK_CERTIFICATE,
+};
 
 /** A certificate that couldn't be issued: too few calibration tasks for the target. */
 export const UNCERTIFIED_REPORT: ReportCard = {

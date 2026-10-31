@@ -1,9 +1,12 @@
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   GuardError,
   type CheckResult,
   type Harness,
   type HarnessTool,
   type Job,
+  type Organization,
   type SuiteResult,
   type Task,
   type Trace,
@@ -26,7 +29,12 @@ import type {
   CorrectionResult,
   CorrectionStart,
 } from '../../src/teaching/correction';
-import type { OpenedTransfer, TransferOrganization } from '../../src/vault/vault';
+import type {
+  CertificationSets,
+  OpenedTransfer,
+  SealedOrganization,
+  TransferOrganization,
+} from '../../src/vault/vault';
 
 export type AttemptHook = (
   task: Task,
@@ -339,6 +347,10 @@ export class FakeVault implements VaultDeps {
   /** Each certified job's calibration split, which only a proof opens. */
   readonly calibration = new Map<string, Task[]>();
   readonly opened: string[] = [];
+  /** The jobs whose sealed part was staged for a comparison, in order. */
+  readonly staged: string[] = [];
+  /** The organizations sealed after each job was made, with their tasks (decision 085). */
+  readonly added = new Map<string, { org: Organization; tasks: Task[] }[]>();
 
   constructor(private readonly runtime: FakeRuntime) {}
 
@@ -378,11 +390,89 @@ export class FakeVault implements VaultDeps {
   }
 
   transferIdentifiers(jobId: string) {
-    return (this.transfer.get(jobId) ?? []).map(({ org }) => ({ id: org.id, name: org.name }));
+    return [...(this.transfer.get(jobId) ?? []), ...(this.added.get(jobId) ?? [])].map(
+      ({ org }) => ({ id: org.id, name: org.name }),
+    );
+  }
+
+  addOrganization(
+    jobId: string,
+    { org }: TransferOrganization,
+    tasks: Task[],
+    _others?: Task[],
+    _data?: string[],
+  ): void {
+    if (!this.sealed.has(jobId)) throw new GuardError('split', `${jobId} isn't sealed.`);
+    if (this.transferIdentifiers(jobId).some((item) => item.id === org.id)) {
+      throw new GuardError('split', `${org.name} is already sealed.`);
+    }
+    this.added.set(jobId, [
+      ...(this.added.get(jobId) ?? []),
+      { org, tasks: structuredClone(tasks) },
+    ]);
+  }
+
+  addedOrganizations(jobId: string): Organization[] {
+    return (this.added.get(jobId) ?? []).map(({ org }) => org);
+  }
+
+  /** Each organization released to be taught on in a new version, as `<job>:<org>`. */
+  readonly released: string[] = [];
+
+  releaseOrganization(jobId: string, orgId: string): SealedOrganization {
+    const sealed = this.transfer.get(jobId)?.find(({ org }) => org.id === orgId);
+    if (sealed !== undefined) {
+      this.released.push(`${jobId}:${orgId}`);
+      const tasks = (this.sealed.get(jobId) ?? []).filter((task) => task.org === orgId);
+      return { ...sealed, tasks: structuredClone(tasks) };
+    }
+    const added = this.added.get(jobId)?.find(({ org }) => org.id === orgId);
+    if (added === undefined) throw new GuardError('split', `${orgId} isn't sealed in ${jobId}.`);
+    this.released.push(`${jobId}:${orgId}`);
+    return { org: added.org, files: [], tasks: structuredClone(added.tasks) };
+  }
+
+  sealVersion(
+    fromJobId: string,
+    toJobId: string,
+    movedOrgId: string | null,
+    others: Task[],
+    data: string[],
+  ): void {
+    const tests = (this.sealed.get(fromJobId) ?? []).filter((task) => task.org !== movedOrgId);
+    const added = (this.added.get(fromJobId) ?? []).filter(({ org }) => org.id !== movedOrgId);
+    this.seal(
+      toJobId,
+      [...tests, ...added.flatMap(({ tasks }) => tasks)],
+      others,
+      data,
+      [
+        ...(this.transfer.get(fromJobId) ?? []).filter(({ org }) => org.id !== movedOrgId),
+        ...added.map(({ org }) => ({ org, files: [] })),
+      ],
+      this.calibration.get(fromJobId) ?? [],
+    );
+  }
+
+  openAdded(jobId: string, orgId: string, proof: unknown): Task[] {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError(
+        'split',
+        'A sealed organization opens only after the mentor is released.',
+      );
+    }
+    this.opened.push(`${jobId}:added:${orgId}`);
+    const found = (this.added.get(jobId) ?? []).find(({ org }) => org.id === orgId);
+    if (found === undefined) throw new GuardError('split', `${orgId} isn't sealed.`);
+    return structuredClone(found.tasks);
   }
 
   leakDetector(jobId: string) {
-    const tests = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
+    const tests = [
+      ...(this.sealed.get(jobId) ?? []),
+      ...(this.calibration.get(jobId) ?? []),
+      ...(this.added.get(jobId) ?? []).flatMap(({ tasks }) => tasks),
+    ];
     return {
       scan: (text: string) => {
         const matchedIds = tests
@@ -420,12 +510,80 @@ export class FakeVault implements VaultDeps {
         'The sealed organizations open only after the mentor is released.',
       );
     }
-    const transfer = this.transfer.get(jobId) ?? [];
+    const transfer = [...(this.transfer.get(jobId) ?? []), ...(this.added.get(jobId) ?? [])];
     return {
       organizations: transfer.map(({ org }) => org),
       dataDirs: Object.fromEntries(
         transfer.map(({ org }) => [org.id, `sealed:${jobId}/${org.id}`]),
       ),
     };
+  }
+
+  /** Each certification's sealed tasks, by `<job>/<id>`, with a stand-in hash. */
+  readonly certifications = new Map<string, { sets: CertificationSets; sha256: string }>();
+
+  /** What each certification was fingerprinted against: the visible tasks' ids and the data. */
+  readonly certificationPrints = new Map<string, { others: string[]; data: string[] }>();
+
+  sealCertification(
+    jobId: string,
+    id: string,
+    sets: CertificationSets,
+    others: Task[],
+    data: string[],
+  ): string {
+    const key = `${jobId}/${id}`;
+    this.certificationPrints.set(key, { others: others.map((task) => task.id), data });
+    if (this.certifications.has(key)) throw new Error(`${key} is already sealed.`);
+    const sha256 = `sha-${key}-${JSON.stringify(sets).length}`;
+    this.certifications.set(key, { sets: structuredClone(sets), sha256 });
+    return sha256;
+  }
+
+  openCertification(jobId: string, id: string, sha256: string, proof: unknown): CertificationSets {
+    if (typeof proof !== 'object' || proof === null || !this.runtime.proofs.has(proof)) {
+      throw new GuardError(
+        'split',
+        "A certification's tasks open only after the mentor is released.",
+      );
+    }
+    const sealed = this.certifications.get(`${jobId}/${id}`);
+    if (sealed === undefined || sealed.sha256 !== sha256) {
+      throw new GuardError(
+        'split',
+        `The tasks of certification ${id} changed after they were sealed.`,
+      );
+    }
+    this.opened.push(`${jobId}:certification:${id}`);
+    return structuredClone(sealed.sets);
+  }
+
+  discardCertification(jobId: string, id: string): void {
+    this.certifications.delete(`${jobId}/${id}`);
+  }
+
+  /** The sealed tasks appended to the folder's tasks.jsonl, each sealed organization's files. */
+  stageSealed(jobId: string, dir: string): Organization[] {
+    if (!this.sealed.has(jobId)) throw new GuardError('split', `${jobId} isn't sealed.`);
+    this.staged.push(jobId);
+    const tasks = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
+    appendFileSync(
+      join(dir, 'tasks.jsonl'),
+      tasks
+        .map(
+          (task) => `${JSON.stringify(task)}
+`,
+        )
+        .join(''),
+    );
+    const transfer = this.transfer.get(jobId) ?? [];
+    for (const { org, files } of transfer) {
+      for (const file of files) {
+        const target = join(dir, 'orgs', org.id, 'data', file.name);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, file.content);
+      }
+    }
+    return transfer.map(({ org }) => org);
   }
 }

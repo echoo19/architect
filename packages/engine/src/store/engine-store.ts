@@ -22,6 +22,7 @@ import {
   type Lesson,
   type ReferenceRecord,
   type ReportCard,
+  type RunContact,
   type RunStatus,
   type RuntimeMeasurement,
   type SplitName,
@@ -37,11 +38,14 @@ import {
   JobRecordSchema,
   LineageIndexSchema,
   StoredAttemptSchema,
+  StoredCertificationSchema,
+  StoredQualificationSchema,
   StoredChecksSchema,
   StoredContractSchema,
   StoredInstallationSchema,
   StoredPublicationSchema,
   StoredRepeatSchema,
+  StoredAddedQualificationSchema,
   StoredRetestSchema,
   StoredRoundSchema,
   StoredRunSchema,
@@ -53,11 +57,14 @@ import {
   type LineageIndex,
   type RetestStatus,
   type StoredAttempt,
+  type StoredCertification,
+  type StoredQualification,
   type StoredChecks,
   type StoredContract,
   type StoredInstallation,
   type StoredPublication,
   type StoredRepeat,
+  type StoredAddedQualification,
   type StoredRetest,
   type StoredRound,
   type StoredRun,
@@ -113,6 +120,13 @@ export interface EngineStore {
     list(jobId?: string): StoredRun[];
     /** Oldest first, so interrupted runs resume in the order they started. */
     withStatus(statuses: readonly RunStatus[]): StoredRun[];
+    /**
+     * Counts one request from the run to `host`; it stays inside only while every request there
+     * was inside a closed network (decision 098).
+     */
+    recordContact(runId: string, host: string, inside: boolean): void;
+    /** The hosts the run contacted, in the order it first reached them. */
+    contacts(runId: string): RunContact[];
   };
   rounds: {
     insert(record: StoredRound): void;
@@ -151,6 +165,16 @@ export interface EngineStore {
     get(runId: string, target: StudentTarget): StoredRetest | null;
     /** Oldest first, so interrupted re-tests resume in the order they started. */
     withStatus(status: RetestStatus): StoredRetest[];
+  };
+  /** Frozen versions tested on organizations added to their field later (decision 085). */
+  addedQualifications: {
+    /** Fails if the run already has one at that organization. */
+    insert(qualification: StoredAddedQualification): void;
+    update(qualification: StoredAddedQualification): void;
+    get(runId: string, orgId: string): StoredAddedQualification | null;
+    /** A run's, oldest first. */
+    list(runId: string): StoredAddedQualification[];
+    withStatus(status: StoredAddedQualification['status']): StoredAddedQualification[];
   };
   /** Locked tests taken again under the declared seeds a run deferred (decision 045). */
   repeats: {
@@ -269,6 +293,31 @@ export interface EngineStore {
     /** Oldest first, so interrupted references resume in the order they started. */
     withStatus(status: ReferenceRecord['status']): ReferenceRecord[];
   };
+  /** Trained models brought back and qualified on a finished run's locked test (decision 086). */
+  qualifications: {
+    insert(record: StoredQualification): void;
+    /** Refused once finished: its card is evidence. */
+    update(record: StoredQualification): void;
+    get(id: string): StoredQualification | null;
+    /** A field's qualifications, newest first. */
+    ofJob(jobId: string): StoredQualification[];
+    withStatus(status: StoredQualification['status']): StoredQualification[];
+  };
+  /** Versions certified after the fact (decision 079). */
+  certifications: {
+    insert(record: StoredCertification): void;
+    /** Refuses to change a finished one, which never changes. */
+    update(record: StoredCertification): void;
+    /** Only a planned one, which never started, can be taken back. */
+    remove(id: string): void;
+    get(id: string): StoredCertification | null;
+    /** A version's, newest first. */
+    list(graduateId: string, version: number): StoredCertification[];
+    /** A run's, oldest first. */
+    ofRun(runId: string): StoredCertification[];
+    /** Oldest first, so interrupted ones resume in the order they started. */
+    withStatus(status: StoredCertification['status']): StoredCertification[];
+  };
   /** Teach this: corrections of workspace replies, by agent, oldest first. */
   corrections: {
     put(correction: Correction): void;
@@ -300,6 +349,8 @@ function jobParams(job: JobRecord): Params {
     task_count: job.taskCount,
     created_at: job.createdAt,
     updated_at: job.updatedAt,
+    // Only a later version of a job has one, and it is set once, when that version is made.
+    ...(job.versionOf === undefined ? {} : { version_of: jsonOrNull(job.versionOf) }),
   };
 }
 
@@ -312,6 +363,7 @@ function jobFromRow(row: Row): JobRecord {
     taskCount: row.task_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    versionOf: orUndefined(fromJson(row.version_of)),
   });
 }
 
@@ -330,6 +382,7 @@ function runParams({ run, ...record }: StoredRun): Params {
     current_version: run.currentVersion,
     dev_baseline: jsonOrNull(run.devBaseline),
     dev_current: jsonOrNull(run.devCurrent),
+    dev_by_org: jsonOrNull(run.devByOrg),
     totals: json(run.totals),
     stop_reason: run.stopReason ?? null,
     error: run.error ?? null,
@@ -360,6 +413,7 @@ function runFromRow(row: Row): StoredRun {
       currentVersion: row.current_version,
       devBaseline: fromJson(row.dev_baseline),
       devCurrent: fromJson(row.dev_current),
+      devByOrg: orUndefined(fromJson(row.dev_by_org)),
       totals: fromJson(row.totals),
       stopReason: orUndefined(row.stop_reason),
       error: orUndefined(row.error),
@@ -544,6 +598,21 @@ function retestParams(retest: StoredRetest): Params {
     started_at: retest.startedAt,
     ended_at: retest.endedAt ?? null,
   };
+}
+
+function addedQualificationParams(qualification: StoredAddedQualification): Params {
+  return {
+    run_id: qualification.runId,
+    org_id: qualification.orgId,
+    seq: qualification.seq,
+    status: qualification.status,
+    body: json(qualification),
+    started_at: qualification.startedAt,
+  };
+}
+
+function addedQualificationFromRow(row: Row): StoredAddedQualification {
+  return StoredAddedQualificationSchema.parse(fromJson(row.body));
 }
 
 function retestFromRow(row: Row): StoredRetest {
@@ -878,6 +947,30 @@ function lessonParams(lesson: Lesson): Params {
 }
 
 /** A row's JSON body, checked against its record's schema. */
+function certificationParams(record: StoredCertification): Params {
+  return {
+    id: record.id,
+    run_id: record.runId,
+    graduate_id: record.graduateId,
+    version: record.version,
+    seq: record.seq,
+    status: record.status,
+    body: json(record),
+    created_at: record.createdAt,
+  };
+}
+
+function qualificationParams(record: StoredQualification): Params {
+  return {
+    id: record.id,
+    run_id: record.runId,
+    job_id: record.jobId,
+    status: record.status,
+    body: json(record),
+    created_at: record.startedAt,
+  };
+}
+
 function bodyOf<T>(schema: { parse(value: unknown): T }, row: Row): T {
   return schema.parse(fromJson(row.body));
 }
@@ -936,6 +1029,26 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
           )
           .map(runFromRow);
       },
+      recordContact: (runId, host, inside) => {
+        sql.run(
+          `INSERT INTO run_hosts (run_id, host, requests, inside, first_at)
+           VALUES (:run_id, :host, 1, :inside, :at)
+           ON CONFLICT (run_id, host) DO UPDATE SET
+             requests = requests + 1, inside = MIN(inside, excluded.inside)`,
+          { run_id: runId, host, inside: flag(inside), at: new Date().toISOString() },
+        );
+      },
+      contacts: (runId) =>
+        sql
+          .all(
+            'SELECT host, requests, inside FROM run_hosts WHERE run_id = :run_id ORDER BY first_at, rowid',
+            { run_id: runId },
+          )
+          .map((row) => ({
+            host: String(row['host']),
+            requests: Number(row['requests']),
+            inside: Number(row['inside']) === 1,
+          })),
     },
 
     rounds: {
@@ -1062,6 +1175,38 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             status,
           })
           .map(retestFromRow),
+    },
+
+    addedQualifications: {
+      insert: (qualification) =>
+        sql.insert('added_qualifications', addedQualificationParams(qualification)),
+      update: (qualification) =>
+        sql.update('added_qualifications', addedQualificationParams(qualification), [
+          'run_id',
+          'org_id',
+        ]),
+      get: (runId, orgId) => {
+        const row = sql.one(
+          'SELECT * FROM added_qualifications WHERE run_id = :run_id AND org_id = :org_id',
+          { run_id: runId, org_id: orgId },
+        );
+        return row ? addedQualificationFromRow(row) : null;
+      },
+      list: (runId) =>
+        sql
+          .all('SELECT * FROM added_qualifications WHERE run_id = :run_id ORDER BY seq', {
+            run_id: runId,
+          })
+          .map(addedQualificationFromRow),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT * FROM added_qualifications WHERE status = :status ORDER BY started_at, rowid',
+            {
+              status,
+            },
+          )
+          .map(addedQualificationFromRow),
     },
 
     repeats: {
@@ -1429,6 +1574,88 @@ export function createEngineStore(db: DatabaseSync): EngineStore {
             { status },
           )
           .map((row) => bodyOf(ReferenceRecordSchema, row)),
+    },
+
+    certifications: {
+      insert: (record) => {
+        const parsed = StoredCertificationSchema.parse(record);
+        sql.insert('certifications', certificationParams(parsed));
+      },
+      update: (record) => {
+        const parsed = StoredCertificationSchema.parse(record);
+        const row = sql.one('SELECT status FROM certifications WHERE id = :id', { id: parsed.id });
+        if (!row) throw new Error(`There is no certification "${parsed.id}".`);
+        if (row.status === 'finished') {
+          throw new Error('A finished certification is evidence, and evidence never changes.');
+        }
+        sql.insert('certifications', certificationParams(parsed), 'replace');
+      },
+      remove: (id) => {
+        const row = sql.one('SELECT status FROM certifications WHERE id = :id', { id });
+        if (row && row.status !== 'planned') {
+          throw new Error('Only a certification that never started can be taken back.');
+        }
+        sql.run('DELETE FROM certifications WHERE id = :id', { id });
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM certifications WHERE id = :id', { id });
+        return row ? bodyOf(StoredCertificationSchema, row) : null;
+      },
+      list: (graduateId, version) =>
+        sql
+          .all(
+            `SELECT body FROM certifications WHERE graduate_id = :graduate_id AND version = :version
+             ORDER BY created_at DESC, rowid DESC`,
+            { graduate_id: graduateId, version },
+          )
+          .map((row) => bodyOf(StoredCertificationSchema, row)),
+      ofRun: (runId) =>
+        sql
+          .all('SELECT body FROM certifications WHERE run_id = :run_id ORDER BY seq', {
+            run_id: runId,
+          })
+          .map((row) => bodyOf(StoredCertificationSchema, row)),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT body FROM certifications WHERE status = :status ORDER BY created_at, rowid',
+            { status },
+          )
+          .map((row) => bodyOf(StoredCertificationSchema, row)),
+    },
+
+    qualifications: {
+      insert: (record) => {
+        const parsed = StoredQualificationSchema.parse(record);
+        sql.insert('qualifications', qualificationParams(parsed));
+      },
+      update: (record) => {
+        const parsed = StoredQualificationSchema.parse(record);
+        const row = sql.one('SELECT status FROM qualifications WHERE id = :id', { id: parsed.id });
+        if (!row) throw new Error(`There is no qualification "${parsed.id}".`);
+        if (row.status === 'finished') {
+          throw new Error('A finished qualification is evidence, and evidence never changes.');
+        }
+        sql.insert('qualifications', qualificationParams(parsed), 'replace');
+      },
+      get: (id) => {
+        const row = sql.one('SELECT body FROM qualifications WHERE id = :id', { id });
+        return row ? bodyOf(StoredQualificationSchema, row) : null;
+      },
+      ofJob: (jobId) =>
+        sql
+          .all(
+            'SELECT body FROM qualifications WHERE job_id = :job_id ORDER BY created_at DESC, rowid DESC',
+            { job_id: jobId },
+          )
+          .map((row) => bodyOf(StoredQualificationSchema, row)),
+      withStatus: (status) =>
+        sql
+          .all(
+            'SELECT body FROM qualifications WHERE status = :status ORDER BY created_at, rowid',
+            { status },
+          )
+          .map((row) => bodyOf(StoredQualificationSchema, row)),
     },
 
     corrections: {

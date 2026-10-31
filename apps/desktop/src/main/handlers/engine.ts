@@ -1,11 +1,18 @@
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { EngineApi } from '@architect/engine';
-import type { DraftTurn, Job } from '@architect/shared';
+import {
+  AddOrganizationRequestSchema,
+  MoveToModelRequestSchema,
+  DraftOrganizationSchema,
+  type DraftTurn,
+  type Job,
+} from '@architect/shared';
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
-import { applyChoices, type JobChoices } from '../jobs/choices';
+import { applyChoices, applyFileModels, type JobChoices } from '../jobs/choices';
+import { withFieldExport } from '../settings/schema';
 import type { SettingsStore } from '../settings/store';
 
 /** Sends one request to the engine process. */
@@ -19,13 +26,15 @@ const text = z.string().min(1);
  * conversation that drafts a job talks to the teacher the person chose in Settings, which only
  * this process reads, so each of its calls carries it to the engine. A job that is new, whether
  * the sample job, a job file or a drafted job, starts from the teacher and model the person chose
- * (`choices`); a job that already exists keeps what it has.
+ * (`choices`), except a job file's own models that are connected here; a job that already exists
+ * keeps what it has. A field export written is recorded in settings, so Compute can offer it after
+ * a restart; its folder is still opened only once the person chooses it again.
  */
 export function registerEngineHandlers(
   router: IpcRouter,
   call: EngineCall,
   picked: PickedPaths,
-  settings: Pick<SettingsStore, 'get'>,
+  settings: Pick<SettingsStore, 'get' | 'update'>,
   choices: () => Promise<JobChoices>,
 ): void {
   /** A job just made, saved again with the person's choices unless it already has them. */
@@ -63,7 +72,11 @@ export function registerEngineHandlers(
       },
       importFile: async (file) => {
         const chosen = picked.check(file);
-        return chosenFor(await call((api) => api.jobs.importFile(chosen)));
+        const job = await call((api) => api.jobs.importFile(chosen));
+        // The file's own models stay where they are connected here; the person hears of the rest.
+        const imported = applyFileModels(job, await choices());
+        if (isDeepStrictEqual(imported.job, job)) return imported;
+        return { ...imported, job: await call((api) => api.jobs.save(imported.job)) };
       },
       exportFile: (jobId, file) => {
         const chosen = picked.check(file);
@@ -77,6 +90,14 @@ export function registerEngineHandlers(
           ),
         );
       },
+      draftField: async (description, organizations) => {
+        const chosen = organizations.map((org) => ({ ...org, folder: picked.check(org.folder) }));
+        return draftedWith(
+          await call((api) =>
+            api.jobs.draftField(description, chosen, settings.get().defaultMentor),
+          ),
+        );
+      },
       draftReply: async (sessionId, reply) =>
         draftedWith(
           await call((api) => api.jobs.draftReply(sessionId, reply, settings.get().defaultMentor)),
@@ -85,18 +106,48 @@ export function registerEngineHandlers(
       confirmRules: (jobId, token) => call((api) => api.jobs.confirmRules(jobId, token)),
       study: (jobId) => call((api) => api.jobs.study(jobId)),
       confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
+      quoteRecordings: (jobId, org, files) => {
+        const chosen = files.map((file) => picked.check(file));
+        return call((api) => api.jobs.quoteRecordings(jobId, org, chosen));
+      },
+      shareRecordings: (jobId, allowed) => call((api) => api.jobs.shareRecordings(jobId, allowed)),
+      transcribe: (jobId, request) => {
+        const chosen = request.paths.map((file) => picked.check(file));
+        return call((api) => api.jobs.transcribe(jobId, { ...request, paths: chosen }));
+      },
       field: (jobId) => call((api) => api.jobs.field(jobId)),
+      addOrganization: (jobId, request) => {
+        const chosen = { ...request, folder: picked.check(request.folder) };
+        return call((api) => api.jobs.addOrganization(jobId, chosen));
+      },
+      teachOn: (jobId, org) => call((api) => api.jobs.teachOn(jobId, org)),
+      moveToModel: (jobId, request) => call((api) => api.jobs.moveToModel(jobId, request)),
       fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
-      exportField: (jobId, directory) => {
+      tasks: (jobId, split) => call((api) => api.jobs.tasks(jobId, split)),
+      exportField: async (jobId, directory) => {
         const chosen = picked.check(directory);
-        return call((api) => api.jobs.exportField(jobId, chosen));
+        const manifest = await call((api) => api.jobs.exportField(jobId, chosen));
+        const record = {
+          jobId,
+          name: manifest.job.name,
+          dir: chosen,
+          at: new Date().toISOString(),
+        };
+        await settings.update({
+          fieldExports: withFieldExport(settings.get().fieldExports ?? [], record),
+        });
+        return manifest;
       },
     },
     {
       importFile: z.tuple([text]),
       exportFile: z.tuple([text, text]),
       exportField: z.tuple([text, text]),
+      addOrganization: z.tuple([text, AddOrganizationRequestSchema]),
+      teachOn: z.tuple([text, text]),
+      moveToModel: z.tuple([text, MoveToModelRequestSchema]),
       draftStart: z.tuple([text, z.array(text)]),
+      draftField: z.tuple([text, z.array(DraftOrganizationSchema).min(1)]),
     },
   );
 
@@ -106,11 +157,16 @@ export function registerEngineHandlers(
     resume: (runId) => call((api) => api.runs.resume(runId)),
     stop: (runId) => call((api) => api.runs.stop(runId)),
     retest: (runId, target) => call((api) => api.runs.retest(runId, target)),
+    qualifyAdded: (runId, org) => call((api) => api.runs.qualifyAdded(runId, org)),
+    qualify: (request) => call((api) => api.runs.qualify(request)),
+    qualifications: (jobId) => call((api) => api.runs.qualifications(jobId)),
     get: (runId) => call((api) => api.runs.get(runId)),
     list: (jobId) => call((api) => api.runs.list(jobId)),
     attempt: (attemptId) => call((api) => api.runs.attempt(attemptId)),
     trace: (attemptId) => call((api) => api.runs.trace(attemptId)),
     roundDiff: (runId, round) => call((api) => api.runs.roundDiff(runId, round)),
+    attempts: (runId, query) => call((api) => api.runs.attempts(runId, query)),
+    harnessFiles: (runId, version) => call((api) => api.runs.harnessFiles(runId, version)),
     runtimeMeasurements: (runId) => call((api) => api.runs.runtimeMeasurements(runId)),
   });
 
@@ -127,11 +183,9 @@ export function registerEngineHandlers(
       call((api) => api.teach.shareCorrections(graduateId, allowed)),
   });
 
-  // An experiment runs on a job folder the person chose in a file dialog.
-  const chosenJob = <T extends { jobDir: string }>(input: T): T => ({
-    ...input,
-    jobDir: picked.check(input.jobDir),
-  });
+  // An experiment runs on a field in the library, or on a job folder the person chose in a dialog.
+  const chosenJob = <T extends { jobDir?: string | undefined }>(input: T): T =>
+    input.jobDir === undefined ? input : { ...input, jobDir: picked.check(input.jobDir) };
   router.registerHandlers('experiments', {
     plan: (input) => call((api) => api.experiments.plan(chosenJob(input))),
     revise: (experimentId, input) =>

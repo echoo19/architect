@@ -31,6 +31,27 @@ export async function readDataFile(dataDir: string, file: DataFile): Promise<str
 }
 
 /**
+ * Each data file's text in the folders, and each table's rows as the mentor is shown them, for
+ * a fingerprint to leave out what the mentor may see of these files (decision 082).
+ */
+export async function mentorDataTexts(
+  files: readonly DataFile[],
+  folders: readonly string[],
+): Promise<string[]> {
+  const texts = await Promise.all(
+    folders.flatMap((folder) =>
+      files.map(async (file) => {
+        const text = await readDataFile(folder, file);
+        if (text === null) return [];
+        if (file.kind === 'text') return [text];
+        return [text, JSON.stringify(parseTable(text).rows)];
+      }),
+    ),
+  );
+  return texts.flat();
+}
+
+/**
  * What the mentor sees of the job's data: each table's shape and a few rows, and every text file,
  * each by its name in the job (the student sees it as `data/<name>`). An optional file the folder
  * lacks isn't there to describe.
@@ -45,22 +66,35 @@ export async function describeDataFiles(
       if (content === null) return null;
       const base = { name: file.name, kind: file.kind, access: file.access };
       if (file.kind === 'text') return { ...base, text: clip(content, TEXT_MAX) };
-      const table = Papa.parse<Record<string, unknown>>(content, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: true,
-      });
+      const table = parseTable(content, SAMPLE_ROWS);
       return {
         ...base,
-        columns: table.meta.fields ?? [],
-        rowCount: table.data.length,
-        sampleRows: table.data
-          .slice(0, SAMPLE_ROWS)
-          .map((row) => JsonRowSchema.parse(JSON.parse(JSON.stringify(row)))),
+        columns: table.columns,
+        rowCount: table.rowCount,
+        sampleRows: table.rows,
       };
     }),
   );
   return described.filter((file) => file !== null);
+}
+
+/** A table's columns, its row count and its first `limit` rows, each as the mentor is shown it. */
+export function parseTable(
+  content: string,
+  limit = Number.POSITIVE_INFINITY,
+): { columns: string[]; rowCount: number; rows: z.infer<typeof JsonRowSchema>[] } {
+  const table = Papa.parse<Record<string, unknown>>(content, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+  });
+  return {
+    columns: table.meta.fields ?? [],
+    rowCount: table.data.length,
+    rows: table.data
+      .slice(0, limit)
+      .map((row) => JsonRowSchema.parse(JSON.parse(JSON.stringify(row)))),
+  };
 }
 
 /**

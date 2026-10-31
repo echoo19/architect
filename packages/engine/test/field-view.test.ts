@@ -10,7 +10,7 @@ import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { importJobInto } from './support/field';
 
 /*
- * The field's page (decision 075) on the tutor's job as it ships: three academies it trains on
+ * The field's page (decision 075) on the Academy desk's job as it ships: three academies it trains on
  * and one sealed. The page gets each train academy's files with their rows, and the sealed one
  * by name, kind and file count only; the assets are the export's own manifest, built with
  * nothing written.

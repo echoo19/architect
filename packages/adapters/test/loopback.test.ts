@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { isLoopbackUrl } from '../src/loopback';
 
 describe('isLoopbackUrl', () => {
-  it('accepts localhost, the whole 127/8 block and ::1', () => {
+  it('accepts localhost, the whole 127/8 block (mapped into IPv6 too, as the guard does) and ::1', () => {
     for (const url of [
       'http://localhost:11434',
       'https://localhost/v1',
@@ -13,6 +13,8 @@ describe('isLoopbackUrl', () => {
       'http://[::1]:8080/v1',
       'http://[::1]',
       'http://[0:0:0:0:0:0:0:1]:9000',
+      'http://[::ffff:127.0.0.1]',
+      'http://[::ffff:7f00:1]:8080',
     ]) {
       expect(isLoopbackUrl(url), url).toBe(true);
     }
@@ -47,7 +49,8 @@ describe('isLoopbackUrl', () => {
       'http://169.254.1.1',
       'http://[::2]',
       'http://[::]',
-      'http://[::ffff:127.0.0.1]',
+      'http://[::ffff:10.0.0.1]',
+      'http://[::ffff:c0a8:114]',
       'http://[fe80::1]',
     ]) {
       expect(isLoopbackUrl(url), url).toBe(false);

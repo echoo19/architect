@@ -24,14 +24,35 @@ describe('parsePath', () => {
     expect(parsePath(paths.home())).toEqual({ name: 'home' });
     expect(parsePath(paths.fields())).toEqual({ name: 'fields' });
     expect(parsePath(paths.field('job_1'))).toEqual({ name: 'field', jobId: 'job_1' });
+    expect(parsePath(paths.field('job_1', 'organizations'))).toEqual({
+      name: 'field',
+      jobId: 'job_1',
+      tab: 'organizations',
+    });
     expect(parsePath(paths.experiments())).toEqual({ name: 'experiments' });
     expect(parsePath(paths.newExperiment())).toEqual({ name: 'experiment-new' });
+    expect(parsePath(paths.newExperiment('job_1'))).toEqual({
+      name: 'experiment-new',
+      jobId: 'job_1',
+    });
     expect(parsePath(paths.experiment('exp_1'))).toEqual({
       name: 'experiment',
       experimentId: 'exp_1',
     });
     expect(parsePath(paths.models())).toEqual({ name: 'models' });
+    expect(parsePath(paths.models('grd_1:2'))).toEqual({ name: 'models', open: 'grd_1:2' });
     expect(parsePath(paths.compute())).toEqual({ name: 'compute' });
+    expect(parsePath(paths.compute({ jobId: 'job_1' }))).toEqual({
+      name: 'compute',
+      jobId: 'job_1',
+    });
+    // A runtime's model name has slashes and colons; it travels as one segment.
+    expect(parsePath(paths.compute({ jobId: 'job_1', model: 'meta/muse-glimmer:30b' }))).toEqual({
+      name: 'compute',
+      jobId: 'job_1',
+      model: 'meta/muse-glimmer:30b',
+    });
+    expect(paths.compute({ jobId: 'job_1', model: undefined })).toBe('/compute/fields/job_1');
   });
 
   it('round-trips ids through the path builders', () => {
@@ -51,8 +72,10 @@ describe('parsePath', () => {
       '/agents/g/chats',
       '/%E0%A4%A',
       '/fields/job_1/extra',
-      '/models/m_1',
+      '/models/m_1/extra',
       '/compute/x',
+      '/compute/fields',
+      '/compute/fields/job_1/m/extra',
     ]) {
       expect(parsePath(path)).toEqual({ name: 'not-found', path });
     }

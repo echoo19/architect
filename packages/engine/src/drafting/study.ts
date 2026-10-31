@@ -138,7 +138,7 @@ function namesAny(marks: readonly string[]): (content: string) => boolean {
  * would carry one is refused before it leaves (invariant 1).
  */
 export function transferDetector(
-  job: Job,
+  job: Pick<Job, 'organizations'>,
   sealed: readonly { id: string; name: string }[] = [],
 ): LeakDetector {
   const listed = (job.organizations ?? []).filter((org) => org.role === 'transfer');

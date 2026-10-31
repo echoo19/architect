@@ -80,10 +80,12 @@ describe('the public API', () => {
   it('exports what the app and the engine use, and nothing internal', () => {
     expect(Object.keys(api).sort()).toEqual([
       'MentorReplyError',
+      'assertInsideNetwork',
       'createLlamaCppStudent',
       'createMentor',
       'createMentorActor',
       'createModelMentor',
+      'createMuseVoiceTranscriber',
       'createOllamaStudent',
       'createOpenAICompatibleStudent',
       'createStudent',
@@ -94,6 +96,7 @@ describe('the public API', () => {
       'makeTextOnlyModel',
       'mentorCanAct',
       'ollamaVersion',
+      'outsideNetwork',
       'pullOllamaModel',
       'unloadOllamaModel',
       'verifyKey',

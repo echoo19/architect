@@ -6,10 +6,10 @@ Adopted on Oct 31 after research (prior art below) and a GPT-6 Astra reading, at
 
 A specialist should know when not to answer. At qualification Architect calibrates when the graduate answers and when it hands the request to a person, and states a certificate a buyer can read:
 
-> When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
+> When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
 
 **How.**
-- *Signal.* Agreement across k independent attempts at the same request (k = 5 by default): the share of attempts whose structured answer and file changes match the most common one. It works on every backend (hosted, Ollama, llama.cpp) and needs no log-probabilities. The graduate answers with the majority answer when agreement reaches its threshold and abstains otherwise.
+- *Signal.* Agreement across k independent attempts at the same request (k = 5 by default): the share of attempts whose structured answer and file changes match the most common one. It works on every backend (hosted, Ollama, llama.cpp) and needs no log-probabilities. The graduate answers with the majority answer when agreement reaches its threshold and abstains otherwise. An attempt with no answer (out of steps, failed, nothing parseable) never counts: the majority is over real answers only, so attempts that all gave nothing hand the request off (decision 099, found by `cert-1`).
 - *Calibration set.* A new sealed split drawn from the taught organizations, disjoint from train, dev and the locked test, held in the vault like the test (invariant 1: the mentor never sees it). It is opened once, after the candidate is frozen.
 - *Threshold and bound.* For each candidate threshold from strictest to loosest, the selective error among answered calibration tasks is tested with a one-sided Clopper-Pearson upper bound at δ; fixed-sequence testing picks the loosest threshold whose bound is at most the target ε (Learn-then-Test; no multiplicity penalty). If none qualifies, no certificate is issued and the report says why and how many more tasks would be needed.
 - *Checked where it wasn't calibrated.* The same frozen graduate and threshold run on the locked test and on each never-seen organization; the report shows whether the certified bound held there. The guarantee assumes requests like the calibration ones; a never-seen organization tests that assumption rather than inheriting the guarantee.

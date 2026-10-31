@@ -23,6 +23,7 @@ export const ERROR_CODES = [
   'package_changed',
   'disk_full',
   'guard_split',
+  'split_sealed',
   'guard_budget',
   'rule_unconfirmed',
   'rule_changed',
@@ -84,7 +85,9 @@ export type AdapterErrorCode =
   | 'bad_request'
   | 'bad_response'
   | 'aborted'
-  | 'blocked';
+  | 'blocked'
+  /** The host is outside the closed network the Lab names (decision 098). */
+  | 'outside_network';
 
 const RETRYABLE: ReadonlySet<AdapterErrorCode> = new Set([
   'rate_limit',

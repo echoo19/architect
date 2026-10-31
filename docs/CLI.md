@@ -1,8 +1,8 @@
 # The architect command
 
-`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, `install` from Hugging Face and `train plan --model`, which reads a model's `config.json`, go online, to Hugging Face itself.
+`architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, `install` from Hugging Face and `train plan --model`, which reads a model's `config.json`, go online, to Hugging Face itself. The exception is `experiment start` and `experiment resume`, which run an experiment on the hosted models it names and spend what its caps allow.
 
-Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened.
+Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened. Other apps on the same computer can use an agent through `architect serve`, which answers like an OpenAI-compatible chat endpoint.
 
 ## Getting it
 
@@ -28,7 +28,7 @@ Relative paths are read from the folder you typed the command in. `node apps/cli
 
 ## Commands
 
-Results go to stdout and everything else (steps, progress, messages) to stderr, so stdout can be read by a script. `list`, `install`, `inspect`, `verify`, `export` and `publish` print JSON with `--json`, with snake_case keys and a `format` naming what it is. An agent is named by its name as `architect list` shows it (`service-desk`) or by its id (`grd_...`).
+Results go to stdout and everything else (steps, progress, messages) to stderr, so stdout can be read by a script. `list`, `install`, `inspect`, `verify`, `pack`, `export` and `publish` print JSON with `--json`, as do the Lab's `field` and `experiment` commands (below, with the app's own keys), with snake_case keys and a `format` naming what it is. An agent is named by its name as `architect list` shows it (`service-desk`) or by its id (`grd_...`).
 
 ### list
 
@@ -104,6 +104,82 @@ On a terminal, a change that needs approval is asked about there; `always` allow
 
 The agent runs on its active version, with this computer's folders and permissions, exactly as a chat in the app would.
 
+### serve
+
+```bash
+architect serve service-desk [--port 8420] [--version 2] [--token-file token.txt]
+```
+
+Serves an agent to other apps on this computer, such as a school's own platform, as an OpenAI-compatible Chat Completions endpoint. It prints where it listens and the token callers must send:
+
+```
+$ architect serve service-desk
+Serving Service desk, version 2, on muse-glimmer:30b (ollama), to apps on this computer only.
+Changes to files come back as proposals; nothing is written. Ctrl+C stops.
+Base URL: http://127.0.0.1:8420/v1
+Model:    service-desk
+Token:    Jx3l...
+```
+
+```bash
+curl http://127.0.0.1:8420/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "service-desk", "messages": [{"role": "user", "content": "Who owes us money?"}]}'
+```
+
+```json
+{
+  "id": "chatcmpl-5f1c...",
+  "object": "chat.completion",
+  "created": 1793900000,
+  "model": "service-desk",
+  "choices": [{ "index": 0, "message": { "role": "assistant", "content": "Ruiz, Ben owes $45.50 on INV-2." }, "finish_reason": "stop" }],
+  "architect": {
+    "version": 2,
+    "harnessHash": "sha256-c077cf82...",
+    "certified": false,
+    "agreement": null,
+    "handedOff": false,
+    "answer": null,
+    "certificate": { "standing": "not_certified", "errorBound": null, "confidence": null },
+    "steps": [{ "tool": "read", "detail": "data/invoices.csv", "status": "done", "summary": "3 rows", "ms": 2 }],
+    "proposedChange": null,
+    "refusal": null
+  }
+}
+```
+
+A certified version's reply carries its answer and where it stands. Here 4 of its 5 attempts agreed, and it answers only when at least 4 do:
+
+```json
+"architect": {
+  "version": 3,
+  "certified": true,
+  "agreement": { "agreed": 4, "attempts": 5, "required": 4 },
+  "handedOff": false,
+  "answer": { "student": "S-104", "missed": 3 },
+  "certificate": { "standing": "within", "errorBound": 0.08, "confidence": 0.95 },
+  ...
+}
+```
+
+Any OpenAI client works with the base URL, the token as its API key, and the agent's name as the model. `GET /v1/models` lists the agent.
+
+- **This computer only.** It listens on 127.0.0.1 and nowhere else; `--host` is refused (exit 3). Every request needs the bearer token, so another account or program on the computer can't use the agent without it. The token is new each start and printed once; `--token-file` reads one of your own (one word, at least 16 characters) and prints none.
+- **The same agent.** Each request runs through the same agent host as `run` and a chat in the app: the active version, its harness, tools, folders and permissions, under the same network guard, so the agent reaches nothing but the model on this computer. Requests are answered one at a time, in order. A request's earlier user and assistant messages are its history; system and developer messages are left out, since the agent's own instructions say how it works, and sampling settings and a client's own tools are ignored.
+- **Certified answers.** A version with a certificate (decision 077) makes its attempts at each request and answers with the agreed answer, or hands the request to a person. `architect.certified`, `agreement` (`agreed` of `attempts`, and how many are `required`) and `handedOff` say which.
+- **The answer and its standing.** `architect.answer` is the structured answer: the JSON of the reply's `ANSWER:` line, parsed, or `null` when the reply has none, handed the request off, or refused it. `architect.certificate.standing` says where the reply stands against the version's certificate: `within` (enough attempts agreed, so the certificate's bound covers it), `handed_off` (too few agreed; the reply asks for a person instead of answering), `refused` (outside the agent's job; no attempt was made) or `not_certified` (a version with no issued certificate, which answers as it always did). `errorBound` and `confidence` are the certificate's: when it answers, it is wrong on at most `errorBound` of requests like its calibration ones, with that confidence; both are `null` without a certificate. A plain OpenAI client reads `choices` as usual and can ignore `architect`; the message itself is OpenAI's, with nothing added to it.
+- **No writes.** The server never changes a file, even when the agent's writes are allowed in the app. A change the agent wants comes back in `architect.proposedChange`, with the rows (`diff`) or lines (`patch`), for a person to make in the app or with `architect run`.
+- **Errors** are OpenAI-style (`{"error": {"message", "type", "code"}}`): 401 without the right token, 400 for a malformed request or `"stream": true` (streaming isn't served yet), 404 for another model, 403 when the agent may not run (its model isn't on this computer, say), 409 when `--version` is no longer the active version, 502 when the model or its reply failed.
+- **Stopping.** Ctrl+C stops taking requests, stops the replies running (their callers get 503) and exits 130. A port in use exits 1.
+
+| Option | Meaning |
+| --- | --- |
+| `--port <n>` | The port on 127.0.0.1; 8420 by default, 0 for any free one. |
+| `--version <n>` | Serve only while this is the active version: it won't start otherwise, and answers 409 once another is promoted. |
+| `--token-file <file>` | The token callers send, instead of a new one. |
+
 ### inspect
 
 ```bash
@@ -120,6 +196,27 @@ architect verify service-desk [--no-model-check] [--json]
 ```
 
 Runs the active version's installation checks again: platform and memory, the harness against its hash, its tools loading in the sandbox, its folders and their files, and the model, with one short request. They say whether it runs on this computer. They are not an evaluation, and never show as one; the author's results are under `inspect`. Exits 0 when ready and 3 otherwise.
+
+```bash
+architect verify --pack ./service-desk-v2-evidence [--json]
+```
+
+Checks an evidence pack (see `pack`) where it is, with the network guard on. It needs no data folder and no agent, so it runs on a reviewer's computer with no network. Every file MANIFEST.json lists must be there with its size and SHA-256, and nothing else may be. `evidence.json` must read, and the package inside must pass its own check and be the version `evidence.json` names. Copied weights must be the base model the version names. It prints each problem in plain words and the SHA-256 of MANIFEST.json, to compare with the one the author read out. Exits 0 when everything matches and 3 otherwise.
+
+### pack
+
+```bash
+architect pack service-desk --out ./reviews [--version 2] [--with-weights] [--json]
+```
+
+Writes `<name>-v<n>-evidence/` into the folder (decision 098): one folder for a security reviewer and an offline install. It holds:
+
+- `package/`: the version byte for byte. `architect install <pack>/package` installs it on a computer with no network.
+- `evidence.json`: the harness and model hashes, the tools with their permissions and the sandbox they run in, the graduates' network guard checked against every host teaching reached, those hosts with their request counts, the changes kept and reverted, the final test per organization (taught on, never seen, real), the locked test's score and the certificate if there is one.
+- `README.md`: the same, in a few plain lines.
+- `MANIFEST.json`: the SHA-256 and size of every other file.
+
+Nothing from the locked test's tasks or a never-seen organization's files goes in, only scores. The base model is named by its hash; `--with-weights` copies its file from Ollama's store into `weights/` when it is on this computer. The command prints the SHA-256 of MANIFEST.json. The app writes the same pack from a version's panel in Models (Export evidence).
 
 ### export
 
@@ -149,22 +246,64 @@ Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 ### field export
 
 ```bash
-architect field export Phil --out ./phil-field [--json]
+architect field export "Academy desk" --out ./academy-desk-field [--json]
 ```
 
 Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
 
 - `sft/demonstrations.jsonl`: worked examples from train tasks that the job's checker passed, in chat format, each with where it came from, the verdict and what it may be used for. One whose data may not leave this computer is left out.
-- `env/`: the train tasks, the files of the organizations the job trains on, the checker, and `score_client.py` (below).
-- `eval/manifest.json`: the locked test and the organizations the job never trains on, by hash only. A trained model is qualified on them through Architect's runner.
+- `env/`: the train tasks, the files of the organizations the job is taught on, the checker, and `score_client.py` (below).
+- `eval/manifest.json`: the final test and the organizations the job has never seen, by hash only. A trained model is qualified on them through Architect's runner.
 - `MANIFEST.json`: the job and its version, counts, every file's sha256, permitted uses, and what was left out and why.
 
-Nothing of the locked test or of an organization the job never trains on goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
+Nothing of the final test or of an organization the job has never seen goes in. A file that would carry any stops the export with nothing written, and the command exits 3.
+
+### field list, status and add-org
+
+```bash
+architect field list [--json]
+architect field status "Academy desk" [--json]
+architect field add-org "Academy desk" --folder ./maple --name "Maple Grove" --never-seen [--generated] [--json]
+```
+
+A field is named by its id or its name. `list` and `status` read what the Fields place reads: for each field, the organizations it is taught on, those it never sees (generated) and the real ones it never sees, how many versions took the final test, the best version's scores on each of the three kinds, and how many versions hold a certificate. The best version is the one with the highest score on the organizations it was taught on, as in the app. A kind that was not tested shows `-` (null in JSON), never zero. `status` adds each organization by name with its files, and each version's scores and certificate. These are your own results, so they carry the names of your never-seen organizations, as the app does; nothing is sent anywhere.
+
+`add-org` adds one more never-seen organization to a field after it was made (decision 085), through the same call as the app, so it refuses what the app refuses: a folder that is missing or lacks the files the field's organizations have, a name already used, a field of one organization, a field with no final test yet. The folder holds the organization's records and a `tasks.jsonl` (unless the field was drafted). `--never-seen` is required, to say it is kept for the final test and never taught on; `--generated` says its records were generated, and they are taken as real otherwise. It prints the field as `status` does. Qualifying a version on it is done in the app.
+
+### experiment
+
+```bash
+architect experiment plan "Academy desk" --arms bare,draft,targeted \
+  --hypothesis "Targeted mentoring passes more of the final test than Glimmer alone." \
+  --primary targeted-bare:unseen [--seeds 101,102] [--student-usd 15 --spark-usd 10 --wall-minutes 720] [--json]
+architect experiment preregister <id>
+architect experiment start <id>          # runs until it ends; Ctrl+C pauses it
+architect experiment resume <id> [--confirm-study <token>] [--confirm] [--student-cap-usd N] [--drop-arm <arm>]
+architect experiment pause|stop <id>
+architect experiment status <id> [--json]
+architect experiment report <id> [--json]
+architect experiment list [--json]
+```
+
+These are the app's experiments (decision 074) over the same engine calls, so an experiment made here shows in the app's Experiments place, and one made there can be read or run here. Nothing about what an experiment is changes: planning spends nothing, preregistering freezes the arms, seeds and caps with a hash, and every cap is a hard cap.
+
+- **`plan`** takes a field in the library, or a job folder. `--arms` names the arms (`bare`, `draft`, `targeted`, `reference`, `reference-targeted`, `repeat`, `fixed`, `weights-one-shot`, `weights-targeted`). `--primary a-b:group` is arm a's pass rate less arm b's on `all` of the final test, the organizations the arms are taught on (`seen`) or those they have never seen (`unseen`); `all` is the default. Seeds, rounds and caps start from the app's defaults (final-test seed 101, mentoring seed 1, 4 rounds, $15 for hosted Glimmer, $10 for Spark, no compute, 720 minutes); `--seeds`, `--mentoring-seed`, `--rounds`, `--student-usd`, `--spark-usd`, `--compute-usd` and `--wall-minutes` change them. It prints the id and what the plan would cost at the prices assumed so far.
+- **`preregister`** needs the hypothesis and, when two or more arms are compared, a primary comparison; it exits 3 without them, and 3 again once frozen.
+- **`start` and `resume`** run the experiment in the command and return when it ends, so they spend: they call the hosted models the experiment names, with keys from `<PROVIDER>_API_KEY` in the environment (for example `OPENROUTER_API_KEY`), and use no GPU on this computer. On a field, Spark studies the organizations first: the run stops with exit 3 and the brief to read (`status` shows it with its token), and `resume <id> --confirm-study <token>` goes on once you have read it. The same exit 3 means the caps cut the plan down (`--confirm` goes ahead with the arms that fit) or an arm can't be paid for at what an attempt cost (`--student-cap-usd` raises Glimmer's cap, `--drop-arm` drops the arm; decision 081). Ctrl+C pauses it with exit 130; the time it ran still counts against its wall clock, and `resume` goes on.
+- **`pause`** pauses an experiment running in the same command, so from a terminal the way to pause is Ctrl+C where `start` runs. **`stop`** ends an experiment for good and keeps what it measured.
+- **`status`** shows where it stands: the record, each arm's status, what has been spent, whether the final tests were released, and Spark's brief when it waits.
+- **`report`** prints the runner's report as Markdown, or as JSON with `--json`, **only once the final tests were released**. Until then it prints nothing on stdout and exits 4. Nothing about the final test or a never-seen organization is in `status` or any other output before the release: the commands print what the experiments API returns, parsed with the shared schemas, which drop anything they don't name.
+
+Only one process should work on an experiment at a time: opening the data folder while the app runs an experiment pauses it, as closing the app would.
+
+### JSON for the Lab commands
+
+`--json` writes one document to stdout with a `format`, validated against the schemas in `packages/shared/src/lab-cli.ts` (and `experiments.ts` for the records), so a script can parse it with the same code: `architect.field-list/1`, `architect.field-status/1`, `architect.experiment-plan/1` (`plan`), `architect.experiment/1` (`preregister`, `pause`, `stop`), `architect.experiment-status/1`, `architect.experiment-list/1` and `architect.experiment-report/1`. `start` and `resume` print `architect.experiment/1` as well, with the record as it ended. Their keys are the app's own records' (camelCase, as in `experiment.json`), not the snake_case of run results. Messages and progress go to stderr; a failure prints once, with what to do, and the exit code says what kind it was.
 
 ### reward score
 
 ```bash
-architect reward score --env ./phil-field/env < attempts.jsonl > scores.jsonl
+architect reward score --env ./academy-desk-field/env < attempts.jsonl > scores.jsonl
 ```
 
 Scores attempts at the field's train tasks with the job's own checker, for a training framework that runs its own rollouts. It reads one JSON request per line on stdin and writes one score per line on stdout, in order, until stdin ends. It makes no network calls and starts no server.
@@ -183,14 +322,24 @@ with Scorer() as scorer:
 
 ```bash
 architect train plan --model owner/name [--revision main] [--method lora|qlora|full] [--gpu h100-80gb] [--seq-len 4096] [--micro-batch 1]
-architect train bundle --target slurm|kubernetes --model owner/name --output ./bundle [--export ./field-export] [plan options]
+architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output ./bundle [--export ./field-export] [plan options]
 ```
 
 `plan` sizes a training job for a cluster from the model's own `config.json`, read once from the Hub at the revision you name (resolved to its commit), or from a file with `--config`. It prints each memory term with its arithmetic: the resident weights (every expert of a mixture, not only the active ones; LoRA freezes weights, it doesn't remove them), the adapter with its gradients and Adam state, or for a full fine-tune the gradients and optimizer state for every parameter, the activations of one micro-batch (an approximation, stated), FSDP's peak (the largest wrapped unit, such as a whole expert layer, gathered on each GPU), the runtime's own memory, and the headroom kept back. From those it gives the fewest GPUs and nodes that fit. Every number is an estimate and is labeled one. A configuration it can't count (a state-space or encoder-decoder model, or one missing the hidden size, layers, heads or vocabulary) is refused with what is missing; exit code 2. `--gpu` takes h100-80gb, h200, a100-80gb, a100-40gb, l40s or b200, or `--gpu-memory <GB>` for any other. `--json` prints the plan as `architect.training-plan/1`.
 
-`bundle` writes a launch folder for that plan and prints the command that submits it with your own tools: `sbatch submit.sbatch` for Slurm (one `torchrun` per node, meeting at the allocation's first node), `kubectl apply -f pytorchjob.yaml` for Kubernetes (a Kubeflow PyTorchJob that mounts the folder from a claim named `architect-bundle`). The folder holds the experimental distributed trainer (`train_fsdp.py`: LoRA, QLoRA or full fine-tuning with FSDP, LoRA on attention and every MLP or expert projection), its settings and FSDP config, the pinned packages, the plan, a README with the steps, and `bundle.json`, which records the base model and its commit, the field export's `MANIFEST.json` hash, and the recipe's hash, so trained weights trace back to the field. With `--export`, the export's `sft/*.jsonl` become the bundle's data; nothing else of the export goes in. The revision must be a commit (it is when the config comes from the Hub).
+`bundle` writes a launch folder for that plan and prints the command that submits it with your own tools: `sbatch submit.sbatch` for Slurm (one `torchrun` per node, meeting at the allocation's first node), `kubectl apply -f pytorchjob.yaml` for Kubernetes (a Kubeflow PyTorchJob that mounts the folder from a claim named `architect-bundle`), `sky launch -c architect-train sky.yaml` for SkyPilot (a task that copies the folder to every node of whatever cloud or Kubernetes cluster your SkyPilot is set up for and runs one `torchrun` per node; it names the GPU the way SkyPilot does, so a GPU given only by `--gpu-memory` is refused). The folder holds the experimental distributed trainer (`train_fsdp.py`: LoRA, QLoRA or full fine-tuning with FSDP, LoRA on attention and every MLP or expert projection), its settings and FSDP config, the pinned packages, the plan, a README with the steps, and `bundle.json`, which records the base model and its commit, the field export's `MANIFEST.json` hash, and the recipe's hash, so trained weights trace back to the field. With `--export`, the export's `sft/*.jsonl` become the bundle's data; nothing else of the export goes in. The revision must be a commit (it is when the config comes from the Hub).
 
 Architect never submits a bundle and never holds cluster credentials. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified. Decision 072 says what is checked.
+
+### certify
+
+```bash
+architect certify "Academy desk" --version 2 --job "Academy desk" --k 5 --epsilon 0.10 --delta 0.05 [--calibration-size 60] [--check <org>]... [--student <hosted preset>] [--max-usd 0] [--max-minutes 1440] [--json]
+```
+
+Certifies a version that is already frozen, without training it again (decision 079). The calibration tasks come from the taught organizations of the job you name, and none of them is a task, or of a family, that the version's own run (or a run it was improved from) saw or was tested on; a family whose name differs only in case or punctuation, or a request worded the same, counts as seen. If fewer than `--calibration-size` are left, it says how many there are. The tasks are locked in the vault, then the version makes k attempts at each with no Spark, and the certificate is filed on that version for good. `--check` names an organization of the job to test the certified bound at: one it never saw, or one it was taught on, with tasks new to it; one its run was already tested on is refused.
+
+It prints what it will do and cost before anything spends, and stops before an attempt that could take it past `--max-usd` or `--max-minutes`. On this computer it costs nothing; `--student` runs a hosted copy of Glimmer, whose key comes from `<PROVIDER>_API_KEY` (for example `OPENROUTER_API_KEY`). Stopped or paused, the same command again resumes it. The certificate goes to stdout, or the whole record with `--json`.
 
 ## Run requests and results
 
@@ -283,8 +432,8 @@ An approval nobody could give looks like this, with exit 3:
 | 0 | `succeeded` | It did what was asked. |
 | 1 | `runtime_error` | Something failed while running: the model runtime isn't there or failed, the Hub couldn't be reached or an upload broke off, `--timeout` ran out, or a fault. |
 | 2 | `invalid_input` | The command line or the request is malformed, or names an agent, file, package, repository or revision that isn't there; a package is damaged or unsafe. |
-| 3 | `not_permitted` | A requirement or permission isn't met: a change that needs approval, a folder that isn't bound or granted, an installation that is blocked or needs attention, a model that isn't on this computer, a missing Hugging Face token, scan findings not accepted, a public repository for a private publication. |
-| 4 | `task_failed` | The agent ran and didn't do the task: it refused it, stopped without an answer in the steps it had, or ended on a reply it couldn't use. |
+| 3 | `not_permitted` | A requirement or permission isn't met: an experiment that waits for you (Spark's brief to confirm, a plan the caps cut down, money for an arm), or that is frozen or in another state than the command needs, a change that needs approval, a folder that isn't bound or granted, an installation that is blocked or needs attention, a model that isn't on this computer, a missing Hugging Face token, scan findings not accepted, a public repository for a private publication. |
+| 4 | `task_failed` | The agent ran and didn't do the task: it refused it, stopped without an answer in the steps it had, or ended on a reply it couldn't use. For an experiment: it ended paused, stopped or incomplete, or `report` has no released results. |
 | 130 | `cancelled` | Ctrl+C or a stop signal ended it. A second Ctrl+C ends the process at once. |
 
 Every command ends on its own: a run that needs an approval nobody can give fails at once, and a model that stops answering is given up on after the adapter's limits (five minutes of silence), or sooner with `--timeout`.
@@ -306,6 +455,10 @@ Every command ends on its own: a run that needs an approval nobody can give fail
 The command reads the app's own settings file for local models, as the app does: quiet mode's thread cap for a local student and for llama-server, the llama-server chosen in Settings (else the one on `PATH`), and the default student's Ollama when it is on this computer. A version with an adapter runs on llama.cpp (decision 041), with a llama-server of the command's own (`local-runtime/cli` in the data folder) that stops when the command ends.
 
 The command takes the GPU in turns with the open app (decision 046). A run holds it from the start of its reply to the end, except while it waits for an approval: the app's idle llama-server stops first, and a check or a training step waits for the reply. When the app is answering a chat, or checking an agent, the run waits its turn for up to 5 minutes, then exits 1 with an error that says what holds the GPU.
+
+## A closed network
+
+When the app's Lab has a closed network on (Settings, Privacy; decision 098), the commands that teach (`experiment`, `certify` and the engine work behind `field`) follow it too, and so does every Hub request (`install hf://`, `publish`, `train plan --model`): they read it from the app's `settings.json` at every request, and a teacher, student or Hub outside it is refused with exit 1 (`model_outside_network`) and a message that names the host. Graduates are held to less whatever it says: `run` and `serve` reach only the model on this computer. A setting that can't be read in full fails closed: it stays on with the hosts that read, or none, and the command says so once on stderr. The command follows the setting of the data folder it uses (`ARCHITECT_USER_DATA` or the app's), which is off where that folder has none.
 
 ## What it doesn't do yet
 

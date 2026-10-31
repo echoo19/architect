@@ -17,6 +17,8 @@ const FollowedSettingsSchema = z.object({
   llamaServerPath: z.string().min(1).optional(),
   /** The Ollama whose models are unloaded before llama-server starts. */
   ollamaUrl: z.url().optional(),
+  /** The closed network's hosts while it is on (decision 098); teaching may reach no others. */
+  allowedHosts: z.array(z.string().min(1)).optional(),
 });
 
 export const EngineStartSchema = FollowedSettingsSchema.extend({
@@ -27,6 +29,8 @@ export const EngineStartSchema = FollowedSettingsSchema.extend({
   sandboxEntryPath: z.string().min(1),
   sampleJobFile: z.string().min(1),
   academyJobFile: z.string().min(1),
+  sweepDeskJobFile: z.string().min(1),
+  assayJobFile: z.string().min(1),
   /** The ready-made agent's package and its data, which a build may not have (decision 054). */
   sampleAgentFile: z.string().min(1),
   sampleAgentDataDir: z.string().min(1),

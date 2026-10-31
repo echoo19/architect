@@ -20,9 +20,26 @@ import {
   recommendedBuild,
   studentPricing,
   TokenPricingSchema,
+  trainingRepoFor,
   type GpuInfo,
   type TokenPricing,
 } from '../src';
+
+describe('trainingRepoFor', () => {
+  it('places Glimmer under every name it runs under, and nothing else', () => {
+    for (const model of [
+      'muse-glimmer:30b',
+      'muse-glimmer:30b-iq2',
+      'meta/muse-glimmer-30b',
+      'meta-models/Muse-Glimmer-30B',
+    ]) {
+      expect(trainingRepoFor(model)).toBe('meta-models/Muse-Glimmer-30B');
+    }
+    for (const model of ['granite4.2:8b', 'qwen3:8b', 'glimmer', '']) {
+      expect(trainingRepoFor(model)).toBeNull();
+    }
+  });
+});
 
 const TIERED: TokenPricing = {
   inputPerM: 0.1,

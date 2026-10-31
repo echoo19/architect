@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import type {
   ModelConfigRead,
   ModelConfigSource,
@@ -14,6 +14,7 @@ import {
   Field,
   Input,
   Inspector,
+  RowIcon,
   Segmented,
   Select,
   Stat,
@@ -22,6 +23,7 @@ import {
 import { Binary, Boxes, Cpu, FileJson, Layers2, SlidersHorizontal } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { computeApi } from '../api/compute';
+import { useJob } from '../api/hooks';
 import { toError } from '../api/query';
 import { Breakdown } from '../compute/Breakdown';
 import { BundleCard } from '../compute/BundleCard';
@@ -29,9 +31,12 @@ import {
   DEFAULT_SETTINGS,
   GPU_OPTIONS,
   paramsText,
+  planFor,
   planRequest,
+  type PlanFor,
   type PlanSettings,
 } from '../compute/model';
+import { QualifyCard } from '../compute/QualifyCard';
 import { Targets } from '../compute/Targets';
 import { NumberRow } from '../experiments/NumberRow';
 import { attempt } from '../lib/notify';
@@ -55,14 +60,52 @@ const METHODS = [
 /**
  * Compute: where training runs, a training job planned from a model's own config.json with its
  * memory term by term, and a bundle for a cluster the person submits themselves (decision 072).
+ * Opened from a field, the plan starts from its student's model and the bundle from its latest
+ * export (decision 093).
  */
-export function ComputeScreen() {
+export function ComputeScreen({
+  jobId,
+  model,
+}: {
+  jobId?: string | undefined;
+  model?: string | undefined;
+}) {
+  if (jobId === undefined) return <Compute field={null} fieldError={null} />;
+  return <FieldCompute jobId={jobId} model={model} />;
+}
+
+/** Compute for a field: its job is read first, so the plan starts from its student's model. */
+function FieldCompute({ jobId, model }: { jobId: string; model: string | undefined }) {
+  const job = useJob(jobId);
+  if (job.status === 'loading') return <Compute field={null} fieldError={null} waiting />;
+  return (
+    <Compute
+      field={planFor(jobId, job.data ?? null, model)}
+      fieldError={job.status === 'error' && model === undefined ? job.error : null}
+    />
+  );
+}
+
+function Compute({
+  field,
+  fieldError,
+  waiting = false,
+}: {
+  field: PlanFor | null;
+  fieldError: Error | null;
+  waiting?: boolean;
+}) {
   const [settings, setSettings] = useState<PlanSettings>(DEFAULT_SETTINGS);
   const [read, setRead] = useState<ModelConfigRead | null>(null);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
   // Undefined until the plan sends the person to its hardware: the inspector keeps its own.
   const [tab, setTab] = useState<Tab | undefined>(undefined);
+  const onRead = useCallback((next: ModelConfigRead) => {
+    setPlan(null);
+    setRefusal(null);
+    setRead(next);
+  }, []);
 
   useEffect(() => {
     if (read === null) return;
@@ -102,15 +145,14 @@ export function ComputeScreen() {
       <div className="flex max-w-[880px] flex-col gap-4">
         <Targets />
         <PlanCard
+          key={waiting ? 'waiting' : 'ready'}
+          field={field}
+          fieldError={fieldError}
           read={read}
           plan={plan}
           method={settings.method}
           onMethod={(method) => setSettings({ ...settings, method })}
-          onRead={(next) => {
-            setPlan(null);
-            setRefusal(null);
-            setRead(next);
-          }}
+          onRead={onRead}
         />
         {refusal !== null && (
           <Card title="Memory on each GPU">
@@ -121,20 +163,48 @@ export function ComputeScreen() {
         {plan && (
           <Breakdown plan={plan} settings={settings} onChangeHardware={() => setTab('hardware')} />
         )}
-        {read && <BundleCard read={read} plan={plan} settings={settings} />}
+        {read && (
+          <BundleCard read={read} plan={plan} settings={settings} jobId={field?.jobId ?? null} />
+        )}
+        <QualifyCard />
       </div>
     </PlacePage>
   );
 }
 
+/** The field a plan is for, in one line: its name and its student's model. */
+function FieldLine({ field }: { field: PlanFor }) {
+  const model = <span className="font-mono text-small">{field.model}</span>;
+  const name = field.name && <span className="font-medium">{field.name}</span>;
+  if (field.repo !== null) {
+    return (
+      <p className="m-0 text-ui">
+        For {name ?? model}
+        {name && <>, from its student {model}</>}
+      </p>
+    );
+  }
+  return (
+    <p className="m-0 text-ui text-pretty">
+      For {name ?? model}. {name && <>Its student, {model}, has</>}
+      {!name && 'It has'} no Hugging Face repository Architect knows; enter the one it was made
+      from.
+    </p>
+  );
+}
+
 /** The model to size, read from the Hub or from a file, and the method it is trained with. */
 function PlanCard({
+  field,
+  fieldError,
   read,
   plan,
   method,
   onMethod,
   onRead,
 }: {
+  field: PlanFor | null;
+  fieldError: Error | null;
   read: ModelConfigRead | null;
   plan: TrainingPlan | null;
   method: TrainMethod;
@@ -143,7 +213,7 @@ function PlanCard({
 }) {
   const ids = { repo: useId(), revision: useId() };
   const [from, setFrom] = useState<ModelConfigSource['kind']>('hub');
-  const [repo, setRepo] = useState('');
+  const [repo, setRepo] = useState(field?.repo ?? '');
   const [revision, setRevision] = useState('main');
   const [file, setFile] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
@@ -160,6 +230,29 @@ function PlanCard({
       setReading(false);
     }
   };
+
+  // Opened from a field whose model is known, its config is read at once.
+  const known = field?.repo ?? null;
+  useEffect(() => {
+    if (known === null) return;
+    let live = true;
+    setReading(true);
+    computeApi.readConfig({ kind: 'hub', repo: known, revision: 'main' }).then(
+      (next) => {
+        if (!live) return;
+        setReading(false);
+        onRead(next);
+      },
+      (error: unknown) => {
+        if (!live) return;
+        setReading(false);
+        setProblem(toError(error).message);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [known, onRead]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -195,6 +288,14 @@ function PlanCard({
       }
     >
       <div className="flex flex-col gap-5">
+        {field && <FieldLine field={field} />}
+        {fieldError && (
+          <ErrorState
+            layout="inline"
+            title="Couldn't read the field"
+            message={fieldError.message}
+          />
+        )}
         {from === 'hub' ? (
           <form className="flex items-end gap-3" onSubmit={submit}>
             <Field label="Model" htmlFor={ids.repo} className="min-w-0 flex-1">
@@ -228,9 +329,9 @@ function PlanCard({
           </form>
         ) : (
           <div className="flex items-center gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-selected">
+            <RowIcon>
               <FileJson size={16} strokeWidth={1.7} aria-hidden />
-            </span>
+            </RowIcon>
             <span className="min-w-0 flex-1 truncate font-mono text-small">
               {file ?? 'No file chosen'}
             </span>
@@ -248,7 +349,7 @@ function PlanCard({
           <ErrorState layout="inline" title="Couldn't read the config" message={problem} />
         )}
         {read && plan && <ModelFacts read={read} plan={plan} />}
-        {read === null && (
+        {read === null && field === null && (
           <p className="m-0 text-ui">
             Enter a model on Hugging Face, or choose its config.json, to see the GPUs training it
             takes.

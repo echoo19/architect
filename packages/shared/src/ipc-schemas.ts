@@ -10,13 +10,16 @@ import type {
   AppSettingsPatch,
   ClarificationReply,
   CustomEndpoint,
+  DraftOrganization,
   DraftTurn,
   Edition,
+  FieldExportRecord,
   FileDiff,
   GraduateSettings,
   GraduateSummary,
   HubInstallResult,
   HubTokenStatus,
+  ImportedJob,
   ImportResult,
   JobSummary,
   ListedAttempt,
@@ -28,6 +31,7 @@ import type {
   OllamaStatus,
   PullProgress,
   ReferenceOptions,
+  ReplacedModel,
   Retest,
   RunDetail,
   RunStartOptions,
@@ -44,6 +48,7 @@ import {
 } from './job';
 import { TokenPricingSchema, type GpuInfo, type StudentBuild } from './models';
 import { LineageEntrySchema } from './lineage';
+import { ClosedNetworkSchema, RunContactSchema } from './network';
 import { MethodSchema, RoundSchema, RunSchema } from './run';
 import { AttemptSchema } from './trace';
 import { InstallationSchema, InstallStatusSchema, VersionSourceSchema } from './versions';
@@ -60,6 +65,13 @@ export const CustomEndpointSchema = z.object({
 
 export const EditionSchema = z.enum(['personal', 'lab']) satisfies z.ZodType<Edition>;
 
+export const FieldExportRecordSchema = z.object({
+  jobId: z.string().min(1),
+  name: z.string().min(1),
+  dir: z.string().min(1),
+  at: z.iso.datetime(),
+}) satisfies z.ZodType<FieldExportRecord>;
+
 export const AppSettingsSchema = z.object({
   edition: EditionSchema,
   steps: z.enum(['collapsed', 'expanded']),
@@ -70,14 +82,22 @@ export const AppSettingsSchema = z.object({
   customEndpoints: z.array(CustomEndpointSchema).max(50),
   onboarded: z.boolean(),
   llamaServerPath: z.string().min(1).optional(),
+  fieldExports: z.array(FieldExportRecordSchema).max(200).optional(),
+  closedNetwork: ClosedNetworkSchema.optional(),
+  closedNetworkProblem: z.string().optional(),
 }) satisfies z.ZodType<AppSettings>;
 
 /**
  * What `settings.update` accepts: any subset of fields, and nothing else. The llama-server path
  * isn't among them: Architect runs that program, so only a file the user picked may become it
- * (`connections.chooseLlamaServer`).
+ * (`connections.chooseLlamaServer`). Nor are the field exports, which the main process records
+ * as it writes them.
  */
-export const AppSettingsPatchSchema = AppSettingsSchema.omit({ llamaServerPath: true })
+export const AppSettingsPatchSchema = AppSettingsSchema.omit({
+  llamaServerPath: true,
+  fieldExports: true,
+  closedNetworkProblem: true,
+})
   .partial()
   .strict() satisfies z.ZodType<AppSettingsPatch>;
 
@@ -186,6 +206,7 @@ export const RunDetailSchema = z.object({
   lineage: z.array(LineageEntrySchema),
   retests: z.array(RetestSchema).optional(),
   improves: RunImprovementSchema.optional(),
+  contacts: z.array(RunContactSchema).optional(),
 }) satisfies z.ZodType<RunDetail>;
 
 export const FileDiffSchema = z.object({
@@ -193,6 +214,12 @@ export const FileDiffSchema = z.object({
   status: z.enum(['added', 'modified', 'deleted']),
   patch: z.string(),
 }) satisfies z.ZodType<FileDiff>;
+
+export const DraftOrganizationSchema = z.object({
+  name: z.string().trim().min(1),
+  folder: z.string().min(1),
+  role: z.enum(['train', 'transfer']),
+}) satisfies z.ZodType<DraftOrganization>;
 
 export const DraftTurnSchema = z.object({
   sessionId: z.string(),
@@ -277,6 +304,17 @@ export const AddConnectionRequestSchema = z
     key: z.string().max(MAX_KEY_LENGTH).optional(),
   })
   .strict() satisfies z.ZodType<AddConnectionRequest>;
+
+export const ReplacedModelSchema = z.object({
+  role: z.enum(['mentor', 'student', 'hosted']),
+  from: z.string(),
+  to: z.string().nullable(),
+}) satisfies z.ZodType<ReplacedModel>;
+
+export const ImportedJobSchema = z.object({
+  job: JobSchema,
+  replaced: z.array(ReplacedModelSchema),
+}) satisfies z.ZodType<ImportedJob>;
 
 export const AddConnectionResultSchema = z.object({
   secretRef: z.string().optional(),

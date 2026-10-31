@@ -120,9 +120,9 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
     'true',
   );
 
-  // Student: the model here, where it practices, the online copy and the context.
+  // Student: the model here, where it practices (this computer or a hosted or cluster endpoint), and the context.
   await inspector.getByRole('tab', { name: 'Glimmer' }).click();
-  await expect(inspector.getByRole('radiogroup', { name: 'Runs on' })).toBeVisible();
+  await expect(inspector.getByRole('radiogroup', { name: 'Practices on' })).toBeVisible();
   await expect(inspector.getByRole('textbox', { name: 'Context' })).toHaveValue('16384');
   await capture(page, 'define-inspector-student-dark');
 
@@ -206,15 +206,15 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
   );
 });
 
-test('shows the organizations it practices on, and the ones it never trains on only as sealed', async () => {
+test('shows the organizations it practices on, and the ones it has never seen only by count', async () => {
   const { app, page } = launched;
   const inspector = await openDefine(page);
   const field: Job = {
     ...roomy,
     organizations: [
-      { id: 'northside', name: 'Northside Prep', synthetic: true, role: 'train' },
-      { id: 'lakeview', name: 'Lakeview Academy', synthetic: true, role: 'train' },
-      { id: 'harbor', name: 'Harbor Learning', synthetic: true, role: 'transfer' },
+      { id: 'northside', name: 'Northside Plumbing', synthetic: true, role: 'train' },
+      { id: 'lakeview', name: 'Lakeview Electric', synthetic: true, role: 'train' },
+      { id: 'harbor', name: 'Harbor Heating', synthetic: true, role: 'transfer' },
     ],
   };
   await stubEngine(app, { 'jobs:get': field });
@@ -224,11 +224,35 @@ test('shows the organizations it practices on, and the ones it never trains on o
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   await inspector.getByRole('tab', { name: 'Evaluation' }).click();
   const orgs = inspector.getByRole('region', { name: 'Organizations' });
-  await expect(orgs).toContainText('Northside Prep');
-  await expect(orgs).toContainText('1 it never trains on');
+  await expect(orgs).toContainText('Northside Plumbing');
+  await expect(orgs).toContainText('1 it has never seen');
   await expect(orgs).toContainText('Never seen');
   // A sealed organization is never named before the final test, and nothing here unseals it.
   await expect(orgs).not.toContainText('Harbor');
   await expect(orgs.getByRole('switch')).toHaveCount(0);
   await expect(orgs.getByRole('button')).toHaveCount(0);
+});
+
+test('offers certified answers in the personal edition only to a job that already has them', async () => {
+  const { app, page } = launched;
+  const inspector = await openDefine(page);
+  await updateSettings(page, { edition: 'personal' });
+  const evaluation = async () => {
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
+    await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
+    await inspector.getByRole('tab', { name: 'Evaluation' }).click();
+    await expect(inspector.getByRole('region', { name: 'Ready when' })).toBeVisible();
+  };
+  await evaluation();
+  await expect(inspector.getByRole('region', { name: 'Certified answers' })).toHaveCount(0);
+
+  const certified: Job = {
+    ...roomy,
+    evaluation: { ...roomy.evaluation, certify: { k: 5, epsilon: 0.1, delta: 0.05 } },
+  };
+  await stubEngine(app, { 'jobs:get': certified });
+  await evaluation();
+  await expect(inspector.getByRole('region', { name: 'Certified answers' })).toBeVisible();
 });

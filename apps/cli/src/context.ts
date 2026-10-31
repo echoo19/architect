@@ -1,11 +1,19 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
+import {
+  createEngineDeps,
+  createEngineHost,
+  realEnvironment,
+  type EngineHost,
+} from '@architect/engine';
 import { openLocalLibrary, type LocalLibrary } from '@architect/engine/graduates';
 import { HF_ENDPOINT, HubClient, hubTokenResolver } from '@architect/engine/hub';
 import { appDataDir, type LocalRuntimeSettings } from '@architect/engine/local-runtime';
 import { CliError } from './exit';
 import type { CliIo } from './io';
-import { appRuntimeSettings } from './runtime-settings';
+import { line } from './render';
+import { appAllowedHosts, appClosedNetworkProblem, appRuntimeSettings } from './runtime-settings';
+import { trainerDir } from './trainer';
 
 /** What one command works with, opened when first needed and closed when it ends. */
 export class CliContext {
@@ -13,6 +21,8 @@ export class CliContext {
   private opened: LocalLibrary | null = null;
   private hubClient: HubClient | null = null;
   private runtimeSettings: LocalRuntimeSettings | null = null;
+  private engineHost: EngineHost | null = null;
+  private networkChecked = false;
 
   constructor(readonly io: CliIo) {
     this.dataDir = appDataDir(io.env);
@@ -67,19 +77,82 @@ export class CliContext {
     return this.runtimeSettings;
   }
 
-  /** The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file. */
+  /**
+   * The engine on the app's data folder, for work on its runs: nothing the app left active
+   * resumes here. A hosted model's key comes from the environment (`<PROVIDER>_API_KEY`).
+   */
+  async engine(): Promise<EngineHost> {
+    if (this.engineHost) return this.engineHost;
+    this.library();
+    const { env } = this.io;
+    // Teaching from here is held to the app's closed network, read as each adapter asks.
+    this.sayClosedNetworkProblem();
+    const allowedHosts = () => appAllowedHosts(this.dataDir);
+    // An experiment calls hosted models with keys from the environment and uses no GPU here.
+    this.engineHost = await createEngineHost({
+      dataDir: this.dataDir,
+      recover: false,
+      allowedHosts,
+      localRuntime: () => this.localRuntime(),
+      experimentEnvironment:
+        this.io.experimentEnvironment ??
+        ((dataDir, log) =>
+          realEnvironment({
+            dataDir,
+            appDataDir: this.dataDir,
+            trainerDir: trainerDir(env),
+            meter: false,
+            parallel: 2,
+            commit: null,
+            log,
+            getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
+            huggingFaceToken: hubTokenResolver({ env }),
+            allowedHosts,
+          })),
+      deps: createEngineDeps({
+        dataDir: this.dataDir,
+        getSecret: async (ref) => env[`${ref.toUpperCase()}_API_KEY`] || undefined,
+        allowedHosts,
+        ...(this.io.sandboxEntryPath === undefined
+          ? {}
+          : { sandboxEntryPath: this.io.sandboxEntryPath }),
+      }),
+    });
+    return this.engineHost;
+  }
+
+  /**
+   * The Hub at HF_ENDPOINT (huggingface.co by default), with HF_TOKEN or the token file, held to
+   * the app's closed network while it is on (decision 098).
+   */
   hub(): HubClient {
+    this.sayClosedNetworkProblem();
     this.hubClient ??= new HubClient({
       endpoint: this.io.env['HF_ENDPOINT'] || HF_ENDPOINT,
       token: hubTokenResolver({ env: this.io.env }),
+      allowedHosts: () => appAllowedHosts(this.dataDir),
     });
     return this.hubClient;
+  }
+
+  /**
+   * Says once, on stderr, when the app's closed network couldn't be read in full: it then stays on
+   * with the hosts that could (decision 098), and the person should know why a host is refused.
+   */
+  private sayClosedNetworkProblem(): void {
+    if (this.networkChecked) return;
+    this.networkChecked = true;
+    const problem = appClosedNetworkProblem(this.dataDir);
+    if (problem !== undefined) line(this.io.stderr, problem);
   }
 
   /** Stops this command's llama-server, if it started, so none outlives it; closes the store. */
   async close(): Promise<void> {
     const opened = this.opened;
+    const engine = this.engineHost;
     this.opened = null;
+    this.engineHost = null;
+    await engine?.close();
     await opened?.close();
   }
 }

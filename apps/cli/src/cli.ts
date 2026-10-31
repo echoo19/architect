@@ -7,14 +7,18 @@ import {
   type CommandName,
   type Parsed,
 } from './args';
+import { certify } from './commands/certify';
+import { experiment } from './commands/experiment';
 import { exportCommand } from './commands/export';
 import { field } from './commands/field';
 import { inspect } from './commands/inspect';
 import { install } from './commands/install';
 import { list } from './commands/list';
+import { pack } from './commands/pack';
 import { publish } from './commands/publish';
 import { reward } from './commands/reward';
 import { run } from './commands/run';
+import { serve } from './commands/serve';
 import { train } from './commands/train';
 import { verify } from './commands/verify';
 import { CliContext } from './context';
@@ -29,13 +33,17 @@ const HANDLERS: Readonly<Record<CommandName, Command>> = {
   list,
   install,
   run,
+  serve,
   inspect,
   verify,
+  pack,
   export: exportCommand,
   publish,
   field,
+  experiment,
   reward,
   train,
+  certify,
 };
 
 /**

@@ -11,7 +11,7 @@ export function Panel({ padded = false, className, children, ...props }: PanelPr
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col overflow-hidden rounded-card bg-card shadow-edge',
+        'flex min-w-0 flex-col overflow-hidden rounded-card surface-card',
         padded && 'gap-6 p-6',
         className,
       )}
@@ -28,10 +28,11 @@ export interface PanelHeaderProps {
   className?: string;
 }
 
+/** A panel's title row, set like a card's: 15px Inter Tight, 56px tall. */
 export function PanelHeader({ title, actions, className }: PanelHeaderProps) {
   return (
-    <div className={cn('flex min-h-16 items-center justify-between gap-3 px-6', className)}>
-      <h2 className="font-display text-h2 font-semibold">{title}</h2>
+    <div className={cn('flex min-h-14 items-center justify-between gap-3 px-6', className)}>
+      <h2 className="m-0 font-display text-body font-semibold">{title}</h2>
       {actions}
     </div>
   );

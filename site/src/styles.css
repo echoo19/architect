@@ -72,7 +72,7 @@ body {
 
 /* The results page reads as one column, narrow enough to read line by line. */
 .article {
-  width: min(100% - 2 * var(--site-gutter), 760px);
+  width: min(100% - 2 * var(--site-gutter), 720px);
   margin-inline: auto;
 }
 
@@ -120,15 +120,17 @@ body {
   }
 }
 
-/* The marketing layer: text, buttons and the page's own bands. Utilities may still override it. */
+/*
+ * The marketing layer: type, buttons and links. Utilities may still override it. Every space is a
+ * step of 4px, and a level of type differs from the next in at least two ways (size and weight,
+ * or size and spacing), never in grey.
+ */
 @layer components {
-  /*
-   * The page's type, one size to a step. The steps are DESIGN.md's, scaled for a page: hero, title,
-   * h1, body, small. Headings are Inter Tight, everything else Inter.
-   */
+  /* Headings: Inter Tight, tighter as they grow. */
   .t-hero,
   .t-title,
-  .t-h1 {
+  .t-h1,
+  .t-h2 {
     margin: 0;
     font-family: var(--font-display);
     font-weight: 600;
@@ -138,38 +140,51 @@ body {
   }
 
   .t-hero {
-    font-size: clamp(2.25rem, 1.1rem + 3.8vw, 4rem);
+    font-size: clamp(2.5rem, 1.3rem + 3.6vw, 4.25rem);
     line-height: 1;
-    letter-spacing: -0.03em;
-    word-spacing: 0.03em;
+    letter-spacing: -0.032em;
+    word-spacing: 0.02em;
   }
 
   .t-title {
-    font-size: clamp(1.75rem, 1rem + 2.2vw, 2.75rem);
+    font-size: clamp(2rem, 1.3rem + 2vw, 2.75rem);
     line-height: 1.05;
-    letter-spacing: -0.024em;
-    word-spacing: 0.03em;
+    letter-spacing: -0.026em;
+    word-spacing: 0.02em;
   }
 
   .t-h1 {
     font-size: 1.625rem;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: -0.018em;
   }
 
+  .t-h2 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+    letter-spacing: -0.012em;
+  }
+
+  /* The two lines under the claim: a step up from reading text, in Inter. */
   .t-lead {
     margin: 0;
     font-size: 1.125rem;
-    line-height: 1.45;
+    line-height: 1.5;
     color: var(--ui-fg);
     text-wrap: pretty;
   }
 
-  /* Running text on the results page: the lead's size, with room between the lines. */
+  @media (min-width: 1024px) {
+    .t-lead {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* Running text on the results page, with room between the lines. */
   .t-read {
     margin: 0;
     font-size: 1.125rem;
-    line-height: 1.6;
+    line-height: 1.65;
     color: var(--ui-fg);
     text-wrap: pretty;
   }
@@ -181,32 +196,72 @@ body {
     letter-spacing: 0;
   }
 
-  .t-small {
-    font-size: 0.8125rem;
-    line-height: 1.45;
+  /* A quoted sentence, set in the headline face. Where there is a margin to spare, its opening
+     mark hangs in it so the words keep the edge of the text around them. The marks are the
+     type's own, by escape. */
+  .why-quote {
+    position: relative;
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.014em;
+    word-spacing: 0.02em;
+    color: var(--ui-fg);
+    text-wrap: pretty;
+    quotes: '\201C' '\201D';
   }
 
+  .why-quote::before {
+    content: open-quote;
+  }
+
+  .why-quote::after {
+    content: close-quote;
+  }
+
+  @media (min-width: 1024px) {
+    .why-quote {
+      font-size: 1.75rem;
+      line-height: 1.25;
+      letter-spacing: -0.018em;
+    }
+
+    .why-quote::before {
+      position: absolute;
+      right: 100%;
+    }
+  }
+
+  .t-small {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* One button: 48px tall, a 12px corner, the press felt at once. */
   .btn {
     display: inline-flex;
-    height: 44px;
+    height: 48px;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    border-radius: 12px;
-    padding: 0 20px;
+    gap: 12px;
+    border-radius: var(--radius-control);
+    padding: 0 24px;
     font-size: 15px;
     font-weight: 500;
     white-space: nowrap;
     color: var(--ui-fg);
     box-shadow: inset 0 0 0 1px var(--ui-line-strong);
     transition:
-      background-color 150ms,
-      box-shadow 150ms,
-      scale 250ms var(--ease-out-soft);
+      background-color 160ms var(--ease-out-soft),
+      box-shadow 160ms var(--ease-out-soft),
+      scale 160ms var(--ease-out-soft);
   }
 
   .btn:hover {
     background: var(--ui-hover);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-fg) 24%, transparent);
   }
 
   .btn:active {
@@ -224,7 +279,8 @@ body {
   .btn-solid:hover,
   html:not([data-os='mac']) .btn-os[data-for='windows']:hover,
   html[data-os='mac'] .btn-os[data-for='mac']:hover {
-    background: color-mix(in srgb, var(--ui-primary) 90%, transparent);
+    box-shadow: none;
+    background: color-mix(in srgb, var(--ui-primary) 88%, transparent);
   }
 
   html[data-os='mac'] .btn-os[data-for='mac'] {
@@ -233,46 +289,162 @@ body {
 
   .btn-sm {
     height: 36px;
-    padding: 0 14px;
+    gap: 8px;
+    border-radius: 10px;
+    padding: 0 16px;
+  }
+
+  /* A link in the bar: the height of the small button beside it, with the same hover. */
+  .nav-link {
+    display: inline-flex;
+    height: 36px;
+    align-items: center;
+    gap: 8px;
+    border-radius: 10px;
+    padding: 0 12px;
     font-size: 15px;
+    font-weight: 500;
+    color: var(--ui-fg);
+    transition: background-color 160ms var(--ease-out-soft);
+  }
+
+  .nav-link:hover {
+    background: var(--ui-hover);
+  }
+
+  .nav-link[aria-current='page'] {
+    background: var(--ui-selected);
   }
 
   .link-quiet {
     color: var(--ui-fg);
     text-underline-offset: 4px;
     text-decoration-color: var(--ui-line-strong);
-    transition: text-decoration-color 150ms;
+    transition: text-decoration-color 160ms var(--ease-out-soft);
   }
 
   .link-quiet:hover {
     text-decoration: underline;
     text-decoration-color: var(--ui-fg);
   }
+
+  /* A link inside a sentence: underlined from the start, so it reads as one. */
+  .link-inline {
+    color: var(--ui-fg);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--ui-line-strong);
+    transition: text-decoration-color 160ms var(--ease-out-soft);
+  }
+
+  .link-inline:hover {
+    text-decoration-color: var(--ui-fg);
+  }
+
+  .btn:focus-visible,
+  .nav-link:focus-visible,
+  .link-quiet:focus-visible,
+  .link-inline:focus-visible {
+    outline: 2px solid var(--ui-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* The bar draws its hairline only once the page has moved under it. */
+.site-bar {
+  border-bottom: 1px solid transparent;
+  transition: border-color 200ms var(--ease-out-soft);
+}
+
+.site-bar[data-scrolled] {
+  border-bottom-color: var(--ui-line);
 }
 
 /*
- * Words arriving as the page scrolls. They are on the page from the start, for anyone whose scripts
- * have not run or who asked for less motion. Once the page is running it sets aside the blocks that
- * are still below the window (armed) and brings each in when it comes into view (seen).
+ * The results page. Text keeps to one readable column; where the window is wide, figures and
+ * tables step out past it on both sides, and section numbers hang in the left margin, so every
+ * title starts on the same edge as the text under it.
+ */
+.sec-num {
+  margin-right: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1200px) {
+  .exhibit {
+    margin-inline: -160px;
+  }
+
+  .hang {
+    position: relative;
+  }
+
+  .hang .sec-num {
+    position: absolute;
+    right: 100%;
+    margin-right: 20px;
+  }
+}
+
+/* A table set as a paper sets it: a firm rule under the header, hairlines between rows. */
+.paper-table th {
+  border-bottom: 1px solid var(--ui-line-strong);
+}
+
+/*
+ * The first screen settles into place once, as the page opens: the claim, then its lines, then
+ * the buttons and the film, each a beat after the last. Only for visitors who have not asked for
+ * less motion; everyone else gets the page as it is.
+ */
+html.motion .enter {
+  animation: site-enter 720ms var(--ease-enter) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 60ms);
+}
+
+@keyframes site-enter {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+/*
+ * Blocks arriving as the page scrolls. They are on the page from the start, for anyone whose
+ * scripts have not run or who asked for less motion. Once the page is running it sets aside the
+ * blocks that are still below the window (armed) and brings each in when it comes into view
+ * (seen): a short rise that settles, quick enough never to hold up reading.
  */
 html.motion [data-reveal][data-armed] {
   transition:
-    opacity 700ms var(--ease-enter),
-    translate 700ms var(--ease-enter);
+    opacity 480ms var(--ease-enter),
+    translate 640ms var(--ease-enter);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
 html.motion [data-reveal][data-armed]:not([data-seen]) {
   opacity: 0;
-  translate: 0 18px;
+  translate: 0 12px;
 }
 
-/* A bar that grows to its length as the block it is in is brought into view. */
-html.motion [data-reveal][data-armed] .bar-grow {
-  transform-origin: 0 50%;
-  transition: scale 1100ms var(--ease-enter) 250ms;
+/* The film's cover leaves once the film is playing, not before, so nothing flashes black. */
+.film-cover {
+  transition: opacity 360ms var(--ease-enter);
 }
 
-html.motion [data-reveal][data-armed]:not([data-seen]) .bar-grow {
-  scale: 0 1;
+.film-cover[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html.motion .film-play {
+  transition: scale 240ms var(--ease-enter);
+}
+
+html.motion .film-cover:hover .film-play {
+  scale: 1.04;
+}
+
+html.motion .film-cover:active .film-play {
+  scale: 0.96;
 }

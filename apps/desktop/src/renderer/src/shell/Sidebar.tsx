@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
   IconButton,
   LogoMark,
+  NavItem,
   Skeleton,
   Spinner,
   StaggerItem,
@@ -46,12 +47,8 @@ import {
   type TrainingRowKind,
 } from './training-rows';
 
-const navRow =
-  'flex h-10 w-full items-center gap-2.5 rounded-control px-2.5 text-left text-fg ' +
-  'transition-colors duration-150 hover:bg-hover';
-
-/** The selected row: a clear surface of its own, one step above hover. */
-const selectedRow = 'bg-selected hover:bg-selected';
+/** The selected fill slides between the rows that share this name (`NavItem`). */
+const INDICATOR = 'sidebar-current';
 
 /**
  * The list of runs is read again whenever the sidebar appears, since the screens without it, such
@@ -77,10 +74,13 @@ export function Sidebar({ route }: { route: Route }) {
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col gap-4 border-r border-line bg-ground px-3 pb-3.5">
-      {/* The top strip drags the window; on macOS the traffic lights sit at its left. */}
+      {/*
+        The top strip drags the window. It is the native title bar's 56px, so the wordmark sits on
+        the line of the traffic lights on macOS and of a chat's title.
+      */}
       <div
         className={cn(
-          'app-drag -mx-3 flex h-12 shrink-0 items-center gap-2.5 px-5.5 pt-5',
+          'app-drag -mx-3 flex h-14 shrink-0 items-center gap-2 px-5',
           isMac() && 'pl-[78px]',
         )}
       >
@@ -91,16 +91,15 @@ export function Sidebar({ route }: { route: Route }) {
       {places.length > 0 && (
         <nav aria-label="Places" className="flex flex-col gap-0.5">
           {places.map(({ id, label, Icon, path }) => (
-            <button
+            <NavItem
               key={id}
-              type="button"
+              icon={<Icon size={16} strokeWidth={1.8} aria-hidden />}
+              current={place === id}
+              indicator={INDICATOR}
               onClick={() => navigate(path)}
-              aria-current={place === id ? 'page' : undefined}
-              className={cn(navRow, place === id && selectedRow)}
             >
-              <Icon size={17} strokeWidth={1.6} aria-hidden />
               {label}
-            </button>
+            </NavItem>
           ))}
         </nav>
       )}
@@ -113,19 +112,18 @@ export function Sidebar({ route }: { route: Route }) {
         )}
       >
         <div className="flex items-center gap-0.5">
-          <button
-            type="button"
+          <NavItem
+            icon={<Plus size={16} strokeWidth={1.8} aria-hidden />}
+            current={route.name === 'new'}
             onClick={() => navigate(paths.newAgent())}
-            aria-current={route.name === 'new' ? 'page' : undefined}
-            className={cn(navRow, 'min-w-0 flex-1', route.name === 'new' && selectedRow)}
+            className="flex-1"
           >
-            <Plus size={16} strokeWidth={1.8} aria-hidden />
             New agent
-          </button>
+          </NavItem>
           <AgentMenu />
         </div>
 
-        <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1">
+        <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1 scroll-quiet">
           {graduates.data ? (
             <>
               <AgentList graduates={graduates.data} route={route} />
@@ -162,10 +160,12 @@ export function Sidebar({ route }: { route: Route }) {
 
       <div className="flex-1" />
 
-      <button type="button" onClick={() => openSettings()} className={navRow}>
-        <Settings size={17} strokeWidth={1.6} aria-hidden />
+      <NavItem
+        icon={<Settings size={16} strokeWidth={1.8} aria-hidden />}
+        onClick={() => openSettings()}
+      >
         Settings
-      </button>
+      </NavItem>
     </aside>
   );
 }
@@ -267,7 +267,7 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
         </div>
       </div>
       {!list && chats.entry.status === 'loading' && (
-        <div className="flex flex-col gap-2.5 py-1.5 pl-[38px]" aria-busy="true">
+        <div className="flex flex-col gap-2.5 py-1.5 pl-11" aria-busy="true">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-3 w-20" />
         </div>
@@ -278,31 +278,30 @@ function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Rou
           error={chats.entry.error}
           title="Couldn't load chats"
           onRetry={chats.reload}
-          className="py-1.5 pl-[38px] pr-2.5"
+          className="py-1.5 pl-11 pr-2.5"
         />
       )}
       {list?.map((chat, index) => {
         const current = route.name === 'chat' && route.chatId === chat.id;
         return (
           <StaggerItem key={chat.id} index={index}>
-            <button
-              type="button"
+            <NavItem
+              nested
+              current={current}
               onClick={() => navigate(paths.chat(graduate.id, chat.id))}
-              aria-current={current ? 'page' : undefined}
-              className={cn(
-                'flex h-[34px] w-full shrink-0 items-center justify-between gap-2 rounded-control pl-[38px] pr-2.5 text-left',
-                'transition-colors duration-150 hover:bg-hover',
-                current && selectedRow,
-              )}
+              end={
+                // A chat waiting for an answer isn't working; the open one says so in the thread.
+                chat.waiting ? (
+                  current ? undefined : (
+                    'Approve'
+                  )
+                ) : chat.running ? (
+                  <Spinner tone="student" label="Working" />
+                ) : undefined
+              }
             >
-              <span className="truncate">{chat.title}</span>
-              {/* A chat waiting for an answer isn't working; the open one says so in the thread. */}
-              {chat.waiting ? (
-                !current && <span className="shrink-0 text-small">Approve</span>
-              ) : chat.running ? (
-                <Spinner tone="student" label="Working" />
-              ) : null}
-            </button>
+              {chat.title}
+            </NavItem>
           </StaggerItem>
         );
       })}
@@ -338,18 +337,14 @@ const ROW_TONE: Partial<Record<TrainingRowKind, string>> = {
 function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
   const current = (route.name === 'train' || route.name === 'report') && route.runId === row.runId;
   return (
-    <button
-      type="button"
+    <NavItem
+      icon={<RowIcon kind={row.kind} />}
+      current={current}
       onClick={() => navigate(row.path)}
-      aria-current={current ? 'page' : undefined}
-      className={cn(navRow, current && selectedRow)}
+      end={<span className={ROW_TONE[row.kind] ?? 'text-fg'}>{TRAINING_ROW_WORDS[row.kind]}</span>}
     >
-      <RowIcon kind={row.kind} />
-      <span className="flex-1 truncate">{row.jobName}</span>
-      <span className={cn('shrink-0 text-small', ROW_TONE[row.kind] ?? 'text-fg')}>
-        {TRAINING_ROW_WORDS[row.kind]}
-      </span>
-    </button>
+      {row.jobName}
+    </NavItem>
   );
 }
 

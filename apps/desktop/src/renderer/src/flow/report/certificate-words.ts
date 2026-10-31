@@ -23,7 +23,7 @@ function confidence(delta: number): string {
 }
 
 /**
- * The certificate's one sentence: "When Phil answers, it is wrong on at most 8% of requests like
+ * The certificate's one sentence: "When Academy desk answers, it is wrong on at most 8% of requests like
  * these, with 95% confidence. It handed 22% to a person."
  */
 export function certificateSentence(certificate: Issued, name: string): string {
@@ -38,13 +38,12 @@ export function certificateBasis(certificate: Certificate): string {
   const tasks = `${certificate.n} calibration ${certificate.n === 1 ? 'task' : 'tasks'}`;
   const attempts = `${certificate.k} ${certificate.k === 1 ? 'attempt' : 'attempts'} each`;
   const target = `target ${share(certificate.epsilon)}% at ${confidence(certificate.delta)}`;
-  if (!certificate.issued)
-    return `Measured on ${tasks} it was never taught on, ${attempts}; ${target}.`;
+  if (!certificate.issued) return `Measured on ${tasks} it had never seen, ${attempts}; ${target}.`;
   const rule =
     certificate.k === 1
       ? 'it answers every request'
       : `it answers when ${certificate.threshold.votes} of ${certificate.k} agree`;
-  return `Measured on ${tasks} it was never taught on, ${attempts}: ${rule}; ${target}.`;
+  return `Measured on ${tasks} it had never seen, ${attempts}: ${rule}; ${target}.`;
 }
 
 /** Why no certificate was issued, and what would change that. */
@@ -64,10 +63,19 @@ export function noCertificateSentence(
   }
 }
 
-/** Where a check ran: the taught organizations' final test, or one it never saw by name. */
+/**
+ * Where a check ran: the taught organizations' final test, new tasks at one it was taught on (a
+ * certification after the fact, decision 079), or one it never saw, by name, said to be measured
+ * before it was taught on once a later version of the field teaches on it (decision 089).
+ */
 export function checkPlace(check: CertificateCheck): string {
-  if (check.seen) return 'Final test, organizations it was taught on';
-  return check.orgName ?? 'An organization it never saw';
+  if (check.seen) {
+    return check.orgName === undefined
+      ? 'Final test, organizations it was taught on'
+      : `New tasks at ${check.orgName}`;
+  }
+  const place = check.orgName ?? 'An organization it never saw';
+  return check.taughtLater === true ? `${place}, measured before it was taught on` : place;
 }
 
 /** "Answered 31 of 40, 1 wrong", or that it handed every one to a person. */

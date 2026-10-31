@@ -1,13 +1,16 @@
 import {
   AppInfoSchema,
   AppSettingsSchema,
+  AttemptPageSchema,
   ConnectionTestSchema,
   DraftTurnSchema,
   FieldExportManifestSchema,
   FieldViewSchema,
   FileDiffSchema,
   GraduateSummarySchema,
+  HarnessFileSchema,
   HubTokenStatusSchema,
+  ImportedJobSchema,
   JobSchema,
   JobSummarySchema,
   LlamaServerStatusSchema,
@@ -20,18 +23,26 @@ import {
   RunSchema,
   SecretStatusSchema,
   StudentTargetSchema,
+  RecordingQuoteSchema,
   StudyStateSchema,
+  TaskListingSchema,
   TaskPlanSchema,
   TraceSchema,
   WorkspaceChatSchema,
   WorkspaceMessageSchema,
   type ArchitectApi,
+  type AddOrganizationRequest,
+  type MoveToModelRequest,
+  type AttemptQuery,
+  type DraftOrganization,
   type Job,
   type ModelSource,
   type RunStartOptions,
   type SampleJob,
   type StudentEndpoint,
   type StudentTarget,
+  type TaskSplit,
+  type TranscribeRequest,
 } from '@architect/shared';
 import { z } from 'zod';
 import { withTypedFailures } from '../../../common/bridge';
@@ -86,6 +97,19 @@ export const api = {
   field: (jobId: string) => read('jobs.field', FieldViewSchema, bridge().jobs.field(jobId)),
   fieldAssets: (jobId: string) =>
     read('jobs.fieldAssets', FieldExportManifestSchema, bridge().jobs.fieldAssets(jobId)),
+  /** A split's tasks: practice and check tasks in full, the calibration and test splits counted. */
+  tasks: (jobId: string, split: TaskSplit) =>
+    read('jobs.tasks', TaskListingSchema, bridge().jobs.tasks(jobId, split)),
+  /** A page of the run's practice and check attempts, newest first. */
+  attempts: (runId: string, query: AttemptQuery) =>
+    read('runs.attempts', AttemptPageSchema, bridge().runs.attempts(runId, query)),
+  /** The files of one of the run's harness versions. */
+  runHarnessFiles: (runId: string, version: number) =>
+    read(
+      'runs.harnessFiles',
+      z.array(HarnessFileSchema),
+      bridge().runs.harnessFiles(runId, version),
+    ),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   run: (runId: string) => read('runs.get', RunDetailSchema, bridge().runs.get(runId)),
   /** The run's report card: from where its own final test ran, or from one endpoint when named. */
@@ -119,6 +143,8 @@ export const flowApi = {
     read('files.pick', z.array(z.string()), bridge().files.pick(options)),
   draftStart: (description: string, files: string[]) =>
     read('jobs.draftStart', DraftTurnSchema, bridge().jobs.draftStart(description, files)),
+  draftField: (description: string, organizations: DraftOrganization[]) =>
+    read('jobs.draftField', DraftTurnSchema, bridge().jobs.draftField(description, organizations)),
   draftReply: (sessionId: string, text: string) =>
     read('jobs.draftReply', DraftTurnSchema, bridge().jobs.draftReply(sessionId, text)),
   saveJob: (job: Job) => read('jobs.save', JobSchema, bridge().jobs.save(job)),
@@ -131,8 +157,19 @@ export const flowApi = {
   study: (jobId: string) => read('jobs.study', StudyStateSchema, bridge().jobs.study(jobId)),
   confirmStudy: (jobId: string, token: string) =>
     read('jobs.confirmStudy', StudyStateSchema, bridge().jobs.confirmStudy(jobId, token)),
+  quoteRecordings: (jobId: string, org: string, paths: string[]) =>
+    read(
+      'jobs.quoteRecordings',
+      RecordingQuoteSchema,
+      bridge().jobs.quoteRecordings(jobId, org, paths),
+    ),
+  shareRecordings: (jobId: string, allowed: boolean) =>
+    read('jobs.shareRecordings', TaskPlanSchema, bridge().jobs.shareRecordings(jobId, allowed)),
+  transcribe: (jobId: string, request: TranscribeRequest) =>
+    read('jobs.transcribe', TaskPlanSchema, bridge().jobs.transcribe(jobId, request)),
   /** Imports a job file picked in a dialog, as a new job. */
-  importJob: (path: string) => read('jobs.importFile', JobSchema, bridge().jobs.importFile(path)),
+  importJob: (path: string) =>
+    read('jobs.importFile', ImportedJobSchema, bridge().jobs.importFile(path)),
   /** Writes the job's settings to a file chosen in a save dialog. */
   exportJob: (jobId: string, path: string) => bridge().jobs.exportFile(jobId, path),
   /** The system's save dialog: the file chosen, or null when the person cancels. */
@@ -158,6 +195,17 @@ export const flowApi = {
     read('runs.start', RunSchema, bridge().runs.start(jobId, options)),
   /** Takes a finished run's frozen agent through its final test again on the other endpoint. */
   retest: (runId: string, target: StudentTarget) => bridge().runs.retest(runId, target),
+  /** Tests a finished run's frozen agent on an organization added to its field later. */
+  qualifyAdded: (runId: string, org: string) => bridge().runs.qualifyAdded(runId, org),
+  /** Seals a never-seen organization into a field from a folder the person picked. */
+  addOrganization: (jobId: string, request: AddOrganizationRequest) =>
+    read('jobs.addOrganization', FieldViewSchema, bridge().jobs.addOrganization(jobId, request)),
+  /** Teaches on a never-seen organization in a new version of the field; returns that version. */
+  teachOn: (jobId: string, org: string) =>
+    read('jobs.teachOn', FieldViewSchema, bridge().jobs.teachOn(jobId, org)),
+  /** Carries a field to another model in a new version; returns that version. */
+  moveToModel: (jobId: string, request: MoveToModelRequest) =>
+    read('jobs.moveToModel', FieldViewSchema, bridge().jobs.moveToModel(jobId, request)),
   runs: (jobId: string) => read('runs.list', z.array(RunSchema), bridge().runs.list(jobId)),
   trace: (attemptId: string) => read('runs.trace', TraceSchema, bridge().runs.trace(attemptId)),
   roundDiff: (runId: string, round: number) =>

@@ -28,6 +28,7 @@ import { activeVersion } from '../src/graduates/open';
 import { JobLibrary } from '../src/loop/jobs';
 import { startFakeOllama } from './agent-host/fake-ollama';
 import { fixtureHarness, reportFor } from './agent-host/graduates';
+import { readPackaged } from './fakes/harness';
 import { FakeRuntime, FakeVault } from './fakes/runtime';
 import {
   addVersion,
@@ -258,7 +259,7 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     await new JobLibrary(
       author.store,
       author.paths,
-      { runtime, vault: new FakeVault(runtime) },
+      { runtime, vault: new FakeVault(runtime), harness: { readPackaged } },
       author.clock,
       author.contracts,
     ).save(job);

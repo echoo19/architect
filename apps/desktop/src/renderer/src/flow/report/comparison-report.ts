@@ -59,6 +59,8 @@ export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
       return `${mentor} doing the tasks itself, no setup`;
     case 'reference-targeted':
       return `${mentor} doing the tasks itself, with ${student}'s final setup`;
+    case 'teacher':
+      return `${mentor} doing the job itself, untaught, in a run of its own`;
     case 'repeat':
       return 'The first three, tested a second time';
     case 'fixed':
@@ -130,9 +132,10 @@ export function reportArms(
 ): ReportArm[] {
   const seed = report.plan.testSeeds[0] ?? 101;
   return report.arms.map((arm) => {
-    // Spark's own results sit in a table of their own, beside the hosted copy's.
+    // Spark's own results sit in a table of their own, beside the hosted copy's, and so do the
+    // teacher alone's.
     const spark = arm.arm === 'reference' || arm.arm === 'reference-targeted';
-    const hostedOn: BackendId = spark ? 'reference' : 'hosted';
+    const hostedOn: BackendId = spark ? 'reference' : arm.arm === 'teacher' ? 'teacher' : 'hosted';
     const hostedRow = rowIn(report, hostedOn, arm.arm, seed);
     const localOn: BackendId = rowIn(report, 'local-llama.cpp', arm.arm, seed)
       ? 'local-llama.cpp'

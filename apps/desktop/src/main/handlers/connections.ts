@@ -1,7 +1,9 @@
-import { listModels, verifyKey } from '@architect/adapters';
+import { assertInsideNetwork, listModels, verifyKey } from '@architect/adapters';
 import { describeLlamaServer, type ServerCommand } from '@architect/engine';
 import {
   AddConnectionRequestSchema,
+  allowedHostsOf,
+  keyDestinationProblem,
   MentorConfigSchema,
   ModelSourceSchema,
   ProviderIdSchema,
@@ -21,6 +23,7 @@ import {
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
 import { hubTokenStatus } from '../../utility/hub';
+import { OPENROUTER_EXCHANGE_URL } from '../oauth/openrouter';
 import type { SignIns } from '../oauth/sign-ins';
 import { ollamaBaseUrl } from '../ollama/status';
 import type { SecretStore } from '../secrets/store';
@@ -52,9 +55,11 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
         ? { configured: settings.get().llamaServerPath ?? null }
         : { command: deps.llamaServerCommand },
     );
+  // Settings' checks, lists and sign-in are held to the closed network as teaching is (decision 098).
+  const network = { allowed: () => allowedHostsOf(settings.get().closedNetwork) };
   const stores = {
-    verifyKey,
-    listModels,
+    verifyKey: (options: Parameters<typeof verifyKey>[0]) => verifyKey({ ...options, network }),
+    listModels: (options: Parameters<typeof listModels>[0]) => listModels({ ...options, network }),
     saveKey: (ref: string, value: string) => secrets.set(ref, value),
     clearKey: (ref: string) => secrets.clear(ref),
     addEndpoint: async (endpoint: { baseUrl: string; label: string }) => {
@@ -72,14 +77,20 @@ export function registerConnectionHandlers(router: IpcRouter, deps: ConnectionHa
   router.registerHandlers(
     'connections',
     {
-      testMentor: (config) => testMentor(config, keys),
-      testStudent: (endpoint) => testStudent(endpoint, keys),
-      listModels: (source) => listConnectionModels(source, keys),
+      testMentor: (config) => testMentor(config, keys, keyDestinationProblem, network),
+      testStudent: (endpoint) => testStudent(endpoint, keys, keyDestinationProblem, network),
+      listModels: (source) => listConnectionModels(source, keys, keyDestinationProblem, network),
       detectLocal: () =>
-        detectLocalRuntimes({ ollamaBaseUrl: ollamaBaseUrl(settings.get().defaultStudent), gpu }),
+        detectLocalRuntimes({
+          ollamaBaseUrl: ollamaBaseUrl(settings.get().defaultStudent),
+          gpu,
+          network,
+        }),
       add: (request) => addConnection(request, stores),
       remove: (source) => removeConnection(source, stores),
       signIn: async () => {
+        // Refused before the browser opens: the sign-in ends with a key exchange at OpenRouter.
+        assertInsideNetwork(network, 'OpenRouter', OPENROUTER_EXCHANGE_URL);
         const key = await signIns.start();
         if (key === null) return { status: 'cancelled' };
         await secrets.set('openrouter', key);

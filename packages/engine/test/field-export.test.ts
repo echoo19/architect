@@ -67,7 +67,7 @@ function academyEpisode(id: string, task: Task, overrides: Partial<VerifiedEpiso
     ...base,
     origin: { kind: 'task' as const, taskId: task.id, split: 'train' as const },
     messages: [
-      { role: 'system' as const, content: 'You tutor students at a test-prep academy.' },
+      { role: 'system' as const, content: 'You help the staff of a test-prep academy.' },
       { role: 'user' as const, content: task.prompt },
       { role: 'assistant' as const, content: 'ANSWER: {"assigned": 5}' },
     ],
@@ -257,7 +257,11 @@ describe('the export guards', () => {
 
   it('exports a job of the app by its name, with no demonstrations yet', async () => {
     const out = outDir();
-    const manifest = await exportFieldFromData({ dataDir: paths.root, job: 'phil', outDir: out });
+    const manifest = await exportFieldFromData({
+      dataDir: paths.root,
+      job: 'Academy desk',
+      outDir: out,
+    });
     expect(manifest.counts.demonstrations).toBe(0);
     expect(readFileSync(join(out, 'sft', 'demonstrations.jsonl'), 'utf8')).toBe('');
     await expect(

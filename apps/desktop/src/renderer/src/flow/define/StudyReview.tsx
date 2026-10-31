@@ -1,14 +1,23 @@
 import { useRef, useState } from 'react';
-import type { Job, StudyBrief, StudyClaim, StudyState, TaskPlan } from '@architect/shared';
+import {
+  organizationNoun,
+  type Job,
+  type StudyBrief,
+  type StudyClaim,
+  type StudyState,
+  type TaskPlan,
+} from '@architect/shared';
 import { Button, Collapse, Disclosure, Heading, Reveal, Tooltip } from '@architect/ui';
 import { BookOpen, Check, CircleAlert, CircleHelp, Sparkles } from 'lucide-react';
 import { flowApi } from '../../api/client';
+import { ProblemState } from '../../components/ProblemState';
 import { queryKeys } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
 import { attempt } from '../../lib/notify';
 import { shortDate } from '../format';
 import { modelNames } from '../names';
 import { PassageList } from '../PassageList';
+import { Recordings } from './Recordings';
 import { SheetRow } from './SheetRow';
 
 /**
@@ -74,7 +83,7 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
       <Collapse open={state === 'unstudied'}>
         <div className="flex flex-wrap items-center justify-between gap-4 pb-1 pt-1">
           <p className="m-0 max-w-[560px] text-body text-pretty">
-            {`${mentor} reads each academy's files and tells you what it understood before anything is taught.`}
+            {`${mentor} reads each ${organizationNoun(job)}'s files and tells you what it understood before anything is taught.`}
           </p>
           <Button variant="primary" loading={busy} onClick={() => void studyNow()}>
             <BookOpen size={16} strokeWidth={1.8} aria-hidden />
@@ -83,22 +92,23 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
         </div>
       </Collapse>
 
+      <Recordings job={job} plan={plan} mentor={mentor} />
+
       {state === 'changed' && (
-        <div
-          role="alert"
-          className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-card bg-danger-soft px-6 py-5"
-        >
-          <p className="m-0 max-w-[560px] text-pretty">{study.problem}</p>
-          <Button loading={busy} onClick={() => void studyNow()}>
-            Study again
-          </Button>
-        </div>
+        <ProblemState
+          error={
+            new Error(study.problem ?? "The organizations' files changed since they were studied.")
+          }
+          title="The files changed"
+          exit={{ label: 'Study again', onClick: () => void studyNow() }}
+          className="mb-4 py-8"
+        />
       )}
 
       <Collapse open={state === 'needed'}>
         {brief !== undefined && (
           <div className="flex flex-col gap-6 pb-1 pt-1">
-            <BriefCard brief={brief} mentor={mentor} />
+            <BriefCard brief={brief} mentor={mentor} noun={organizationNoun(job)} />
             <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="m-0 font-medium">Is this the job?</p>
               <Button variant="primary" loading={busy} onClick={() => void confirm()}>
@@ -112,7 +122,7 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
 
       {state === 'confirmed' && brief !== undefined && (
         <Disclosure label="Show the brief">
-          <BriefCard brief={brief} mentor={mentor} />
+          <BriefCard brief={brief} mentor={mentor} noun={organizationNoun(job)} />
         </Disclosure>
       )}
     </section>
@@ -120,12 +130,12 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
 }
 
 /** The brief itself: one card, a row for each part. */
-function BriefCard({ brief, mentor }: { brief: StudyBrief; mentor: string }) {
+function BriefCard({ brief, mentor, noun }: { brief: StudyBrief; mentor: string; noun: string }) {
   const names = new Map(brief.organizations.map((org) => [org.id, org.name]));
   return (
     <article
       aria-label="The brief"
-      className="flex flex-col overflow-hidden rounded-card bg-card px-6 pb-2 pt-1 shadow-edge"
+      className="flex flex-col overflow-hidden rounded-card surface-card px-6 pb-2 pt-1"
     >
       <SheetRow label="Skills" align="start">
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -153,7 +163,7 @@ function BriefCard({ brief, mentor }: { brief: StudyBrief; mentor: string }) {
         </SheetRow>
       )}
       {brief.differences.length > 0 && (
-        <SheetRow label="Where academies differ" align="start">
+        <SheetRow label={`Where each ${noun} differs`} align="start">
           <Claims claims={brief.differences} names={names} mentor={mentor} />
         </SheetRow>
       )}

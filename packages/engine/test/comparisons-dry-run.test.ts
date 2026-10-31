@@ -47,7 +47,8 @@ describe('a dry run of every arm on fakes', () => {
     worlds.push(world);
     const config: ComparisonConfig = {
       ...DEFAULT_CONFIG,
-      arms: [...ARM_ORDER],
+      // The teacher arm has its own test (comparisons-teacher.test.ts), at the teacher's price.
+      arms: ARM_ORDER.filter((arm) => arm !== 'teacher'),
       caps: { studentUsd: 15, sparkUsd: 24, computeUsd: 8.1, localMinutes: 1_500 },
       localOllama: true,
       realCompute: true,
@@ -101,7 +102,7 @@ describe('a dry run of every arm on fakes', () => {
 
     // The dropped arm never started; the stopped one says why and kept to its cap.
     expect(arm('fixed')?.runId).toBeNull();
-    expect(arm('fixed')?.reason).toMatch(/^It needs \$\d+\.\d\d of the hosted student's budget/);
+    expect(arm('fixed')?.reason).toMatch(/^It needs \$\d+\.\d\d of hosted Glimmer's budget/);
     // It kept its adopted harness, then stopped at round 2's start, before paying for it.
     expect(arm('weights-targeted')?.reason).toMatch(
       /^Before round 2 it had spent \$\d+\.\d\d, and one more round with its final test could cost \$\d+\.\d\d more \(at \$\d\.\d{4} an attempt\), past its \$1\.00 cap, so it stopped there with what it had kept\.$/,
@@ -199,10 +200,10 @@ describe('a dry run of every arm on fakes', () => {
     );
     expect(report.disclosures.join('\n')).toContain('Adapters trained against NF4 weights');
     // An adapter arm ran, so the protocol is printed and no agent is called harness-only. The
-    // plan asked for every arm, so none is said to be left out.
+    // plan asked for every arm but the teacher's, so only it is said to be left out.
     expect(markdown).toContain('Adapter protocol: four-cell.');
     expect(markdown).not.toContain('Every reported agent is harness-only');
-    expect(markdown).not.toContain('Not in this comparison');
+    expect(markdown).toContain('Not in this comparison, so not run: Teacher alone.');
 
     // The seeds the plan declared, with the arms that have a result under each: 101 for every arm
     // that took a locked test, and the repeat's 102 for the three it covers.
@@ -260,7 +261,7 @@ describe('a dry run of every arm on fakes', () => {
     expect(arm('fixed')?.measuredOn).toEqual([]);
     expect(arm('bare')?.frozen?.localModel).toBe('muse-glimmer:30b-iq2');
     expect(markdown).toContain(
-      'Its locked test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
+      'Its final test also ran on this computer; see the table "This computer\'s Glimmer on Ollama".',
     );
 
     // The money: the journal's total is its settled and uncertain charges together, and the

@@ -7,6 +7,7 @@ import {
   localModelName,
   mentorFromChoice,
   modelLabel,
+  rolesOf,
   studentFromChoice,
   type Connection,
 } from '../../../src/renderer/src/settings/models/connections';
@@ -221,5 +222,37 @@ describe('names and figures', () => {
   it('treats an Ollama name without a tag as its latest one', () => {
     expect(sameOllamaModel('muse-glimmer', 'muse-glimmer:latest')).toBe(true);
     expect(sameOllamaModel('muse-glimmer:30b', 'muse-glimmer:30b-iq2')).toBe(false);
+  });
+});
+
+describe('the roles each connection can fill', () => {
+  const connections = connectionsFrom(
+    { openai: true, openrouter: true },
+    [
+      { baseUrl: 'http://gpu-node-7:8000/v1', label: 'gpu-node-7:8000' },
+      { baseUrl: 'http://127.0.0.1:8080/v1', label: '127.0.0.1:8080' },
+    ],
+    LOCAL,
+  );
+  const roles = (id: string) => rolesOf(byId(connections, id));
+
+  it('lets any hosted API teach, and a host of open models serve a copy to practice on', () => {
+    expect(roles('openai')).toEqual({ teach: true, practice: false, agent: false });
+    expect(roles('openrouter')).toEqual({ teach: true, practice: true, agent: false });
+  });
+
+  it('lets a cluster endpoint teach and serve the copy it practices on, never run an agent', () => {
+    expect(roles('other:http://gpu-node-7:8000/v1')).toEqual({
+      teach: true,
+      practice: true,
+      agent: false,
+    });
+  });
+
+  it('runs agents only on this computer: its runtimes and endpoints at a local address', () => {
+    expect(roles('ollama')).toEqual({ teach: true, practice: true, agent: true });
+    expect(roles('other:http://127.0.0.1:8080/v1')).toMatchObject({ agent: true });
+    // A runtime that isn't running can't teach now; an agent can still be set to run on it.
+    expect(roles('lmstudio')).toEqual({ teach: false, practice: true, agent: true });
   });
 });

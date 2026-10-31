@@ -71,7 +71,7 @@ export function Toaster() {
               initial={enter}
               animate={{ ...floating.animate, y: 0 }}
               exit={floating.exit}
-              className="flex items-start gap-3 rounded-card bg-raised py-4 pl-5 pr-3 shadow-float data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
+              className="flex items-start gap-3 rounded-card surface-float py-4 pl-5 pr-3 data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]"
             >
               {entry.tone === 'danger' && (
                 <CircleAlert size={16} className="mt-1 shrink-0 text-danger" aria-hidden />
@@ -100,7 +100,8 @@ export function Toaster() {
           </RadixToast.Root>
         ))}
       </AnimatePresence>
-      <RadixToast.Viewport className="fixed bottom-4 right-4 z-[60] flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none" />
+      {/* Over a pinned action bar (a page's <footer>), toasts sit above it, clear of its buttons. */}
+      <RadixToast.Viewport className="fixed bottom-4 right-4 z-[60] [body:has(footer)_&]:bottom-24 flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none" />
     </RadixToast.Provider>
   );
 }

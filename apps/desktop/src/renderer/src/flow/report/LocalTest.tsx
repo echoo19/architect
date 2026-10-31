@@ -72,7 +72,7 @@ function say(view: RetestView, local: ReportCard | null, report: ReportCard, dev
       return {
         mark: <StatusMark state={passed ? 'ok' : 'attention'} size={18} />,
         title: passed ? `Passed on ${device}` : `Below the target on ${device}`,
-        lines: `${score.pass} of ${score.total} right (${formatRate(score)}). Typical answer time ${formatAnswerTime(latencyMs.p50)}, 95% within ${formatAnswerTime(latencyMs.p95)}. Online it got ${report.test.score.pass} of ${report.test.score.total}.`,
+        lines: `${formatRate(score)} · ${score.pass} of ${score.total}. Typical answer time ${formatAnswerTime(latencyMs.p50)}, 95% within ${formatAnswerTime(latencyMs.p95)}. Online it got ${formatRate(report.test.score)} · ${report.test.score.pass} of ${report.test.score.total}.`,
       };
     }
   }
@@ -106,7 +106,7 @@ export function LocalTest({ report }: { report: ReportCard }) {
   return (
     <section
       aria-label={`Test on ${device}`}
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card bg-card p-6 shadow-edge"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card surface-card p-6"
     >
       <div className="flex min-w-0 flex-[1_1_360px] items-start gap-3.5">
         <span className="mt-0.5 flex shrink-0">{mark}</span>

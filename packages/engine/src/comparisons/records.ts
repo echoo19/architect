@@ -5,9 +5,11 @@ import {
   AdapterProtocolSchema,
   ArmIdSchema,
   BillingSchema,
+  CapAmendmentSchema,
   COMPARISON_REPORT_FORMAT,
   ComparisonCapsSchema,
   ComparisonReportSchema,
+  FundingPauseSchema,
   PinnedInputsSchema,
   ProjectionSchema,
   RuntimeIdentitySchema,
@@ -77,6 +79,8 @@ export const ArmDecisionSchema = z.object({
    * `held`: its locked test stayed held, since the credit couldn't pay for it.
    */
   kind: z.enum(['dropped', 'stopped', 'held']),
+  /** `person`: the person dropped it when the comparison paused for money (decision 081). */
+  by: z.literal('person').optional(),
   reason: z.string().min(1),
   at: z.iso.datetime(),
 });
@@ -107,6 +111,8 @@ export const PlanSettingsSchema = z.object({
   student: z.string(),
   providers: z.array(z.string()).nullable(),
   localModel: z.string(),
+  /** The teacher arm's model as `model at address`, when it isn't the field's teacher. */
+  teacher: z.string().nullable().default(null),
 });
 export type PlanSettings = z.infer<typeof PlanSettingsSchema>;
 
@@ -136,6 +142,13 @@ export const PlanRecordSchema = z.object({
    * starts or goes on developing, so nothing learns after a locked result exists.
    */
   releasedAt: z.iso.datetime().nullable(),
+  /**
+   * Set while the comparison waits for the person because an arm can't be paid for at what an
+   * attempt has really cost; nothing is released until it is cleared (decision 081).
+   */
+  funding: FundingPauseSchema.nullable().default(null),
+  /** The student cap raised by the person before the release, each with the price that asked it. */
+  amendments: z.array(CapAmendmentSchema).default([]),
 });
 export type PlanRecord = z.infer<typeof PlanRecordSchema>;
 

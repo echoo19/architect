@@ -1,8 +1,26 @@
 # Architect
 
-Architect turns an organization's own material into a specialist that runs on its own computer. A large model studies the material and teaches a small one. The small model is then tested on work it never saw; for a whole field, that means organizations it never saw, one of them real. [See it on the website](https://echoo19.github.io/architect/).
+**The training system for your own AI.**
 
-The main example is Phil, a tutor for test-prep academies. A student misses a practice question and someone asks Phil what to do. Phil answers from that academy's own files: its topics, question bank, lessons, the student's history and its tutoring policy. Two academies with different policies get different correct actions from the same Phil.
+A large model teaches a small one by rewriting its instructions and tools. Every change is tested on work neither model has seen, and Architect certifies when the result can be trusted. For a whole field, "unseen" means organizations the small model was never taught on, one of them real. [See it on the website](https://echoo19.github.io/architect/).
+
+## Why we made this
+
+Most teams that build with AI rent it, and every request sends their data to someone else's model. Architect works the other way round: a large model teaches a small one the work and then leaves. What's left runs on the team's own computer and comes with a record of what it can and can't do.
+
+We started building Architect on October 27, 2026. Y Combinator's Requests for Startups for Winter 2027 came out after that, and three of them ask for what we were already making: [Own Your Intelligence](https://www.ycombinator.com/rfs#own-your-intelligence) (Jon Xu), [AI for the Air-Gapped Economy](https://www.ycombinator.com/rfs#ai-for-the-air-gapped-economy) (Brad Flora) and [Vertical Foundation Models](https://www.ycombinator.com/rfs#vertical-foundation-models) (Diana Hu). [The website](https://echoo19.github.io/architect/#why) quotes each one next to what Architect does about it.
+
+## What you can make with it
+
+The specialists are what the system makes. They are examples, not the product.
+
+- **Returns desk** works an outdoor-gear shop's returns: it decides return requests, answers questions about orders and books carrier pickups. It asks before it changes a record.
+- **Service desk** does a home-services company's end-of-day office work: it prices finished jobs into invoices, works out overdue balances and books technicians.
+- **Academy desk** helps the staff of test-prep academies: it diagnoses a missed practice question, sets practice in the academy's records and flags the student for their tutor. It is the main example below.
+- **A pricing desk** that a large model drafted from a repair shop's files, after the owner confirmed the pricing rule it made from the shop's policy.
+- **Sweep desk and Assay desk**, for research groups running training sweeps and for screening labs, are the science set, coming soon.
+
+Academy desk answers from each academy's own files: its topics, question bank, lessons, the student's history and its tutoring policy. Two academies with different policies get different correct actions from the same Academy desk.
 
 ## How it works
 
@@ -17,15 +35,15 @@ The result is a specialist that works on an organization's files, asks before it
 
 A specialist should know when not to answer. After qualification, Architect can state a certificate that a buyer can read:
 
-> When Phil answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
+> When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to staff.
 
-The 8% and 22% show the form of the sentence. They are not a measurement of Phil.
+The 8% and 22% show the form of the sentence. They are not a measurement of Academy desk.
 
 How it is computed:
 
 1. **A sealed calibration set.** It is drawn from the taught organizations, kept apart from every other split, and the teacher never sees it. It opens once, after the specialist is frozen.
-2. **Agreement.** Phil attempts each calibration request k times (five by default). The share of attempts that agree with the most common answer is its agreement. When agreement reaches a threshold, Phil answers. Below it, Phil says it isn't sure and hands the request to a person.
-3. **A bound.** For each threshold, the error rate among the requests Phil answered gets an exact one-sided Clopper-Pearson upper bound. Thresholds are tried from strictest to loosest, and the loosest one whose bound stays under the target is chosen. If none qualifies, no certificate is issued, and the report says why.
+2. **Agreement.** Academy desk attempts each calibration request k times (five by default). The share of attempts that agree with the most common answer is its agreement. When agreement reaches a threshold, Academy desk answers. Below it, Academy desk says it isn't sure and hands the request to a person.
+3. **A bound.** For each threshold, the error rate among the requests Academy desk answered gets an exact one-sided Clopper-Pearson upper bound. Thresholds are tried from strictest to loosest, and the loosest one whose bound stays under the target is chosen. If none qualifies, no certificate is issued, and the report says why.
 4. **A check on organizations it never saw.** The same frozen threshold runs on the sealed test and on each unseen organization, and the report shows whether the bound held there. The guarantee assumes requests like the calibration ones, so an unseen organization tests that assumption.
 
 A small calibration set gives a wide bound, and the report shows it wide.
@@ -40,7 +58,7 @@ When a helper that Spark wrote gives a wrong result on practice data, Architect 
 
 What this shows is a reproducible defect in a helper, not why the model reasoned as it did.
 
-Both are built and tested, with stand-in models and on the academy's practice data. The screenshots above use stand-in data too. A certificate for Phil from a live run has not been measured yet, because it needs five attempts per task. Neither idea is new. We build on conformal risk control ([arXiv 2208.02814](https://arxiv.org/abs/2208.02814)), Learn-then-Test ([arXiv 2110.01052](https://arxiv.org/abs/2110.01052)), conformal abstention ([arXiv 2405.01563](https://arxiv.org/abs/2405.01563)) and delta debugging (Zeller and Hildebrandt, 2002). What is new here is the pipeline in a product: a deterministic checker, sealed sets the teacher never saw, and a check on organizations it never saw. The plan is [docs/CERTIFY.md](docs/CERTIFY.md).
+Both are built and tested, with stand-in models and on the academy's practice data. The screenshots above use stand-in data too. The first live run, on the Academy desk from the third field run, issued no certificate, because it was too often wrong when it answered. The numbers are under [Results](#a-first-live-certificate). Neither idea is new. We build on conformal risk control ([arXiv 2208.02814](https://arxiv.org/abs/2208.02814)), Learn-then-Test ([arXiv 2110.01052](https://arxiv.org/abs/2110.01052)), conformal abstention ([arXiv 2405.01563](https://arxiv.org/abs/2405.01563)) and delta debugging (Zeller and Hildebrandt, 2002). What is new here is the pipeline in a product: a deterministic checker, sealed sets the teacher never saw, and a check on organizations it never saw. The plan is [docs/CERTIFY.md](docs/CERTIFY.md).
 
 ## Two editions
 
@@ -53,30 +71,30 @@ Architect is one app in two editions. You choose one on the first screen and can
 
 ## Results
 
-### Phil, tested across academies
+### Academy desk, tested across academies
 
-Phil is Glimmer with the instructions and tools Spark built for it. Spark studied three generated academies and taught Glimmer on them. The sealed test had 120 tasks: 48 held out from those three academies, 48 from Harborview Prep, a fourth generated academy with numbers in its policy that no taught academy has, and 24 from a real academy, anonymized, whose records are not published. Neither model had seen the last two. On the real academy only three skills could be checked, because its records have no question text.
+Academy desk is Glimmer with the instructions and tools Spark built for it. Spark studied three generated academies and taught Glimmer on them. The sealed test had 120 tasks: 48 held out from those three academies, 48 from Harborview Prep, a fourth generated academy with numbers in its policy that no taught academy has, and 24 from a real academy, anonymized, whose records are not published. Neither model had seen the last two. On the real academy only three skills could be checked, because its records have no question text.
 
-| Passed, out of tasks | Glimmer on a blank setup | Spark's one-shot setup | Phil |
+| Passed, out of tasks | Glimmer on a blank setup | Spark's one-shot setup | Academy desk |
 | --- | --- | --- | --- |
 | Taught academies (48) | 21 | 22 | 44 |
 | Harborview Prep, unseen (48) | 24 | 22 | 43 |
 | Real academy, unseen (24) | 9 | 11 | 12 |
 
-- On Harborview Prep, Phil passed 43 of 48 and a blank setup 24. Task by task, Phil won 20 and lost 1, a difference of 39.6 points with a 95% interval of 22.9 to 53.7. A gain is shown on that one academy.
-- On the real academy, Phil passed 12 of 24 and a blank setup 9. The difference is 12.5 points with an interval of -17.9 to 40.2. No gain is shown there.
+- On Harborview Prep, Academy desk passed 43 of 48 and a blank setup 24. Task by task, Academy desk won 20 and lost 1, a difference of 39.6 points with a 95% interval of 22.9 to 53.7. A gain is shown on that one academy.
+- On the real academy, Academy desk passed 12 of 24 and a blank setup 9. The difference is 12.5 points with an interval of -17.9 to 40.2. No gain is shown there.
 - By skill on the real academy, assign went from 0 of 8 to 7 of 8, history fell from 5 to 3 and diagnose from 4 to 2. Eight tasks per skill is too few to call these differences.
-- The misses came from tools built on the generated academies. The question lookup tool found a test by its section, and 11 of the real academy's 19 practice tests list the section as "Full". The history helper counted answers written another way as wrong, and the agent's date did not match the date in the requests. We found this by replaying Phil's tools against the real academy's files after the test was retired. The date cause fits the records and is not confirmed.
+- The misses came from tools built on the generated academies. The question lookup tool found a test by its section, and 11 of the real academy's 19 practice tests list the section as "Full". The history helper counted answers written another way as wrong, and the agent's date did not match the date in the requests. We found this by replaying Academy desk's tools against the real academy's files after the test was retired. The date cause fits the records and is not confirmed.
 - The one-shot setup showed no gain over a blank setup in any group.
 - Teaching took three rounds, about 15 minutes. Two changes were kept and one was reverted. The run cost about $0.58 of Spark and $4.26 of hosted Glimmer.
 
-Limits: the numbers come from full-precision Glimmer hosted through OpenRouter, under one seed, and the build that runs on your computer was measured afterward, as the next section shows. The real academy gave 24 tasks from 16 students, and its policy was drafted for this test and awaits the academy's confirmation. A script confirmed the study, not a person. The settings differ by arm: the blank setup ran at temperature 1 with 16 turns, and the other two at temperature 0 with 30 turns. The full report is [docs/comparisons/phil-1.md](docs/comparisons/phil-1.md).
+Limits: the numbers come from full-precision Glimmer hosted through OpenRouter, under one seed, and the build that runs on your computer was measured afterward, as the next section shows. The real academy gave 24 tasks from 16 students, and its policy was drafted for this test and awaits the academy's confirmation. A script confirmed the study, not a person. The settings differ by arm: the blank setup ran at temperature 1 with 16 turns, and the other two at temperature 0 with 30 turns. The full report is [docs/comparisons/academy-desk-1.md](docs/comparisons/academy-desk-1.md).
 
-### Phil on this computer
+### Academy desk on this computer
 
-Phil was then frozen as it was and took the same 120 tasks again on the 2-bit build of Glimmer that runs on an RTX 4070 Ti with 12 GB, through Ollama. Nothing was taught or tuned for this check, and the test had already been opened.
+Academy desk was then frozen as it was and took the same 120 tasks again on the 2-bit build of Glimmer that runs on an RTX 4070 Ti with 12 GB, through Ollama. Nothing was taught or tuned for this check, and the test had already been opened.
 
-| Passed, out of tasks | Phil, local | Phil, hosted |
+| Passed, out of tasks | Academy desk, local | Academy desk, hosted |
 | --- | --- | --- |
 | Taught academies (48) | 45 | 44 |
 | Harborview Prep, unseen (48) | 41 | 43 |
@@ -85,9 +103,45 @@ Phil was then frozen as it was and took the same 120 tasks again on the 2-bit bu
 
 - Over all 120 tasks the difference is +3.3 points with a 95% interval of -4.3 to +11.0. No group shows a difference.
 - A typical task took 38 seconds locally and 9 hosted, about four times as long. Eleven tasks hit the step limit locally and seven hosted.
-- The untaught Glimmer did not finish on the Real academy locally: that run stopped after 2 of 24 tasks when the system ran low on memory. So this does not show how the build does without Phil's setup. It is one seed. The report is [docs/comparisons/phil-1-local.md](docs/comparisons/phil-1-local.md).
+- The untaught Glimmer did not finish on the Real academy locally: that run stopped after 2 of 24 tasks when the system ran low on memory. So this does not show how the build does without Academy desk's setup. It is one seed. The report is [docs/comparisons/academy-desk-1-local.md](docs/comparisons/academy-desk-1-local.md).
 
-A second field run is prepared and has not been run yet.
+### The third field run
+
+A second field run stopped twice before any result was read: first its budget ran out, then the runner opened two final tests at once. The third run replaced it, on the same 126 tasks. Spark studied three other generated academies and taught Glimmer on them over two rounds, and both changes were kept. The sealed test had 48 held-out tasks from those academies, 48 from Juniper Study House, a generated academy neither model had seen, and 30 from a second anonymized snapshot of the real academy, from 17 students. Spark's one-shot setup was developed but its final test was held back and never run, so two setups took it.
+
+| Passed, out of tasks | Glimmer on a blank setup | Academy desk |
+| --- | --- | --- |
+| Taught academies (48) | 15 | 24 |
+| Juniper Study House, unseen (48) | 15 | 31 |
+| Real academy, unseen (30) | 13 | 3 |
+| All (126) | 43 | 58 |
+
+- On Juniper Study House, Academy desk passed 31 of 48 and a blank setup 15. Task by task it won 18 and lost 2, a difference of +33.3 points with a 95% interval of +16.2 to +47.5. That is a gain, and it came from assign, history and hint.
+- On the taught academies the difference was +18.8 points, with an interval of +2.0 to +33.9.
+- On the Real academy, Academy desk passed 3 of 30 and a blank setup 13. The difference is -33.3 points with an interval of -50.3 to -14.2, so Academy desk did worse there, not just no better. It lost 7 history tasks and 3 diagnose tasks and won none.
+- Why, from replaying Academy desk's own tools on the Real academy's files and checking its rules against the requests' wording, offline and after the test: its diagnose instructions load on phrases like "what topic", and the Real academy asks "Which topic was that, and what was the right answer?", so they never loaded. Its history tool gives the right result on all 10 tasks, but every attempt ran to the 30-step limit. The likely cause is that the instructions ask for a number of days the Real academy's policy doesn't have, while the second round allowed one tool call per turn. No replies are kept, so that is not confirmed. Assign was 0 of 10 for both setups, because the Real academy's assignments file is empty and its drafted policy never says how to number the first row. The task builder was fixed afterwards, and this run's numbers stand as measured.
+- The run cost $0.44 of Spark and $7.35 of hosted Glimmer. No local GPU was used.
+
+Limits: hosted Glimmer under one seed. The blank setup ran at temperature 1 with 16 turns and low reasoning, Academy desk at temperature 0 with 30 turns and high reasoning, and Academy desk used about three times the blank setup's spend. Without the one-shot setup's result, the run can't say how much of the gain came from the draft and how much from the rounds. A script confirmed the study, not a person. The reports are [docs/comparisons/academy-desk-3.md](docs/comparisons/academy-desk-3.md) and [academy-desk-3-misses.md](docs/comparisons/academy-desk-3-misses.md).
+
+### A first live certificate
+
+The third run's Academy desk, frozen as it was, was then put up for a certificate on hosted Glimmer: 60 calibration tasks from the taught academies that its run never touched, five attempts each, a target of at most 10% wrong among answered requests (ε = 0.10) at 95% confidence (δ = 0.05), and a check on the Real academy's first snapshot with 5 diagnose and 5 history tasks. Assign was left out there, as planned, since no setup could pass those tasks in the third run.
+
+No certificate was issued. Even answering only when all five attempts agreed, Academy desk would have answered 46 of 60 and been wrong on 14, with an upper bound of 43.5% against the 10% target.
+
+| Answers when | Answered, of 60 | Wrong | Handed off | Upper bound | Real academy: answered, wrong, of 10 |
+| --- | --- | --- | --- | --- | --- |
+| 5 of 5 agree | 46 | 14 | 23% | 43.5% | 8, 8 |
+| 4 or more of 5 | 52 | 16 | 13% | 43.0% | 9, 9 |
+| 3 or more of 5 | 60 | 21 | 0% | 46.4% | 10, 10 |
+
+- The certificate refused to vouch for a model that was confidently wrong, which is the point of certifying. On the tutoring turn, all 7 tasks it answered with five attempts in agreement were wrong. On solve it answered 15 of 15, all right. At temperature 0 the five attempts differ only by the provider's own variation, so a wrong answer repeats as reliably as a right one.
+- On the Real academy it got 0 of 10 right. At full agreement it would have answered 8, all wrong, and handed 2 to staff.
+- The run found a flaw. When all five attempts ran out of steps, the five "no answer" results counted as agreement and were graded wrong instead of handed off. That covers all 5 Real academy history tasks and 3 of the 14 calibration errors. It was fixed after this run.
+- It cost $4.42 of OpenRouter in 350 attempts, with no Spark and no local GPU.
+
+Limits: one set of seeds on hosted Glimmer, calibration tasks from generated academies, and 10 check tasks on a policy drafted for the test. The report is [docs/comparisons/academy-desk-cert-1.md](docs/comparisons/academy-desk-cert-1.md).
 
 ### The returns desk, one job
 
@@ -96,7 +150,7 @@ A second field run is prepared and has not been run yet.
   <img alt="A real training run: Spark teaching Glimmer the returns desk, the check score climbing from 69% past the 95% target, and Spark's diagnosis of the round it kept" src="docs/comparisons/screens/returns-desk-2-train-dark.png">
 </picture>
 
-This run came before Phil's. It is the simpler case: one job and one business's files.
+This run came before Academy desk's. It is the simpler case: one job and one business's files.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/comparisons/results-light.svg">
@@ -122,13 +176,13 @@ From a chosen model's own configuration on Hugging Face, Architect also sizes a 
 
 <img alt="A training plan in Architect Lab for a 235-billion-parameter mixture-of-experts model: 16 GPUs on 2 nodes of 8, with each memory term and its arithmetic" src="docs/screenshots/compute-plan-dark.png">
 
-Architect develops and evaluates field-specific agent harnesses and exports checker-verified training examples. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified. What is measured is the harness (Phil, above). The single-GPU adapter path and the cluster launch are built and tested against stand-ins. A model trained on a field is a direction, and none has been trained. The plan is [docs/SCALE.md](docs/SCALE.md).
+Architect develops and evaluates field-specific agent harnesses and exports checker-verified training examples. Experimental cluster templates are validated structurally and against simulated schedulers; GPU execution, large-model compatibility and training gains remain unverified. What is measured is the harness (Academy desk, above). The single-GPU adapter path and the cluster launch are built and tested against stand-ins. A model trained on a field is a direction, and none has been trained. The plan is [docs/SCALE.md](docs/SCALE.md).
 
 ## Where it fits
 
 <img align="right" width="64" alt="Y Combinator" src="docs/images/yc-logo.svg">
 
-Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. This is our reading of that request, and Architect does not claim to meet it. We see it as a small step in that direction. The idea is direction, not result: if the same loop ran over many organizations of one field, it would produce verified curricula and checkable rewards, and field-specific models need both. Phil shows one field, three taught academies, one unseen generated academy and one real academy with 24 tasks, which is far short of that. What Architect does today is turn one organization's own records and policy into tasks with exact answers, and a large model teaches a small one until it passes them on its own, on the organization's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
+Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. This is our reading of that request, and Architect does not claim to meet it. We see it as a small step in that direction. The idea is direction, not result: if the same loop ran over many organizations of one field, it would produce verified curricula and checkable rewards, and field-specific models need both. Academy desk shows one field in two runs: six taught academies, two unseen generated academies and two snapshots of one real academy, with 24 and 30 tasks. That is far short of it, and on the second snapshot Academy desk did worse than an untaught Glimmer. What Architect does today is turn one organization's own records and policy into tasks with exact answers, and a large model teaches a small one until it passes them on its own, on the organization's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
 
 ## Related work
 
@@ -146,6 +200,7 @@ Then describe a job of your own, try the sample job, or open the returns desk ag
 - If your files include a policy with prices, discounts or rounding, Architect shows you the rule it made from it, with worked examples, and trains only after you confirm it. On a repair shop's pricing, one round of teaching took Glimmer from 22 of 30 check tasks to 40 of 40 on its final test (a single run, not a planned comparison).
 - An agent exports as one file, or publishes to Hugging Face, private by default.
 - The `architect` command does the same from a terminal: [docs/CLI.md](docs/CLI.md).
+- A job you write yourself is a folder: a job file, its tasks, each organization's files and maybe a checker. The format, with a worked example: [docs/JOB_FORMAT.md](docs/JOB_FORMAT.md). In Architect Lab you can skip writing it: describe the job once and add each organization's folder.
 - How it fits together, and why: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Built during the Meta Global AI Developer Hackathon

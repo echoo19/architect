@@ -1,12 +1,16 @@
 import type { OrgTypeResult, Score } from '@architect/shared';
 
-/** Where an organization stands to the agent: trained with, never seen, or never seen and real. */
-export type OrgGroup = 'seen' | 'unseen' | 'real';
+/**
+ * Where an organization stands to the agent: trained with, never seen, never seen and real, or
+ * never seen and added to the field after the run (decision 085).
+ */
+export type OrgGroup = 'seen' | 'unseen' | 'real' | 'added';
 
 export const ORG_GROUPS: { group: OrgGroup; label: string }[] = [
   { group: 'seen', label: 'Taught on' },
   { group: 'unseen', label: 'Never seen' },
   { group: 'real', label: 'Never seen, real' },
+  { group: 'added', label: 'Added later' },
 ];
 
 export interface OrgColumn {
@@ -15,6 +19,8 @@ export interface OrgColumn {
   group: OrgGroup;
   /** Every final-test task at this organization, all skills together. */
   score: Score;
+  /** Measured as never seen, and taught on since in a later version of the field (decision 089). */
+  taughtLater: boolean;
 }
 
 export interface OrgGrid {
@@ -26,6 +32,7 @@ export interface OrgGrid {
 
 function groupOf(result: OrgTypeResult): OrgGroup {
   if (result.seen) return 'seen';
+  if (result.addedLater === true) return 'added';
   return result.synthetic ? 'unseen' : 'real';
 }
 
@@ -50,6 +57,7 @@ export function organizationGrid(perOrg: readonly OrgTypeResult[] | undefined): 
         name: result.orgName,
         group: groupOf(result),
         score: { pass: result.pass, total: result.total },
+        taughtLater: result.taughtLater === true,
       });
     }
     if (!rows.some((row) => row.type === result.type)) {

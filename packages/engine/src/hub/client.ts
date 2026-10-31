@@ -12,7 +12,8 @@ import {
 import { open } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
-import { isLoopbackUrl } from '@architect/shared';
+import { outsideNetwork } from '@architect/adapters';
+import { AdapterError, insideNetwork, isLoopbackUrl } from '@architect/shared';
 import { z } from 'zod';
 
 export const HF_ENDPOINT = 'https://huggingface.co';
@@ -73,6 +74,11 @@ export interface HubClientOptions {
   /** Read from the app's secret store when a request needs it; never logged or saved. */
   token: () => Promise<string | undefined>;
   fetch?: typeof fetch;
+  /**
+   * The closed network's hosts while it is on (decision 098): a request to any other, a redirect
+   * included, is refused with `outside_network` before it is sent.
+   */
+  allowedHosts?: () => readonly string[] | undefined;
   /** Per request, downloads and uploads aside. Default 60 seconds. */
   timeoutMs?: number;
 }
@@ -294,7 +300,17 @@ export class HubClient {
   }
 
   private get fetch(): typeof fetch {
-    return this.options.fetch ?? ((input, init) => fetch(input, init));
+    const send = this.options.fetch ?? ((input, init) => fetch(input, init));
+    const { allowedHosts } = this.options;
+    if (allowedHosts === undefined) return send;
+    return (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const hosts = allowedHosts();
+      if (hosts !== undefined && !insideNetwork(url, hosts)) {
+        return Promise.reject(outsideNetwork('Hugging Face', url));
+      }
+      return send(input, init);
+    };
   }
 
   /** The token when there is one: reading a public repository needs none. */
@@ -343,31 +359,53 @@ export class HubClient {
         'Try again later.',
       );
     }
-    let response: Response;
-    try {
-      response = await this.fetch(url, {
-        method,
-        headers: {
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-          accept: 'application/json',
-          ...(options.contentType ? { 'content-type': options.contentType } : {}),
-          ...options.headers,
-        },
-        ...(options.body === undefined ? {} : { body: options.body }),
-        signal: this.signalFor(
-          options.signal,
-          options.timeoutMs ?? this.options.timeoutMs ?? 60_000,
-        ),
-      });
-    } catch (error) {
-      throw new HubError(
-        'network',
-        `Hugging Face could not be reached: ${messageOf(error)}`,
-        'Check the internet connection, then try again.',
-      );
+    // Redirects are taken one hop at a time, so each is checked as the first was (decision 098):
+    // a read may move within the Hub, and a change, which carries a body, never moves at all.
+    let target = new URL(url);
+    for (let hop = 0; ; hop++) {
+      let response: Response;
+      try {
+        response = await this.fetch(target.href, {
+          method,
+          headers: {
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+            accept: 'application/json',
+            ...(options.contentType ? { 'content-type': options.contentType } : {}),
+            ...options.headers,
+          },
+          ...(options.body === undefined ? {} : { body: options.body }),
+          redirect: 'manual',
+          signal: this.signalFor(
+            options.signal,
+            options.timeoutMs ?? this.options.timeoutMs ?? 60_000,
+          ),
+        });
+      } catch (error) {
+        if (error instanceof AdapterError) throw error;
+        throw new HubError(
+          'network',
+          `Hugging Face could not be reached: ${messageOf(error)}`,
+          'Check the internet connection, then try again.',
+        );
+      }
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        await response.body?.cancel();
+        const next = location === null ? null : new URL(location, target);
+        if (method !== 'GET' || next?.origin !== this.origin || hop >= 5) {
+          throw new HubError(
+            'bad_response',
+            "Hugging Face redirected a request somewhere Architect doesn't follow.",
+            'Try again later.',
+            response.status,
+          );
+        }
+        target = next;
+        continue;
+      }
+      if (!response.ok) throw await this.refusal(response, token);
+      return response;
     }
-    if (!response.ok) throw await this.refusal(response, token);
-    return response;
   }
 
   /** What a refused request means; without a token, a 401 asks for one. */
@@ -775,16 +813,28 @@ export class HubClient {
       response = await this.fetch(url, {
         ...init,
         ...(init.body instanceof ReadableStream ? { duplex: 'half' } : {}),
+        // An upload never follows a redirect: it would send the file to a host no check saw.
+        redirect: 'manual',
         signal: this.signalFor(
           signal,
           60_000 + Math.ceil((bytes / UPLOAD_BYTES_PER_SECOND) * 1000),
         ),
       } as RequestInit);
     } catch (error) {
+      if (error instanceof AdapterError) throw error;
       throw new HubError(
         'network',
         `The upload of ${path} broke off: ${messageOf(error)}`,
         'Try again; parts that already arrived are kept.',
+      );
+    }
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel();
+      throw new HubError(
+        'bad_response',
+        `The upload host redirected ${path} somewhere Architect doesn't follow.`,
+        'Try again; parts that already arrived are kept.',
+        response.status,
       );
     }
     if (!response.ok) {
@@ -938,6 +988,7 @@ export class HubClient {
           ...(signal ? { signal } : {}),
         });
       } catch (error) {
+        if (error instanceof AdapterError) throw error;
         throw new HubError(
           'network',
           `The download of ${path} failed: ${messageOf(error)}`,

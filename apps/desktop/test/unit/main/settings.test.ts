@@ -89,6 +89,59 @@ describe('SettingsStore', () => {
     });
   });
 
+  it('keeps a closed network, and fails closed on a damaged one, saying so until it is saved', async () => {
+    const store = await SettingsStore.open(file);
+    await store.update({ closedNetwork: { on: true, hosts: ['spark.lab.internal'] } });
+    expect((await SettingsStore.open(file)).get().closedNetwork).toEqual({
+      on: true,
+      hosts: ['spark.lab.internal'],
+    });
+
+    // A switch that isn't one and a host that isn't one: on, with the host that reads.
+    await writeFile(
+      file,
+      JSON.stringify({
+        onboarded: true,
+        closedNetwork: { on: 'yes', hosts: ['spark.lab.internal', 'https://bad/v1'] },
+      }),
+    );
+    const damaged = await SettingsStore.open(file);
+    expect(damaged.get()).toMatchObject({
+      onboarded: true,
+      closedNetwork: { on: true, hosts: ['spark.lab.internal'] },
+    });
+    expect(damaged.get().closedNetworkProblem).toContain(
+      "couldn't be read in full (whether it is on, 1 host), so it stays on with spark.lab.internal",
+    );
+    // Another change keeps the problem in view and never writes it to the file.
+    await damaged.update({ steps: 'expanded' });
+    expect(damaged.get().closedNetworkProblem).toBeDefined();
+    expect(JSON.parse(await readFile(file, 'utf8'))).not.toHaveProperty('closedNetworkProblem');
+    // Saving the network is the answer to it.
+    await damaged.update({ closedNetwork: { on: true, hosts: ['spark.lab.internal'] } });
+    expect(damaged.get().closedNetworkProblem).toBeUndefined();
+
+    // More hosts than a network may name: on, with the first fifty.
+    const many = Array.from({ length: 60 }, (_, index) => `node-${index}.lab.internal`);
+    await writeFile(file, JSON.stringify({ closedNetwork: { on: false, hosts: many } }));
+    const crowded = (await SettingsStore.open(file)).get();
+    expect(crowded.closedNetwork?.on).toBe(true);
+    expect(crowded.closedNetwork?.hosts).toHaveLength(50);
+  });
+
+  it('fails closed on a file that is not JSON but held a closed network, and only then', async () => {
+    await writeFile(file, '{"onboarded": true, "closedNetwork": {"on": true, "hosts": ["spark');
+    const broken = (await SettingsStore.open(file)).get();
+    expect(broken.closedNetwork).toEqual({ on: true, hosts: [] });
+    expect(broken.closedNetworkProblem).toContain('the settings file could not be read');
+    await writeFile(file, '{"onboarded": tru');
+    expect((await SettingsStore.open(file)).get()).toEqual(defaultSettings());
+  });
+
+  it('never takes the problem from the renderer', () => {
+    expect(AppSettingsPatchSchema.safeParse({ closedNetworkProblem: 'none' }).success).toBe(false);
+  });
+
   it('reads past a theme that an earlier version stored, and never writes it back', async () => {
     for (const theme of ['dark', 'light', 'system', 'sepia']) {
       await writeFile(file, JSON.stringify({ theme, onboarded: true, steps: 'expanded' }));
@@ -115,6 +168,20 @@ describe('SettingsStore', () => {
       JSON.stringify({ customEndpoints: [good, { baseUrl: 'not a url', label: 'x' }, 7] }),
     );
     expect((await SettingsStore.open(file)).get().customEndpoints).toEqual([good]);
+  });
+
+  it('keeps the recorded field exports across a restart, reading past a damaged one', async () => {
+    const good = {
+      jobId: 'job_a',
+      name: 'Academy desk',
+      dir: join(dir, 'exports', 'academy-desk'),
+      at: '2026-11-01T09:00:00.000Z',
+    };
+    await writeFile(file, JSON.stringify({ fieldExports: [good, { jobId: 'job_b' }, 'x'] }));
+    expect((await SettingsStore.open(file)).get().fieldExports).toEqual([good]);
+
+    await writeFile(file, JSON.stringify({ fieldExports: 'not a list' }));
+    expect((await SettingsStore.open(file)).get().fieldExports).toBeUndefined();
   });
 
   it('reads an install from before the Lab as the personal edition, and keeps a chosen one', async () => {
@@ -167,5 +234,23 @@ describe('settings patches', () => {
     expect(
       AppSettingsPatchSchema.safeParse({ llamaServerPath: 'C:\\Temp\\anything.exe' }).success,
     ).toBe(false);
+  });
+
+  it('name the hosts of a closed network, each a host and no more', () => {
+    expect(
+      AppSettingsPatchSchema.parse({
+        closedNetwork: { on: true, hosts: [' Spark.Lab.Internal '] },
+      }),
+    ).toEqual({ closedNetwork: { on: true, hosts: ['spark.lab.internal'] } });
+    expect(
+      AppSettingsPatchSchema.safeParse({
+        closedNetwork: { on: true, hosts: ['https://spark.lab.internal/v1'] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('never record a field export: only the main process does, as it writes one', () => {
+    const record = { jobId: 'j', name: 'n', dir: 'C:\\x', at: '2026-11-01T09:00:00.000Z' };
+    expect(AppSettingsPatchSchema.safeParse({ fieldExports: [record] }).success).toBe(false);
   });
 });

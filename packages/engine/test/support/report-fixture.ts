@@ -113,6 +113,9 @@ export function row(id: ArmId, label: string, pass: number, sampling: Decoding):
     adapterSha256: null,
     sampling,
     complete: true,
+    model: null,
+    runsOn: null,
+    perThousandUsd: null,
   };
 }
 
@@ -179,7 +182,7 @@ function sweep(label: string, job: string, tasks: number, pass: number): TaskSwe
 
 /** The report of a comparison that ran bare, draft, targeted and Spark's reference, seed 101 only. */
 export function comparisonOne(): ComparisonReport {
-  const bare = arm('bare', 'Bare student', {
+  const bare = arm('bare', 'Glimmer alone', {
     dev: { baseline: { pass: 24, total: 45 }, kept: null },
     spent: spend({ studentUsd: 0.85, studentAttempts: 105 }),
   });
@@ -278,18 +281,18 @@ export function comparisonOne(): ComparisonReport {
     label: 'Hosted Glimmer',
     identity: identity(),
     rows: [
-      row('bare', 'Bare student', 43, BLANK),
+      row('bare', 'Glimmer alone', 43, BLANK),
       row('draft', 'One-shot draft', 47, DRAFTED),
       row('targeted', 'Targeted mentoring', 45, DRAFTED),
     ],
     paired: [
-      pair('draft', 'bare', 'One-shot draft vs Bare student', {
+      pair('draft', 'bare', 'One-shot draft vs Glimmer alone', {
         wins: 13,
         losses: 9,
         both: 34,
         neither: 4,
       }),
-      pair('targeted', 'bare', 'Targeted mentoring vs Bare student', {
+      pair('targeted', 'bare', 'Targeted mentoring vs Glimmer alone', {
         wins: 11,
         losses: 9,
         both: 34,
@@ -316,7 +319,7 @@ export function comparisonOne(): ComparisonReport {
     }),
     rows: [row('reference', 'Spark reference, blank harness', 60, BLANK)],
     paired: [
-      pair('reference', 'bare', 'Spark reference, blank harness vs Bare student', {
+      pair('reference', 'bare', 'Spark reference, blank harness vs Glimmer alone', {
         wins: 17,
         losses: 0,
         both: 43,
@@ -346,6 +349,8 @@ export function comparisonOne(): ComparisonReport {
       order: [...ARM_ORDER],
       adapterProtocol: 'four-cell',
       releasedAt: '2026-10-28T21:56:26.858Z',
+      funding: null,
+      amendments: [],
     },
     inputs: {
       job: pinned('sample-gear-returns', 'Returns desk', '9c'),

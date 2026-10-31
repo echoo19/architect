@@ -140,7 +140,7 @@ export function DataTable<R>({
 
   return (
     <div
-      className={cn('min-w-0 overflow-auto rounded-card bg-card shadow-edge', className)}
+      className={cn('min-w-0 overflow-auto rounded-card surface-card scroll-quiet', className)}
       style={maxHeight === undefined ? undefined : { maxHeight }}
     >
       <table

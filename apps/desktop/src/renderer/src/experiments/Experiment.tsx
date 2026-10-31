@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import type { ArmId, ExperimentDetail, ExperimentRecord, ExperimentStart } from '@architect/shared';
+import {
+  capToFund,
+  type ArmId,
+  type ComparisonReport,
+  type ExperimentDetail,
+  type ExperimentInput,
+  type ExperimentRecord,
+  type ExperimentStart,
+} from '@architect/shared';
 import {
   Badge,
   Button,
@@ -11,7 +19,17 @@ import {
   ErrorState,
   Meter,
 } from '@architect/ui';
-import { Ban, Clock, GraduationCap, Lock, Pause, Play, Square, Wallet } from 'lucide-react';
+import {
+  Ban,
+  Clock,
+  FlaskConical,
+  GraduationCap,
+  Lock,
+  Pause,
+  Play,
+  Square,
+  Wallet,
+} from 'lucide-react';
 import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery } from '../api/query';
 import { formatCost } from '../flow/format';
@@ -21,13 +39,16 @@ import { PlacePage } from '../shell/PlacePage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ArmTile } from './icons';
 import {
-  ARM_NAMES,
+  armNames,
   DONE_TEACHING,
+  experimentNames,
   SPARK_ARMS,
   STATUS_WORDS,
   STUDENT_ARMS,
   armStatusWord,
   minutesText,
+  primaryResult,
+  primaryText,
 } from './model';
 import { Results } from './Results';
 
@@ -102,6 +123,7 @@ function Spent({
 }
 
 function ArmsTable({ detail }: { detail: ExperimentDetail }) {
+  const names = experimentNames(detail);
   return (
     <DataTable
       aria-label="Arms"
@@ -114,7 +136,7 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
           cell: (row) => (
             <span className="flex items-center gap-3">
               <ArmTile arm={row.arm} />
-              {ARM_NAMES[row.arm]}
+              {armNames(names)[row.arm]}
             </span>
           ),
         },
@@ -143,14 +165,14 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
         },
         {
           key: 'spark',
-          header: 'Spark',
+          header: names.mentor,
           align: 'end',
           width: '176px',
           cell: (row) => <Spent amount={row.spark} tone="mentor" />,
         },
         {
           key: 'student',
-          header: 'Glimmer',
+          header: names.student,
           align: 'end',
           width: '176px',
           cell: (row) => <Spent amount={row.student} tone="student" />,
@@ -170,6 +192,9 @@ const cents = (usd: number) => Math.round(usd * 100) / 100;
 function SpendCard({ detail }: { detail: ExperimentDetail }) {
   const { experiment, report } = detail;
   const { caps } = experiment.input;
+  const names = experimentNames(detail);
+  // A cap the person raised before the release holds from then on.
+  const studentCap = detail.amendments.at(-1)?.toUsd ?? caps.studentUsd;
   const student = report?.totals.studentUsd;
   const compute = cents(report?.totals.computeUsd ?? 0);
   return (
@@ -177,22 +202,22 @@ function SpendCard({ detail }: { detail: ExperimentDetail }) {
       <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2 xl:grid-cols-4">
         <CapMeter
           tone="mentor"
-          label="Spark"
+          label={names.mentor}
           used={report?.totals.sparkUsd ?? 0}
           cap={caps.sparkUsd}
           format={formatCost}
         />
         {student === null ? (
           <div className="flex items-baseline justify-between gap-3 text-ui">
-            <span>Glimmer</span>
+            <span>{names.student}</span>
             <span title="Some attempt's price isn't known">Not known</span>
           </div>
         ) : (
           <CapMeter
             tone="student"
-            label="Glimmer"
+            label={names.student}
             used={student ?? 0}
-            cap={caps.studentUsd}
+            cap={studentCap}
             format={formatCost}
           />
         )}
@@ -212,6 +237,39 @@ function SpendCard({ detail }: { detail: ExperimentDetail }) {
   );
 }
 
+/**
+ * What it was run to find out, as frozen: the hypothesis and its primary comparison, and once the
+ * tests are released what was measured for it. An experiment from before hypotheses has none.
+ */
+function HypothesisCard({
+  input,
+  report,
+  arms,
+}: {
+  input: ExperimentInput;
+  report: ComparisonReport | null;
+  arms: Record<ArmId, string>;
+}) {
+  const { hypothesis, primaryComparison } = input;
+  if (hypothesis === undefined || primaryComparison === undefined) return null;
+  const measured = report === null ? null : primaryResult(report, primaryComparison, arms);
+  return (
+    <Card title="Hypothesis" icon={<FlaskConical size={16} strokeWidth={1.7} aria-hidden />}>
+      <p className="m-0 max-w-[68ch] text-body text-pretty">{hypothesis}</p>
+      <dl className="m-0 mt-4 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-ui">
+        <dt className="font-medium">Primary comparison</dt>
+        <dd className="m-0">{primaryText(input, arms)}</dd>
+        {measured !== null && (
+          <>
+            <dt className="font-medium">Measured</dt>
+            <dd className="m-0 tabular-nums">{measured}</dd>
+          </>
+        )}
+      </dl>
+    </Card>
+  );
+}
+
 /** What was frozen before it ran, for whoever needs to quote it. */
 function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
   const { preregistration, input, job } = experiment;
@@ -225,7 +283,13 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
             value: new Date(preregistration.at).toLocaleString('en-US'),
           },
           { label: 'Plan hash', value: preregistration.sha256 },
-          { label: 'Field', value: `${job.name}, ${shortPath(input.jobDir)}` },
+          {
+            label: 'Field',
+            value:
+              input.jobDir === undefined
+                ? `${job.name}, in your library`
+                : `${job.name}, ${shortPath(input.jobDir)}`,
+          },
           { label: 'Splits seed', value: job.splitsSeed },
           { label: 'Teaching seed', value: input.seeds.mentoring },
           { label: 'Final-test seeds', value: input.seeds.lockedTest.join(', ') },
@@ -236,7 +300,7 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
   );
 }
 
-/** Spark's brief or a cut-down plan, waiting for the person before the run goes on. */
+/** The teacher's brief or a cut-down plan, waiting for the person before the run goes on. */
 function WaitingCard({
   detail,
   onGoOn,
@@ -255,7 +319,7 @@ function WaitingCard({
     const { brief } = study;
     return (
       <Card
-        title="Spark's brief"
+        title={`${experimentNames(detail).mentor}'s brief`}
         icon={<GraduationCap size={16} strokeWidth={1.7} aria-hidden />}
         flush
         action={
@@ -297,12 +361,87 @@ function WaitingCard({
   );
 }
 
+/**
+ * An arm the student's cap can't pay for at what an attempt has really cost: nothing is released
+ * until the person raises the cap or drops the arm (decision 081).
+ */
+function FundingCard({
+  detail,
+  onAnswer,
+}: {
+  detail: ExperimentDetail;
+  onAnswer: (options: ExperimentStart) => Promise<boolean>;
+}) {
+  const [asking, setAsking] = useState<'raise' | 'drop' | null>(null);
+  const { funding, experiment } = detail;
+  if (funding === null) return null;
+  const names = experimentNames(detail);
+  const arm = armNames(names)[funding.arm];
+  const raised = capToFund(funding);
+  const close = (open: boolean) => !open && setAsking(null);
+  return (
+    <>
+      <Card
+        title="Waiting for you"
+        icon={<Wallet size={16} strokeWidth={1.7} aria-hidden />}
+        action={
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setAsking('drop')}>
+              Drop the arm
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setAsking('raise')}>
+              Raise the cap
+            </Button>
+          </div>
+        }
+      >
+        <p className="m-0 text-body text-pretty">
+          {experiment.reason ?? `${arm} needs more than the ${names.student} cap has left.`}
+        </p>
+      </Card>
+      <ConfirmDialog
+        open={asking === 'raise'}
+        onOpenChange={close}
+        title={`Raise the ${names.student} cap to ${formatCost(raised)}?`}
+        confirm="Raise and go on"
+        onConfirm={() => onAnswer({ studentCapUsd: raised })}
+        lines={[
+          {
+            icon: <Wallet aria-hidden />,
+            text: `From ${formatCost(funding.capUsd)}, enough for ${arm} at $${funding.priceUsd.toFixed(4)} an attempt.`,
+          },
+          {
+            icon: <Lock aria-hidden />,
+            text: 'The raise is kept with the experiment, and no final test has opened yet.',
+          },
+        ]}
+      />
+      <ConfirmDialog
+        open={asking === 'drop'}
+        onOpenChange={close}
+        title={`Drop ${arm}?`}
+        confirm="Drop and go on"
+        tone="danger"
+        onConfirm={() => onAnswer({ dropArms: [funding.arm] })}
+        lines={[
+          { icon: <Ban aria-hidden />, text: "It won't run, and the results say you dropped it." },
+          {
+            icon: <Lock aria-hidden />,
+            text: 'The other arms go on, and their final tests open once they are done.',
+          },
+        ]}
+      />
+    </>
+  );
+}
+
 /** A preregistered experiment: its live state, then its results once they are released. */
 export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
   const { experiment, report, released } = detail;
   const { id, status, input } = experiment;
   const [confirming, setConfirming] = useState<'start' | 'stop' | null>(null);
   const [acting, setActing] = useState(false);
+  const names = experimentNames(detail);
 
   const act = async (title: string, run: () => Promise<unknown>) => {
     setActing(true);
@@ -326,10 +465,11 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
     ) : status === 'running' ||
       status === 'paused' ||
       status === 'incomplete' ||
-      status === 'waiting' ? (
+      status === 'waiting' ||
+      status === 'needs_funding' ? (
       <div className="flex items-center gap-2">
-        <Button size="md" variant="danger" disabled={acting} onClick={() => setConfirming('stop')}>
-          <Square size={14} aria-hidden />
+        <Button size="md" disabled={acting} onClick={() => setConfirming('stop')}>
+          <Square size={12} fill="currentColor" strokeWidth={0} aria-hidden />
           Stop
         </Button>
         {status === 'running' ? (
@@ -341,7 +481,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
             <Pause size={16} aria-hidden />
             Pause
           </Button>
-        ) : status !== 'waiting' ? (
+        ) : status !== 'waiting' && status !== 'needs_funding' ? (
           <Button variant="primary" size="md" loading={acting} onClick={() => void resume({})}>
             <Play size={16} aria-hidden />
             Resume
@@ -362,7 +502,9 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
       action={action}
     >
       <div className={released ? 'flex max-w-[960px] flex-col gap-10' : 'flex flex-col gap-4'}>
+        <HypothesisCard input={input} report={released ? report : null} arms={armNames(names)} />
         {status === 'waiting' && <WaitingCard detail={detail} onGoOn={resume} />}
+        {status === 'needs_funding' && <FundingCard detail={detail} onAnswer={resume} />}
         {status === 'failed' && (
           <ErrorState
             layout="inline"
@@ -373,7 +515,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
         {(status === 'paused' || status === 'stopped' || status === 'incomplete') &&
           experiment.reason && <p className="m-0 text-body">{experiment.reason}</p>}
         {released && report ? (
-          <Results report={report} input={input} />
+          <Results report={report} input={input} names={names} />
         ) : (
           <>
             <SpendCard detail={detail} />
@@ -394,7 +536,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
         lines={[
           {
             icon: <Wallet aria-hidden />,
-            text: `It may spend up to ${formatCost(input.caps.sparkUsd)} of Spark, ${formatCost(input.caps.studentUsd)} of Glimmer and ${formatCost(input.caps.computeUsd)} of compute.`,
+            text: `It may spend up to ${formatCost(input.caps.sparkUsd)} of ${names.mentor}, ${formatCost(input.caps.studentUsd)} of ${names.student} and ${formatCost(input.caps.computeUsd)} of compute.`,
           },
           {
             icon: <Clock aria-hidden />,
@@ -402,15 +544,15 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
           },
           {
             icon: <GraduationCap aria-hidden />,
-            text: 'If Spark studies the organizations first, its brief waits for you here.',
+            text: `If ${names.mentor} studies the organizations first, its brief waits for you here.`,
           },
         ]}
       />
       <ConfirmDialog
         open={confirming === 'stop'}
         onOpenChange={(open) => !open && setConfirming(null)}
-        title="Stop it for good?"
-        confirm="Stop"
+        title="Stop the experiment?"
+        confirm="Stop the experiment"
         tone="danger"
         onConfirm={() => act("Couldn't stop it", () => experimentsApi.stop(id))}
         lines={[

@@ -136,3 +136,18 @@ export interface MentorAdapter {
   estimateCostUsd(usage: Usage): number | null;
   testConnection(): Promise<ConnectionTest>;
 }
+
+/** One recording's text, as a transcription service returns it. */
+export interface Transcription {
+  /** Each turn in order, with the speaker's label when the service tells speakers apart. */
+  turns: { speaker?: string; text: string }[];
+  /** The audio the service measured, in milliseconds; it bills whole seconds of it. */
+  durationMs: number;
+}
+
+/** A service that turns speech in a WAV file into text (decision 087). */
+export interface Transcriber {
+  readonly label: string;
+  readonly model: string;
+  transcribe(wav: Uint8Array<ArrayBuffer>, signal?: AbortSignal): Promise<Transcription>;
+}

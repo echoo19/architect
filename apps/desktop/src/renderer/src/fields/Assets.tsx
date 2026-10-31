@@ -4,7 +4,7 @@ import {
   type Counterexample,
   type FieldExportManifest,
 } from '@architect/shared';
-import { Button, Card, CardGrid, CardRow, Skeleton, toast } from '@architect/ui';
+import { Button, Card, CardGrid, CardRow, Skeleton, toast, RowIcon } from '@architect/ui';
 import { Bug, Check, FolderOutput, Gauge, Lock, MessagesSquare } from 'lucide-react';
 import { api, flowApi } from '../api/client';
 import { mentoringApi } from '../api/mentoring';
@@ -13,7 +13,9 @@ import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
-import { count, plural, Quiet, Tile } from './parts';
+import { navigate, paths } from '../lib/router';
+import { useSessionExports } from './exports';
+import { count, plural, Quiet } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
 const WORDING =
@@ -68,7 +70,7 @@ function Counterexamples({ counterexamples }: { counterexamples: readonly Counte
           <CardRow
             key={counterexample.id}
             icon={
-              <Tile>
+              <RowIcon>
                 {counterexample.repair?.passed ? (
                   <Check
                     strokeWidth={2}
@@ -79,7 +81,7 @@ function Counterexamples({ counterexamples }: { counterexamples: readonly Counte
                 ) : (
                   <Bug strokeWidth={1.8} role="img" aria-label="Not repaired yet" />
                 )}
-              </Tile>
+              </RowIcon>
             }
             title={`${predicateSentence(counterexample.helper.name, counterexample.predicate)}`}
             detail={
@@ -105,6 +107,7 @@ function AssetsView({
   counterexamples: readonly Counterexample[];
 }) {
   const [exporting, setExporting] = useState(false);
+  const record = useSessionExports((state) => state.record);
   const { counts } = manifest;
 
   const exportTo = async () => {
@@ -118,9 +121,12 @@ function AssetsView({
         flowApi.exportField(jobId, folder),
       );
       if (written) {
+        // Compute's bundle offers it as this field's latest export.
+        record({ jobId, name: written.job.name, dir: folder });
         toast({
           title: 'Field exported',
-          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the sealed manifest.`,
+          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the final test's manifest, by hash only.`,
+          action: { label: 'Open Compute', onClick: () => navigate(paths.compute({ jobId })) },
         });
       }
     }
@@ -140,9 +146,9 @@ function AssetsView({
         <Card title="Field export" flush>
           <CardRow
             icon={
-              <Tile>
+              <RowIcon>
                 <MessagesSquare strokeWidth={1.8} aria-hidden />
-              </Tile>
+              </RowIcon>
             }
             title="Verified demonstrations"
             detail={`From train tasks only, ${plural(counts.trained_turns, 'checked turn')}`}
@@ -150,9 +156,9 @@ function AssetsView({
           />
           <CardRow
             icon={
-              <Tile>
+              <RowIcon>
                 <Gauge strokeWidth={1.8} aria-hidden />
-              </Tile>
+              </RowIcon>
             }
             title="Outcome scorer"
             detail={`Train tasks at ${plural(counts.train_organizations, 'organization')}, with the checker and a Python client`}
@@ -160,9 +166,9 @@ function AssetsView({
           />
           <CardRow
             icon={
-              <Tile>
+              <RowIcon>
                 <Lock strokeWidth={1.8} aria-hidden />
-              </Tile>
+              </RowIcon>
             }
             title="Never-seen evaluation"
             detail={`Final-test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}

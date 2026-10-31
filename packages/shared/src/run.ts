@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ScoreSchema } from './lineage';
-import { PredictionSchema } from './mentor';
+import { OrgScoreSchema, PredictionSchema } from './mentor';
 import { TrainedAdapterSchema } from './mentoring';
 
 export const MethodSchema = z.enum(['architect', 'bare', 'one_shot', 'self_reflection']);
@@ -107,6 +107,8 @@ export const RunSchema = z.object({
   currentVersion: z.number().int().nonnegative(),
   devBaseline: ScoreSchema.nullable(),
   devCurrent: ScoreSchema.nullable(),
+  /** `devCurrent` at each organization the job is taught on; absent for a job without them. */
+  devByOrg: z.array(OrgScoreSchema).optional(),
   totals: RunTotalsSchema,
   stopReason: StopReasonRunSchema.optional(),
   error: z.string().optional(),

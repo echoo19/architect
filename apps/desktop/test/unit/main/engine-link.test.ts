@@ -85,6 +85,8 @@ describe('messages between main and the engine process', () => {
       sandboxEntryPath: '/app/out/sandbox/child.mjs',
       sampleJobFile: '/app/sample-job/job.json',
       academyJobFile: '/app/academy-job/job.json',
+      sweepDeskJobFile: '/app/sweep-desk-job/job.json',
+      assayJobFile: '/app/assay-job/job.json',
       sampleAgentFile: '/app/sample-agent/returns-desk.architect.zip',
       sampleAgentDataDir: '/app/sample-agent/data',
       trainerDir: '/app/trainer',

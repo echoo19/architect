@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { JobSchema } from '@architect/shared';
+import { JobSchema, MENTOR_PRESETS, type Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   comparisonJob,
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
+  fieldModels,
   modelInputs,
   needsConfirmation,
   paired,
@@ -229,7 +230,7 @@ describe('the projection', () => {
     // Arms 1 to 5 reserve $11.09 of the $15 with the 1.2 headroom; the fixed arm needs $5.87.
     expect(fixed).toMatchObject({ funded: false, blockedBy: 'money' });
     expect(fixed?.reason).toBe(
-      "It needs $5.87 of the hosted student's budget, and $3.91 is left after the comparisons before it.",
+      "It needs $5.87 of hosted Glimmer's budget, and $3.91 is left after the comparisons before it.",
     );
     const weights = projection.arms.find((arm) => arm.arm === 'weights-one-shot');
     expect(weights).toMatchObject({ funded: false, blockedBy: 'prerequisite' });
@@ -285,6 +286,90 @@ describe('the comparison job', () => {
     // Graduates pin, and local tests run on, the 2-bit build that fits a 12 GB GPU.
     expect(job.student.local).toMatchObject({ runtime: 'ollama', model: 'muse-glimmer:30b-iq2' });
     expect(job.evaluation.lockedTestSeeds).toEqual([101, 102]);
+  });
+});
+
+describe("a comparison on the field's own models", () => {
+  const cluster = {
+    runtime: 'openai_compatible' as const,
+    baseUrl: 'http://gpu-node-7:8000/v1',
+    model: 'qwen3-32b',
+    contextLength: 16_384,
+    pricing: { inputPerM: 0.1, cachedInputPerM: 0.1, outputPerM: 0.3 },
+  };
+  const teacher = {
+    kind: 'model' as const,
+    provider: 'other' as const,
+    label: 'Teacher on the cluster',
+    baseUrl: 'http://gpu-node-3:8000/v1',
+    model: 'big-teacher',
+    reasoningEffort: 'high' as const,
+    pricing: { inputPerM: 1, cachedInputPerM: 1, outputPerM: 2 },
+  };
+  const withModels = (changes: Partial<Pick<Job, 'mentor' | 'student'>>) =>
+    JobSchema.parse({ ...source, ...changes });
+
+  it('runs the defaults on a field that teaches with Spark and Glimmer', () => {
+    expect(fieldModels(source)).toEqual(DEFAULT_MODELS);
+  });
+
+  it('keeps another preset teacher by its key, and the default student without a hosted copy', () => {
+    const preset = MENTOR_PRESETS.find((candidate) => candidate.provider === 'anthropic');
+    if (!preset) throw new Error('No Anthropic preset.');
+    const job = withModels({
+      mentor: {
+        kind: 'model',
+        provider: preset.provider,
+        label: preset.label,
+        baseUrl: preset.baseUrl,
+        model: preset.model,
+        reasoningEffort: 'medium',
+        secretRef: preset.secretRef,
+      },
+    });
+    expect(fieldModels(job)).toEqual({ ...DEFAULT_MODELS, mentor: preset.key });
+    expect(comparisonJob(job, config({}), fieldModels(job)).mentor).toMatchObject({
+      label: preset.label,
+      model: preset.model,
+    });
+  });
+
+  it("runs a cluster's teacher and student by their addresses, and names them in the job", () => {
+    const job = withModels({
+      mentor: teacher,
+      student: {
+        label: 'Qwen',
+        local: { ...source.student.local, model: 'qwen3:32b' },
+        trainOn: 'hosted',
+        hosted: cluster,
+      },
+    });
+    const models = fieldModels(job);
+    expect(models).toEqual({ mentor: teacher, student: cluster, localModel: 'qwen3:32b' });
+    const copy = comparisonJob(job, config({}), models);
+    expect(copy.mentor).toMatchObject({
+      label: 'Teacher on the cluster',
+      baseUrl: teacher.baseUrl,
+      reasoningEffort: 'medium',
+    });
+    expect(copy.student).toMatchObject({
+      label: 'Qwen',
+      trainOn: 'hosted',
+      local: { model: 'qwen3:32b' },
+      hosted: { baseUrl: cluster.baseUrl, model: 'qwen3-32b', pricing: cluster.pricing },
+    });
+    // Priced from the field's own models, so the plan holds them to its caps.
+    const settings = config({});
+    expect(() =>
+      project(copy, settings, modelInputs(copy, settings, [], { attempts: [], reading: null })),
+    ).not.toThrow();
+  });
+
+  it('falls back to Spark when a coding agent teaches the field', () => {
+    const job = withModels({
+      mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'Coding agent' },
+    });
+    expect(fieldModels(job).mentor).toBe(DEFAULT_MODELS.mentor);
   });
 });
 

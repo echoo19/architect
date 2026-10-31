@@ -6,6 +6,7 @@ import {
   RuleDetailsSchema,
   RuleSpecSchema,
 } from './rules';
+import { RecordingsViewSchema } from './recordings';
 import { StudyStateSchema } from './study';
 
 /*
@@ -204,5 +205,7 @@ export const TaskPlanSchema = z.object({
   confirmation: RuleConfirmationStateSchema.optional(),
   /** Present when the job lists organizations: where the study of their material stands. */
   study: StudyStateSchema.optional(),
+  /** Present with `study`: the organizations' recordings, transcribed for the study to read. */
+  recordings: RecordingsViewSchema.optional(),
 });
 export type TaskPlan = z.infer<typeof TaskPlanSchema>;

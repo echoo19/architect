@@ -4,7 +4,7 @@ Start every session by reading, in order: this file, `docs/PROGRESS.md`, `docs/P
 
 ## What this is
 
-A desktop app (Electron, React, TypeScript). A **mentor** model watches a **student** model attempt a job, diagnoses its failures, and edits the student's **harness** until the student passes a locked test on its own. The result, a **graduate** (pinned model + harness folder), runs offline in the app's agent workspace. A job can cover a whole field: several **organizations** (for example test-prep academies, with Phil as the tutor) where the student is taught on some and qualified on sealed ones it never saw, one of them real; see `docs/FIELD.md`.
+A desktop app (Electron, React, TypeScript). A **mentor** model watches a **student** model attempt a job, diagnoses its failures, and edits the student's **harness** until the student passes a locked test on its own. The result, a **graduate** (pinned model + harness folder), runs offline in the app's agent workspace. A job can cover a whole field: several **organizations** (for example test-prep academies, with Academy desk as their staff-facing agent) where the student is taught on some and qualified on sealed ones it never saw, one of them real; see `docs/FIELD.md`.
 
 In code and docs say `mentor` and `student`. The UI shows the chosen model's short name (for example "Spark", "Glimmer").
 

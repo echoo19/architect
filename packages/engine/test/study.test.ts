@@ -20,7 +20,7 @@ const NORTHSIDE_POLICY = `# Tutoring policy
 After a wrong answer, assign 3 practice questions of the same topic, not yet attempted.
 Escalate to staff after 4 wrong answers in a row on one topic.
 `;
-const LAKEVIEW_POLICY = `# How we tutor
+const LAKEVIEW_POLICY = `# How we run practice
 
 After a wrong answer, assign 5 practice questions of the same topic, not yet attempted.
 Escalate to staff after 3 wrong answers in a row on one topic.
@@ -41,8 +41,8 @@ function questions(prefix: string): string {
 
 function academyJob(): Job {
   return defaultJob({
-    id: 'phil',
-    name: 'Phil',
+    id: 'academy-desk',
+    name: 'Academy desk',
     description: 'Help a student right after a wrong answer, from the academy files.',
     taskTypes: [
       { id: 'diagnose', label: 'Diagnose' },
@@ -239,7 +239,7 @@ We share staff with Harbor Learning.
                 needs: ['grades.csv'],
                 steps: ['Northside Prep labels it ALG-3.'],
               },
-              { taskType: 'tutor', text: 'x', needs: [], steps: ['Read it.'], quotes: [] },
+              { taskType: 'academy-desk', text: 'x', needs: [], steps: ['Read it.'], quotes: [] },
             ],
           })
         : brief();
@@ -248,7 +248,7 @@ We share staff with Harbor Learning.
     expect(world.mentor.requests).toHaveLength(2);
     const fix = world.mentor.requests[1]?.messages.at(-1)?.content ?? '';
     expect(fix).toContain('holds an organization');
-    expect(fix).toContain('"tutor" is not a task type');
+    expect(fix).toContain('"academy-desk" is not a task type');
     expect(fix).toContain('no organization has');
     expect(fix).toContain('Missing: assign');
   });

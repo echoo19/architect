@@ -3,13 +3,16 @@ import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   ARM_LABELS,
+  armInSentence,
   ARM_PRIORITY,
+  fundingMessage,
   JobSchema,
   studentPricing,
   type ArmId,
   type StudyRecord,
   type BackendId,
   type ComparisonReport,
+  type FundingPause,
   type Harness,
   type Job,
   type PinnedInputs,
@@ -27,7 +30,7 @@ import { deriveSeed, sampleTrainBatch } from '../loop/seeds';
 import { connectStudent } from '../loop/setup';
 import { waitOnClock } from '../loop/time';
 import type { StoredRun } from '../store/records';
-import { armStart, comparisonJob, stageFolder, type ComparisonModels } from './arms';
+import { armStart, comparisonJob, modelKeys, stageFolder, type ComparisonModels } from './arms';
 import { Credit } from './credit';
 import { openComparisonEngine, type ComparisonEngine } from './engine';
 import {
@@ -61,6 +64,7 @@ import {
 import { armRun, buildReport } from './report';
 import { StudentCredit } from './spend';
 import { sweep } from './sweep';
+import { teacherJob, teacherOf } from './teacher';
 
 /** What the runner runs on: the engine's dependencies, real or fakes, and a few of its own. */
 export interface ComparisonEnvironment {
@@ -103,9 +107,21 @@ export interface ComparisonRequest {
    * folder's `study.json`, which confirms that brief for every arm (decision 069).
    */
   studyToken?: string;
+  /**
+   * Raises the confirmed plan's student cap to this, before any locked test is released: the
+   * person's answer to a comparison paused for money, recorded as an amendment (decision 081).
+   */
+  studentCapUsd?: number;
+  /** Arms the person drops before the release, recorded as their decision (decision 081). */
+  dropArms?: readonly ArmId[];
 }
 
-export type ComparisonOutcome = 'planned' | 'needs_confirmation' | 'finished' | 'incomplete';
+/**
+ * `needs_funding`: an arm can't be paid for at what an attempt has really cost, so the comparison
+ * waits for the person before any locked test is released (decision 081).
+ */
+export type ComparisonOutcome =
+  'planned' | 'needs_confirmation' | 'needs_funding' | 'finished' | 'incomplete';
 
 /** A comparison as a caller sees it while it runs: its report from the records, its runs' events. */
 export interface ComparisonView {
@@ -129,10 +145,14 @@ const MAX_RESUMES = 5;
 /** Dev tasks of each type the regression check takes from the other job. */
 const REGRESSION_PER_TYPE = 10;
 
+/**
+ * The arms in the order they develop. The teacher alone needs no other arm, but starts last, so
+ * its price, which only its own attempts show, can't hold back an arm before it in 037's order.
+ */
 const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
   ['bare', 'draft'],
   ['targeted', 'fixed'],
-  ['weights-one-shot', 'weights-targeted'],
+  ['weights-one-shot', 'weights-targeted', 'teacher'],
 ];
 
 /** The arms that measure other arms' graduates and have no run of their own. */
@@ -310,10 +330,11 @@ function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSet
     smokeTasks: config.smokeTasks,
     sparkCaps: { ...config.sparkCaps },
     studentCaps: { ...(config.studentCaps ?? {}) },
-    mentor: models.mentor,
-    student: models.student,
+    ...modelKeys(models),
     providers: models.providers === undefined ? null : [...models.providers],
     localModel: models.localModel,
+    // The whole of a chosen teacher, so a resume can't change its label, key name or price.
+    teacher: config.teacher === undefined ? null : JSON.stringify(config.teacher),
   };
 }
 
@@ -333,8 +354,12 @@ function resumeProblem(plan: PlanRecord, request: ComparisonRequest, localMinute
       JSON.stringify(asked[key]) !== JSON.stringify(plan.settings[key]) &&
       !(key === 'localOllama' && asked.localOllama && !plan.settings.localOllama),
   );
+  // The student cap may be the one confirmed or the one the person raised it to since.
+  const confirmedStudentUsd = plan.amendments[0]?.fromUsd ?? plan.caps.studentUsd;
   const caps = (['studentUsd', 'sparkUsd', 'computeUsd'] as const).filter(
-    (key) => config.caps[key] !== plan.caps[key],
+    (key) =>
+      config.caps[key] !== plan.caps[key] &&
+      !(key === 'studentUsd' && config.caps.studentUsd === confirmedStudentUsd),
   );
   if (changed.length > 0 || caps.length > 0) {
     return `This folder's plan was confirmed with other settings (${[...changed, ...caps].join(', ')}); run it with the ones it was confirmed with, or use a new output folder.`;
@@ -367,7 +392,7 @@ function requirePrice(job: Job): void {
   const hosted = job.student.hosted;
   if (hosted === undefined || studentPricing(hosted) !== undefined) return;
   throw new Error(
-    `The hosted student ${hosted.model} has no known price, so the comparison can't hold it to the student's credit. Nothing was sent.`,
+    `The hosted ${job.student.label} (${hosted.model}) has no known price, so the comparison can't hold it to its cap. Nothing was sent.`,
   );
 }
 
@@ -486,7 +511,7 @@ export async function runComparison(
     });
 
     // Cost first: the calibration tasks price an attempt before any arm spends.
-    env.log('Calibration: the bare student on the calibration tasks, on the hosted copy.');
+    env.log('Calibration: Glimmer alone on the calibration tasks, on the hosted copy.');
     const calibration = (
       await sweep({
         name: 'calibration',
@@ -548,6 +573,8 @@ export async function runComparison(
           })),
         identities: await identities(env, base, projection, config),
         releasedAt: null,
+        funding: null,
+        amendments: [],
       };
       files.writePlan(plan);
       if (plan.confirmedAt === null) {
@@ -564,6 +591,8 @@ export async function runComparison(
     const localMinutes = (2 * lockedTestsOf(base, config) * model.localSeconds.value) / 60;
     const problem = resumeProblem(plan, request, localMinutes);
     if (problem !== null) throw new Error(problem);
+    const credit = new Credit(engine, guards.credit, model.studentUsd.value);
+    plan = answerFunding(files, plan, request, engine, credit, now, env.log);
     // The plan is confirmed and this request matches it: its cap holds the credit from here.
     guards.credit.holdTo(plan.caps.studentUsd);
     if (config.localOllama && !plan.settings.localOllama) {
@@ -597,7 +626,6 @@ export async function runComparison(
       env.log(`${ARM_LABELS[decision.arm]}: ${decision.reason}`);
     };
 
-    const credit = new Credit(engine, guards.credit, model.studentUsd.value);
     const stopWatching = watchRounds(engine, confirmed, credit, base, config, env, decide);
     try {
       await holdBackAfterRelease(engine, files, decide);
@@ -607,6 +635,18 @@ export async function runComparison(
         if (request.regressionJobDir !== undefined && confirmed.funded.includes('bare')) {
           await regressionCheck(request, env, engine, deps, files, request.regressionJobDir);
         }
+        // An arm the money can't pay for waits for the person: no arm is dropped for it, and no
+        // locked test is released, until they raise the cap or drop it (decision 081).
+        const waitForPerson = async (short: Short) => {
+          const pause: FundingPause = { ...short, at: now() };
+          files.writePlan({ ...(files.readPlan() ?? confirmed), funding: pause });
+          env.log(fundingMessage(pause));
+          return {
+            outcome: 'needs_funding' as const,
+            report: await report(request, env, engine, files, base, guards),
+          };
+        };
+        let short: Short | null = null;
         for (const wave of DEVELOPMENT_WAVES) {
           const arms = wave.filter((arm) => development.includes(arm));
           for (const arm of arms) {
@@ -616,11 +656,9 @@ export async function runComparison(
             if ((files.readPlan() ?? confirmed).decisions.some((item) => item.arm === arm)) {
               continue;
             }
-            const short = fundingProblem(arm, confirmed, credit, engine, base, config);
-            if (short !== null) {
-              decide({ arm, kind: 'dropped', reason: short });
-              continue;
-            }
+            // Priced again before every arm starts, at what an attempt has really cost so far.
+            short = fundingShort(arm, confirmed, credit, engine, base, config);
+            if (short !== null) break;
             // The library's copy of the job drops the organizations it never trains on; each
             // arm's copy is imported beside every task again, so it lists them as the source does.
             const armBase = { ...base, organizations: source.organizations };
@@ -637,8 +675,11 @@ export async function runComparison(
               study,
             );
           }
+          // Arms already started finish their development; none starts after a pause.
           await settle(engine, env, guards, arms, aborted);
+          if (short !== null) break;
         }
+        if (short !== null && !aborted()) return await waitForPerson(short);
 
         // Every arm is frozen, or ended without a graduate, before any locked result exists.
         const waiting = development.filter((arm) => {
@@ -647,13 +688,31 @@ export async function runComparison(
         });
         if (aborted() || waiting.length > 0) {
           env.log(
-            `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every locked test stays held. Run again once they can finish.`,
+            `Not every arm froze (${waiting.map((arm) => ARM_LABELS[arm]).join(', ')}), so every final test stays held. Run again once they can finish.`,
           );
           return {
             outcome: 'incomplete',
             report: await report(request, env, engine, files, base, guards),
           };
         }
+        // Every planned arm is frozen, ended, or decided; one that is none of these holds the release.
+        const decisions = (files.readPlan() ?? confirmed).decisions;
+        const unstarted = development.filter(
+          (arm) =>
+            armRun(engine.store, arm) === null && !decisions.some((item) => item.arm === arm),
+        );
+        if (unstarted.length > 0) {
+          env.log(
+            `${unstarted.map((arm) => ARM_LABELS[arm]).join(', ')} never started, so every final test stays held. Run again to start them.`,
+          );
+          return {
+            outcome: 'incomplete',
+            report: await report(request, env, engine, files, base, guards),
+          };
+        }
+        // The release pays for every frozen arm's locked test, or waits for the person.
+        const test = testFundingShort(engine, files, credit, base, config);
+        if (test !== null) return await waitForPerson(test);
         markReleased(files, now());
       }
       if (aborted()) {
@@ -664,7 +723,7 @@ export async function runComparison(
       }
       const released = release(engine, files, credit, base, config, decide);
       env.log(
-        `Every arm is frozen; ${released.length} locked test${released.length === 1 ? ' is' : 's are'} released.`,
+        `Every arm is frozen; ${released.length} final test${released.length === 1 ? ' is' : 's are'} released.`,
       );
       await settle(engine, env, guards, released, aborted);
 
@@ -785,7 +844,7 @@ async function shareStudy(engine: ComparisonEngine, job: Job, record: StudyRecor
 function markReleased(files: ComparisonFiles, at: string): void {
   const current = files.readPlan();
   if (current === null || current.releasedAt !== null) return;
-  files.writePlan({ ...current, releasedAt: at });
+  files.writePlan({ ...current, releasedAt: at, funding: null });
 }
 
 /**
@@ -808,7 +867,7 @@ async function holdBackAfterRelease(
     decide({
       arm,
       kind: 'stopped',
-      reason: `It was still developing when the first locked result was released (${releasedAt}), so it stays where it was: nothing may learn after a locked result exists.`,
+      reason: `It was still developing when the first final-test result was released (${releasedAt}), so it stays where it was: nothing may learn after a final-test result exists.`,
     });
   }
 }
@@ -850,6 +909,12 @@ async function identities(
     const identity = await env.identify(backend, base);
     if (identity !== null) found[backend] = identity;
   }
+  // The teacher alone answers on its own endpoint, which its job copy holds as the hosted one.
+  const teacher = funded('teacher') ? teacherOf(base, config.teacher) : null;
+  if (teacher !== null && typeof teacher !== 'string') {
+    const identity = await env.identify('teacher', teacherJob(base, teacher));
+    if (identity !== null) found.teacher = identity;
+  }
   return found;
 }
 
@@ -859,29 +924,54 @@ function projectedHosted(plan: PlanRecord, arm: ArmId): number {
 }
 
 /**
+ * What one of the teacher arm's attempts costs: its own attempts' price once it has some, its
+ * projection's before (the student's tokens at the teacher's price). Null for every other arm,
+ * whose attempts are the student's.
+ */
+function teacherPrice(
+  arm: ArmId,
+  plan: PlanRecord,
+  credit: Credit,
+  engine: ComparisonEngine,
+): number | null {
+  if (arm !== 'teacher') return null;
+  const run = armRun(engine.store, arm);
+  const own = run === null ? null : credit.ownPrice(run.run.id);
+  if (own !== null) return own;
+  const projected = plan.projection.arms.find((item) => item.arm === arm);
+  return projected === undefined || projected.hostedAttempts === 0
+    ? null
+    : projected.studentUsd / projected.hostedAttempts;
+}
+
+/** What an arm needs and what is left, when the student's credit can't pay for it. */
+type Short = Omit<FundingPause, 'at'>;
+
+/**
  * Why the student's credit can't start an arm now, or null: what it may spend at the price an
  * attempt has actually cost so far, with its headroom, must fit what is left after everything
  * paid or held in flight, what the arms already started may still spend (their locked tests
  * among it), and the repeat when it comes before the arm in 037's order. The fixed arm needs $5
  * of it, as 037 says.
  */
-function fundingProblem(
+function fundingShort(
   arm: ArmId,
   plan: PlanRecord,
   credit: Credit,
   engine: ComparisonEngine,
   base: Job,
   config: ComparisonConfig,
-): string | null {
+): Short | null {
   const price = credit.price();
-  const need = projectedHosted(plan, arm) * price * config.headroom;
+  const priceFor = (other: ArmId) => teacherPrice(other, plan, credit, engine) ?? price;
+  const need = projectedHosted(plan, arm) * priceFor(arm) * config.headroom;
   const floor = arm === 'fixed' ? Math.max(5, need) : need;
   let held = 0;
   for (const other of ARM_ORDER) {
     const run = armRun(engine.store, other);
     if (run === null || run.run.status === 'finished') continue;
     const spent = credit.development(run.run.id);
-    held += Math.max(0, projectedHosted(plan, other) * price * config.headroom - spent);
+    held += Math.max(0, projectedHosted(plan, other) * priceFor(other) * config.headroom - spent);
   }
   if (plan.funded.includes('repeat') && ARM_PRIORITY[arm] > ARM_PRIORITY.repeat) {
     const repeated = REPEATED.filter((other) => plan.funded.includes(other)).length;
@@ -889,7 +979,142 @@ function fundingProblem(
   }
   const left = plan.caps.studentUsd - credit.paid() - held;
   if (floor <= left + 1e-9) return null;
-  return `At what an attempt has cost so far ($${price.toFixed(4)}), it needs $${floor.toFixed(2)} of the hosted student's budget, and $${Math.max(0, left).toFixed(2)} is left after what was paid and what the comparisons before it still hold.`;
+  return {
+    arm,
+    stage: 'start',
+    priceUsd: priceFor(arm),
+    needUsd: floor,
+    leftUsd: left,
+    capUsd: plan.caps.studentUsd,
+  };
+}
+
+/** What a frozen run's locked test still costs: at its own attempts' price on the hosted copy. */
+function testCost(
+  engine: ComparisonEngine,
+  run: StoredRun,
+  credit: Credit,
+  base: Job,
+  config: ComparisonConfig,
+): number {
+  if (run.lockedTestOn !== 'hosted') return 0;
+  return testsLeft(engine, run, base, config) * credit.priceOf(run.run.id) * config.headroom;
+}
+
+/**
+ * Before the release, the first frozen arm in 037's order whose locked test the credit can't pay
+ * for, each priced at what its own attempts cost; null when every one fits, so the release holds
+ * none of them for money (decision 081).
+ */
+function testFundingShort(
+  engine: ComparisonEngine,
+  files: ComparisonFiles,
+  credit: Credit,
+  base: Job,
+  config: ComparisonConfig,
+): Short | null {
+  const plan = files.readPlan();
+  if (plan === null) return null;
+  let left = plan.caps.studentUsd - credit.paid();
+  for (const arm of ARM_ORDER) {
+    const run = armRun(engine.store, arm);
+    if (run === null || run.freeze === null || isTerminal(run.run.status)) continue;
+    if (plan.decisions.some((item) => item.arm === arm && item.kind !== 'stopped')) continue;
+    const need = testCost(engine, run, credit, base, config);
+    if (need > left + 1e-9) {
+      return {
+        arm,
+        stage: 'test',
+        priceUsd: credit.priceOf(run.run.id),
+        needUsd: need,
+        leftUsd: left,
+        capUsd: plan.caps.studentUsd,
+      };
+    }
+    left -= need;
+  }
+  return null;
+}
+
+/**
+ * The person's answer to a comparison paused for money, taken only before any locked test is
+ * released (decision 081): a raised student cap, recorded as an amendment with the old and new
+ * caps and the price that asked for it, and the paused arm's own cap raised to what it needs at
+ * that price; or arms dropped, each recorded as the person's decision. Either clears the pause,
+ * and the runner prices every arm again.
+ */
+function answerFunding(
+  files: ComparisonFiles,
+  plan: PlanRecord,
+  request: ComparisonRequest,
+  engine: ComparisonEngine,
+  credit: Credit,
+  now: () => string,
+  log: (line: string) => void,
+): PlanRecord {
+  const raise = request.studentCapUsd;
+  // An arm the person dropped before stays dropped; asking again changes nothing.
+  const drops = (request.dropArms ?? []).filter(
+    (arm) => !plan.decisions.some((item) => item.arm === arm && item.kind === 'dropped'),
+  );
+  if ((raise === undefined || raise === plan.caps.studentUsd) && drops.length === 0) return plan;
+  if (plan.releasedAt !== null) {
+    throw new Error(
+      `The final tests were released at ${plan.releasedAt}, so Glimmer's cap can't change and no arm can be dropped any more.`,
+    );
+  }
+  const pause = plan.funding;
+  const next: PlanRecord = {
+    ...plan,
+    funding: null,
+    decisions: [...plan.decisions],
+    amendments: [...plan.amendments],
+    studentCaps: { ...plan.studentCaps },
+  };
+  for (const arm of drops) {
+    if (!plan.arms.includes(arm)) throw new Error(`${ARM_LABELS[arm]} isn't in this plan.`);
+    const run = armRun(engine.store, arm);
+    if (run !== null && run.freeze === null && !isTerminal(run.run.status)) {
+      throw new Error(
+        `${ARM_LABELS[arm]} is still developing; only an arm that hasn't started or has frozen can be dropped.`,
+      );
+    }
+    const reason =
+      pause?.arm === arm
+        ? `You dropped it before any final test was released, when at $${pause.priceUsd.toFixed(4)} an attempt it needed $${pause.needUsd.toFixed(2)} and $${Math.max(0, pause.leftUsd).toFixed(2)} was left under the $${pause.capUsd.toFixed(2)} cap.`
+        : 'You dropped it before any final test was released.';
+    next.decisions.push({ arm, kind: 'dropped', by: 'person', reason, at: now() });
+    log(`${ARM_LABELS[arm]}: ${reason}`);
+  }
+  if (raise !== undefined && raise !== plan.caps.studentUsd) {
+    if (raise < plan.caps.studentUsd) {
+      throw new Error(
+        `Glimmer's cap can only be raised: it is $${plan.caps.studentUsd.toFixed(2)}.`,
+      );
+    }
+    const arm = pause?.arm ?? null;
+    const armFrom = arm === null ? undefined : plan.studentCaps[arm];
+    const armTo =
+      pause?.stage === 'start' && armFrom !== undefined && armFrom < pause.needUsd
+        ? pause.needUsd
+        : null;
+    if (arm !== null && armTo !== null) next.studentCaps[arm] = armTo;
+    next.amendments.push({
+      arm,
+      fromUsd: plan.caps.studentUsd,
+      toUsd: raise,
+      armFromUsd: armTo === null ? null : (armFrom ?? null),
+      armToUsd: armTo,
+      priceUsd: pause?.priceUsd ?? credit.price(),
+      at: now(),
+    });
+    next.caps = { ...plan.caps, studentUsd: raise };
+    log(
+      `Hosted Glimmer's cap is raised from $${plan.caps.studentUsd.toFixed(2)} to $${raise.toFixed(2)}, before any final test was released.`,
+    );
+  }
+  files.writePlan(next);
+  return next;
 }
 
 /**
@@ -962,16 +1187,14 @@ function release(
   decide: Decide,
 ): ArmId[] {
   const released: ArmId[] = [];
-  const decisions = files.readPlan()?.decisions ?? [];
-  let left = config.caps.studentUsd - credit.paid();
+  const plan = files.readPlan();
+  const decisions = plan?.decisions ?? [];
+  let left = (plan?.caps.studentUsd ?? config.caps.studentUsd) - credit.paid();
   for (const arm of ARM_ORDER) {
     const run = armRun(engine.store, arm);
     if (run === null || run.freeze === null || isTerminal(run.run.status)) continue;
-    if (decisions.some((item) => item.arm === arm && item.kind === 'held')) continue;
-    const cost =
-      run.lockedTestOn === 'hosted'
-        ? testsLeft(engine, run, base, config) * credit.priceOf(run.run.id) * config.headroom
-        : 0;
+    if (decisions.some((item) => item.arm === arm && item.kind !== 'stopped')) continue;
+    const cost = testCost(engine, run, credit, base, config);
     if (run.protocol?.released === true) {
       // Released by an earlier run of the plan: what its test has left is held for it first.
       left -= cost;
@@ -982,7 +1205,7 @@ function release(
       decide({
         arm,
         kind: 'held',
-        reason: `Its final test would cost $${cost.toFixed(2)}, more than the $${Math.max(0, left).toFixed(2)} of the hosted student's budget left after the comparisons before it, so it didn't run.`,
+        reason: `Its final test would cost $${cost.toFixed(2)}, more than the $${Math.max(0, left).toFixed(2)} of hosted Glimmer's budget left after the comparisons before it, so it didn't run.`,
       });
       continue;
     }
@@ -1020,7 +1243,7 @@ async function startArm(
       decide({
         arm,
         kind: 'dropped',
-        reason: `It starts from the ${ARM_LABELS[needs].toLowerCase()} arm, which didn't freeze.`,
+        reason: `It starts from the ${armInSentence(ARM_LABELS[needs])} arm, which didn't freeze.`,
       });
       return;
     }
@@ -1167,7 +1390,7 @@ async function measureAfterRelease(
         decide({
           arm,
           kind: 'dropped',
-          reason: `The ${ARM_LABELS[on].toLowerCase()} arm has no frozen graduate's test to share.`,
+          reason: `The ${armInSentence(ARM_LABELS[on])} arm has no frozen graduate's test to share.`,
         });
         continue;
       }
@@ -1190,7 +1413,7 @@ async function measureAfterRelease(
       }
     }
     if (plan.funded.includes('repeat')) {
-      let left = request.config.caps.studentUsd - credit.paid();
+      let left = plan.caps.studentUsd - credit.paid();
       const skipped: string[] = [];
       const stoppedBefore = decided('repeat');
       for (const arm of REPEATED) {
@@ -1208,7 +1431,7 @@ async function measureAfterRelease(
                 request.config.headroom
               : 0;
           if (cost > left + 1e-9) {
-            skipped.push(ARM_LABELS[arm].toLowerCase());
+            skipped.push(armInSentence(ARM_LABELS[arm]));
             continue;
           }
           left -= cost;
@@ -1221,7 +1444,7 @@ async function measureAfterRelease(
         decide({
           arm: 'repeat',
           kind: 'stopped',
-          reason: `The hosted student's budget left didn't pay to run the ${skipped.join(' and the ')} again.`,
+          reason: `Hosted Glimmer's budget left didn't pay to run the ${skipped.join(' and the ')} again.`,
         });
       }
     }
@@ -1264,9 +1487,7 @@ async function regressionCheck(
     REGRESSION_PER_TYPE * job.taskTypes.length,
     deriveSeed(request.config.mentoringSeed, 'regression'),
   );
-  env.log(
-    `Runtime regression check: the bare student on ${tasks.length} dev tasks of ${job.name}.`,
-  );
+  env.log(`Runtime regression check: Glimmer alone on ${tasks.length} check tasks of ${job.name}.`);
   await sweep({
     name: 'regression',
     job,
@@ -1293,7 +1514,11 @@ async function report(
 ): Promise<ComparisonReport> {
   const built = await composeReport(request, env, engine, files, base, guards);
   await writeFile(files.reportJson, `${JSON.stringify(built, null, 2)}\n`);
-  await writeFile(files.reportMarkdown, renderMarkdown(built));
+  const job = comparisonJob(base, request.config, request.models);
+  await writeFile(
+    files.reportMarkdown,
+    renderMarkdown(built, { mentor: job.mentor.label, student: job.student.label }),
+  );
   return built;
 }
 

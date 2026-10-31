@@ -1,5 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { Score, VersionEvent } from '@architect/shared';
+import type {
+  AddedQualification,
+  Certification,
+  Qualification,
+  Score,
+  VersionEvent,
+} from '@architect/shared';
 import {
   AgentAvatar,
   Button,
@@ -12,27 +18,53 @@ import {
   IconButton,
   Inspector,
   Skeleton,
+  toast,
   Tooltip,
   VersionTag,
 } from '@architect/ui';
-import { ArrowUpRight, Columns2, FileText, GitBranch, Package, Undo2, X } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  ArrowUpRight,
+  BadgeCheck,
+  Columns2,
+  Cpu,
+  FileText,
+  FolderTree,
+  GitBranch,
+  MessageSquare,
+  Package,
+  ShieldCheck,
+  Undo2,
+  X,
+} from 'lucide-react';
+import { api, flowApi } from '../api/client';
+import { computeApi } from '../api/compute';
 import { graduatesApi } from '../api/graduates';
 import { useQuery } from '../api/query';
+import { useImprovements } from '../api/teaching';
 import { FilePatch } from '../components/FilePatch';
+import { HarnessFiles } from '../components/HarnessFiles';
 import { ProblemState } from '../components/ProblemState';
 import { shortDate } from '../flow/format';
+import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
+import { MoveVersionDialog } from '../fields/MoveToModel';
+import { openAgent } from '../lab/open-agent';
 import { changeSummary } from '../flow/train/diff';
 import { sentence } from '../flow/train/evidence-words';
 import { formatPercent, formatUsd } from '../lib/format';
+import { attempt } from '../lib/notify';
 import { shortModelName } from '../lib/names';
+import { navigate, paths } from '../lib/router';
 import { MoveDialog } from '../workspace/settings/MoveDialog';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { MOVE_WORDS, moveFor, type VersionMove } from '../workspace/settings/versions';
+import { CertifyDialog, certificationsKey } from './CertifyDialog';
 import {
   baseModelOf,
   CHECK_HINT,
   comparable,
   fieldOf,
+  imported,
   rowKey,
   runtimeName,
   scoresOf,
@@ -42,11 +74,12 @@ import {
   type ModelRow,
 } from './registry';
 
-type PanelTab = 'report' | 'lineage';
+type PanelTab = 'report' | 'lineage' | 'files';
 
 const TABS = [
   { value: 'report', label: 'Report', icon: <FileText aria-hidden /> },
   { value: 'lineage', label: 'Lineage', icon: <GitBranch aria-hidden /> },
+  { value: 'files', label: 'Files', icon: <FolderTree aria-hidden /> },
 ] as const;
 
 /** A model's panel beside the registry: its report, where it came from, and what can be done. */
@@ -78,7 +111,7 @@ export function ModelPanel({
 
   return (
     <div className="flex h-full shrink-0 flex-col">
-      <div className="app-drag h-12 shrink-0 border-l border-line" />
+      <div className="app-drag h-12 shrink-0" />
       <Inspector<PanelTab>
         aria-label="Model"
         tabs={TABS}
@@ -97,8 +130,10 @@ export function ModelPanel({
         {(tab) =>
           tab === 'report' ? (
             <ReportTab row={row} />
-          ) : (
+          ) : tab === 'lineage' ? (
             <LineageTab row={row} rows={rows} onOpen={onOpen} />
+          ) : (
+            <FilesTab row={row} rows={rows} />
           )
         }
       </Inspector>
@@ -123,10 +158,28 @@ function PanelHeader({
   const active = rows.find((other) => other.agent.id === agent.id && other.version.active);
   const move = moveFor(version, active?.version.version ?? null);
   const [moving, setMoving] = useState<VersionMove | null>(null);
+  const [certifying, setCertifying] = useState(false);
+  const [carrying, setCarrying] = useState(false);
+  const [packing, setPacking] = useState(false);
   const others = rows.filter((other) => comparable(row, other));
 
+  // One folder for a security reviewer and an offline install, every file hashed (decision 098).
+  const exportEvidence = async () => {
+    setPacking(true);
+    const written = await attempt("Couldn't export the evidence", async () => {
+      const [directory] = await flowApi.pickFiles({
+        title: `Choose where to save the evidence for version ${version.version}`,
+        directory: true,
+      });
+      if (directory === undefined) return null;
+      return graduatesApi.exportEvidence(agent.id, { directory, version: version.version });
+    });
+    setPacking(false);
+    if (written) toast({ title: 'Evidence exported', description: written.folder });
+  };
+
   return (
-    <div className="flex flex-col gap-4 border-b border-line px-5 pb-4">
+    <div className="flex flex-col gap-4 border-b border-line px-4 pb-4 pt-4">
       <div className="flex items-start gap-3">
         <AgentAvatar name={agent.name} size="md" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -139,6 +192,7 @@ function PanelHeader({
             {STATUS_WORDS[statusOf(version)]} · {fieldOf(version)}
           </span>
         </div>
+        <OpenLinks row={row} />
         <Tooltip content="Close" side="left">
           <IconButton label="Close" size="md" onClick={onClose}>
             <X size={16} strokeWidth={1.8} aria-hidden />
@@ -173,13 +227,55 @@ function PanelHeader({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+        {version.runId !== undefined && (
+          <Button size="sm" onClick={() => setCertifying(true)}>
+            <BadgeCheck size={14} strokeWidth={1.8} aria-hidden />
+            Certify
+          </Button>
+        )}
+        {version.runId !== undefined && (
+          <Button size="sm" onClick={() => setCarrying(true)}>
+            <ArrowRightLeft size={14} strokeWidth={1.8} aria-hidden />
+            Move to another model
+          </Button>
+        )}
         {version.active && (
           <Button size="sm" onClick={() => useAgentSettingsUi.getState().show(agent.id, 'export')}>
             <Package size={14} strokeWidth={1.8} aria-hidden />
             Export
           </Button>
         )}
+        <Button size="sm" disabled={packing} onClick={() => void exportEvidence()}>
+          <ShieldCheck size={14} strokeWidth={1.8} aria-hidden />
+          Export evidence
+        </Button>
+        <Button
+          size="sm"
+          onClick={() =>
+            navigate(
+              paths.compute({
+                jobId: version.manifest.contract.jobId,
+                model: version.manifest.model.base.name,
+              }),
+            )
+          }
+        >
+          <Cpu size={14} strokeWidth={1.8} aria-hidden />
+          Plan cluster training
+        </Button>
       </div>
+      {certifying && <CertifyDialog row={row} onClose={() => setCertifying(false)} />}
+      {carrying && (
+        <MoveVersionDialog
+          jobId={version.manifest.contract.jobId}
+          from={{
+            graduateId: agent.id,
+            version: version.version,
+            name: `${agent.name} v${version.version}`,
+          }}
+          onClose={() => setCarrying(false)}
+        />
+      )}
       {moving && active && (
         <MoveDialog
           agent={agent}
@@ -193,6 +289,39 @@ function PanelHeader({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Where a version leads: the chat its agent answers in, for the version chats run on, and the
+ * results of the run that made it here, a training run's or an improvement's.
+ */
+function OpenLinks({ row }: { row: ModelRow }) {
+  const { agent, version } = row;
+  const improvements = useImprovements(agent.id);
+  const runId = imported(version) ? undefined : version.runId;
+  const improved = improvements.data?.some((item) => item.runId === runId) === true;
+  return (
+    <>
+      {version.active && (
+        <Tooltip content="Open chat" side="bottom">
+          <IconButton label="Open chat" size="md" onClick={() => openAgent(agent)}>
+            <MessageSquare size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
+      )}
+      {runId !== undefined && improvements.data && (
+        <Tooltip content="Open results" side="bottom">
+          <IconButton
+            label="Open results"
+            size="md"
+            onClick={() => navigate(improved ? paths.improvement(runId) : paths.report(runId))}
+          >
+            <FileText size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
+      )}
+    </>
   );
 }
 
@@ -253,6 +382,7 @@ function ReportTab({ row }: { row: ModelRow }) {
           </div>
         )}
       </section>
+      <Qualified row={row} />
       <dl className="m-0 flex flex-col">
         <Fact label="Check tasks" hint={CHECK_HINT}>
           {scores.check ? (
@@ -298,6 +428,131 @@ function ReportTab({ row }: { row: ModelRow }) {
   );
 }
 
+/** "83% · 30 of 36". */
+const scoreText = (score: Score) => `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+
+const STATE_WORDS = {
+  testing: 'Testing',
+  certifying: 'Certifying',
+  paused: 'Paused',
+  finished: 'Finished',
+} as const;
+
+interface Result {
+  key: string;
+  label: string;
+  detail: string | null;
+  value: string;
+  hint?: string;
+}
+
+function certificationResult(item: Certification): Result | null {
+  if (item.status === 'planned') return null;
+  const figure = certificateFigure(item.certificate);
+  return {
+    key: `certification:${item.id}`,
+    label: 'Certified',
+    detail: shortDate(item.endedAt ?? item.createdAt),
+    value:
+      item.status === 'finished'
+        ? (figure ?? 'Not certified')
+        : `${STATE_WORDS[item.status]}, ${item.done} of ${item.plan.attempts}`,
+    ...(item.certificate ? { hint: certificateHint(item.certificate) } : {}),
+  };
+}
+
+function addedResult(item: AddedQualification): Result {
+  return {
+    key: `added:${item.org}`,
+    label: `At ${item.org}`,
+    detail: shortDate(item.endedAt ?? item.startedAt),
+    value:
+      item.status === 'finished' && item.score ? scoreText(item.score) : STATE_WORDS[item.status],
+  };
+}
+
+function trainedResult(item: Qualification): Result {
+  return {
+    key: `trained:${item.id}`,
+    label: item.model,
+    detail: ['Trained elsewhere', shortDate(item.endedAt ?? item.startedAt)]
+      .filter(Boolean)
+      .join(', '),
+    value:
+      item.status === 'finished' && item.card
+        ? scoreText(item.card.test.score)
+        : STATE_WORDS[item.status],
+  };
+}
+
+/**
+ * Every result measured on this version after its own final test, wherever it was started:
+ * its certifications (Models, Certify, or `architect certify`), its final test at an organization
+ * added to the field later (Organizations, Qualify), and models trained elsewhere that took its
+ * final test under its harness (Compute, Qualify a trained model).
+ */
+function Qualified({ row }: { row: ModelRow }) {
+  const runId = imported(row.version) ? undefined : row.version.runId;
+  return runId === undefined ? null : <QualifiedList row={row} runId={runId} />;
+}
+
+function QualifiedList({ row, runId }: { row: ModelRow; runId: string }) {
+  const { agent, version } = row;
+  const jobId = row.report?.jobId ?? version.manifest.contract.jobId;
+  const certifications = useQuery(certificationsKey(row), () =>
+    graduatesApi.certifications(agent.id, version.version),
+  );
+  const field = useQuery(`version-field:${jobId}`, () => api.field(jobId));
+  const trained = useQuery(`qualifications:${jobId}`, () => computeApi.qualifications(jobId));
+  const reads = [certifications, field, trained];
+  const failed = reads.find((query) => query.status === 'error');
+  const results = [
+    ...(certifications.data ?? []).flatMap((item) => certificationResult(item) ?? []),
+    ...(field.data?.qualifications ?? []).filter((item) => item.runId === runId).map(addedResult),
+    ...(trained.data ?? []).filter((item) => item.runId === runId).map(trainedResult),
+  ];
+  return (
+    <section aria-label="Qualified" className="flex flex-col gap-1">
+      <Heading>Qualified</Heading>
+      {failed?.error ? (
+        <ProblemState
+          layout="inline"
+          error={failed.error}
+          title="Couldn't read its qualifications"
+          onRetry={failed.reload}
+        />
+      ) : reads.some((query) => query.status === 'loading') ? (
+        <Skeleton className="h-10 w-full" />
+      ) : results.length === 0 ? (
+        <p className="m-0 py-2 text-ui">None yet</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col p-0">
+          {results.map((result) => (
+            <li
+              key={result.key}
+              className="flex min-h-10 items-center justify-between gap-4 border-t border-line py-2 text-ui first:border-t-0"
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate">{result.label}</span>
+                {result.detail && <span className="text-small">{result.detail}</span>}
+              </span>
+              {result.hint ? (
+                <Tooltip content={result.hint} side="left">
+                  <span tabIndex={0} className="shrink-0 tabular-nums">
+                    {result.value}
+                  </span>
+                </Tooltip>
+              ) : (
+                <span className="shrink-0 tabular-nums">{result.value}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function Absent() {
   return (
     <>
@@ -324,11 +579,8 @@ function LineageTab({
   rows: readonly ModelRow[];
   onOpen: (row: ModelRow) => void;
 }) {
-  const { agent, version, report } = row;
-  const parent =
-    version.parent === undefined
-      ? undefined
-      : rows.find((other) => other.key === rowKey(agent.id, version.parent ?? 0));
+  const { version, report } = row;
+  const parent = parentOf(row, rows);
   const changes = report?.topInterventions ?? [];
   return (
     <div className="flex flex-col gap-7">
@@ -384,13 +636,61 @@ function LineageTab({
   );
 }
 
-/** What changed in the harness from the version it was made from. */
-function ChangedFrom({ row, parent }: { row: ModelRow; parent: ModelRow }) {
+const parentOf = (row: ModelRow, rows: readonly ModelRow[]): ModelRow | undefined =>
+  row.version.parent === undefined
+    ? undefined
+    : rows.find((other) => other.key === rowKey(row.agent.id, row.version.parent ?? 0));
+
+/** The version's harness as its folder holds it, and what changed from its parent. */
+function FilesTab({ row, rows }: { row: ModelRow; rows: readonly ModelRow[] }) {
+  const parent = parentOf(row, rows);
+  return (
+    <HarnessFiles
+      queryKey={`harness-files:${row.key}`}
+      load={() => graduatesApi.harnessFiles(row.agent.id, row.version.version)}
+      {...(parent ? { changes: <ParentChanges row={row} parent={parent} /> } : {})}
+    />
+  );
+}
+
+function ParentChanges({ row, parent }: { row: ModelRow; parent: ModelRow }) {
+  const diff = useHarnessDiff(row, parent);
+  if (diff.status === 'loading') return <Skeleton className="h-10 w-full" />;
+  if (diff.status === 'error') {
+    return (
+      <ProblemState
+        layout="inline"
+        error={diff.error}
+        title="Couldn't compare the harnesses"
+        onRetry={diff.reload}
+      />
+    );
+  }
+  if (diff.data.length === 0) {
+    return (
+      <p className="m-0 text-ui">Nothing in its harness changed from v{parent.version.version}</p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {diff.data.map((file) => (
+        <FilePatch key={file.path} file={file} />
+      ))}
+    </div>
+  );
+}
+
+function useHarnessDiff(row: ModelRow, parent: ModelRow) {
   const from = { graduateId: parent.agent.id, version: parent.version.version };
   const to = { graduateId: row.agent.id, version: row.version.version };
-  const diff = useQuery(`harness-diff:${parent.key}:${row.key}`, () =>
+  return useQuery(`harness-diff:${parent.key}:${row.key}`, () =>
     graduatesApi.harnessDiff(from, to),
   );
+}
+
+/** What changed in the harness from the version it was made from. */
+function ChangedFrom({ row, parent }: { row: ModelRow; parent: ModelRow }) {
+  const diff = useHarnessDiff(row, parent);
   return (
     <section aria-label="What changed" className="flex flex-col gap-3">
       <Heading>What changed</Heading>

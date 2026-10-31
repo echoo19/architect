@@ -149,6 +149,26 @@ export function connectionsFor(role: PickerRole, connections: readonly Connectio
   }
 }
 
+/** What a connection can be used for, by the pickers' own rules. */
+export interface ConnectionRoles {
+  /** The teacher of any field. */
+  teach: boolean;
+  /** Where the student practices while it is taught: here, or a hosted or cluster copy. */
+  practice: boolean;
+  /** A finished agent's model. Agents run only on this computer (invariant 3). */
+  agent: boolean;
+}
+
+export function rolesOf(connection: Connection): ConnectionRoles {
+  const offers = (role: PickerRole) =>
+    connectionsFor(role, [connection]).some((offered) => offered.id === connection.id);
+  return {
+    teach: offers('mentor'),
+    practice: offers('student') || offers('hosted'),
+    agent: offers('student'),
+  };
+}
+
 /** OpenRouter names models "Maker: Model"; the app shows the model. */
 export function modelLabel(id: string, entry?: ModelEntry): string {
   const label = entry?.label?.replace(/^[^:]{1,40}:\s+/, '').trim();

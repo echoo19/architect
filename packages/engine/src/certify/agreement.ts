@@ -5,7 +5,8 @@ import { deriveSeed } from '../loop/seeds';
 /**
  * Agreement across k attempts at one request (decision 077): each attempt's canonical answer is
  * its parsed structured answer with its file changes, normalized, and the graduate answers with
- * the most common one when enough attempts share it.
+ * the most common one when enough attempts share it. An attempt with no answer never counts toward
+ * agreement (decision 099).
  */
 
 /** Object keys sorted at every depth, so the same answer is the same text. */
@@ -53,6 +54,28 @@ export function normalizedReply(text: string): string {
 }
 
 /**
+ * Whether an attempt gave something to agree on: a refusal, a structured answer, a file change, or
+ * a chat reply with words in it. One that ran out of steps, failed, or ended with nothing parseable
+ * gave no answer, and identical empty outcomes are not an agreed answer (decision 099).
+ */
+export function gaveAnswer(
+  outcome: Pick<CheckOutcome, 'answer' | 'stopReason'>,
+  changes: readonly FileChange[] = [],
+  text?: string,
+): boolean {
+  if (outcome.stopReason === 'refused') return true;
+  if (outcome.stopReason !== 'answer') return false;
+  return (
+    outcome.answer !== null ||
+    changes.length > 0 ||
+    (text !== undefined && normalizedReply(text) !== '')
+  );
+}
+
+/** The key a sealed attempt with no answer is stored under; it agrees with nothing. */
+export const NO_ANSWER = 'none';
+
+/**
  * The attempt's answer as one text two agreeing attempts share: answer, refusal and changes. A
  * chat reply's `text` counts only when it gave neither a structured answer nor a change, so
  * replies in words agree only when they say the same thing.
@@ -76,13 +99,14 @@ export function canonicalAnswer(
 
 /**
  * A sealed attempt's answer as a hash salted by its run: attempts at one task can be compared
- * without the store keeping what any of them answered.
+ * without the store keeping what any of them answered. An attempt with no answer is `NO_ANSWER`.
  */
 export function answerKey(
   runId: string,
   outcome: Pick<CheckOutcome, 'answer' | 'stopReason'>,
   changes?: readonly FileChange[],
 ): string {
+  if (!gaveAnswer(outcome, changes)) return NO_ANSWER;
   return createHash('sha256')
     .update(`${runId}\n${canonicalAnswer(outcome, changes)}`)
     .digest('hex');
@@ -107,11 +131,18 @@ export interface Vote<T> {
   chosen: T;
 }
 
-/** The most common of the attempts' answers, in attempt order; null when there are none. */
-export function vote<T>(attempts: readonly T[], keyOf: (attempt: T) => string): Vote<T> | null {
+/**
+ * The most common of the attempts' answers, in attempt order; null when there are none. An attempt
+ * whose key is null gave no answer and is not counted (decision 099).
+ */
+export function vote<T>(
+  attempts: readonly T[],
+  keyOf: (attempt: T) => string | null,
+): Vote<T> | null {
   const counts = new Map<string, { votes: number; chosen: T }>();
   for (const attempt of attempts) {
     const key = keyOf(attempt);
+    if (key === null) continue;
     const seen = counts.get(key);
     if (seen) seen.votes += 1;
     else counts.set(key, { votes: 1, chosen: attempt });

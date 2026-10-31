@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Score } from '@architect/shared';
 import { cn } from '@architect/ui';
 import { Section } from '../ledger';
-import type { OrgGrid } from './org-grid';
+import type { OrgColumn, OrgGrid } from './org-grid';
 
 /** The first column of each group after the first, which a hairline sets apart. */
 function opensGroup(grid: OrgGrid, index: number): boolean {
@@ -15,7 +15,7 @@ function opensGroup(grid: OrgGrid, index: number): boolean {
 }
 
 function Cell({ score, label, strong }: { score: Score | null; label: string; strong?: boolean }) {
-  if (score === null) return <span aria-label={`${label}, not tested`} />;
+  if (score === null) return <span aria-label={`${label}, None`}>–</span>;
   return (
     <span
       aria-label={`${label}, ${score.pass} of ${score.total} passed`}
@@ -29,9 +29,18 @@ function Cell({ score, label, strong }: { score: Score | null; label: string; st
 /**
  * The final test, skill by skill, at each organization: those it trained with, those it never
  * saw, and a real one it never saw, each with its own result. A skill not tested at an
- * organization leaves its cell empty, which is not a zero.
+ * organization shows a dash, read as None, which is not a zero.
  */
-export function Organizations({ grid, actions }: { grid: OrgGrid; actions?: ReactNode }) {
+export function Organizations({
+  grid,
+  actions,
+  columnAction,
+}: {
+  grid: OrgGrid;
+  actions?: ReactNode;
+  /** Under a never-seen organization's name: what can be done with it, in the Lab. */
+  columnAction?: (column: OrgColumn) => ReactNode;
+}) {
   const columns = grid.groups.flatMap((group) => group.columns);
   const edge = (index: number) => (opensGroup(grid, index) ? 'border-l border-line' : '');
   return (
@@ -64,9 +73,16 @@ export function Organizations({ grid, actions }: { grid: OrgGrid; actions?: Reac
                 <th
                   key={column.org}
                   scope="col"
-                  className={cn('pb-3 pl-6 text-left font-medium', edge(index))}
+                  className={cn('pb-3 pl-6 text-left align-top font-medium', edge(index))}
                 >
                   {column.name}
+                  {column.taughtLater ? (
+                    <span className="block text-small font-normal">
+                      Measured before it was taught on
+                    </span>
+                  ) : (
+                    column.group !== 'seen' && columnAction?.(column)
+                  )}
                 </th>
               ))}
             </tr>

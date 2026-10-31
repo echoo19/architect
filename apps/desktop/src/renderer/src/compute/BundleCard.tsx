@@ -1,26 +1,37 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import {
   type ClusterTarget,
   type ModelConfigRead,
   type TrainingPlan,
   type WrittenTrainBundle,
 } from '@architect/shared';
-import { Badge, Button, Card, CardRow, ChoiceTiles } from '@architect/ui';
-import { Container, FolderInput, FolderOutput, Server, TriangleAlert } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  CardRow,
+  ChoiceTiles,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  RowIcon,
+} from '@architect/ui';
+import { ChevronDown, FolderInput, FolderOutput, TriangleAlert } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { computeApi } from '../api/compute';
 import { CopyButton } from '../components/CopyButton';
+import { useFieldExports, useSessionExports, type FieldExport } from '../fields/exports';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { bundleBlocker, planRequest, type PlanSettings } from './model';
+import { CLUSTERS } from './Targets';
 
-function Tile({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-      {children}
-    </span>
-  );
-}
+const CLUSTER_TARGETS = CLUSTERS.map(({ target, name, icon }) => ({
+  value: target,
+  label: name,
+  icon,
+}));
 
 const icon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
@@ -28,31 +39,77 @@ const icon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 export const CLUSTER_NOTE =
   'Architect writes this bundle and never submits it. It is checked against simulated schedulers only; GPU runs, large models and training gains are unverified.';
 
+/** The fields exported from the app, each offering the folder of its latest export. */
+function LatestExport({
+  exports,
+  onPick,
+}: {
+  exports: readonly FieldExport[];
+  onPick: (dir: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm">
+          Use the latest export of…
+          <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {exports.map((item) => (
+          <DropdownMenuItem key={item.jobId} onSelect={() => onPick(item.dir)}>
+            {item.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /**
- * A launch bundle for Slurm or Kubernetes, written from the plan with a field export's verified
- * demonstrations, and the command that submits it with the person's own tools. Experimental.
+ * A launch bundle for Slurm, Kubernetes or SkyPilot, written from the plan with a field export's
+ * verified demonstrations, and the command that submits it with the person's own tools.
+ * Experimental. It starts from the latest export of the field it is planned for, or the newest
+ * of any; one recorded before a restart is chosen again before it is read.
  */
 export function BundleCard({
   read,
   plan,
   settings,
+  jobId,
 }: {
   read: ModelConfigRead | null;
   plan: TrainingPlan | null;
   settings: PlanSettings;
+  jobId: string | null;
 }) {
   const [target, setTarget] = useState<ClusterTarget>('slurm');
-  const [exportDir, setExportDir] = useState<string | null>(null);
+  const exports = useFieldExports();
+  const choose = useSessionExports((state) => state.choose);
+  const [picked, setPicked] = useState<string | null>(null);
+  const exportDir =
+    picked ?? (exports.find((item) => item.jobId === jobId) ?? exports[0])?.dir ?? null;
+  const exported = exports.find((item) => item.dir === exportDir);
+  // A folder chosen on this card is ready; a recorded one only once chosen since the restart.
+  const exportReady = exported?.ready ?? true;
   const [parentDir, setParentDir] = useState<string | null>(null);
   const [writing, setWriting] = useState(false);
   const [written, setWritten] = useState<WrittenTrainBundle | null>(null);
 
-  const choose = async (title: string, set: (dir: string) => void) => {
+  const pickFolder = async (title: string, set: (dir: string) => void, defaultPath?: string) => {
     const [folder] =
       (await attempt("Couldn't open the folder", () =>
-        flowApi.pickFiles({ title, directory: true }),
+        flowApi.pickFiles({
+          title,
+          directory: true,
+          ...(defaultPath === undefined ? {} : { defaultPath }),
+        }),
       )) ?? [];
     if (folder !== undefined) set(folder);
+  };
+  const pickExport = (dir: string) => {
+    choose(dir);
+    setPicked(dir);
   };
 
   // A bundle written for another plan no longer matches what is on screen.
@@ -60,6 +117,7 @@ export function BundleCard({
 
   const blocker = bundleBlocker(read, plan !== null && plan.fit !== null, {
     exportDir,
+    exportReady,
     parentDir,
   });
 
@@ -80,44 +138,59 @@ export function BundleCard({
       <div className="px-6 pb-5">
         <ChoiceTiles<ClusterTarget>
           aria-label="Target"
-          columns={2}
+          columns={3}
           value={target}
           onValueChange={(next) => {
             setTarget(next);
             setWritten(null);
           }}
-          options={[
-            { value: 'slurm', label: 'Slurm', icon: <Server aria-hidden /> },
-            { value: 'kubernetes', label: 'Kubernetes', icon: <Container aria-hidden /> },
-          ]}
+          options={CLUSTER_TARGETS}
         />
       </div>
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <FolderInput {...icon} />
-          </Tile>
+          </RowIcon>
         }
-        title="Field export"
+        title={exported ? `Field export of ${exported.name}` : 'Field export'}
         detail={
           <span className="font-mono" title={exportDir ?? undefined}>
             {exportDir === null ? 'None chosen' : shortPath(exportDir)}
           </span>
         }
         end={
-          <Button
-            size="sm"
-            onClick={() => void choose('Choose a field export', (dir) => setExportDir(dir))}
-          >
-            Choose
-          </Button>
+          <span className="flex items-center gap-2">
+            {exports.length > 0 && <LatestExport exports={exports} onPick={setPicked} />}
+            {exported && !exported.ready ? (
+              <Button
+                size="sm"
+                onClick={() =>
+                  void pickFolder(
+                    `Choose the export of ${exported.name} again`,
+                    pickExport,
+                    exported.dir,
+                  )
+                }
+              >
+                Choose again
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => void pickFolder('Choose a field export', pickExport)}
+              >
+                Choose
+              </Button>
+            )}
+          </span>
         }
       />
       <CardRow
         icon={
-          <Tile>
+          <RowIcon>
             <FolderOutput {...icon} />
-          </Tile>
+          </RowIcon>
         }
         title="Write in"
         detail={
@@ -129,7 +202,7 @@ export function BundleCard({
           <Button
             size="sm"
             onClick={() =>
-              void choose('Choose where to write the bundle', (dir) => setParentDir(dir))
+              void pickFolder('Choose where to write the bundle', (dir) => setParentDir(dir))
             }
           >
             Choose

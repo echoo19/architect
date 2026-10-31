@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ExperimentEventSchema, PublishProgressSchema, RunEventSchema } from '@architect/shared';
+import { stageLibraryJob } from '../experiments/library';
 import { ExperimentService, type ExperimentEnvironment } from '../experiments/service';
 import {
   CHECK_PURPOSE,
@@ -54,6 +55,11 @@ export interface EngineHostOptions {
    * and scripts on a data folder of their own, nothing is coordinated. The caller closes it.
    */
   gpu?: GpuLease;
+  /**
+   * Whether runs, re-tests and training jobs left active resume when the host starts: true for
+   * the app. A command that does one thing on the app's data folder leaves them to the app.
+   */
+  recover?: boolean;
   /** Errors nobody asked about: a broken event listener, a message that isn't a request. */
   onError?(error: unknown): void;
   /**
@@ -61,6 +67,11 @@ export interface EngineHostOptions {
    * key saved in the app, else HF_TOKEN, else Hugging Face's token file.
    */
   hub?: HubClient;
+  /**
+   * The closed network's hosts while it is on (decision 098), for the Hub client made here when
+   * none is given: a Hub outside it is refused before anything is sent.
+   */
+  allowedHosts?: () => readonly string[] | undefined;
   /**
    * The comparisons runner's environment on an experiment's data folder (decision 074): its
    * models, keys and training compute. Without it experiments can be planned and read, not run.
@@ -152,11 +163,13 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     options.hub ??
     new HubClient({
       token: hubTokenResolver({ saved: () => options.deps.secrets.get('huggingface') }),
+      ...(options.allowedHosts === undefined ? {} : { allowedHosts: options.allowedHosts }),
     });
   const experiments = new ExperimentService({
     dir: join(paths.root, 'experiments'),
     clock,
     onError,
+    library: (jobId, dir) => stageLibraryJob({ jobs, paths, vault: deps.vault }, jobId, dir),
     ...(options.experimentEnvironment === undefined
       ? {}
       : { environment: options.experimentEnvironment }),
@@ -200,9 +213,11 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   // A job that was being made when the app closed is taken back whole, with its sealed test, so
   // nothing is left that no job owns and the job's id is free to be made again.
   await jobs.recoverInterrupted(onError);
-  // Training jobs left unfinished when the app closed are checked again, never sent again.
-  options.deps.training?.worker.resume();
-  controller.recover();
+  if (options.recover !== false) {
+    // Training jobs left unfinished when the app closed are checked again, never sent again.
+    options.deps.training?.worker.resume();
+    controller.recover();
+  }
 
   return {
     api,

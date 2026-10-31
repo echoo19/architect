@@ -6,6 +6,7 @@ import { formatBytes } from '../lib/format';
 import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
 import { EDITIONS } from '../shell/edition';
+import { ClosedNetworkRows } from './ClosedNetwork';
 import type { TabProps } from './SettingsModal';
 
 const STEPS = [
@@ -29,7 +30,7 @@ export function GeneralTab({ settings, update }: TabProps) {
     <>
       <SettingsRow
         label="Edition"
-        meta="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and runs stay in both."
+        meta="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and their training stay in both."
       >
         <Segmented
           aria-label="Edition"
@@ -96,7 +97,7 @@ export function TrainingTab({ settings, update }: TabProps) {
   );
 }
 
-export function PrivacyTab({ settings }: TabProps) {
+export function PrivacyTab({ settings, update }: TabProps) {
   const device = deviceInSentence(currentPlatform());
   const teacher = mentorName(settings.defaultMentor);
   return (
@@ -122,6 +123,10 @@ export function PrivacyTab({ settings }: TabProps) {
       <SettingsRow label="Usage data">
         <SettingsValue>Never collected</SettingsValue>
       </SettingsRow>
+      {/* The Lab's; shown in either edition while it is on, so it can always be turned off. */}
+      {(settings.edition === 'lab' || settings.closedNetwork?.on === true) && (
+        <ClosedNetworkRows settings={settings} update={update} />
+      )}
     </>
   );
 }

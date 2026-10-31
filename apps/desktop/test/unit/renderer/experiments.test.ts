@@ -1,11 +1,28 @@
-import type { ArmRow, OrgTypeResult } from '@architect/shared';
+import type {
+  ArmRow,
+  BackendTable,
+  ComparisonReport,
+  ExperimentInput,
+  OrgTypeResult,
+} from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  armDescriptions,
+  armNames,
+  costRowsOf,
   countIn,
+  figuresOf,
+  perThousandText,
+  DEFAULT_NAMES,
   defaultInput,
+  experimentNames,
   groupsOf,
   inputProblem,
   points,
+  preregisterProblem,
+  primaryGroup,
+  primaryText,
+  rowLabel,
   skillIn,
   verdictOf,
   wilson,
@@ -47,6 +64,9 @@ function row(perOrg?: OrgTypeResult[]): ArmRow {
     adapterSha256: null,
     sampling: null,
     complete: true,
+    model: 'Glimmer',
+    runsOn: 'hosted',
+    perThousandUsd: 10,
   };
 }
 
@@ -65,10 +85,10 @@ describe('experiment results', () => {
     expect(verdictOf({ rate: -0.2, low: -0.3, high: -0.05 })).toBe('loss');
   });
 
-  it('writes a difference as signed points with a true minus', () => {
-    expect(points(0.23333)).toBe('+23.3');
-    expect(points(-0.0125)).toBe('\u22121.3');
-    expect(points(0)).toBe('0.0');
+  it('writes a difference as signed whole points with a true minus', () => {
+    expect(points(0.23333)).toBe('+23');
+    expect(points(-0.0125)).toBe('\u22121');
+    expect(points(0)).toBe('0');
   });
 
   it('reads a one-organization test as one group, from the report its interval', () => {
@@ -93,11 +113,73 @@ describe('experiment results', () => {
     expect(countIn(row(perOrg), groups[0]!)).toMatchObject({ pass: 7, total: 8 });
     expect(skillIn(row(perOrg), groups[2]!, 'refund')).toEqual({ pass: 1, total: 4 });
     expect(skillIn(row(perOrg), groups[2]!, 'pickup')).toBeNull();
+    expect(countIn(row(perOrg), primaryGroup('unseen'))).toMatchObject({ pass: 3, total: 8 });
+    expect(countIn(row(perOrg), primaryGroup('seen'))).toMatchObject({ pass: 7, total: 8 });
+  });
+});
+
+describe('accuracy against cost', () => {
+  const table = (backend: BackendTable['backend'], rows: ArmRow[]) =>
+    ({ backend, label: backend, rows, paired: [], repeats: [] }) as unknown as BackendTable;
+  const report = (backends: BackendTable[]) =>
+    ({ plan: { testSeeds: [101, 102] }, backends }) as unknown as ComparisonReport;
+  const teacher: ArmRow = {
+    ...row(),
+    arm: 'teacher',
+    label: 'GPT-6.1 Sol alone',
+    model: 'GPT-6.1 Sol',
+    perThousandUsd: 61.2,
+  };
+
+  it('reads each arm where it answered, the teacher named after the model that did the job', () => {
+    const local: ArmRow = { ...row(), runsOn: 'this_computer', perThousandUsd: 0 };
+    const rows = costRowsOf(
+      report([
+        table('hosted', [row(), { ...row(), seed: 102 }]),
+        table('reference', [teacher]),
+        table('local-ollama', [local]),
+      ]),
+    );
+    // The first seed's rows only, one per place an arm answered.
+    expect(
+      rows.map((item) => [rowLabel(item.row), item.model, item.runsOn, item.perThousandUsd]),
+    ).toEqual([
+      ['Targeted mentoring', 'Glimmer', 'hosted', 10],
+      ['GPT-6.1 Sol alone', 'GPT-6.1 Sol', 'hosted', 61.2],
+      ['Targeted mentoring', 'Glimmer', 'this_computer', 0],
+    ]);
+  });
+
+  it("sets the teacher alone's table beside the hosted student's, as Spark's references are", () => {
+    const [hosted, ...others] = figuresOf(
+      report([
+        table('hosted', [row()]),
+        table('teacher', [teacher]),
+        table('local-ollama', [{ ...row(), runsOn: 'this_computer' }]),
+      ]),
+    );
+    expect(hosted?.backend.backend).toBe('hosted');
+    expect(hosted?.rows.map((item) => item.arm)).toEqual(['targeted', 'teacher']);
+    expect(others.map((figure) => figure.backend.backend)).toEqual(['local-ollama']);
+  });
+
+  it('writes a cost per 1,000 requests, and nothing where it was not recorded in full', () => {
+    expect(perThousandText(40.9)).toBe('$40.90');
+    expect(perThousandText(0)).toBe('$0');
+    expect(perThousandText(null)).toBeNull();
+  });
+
+  it('leaves out rows from a report made before they said where they answered', () => {
+    const older: ArmRow = { ...row(), model: null, runsOn: null, perThousandUsd: null };
+    expect(costRowsOf(report([table('hosted', [older])]))).toEqual([]);
+    // A paired configuration without its adapter is the same arm again, not another place.
+    const without: ArmRow = { ...row(), configuration: 'H1/A0' };
+    expect(costRowsOf(report([table('local-llama.cpp', [without])]))).toEqual([]);
   });
 });
 
 describe('experiment plans', () => {
-  const input = defaultInput('C:/fields/desk', 'Desk');
+  const input = defaultInput({ jobId: 'desk' }, 'Desk');
 
   it('keeps chosen arms in the runner order with their own caps', () => {
     const capped = withArmCap(input, 'targeted', 'sparkUsd', 5);
@@ -117,5 +199,43 @@ describe('experiment plans', () => {
     expect(inputProblem({ ...input, name: ' ' })).toBe('Name the experiment.');
     expect(inputProblem({ ...input, arms: [] })).toBe('Choose at least one arm.');
     expect(inputProblem({ ...input, rounds: 11 })).toBe('One of the settings is out of range.');
+    expect(inputProblem({ ...input, jobDir: 'C:/fields/desk' })).toBe(
+      'One of the settings is out of range.',
+    );
+  });
+
+  it('asks for a hypothesis and a primary comparison of chosen arms before preregistering', () => {
+    const groups = ['all', 'seen', 'unseen'] as const;
+    expect(preregisterProblem(input, groups)).toBe('State the hypothesis.');
+    const stated = { ...input, hypothesis: 'Mentoring beats the bare student on unseen desks.' };
+    expect(preregisterProblem(stated, groups)).toBe('Choose the primary comparison.');
+    const primary: ExperimentInput = {
+      ...stated,
+      primaryComparison: { a: 'targeted', b: 'bare', group: 'unseen' },
+    };
+    expect(preregisterProblem(primary, groups)).toBeNull();
+    expect(preregisterProblem(primary, ['all'])).toBe(
+      'Choose a part of the final test this field has.',
+    );
+    expect(primaryText(primary)).toBe(
+      'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
+    );
+    // On a field of other models, the arms go by their names (decision 094).
+    const names = experimentNames({ names: { mentor: 'Qwen3 235B on vLLM', student: 'Qwen' } });
+    expect(names).toEqual({ mentor: 'Qwen3 235B', student: 'Qwen' });
+    expect(primaryText(primary, armNames(names))).toBe(
+      'Targeted mentoring minus Qwen alone, on the organizations it has never seen',
+    );
+    expect(armDescriptions(names).targeted).toBe(
+      "Qwen3 235B edits the harness round by round from Qwen's failures",
+    );
+    expect(armNames(DEFAULT_NAMES).reference).toBe('Spark reference');
+    // Taking an arm of the comparison out clears it, to be chosen again.
+    expect(withArms(primary, ['bare', 'draft']).primaryComparison).toBeUndefined();
+    expect(withArms(primary, ['bare', 'targeted']).primaryComparison).toEqual({
+      a: 'targeted',
+      b: 'bare',
+      group: 'unseen',
+    });
   });
 });

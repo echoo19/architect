@@ -66,6 +66,7 @@ export function createOpenAICompatibleStudent(
     headers: deps.apiKey ? { authorization: `Bearer ${deps.apiKey}` } : {},
     secrets: deps.apiKey ? [deps.apiKey] : [],
     fetch: deps.fetch,
+    network: deps.network,
     retry: deps.retry,
     timeouts: deps.timeouts,
   });

@@ -42,9 +42,15 @@ test('runs from its archive, with the sandbox and the sample job beside it', asy
     join(sandbox, 'child.mjs'),
     join(sandbox, 'emscripten-module.wasm'),
     join(where.resources, 'sample-job', 'job.json'),
-    // Phil's job comes with all four academies, the one it is never taught on included.
+    // Academy desk's job comes with all four academies, the one it is never taught on included.
     join(where.resources, 'academy-job', 'tasks.jsonl'),
     join(where.resources, 'academy-job', 'orgs', 'juniper', 'data', 'policy.md'),
+    // So does Sweep desk's, with all four research groups.
+    join(where.resources, 'sweep-desk-job', 'checker.js'),
+    join(where.resources, 'sweep-desk-job', 'orgs', 'fennick', 'data', 'configs.json'),
+    // The Assay desk's job comes with all four labs, the one it never sees included.
+    join(where.resources, 'assay-job', 'tasks.jsonl'),
+    join(where.resources, 'assay-job', 'orgs', 'corvid-hill', 'data', 'orbit_export.csv'),
     // The data the ready-made agent works on always comes along.
     join(where.resources, 'sample-agent', 'data', 'orders.csv'),
   ]) {
