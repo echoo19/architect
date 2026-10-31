@@ -142,6 +142,8 @@ export const FieldViewSchema = z.object({
        * what this version measured on it stays as it was.
        */
       taughtIn: z.object({ jobId: z.string(), name: z.string() }).optional(),
+      /** A fresh cohort of the taught organization of this name, not one of its own (089). */
+      cohortOf: z.string().optional(),
     }),
   ),
   /**
@@ -173,6 +175,8 @@ export const AddOrganizationRequestSchema = z
     folder: z.string().min(1),
     name: z.string().trim().min(1).max(60),
     synthetic: z.boolean(),
+    /** A fresh cohort: new work of the taught organization of this name (decision 089). */
+    cohortOf: z.string().trim().min(1).max(60).optional(),
   })
   .strict();
 export type AddOrganizationRequest = z.infer<typeof AddOrganizationRequestSchema>;

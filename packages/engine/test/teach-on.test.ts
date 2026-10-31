@@ -13,6 +13,7 @@ import { connectEngine, type EngineClient } from '../src/host/client';
 import { createEngineHost, type EngineHost } from '../src/host/engine-host';
 import { withVersions } from '../src/loop/job-versions';
 import { DataPaths } from '../src/loop/paths';
+import { splitTasks } from '../src/splits/split';
 import { openEngineStore } from '../src/store/engine-store';
 import { Vault } from '../src/vault/vault';
 import { hypothesis } from './fakes/adapters';
@@ -33,16 +34,24 @@ const MAPLE_FILES: Record<string, string> = {
   'policy.md': '# Maple policy\nLabor is billed per started 20 minutes.\n',
 };
 
-/** As `orgTasks`, with Hillcrest's ids saying where the fake splitter puts them once taught on. */
+/**
+ * As `orgTasks`, with Hillcrest's ids saying where the fake splitter puts them once taught on,
+ * and answers of their own that a copied task would repeat.
+ */
 function tasks(): Task[] {
+  const hill = (split: string, type: string, n: number): Task => {
+    const made = orgTask(split, 'hillcrest', type, n);
+    const value = `${made.id} is billed for ${String(10 * n)} started minutes`;
+    return { ...made, expected: { kind: 'answer', value, compare: { mode: 'exact' } } };
+  };
   return TYPES.flatMap((type) => [
     ...['north', 'south'].flatMap((org) => [
       orgTask('train', org, type, 1),
       orgTask('dev', org, type, 1),
       orgTask('test', org, type, 1),
     ]),
-    orgTask('train', 'hillcrest', type, 1),
-    orgTask('dev', 'hillcrest', type, 2),
+    hill('train', type, 1),
+    hill('dev', type, 2),
   ]);
 }
 
@@ -146,6 +155,7 @@ describe('teaching on a never-seen organization', () => {
     const sealedBefore = world.vault.count(job.id);
     const visibleBefore = await visible(job.id, 'train');
 
+    world.clock.advance(60_000);
     const view = await api().jobs.teachOn(job.id, 'Hillcrest Prep');
     const next = await api().jobs.get(view.jobId);
     expect(next.id).toBe('branches-v2');
@@ -202,7 +212,7 @@ describe('teaching on a never-seen organization', () => {
 
     // One line of versions: the next one is taught on from the newest.
     await expect(api().jobs.teachOn(job.id, 'Maple Grove')).rejects.toThrow(
-      /already has a newer version, .* v2/,
+      /has a newer version, .* v2. Add or teach on organizations there/,
     );
     await expect(api().jobs.teachOn(next.id, 'Nowhere Prep')).rejects.toThrow(
       /no never-seen organization called Nowhere Prep/,
@@ -235,17 +245,99 @@ describe('teaching on a never-seen organization', () => {
     // The new version's final test never opened a task of the organization it now teaches on.
     expect(world.vault.released).toEqual([`${job.id}:hillcrest`]);
 
-    // A fresh cohort of Hillcrest Prep's work is sealed as a new never-seen organization.
-    const fresh = await api().jobs.addOrganization(next.id, {
-      folder: folderOf(world.root, ORG_FILES['hillcrest'] ?? {}, addedTasks('hill2')),
+    // A fresh cohort of Hillcrest Prep's work must be work the teacher never saw.
+    const cohort = (files: Record<string, string>, list: Task[]) => ({
+      folder: folderOf(world.root, files, list),
       name: 'Hillcrest Prep fresh cohort',
       synthetic: false,
+      cohortOf: 'Hillcrest Prep',
     });
+    const hillFiles = ORG_FILES['hillcrest'] ?? {};
+    await expect(
+      api().jobs.addOrganization(next.id, cohort(hillFiles, addedTasks('hill2'))),
+    ).rejects.toThrow(/jobs.csv is the same file as one the teacher was taught on/);
+    const freshFiles = { ...hillFiles, 'jobs.csv': 'id,tech,minutes\nHJ-9101,HT-911,40\n' };
+    const taughtTask = (await visible(next.id, 'train')).find((task) => task.org === 'hillcrest');
+    if (taughtTask === undefined) throw new Error('No Hillcrest practice task.');
+    const reworded = { ...taughtTask, id: 'hill2-copy', family: 'hill2-copy' };
+    await expect(
+      api().jobs.addOrganization(next.id, cohort(freshFiles, [{ ...reworded, org: undefined }])),
+    ).rejects.toThrow(/asks what the visible task .* asks/);
+    const sameFamily = { ...addedTasks('hill2')[0], family: taughtTask.family } as Task;
+    await expect(
+      api().jobs.addOrganization(next.id, cohort(freshFiles, [sameFamily])),
+    ).rejects.toThrow(/which the teacher already sees/);
+    const sameAnswer = {
+      ...addedTasks('hill2')[0],
+      type: taughtTask.type,
+      expected: taughtTask.expected,
+    } as Task;
+    await expect(
+      api().jobs.addOrganization(next.id, cohort(freshFiles, [sameAnswer])),
+    ).rejects.toThrow(/expects exactly what the visible task/);
+    await api().jobs.addOrganization(next.id, cohort(freshFiles, addedTasks('hill2')));
     expect(world.vault.transferIdentifiers(next.id).map((org) => org.name)).toEqual([
       'Maple Grove',
       'Hillcrest Prep fresh cohort',
     ]);
-    expect(fresh.versionOf?.org).toBe('Hillcrest Prep');
+    const sealedCohort = world.vault.added.get(next.id)?.[0]?.org;
+    expect(sealedCohort?.cohortOf).toBe('Hillcrest Prep');
+    // An older version of the field adds no more organizations: they go to the newest.
+    await expect(
+      api().jobs.addOrganization(job.id, cohort(freshFiles, addedTasks('hill3'))),
+    ).rejects.toThrow(/has a newer version, .* v2\. Add or teach on organizations there/);
+  });
+});
+
+describe('what a move refuses', () => {
+  async function field(policy?: string): Promise<Job> {
+    const dir = join(world.root, 'branches');
+    const file = await writeOrgJobFolder(dir, orgJob(), tasks());
+    if (policy !== undefined)
+      writeFileSync(join(dir, 'orgs', 'hillcrest', 'data', 'policy.md'), policy);
+    return api().jobs.importFile(file);
+  }
+
+  it('refuses files that name an organization that stays never seen', async () => {
+    const job = await field('# Hillcrest policy\nBill as Maple Grove does.\n');
+    await api().jobs.addOrganization(job.id, {
+      folder: folderOf(world.root, MAPLE_FILES, addedTasks('maple')),
+      name: 'Maple Grove',
+      synthetic: true,
+    });
+    await expect(api().jobs.teachOn(job.id, 'Hillcrest Prep')).rejects.toThrow(
+      /policy.md names an organization that stays never seen/,
+    );
+    expect(world.vault.isSealed(`${job.id}-v2`)).toBe(false);
+  });
+
+  it('says plainly when an organization is too small to split, with the real splitter', async () => {
+    const job = await field();
+    Object.assign(world.runtime, { splitTasks });
+    const [one] = addedTasks('solo');
+    await api().jobs.addOrganization(job.id, {
+      folder: folderOf(world.root, MAPLE_FILES, one === undefined ? [] : [one]),
+      name: 'Solo Prep',
+      synthetic: true,
+    });
+    await expect(api().jobs.teachOn(job.id, 'Solo Prep')).rejects.toThrow(
+      'Solo Prep has 1 task, too few to give it both practice and check tasks with each family kept whole. Add tasks to it first.',
+    );
+    const pair = addedTasks('pair')
+      .slice(0, 2)
+      .map((task) => ({ ...task, family: 'pair-one' }));
+    await api().jobs.addOrganization(job.id, {
+      folder: folderOf(world.root, MAPLE_FILES, pair),
+      name: 'Pair Prep',
+      synthetic: true,
+    });
+    await expect(api().jobs.teachOn(job.id, 'Pair Prep')).rejects.toThrow(
+      /Pair Prep has 2 tasks, too few .* Its families are too large for 1 check tasks/,
+    );
+    // A name another job already has is not taken twice.
+    await api().jobs.save({ ...job, id: 'other', name: `${job.name} v2` });
+    const made = await api().jobs.get((await api().jobs.teachOn(job.id, 'Hillcrest Prep')).jobId);
+    expect(made.name).toBe(`${job.name} v2 (2)`);
   });
 });
 

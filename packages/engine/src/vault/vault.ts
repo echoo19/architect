@@ -257,21 +257,27 @@ export class Vault {
    * own view of their field. No id, file name or task leaves, and nothing here may reach a
    * mentor: the leak gate holds every request to not naming one.
    */
-  sealedOrganizations(
-    jobId: string,
-  ): { name: string; synthetic: boolean; files: number; addedLater?: true }[] {
+  sealedOrganizations(jobId: string): {
+    name: string;
+    synthetic: boolean;
+    files: number;
+    addedLater?: true;
+    cohortOf?: string;
+  }[] {
     if (!this.isSealed(jobId)) return [];
     return [
       ...(this.fingerprint(jobId).transfer ?? []).map(({ org, files }) => ({
         name: org.name,
         synthetic: org.synthetic,
         files: files.length,
+        ...(org.cohortOf === undefined ? {} : { cohortOf: org.cohortOf }),
       })),
       ...this.added(jobId).map(({ org, files }) => ({
         name: org.name,
         synthetic: org.synthetic,
         files: files.length,
         addedLater: true as const,
+        ...(org.cohortOf === undefined ? {} : { cohortOf: org.cohortOf }),
       })),
     ];
   }

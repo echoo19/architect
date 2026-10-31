@@ -54,6 +54,7 @@ type Chosen = { kind: 'taught'; index: number } | { kind: 'sealed'; name: string
 /** What a sealed organization's row says it is to this version of the field. */
 function standing(org: Sealed): string {
   if (org.taughtIn !== undefined) return `Taught on in ${org.taughtIn.name}`;
+  if (org.cohortOf !== undefined) return `Fresh cohort of ${org.cohortOf}`;
   return org.addedLater === true ? 'Added later' : 'Never seen';
 }
 
@@ -380,6 +381,7 @@ function AddOrganizationDialog({
         folder,
         name: name.trim(),
         synthetic: kind === 'generated',
+        ...(cohortOf === undefined ? {} : { cohortOf: cohortOf.name }),
       }),
     );
     setBusy(false);

@@ -231,7 +231,13 @@ test('teaches on it in a new version of the field, and seals a fresh cohort ther
     ...V2_FIELD,
     sealed: [
       ...V2_FIELD.sealed,
-      { name: `${HARBOR} fresh cohort`, synthetic: true, files: 12, addedLater: true as const },
+      {
+        name: `${HARBOR} fresh cohort`,
+        synthetic: true,
+        files: 12,
+        addedLater: true as const,
+        cohortOf: HARBOR,
+      },
     ],
   });
   await next.getByRole('button', { name: 'Seal a fresh cohort' }).click();
@@ -248,12 +254,14 @@ test('teaches on it in a new version of the field, and seals a fresh cohort ther
         folder: 'D:\\Exports\\Harbor Learning November',
         name: `${HARBOR} fresh cohort`,
         synthetic: true,
+        cohortOf: HARBOR,
       },
     ],
   ]);
+  // It is new work of Harbor Learning, not an organization of its own it never saw.
   await expect(
     next.getByRole('button', { name: new RegExp(`${HARBOR} fresh cohort`) }),
-  ).toContainText('Added later');
+  ).toContainText(`Fresh cohort of ${HARBOR}`);
   await capture('learn-from-org-version-dark.png');
 });
 

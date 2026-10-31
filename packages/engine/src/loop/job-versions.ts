@@ -78,13 +78,16 @@ export function withVersions(view: FieldView, store: EngineStore): FieldView {
  */
 export function labelTaughtLater(
   card: ReportCard,
-  taught: ReadonlyMap<string, unknown>,
+  taught: ReadonlyMap<string, { createdAt: string }>,
 ): ReportCard {
   if (taught.size === 0) return card;
+  // Only a card filed before the version that teaches on it was made was measured before.
+  const before = (org: string | undefined) => {
+    const version = org === undefined ? undefined : taught.get(org);
+    return version !== undefined && card.createdAt < version.createdAt;
+  };
   const marked = <T extends { org?: string; seen: boolean }>(item: T): T =>
-    !item.seen && item.org !== undefined && taught.has(item.org)
-      ? { ...item, taughtLater: true as const }
-      : item;
+    !item.seen && before(item.org) ? { ...item, taughtLater: true as const } : item;
   const { perOrg } = card.test;
   const { certificate } = card;
   return {
