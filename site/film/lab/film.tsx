@@ -398,6 +398,12 @@ function renderPage(id: PageId, lt: number): ReactNode {
 
 const FINAL = 999;
 
+/**
+ * Pages that come in only once the page before has gone, in seconds: the experiment's title sits
+ * where Train's 97% was, so Train leaves in 0.1 s and the title rises after it.
+ */
+const CLEARS: Partial<Record<PageId, number>> = { experiment: 0.1 };
+
 /** One window of the app. `still` draws a page in its finished state, as the wall at the end does. */
 export function AppWindow({
   t,
@@ -467,8 +473,9 @@ export function AppWindow({
           );
         }
         if (t < page.at - 0.01 || (next && t > next.at + 0.3)) return null;
-        const enter = outQuart(span(t, page.at, 0.5));
-        const leave = next ? outQuart(span(t, next.at, 0.3)) : 0;
+        // A page whose title lands where the last page's figure was waits for it to go first.
+        const enter = outQuart(span(t, page.at + (CLEARS[page.id] ?? 0), 0.5));
+        const leave = next ? outQuart(span(t, next.at, CLEARS[next.id] ?? 0.3)) : 0;
         return (
           <div
             key={page.id}

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Button, LogoMark } from '@architect/ui';
+import { Badge, Button, LogoMark, RowIcon } from '@architect/ui';
 import {
   ArrowUp,
   Building2,
@@ -149,9 +149,9 @@ function Proposal({
         style={{ opacity: clamp(p * 1.5 - 0.2), transform: `translateY(${(1 - p) * 10}px)` }}
       >
         <div className="flex h-14 items-center gap-3 px-4">
-          <span className="grid size-9 place-items-center rounded-control bg-selected">
-            <FilePlus2 size={16} strokeWidth={1.8} aria-hidden />
-          </span>
+          <RowIcon>
+            <FilePlus2 strokeWidth={1.8} aria-hidden />
+          </RowIcon>
           <span className="flex flex-1 flex-col">
             <span className="text-ui">
               Add to <span className="font-mono">{file}</span>
@@ -164,9 +164,20 @@ function Proposal({
               style={{ opacity: 1 - saved }}
             >
               <Button size="sm">Deny</Button>
-              <span data-click={click ? 'allow' : undefined}>
-                <Button size="sm" variant="primary">
-                  Allow once
+              {/* Allow once, with "Allow saving from now on" in the menu beside it. */}
+              <span className="flex">
+                <span data-click={click ? 'allow' : undefined}>
+                  <Button size="sm" variant="primary" className="rounded-r-none">
+                    Allow once
+                  </Button>
+                </span>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  aria-label="More ways to allow"
+                  className="w-7 rounded-l-none border-l border-ground/25 px-0"
+                >
+                  <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
                 </Button>
               </span>
             </span>
@@ -289,25 +300,30 @@ function Edition({ title, detail, selected }: { title: string; detail: string; s
   );
 }
 
-/** A specialist as the opening shows it: what it does, and its measured result where there is one. */
+/**
+ * A specialist as the opening shows it, every card built the same: its name (the row drawn over
+ * the card), its job in one line, and its measured result. The sample job has none: a Sample
+ * badge stands where its figure would be, over "no test". (Its name's row, drawn larger for the
+ * flight into the sidebar, has no room for the badge.)
+ */
 export function GalleryCard({ agent, lt }: { agent: Specialist; lt: number }) {
   const figure = agent.figure;
   return (
     <div className="flex h-full flex-col justify-between px-6 pb-6 pt-[86px]">
-      <span className="text-[17px] leading-[1.45]">{agent.does}</span>
-      {figure ? (
-        <div className="flex flex-col gap-1.5" style={rise(lt, 0, 12, 0.9)}>
+      <span className="truncate text-[17px] leading-[1.45]">{agent.does}</span>
+      <div className="flex flex-col items-start gap-1.5" style={rise(lt, 0, 12, 0.9)}>
+        {figure ? (
           <span className="font-display text-[48px] font-semibold leading-none tracking-[-0.03em] tabular-nums">
             {figure.value}
             <span className="text-[24px] tracking-[-0.01em]"> of {figure.of}</span>
           </span>
-          <span className="text-[16px]">{figure.label}</span>
-        </div>
-      ) : (
-        <span className="text-[16px]" style={rise(lt, 0, 12, 0.9)}>
-          The sample job that ships with Architect
-        </span>
-      )}
+        ) : (
+          <span className="flex h-12 items-end pb-1">
+            <Badge size="lg">Sample</Badge>
+          </span>
+        )}
+        <span className="text-[16px]">{figure ? figure.label : 'no test'}</span>
+      </div>
     </div>
   );
 }

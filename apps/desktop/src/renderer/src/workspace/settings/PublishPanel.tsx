@@ -198,7 +198,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
           <SettingsRow
             icon={<StatusMark state="blocked" label="Failed" />}
             label={`Couldn't publish version ${state.version} to ${state.repository}`}
-            meta={state.message}
+            error={state.message}
           />
         </SettingsSection>
       )}
@@ -220,7 +220,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
             className="w-64 font-mono text-small"
           />
         </SettingsRow>
-        <SettingsRow label="Visibility" meta={VISIBILITY_MEANINGS[visibility]}>
+        <SettingsRow label="Visibility" info={VISIBILITY_MEANINGS[visibility]}>
           <Segmented
             aria-label="Visibility"
             options={VISIBILITY_CHOICES}

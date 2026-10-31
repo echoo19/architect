@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { WorkspaceChat, WorkspaceMessage } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { ENGINE_RESTARTING, stubEngineFailure } from './fixtures';
 import {
   AGENT_WITH_VERSIONS,
@@ -397,9 +397,10 @@ test('imports a package with trained weights once llama.cpp is set up', async ()
   await startImport([PACKAGES.weights, FOLDERS.records]);
 
   await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-  await expect(
-    page.getByText('A free program that runs its trained weights. One more download.'),
-  ).toBeVisible();
+  await expect(page.getByText('One more download', { exact: true })).toBeVisible();
+  expect(await infoTipText(page, page, 'llama.cpp')).toBe(
+    'A free program that runs its trained weights.',
+  );
   await expect(page.getByText('The exact copy its trained weights need')).toBeVisible();
   // Trained weights run on llama.cpp, so the way on waits until it is set up, and says so.
   await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();

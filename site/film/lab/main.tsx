@@ -1,6 +1,6 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { MotionProvider } from '@architect/ui';
+import { MotionProvider, TooltipProvider } from '@architect/ui';
 import { filmTime, LabFilm, playedTime, WALKTHROUGH, type Measured } from './film';
 import { WHY_FROM, WHY_LENGTH, WhyScene } from './why';
 import { TEAM_BACK, TEAM_FROM, TEAM_LENGTH, TeamScene } from './team';
@@ -50,7 +50,10 @@ function draw(played: number, measured: Measured, measuring = false) {
   flushSync(() => {
     root.render(
       <MotionProvider instant>
-        {measuring ? <LabFilm t={0} measured={measured} measuring /> : scene(played, measured)}
+        {/* The info tips' tooltips never open in the film, but each needs its provider. */}
+        <TooltipProvider>
+          {measuring ? <LabFilm t={0} measured={measured} measuring /> : scene(played, measured)}
+        </TooltipProvider>
       </MotionProvider>,
     );
   });

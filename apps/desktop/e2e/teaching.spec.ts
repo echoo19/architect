@@ -124,7 +124,6 @@ test('flags an answer, sends nothing until agreed, and queues or discards its le
   });
 
   const sheet = await flagReply();
-  await expect(sheet).toContainText('Reply to "Who still owes us money from September?"');
   await expect(sheet).toContainText('Three customers, $2,915.00 in total.');
   await expect(
     sheet.getByText('Only this exchange, its steps and your notes go to Spark, for up to $0.25.'),

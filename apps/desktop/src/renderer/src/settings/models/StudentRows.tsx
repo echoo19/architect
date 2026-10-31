@@ -121,7 +121,7 @@ export function StudentRows({ student, ollama, gpu, onUse }: StudentRowsProps) {
       {suggest && (
         <SettingsRow
           label={`${localModelName(better.model)} fits your GPU`}
-          meta={`Runs entirely on the ${gpu.name}, several times faster`}
+          info={`Runs entirely on the ${gpu.name}, several times faster.`}
         >
           {isInstalled(ollama, better.model) ? (
             <Button size="xs" onClick={() => onUse(better.model)}>

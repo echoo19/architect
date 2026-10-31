@@ -37,7 +37,6 @@ import {
   evidenceText,
   lessonCount,
   proposeFailure,
-  shortRequest,
   type ProposeFailure,
 } from './lessons';
 import { ProposalActions, ProposalView } from './Proposal';
@@ -47,8 +46,6 @@ export interface TeachSheetProps {
   agent: GraduateSummary;
   /** The settled reply the person flagged, or that holds the teammate's answer they flagged. */
   reply: WorkspaceMessage;
-  /** What the person asked, which the reply answered. */
-  request: string;
   /** In a team chat, the teammate's answer flagged, and the lead that asked for it. */
   consultation?: { consultation: Consultation; lead: GraduateSummary };
   /**
@@ -75,7 +72,6 @@ type Stage =
 export function TeachSheet({
   agent,
   reply,
-  request,
   consultation,
   alsoSharing = [],
   onClose,
@@ -98,9 +94,8 @@ export function TeachSheet({
     list?.find((version) => version.version === answeredBy) ??
     list?.find((version) => version.active);
   const jobFiles = wrote?.manifest.contract.inputs.files.map((file) => file.name) ?? [];
-  const subtitle = consultation
-    ? `${agent.name}'s answer to ${consultation.lead.name}`
-    : `Reply to "${shortRequest(request)}"`;
+  // A teammate's answer inside a team reply is taught to that teammate, so the title names it.
+  const title = consultation ? `Teach ${agent.name}` : 'Teach this';
   const ready = overview.data;
   const mentor = shortModelName(ready?.mentor ?? 'Spark');
 
@@ -253,7 +248,7 @@ export function TeachSheet({
   }
 
   return (
-    <DrawerContent title="Teach this" subtitle={subtitle} footer={footer}>
+    <DrawerContent title={title} footer={footer}>
       {body}
     </DrawerContent>
   );
@@ -332,7 +327,7 @@ function CorrectionForm({
           onChange={(event) => onWrong(event.target.value)}
         />
       </Field>
-      <Field label="What it should have done" hint="Optional" htmlFor={`${id}-wanted`}>
+      <Field label="What it should have done" optional htmlFor={`${id}-wanted`}>
         <Textarea
           id={`${id}-wanted`}
           value={wanted}
@@ -343,7 +338,7 @@ function CorrectionForm({
           onChange={(event) => onWanted(event.target.value)}
         />
       </Field>
-      <Field label="What it should have used" hint="Optional" htmlFor={`${id}-rows`}>
+      <Field label="What it should have used" optional htmlFor={`${id}-rows`}>
         {jobFiles.length > 0 && (
           <div role="group" aria-label="Files it should have used" className="flex flex-wrap gap-2">
             {jobFiles.map((file) => (

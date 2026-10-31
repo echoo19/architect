@@ -136,12 +136,19 @@ function InstallRow({
   const meta =
     status === 'ready' && machine && checked?.checkedAt
       ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
-      : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
+      : undefined;
+  const cause =
+    status === 'ready' ? '' : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 
   return (
     <>
-      <SettingsRow label={WORKS_HERE_TITLE} meta={meta || undefined} error={errorOf(installation)}>
+      <SettingsRow
+        label={WORKS_HERE_TITLE}
+        meta={meta}
+        info={cause || undefined}
+        error={errorOf(installation)}
+      >
         {installation.status === 'error' ? (
           <RetryButton onClick={installation.reload} />
         ) : (
@@ -336,7 +343,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       {active && <FolderRows agent={agent} active={active} />}
       <SettingsRow
         label={WRITE_SETTING}
-        meta={
+        info={
           settings.status === 'success' ? WRITE_MODE_MEANINGS[settings.data.writeMode] : undefined
         }
         error={errorOf(settings)}
@@ -372,7 +379,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       </SettingsRow>
       <SettingsRow
         label="Files it can change"
-        meta={savingNever ? `${WRITE_SETTING} is set to Never, so it changes none now.` : undefined}
+        info={savingNever ? `${WRITE_SETTING} is set to Never, so it changes none now.` : undefined}
         error={errorOf(versions)}
       >
         {contract ? (

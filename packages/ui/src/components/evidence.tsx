@@ -8,7 +8,8 @@ import { springs } from '../motion/springs';
  * The four kinds of result Architect keeps apart wherever they show: practice on training tasks
  * the mentor sees, checks on development tasks hidden from it, the locked final test, and the
  * install checks a computer runs on its own. Each has its own mark and its own bar, so a practice
- * score or an install check never reads as held-out evidence.
+ * score or an install check never reads as held-out evidence. `install` is a row's mark only, beside
+ * the row's status; it never heads a column or a section.
  */
 export type EvidenceKind = 'practice' | 'check' | 'final' | 'install';
 

@@ -103,15 +103,16 @@ export function CheckStep({
         <SettingsRow
           icon={<StatusMark state="ok" label="Passed" />}
           label="Safe to open"
-          meta={`${preview.files} files · ${formatBytes(preview.bytes)} · checked without running any of it${
-            preview.migratedFrom === undefined ? '' : ' · converted from an older format'
-          }`}
+          meta={`${preview.files} files · ${formatBytes(preview.bytes)}`}
+          info={`Checked without running any of it${
+            preview.migratedFrom === undefined ? '' : ', and converted from an older format'
+          }.`}
         />
         {place.kind === 'version' && (
           <SettingsRow
             icon={<VersionTag version={place.version} />}
             label={`Joins ${place.name} as version ${place.version}`}
-            meta="Waits until you choose to use it; its folders and permissions stay"
+            info="Waits until you choose to use it; its folders and permissions stay."
           />
         )}
         {place.kind === 'installed' && (
@@ -141,9 +142,10 @@ export function CheckStep({
               server.status === 'skipped'
                 ? notChecked
                 : server.status === 'failed'
-                  ? 'A free program that runs its trained weights. One more download.'
+                  ? 'One more download'
                   : checkDetail(server, preview)
             }
+            info="A free program that runs its trained weights."
           >
             {server.status === 'failed' && <SetUpLlamaButton />}
           </SettingsRow>
@@ -200,7 +202,7 @@ export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
         <>
           <SettingsRow
             label="Final test"
-            meta={`The job needed ${Math.round(summary.passRate.target * 100)}%`}
+            meta={`Target ${Math.round(summary.passRate.target * 100)}%`}
           >
             <SettingsValue>
               {summary.passRate.met ? 'Passed' : 'Below its target'}: {formatScore(summary.score)}
@@ -213,7 +215,7 @@ export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
           )}
         </>
       ) : (
-        <SettingsRow label="Final test" meta="No final test measured this version">
+        <SettingsRow label="Final test">
           <SettingsValue>Not evaluated</SettingsValue>
         </SettingsRow>
       )}

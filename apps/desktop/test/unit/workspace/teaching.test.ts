@@ -17,7 +17,6 @@ import {
   lessonChange,
   proposeFailure,
   runningImprovement,
-  shortRequest,
   teachTarget,
 } from '../../../src/renderer/src/workspace/teach/lessons';
 import { makeJob, makeRun } from '../flow/factories';
@@ -125,11 +124,6 @@ describe('a proposed lesson', () => {
       text: 'Spark is busy.',
       retry: true,
     });
-  });
-
-  it('shortens the request it answered to one line', () => {
-    expect(shortRequest('Who still owes us\nmoney?')).toBe('Who still owes us money?');
-    expect(shortRequest('x'.repeat(80), 10)).toBe(`${'x'.repeat(9)}…`);
   });
 });
 

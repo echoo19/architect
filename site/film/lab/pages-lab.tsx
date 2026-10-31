@@ -1,4 +1,14 @@
-import { Badge, Button, Meter, Spinner } from '@architect/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardRow,
+  EmptyState,
+  InfoTip,
+  Meter,
+  RowIcon,
+  Spinner,
+} from '@architect/ui';
 import {
   Building2,
   ChevronRight,
@@ -19,45 +29,47 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ACADEMY, ORGANIZATIONS, RIDGELINE_FILES } from './data';
-import { Panel, PlacePage, Row, Tile } from './shell';
+import { PlacePage } from './shell';
 import { count, mix, outQuart, rise, span, ui } from './time';
 
-/** The Lab: what needs you and what is running (apps/desktop lab/cards.tsx). */
+const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
+
+/**
+ * The Lab: what needs you and what is running (apps/desktop lab/cards.tsx). The row's icon names
+ * the kind and its end word what to do; a detail line stays only where it says something specific.
+ */
 export function LabHome({ lt }: { lt: number }) {
   const needs: readonly {
-    group: string;
+    kind: string;
     icon: ReactNode;
-    tone: string;
     title: string;
-    detail: string;
+    detail?: string;
+    end: string;
   }[] = [
     {
-      group: 'Questions',
+      kind: 'question',
       icon: <MessageCircleQuestion strokeWidth={1.8} aria-hidden />,
-      tone: 'text-mentor',
       title: 'Pricing desk',
-      detail: 'A question for you',
+      end: 'Question',
     },
     {
-      group: 'Results',
+      kind: 'results',
       icon: <CircleCheck strokeWidth={1.8} aria-hidden />,
-      tone: 'text-student',
       title: ACADEMY,
-      detail: 'Results ready',
+      end: 'Results',
     },
     {
-      group: 'Approvals',
+      kind: 'approval',
       icon: <ShieldCheck strokeWidth={1.8} aria-hidden />,
-      tone: 'text-fg',
       title: ACADEMY,
       detail: 'Add 3 rows to assignments.csv',
+      end: 'Approve',
     },
     {
-      group: 'Lessons',
+      kind: 'lesson',
       icon: <GraduationCap strokeWidth={1.8} aria-hidden />,
-      tone: 'text-mentor',
       title: 'Returns desk',
-      detail: 'A lesson to review',
+      end: 'Review',
     },
   ];
   // The third academy run's first round, kept: 25 to 34 of 72 check tasks (docs/PROGRESS.md).
@@ -65,33 +77,37 @@ export function LabHome({ lt }: { lt: number }) {
   return (
     <PlacePage title="Lab">
       <div className="grid grid-cols-[1fr_330px] items-start gap-4">
-        <Panel title="Needs you" frame="needs">
+        <Card title="Needs you" flush>
           {needs.map((need, index) => (
             <div
-              key={need.group}
+              key={need.kind}
               className="overflow-hidden"
               style={
                 index === 0
                   ? {
                       // A new question arrives while the Lab is watched, and the rest make room.
-                      height: 89 * outQuart(span(lt, 3.8, 0.7)),
+                      height: 56 * outQuart(span(lt, 3.8, 0.7)),
                       opacity: outQuart(span(lt, 4.0, 0.6)),
                     }
                   : rise(lt, 0.5 + index * 0.09, 6)
               }
             >
-              <div className="px-6 pb-2 pt-3 text-small font-medium">{need.group}</div>
-              <Row
-                icon={<Tile className={need.tone}>{need.icon}</Tile>}
+              <CardRow
+                icon={<RowIcon>{need.icon}</RowIcon>}
                 title={need.title}
                 detail={need.detail}
-                end={<ChevronRight size={16} strokeWidth={1.8} aria-hidden />}
+                end={
+                  <>
+                    {need.end}
+                    {chevron}
+                  </>
+                }
               />
             </div>
           ))}
-        </Panel>
-        <div className="flex flex-col gap-4" data-frame="running">
-          <Panel title="Running">
+        </Card>
+        <div className="flex flex-col gap-4">
+          <Card title="Running" flush>
             <RunRow
               name={ACADEMY}
               state="Teaching, round 2 of 3"
@@ -103,11 +119,13 @@ export function LabHome({ lt }: { lt: number }) {
               state="Practicing, round 2 of 8"
               progress={mix(0.18, 0.24, outQuart(span(lt, 2, 10)))}
             />
-          </Panel>
-          <Panel title="Spend" bodyClass="gap-4 px-6 pb-6">
-            <Spend name={ACADEMY} spark="$0.58 of $5.00" share={0.116} glimmer="$4.26" />
-            <Spend name="Returns desk" spark="$0.42 of $5.00" share={0.084} />
-          </Panel>
+          </Card>
+          <Card title="Spend">
+            <div className="flex flex-col gap-4">
+              <Spend name={ACADEMY} spark="$0.58 of $5.00" share={0.116} glimmer="$4.26" />
+              <Spend name="Returns desk" spark="$0.42 of $5.00" share={0.084} />
+            </div>
+          </Card>
         </div>
       </div>
     </PlacePage>
@@ -128,10 +146,10 @@ function RunRow({
   return (
     <div className="flex flex-col gap-3 border-t border-line px-6 py-3.5">
       <div className="flex items-center gap-3">
-        <Tile>
+        <RowIcon>
           <Spinner size={16} />
-        </Tile>
-        <span className="flex min-w-0 flex-1 flex-col">
+        </RowIcon>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate font-medium">{name}</span>
           <span className="truncate text-small">{state}</span>
         </span>
@@ -227,7 +245,7 @@ const fieldGrid = 'grid grid-cols-[1.6fr_repeat(6,1fr)_1.1fr] items-center gap-3
 export function Fields({ lt, selected }: { lt: number; selected: number }) {
   return (
     <PlacePage title="Fields" action={<Button size="sm">New field</Button>}>
-      <section className="rounded-card bg-card shadow-edge" data-frame="fields">
+      <section className="rounded-card surface-card">
         <div className={`${fieldGrid} pt-4 text-small font-medium`}>
           <span />
           <span className="col-span-3 border-b border-line pb-2 text-center">Organizations</span>
@@ -301,6 +319,25 @@ function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
   );
 }
 
+/** What an organization's row says under its name: generated or not, and what it holds. */
+function orgDetail(org: (typeof ORGANIZATIONS)[number]): string {
+  const rows = org.rows ? ` · ${org.rows.toLocaleString('en-US')} rows` : '';
+  // A real organization carries its Real chip, so its row doesn't say it again.
+  return org.kind === 'Real' ? `${org.files} files` : `${org.kind} · ${org.files} files${rows}`;
+}
+
+/** A row's selected fill, fading as the choice moves from one row to another. */
+function Chosen({ shown, children }: { shown: number; children: ReactNode }) {
+  return (
+    <div className="relative">
+      {shown > 0 && (
+        <span aria-hidden className="absolute inset-0 bg-selected" style={{ opacity: shown }} />
+      )}
+      {children}
+    </div>
+  );
+}
+
 /**
  * A field's page on its Organizations tab: the academies it is taught on, and the two it never
  * sees, sealed until the final test, one of them real.
@@ -325,100 +362,92 @@ export function FieldPage({ lt }: { lt: number }) {
     >
       <FieldTabs open="Organizations" />
       <div className="grid grid-cols-[1fr_320px] items-start gap-4">
-        <Panel title="Organizations" frame="orgs">
+        <Card title="Organizations" flush>
           {ORGANIZATIONS.map((org, index) => {
             const sealed = org.role === 'Never seen';
             const lock = ui(lt, 2.8 + (index - 3) * 0.45, 0.32);
             return (
               <div key={org.name} style={rise(lt, 0.4 + index * 0.08, 6)}>
-                <Row
-                  selected={index === 0 ? 1 - pick : index === 3 ? pick : 0}
-                  icon={
-                    <Tile>
-                      {sealed ? (
-                        <span className="relative size-4">
-                          <Building2
-                            className="absolute inset-0"
-                            strokeWidth={1.8}
-                            style={{ opacity: 1 - lock }}
-                            aria-hidden
-                          />
-                          <Lock
-                            className="absolute inset-0"
-                            strokeWidth={1.8}
-                            style={{ opacity: lock, transform: `scale(${mix(0.6, 1, lock)})` }}
-                            aria-hidden
-                          />
+                <Chosen shown={index === 0 ? 1 - pick : index === 3 ? pick : 0}>
+                  <CardRow
+                    className="relative"
+                    icon={
+                      <RowIcon>
+                        {sealed ? (
+                          <span className="relative size-4">
+                            <Building2
+                              className="absolute inset-0"
+                              strokeWidth={1.8}
+                              style={{ opacity: 1 - lock }}
+                              aria-hidden
+                            />
+                            <Lock
+                              className="absolute inset-0"
+                              strokeWidth={1.8}
+                              style={{ opacity: lock, transform: `scale(${mix(0.6, 1, lock)})` }}
+                              aria-hidden
+                            />
+                          </span>
+                        ) : (
+                          <Building2 strokeWidth={1.8} aria-hidden />
+                        )}
+                      </RowIcon>
+                    }
+                    title={org.name}
+                    detail={orgDetail(org)}
+                    end={
+                      sealed ? (
+                        <span
+                          className="flex items-center gap-2"
+                          style={{ opacity: mix(0.35, 1, lock) }}
+                        >
+                          {org.kind === 'Real' && <Badge tone="student">Real</Badge>}
+                          Never seen
                         </span>
                       ) : (
-                        <Building2 strokeWidth={1.8} aria-hidden />
-                      )}
-                    </Tile>
-                  }
-                  title={org.name}
-                  detail={`${org.kind} · ${org.files} files${org.rows ? ` · ${org.rows.toLocaleString('en-US')} rows` : ''}`}
-                  end={
-                    sealed ? (
-                      <span
-                        className="flex items-center gap-2"
-                        style={{ opacity: mix(0.35, 1, lock) }}
-                      >
-                        {org.kind === 'Real' && <Badge tone="student">Real</Badge>}
-                        Never seen
-                      </span>
-                    ) : (
-                      'Taught on'
-                    )
-                  }
-                />
+                        'Taught on'
+                      )
+                    }
+                  />
+                </Chosen>
               </div>
             );
           })}
-          <p className="m-0 border-t border-line px-6 py-4 text-ui" style={rise(lt, 4.2, 6)}>
-            Never seen: sealed away from teaching, and opened once for the final test.
-          </p>
-        </Panel>
-        <Panel
-          title={
-            <span className="grid">
-              <span className="[grid-area:1/1]" style={{ opacity: 1 - pick }}>
-                Ridgeline Test Prep
-              </span>
-              <span className="[grid-area:1/1]" style={{ opacity: pick }}>
-                Harborview Prep
-              </span>
-            </span>
-          }
-          className="relative"
-        >
-          <div style={{ opacity: 1 - pick }}>
-            {RIDGELINE_FILES.map(([file, size], index) => (
-              <div
-                key={file}
-                className="flex h-11 items-center justify-between border-t border-line px-6"
-                style={rise(lt, 0.7 + index * 0.05, 5)}
-              >
-                <span className="flex items-center gap-2.5 font-mono text-small">
-                  <FileText size={14} strokeWidth={1.8} aria-hidden />
-                  {file}
-                </span>
-                <span className="text-small tabular-nums">{size}</span>
-              </div>
-            ))}
+        </Card>
+        {/* The chosen academy's card: Ridgeline's files, then Harborview, which shows nothing. */}
+        <div className="grid">
+          <div className="flex [grid-area:1/1]" style={{ opacity: 1 - pick }}>
+            <Card title="Ridgeline Test Prep" flush className="w-[320px]">
+              {RIDGELINE_FILES.map(([file, size], index) => (
+                <div
+                  key={file}
+                  className="flex h-11 items-center justify-between border-t border-line px-6"
+                  style={rise(lt, 0.7 + index * 0.05, 5)}
+                >
+                  <span className="flex items-center gap-2.5 font-mono text-small">
+                    <FileText size={14} strokeWidth={1.8} aria-hidden />
+                    {file}
+                  </span>
+                  <span className="text-small tabular-nums">{size}</span>
+                </div>
+              ))}
+            </Card>
           </div>
           <div
-            className="absolute inset-x-0 bottom-0 top-14 flex flex-col items-center justify-center gap-4 border-t border-line px-8 text-center"
+            className="flex [grid-area:1/1]"
             style={{ opacity: pick, transform: `translateY(${(1 - pick) * 8}px)` }}
           >
-            <Tile>
-              <Lock strokeWidth={1.8} aria-hidden />
-            </Tile>
-            <span className="font-medium">Sealed until the final test</span>
-            <span className="text-ui">
-              Spark and Glimmer never see its files, its tasks or its scores.
-            </span>
+            <Card title="Harborview Prep" flush className="w-[320px]">
+              <div className="flex flex-1 items-center justify-center border-t border-line">
+                <EmptyState
+                  icon={<Lock strokeWidth={1.8} aria-hidden />}
+                  title="Sealed until the final test"
+                  description="Spark and Glimmer never see its files, its tasks or its scores."
+                />
+              </div>
+            </Card>
           </div>
-        </Panel>
+        </div>
       </div>
     </PlacePage>
   );
@@ -428,7 +457,8 @@ export function FieldPage({ lt }: { lt: number }) {
  * The same field on its Assets tab: what an export holds (apps/desktop fields/Assets.tsx). The
  * counts are the academy field's first run (academy-desk-1.md): 48 train tasks at the three
  * academies it is taught on, and a final test of 120 tasks with the two it never sees. Its
- * demonstrations were not counted, so that figure is a dash.
+ * demonstrations were not counted, so that figure is a dash. No model has been trained on them
+ * here, which the Experimental badge's tip says.
  */
 export function FieldAssetsPage({ lt }: { lt: number }) {
   const rows = [
@@ -462,32 +492,42 @@ export function FieldAssetsPage({ lt }: { lt: number }) {
       }
     >
       <FieldTabs open="Assets" />
-      <div className="flex items-start justify-between gap-8" style={rise(lt, 0.1, 6)}>
-        <p className="m-0 max-w-[560px] text-body">
-          Checker-verified training examples from this field. No model has been trained on them
-          here: GPU execution, large models and training gains are unverified.
-        </p>
-        <Button size="sm" variant="primary">
-          <FolderOutput size={15} strokeWidth={1.8} aria-hidden />
-          Export
-        </Button>
+      <div style={rise(lt, 0.1, 6)}>
+        <Card
+          title="Verified training examples"
+          flush
+          action={
+            <span className="flex items-center gap-2">
+              <span className="flex items-center gap-0.5">
+                <Badge tone="emphasis">Experimental</Badge>
+                <InfoTip about="Experimental">
+                  No model has been trained on them here: GPU execution, large models and training
+                  gains are unverified.
+                </InfoTip>
+              </span>
+              <Button size="sm">
+                <FolderOutput size={15} strokeWidth={1.8} aria-hidden />
+                Export
+              </Button>
+            </span>
+          }
+        >
+          {rows.map(({ Icon, title, detail, figure }, index) => (
+            <div key={title} style={rise(lt, 0.3 + index * 0.08, 6)}>
+              <CardRow
+                icon={
+                  <RowIcon>
+                    <Icon strokeWidth={1.8} aria-hidden />
+                  </RowIcon>
+                }
+                title={title}
+                detail={detail}
+                end={<span className="font-display text-h2 font-semibold">{figure}</span>}
+              />
+            </div>
+          ))}
+        </Card>
       </div>
-      <Panel title="Field export" frame="export">
-        {rows.map(({ Icon, title, detail, figure }, index) => (
-          <div key={title} style={rise(lt, 0.3 + index * 0.08, 6)}>
-            <Row
-              icon={
-                <Tile>
-                  <Icon strokeWidth={1.8} aria-hidden />
-                </Tile>
-              }
-              title={title}
-              detail={detail}
-              end={<span className="font-display text-h2 font-semibold">{figure}</span>}
-            />
-          </div>
-        ))}
-      </Panel>
     </PlacePage>
   );
 }

@@ -4,15 +4,8 @@ import { Button, Drawer, DrawerContent, Skeleton } from '@architect/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCorrections, useImprovements } from '../../api/teaching';
 import { ProblemState } from '../../components/ProblemState';
-import { versionDate } from '../settings/versions';
 import { KindTile } from './kinds';
-import {
-  correctionStatus,
-  flaggedSummary,
-  KIND_LABELS,
-  openCorrections,
-  runningImprovement,
-} from './lessons';
+import { correctionStatus, KIND_LABELS, openCorrections, runningImprovement } from './lessons';
 import { ProposalActions, ProposalView } from './Proposal';
 
 /** Open ones first, then the ones already taught; newest first within each. */
@@ -58,11 +51,6 @@ export function FlaggedAnswers({
     <Drawer open={open} onOpenChange={(next) => !next && close()}>
       <DrawerContent
         title={selected ? 'Flagged answer' : 'Flagged answers'}
-        subtitle={
-          selected
-            ? `${correctionStatus(selected, improving)} · flagged ${versionDate(selected.createdAt)}`
-            : (flaggedSummary(corrections.data ?? []) ?? undefined)
-        }
         actions={
           selected && (
             <Button size="sm" variant="ghost" onClick={() => setSelectedId(null)}>

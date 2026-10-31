@@ -181,8 +181,8 @@ test("Teach this on the teammate's answer goes to the teammate", async () => {
   await centerInChat(reply().getByRole('list', { name: `${teammate.name}'s steps` }));
   await capture('team-consultation-dark.png');
   await flag.click();
-  const sheet = page.getByRole('dialog', { name: 'Teach this' });
-  await expect(sheet).toContainText(`${teammate.name}'s answer to ${lead.name}`);
+  // A teammate's answer is taught to that teammate, and the sheet's title names it.
+  const sheet = page.getByRole('dialog', { name: `Teach ${teammate.name}` });
   await sheet
     .getByLabel('What was wrong')
     .fill("It didn't say which re-test id is which compound.");

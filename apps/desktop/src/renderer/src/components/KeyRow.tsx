@@ -36,7 +36,8 @@ export function KeyRow({ secretRef, provider }: KeyRowProps) {
   return (
     <SettingsRow
       label={label}
-      meta={`${stored ? 'Saved. ' : ''}Encrypted on ${deviceInSentence(currentPlatform())}, and only ever sent to ${provider}.`}
+      meta={stored ? 'Saved' : undefined}
+      info={`Encrypted on ${deviceInSentence(currentPlatform())}, and only ever sent to ${provider}.`}
       error={errorOf(secrets)}
     >
       <form

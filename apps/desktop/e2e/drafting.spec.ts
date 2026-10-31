@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
-import { allowMoreTime, goTo, launchApp, settle, type LaunchedApp } from './app';
+import { allowMoreTime, goTo, infoTipText, launchApp, settle, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
 import { FLOW_LOCAL } from './fixtures-flow';
 import {
@@ -329,9 +329,9 @@ test('describes a job, answers a question and trains on the tasks it made', asyn
   const examples = advanced.getByRole('button', { name: 'Example tasks' });
   if ((await examples.getAttribute('aria-expanded')) !== 'true') await examples.click();
   await examples.scrollIntoViewIfNeeded();
-  await expect(
-    advanced.getByText('Made by Architect from your files, following the job Spark drafted.'),
-  ).toBeVisible();
+  expect(await infoTipText(page, advanced, 'Example tasks')).toBe(
+    'Made by Architect from your files, following the job Spark drafted.',
+  );
   await expect(advanced.getByText('120 tasks', { exact: true })).toBeVisible();
   await expect(
     advanced.getByText('40 practice, 30 check, 40 final test, 10 set aside', { exact: true }),

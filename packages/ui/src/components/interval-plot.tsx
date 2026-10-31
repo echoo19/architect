@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/cn';
 import { springs } from '../motion/springs';
@@ -18,6 +19,8 @@ export interface IntervalRow {
 export interface IntervalGroup {
   /** The group's name, such as an organization or a skill. Leave empty for a single group. */
   label: string;
+  /** A measured difference at the header's right, such as "+39.6 points", so it sits on its group. */
+  end?: ReactNode;
   rows: readonly IntervalRow[];
 }
 
@@ -77,7 +80,12 @@ export function IntervalPlot({
           aria-label={group.label || undefined}
           className="flex flex-col"
         >
-          {group.label && <span className="pb-1.5 text-ui font-medium">{group.label}</span>}
+          {(group.label || group.end) && (
+            <div className="flex items-baseline justify-between gap-4 pb-1.5 text-ui">
+              <span className="min-w-0 truncate font-medium">{group.label}</span>
+              {group.end && <span className="shrink-0 tabular-nums">{group.end}</span>}
+            </div>
+          )}
           {group.rows.map((row) => (
             <PlotRow key={row.id} row={row} domain={domain} ticks={ticks} format={format} />
           ))}

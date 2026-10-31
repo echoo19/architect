@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { AgentAvatar, Button, cn, Spinner } from '@architect/ui';
-import { Check, ChevronDown, ChevronRight, CirclePause, Info, Layers, Square } from 'lucide-react';
+import { AgentAvatar, Button, cn, InfoTip, Spinner, VersionTag } from '@architect/ui';
+import { Check, ChevronDown, ChevronRight, Info, Square } from 'lucide-react';
 import { TEAM } from './data';
 import { camera, MOMENT, pageAt, Pointer, type Framing, type Measured } from './film';
 import { WelcomePage, WorkspacePage } from './pages-more';
@@ -30,6 +30,8 @@ const AT = {
   click: 0.75,
   request: 0.95,
   read: 1.35,
+  /** The version that answers, on the steps' summary while it is still in view. */
+  version: 1.5,
   ask: 1.65,
   open: 2.0,
   quote: 2.1,
@@ -42,12 +44,10 @@ const AT = {
   search: 4.5,
   reservations: 4.75,
   adding: 5.0,
-  version: 5.25,
   reply: 5.5,
   bullets: [5.8, 6.15],
   assay: 6.6,
   hold: 6.9,
-  waiting: 7.15,
   allow: 8.1,
   /** When the first screen comes in, as the walkthrough has it 0.6 s before it returns. */
   leave: TEAM_LENGTH - (TEAM_BACK - pageAt('welcome')),
@@ -131,9 +131,10 @@ function Consultation({ t }: { t: number }) {
         <span>
           {answered ? 'Asked' : 'Asking'} {TEAM.teammate}
         </span>
+        {/* Open, the step shows the answer itself, so its header shows no preview of it. */}
         {answered ? (
-          <span className="ml-1.5" style={{ opacity: ui(t, AT.answered, 0.3) }}>
-            {TEAM.meta}
+          <span style={{ opacity: ui(t, AT.answered, 0.3) }}>
+            <VersionTag version={1} />
           </span>
         ) : (
           <Spinner size={13} />
@@ -178,12 +179,6 @@ function Consultation({ t }: { t: number }) {
           </StepItem>
           <StepItem t={t} at={AT.answer}>
             <span className="text-pretty">{TEAM.answer}</span>
-          </StepItem>
-          <StepItem t={t} at={AT.answered}>
-            <span className="flex items-center gap-2">
-              <Layers size={13} strokeWidth={1.8} aria-hidden />
-              Answered by version 1
-            </span>
           </StepItem>
         </div>
       )}
@@ -243,12 +238,20 @@ function ApprovalCard({
               <Button size="md" className="h-[38px]">
                 Deny
               </Button>
-              <Button size="md" variant="ghost" className="h-[38px]">
-                Allow saving from now on
-              </Button>
-              <span data-click="team-allow">
-                <Button size="md" variant="primary" className="h-[38px]">
-                  Allow once
+              {/* Allow once, with "Allow saving from now on" in the menu beside it. */}
+              <span className="flex">
+                <span data-click="team-allow">
+                  <Button size="md" variant="primary" className="h-[38px] rounded-r-none">
+                    Allow once
+                  </Button>
+                </span>
+                <Button
+                  size="md"
+                  variant="primary"
+                  aria-label="More ways to allow"
+                  className="h-[38px] w-8 rounded-l-none border-l border-ground/25 px-0"
+                >
+                  <ChevronDown size={14} strokeWidth={1.8} aria-hidden />
                 </Button>
               </span>
             </span>
@@ -329,6 +332,14 @@ export function TeamChatPage({ t }: { t: number }) {
               <span className="flex h-7 items-center gap-2 text-ui">
                 {steps} {steps === 1 ? 'step' : 'steps'} so far
                 <ChevronRight size={13} strokeWidth={1.8} aria-hidden className="rotate-90" />
+                {/* The version that answered; no certificate covers an agent asking another. */}
+                <span
+                  className="ml-1 flex items-center gap-0.5"
+                  style={{ opacity: ui(t, AT.version, 0.3) }}
+                >
+                  <VersionTag version={1} />
+                  <InfoTip about="the version">Not certified as a team</InfoTip>
+                </span>
               </span>
               <div className={STEP_LIST}>
                 <div className="py-[5px]">
@@ -366,12 +377,6 @@ export function TeamChatPage({ t }: { t: number }) {
                     </span>
                   )}
                 </StepItem>
-                <StepItem t={t} at={AT.version}>
-                  <span className="flex items-center gap-2">
-                    <Layers size={13} strokeWidth={1.8} aria-hidden />
-                    Answered by version 1, not certified as a team
-                  </span>
-                </StepItem>
               </div>
             </div>
           </Grow>
@@ -405,12 +410,6 @@ export function TeamChatPage({ t }: { t: number }) {
               rows={TEAM.hold}
             />
           </Grow>
-          <Grow t={t} at={AT.waiting} until={AT.allow + 0.05} className="pt-5">
-            <span className="flex items-center gap-2 text-ui">
-              <CirclePause size={15} strokeWidth={1.8} aria-hidden />
-              Waiting for your approval
-            </span>
-          </Grow>
         </div>
         <div className="flex-1" />
       </div>
@@ -433,7 +432,7 @@ export function TeamChatPage({ t }: { t: number }) {
  * Allow once, read off the page at the click (the chat is anchored to its last line, so it holds).
  */
 const CHAT_ROW: readonly [number, number] = [120, TEAM_ROW.chat + TEAM_ROW.chatHeight / 2];
-const ALLOW: readonly [number, number] = [988, 308];
+const ALLOW: readonly [number, number] = [956, 348];
 
 function TeamPointer({ t }: { t: number }) {
   const clicks = [

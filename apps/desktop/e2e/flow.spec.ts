@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, OLLAMA_READY, stubEngine, stubEngineFailure } from './fixtures';
 import {
   COPY_ANSWERS,
@@ -271,7 +271,7 @@ test('walks from a description to a graduate', async () => {
   // tasks in each set and three examples with their expected answers.
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
   await advanced.getByRole('button', { name: 'Example tasks' }).click();
-  await expect(advanced.getByText('From the tasks you attached.')).toBeVisible();
+  expect(await infoTipText(page, advanced, 'Example tasks')).toBe('From the tasks you attached.');
   await expect(advanced.getByText('170 tasks', { exact: true })).toBeVisible();
   await expect(
     advanced.getByText('60 practice, 40 check, 60 final test, 10 set aside', { exact: true }),

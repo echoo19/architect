@@ -44,7 +44,7 @@ export function HostedStep({ student, connected }: HostedStepProps) {
         <SettingsRow
           icon={<ProviderMark name={host} />}
           label={host}
-          meta="Runs the online copy and bills your account"
+          info="Runs the online copy and bills your account."
           error={signIn.state.phase === 'failed' ? signIn.state.message : undefined}
         >
           {connected ? (

@@ -98,7 +98,8 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
           <Panel aria-label="Ollama" className="px-7 py-1 [&>*:first-child]:border-t-0">
             <SettingsRow
               label="Ollama isn't running"
-              meta={`${names.student} runs through Ollama, a free app. Install it and open it, then check again.`}
+              meta="Install and open it, then check again"
+              info={`${names.student} runs through Ollama, a free app.`}
             >
               <span className="flex items-center gap-2">
                 <Button
