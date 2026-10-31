@@ -21,7 +21,7 @@ The previous session ended with work in flight. Read CLAUDE.md, then this entry,
 - OpenRouter has about $15 left (Nov 1, 02:00 ET). Attempts cost about $0.008 to $0.011 each. Cap at 1.5x to 2x the measured price; the runner now pauses instead of dropping an arm.
 
 **Rules that matter**
-- Public name is "Tutor"; never "Phil" in the repo, site, app, demos or film. The real academy is only "Real academy"; its data lives outside the repo (`architect-runs/academy-real*`), never committed.
+- Public name is "Tutor"; never the private name it had before, in the repo, site, app, demos or film (run folders outside the repo keep their old paths). The real academy is only "Real academy"; its data lives outside the repo (`architect-runs/academy-real*`), never committed.
 - No local GPU unless the owner says so for a stated window. Hosted inference only, frugally; check `/credits` first.
 - Codex (GPT-6 Sol/Astra) is out of credits until Nov 4, 3:01 AM; use an independent Claude reviewer with an adversarial brief for invariant-touching changes.
 - Don't run a blanket `sed` over the repo: limit to `git ls-files` (it corrupted gitignored build outputs once; rebuild and repackage before a release).
@@ -36,7 +36,7 @@ The previous session ended with work in flight. Read CLAUDE.md, then this entry,
 
 ## 2026-10-31 (Sat, afternoon), status (start the next session here)
 
-- *Merged since midday:* post-hoc certification (079, with its calibration set fingerprinted like the test); the app-wide rename to "Tutor" (no "Phil" anywhere in the repo); the developer browsers (084: a field's practice and check tasks, a run's attempts behind "Show all", a version's files read-only); one set of parts and calm motion across the app (40px pill strips everywhere, one `NavItem` with a sliding selection, page fades of 0.1 s, places rising 8px, flow steps sliding 24px, counting numbers; hidden runs and reduced motion stay instant; timings in `docs/DESIGN.md`). `pnpm check` passes (3,785 tests).
+- *Merged since midday:* post-hoc certification (079, with its calibration set fingerprinted like the test); the app-wide rename to "Tutor" (the private name appears nowhere in the repo); the developer browsers (084: a field's practice and check tasks, a run's attempts behind "Show all", a version's files read-only); one set of parts and calm motion across the app (40px pill strips everywhere, one `NavItem` with a sliding selection, page fades of 0.1 s, places rising 8px, flow steps sliding 24px, counting numbers; hidden runs and reduced motion stay instant; timings in `docs/DESIGN.md`). `pnpm check` passes (3,785 tests).
 - *In flight:* the third tutor run in `architect-runs/runtree` (round 1 kept, 25/72 to 34/72 on check tasks). Then certify its frozen tutor with decision 079 (rebuild `runtree` at the current tip first, between runs).
 - *Known flaky:* `packages/engine/test/comparison-protocol.test.ts` "resumes a repeat after a restart" failed once under full-suite load and passed alone; `editions.spec.ts` failed once while unit tests ran beside it.
 - *Gotcha:* a blanket `sed` across the repo also rewrites gitignored build outputs (`apps/desktop/out`, `apps/desktop/release`), including binaries. Limit replacements to tracked files (`git ls-files`). Run `pnpm build` and `pnpm package` again before a release.
