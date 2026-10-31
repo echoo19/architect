@@ -316,6 +316,19 @@ importers:
         specifier: workspace:*
         version: link:../../packages/engine
 
+  examples/inventory-desk:
+    dependencies:
+      '@architect/example-assay-desk':
+        specifier: workspace:*
+        version: link:../assay-desk
+      '@architect/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      '@architect/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+
   examples/sweep-desk:
     dependencies:
       '@architect/shared':

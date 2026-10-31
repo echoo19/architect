@@ -10,7 +10,7 @@ orgs/<id>/data/              or each organization's own copy of those files
 checker.js                   only for tasks that are checked by what the agent changed
 ```
 
-The sample jobs are complete examples: `examples/home-services/job` (one organization, a checker), `examples/academy/job` (Academy desk: four academies, one never seen), `examples/sweep-desk/job` (Sweep desk: four research groups, one never seen) and `examples/assay-desk/job` (Assay desk: four screening labs, one never seen, with export files only some labs have).
+The sample jobs are complete examples: `examples/home-services/job` (one organization, a checker), `examples/academy/job` (Academy desk: four academies, one never seen), `examples/sweep-desk/job` (Sweep desk: four research groups, one never seen), `examples/assay-desk/job` (Assay desk: four screening labs, one never seen, with export files only some labs have) and `examples/inventory-desk/job` (Inventory desk: the same four labs' compound stores, the lists it allocates taken from the Assay desk).
 
 ## job.json
 
