@@ -42,6 +42,10 @@ describe('a closed network', () => {
     expect(insideNetwork('http://vllm.lab.internal:8001/v1', hosts)).toBe(false);
     expect(insideNetwork('https://api.example.com/v1', hosts)).toBe(false);
     expect(insideNetwork('not a url', hosts)).toBe(false);
+    // 127.0.0.0/8 mapped into IPv6 is this computer, as the graduates' guard counts it.
+    expect(insideNetwork('http://[::ffff:127.0.0.1]:8080/v1', [])).toBe(true);
+    expect(insideNetwork('http://[::ffff:7f00:1]:8080/v1', [])).toBe(true);
+    expect(insideNetwork('http://[::ffff:10.0.0.1]:8080/v1', [])).toBe(false);
     expect(contactHost('https://Spark.lab.internal/v1/chat?key=private')).toBe(
       'spark.lab.internal',
     );

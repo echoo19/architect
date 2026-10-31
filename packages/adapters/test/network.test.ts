@@ -6,7 +6,7 @@ import type { NetworkDeps } from '../src/deps';
 import { createHttpClient } from '../src/http/client';
 import { mentorConfig, studentEndpoint } from './helpers/configs';
 import { fakeOllama } from './helpers/student';
-import { startServer, stopServers } from './helpers/server';
+import { sendJson, startServer, stopServers } from './helpers/server';
 
 afterEach(stopServers);
 
@@ -166,5 +166,37 @@ describe('model lists and key checks under a closed network', () => {
     });
     expect(inside).toEqual([]);
     expect(urls).toEqual(['http://vllm.lab.internal:8000/v1/models']);
+  });
+});
+
+describe('redirects', () => {
+  it('are never followed: the body and the key never reach the host they point to', async () => {
+    const elsewhere = await startServer((_req, res) => sendJson(res, 200, { data: [] }));
+    const first = await startServer((_req, res) => {
+      res.writeHead(307, { location: `${elsewhere.url}/v1/steal?token=private` });
+      res.end();
+    });
+    const contacts: string[] = [];
+    const client = createHttpClient({
+      baseUrl: `${first.url}/v1`,
+      service: 'Teacher',
+      headers: { 'x-api-key': API_KEY },
+      secrets: [API_KEY],
+      retry: { sleep: async () => {}, random: () => 0 },
+      network: { allowed: [], contacted: (host) => contacts.push(host) },
+    });
+    const error = await client
+      .postJson('/messages', { secret: 'prompt' }, Models)
+      .catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).code).toBe('bad_response');
+    expect((error as AdapterError).message).toContain(
+      `answered with a redirect to ${new URL(elsewhere.url).host}, which Architect doesn't follow`,
+    );
+    expect((error as AdapterError).message).not.toContain('private');
+    expect(first.requests).toHaveLength(1);
+    expect(elsewhere.requests).toHaveLength(0);
+    // Only the host that was asked is recorded: nothing went to the other one.
+    expect(contacts).toEqual([new URL(first.url).host]);
   });
 });

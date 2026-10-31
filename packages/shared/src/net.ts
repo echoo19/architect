@@ -1,9 +1,19 @@
 const IPV4_LOOPBACK = /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+/** 127.0.0.0/8 mapped into IPv6, as the URL parser writes it: `[::ffff:7f00:1]`. */
+const MAPPED_LOOPBACK = /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/;
 
-/** `localhost`, anything in 127.0.0.0/8, or `::1`, as the URL parser writes host names. */
+/**
+ * `localhost`, anything in 127.0.0.0/8 (also mapped into IPv6), or `::1`, as the URL parser writes
+ * host names: the same addresses the graduates' network guard counts as this computer.
+ */
 export function isLoopbackHostname(hostname: string): boolean {
   const host = hostname.toLowerCase();
-  return host === 'localhost' || host === '[::1]' || IPV4_LOOPBACK.test(host);
+  return (
+    host === 'localhost' ||
+    host === '[::1]' ||
+    IPV4_LOOPBACK.test(host) ||
+    MAPPED_LOOPBACK.test(host)
+  );
 }
 
 /**

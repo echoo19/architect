@@ -88,6 +88,30 @@ export interface HttpClient {
 
 type Method = 'GET' | 'POST' | 'DELETE';
 
+function isRedirect(status: number): boolean {
+  return status >= 300 && status < 400;
+}
+
+/** A redirect, refused: where it pointed, by host alone, since its path can carry secrets. */
+function redirected(response: Response, url: string): HttpError {
+  const location = response.headers.get('location');
+  let target: string | null = null;
+  try {
+    target = location === null ? null : new URL(location, url).host;
+  } catch {
+    target = null;
+  }
+  void response.body?.cancel();
+  return new HttpError(
+    {
+      code: 'bad_response',
+      summary: `${new URL(url).host} answered with a redirect${target === null ? '' : ` to ${target}`}, which Architect doesn't follow.`,
+      hint: 'Use the address it points to instead.',
+    },
+    { status: response.status },
+  );
+}
+
 export function createHttpClient(options: HttpClientOptions): HttpClient {
   const { service } = options;
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -122,8 +146,12 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
         body:
           body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
         signal: guard.signal,
+        // Never followed: a redirect would send the body, and the key with it, to a host no
+        // check saw (decision 098). The person is told where it pointed instead.
+        redirect: 'manual',
       });
       guard.disarm();
+      if (isRedirect(response.status)) throw redirected(response, baseUrl + path);
       if (!response.ok) throw await rejection(response, guard, request, timeouts);
       return { response, guard };
     } catch (error) {
