@@ -54,9 +54,14 @@ export class Credit {
     return spend;
   }
 
-  /** The runs of the comparison's arms. */
+  /**
+   * The runs of the comparison's arms whose attempts the student makes: the teacher arm's are the
+   * teacher's, at another price, so they are left out of the student's (decision 096).
+   */
   private runs() {
-    return this.engine.store.runs.list().filter((run) => run.protocol?.arm !== undefined);
+    return this.engine.store.runs
+      .list()
+      .filter((run) => run.protocol?.arm !== undefined && run.protocol.arm !== 'teacher');
   }
 
   /**
@@ -81,9 +86,14 @@ export class Credit {
 
   /** What a hosted attempt of one run has cost on average; the overall price when it has none. */
   priceOf(runId: string): number {
+    return this.ownPrice(runId) ?? this.price();
+  }
+
+  /** What a hosted attempt of one run has cost on average; null before it has made one. */
+  ownPrice(runId: string): number | null {
     const spend = this.spendOf(runId);
     const attempts = spend.developmentAttempts + spend.testAttempts;
-    return attempts === 0 ? this.price() : (spend.development + spend.test) / attempts;
+    return attempts === 0 ? null : (spend.development + spend.test) / attempts;
   }
 
   /**

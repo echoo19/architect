@@ -69,7 +69,7 @@ describe('what the plan never asked for', () => {
   it('is said to be not run', () => {
     const text = renderMarkdown(comparisonOne());
     expect(text).toContain(
-      'Not in this comparison, so not run: Spark reference, targeted harness; Decoding repeat; Fixed intervention; One-shot adapter; and Failure-specific adapter.',
+      'Not in this comparison, so not run: Spark reference, targeted harness; Teacher alone; Decoding repeat; Fixed intervention; One-shot adapter; and Failure-specific adapter.',
     );
     // A plan with no second job to check the runtime on says so too.
     const report = comparisonOne();

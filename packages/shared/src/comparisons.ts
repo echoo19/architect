@@ -21,6 +21,7 @@ export const ArmIdSchema = z.enum([
   'targeted',
   'reference',
   'reference-targeted',
+  'teacher',
   'repeat',
   'fixed',
   'weights-one-shot',
@@ -34,6 +35,7 @@ export const ARM_LABELS: Record<ArmId, string> = {
   targeted: 'Targeted mentoring',
   reference: 'Spark reference, blank harness',
   'reference-targeted': 'Spark reference, targeted harness',
+  teacher: 'Teacher alone',
   repeat: 'Decoding repeat',
   fixed: 'Fixed intervention',
   'weights-one-shot': 'One-shot adapter',
@@ -55,6 +57,7 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
   targeted: 3,
   reference: 4,
   'reference-targeted': 4,
+  teacher: 4,
   repeat: 5,
   fixed: 6,
   'weights-one-shot': 7,
@@ -63,10 +66,16 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
 
 /**
  * Where a comparison's attempts ran. Arms are compared only within one backend: the hosted copy
- * of the student, Spark itself as a reference, or this computer's 2-bit build on Ollama, or on
- * llama-server with adapters.
+ * of the student, Spark itself as a reference, the teacher alone as the agent in a run of its own
+ * (decision 096), or this computer's 2-bit build on Ollama, or on llama-server with adapters.
  */
-export const BackendIdSchema = z.enum(['hosted', 'reference', 'local-ollama', 'local-llama.cpp']);
+export const BackendIdSchema = z.enum([
+  'hosted',
+  'reference',
+  'teacher',
+  'local-ollama',
+  'local-llama.cpp',
+]);
 export type BackendId = z.infer<typeof BackendIdSchema>;
 
 /**
@@ -184,6 +193,10 @@ export const PassTargetSchema = z.object({
 });
 export type PassTarget = z.infer<typeof PassTargetSchema>;
 
+/** Where a model answers: through a hosted provider, or on this computer. */
+export const RunsOnSchema = z.enum(['hosted', 'this_computer']);
+export type RunsOn = z.infer<typeof RunsOnSchema>;
+
 /** One arm's locked-test result on one backend, under one decoding seed. */
 export const ArmRowSchema = z.object({
   arm: ArmIdSchema,
@@ -221,6 +234,16 @@ export const ArmRowSchema = z.object({
   sampling: DecodingSchema.nullable(),
   /** False when fewer scenarios ran than the locked test holds: a paused or capped evaluation. */
   complete: z.boolean(),
+  /** The model that answered, by its name; null in a report made before rows named it. */
+  model: z.string().nullable().default(null),
+  /** Where it answered: a hosted provider, or this computer. Null in an older report. */
+  runsOn: RunsOnSchema.nullable().default(null),
+  /**
+   * What 1,000 requests like these cost where it answered: its attempts' recorded charges, each
+   * what the provider billed or else the listed price of the usage it reported, over the attempts,
+   * times 1,000. Zero on this computer; null when a charge isn't known or in an older report.
+   */
+  perThousandUsd: z.number().nonnegative().nullable().default(null),
 });
 export type ArmRow = z.infer<typeof ArmRowSchema>;
 

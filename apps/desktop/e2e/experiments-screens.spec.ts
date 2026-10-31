@@ -2,7 +2,13 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import type { ArmRow, ComparisonReport, ExperimentInput } from '@architect/shared';
+import {
+  costUsd,
+  mentorPreset,
+  type ArmRow,
+  type ComparisonReport,
+  type ExperimentInput,
+} from '@architect/shared';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { finishExperiments, installExperimentsFake } from './fixtures-experiments';
@@ -68,6 +74,39 @@ function asField(report: ComparisonReport): ComparisonReport {
   };
 }
 
+/**
+ * What 1,000 of the recording's attempts cost at Spark's price: each reads 30,000 tokens and
+ * writes 800, as the dry run's hosted Glimmer attempts do.
+ */
+const SPARK_PER_THOUSAND =
+  1000 * costUsd(mentorPreset('meta-spark').pricing, { inputTokens: 30_000, outputTokens: 800 });
+
+/**
+ * The recorded comparison with the teacher alone beside its arms, as the engine reports one
+ * (decision 096): Spark's blank-harness reference row again as the teacher's own run, named
+ * after the model, hosted, at Spark's price for the recording's attempts. The engine's own
+ * tests run the real arm.
+ */
+function withTeacher(report: ComparisonReport): ComparisonReport {
+  const table = report.backends.find((backend) => backend.backend === 'reference');
+  const reference = table?.rows.find((row) => row.arm === 'reference');
+  if (table === undefined || reference === undefined) throw new Error('No Spark reference ran.');
+  const teacher: ArmRow = {
+    ...reference,
+    arm: 'teacher',
+    label: 'Spark alone',
+    runId: 'run_teacher',
+    model: 'Spark',
+    runsOn: 'hosted',
+    perThousandUsd: SPARK_PER_THOUSAND,
+  };
+  const own = { ...table, backend: 'teacher' as const, label: 'Spark alone, as the agent' };
+  return {
+    ...report,
+    backends: [...report.backends, { ...own, rows: [teacher], paired: [], repeats: [] }],
+  };
+}
+
 const OTHER: ExperimentInput = {
   name: 'Draft against targeted, two seeds',
   jobDir: 'C:/fields/returns-desk',
@@ -75,6 +114,19 @@ const OTHER: ExperimentInput = {
   seeds: { mentoring: 2, lockedTest: [201, 202] },
   rounds: 3,
   caps: { studentUsd: 12, sparkUsd: 6, computeUsd: 0, wallMinutes: 600 },
+};
+
+/** The taught student against the teacher alone, on the same field. */
+const TEACHER: ExperimentInput = {
+  name: 'Taught against the teacher',
+  jobId: 'returns-desk',
+  hypothesis:
+    'The taught student passes about as many final-test tasks as Spark alone, for far less.',
+  primaryComparison: { a: 'targeted', b: 'teacher', group: 'all' },
+  arms: [{ arm: 'bare' }, { arm: 'draft' }, { arm: 'targeted' }, { arm: 'teacher' }],
+  seeds: { mentoring: 1, lockedTest: [101] },
+  rounds: 2,
+  caps: { studentUsd: 20, sparkUsd: 6, computeUsd: 0, wallMinutes: 600 },
 };
 
 test.describe.configure({ mode: 'serial' });
@@ -163,7 +215,7 @@ test('designs an experiment on a field of the library and shows its estimate bef
   await expect(page.getByRole('button', { name: 'Preregister' })).toBeEnabled();
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });
-  await expect(arms.getByRole('button')).toHaveCount(9);
+  await expect(arms.getByRole('button')).toHaveCount(10);
   for (const name of ['One-shot adapter', 'Failure-specific adapter']) {
     await expect(arms.getByRole('button', { name })).toBeDisabled();
   }
@@ -285,4 +337,33 @@ test('reads the released results like a short paper', async () => {
     page.getByRole('figure', { name: /Final-test pass rate, This computer/ }),
   ).toBeVisible();
   await expect(pairs).toContainText('Failure-specific adapter vs Glimmer alone');
+});
+
+test('sets the teacher alone beside the taught student, by accuracy and cost per 1,000 requests', async () => {
+  await installExperimentsFake(
+    launched.app,
+    withTeacher(asField(await recordedComparisonReport())),
+  );
+  const id = await page.evaluate(async (input) => {
+    const planned = await window.architect.experiments.plan(input);
+    await window.architect.experiments.preregister(planned.experiment.id);
+    await window.architect.experiments.start(planned.experiment.id, {});
+    return planned.experiment.id;
+  }, TEACHER);
+  await finishExperiments(launched.app);
+  await goTo(page, `/experiments/${id}`);
+  await expect(page.getByText('Finished', { exact: true })).toBeVisible();
+  const table = page.getByRole('table', { name: 'Accuracy against cost' });
+  await table.scrollIntoViewIfNeeded();
+  // Every row names the model that answered and where; the teacher and the student side by side.
+  const teacher = table.getByRole('row').filter({ hasText: 'Spark alone' });
+  await expect(teacher).toContainText('Hosted');
+  await expect(teacher).toContainText(/\$\d/);
+  await expect(
+    table.getByRole('row').filter({ hasText: 'Targeted mentoring' }).first(),
+  ).toContainText('Glimmer');
+  await expect(table).toContainText('This computer');
+  await expect(page.getByText('Table 2.', { exact: false })).toBeVisible();
+  await page.getByText('Table 2.', { exact: false }).scrollIntoViewIfNeeded();
+  await capture('experiment-teacher-arm-dark.png');
 });

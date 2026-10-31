@@ -1,9 +1,17 @@
-import type { ArmRow, ExperimentInput, OrgTypeResult } from '@architect/shared';
+import type {
+  ArmRow,
+  BackendTable,
+  ComparisonReport,
+  ExperimentInput,
+  OrgTypeResult,
+} from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   armDescriptions,
   armNames,
+  costRowsOf,
   countIn,
+  figuresOf,
   DEFAULT_NAMES,
   defaultInput,
   experimentNames,
@@ -13,6 +21,7 @@ import {
   preregisterProblem,
   primaryGroup,
   primaryText,
+  rowLabel,
   skillIn,
   verdictOf,
   wilson,
@@ -54,6 +63,9 @@ function row(perOrg?: OrgTypeResult[]): ArmRow {
     adapterSha256: null,
     sampling: null,
     complete: true,
+    model: 'Glimmer',
+    runsOn: 'hosted',
+    perThousandUsd: 10,
   };
 }
 
@@ -102,6 +114,60 @@ describe('experiment results', () => {
     expect(skillIn(row(perOrg), groups[2]!, 'pickup')).toBeNull();
     expect(countIn(row(perOrg), primaryGroup('unseen'))).toMatchObject({ pass: 3, total: 8 });
     expect(countIn(row(perOrg), primaryGroup('seen'))).toMatchObject({ pass: 7, total: 8 });
+  });
+});
+
+describe('accuracy against cost', () => {
+  const table = (backend: BackendTable['backend'], rows: ArmRow[]) =>
+    ({ backend, label: backend, rows, paired: [], repeats: [] }) as unknown as BackendTable;
+  const report = (backends: BackendTable[]) =>
+    ({ plan: { testSeeds: [101, 102] }, backends }) as unknown as ComparisonReport;
+  const teacher: ArmRow = {
+    ...row(),
+    arm: 'teacher',
+    label: 'GPT-6.1 Sol alone',
+    model: 'GPT-6.1 Sol',
+    perThousandUsd: 61.2,
+  };
+
+  it('reads each arm where it answered, the teacher named after the model that did the job', () => {
+    const local: ArmRow = { ...row(), runsOn: 'this_computer', perThousandUsd: 0 };
+    const rows = costRowsOf(
+      report([
+        table('hosted', [row(), { ...row(), seed: 102 }]),
+        table('reference', [teacher]),
+        table('local-ollama', [local]),
+      ]),
+    );
+    // The first seed's rows only, one per place an arm answered.
+    expect(
+      rows.map((item) => [rowLabel(item.row), item.model, item.runsOn, item.perThousandUsd]),
+    ).toEqual([
+      ['Targeted mentoring', 'Glimmer', 'hosted', 10],
+      ['GPT-6.1 Sol alone', 'GPT-6.1 Sol', 'hosted', 61.2],
+      ['Targeted mentoring', 'Glimmer', 'this_computer', 0],
+    ]);
+  });
+
+  it("sets the teacher alone's table beside the hosted student's, as Spark's references are", () => {
+    const [hosted, ...others] = figuresOf(
+      report([
+        table('hosted', [row()]),
+        table('teacher', [teacher]),
+        table('local-ollama', [{ ...row(), runsOn: 'this_computer' }]),
+      ]),
+    );
+    expect(hosted?.backend.backend).toBe('hosted');
+    expect(hosted?.rows.map((item) => item.arm)).toEqual(['targeted', 'teacher']);
+    expect(others.map((figure) => figure.backend.backend)).toEqual(['local-ollama']);
+  });
+
+  it('leaves out rows from a report made before they said where they answered', () => {
+    const older: ArmRow = { ...row(), model: null, runsOn: null, perThousandUsd: null };
+    expect(costRowsOf(report([table('hosted', [older])]))).toEqual([]);
+    // A paired configuration without its adapter is the same arm again, not another place.
+    const without: ArmRow = { ...row(), configuration: 'H1/A0' };
+    expect(costRowsOf(report([table('local-llama.cpp', [without])]))).toEqual([]);
   });
 });
 

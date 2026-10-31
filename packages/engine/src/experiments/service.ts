@@ -134,8 +134,13 @@ function sparkCapsOf(input: ExperimentInput): ComparisonConfig['sparkCaps'] {
  * seeds, rounds and caps. Nothing runs on this computer's GPU from the app.
  */
 export function configOf(input: ExperimentInput): ComparisonConfig {
+  // The teacher arm's own model, when the person chose one other than the field's teacher.
+  const teacher = input.arms.find((item) => item.arm === 'teacher')?.model;
   return {
     ...DEFAULT_CONFIG,
+    ...(teacher === undefined
+      ? {}
+      : { teacher: { kind: 'model' as const, reasoningEffort: 'medium' as const, ...teacher } }),
     arms: input.arms.map((item) => item.arm),
     caps: {
       studentUsd: input.caps.studentUsd,

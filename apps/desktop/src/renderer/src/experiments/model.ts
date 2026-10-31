@@ -86,6 +86,7 @@ export function armNames({ mentor, student }: ModelNames): Record<ArmId, string>
     targeted: 'Targeted mentoring',
     reference: `${mentor} reference`,
     'reference-targeted': `${mentor}, targeted harness`,
+    teacher: `${mentor} alone`,
     repeat: 'Decoding repeat',
     fixed: 'Fixed intervention',
     'weights-one-shot': 'One-shot adapter',
@@ -104,6 +105,7 @@ export function armDescriptions({ mentor, student }: ModelNames): Record<ArmId, 
     targeted: `${mentor} edits the harness round by round from ${student}'s failures`,
     reference: `${mentor} takes the test itself, with a blank harness`,
     'reference-targeted': `${mentor} takes the test itself, with the taught harness`,
+    teacher: `${mentor} does the job itself in a run of its own, with no teaching`,
     repeat: 'The finished arms tested again on a new seed, to show the noise',
     fixed: `${mentor} may use one kind of change only`,
     'weights-one-shot': `Retrains ${student}'s weights once on verified examples`,
@@ -125,8 +127,18 @@ export const SPARK_ARMS: readonly ArmId[] = [
   'fixed',
 ];
 
-/** Arms the hosted student answers in, so a student cap of their own means something. */
-export const STUDENT_ARMS: readonly ArmId[] = ['bare', 'draft', 'targeted', 'repeat', 'fixed'];
+/**
+ * Arms paid from the budget for the models under test, so a cap of their own there means
+ * something: the hosted student's, and the teacher's when it is the agent (decision 096).
+ */
+export const STUDENT_ARMS: readonly ArmId[] = [
+  'bare',
+  'draft',
+  'targeted',
+  'teacher',
+  'repeat',
+  'fixed',
+];
 
 /**
  * A new experiment's plan before the person changes it: the runner's usual arms and seeds, on a
@@ -309,7 +321,8 @@ export function skillsOf(row: ArmRow): { type: string; label: string }[] {
 
 /** A row's name: the arm's, with its configuration when the arm has more than one. */
 export function rowLabel(row: ArmRow, arms = ARM_NAMES): string {
-  const name = arms[row.arm];
+  // The teacher arm names the model that did the job, which may be one the person chose.
+  const name = row.arm === 'teacher' && row.model !== null ? `${row.model} alone` : arms[row.arm];
   return row.configuration === null ? name : `${name} (${row.configuration})`;
 }
 
@@ -319,27 +332,36 @@ export function firstSeedRows(report: ComparisonReport, backend: BackendTable): 
   return backend.rows.filter((row) => row.seed === seed);
 }
 
+/** The tables of the teacher model as the agent: Spark's references, and the teacher alone. */
+const TEACHER_TABLES: ReadonlySet<BackendId> = new Set(['reference', 'teacher']);
+
 /**
- * The figures of a report: one per backend the student ran on, Spark's reference rows beside the
- * hosted student's, since they share its tasks, tools, limits and seed.
+ * The figures of a report: one per backend the student ran on, the teacher's rows (Spark's
+ * references and the teacher alone) beside the hosted student's, since they share its tasks,
+ * tools, limits and seed.
  */
 export function figuresOf(report: ComparisonReport): Measured[] {
   const seed = report.plan.testSeeds[0];
   const pairsOf = (backend: BackendTable) => backend.paired.filter((pair) => pair.seed === seed);
-  const reference = report.backends.find((backend) => backend.backend === 'reference');
-  const students = report.backends.filter((backend) => backend.backend !== 'reference');
-  const beside = (backend: BackendTable) => backend.backend === 'hosted' && reference;
+  const teacher = report.backends.filter((backend) => TEACHER_TABLES.has(backend.backend));
+  const students = report.backends.filter((backend) => !TEACHER_TABLES.has(backend.backend));
+  const beside = (backend: BackendTable) => (backend.backend === 'hosted' ? teacher : []);
   const figures = students.map((backend) => ({
     backend,
     rows: [
       ...firstSeedRows(report, backend),
-      ...(beside(backend) && reference ? firstSeedRows(report, reference) : []),
+      ...beside(backend).flatMap((table) => firstSeedRows(report, table)),
     ],
-    pairs: [...pairsOf(backend), ...(beside(backend) && reference ? pairsOf(reference) : [])],
+    pairs: [...pairsOf(backend), ...beside(backend).flatMap(pairsOf)],
   }));
-  if (figures.length === 0 && reference) {
+  const [first] = teacher;
+  if (figures.length === 0 && first !== undefined) {
     return [
-      { backend: reference, rows: firstSeedRows(report, reference), pairs: pairsOf(reference) },
+      {
+        backend: first,
+        rows: teacher.flatMap((table) => firstSeedRows(report, table)),
+        pairs: teacher.flatMap(pairsOf),
+      },
     ];
   }
   return figures.filter((figure) => figure.rows.length > 0);
@@ -352,11 +374,45 @@ export interface Measured {
   pairs: Paired[];
 }
 
+/** One arm's final test where it answered, with what 1,000 requests like it cost there. */
+export interface CostRow {
+  key: string;
+  row: ArmRow;
+  model: string;
+  runsOn: NonNullable<ArmRow['runsOn']>;
+  perThousandUsd: number | null;
+}
+
+/**
+ * Accuracy against cost (decision 096): each arm's own final-test result under the first seed, on
+ * every backend it ran on, with the model that answered, where, and what 1,000 requests cost there,
+ * from the attempts' recorded charges. Empty for a report made before rows said so.
+ */
+export function costRowsOf(report: ComparisonReport): CostRow[] {
+  const seed = report.plan.testSeeds[0];
+  return report.backends.flatMap((backend) =>
+    backend.rows.flatMap((row) => {
+      if (row.seed !== seed || row.model === null || row.runsOn === null) return [];
+      if (row.configuration !== null && row.configuration !== 'H1/A1') return [];
+      return [
+        {
+          key: `${backend.backend}-${row.arm}-${row.configuration ?? ''}`,
+          row,
+          model: row.model,
+          runsOn: row.runsOn,
+          perThousandUsd: row.perThousandUsd,
+        },
+      ];
+    }),
+  );
+}
+
 /** Where the student ran, in a word or two. */
 export function backendNames({ mentor }: ModelNames): Record<BackendId, string> {
   return {
     hosted: 'Hosted',
     reference: mentor,
+    teacher: `${mentor} alone`,
     'local-ollama': 'Ollama',
     'local-llama.cpp': 'llama-server',
   };

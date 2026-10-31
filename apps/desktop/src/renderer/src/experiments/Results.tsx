@@ -25,10 +25,12 @@ import { formatAnswerTime, formatCost } from '../flow/format';
 import { DISPOSITIONS } from '../flow/train/evidence-words';
 import { formatPercent } from '../lib/format';
 import type { ModelNames } from '../flow/train/phase';
+import { CostTable } from './CostTable';
 import {
   armNames,
   backendNames,
   VERDICT_WORDS,
+  costRowsOf,
   countIn,
   figuresOf,
   groupsOf,
@@ -145,7 +147,9 @@ function plotGroups(
       const id = `${row.arm}-${row.configuration ?? ''}`;
       const count = countIn(row, group);
       const tone =
-        row.arm === 'reference' || row.arm === 'reference-targeted' ? 'mentor' : 'student';
+        row.arm === 'reference' || row.arm === 'reference-targeted' || row.arm === 'teacher'
+          ? 'mentor'
+          : 'student';
       return count === null
         ? { id, label: rowLabel(row, arms), estimate: null, tone }
         : {
@@ -216,7 +220,7 @@ function SkillTable({
   if (!row) return null;
   return (
     <TableExhibit
-      label="Table 2"
+      label="Table 3"
       caption="Tasks passed by skill and organization."
       control={
         rows.length > 1 && (
@@ -487,7 +491,7 @@ function ArmRuns({
   if (arms.length === 0) return null;
   return (
     <TableExhibit
-      label="Table 4"
+      label="Table 5"
       caption="Each arm's run: its rounds, its check tasks, and the version of its harness it froze."
     >
       <RunsTable
@@ -560,6 +564,14 @@ export function Results({
           <PairsTable measured={measured} arms={arms} />
         </TableExhibit>
       )}
+      {costRowsOf(report).length > 0 && (
+        <TableExhibit
+          label="Table 2"
+          caption="Final-test pass rate against what 1,000 requests cost, by the model that answered and where it ran, from the attempts' recorded charges."
+        >
+          <CostTable report={report} arms={arms} />
+        </TableExhibit>
+      )}
       {measured && (
         <SkillTable
           key={measured.backend.backend}
@@ -569,7 +581,7 @@ export function Results({
         />
       )}
       <TableExhibit
-        label="Table 3"
+        label="Table 4"
         caption="What each arm spent of its caps, and how long its answers took."
       >
         <SpendTable report={report} input={input} measured={measured} names={names} />

@@ -47,7 +47,8 @@ describe('a dry run of every arm on fakes', () => {
     worlds.push(world);
     const config: ComparisonConfig = {
       ...DEFAULT_CONFIG,
-      arms: [...ARM_ORDER],
+      // The teacher arm has its own test (comparisons-teacher.test.ts), at the teacher's price.
+      arms: ARM_ORDER.filter((arm) => arm !== 'teacher'),
       caps: { studentUsd: 15, sparkUsd: 24, computeUsd: 8.1, localMinutes: 1_500 },
       localOllama: true,
       realCompute: true,
@@ -199,10 +200,10 @@ describe('a dry run of every arm on fakes', () => {
     );
     expect(report.disclosures.join('\n')).toContain('Adapters trained against NF4 weights');
     // An adapter arm ran, so the protocol is printed and no agent is called harness-only. The
-    // plan asked for every arm, so none is said to be left out.
+    // plan asked for every arm but the teacher's, so only it is said to be left out.
     expect(markdown).toContain('Adapter protocol: four-cell.');
     expect(markdown).not.toContain('Every reported agent is harness-only');
-    expect(markdown).not.toContain('Not in this comparison');
+    expect(markdown).toContain('Not in this comparison, so not run: Teacher alone.');
 
     // The seeds the plan declared, with the arms that have a result under each: 101 for every arm
     // that took a locked test, and the repeat's 102 for the three it covers.

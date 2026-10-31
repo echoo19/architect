@@ -10,6 +10,7 @@ import {
   PenLine,
   Pin,
   Repeat,
+  School,
   User,
 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export const ARM_ICONS: Record<ArmId, ReactNode> = {
   targeted: <Crosshair {...icon} />,
   reference: <GraduationCap {...icon} />,
   'reference-targeted': <BookCheck {...icon} />,
+  teacher: <School {...icon} />,
   repeat: <Repeat {...icon} />,
   fixed: <Pin {...icon} />,
   'weights-one-shot': <Cpu {...icon} />,

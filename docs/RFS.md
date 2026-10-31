@@ -34,13 +34,13 @@ The request also asks for "a typed decision and a probability instead of generat
 | The ask | Today | Next |
 | --- | --- | --- |
 | verifiable rewards | The outcome scorer from every field's checker; sealed evaluations (071, 072) | |
-| a typed decision and a probability | Certified answers: agreement across k attempts, a calibrated threshold, abstention (077) | **Served answers carry it**: `architect serve` returns the structured answer with its agreement and whether it is within the certificate, or a hand-off. |
-| match general models at far less compute | Measured against the bare student only | **The teacher alone as an arm**: the large model does the job itself, as an agent under test in a run of its own, on the same final test; the report and the paper show accuracy against cost per 1,000 requests and where each runs. |
+| a typed decision and a probability | Certified answers: agreement across k attempts, a calibrated threshold, abstention (077). Served answers carry it: `architect serve` returns the structured answer, its agreement (4 of 5) and whether it is within the certificate's bound or was handed off (097, docs/CLI.md) | |
+| match general models at far less compute | The teacher alone as an arm (096): the teacher, or a chosen model, does the job itself as the agent under test in a run of its own, on the same final test and never-seen organizations; the report and the results paper show accuracy against cost per 1,000 requests and where each answered | A real run of it: so far only fakes have taken it. |
 
 ## Order
 
 1. ~~Carry a field to a new model (it also makes "any model" concrete).~~ Decision 095.
-2. The teacher alone as an arm, and served answers that carry their certificate.
+2. ~~The teacher alone as an arm, and served answers that carry their certificate.~~ Decisions 096 and 097; the arm has not run on real models yet.
 3. A closed network and the evidence pack.
 
 Each stays small: built from records and runs that already exist, no new orchestration.

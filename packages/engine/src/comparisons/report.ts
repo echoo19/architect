@@ -41,6 +41,7 @@ import { plainStrings } from './plain';
 import { ARM_ORDER, billingOf, type ComparisonConfig } from './projection';
 import type { PlanRecord, SweepAttempt } from './records';
 import { counted, paired, pairedDifference, percent, wilson } from './stats';
+import { runsOnOf, teacherOf } from './teacher';
 
 export interface ReportInput {
   engine: ComparisonEngine;
@@ -94,6 +95,7 @@ const UNKNOWN_IDENTITY = (runtime: string): RuntimeIdentity => ({
 const BACKEND_LABELS: Record<BackendId, string> = {
   hosted: 'Hosted Glimmer',
   reference: 'Spark as a reference',
+  teacher: 'The teacher alone, as the agent',
   'local-ollama': "This computer's Glimmer on Ollama",
   'local-llama.cpp': "This computer's Glimmer with adapters on llama-server",
 };
@@ -159,10 +161,61 @@ interface Slice {
   configuration: string | null;
 }
 
-function labelOf(slice: Slice): string {
-  return slice.configuration === null
-    ? ARM_LABELS[slice.arm]
-    : `${ARM_LABELS[slice.arm]}, ${slice.configuration}`;
+/** The teacher arm's model, by its name; the arm's own label when it can't run one. */
+function teacherName(input: ReportInput): string {
+  const teacher = teacherOf(input.base, input.config.teacher);
+  return typeof teacher === 'string' ? ARM_LABELS.teacher : teacher.label;
+}
+
+/** An arm's label, the teacher arm's naming its model. */
+function armLabel(input: ReportInput, arm: ArmId): string {
+  return arm === 'teacher' ? `${teacherName(input)} alone` : ARM_LABELS[arm];
+}
+
+function labelOf(input: ReportInput, slice: Slice): string {
+  const label = armLabel(input, slice.arm);
+  return slice.configuration === null ? label : `${label}, ${slice.configuration}`;
+}
+
+/**
+ * The model that answered a slice, where it ran, and what 1,000 requests like its attempts cost
+ * there: from the attempts' recorded charges, or the reference record's for a Spark reference.
+ */
+function servingOf(
+  input: ReportInput,
+  slice: Slice,
+  attempts: readonly StoredAttempt[],
+): Pick<ArmRow, 'model' | 'runsOn' | 'perThousandUsd'> {
+  const { store } = input.engine;
+  const { base } = input;
+  const perThousand = (usd: number | null) =>
+    usd === null || attempts.length === 0 ? null : (1000 * usd) / attempts.length;
+  if (REFERENCE_ON[slice.arm] !== undefined) {
+    const record = store.references.get(slice.run.run.id, 'test');
+    const mentor = base.mentor;
+    return {
+      model: mentor.label,
+      runsOn: mentor.kind === 'model' ? runsOnOf(mentor.baseUrl) : 'this_computer',
+      perThousandUsd: perThousand(record?.spentUsd ?? null),
+    };
+  }
+  const ids = new Set(attempts.map((attempt) => attempt.id));
+  const usd = studentLines(store, slice.run.run.id, (attempt) => ids.has(attempt.id)).usd;
+  if (slice.arm === 'teacher') {
+    const teacher = teacherOf(base, input.config.teacher);
+    return {
+      model: teacherName(input),
+      runsOn: typeof teacher === 'string' ? 'hosted' : runsOnOf(teacher.baseUrl),
+      perThousandUsd: perThousand(usd),
+    };
+  }
+  const endpoint = slice.target === 'local' ? null : base.student.hosted;
+  return {
+    model: base.student.label,
+    runsOn:
+      endpoint === null || endpoint === undefined ? 'this_computer' : runsOnOf(endpoint.baseUrl),
+    perThousandUsd: perThousand(usd),
+  };
 }
 
 function attemptsOf(store: EngineStore, slice: Slice): StoredAttempt[] {
@@ -237,7 +290,7 @@ function rowOf(input: ReportInput, slice: Slice): ArmRow | null {
   const perOrg = perOrgOf(input, attempts);
   return {
     arm: slice.arm,
-    label: labelOf(slice),
+    label: labelOf(input, slice),
     runId: slice.run.run.id,
     configuration: slice.configuration,
     seed: slice.seed,
@@ -266,6 +319,7 @@ function rowOf(input: ReportInput, slice: Slice): ArmRow | null {
     adapterSha256: applied ? (adapter?.sha256 ?? null) : null,
     sampling: frozen?.configuration?.decoding ?? null,
     complete: attempts.length >= lockedTestsOf(input.base, input.config),
+    ...servingOf(input, slice, attempts),
   };
 }
 
@@ -295,7 +349,7 @@ function pairOf(input: ReportInput, a: Slice, b: Slice, label?: string): Paired 
   return {
     a: a.arm,
     b: b.arm,
-    label: label ?? `${labelOf(a)} vs ${labelOf(b)}`,
+    label: label ?? `${labelOf(input, a)} vs ${labelOf(input, b)}`,
     seed: a.seed,
     ...all,
     difference,
@@ -328,6 +382,8 @@ function ownSlices(arm: ArmId, run: StoredRun, seed: number): Slice[] {
 
 function backendOf(slice: Slice): BackendId {
   if (slice.config.startsWith('reference/')) return 'reference';
+  // The teacher alone answered on its own endpoint, in a table of its own.
+  if (slice.arm === 'teacher') return 'teacher';
   if (slice.target === 'hosted') return 'hosted';
   return slice.config.startsWith('student/llama.cpp') ? 'local-llama.cpp' : 'local-ollama';
 }
@@ -348,6 +404,10 @@ const CONTRASTS: readonly [ArmId, ArmId][] = [
   ['reference', 'fixed'],
   ['reference-targeted', 'targeted'],
   ['reference-targeted', 'reference'],
+  ['teacher', 'bare'],
+  ['teacher', 'draft'],
+  ['teacher', 'targeted'],
+  ['teacher', 'fixed'],
 ];
 
 function repeatRow(input: ReportInput, slices: readonly Slice[]): RepeatRow | null {
@@ -363,7 +423,7 @@ function repeatRow(input: ReportInput, slices: readonly Slice[]): RepeatRow | nu
   const flipped = tasks.filter((task) => new Set(maps.map((map) => map.get(task))).size > 1).length;
   return {
     arm: first.arm,
-    label: labelOf(first),
+    label: labelOf(input, first),
     seeds: slices.map((slice, index) => {
       const map = maps[index] ?? new Map<string, boolean>();
       return {
@@ -394,7 +454,7 @@ function backendTables(input: ReportInput): BackendTable[] {
       paired.push({
         a: withAdapter,
         b: without,
-        label: `${ARM_LABELS[arm]}: with its adapter (H1/A1) vs without it (H1/A0), on one llama-server`,
+        label: `${armLabel(input, arm)}: with its adapter (H1/A1) vs without it (H1/A0), on one llama-server`,
       });
     }
     // A re-test on this computer of a graduate whose own test was hosted.
@@ -422,13 +482,19 @@ function backendTables(input: ReportInput): BackendTable[] {
     });
   }
   const tables: BackendTable[] = [];
-  for (const backend of ['hosted', 'reference', 'local-ollama', 'local-llama.cpp'] as const) {
+  for (const backend of [
+    'hosted',
+    'reference',
+    'teacher',
+    'local-ollama',
+    'local-llama.cpp',
+  ] as const) {
     const inTable = slices.filter((slice) => backendOf(slice) === backend);
     const rows = inTable.flatMap((slice) => rowOf(input, slice) ?? []);
     if (rows.length === 0) continue;
-    // Spark pairs with the hosted arms on the same tasks and seed: a reference, labelled so.
+    // Spark, and the teacher alone, pair with the hosted arms on the same tasks and seed.
     const partners =
-      backend === 'reference'
+      backend === 'reference' || backend === 'teacher'
         ? [...inTable, ...slices.filter((slice) => backendOf(slice) === 'hosted')]
         : inTable;
     // An arm's own result: its one row, or with its adapter when it has both.
@@ -450,7 +516,10 @@ function backendTables(input: ReportInput): BackendTable[] {
     });
     tables.push({
       backend,
-      label: BACKEND_LABELS[backend],
+      label:
+        backend === 'teacher'
+          ? `${teacherName(input)} alone, as the agent`
+          : BACKEND_LABELS[backend],
       identity: input.plan?.identities[backend] ?? UNKNOWN_IDENTITY(backend),
       rows,
       paired: pairs,
@@ -752,7 +821,7 @@ function capsOf(input: ReportInput, arm: ArmId, job: Job | null): ArmCaps {
     studentUsd: student,
     computeUsd: job.budget.maxComputeUsd ?? null,
     wallMinutes: job.budget.maxWallMinutes,
-    rounds: arm === 'bare' ? null : job.budget.maxRounds,
+    rounds: arm === 'bare' || arm === 'teacher' ? null : job.budget.maxRounds,
   };
 }
 
@@ -877,6 +946,11 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
         "A second reference, declared in the plan before anything ran: Spark acted as the agent with the targeted arm's frozen harness, for a same-harness comparison with the targeted graduate, with the same tools, limits, tasks and seed. The blank-harness reference stays the primary one. Nothing it did reached mentoring.",
       );
       break;
+    case 'teacher':
+      notes.push(
+        `${teacherName(input)} did the job itself as the agent under test, in a run of its own: the blank starting harness the bare arm starts in, with the same tools, limits, tasks and seed, and no teaching. Its attempts went to it as the agent, never as a mentor, so nothing it did reached any mentor, lesson or lineage, and its final test was held with every other arm's until all were frozen. Its dollars came from the budget for the models under test.`,
+      );
+      break;
     case 'repeat':
       notes.push(
         `The frozen bare, draft and targeted graduates took the final test again under seed ${declared(input).testSeeds.slice(1).join(' and ')}, declared before any run. Repeats are reported as repeats, never as more scenarios.`,
@@ -947,7 +1021,7 @@ function armReport(input: ReportInput, arm: ArmId, jobOf: JobOf): ArmReport {
   const kept = experiments.filter((experiment) => experiment.disposition === 'kept').at(-1);
   return {
     arm,
-    label: ARM_LABELS[arm],
+    label: armLabel(input, arm),
     priority: ARM_PRIORITY[arm],
     status,
     reason,
@@ -1127,7 +1201,7 @@ function disclosures(
     .filter((arm) => arm.status !== 'not_run')
     .map(
       (arm) =>
-        `${arm.label}: Spark ${money(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, Glimmer ${money(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, compute ${money(arm.spent.computeUsd)} of ${cap(arm.caps.computeUsd)}${arm.spent.examples > 0 ? `, ${arm.spent.examples} examples and ${arm.spent.trainedTokens} trained tokens` : ''}`,
+        `${arm.label}: ${arm.arm === 'teacher' ? '' : `Spark ${money(arm.spent.sparkUsd)} of ${cap(arm.caps.sparkUsd)}, `}${arm.arm === 'teacher' ? teacherName(input) : 'Glimmer'} ${money(arm.spent.studentUsd)} of ${cap(arm.caps.studentUsd)}, compute ${money(arm.spent.computeUsd)} of ${cap(arm.caps.computeUsd)}${arm.spent.examples > 0 ? `, ${arm.spent.examples} examples and ${arm.spent.trainedTokens} trained tokens` : ''}`,
     );
   if (budgets.length > 0) {
     lines.push(
@@ -1207,6 +1281,15 @@ function disclosures(
     const second = arms.some((arm) => arm.arm === 'reference-targeted' && arm.status !== 'not_run');
     lines.push(
       `Spark's rows are references on the same tasks, tools, limits and seed, not arms, graded by the same checker; Spark judged nothing. The blank-harness row is the primary reference: Spark saw no lesson.${second ? " The targeted-harness row, declared before anything ran, gives Spark the targeted arm's frozen harness for a same-harness comparison." : ''}`,
+    );
+  }
+  const teacher = teacherOf(input.base, input.config.teacher);
+  if (
+    typeof teacher !== 'string' &&
+    arms.some((arm) => arm.arm === 'teacher' && arm.status !== 'not_run')
+  ) {
+    lines.push(
+      `${teacher.label} took the final test as the agent at ${new URL(teacher.baseUrl).host}: every final-test task, the never-seen organizations' among them, and the files they read went there, only once every other arm was frozen. It was reached through the student's OpenAI-compatible client, with the blank harness's decoding settings, as every arm's student is.`,
     );
   }
   const regression = input.regression;

@@ -113,6 +113,9 @@ export function row(id: ArmId, label: string, pass: number, sampling: Decoding):
     adapterSha256: null,
     sampling,
     complete: true,
+    model: null,
+    runsOn: null,
+    perThousandUsd: null,
   };
 }
 

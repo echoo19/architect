@@ -17,6 +17,7 @@ import {
   type Captured,
   type Machine,
 } from './support';
+import { completionOf } from '../src/serve/completions';
 
 afterEach(cleanUp);
 
@@ -160,6 +161,9 @@ describe('architect serve: an agent as a chat completions endpoint on this compu
           certified: false,
           agreement: null,
           handedOff: false,
+          // No ANSWER line, and a version without a certificate.
+          answer: null,
+          certificate: { standing: 'not_certified', errorBound: null, confidence: null },
           steps: [{ tool: 'read', detail: 'data/invoices.csv', status: 'done', summary: '3 rows' }],
           proposedChange: null,
           refusal: null,
@@ -190,6 +194,9 @@ describe('architect serve: an agent as a chat completions endpoint on this compu
         certified: true,
         agreement: { agreed: 1, attempts: 3, required: 2 },
         handedOff: true,
+        // Handed off: no answer is given, and it says so against the certificate's bound.
+        answer: null,
+        certificate: { standing: 'handed_off', errorBound: 0.09, confidence: 0.95 },
       });
     } finally {
       await serve.stop();
@@ -208,6 +215,40 @@ describe('architect serve: an agent as a chat completions endpoint on this compu
         certified: true,
         agreement: { agreed: 2, attempts: 3, required: 2 },
         handedOff: false,
+        answer: { total: 5000 },
+        certificate: { standing: 'within', errorBound: 0.09, confidence: 0.95 },
+      });
+    } finally {
+      await serve.stop();
+    }
+  });
+
+  it('keeps the OpenAI shape for a plain client, with Architect’s fields under one key', async () => {
+    const machine = await machineWith([answer(5000), answer(5000), answer(4000)], {
+      certificate: CERTIFICATE,
+    });
+    const serve = await serving(machine);
+    try {
+      const response = await chat(serve, ask('What does Ruiz, Ben owe?'));
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as Record<string, unknown>;
+      // A plain client reads the fields OpenAI's reply has, each as OpenAI shapes it; the
+      // typed answer and its certificate sit apart, under `architect`, which it can ignore.
+      expect(Object.keys(body).sort()).toEqual(
+        ['architect', 'choices', 'created', 'id', 'model', 'object'].sort(),
+      );
+      expect(body).toMatchObject({ object: 'chat.completion', model: 'service-desk' });
+      expect(body['id']).toMatch(/^chatcmpl-/);
+      expect(Number.isInteger(body['created'])).toBe(true);
+      const [choice] = body['choices'] as Record<string, unknown>[];
+      expect(Object.keys(choice ?? {}).sort()).toEqual(['finish_reason', 'index', 'message']);
+      expect(choice?.['message']).toEqual({
+        role: 'assistant',
+        content: 'The total is 5000.\nANSWER: {"total": 5000}',
+      });
+      expect(ChatCompletionSchema.parse(body).architect).toMatchObject({
+        answer: { total: 5000 },
+        certificate: { standing: 'within' },
       });
     } finally {
       await serve.stop();
@@ -390,4 +431,39 @@ describe('architect serve keeps the agent offline', () => {
       await exited;
     }
   }, 60_000);
+});
+
+describe('a served reply against its certificate', () => {
+  it('says a certified version’s refusal is outside its job, with no answer and no agreement', () => {
+    const response = completionOf(
+      {
+        message: {
+          id: 'msg_1',
+          chatId: 'chat_1',
+          role: 'agent',
+          createdAt: '2026-10-31T09:00:00.000Z',
+          text: '',
+          steps: [],
+          blocks: [{ kind: 'refusal', taskType: 'legal', reason: 'Legal advice is for a person.' }],
+          status: 'done',
+        },
+        failure: null,
+      },
+      {
+        version: 2,
+        harnessHash: 'sha256-abc',
+        certified: { required: 4, errorBound: 0.08, confidence: 0.95 },
+      },
+      'service-desk',
+    );
+    expect(response.status).toBe(200);
+    expect(ChatCompletionSchema.parse(response.body).architect).toMatchObject({
+      certified: true,
+      agreement: null,
+      handedOff: false,
+      answer: null,
+      certificate: { standing: 'refused', errorBound: 0.08, confidence: 0.95 },
+      refusal: { taskType: 'legal' },
+    });
+  });
 });

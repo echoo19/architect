@@ -21,6 +21,7 @@ import type { RunProtocol, StoredRun } from '../store/records';
 import type { ComparisonEngine } from './engine';
 import { JOB_PRICE_PER_HOUR, type ComparisonConfig } from './projection';
 import type { ComparisonFiles } from './records';
+import { teacherJob, teacherOf } from './teacher';
 
 /**
  * Which mentor and hosted student a comparison runs, and how OpenRouter routes it: a preset by
@@ -241,6 +242,29 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
             lockedTestOn: 'hosted',
             protocol,
           };
+    case 'teacher': {
+      // The teacher as the agent under test, untaught, in the bare arm's starting harness: no
+      // mentor is ever made for its run, and its Spark cap is nothing (decision 096).
+      const teacher = teacherOf(base, config.teacher);
+      if (typeof teacher === 'string') throw new Error(teacher);
+      const blank = isStudied(base);
+      return {
+        arm,
+        job: teacherJob(
+          copy({
+            budget: budget({}),
+            ...(blank ? { startingHarness: { kind: 'import' as const, path: 'draft' } } : {}),
+          }),
+          teacher,
+        ),
+        method: 'bare',
+        lockedTestOn: 'hosted',
+        protocol,
+        ...(blank
+          ? { startingHarness: context.deps.harness.blankHarness(base.name, base.description) }
+          : {}),
+      };
+    }
     case 'draft':
       return {
         arm,

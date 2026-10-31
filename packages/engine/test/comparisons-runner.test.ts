@@ -749,7 +749,7 @@ describe('what the report claims (decision 051)', () => {
     );
     // What the plan never asked for is said to be not run.
     expect(markdown).toContain(
-      'Not in this comparison, so not run: Spark reference, blank harness; Spark reference, targeted harness; Decoding repeat; Fixed intervention; One-shot adapter; Failure-specific adapter; and the runtime regression check.',
+      'Not in this comparison, so not run: Spark reference, blank harness; Spark reference, targeted harness; Teacher alone; Decoding repeat; Fixed intervention; One-shot adapter; Failure-specific adapter; and the runtime regression check.',
     );
     // No adapter arm ran: no protocol, and one plain statement instead.
     expect(markdown).not.toContain('Adapter protocol');

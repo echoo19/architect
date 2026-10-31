@@ -64,6 +64,7 @@ import {
 import { armRun, buildReport } from './report';
 import { StudentCredit } from './spend';
 import { sweep } from './sweep';
+import { teacherJob, teacherOf } from './teacher';
 
 /** What the runner runs on: the engine's dependencies, real or fakes, and a few of its own. */
 export interface ComparisonEnvironment {
@@ -144,10 +145,14 @@ const MAX_RESUMES = 5;
 /** Dev tasks of each type the regression check takes from the other job. */
 const REGRESSION_PER_TYPE = 10;
 
+/**
+ * The arms in the order they develop. The teacher alone needs no other arm, but starts last, so
+ * its price, which only its own attempts show, can't hold back an arm before it in 037's order.
+ */
 const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
   ['bare', 'draft'],
   ['targeted', 'fixed'],
-  ['weights-one-shot', 'weights-targeted'],
+  ['weights-one-shot', 'weights-targeted', 'teacher'],
 ];
 
 /** The arms that measure other arms' graduates and have no run of their own. */
@@ -328,6 +333,8 @@ function settingsOf(config: ComparisonConfig, models: ComparisonModels): PlanSet
     ...modelKeys(models),
     providers: models.providers === undefined ? null : [...models.providers],
     localModel: models.localModel,
+    // The whole of a chosen teacher, so a resume can't change its label, key name or price.
+    teacher: config.teacher === undefined ? null : JSON.stringify(config.teacher),
   };
 }
 
@@ -902,12 +909,39 @@ async function identities(
     const identity = await env.identify(backend, base);
     if (identity !== null) found[backend] = identity;
   }
+  // The teacher alone answers on its own endpoint, which its job copy holds as the hosted one.
+  const teacher = funded('teacher') ? teacherOf(base, config.teacher) : null;
+  if (teacher !== null && typeof teacher !== 'string') {
+    const identity = await env.identify('teacher', teacherJob(base, teacher));
+    if (identity !== null) found.teacher = identity;
+  }
   return found;
 }
 
 /** The hosted attempts an arm's projection counts. */
 function projectedHosted(plan: PlanRecord, arm: ArmId): number {
   return plan.projection.arms.find((item) => item.arm === arm)?.hostedAttempts ?? 0;
+}
+
+/**
+ * What one of the teacher arm's attempts costs: its own attempts' price once it has some, its
+ * projection's before (the student's tokens at the teacher's price). Null for every other arm,
+ * whose attempts are the student's.
+ */
+function teacherPrice(
+  arm: ArmId,
+  plan: PlanRecord,
+  credit: Credit,
+  engine: ComparisonEngine,
+): number | null {
+  if (arm !== 'teacher') return null;
+  const run = armRun(engine.store, arm);
+  const own = run === null ? null : credit.ownPrice(run.run.id);
+  if (own !== null) return own;
+  const projected = plan.projection.arms.find((item) => item.arm === arm);
+  return projected === undefined || projected.hostedAttempts === 0
+    ? null
+    : projected.studentUsd / projected.hostedAttempts;
 }
 
 /** What an arm needs and what is left, when the student's credit can't pay for it. */
@@ -929,14 +963,15 @@ function fundingShort(
   config: ComparisonConfig,
 ): Short | null {
   const price = credit.price();
-  const need = projectedHosted(plan, arm) * price * config.headroom;
+  const priceFor = (other: ArmId) => teacherPrice(other, plan, credit, engine) ?? price;
+  const need = projectedHosted(plan, arm) * priceFor(arm) * config.headroom;
   const floor = arm === 'fixed' ? Math.max(5, need) : need;
   let held = 0;
   for (const other of ARM_ORDER) {
     const run = armRun(engine.store, other);
     if (run === null || run.run.status === 'finished') continue;
     const spent = credit.development(run.run.id);
-    held += Math.max(0, projectedHosted(plan, other) * price * config.headroom - spent);
+    held += Math.max(0, projectedHosted(plan, other) * priceFor(other) * config.headroom - spent);
   }
   if (plan.funded.includes('repeat') && ARM_PRIORITY[arm] > ARM_PRIORITY.repeat) {
     const repeated = REPEATED.filter((other) => plan.funded.includes(other)).length;
@@ -947,7 +982,7 @@ function fundingShort(
   return {
     arm,
     stage: 'start',
-    priceUsd: price,
+    priceUsd: priceFor(arm),
     needUsd: floor,
     leftUsd: left,
     capUsd: plan.caps.studentUsd,
