@@ -209,20 +209,16 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
   await stubFields(launched.app);
 });
 
-test('lists every candidate with its scores, the best marked, each opening its report', async () => {
+test('lists every version with its scores, the best marked, one no agent holds opening its report', async () => {
   await openAt(`/fields/${LAB.academyDeskJob}`);
-  await tab('Candidates').click();
-  const table = page.getByRole('table', { name: 'Candidates' });
+  await tab('Versions').click();
+  const table = page.getByRole('table', { name: 'Versions' });
   await expect(table.getByRole('row')).toHaveCount(3);
   const best = table.getByRole('row', { name: /Best/ });
-  await expect(best.getByRole('cell').nth(3)).toHaveText('9');
+  await expect(best.getByRole('cell').nth(3)).toHaveText('v9');
   await expect(best).toContainText('Academy desk');
   await table.getByRole('row').nth(2).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${FIELDS.earlierRun}/report$`));
-  await goTo(page, `/fields/${LAB.academyDeskJob}`);
-  await tab('Candidates').click();
-  await page.getByRole('button', { name: 'Open Models' }).click();
-  await expect(page).toHaveURL(/#\/models$/);
 });
 
 test("counts the field's assets and exports them to a folder the person picks", async () => {

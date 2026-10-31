@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import {
   RunEventSchema,
+  type ExperimentRecord,
   type GraduateSummary,
   type JobSummary,
   type ReportCard,
@@ -23,6 +24,7 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
+  FlaskConical,
   GraduationCap,
   Library,
   MessageCircleQuestion,
@@ -36,6 +38,8 @@ import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
 import { fetchQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
+import { minutesText, STATUS_WORDS as EXPERIMENT_WORDS } from '../experiments/model';
+import { newField } from '../fields/new-field';
 import { Counted } from '../flow/counted';
 import { formatCost, shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
@@ -47,6 +51,7 @@ import { useAgentChats } from '../workspace/store';
 import { openAgent } from './open-agent';
 import {
   approvalNeeds,
+  experimentNeeds,
   jobNeeds,
   orgScores,
   runWord,
@@ -77,6 +82,7 @@ const NEED_ICONS: Record<NeedKind, { icon: ReactNode; tone: string }> = {
   lessons: { icon: <GraduationCap strokeWidth={1.8} aria-hidden />, tone: 'text-mentor' },
   promote: { icon: <ArrowBigUpDash strokeWidth={1.8} aria-hidden />, tone: 'text-student' },
   failed: { icon: <CircleAlert strokeWidth={1.8} aria-hidden />, tone: 'text-danger' },
+  experiment: { icon: <FlaskConical strokeWidth={1.8} aria-hidden />, tone: 'text-fg' },
 };
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
@@ -112,6 +118,7 @@ const NEED_GROUPS: readonly { label: string; kinds: readonly NeedKind[] }[] = [
   { label: 'Approvals', kinds: ['approval'] },
   { label: 'Lessons', kinds: ['lessons'] },
   { label: 'Versions', kinds: ['promote'] },
+  { label: 'Experiments', kinds: ['experiment'] },
 ];
 
 /**
@@ -170,11 +177,13 @@ function AgentNeeds({
 export function NeedsYouCard({
   jobs,
   graduates,
+  experiments,
 }: {
   jobs: readonly JobSummary[];
   graduates: readonly GraduateSummary[];
+  experiments: readonly ExperimentRecord[];
 }) {
-  const fromJobs = jobNeeds(jobs);
+  const fromJobs = [...jobNeeds(jobs), ...experimentNeeds(experiments)];
   return (
     <Card title="Needs you" flush>
       {/* Each agent's rows come from reads of their own; a group shows once it holds a row. */}
@@ -298,16 +307,112 @@ function RunningRow({ row }: { row: RunRow }) {
   );
 }
 
-export function RunningCard({ rows }: { rows: readonly RunRow[] }) {
+/** An experiment under way: its name, its field, and the wall clock it has used. */
+function RunningExperiment({ experiment }: { experiment: ExperimentRecord }) {
+  return (
+    <li>
+      <CardRow
+        icon={
+          <Tile>
+            <Spinner tone="mentor" size={16} label={EXPERIMENT_WORDS[experiment.status]} />
+          </Tile>
+        }
+        title={experiment.input.name}
+        detail={`${EXPERIMENT_WORDS[experiment.status]}, ${experiment.job.name}`}
+        end={
+          experiment.runningMs > 0 ? (
+            <span className="tabular-nums">{minutesText(experiment.runningMs / 60_000)}</span>
+          ) : (
+            chevron
+          )
+        }
+        onClick={() => navigate(paths.experiment(experiment.id))}
+      />
+    </li>
+  );
+}
+
+export function RunningCard({
+  rows,
+  experiments,
+}: {
+  rows: readonly RunRow[];
+  experiments: readonly ExperimentRecord[];
+}) {
   useLiveRuns(rows.map((row) => row.runId));
   return (
     <Card title="Running" flush>
-      {rows.length === 0 ? (
+      {rows.length === 0 && experiments.length === 0 ? (
         <Quiet>Nothing is running</Quiet>
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((row) => (
             <RunningRow key={row.runId} row={row} />
+          ))}
+          {experiments.map((experiment) => (
+            <RunningExperiment key={experiment.id} experiment={experiment} />
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** The newest experiments, each with its field and its state in a word. */
+export function ExperimentsCard({
+  experiments,
+  error,
+  onRetry,
+}: {
+  experiments: readonly ExperimentRecord[] | undefined;
+  error: Error | null;
+  onRetry: () => void;
+}) {
+  return (
+    <Card
+      title="Experiments"
+      flush
+      action={
+        <Tooltip content="New experiment" side="left">
+          <IconButton
+            label="New experiment"
+            size="sm"
+            onClick={() => navigate(paths.newExperiment())}
+          >
+            <Plus size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </Tooltip>
+      }
+    >
+      {error ? (
+        <div className="px-6 pb-5">
+          <ProblemState
+            layout="inline"
+            error={error}
+            title="Couldn't read your experiments"
+            onRetry={onRetry}
+          />
+        </div>
+      ) : !experiments ? (
+        <Skeleton aria-busy="true" className="mx-6 mb-5 h-10" />
+      ) : experiments.length === 0 ? (
+        <Quiet>No experiments yet</Quiet>
+      ) : (
+        <ul className="m-0 flex list-none flex-col p-0">
+          {experiments.slice(0, 4).map((experiment) => (
+            <li key={experiment.id}>
+              <CardRow
+                icon={
+                  <Tile>
+                    <FlaskConical strokeWidth={1.8} aria-hidden />
+                  </Tile>
+                }
+                title={experiment.input.name}
+                detail={experiment.job.name}
+                end={EXPERIMENT_WORDS[experiment.status]}
+                onClick={() => navigate(paths.experiment(experiment.id))}
+              />
+            </li>
           ))}
         </ul>
       )}
@@ -516,7 +621,7 @@ export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
       flush
       action={
         <Tooltip content="Describe a field" side="left">
-          <IconButton label="Describe a field" size="sm" onClick={() => navigate(paths.newAgent())}>
+          <IconButton label="Describe a field" size="sm" onClick={newField}>
             <Plus size={16} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </Tooltip>
