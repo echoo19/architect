@@ -170,10 +170,11 @@ test("tells the field's life oldest first, from its records, and ends on the one
 
   await expect(entries()).toHaveCount(11);
   const texts = await entries().allInnerTexts();
-  // An entry reads its date, its sentence, its stage and its place; the next step has no date.
+  // An entry reads its date, its sentence and its place, with no stage word under it; the next
+  // step has no date, and says it is the next step.
   const rows = texts
     .map((text) => text.split('\n').filter(Boolean))
-    .map((line) => (line.length === 4 ? line.slice(1) : line));
+    .map((line, index, all) => (index === all.length - 1 ? line : line.slice(1)));
   const sentences = rows.map((row) => row[0]);
   expect(sentences).toEqual([
     'You confirmed the study of 3 organizations: 6 skills and 3 rules',
@@ -194,20 +195,9 @@ test("tells the field's life oldest first, from its records, and ends on the one
     "Exported the field's training examples to …\\Exports\\academy-desk",
     'Certify the best version',
   ]);
-  expect(rows.map((row) => row[1])).toEqual([
-    'Studied',
-    'Taught',
-    'Tested',
-    'Certified',
-    'Taught',
-    'Tested',
-    'Compared',
-    'Tested',
-    'Tested',
-    'Exported',
-    'Next step',
-  ]);
-  expect(rows.map((row) => row[2])).toEqual([
+  expect(rows.map((row) => row.length)).toEqual([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3]);
+  expect(rows.at(-1)?.[1]).toBe('Next step');
+  expect(rows.map((row) => row.at(-1))).toEqual([
     'Study',
     'Results',
     'Results',

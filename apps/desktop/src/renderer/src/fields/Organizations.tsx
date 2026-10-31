@@ -14,12 +14,21 @@ import {
   DialogContent,
   DialogFooter,
   Field,
+  InfoTip,
   Input,
   Segmented,
   Spinner,
   RowIcon,
 } from '@architect/ui';
-import { Building2, FolderOpen, FolderPlus, GitBranch, Lock, ShieldCheck } from 'lucide-react';
+import {
+  Building2,
+  FolderOpen,
+  FolderPlus,
+  GitBranch,
+  Lock,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react';
 import { api, flowApi } from '../api/client';
 import { useGraduates } from '../api/hooks';
 import { setQueryData } from '../api/query';
@@ -29,7 +38,7 @@ import { formatBytes, formatScore, shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { fieldKey, type Candidate, type FieldSummary } from './model';
-import { plural, Quiet } from './parts';
+import { EmptyRow, plural } from './parts';
 import { newerVersion, TeachOnDialog } from './TeachOn';
 
 type TaughtOn = FieldView['organizations'][number];
@@ -99,7 +108,17 @@ export function Organizations({ field }: { field: FieldSummary }) {
     newer === null ? (org: string) => setTeaching(org) : () => navigate(paths.field(newer.jobId));
   return (
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-      <Card title="Organizations" flush>
+      <Card
+        title="Organizations"
+        flush
+        action={
+          view.sealed.length > 0 ? (
+            <InfoTip about="never seen">
+              Never seen: kept in the vault, away from teaching, and opened once for the final test.
+            </InfoTip>
+          ) : undefined
+        }
+      >
         {view.organizations.map((org, index) => (
           <CardRow
             key={org.id ?? 'data'}
@@ -130,16 +149,16 @@ export function Organizations({ field }: { field: FieldSummary }) {
             onClick={() => setChosen({ kind: 'sealed', name: org.name })}
           />
         ))}
-        {view.sealed.length > 0 && (
-          <Quiet className="border-t border-line pb-4 pt-3 text-small">
-            Never seen: kept in the vault, away from teaching, and opened once for the final test.
-          </Quiet>
-        )}
         {moved !== undefined && !realLeft && (
-          <Quiet className="border-t border-line pb-4 pt-3 text-small">
-            No never-seen real organization is left. Seal a fresh cohort of {moved}&rsquo;s work, or
-            add another, to keep testing on work it never saw.
-          </Quiet>
+          <CardRow
+            icon={
+              <RowIcon>
+                <TriangleAlert strokeWidth={1.8} aria-hidden />
+              </RowIcon>
+            }
+            title="No never-seen real organization left"
+            detail={`Seal a fresh cohort of ${moved}’s work, or add another`}
+          />
         )}
         {canAdd && (
           <div className="flex flex-wrap gap-1 border-t border-line px-4 py-3">
@@ -159,7 +178,7 @@ export function Organizations({ field }: { field: FieldSummary }) {
       {open && (
         <Card title={name(open)} flush>
           {open.files.length === 0 ? (
-            <Quiet>No files yet</Quiet>
+            <EmptyRow title="No files yet" />
           ) : (
             open.files.map((file) => (
               <CardRow
@@ -177,9 +196,15 @@ export function Organizations({ field }: { field: FieldSummary }) {
       )}
       {sealed !== undefined && sealed.addedLater !== true && sealed.taughtIn === undefined && (
         <Card title={sealed.name} flush>
-          <Quiet className="pt-4">
-            Never seen. Sealed in the vault, and opened once for each version&rsquo;s final test.
-          </Quiet>
+          <CardRow
+            icon={
+              <RowIcon>
+                <Lock strokeWidth={1.8} aria-hidden />
+              </RowIcon>
+            }
+            title="Sealed until the final test"
+            end="Never seen"
+          />
           <TeachFooter onTeach={() => teach(sealed.name)} />
         </Card>
       )}
@@ -233,10 +258,20 @@ function TaughtLaterCard({ org }: { org: Sealed }) {
   if (into === undefined) return null;
   return (
     <Card title={org.name} flush>
-      <Quiet className="pt-4">
-        Taught on in {into.name}. It stays sealed here, so what this version measured on it stays as
-        measured, before it was taught on.
-      </Quiet>
+      <CardRow
+        icon={
+          <RowIcon>
+            <Lock strokeWidth={1.8} aria-hidden />
+          </RowIcon>
+        }
+        title={`Taught on in ${into.name}`}
+        end={
+          <InfoTip about="what this version measured">
+            It stays sealed here, so what this version measured on it stays as measured, before it
+            was taught on.
+          </InfoTip>
+        }
+      />
       <div className="border-t border-line px-4 py-3">
         <Button variant="ghost" size="sm" onClick={() => navigate(paths.field(into.jobId))}>
           Open {into.name}
@@ -277,9 +312,20 @@ function QualifyCard({
   };
 
   return (
-    <Card title={org.name} flush>
+    <Card
+      title={org.name}
+      flush
+      action={
+        field.candidates.length > 0 ? (
+          <InfoTip about="Qualify">
+            The version takes its final test here once, with no {modelNames(field.job).mentor}, and
+            the result joins its report.
+          </InfoTip>
+        ) : undefined
+      }
+    >
       {field.candidates.length === 0 ? (
-        <Quiet>No candidate has taken its final test yet</Quiet>
+        <EmptyRow title="No candidate has taken its final test yet" />
       ) : (
         field.candidates.map((candidate) => {
           const done = of(candidate);
@@ -327,12 +373,6 @@ function QualifyCard({
             />
           );
         })
-      )}
-      {field.candidates.length > 0 && (
-        <Quiet className="border-t border-line pb-4 pt-3 text-small">
-          Qualify: the version takes its final test here once, with no{' '}
-          {modelNames(field.job).mentor}, and the result joins its report.
-        </Quiet>
       )}
       <TeachFooter onTeach={onTeach} />
     </Card>

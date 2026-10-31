@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { FieldView, Job, ReportCard, RunDetail } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
 import { FIELD_CAPABILITIES, FIELD_ORGS } from './fixtures-field';
 import {
@@ -197,7 +197,8 @@ test('teaches on it in a new version of the field, and seals a fresh cohort ther
   const orgs = card('Organizations');
   await orgs.getByRole('button', { name: new RegExp(HARBOR) }).click();
   const harbor = card(HARBOR);
-  await expect(harbor).toContainText('Never seen.');
+  await expect(harbor).toContainText('Sealed until the final test');
+  await expect(harbor).toContainText('Never seen');
   await harbor.getByRole('button', { name: 'Teach on it' }).click();
 
   // The confirm says exactly what changes and what stays as measured.
@@ -273,7 +274,10 @@ test('keeps what the earlier version measured, marked as measured before', async
   const harbor = orgs.getByRole('button', { name: new RegExp(HARBOR) });
   await expect(harbor).toContainText('Taught on in Academy desk v2');
   await harbor.click();
-  await expect(card(HARBOR)).toContainText('stays as measured, before it was taught on');
+  await expect(card(HARBOR)).toContainText('Taught on in Academy desk v2');
+  expect(await infoTipText(page, card(HARBOR), 'what this version measured')).toContain(
+    'stays as measured, before it was taught on',
+  );
   await expect(card(HARBOR).getByRole('button', { name: 'Open Academy desk v2' })).toBeVisible();
 
   await goTo(page, `/runs/${LAB.academyDeskRun}/report`);

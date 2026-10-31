@@ -9,7 +9,7 @@ import { Organizations as OrgGrid } from '../flow/report/Organizations';
 import { formatPercent } from '../lib/format';
 import { navigate, paths } from '../lib/router';
 import { bestCandidate, type FieldSummary } from './model';
-import { plural, Quiet } from './parts';
+import { EmptyRow, plural } from './parts';
 import { Timeline, type FieldTabTarget } from './FieldTimeline';
 
 const STUDY_WORDS: Record<StudyState['state'], string> = {
@@ -51,7 +51,7 @@ export function Overview({
         </Card>
       ) : (
         <Card title="By organization" flush>
-          <Quiet>No candidate has taken its final test yet</Quiet>
+          <EmptyRow title="No candidate has taken its final test yet" />
         </Card>
       )}
       <StudyAndSkills field={field} openTab={openTab} />

@@ -55,6 +55,7 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { namesInSentence } from '../workspace/labels';
 import { useAgentChats, useTeamChats } from '../workspace/store';
 import { openAgent, openTeam } from './open-agent';
+import { EmptyRow } from '../fields/parts';
 import {
   approvalNeeds,
   experimentNeeds,
@@ -79,11 +80,6 @@ const NEED_ICONS: Record<NeedKind, ReactNode> = {
 };
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
-
-/** What an empty card lacks, in a few words, as the card's one row. */
-function EmptyRow({ title, className }: { title: string; className?: string }) {
-  return <CardRow title={<span className="font-normal">{title}</span>} className={className} />;
-}
 
 function NeedRow({ need }: { need: Need }) {
   const showSettings = useAgentSettingsUi((state) => state.show);
