@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-30 (Fri, night), one visual language and calm motion (branch `design/unified-motion`)
+
+**Done** (no model was called, no GPU, no spend; packages/ui and the shell only)
+- One set of parts in `docs/DESIGN.md`: titles, side padding, row heights, strips, controls, icons, hover and selected fills, empty states, toasts, scrollbars, window chrome. Every strip (Segmented, PageTabs, the inspector's tabs) is the same 40px pill; a panel's title is set like a card's; icons are stroke 1.8; scrollbars show under the pointer only.
+- Motion with a job to do: a place rises 8px from the side of the sidebar moved toward, a flow or setup step slides 24px from its side while the header stays, a tab's content rises 6px; the old page fades in 100ms so nothing waits. The sidebar's selected fill and the stepper's pill slide (`layoutId`). New springs `settle` (0.28 s) and `leave` (0.1 s); timings measured with a throwaway spring probe are in DESIGN.md. The Lab's running score rolls (NumberTicker). Hidden runs stay instant.
+- Shell: sidebar rows are one `NavItem`; the wordmark lines up with the place labels and sits on the title bar's line; flow and setup headers are the title bar's 56px; a place's side panel runs the full height.
+
+**Next**
+- Watch the transitions in a real window (hidden runs can't show them) and tune if a place change feels slow.
+- `editions.spec.ts` "the personal home opens the chat used last" failed once under load (a home stuck on "Loading agents") and passed 15 times alone; watch for it.
+
 ## 2026-10-31 (Sat, midday), status (start the next session here)
 
 - *Merged into `field/main` since the morning entry:* the tutor's public name in README, site and docs; `architect serve` (080); the runner's pause instead of a silent drop (081); the leak fingerprint fix with an empty-fingerprint guard (082, reviewed adversarially: no lost detection on the academy job); experiments on library fields with a hypothesis and a primary comparison (074 amended; a one-arm plan needs only a hypothesis); a Lab field made from several organizations' folders, with `docs/JOB_FORMAT.md` (083). `pnpm check` passes (3,751 tests).
