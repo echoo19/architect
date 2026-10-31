@@ -10,6 +10,7 @@ import { formatPercent } from '../lib/format';
 import { navigate, paths } from '../lib/router';
 import { bestCandidate, type FieldSummary } from './model';
 import { plural, Quiet } from './parts';
+import { Timeline, type FieldTabTarget } from './FieldTimeline';
 
 const STUDY_WORDS: Record<StudyState['state'], string> = {
   unstudied: 'Not studied yet',
@@ -19,10 +20,16 @@ const STUDY_WORDS: Record<StudyState['state'], string> = {
 };
 
 /**
- * The field at a glance: its best candidate skill by organization, its skills and the study
- * brief. The grid is the focal point; a field with no candidate yet says so.
+ * The field at a glance: its best candidate skill by organization, its life as one timeline, its
+ * skills and the study brief. The grid is the focal point; a field with no candidate yet says so.
  */
-export function Overview({ field }: { field: FieldSummary }) {
+export function Overview({
+  field,
+  openTab,
+}: {
+  field: FieldSummary;
+  openTab: (tab: FieldTabTarget) => void;
+}) {
   const best = bestCandidate(field.candidates);
   const grid = best ? organizationGrid(best.report.test.perOrg) : null;
   const openReport = best && (
@@ -47,12 +54,19 @@ export function Overview({ field }: { field: FieldSummary }) {
           <Quiet>No candidate has taken its final test yet</Quiet>
         </Card>
       )}
-      <StudyAndSkills field={field} />
+      <StudyAndSkills field={field} openTab={openTab} />
     </div>
   );
 }
 
-function StudyAndSkills({ field }: { field: FieldSummary }) {
+/** The timeline, then the skills and the study, once the study's state is read. */
+function StudyAndSkills({
+  field,
+  openTab,
+}: {
+  field: FieldSummary;
+  openTab: (tab: FieldTabTarget) => void;
+}) {
   const plan = useTaskPlan(field.job.id);
   if (!plan.data) {
     return plan.status === 'error' ? (
@@ -62,10 +76,13 @@ function StudyAndSkills({ field }: { field: FieldSummary }) {
     );
   }
   return (
-    <CardGrid>
-      <Skills plan={plan.data} />
-      {plan.data.study && <Study jobId={field.job.id} study={plan.data.study} />}
-    </CardGrid>
+    <>
+      <Timeline field={field} study={plan.data.study} openTab={openTab} />
+      <CardGrid>
+        <Skills plan={plan.data} />
+        {plan.data.study && <Study jobId={field.job.id} study={plan.data.study} />}
+      </CardGrid>
+    </>
   );
 }
 

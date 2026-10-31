@@ -208,7 +208,7 @@ function Field({ field }: { field: FieldSummary }) {
       }
     >
       <PageTabs aria-label={job.name} tabs={TABS} value={tab} onValueChange={setTab}>
-        {tab === 'overview' && <Overview field={field} />}
+        {tab === 'overview' && <Overview field={field} openTab={setTab} />}
         {tab === 'organizations' && <Organizations field={field} />}
         {tab === 'tasks' && <Tasks job={job} />}
         {tab === 'versions' && <Candidates field={field} />}
