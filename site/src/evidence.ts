@@ -9,8 +9,8 @@ import { REPO } from './content';
 
 /** The documents the figures come from, by the short name used under each block. */
 export const SOURCES = {
-  phil: { name: 'phil-1.md', path: 'docs/comparisons/phil-1.md' },
-  local: { name: 'phil-1-local.md', path: 'docs/comparisons/phil-1-local.md' },
+  tutor: { name: 'tutor-1.md', path: 'docs/comparisons/tutor-1.md' },
+  local: { name: 'tutor-1-local.md', path: 'docs/comparisons/tutor-1-local.md' },
   scale: { name: 'SCALE.md', path: 'docs/SCALE.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
@@ -342,8 +342,8 @@ export const MONEY = {
 } as const;
 
 /**
- * The field run: Phil, a tutor for test-prep academies. Final-test tasks are counted per group of
- * organizations, under seed 101, from `phil-1.md`. Intervals are the report's own: Wilson for a
+ * The field run: Tutor, a tutor for test-prep academies. Final-test tasks are counted per group of
+ * organizations, under seed 101, from `tutor-1.md`. Intervals are the report's own: Wilson for a
  * pass rate, Newcombe for a paired difference.
  */
 export const GROUPS = [
@@ -387,7 +387,7 @@ export const FIELD_ARMS: readonly FieldArm[] = [
     tone: 'plain',
   },
   {
-    name: 'Phil',
+    name: 'Tutor',
     groups: [
       { passed: 44, low: 80.4, high: 96.7 },
       { passed: 43, low: 77.8, high: 95.5 },
@@ -403,30 +403,30 @@ export const SKILLS = ['Diagnose', 'Solve', 'Hint', 'History', 'Assign', 'Tutori
 export interface SkillRow {
   skill: (typeof SKILLS)[number];
   group: GroupKey;
-  /** Tasks in the cell; passes for the blank setup, the one-shot setup and Phil. */
+  /** Tasks in the cell; passes for the blank setup, the one-shot setup and Tutor. */
   of: number;
   bare: number;
   draft: number;
-  phil: number;
+  tutor: number;
 }
 
 /** Skill by organization. The Real academy had tasks for three skills only. */
 export const SKILL_ROWS: readonly SkillRow[] = [
-  { skill: 'Diagnose', group: 'taught', of: 9, bare: 6, draft: 6, phil: 8 },
-  { skill: 'Diagnose', group: 'harborview', of: 8, bare: 6, draft: 8, phil: 6 },
-  { skill: 'Diagnose', group: 'real', of: 8, bare: 4, draft: 4, phil: 2 },
-  { skill: 'Solve', group: 'taught', of: 6, bare: 6, draft: 6, phil: 6 },
-  { skill: 'Solve', group: 'harborview', of: 8, bare: 8, draft: 8, phil: 8 },
-  { skill: 'Hint', group: 'taught', of: 9, bare: 2, draft: 3, phil: 9 },
-  { skill: 'Hint', group: 'harborview', of: 8, bare: 4, draft: 1, phil: 7 },
-  { skill: 'History', group: 'taught', of: 6, bare: 5, draft: 4, phil: 6 },
-  { skill: 'History', group: 'harborview', of: 8, bare: 5, draft: 2, phil: 8 },
-  { skill: 'History', group: 'real', of: 8, bare: 5, draft: 6, phil: 3 },
-  { skill: 'Assign', group: 'taught', of: 9, bare: 2, draft: 3, phil: 8 },
-  { skill: 'Assign', group: 'harborview', of: 8, bare: 1, draft: 3, phil: 8 },
-  { skill: 'Assign', group: 'real', of: 8, bare: 0, draft: 1, phil: 7 },
-  { skill: 'Tutoring turn', group: 'taught', of: 9, bare: 0, draft: 0, phil: 7 },
-  { skill: 'Tutoring turn', group: 'harborview', of: 8, bare: 0, draft: 0, phil: 6 },
+  { skill: 'Diagnose', group: 'taught', of: 9, bare: 6, draft: 6, tutor: 8 },
+  { skill: 'Diagnose', group: 'harborview', of: 8, bare: 6, draft: 8, tutor: 6 },
+  { skill: 'Diagnose', group: 'real', of: 8, bare: 4, draft: 4, tutor: 2 },
+  { skill: 'Solve', group: 'taught', of: 6, bare: 6, draft: 6, tutor: 6 },
+  { skill: 'Solve', group: 'harborview', of: 8, bare: 8, draft: 8, tutor: 8 },
+  { skill: 'Hint', group: 'taught', of: 9, bare: 2, draft: 3, tutor: 9 },
+  { skill: 'Hint', group: 'harborview', of: 8, bare: 4, draft: 1, tutor: 7 },
+  { skill: 'History', group: 'taught', of: 6, bare: 5, draft: 4, tutor: 6 },
+  { skill: 'History', group: 'harborview', of: 8, bare: 5, draft: 2, tutor: 8 },
+  { skill: 'History', group: 'real', of: 8, bare: 5, draft: 6, tutor: 3 },
+  { skill: 'Assign', group: 'taught', of: 9, bare: 2, draft: 3, tutor: 8 },
+  { skill: 'Assign', group: 'harborview', of: 8, bare: 1, draft: 3, tutor: 8 },
+  { skill: 'Assign', group: 'real', of: 8, bare: 0, draft: 1, tutor: 7 },
+  { skill: 'Tutoring turn', group: 'taught', of: 9, bare: 0, draft: 0, tutor: 7 },
+  { skill: 'Tutoring turn', group: 'harborview', of: 8, bare: 0, draft: 0, tutor: 6 },
 ];
 
 export interface FieldPair {
@@ -446,7 +446,7 @@ export interface FieldPair {
 
 export const FIELD_PAIRS: readonly FieldPair[] = [
   {
-    label: 'Phil against a blank setup',
+    label: 'Tutor against a blank setup',
     group: 'harborview',
     n: 48,
     wins: 20,
@@ -458,7 +458,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 53.7,
   },
   {
-    label: 'Phil against a blank setup',
+    label: 'Tutor against a blank setup',
     group: 'real',
     n: 24,
     wins: 9,
@@ -470,7 +470,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 40.2,
   },
   {
-    label: 'Phil against a blank setup',
+    label: 'Tutor against a blank setup',
     group: 'taught',
     n: 48,
     wins: 24,
@@ -482,7 +482,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 61.7,
   },
   {
-    label: 'Phil against a blank setup',
+    label: 'Tutor against a blank setup',
     group: 'all',
     n: 120,
     wins: 53,
@@ -494,7 +494,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 47.7,
   },
   {
-    label: 'Phil against the one-shot setup',
+    label: 'Tutor against the one-shot setup',
     group: 'harborview',
     n: 48,
     wins: 23,
@@ -506,7 +506,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 58.3,
   },
   {
-    label: 'Phil against the one-shot setup',
+    label: 'Tutor against the one-shot setup',
     group: 'real',
     n: 24,
     wins: 7,
@@ -518,7 +518,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 31.0,
   },
   {
-    label: 'Phil against the one-shot setup',
+    label: 'Tutor against the one-shot setup',
     group: 'taught',
     n: 48,
     wins: 23,
@@ -579,7 +579,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
   },
 ];
 
-/** Phil's three rounds of teaching, on the 36 check tasks of the taught academies. */
+/** Tutor's three rounds of teaching, on the 36 check tasks of the taught academies. */
 export const ROUNDS_FIELD: readonly Round[] = [
   {
     n: 1,
@@ -619,8 +619,8 @@ export const FIELD_MONEY = {
 } as const;
 
 /**
- * Phil, frozen, on the same 120 final-test tasks again on the 2-bit Glimmer that runs on one
- * 12 GB graphics card, from `phil-1-local.md`. Hosted passes are Phil's in `FIELD_ARMS`. Wins and
+ * Tutor, frozen, on the same 120 final-test tasks again on the 2-bit Glimmer that runs on one
+ * 12 GB graphics card, from `tutor-1-local.md`. Hosted passes are Tutor's in `FIELD_ARMS`. Wins and
  * losses are local against hosted, task by task; intervals are the report's Newcombe intervals.
  */
 export interface LocalRow {

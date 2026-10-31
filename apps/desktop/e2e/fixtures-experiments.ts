@@ -51,7 +51,7 @@ export async function installExperimentsFake(
     const data = raw as ReturnType<typeof experimentsData>;
     type Record = {
       id: string;
-      input: { jobDir: string; name: string };
+      input: { jobId?: string; jobDir?: string; name: string };
       job: { id: string; name: string; splitsSeed: number };
       status: string;
       reason?: string;
@@ -88,8 +88,11 @@ export async function installExperimentsFake(
       experiment: { ...record },
       projection: data.projection,
       calibration: data.calibration,
+      groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
+      funding: null,
+      amendments: [],
       report: released(record) ? data.released : record.status === 'draft' ? null : data.held,
     });
     const handle = (channel: string, reply: (...args: never[]) => unknown) => {
@@ -165,7 +168,9 @@ export async function installExperimentsFake(
       });
     };
     handle('experiments:start', (id: string) => run(id, ['preregistered']));
-    handle('experiments:resume', (id: string) => run(id, ['paused', 'waiting', 'incomplete']));
+    handle('experiments:resume', (id: string) =>
+      run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']),
+    );
     handle('experiments:pause', (id: string) => {
       const record = find(id);
       if (record.status !== 'running') throw coded('experiment_state', `It is ${record.status}.`);

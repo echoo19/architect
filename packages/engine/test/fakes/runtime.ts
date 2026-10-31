@@ -1,9 +1,12 @@
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   GuardError,
   type CheckResult,
   type Harness,
   type HarnessTool,
   type Job,
+  type Organization,
   type SuiteResult,
   type Task,
   type Trace,
@@ -343,6 +346,8 @@ export class FakeVault implements VaultDeps {
   /** Each certified job's calibration split, which only a proof opens. */
   readonly calibration = new Map<string, Task[]>();
   readonly opened: string[] = [];
+  /** The jobs whose sealed part was staged for a comparison, in order. */
+  readonly staged: string[] = [];
 
   constructor(private readonly runtime: FakeRuntime) {}
 
@@ -436,8 +441,18 @@ export class FakeVault implements VaultDeps {
   /** Each certification's sealed tasks, by `<job>/<id>`, with a stand-in hash. */
   readonly certifications = new Map<string, { sets: CertificationSets; sha256: string }>();
 
-  sealCertification(jobId: string, id: string, sets: CertificationSets): string {
+  /** What each certification was fingerprinted against: the visible tasks' ids and the data. */
+  readonly certificationPrints = new Map<string, { others: string[]; data: string[] }>();
+
+  sealCertification(
+    jobId: string,
+    id: string,
+    sets: CertificationSets,
+    others: Task[],
+    data: string[],
+  ): string {
     const key = `${jobId}/${id}`;
+    this.certificationPrints.set(key, { others: others.map((task) => task.id), data });
     if (this.certifications.has(key)) throw new Error(`${key} is already sealed.`);
     const sha256 = `sha-${key}-${JSON.stringify(sets).length}`;
     this.certifications.set(key, { sets: structuredClone(sets), sha256 });
@@ -464,5 +479,30 @@ export class FakeVault implements VaultDeps {
 
   discardCertification(jobId: string, id: string): void {
     this.certifications.delete(`${jobId}/${id}`);
+  }
+
+  /** The sealed tasks appended to the folder's tasks.jsonl, each sealed organization's files. */
+  stageSealed(jobId: string, dir: string): Organization[] {
+    if (!this.sealed.has(jobId)) throw new GuardError('split', `${jobId} isn't sealed.`);
+    this.staged.push(jobId);
+    const tasks = [...(this.sealed.get(jobId) ?? []), ...(this.calibration.get(jobId) ?? [])];
+    appendFileSync(
+      join(dir, 'tasks.jsonl'),
+      tasks
+        .map(
+          (task) => `${JSON.stringify(task)}
+`,
+        )
+        .join(''),
+    );
+    const transfer = this.transfer.get(jobId) ?? [];
+    for (const { org, files } of transfer) {
+      for (const file of files) {
+        const target = join(dir, 'orgs', org.id, 'data', file.name);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, file.content);
+      }
+    }
+    return transfer.map(({ org }) => org);
   }
 }

@@ -375,6 +375,16 @@ export interface GraduateSettings {
   writeMode: PermissionMode;
 }
 
+/**
+ * One organization of a field drafted from folders (decision 083): its name, the folder that holds
+ * its files, and whether the agent is taught on it (`train`) or never sees it (`transfer`).
+ */
+export interface DraftOrganization {
+  name: string;
+  folder: string;
+  role: 'train' | 'transfer';
+}
+
 export interface DraftTurn {
   sessionId: string;
   /** The mentor's reply, shown in the clarify conversation. */
@@ -491,6 +501,11 @@ export interface ArchitectApi {
     exportFile(jobId: string, path: string): Promise<void>;
     draftStart(description: string, files: string[]): Promise<DraftTurn>;
     draftReply(sessionId: string, text: string): Promise<DraftTurn>;
+    /**
+     * Starts drafting a field of several organizations, each from its own folder. The teacher reads
+     * only the taught organizations' files; the conversation goes on with `draftReply`.
+     */
+    draftField(description: string, organizations: DraftOrganization[]): Promise<DraftTurn>;
     /**
      * What a job's tasks are: where they came from, the rule behind each type, a few examples of
      * each with their expected answers, and how many sit in each set. The examples never come

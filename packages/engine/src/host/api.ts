@@ -296,6 +296,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       importFile: (file) => jobs.importFile(file),
       exportFile: (jobId, file) => jobs.exportFile(jobId, file),
       draftStart: (description, files, teacher) => drafter.start(description, files, teacher),
+      draftField: (description, organizations, teacher) =>
+        drafter.startField(description, organizations, teacher),
       draftReply: (sessionId, text, teacher) => drafter.reply(sessionId, text, teacher),
       taskPlan: (jobId) => jobs.taskPlan(jobId),
       confirmRules: (jobId, token) => jobs.confirmRules(jobId, token),

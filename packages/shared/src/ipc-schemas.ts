@@ -10,6 +10,7 @@ import type {
   AppSettingsPatch,
   ClarificationReply,
   CustomEndpoint,
+  DraftOrganization,
   DraftTurn,
   Edition,
   FileDiff,
@@ -193,6 +194,12 @@ export const FileDiffSchema = z.object({
   status: z.enum(['added', 'modified', 'deleted']),
   patch: z.string(),
 }) satisfies z.ZodType<FileDiff>;
+
+export const DraftOrganizationSchema = z.object({
+  name: z.string().trim().min(1),
+  folder: z.string().min(1),
+  role: z.enum(['train', 'transfer']),
+}) satisfies z.ZodType<DraftOrganization>;
 
 export const DraftTurnSchema = z.object({
   sessionId: z.string(),

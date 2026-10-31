@@ -2,7 +2,7 @@
 
 `architect` lets you list, install, run, check, export and publish your agents from a terminal, without opening the app. It works on the same agents as the app, in the same folder, with the same rules: an agent sees only the folders you gave it, asks before it changes a file unless you allow it, and runs only on a model on your computer. While an agent runs, it can reach nothing but the model on your computer, and the teacher model is never contacted. Only `publish`, `install` from Hugging Face and `train plan --model`, which reads a model's `config.json`, go online, to Hugging Face itself.
 
-Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened.
+Scripts can use it too: give it a request as a JSON file and it writes the result as JSON, with exit codes that say what happened. Other apps on the same computer can use an agent through `architect serve`, which answers like an OpenAI-compatible chat endpoint.
 
 ## Getting it
 
@@ -104,6 +104,65 @@ On a terminal, a change that needs approval is asked about there; `always` allow
 
 The agent runs on its active version, with this computer's folders and permissions, exactly as a chat in the app would.
 
+### serve
+
+```bash
+architect serve service-desk [--port 8420] [--version 2] [--token-file token.txt]
+```
+
+Serves an agent to other apps on this computer, such as a school's own platform, as an OpenAI-compatible Chat Completions endpoint. It prints where it listens and the token callers must send:
+
+```
+$ architect serve service-desk
+Serving Service desk, version 2, on muse-glimmer:30b (ollama), to apps on this computer only.
+Changes to files come back as proposals; nothing is written. Ctrl+C stops.
+Base URL: http://127.0.0.1:8420/v1
+Model:    service-desk
+Token:    Jx3l...
+```
+
+```bash
+curl http://127.0.0.1:8420/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "service-desk", "messages": [{"role": "user", "content": "Who owes us money?"}]}'
+```
+
+```json
+{
+  "id": "chatcmpl-5f1c...",
+  "object": "chat.completion",
+  "created": 1793900000,
+  "model": "service-desk",
+  "choices": [{ "index": 0, "message": { "role": "assistant", "content": "Ruiz, Ben owes $45.50 on INV-2." }, "finish_reason": "stop" }],
+  "architect": {
+    "version": 2,
+    "harnessHash": "sha256-c077cf82...",
+    "certified": false,
+    "agreement": null,
+    "handedOff": false,
+    "steps": [{ "tool": "read", "detail": "data/invoices.csv", "status": "done", "summary": "3 rows", "ms": 2 }],
+    "proposedChange": null,
+    "refusal": null
+  }
+}
+```
+
+Any OpenAI client works with the base URL, the token as its API key, and the agent's name as the model. `GET /v1/models` lists the agent.
+
+- **This computer only.** It listens on 127.0.0.1 and nowhere else; `--host` is refused (exit 3). Every request needs the bearer token, so another account or program on the computer can't use the agent without it. The token is new each start and printed once; `--token-file` reads one of your own (one word, at least 16 characters) and prints none.
+- **The same agent.** Each request runs through the same agent host as `run` and a chat in the app: the active version, its harness, tools, folders and permissions, under the same network guard, so the agent reaches nothing but the model on this computer. Requests are answered one at a time, in order. A request's earlier user and assistant messages are its history; system and developer messages are left out, since the agent's own instructions say how it works, and sampling settings and a client's own tools are ignored.
+- **Certified answers.** A version with a certificate (decision 077) makes its attempts at each request and answers with the agreed answer, or hands the request to a person. `architect.certified`, `agreement` (`agreed` of `attempts`, and how many are `required`) and `handedOff` say which.
+- **No writes.** The server never changes a file, even when the agent's writes are allowed in the app. A change the agent wants comes back in `architect.proposedChange`, with the rows (`diff`) or lines (`patch`), for a person to make in the app or with `architect run`.
+- **Errors** are OpenAI-style (`{"error": {"message", "type", "code"}}`): 401 without the right token, 400 for a malformed request or `"stream": true` (streaming isn't served yet), 404 for another model, 403 when the agent may not run (its model isn't on this computer, say), 409 when `--version` is no longer the active version, 502 when the model or its reply failed.
+- **Stopping.** Ctrl+C stops taking requests, stops the replies running (their callers get 503) and exits 130. A port in use exits 1.
+
+| Option | Meaning |
+| --- | --- |
+| `--port <n>` | The port on 127.0.0.1; 8420 by default, 0 for any free one. |
+| `--version <n>` | Serve only while this is the active version: it won't start otherwise, and answers 409 once another is promoted. |
+| `--token-file <file>` | The token callers send, instead of a new one. |
+
 ### inspect
 
 ```bash
@@ -149,7 +208,7 @@ Install it with: architect install hf://jake/service-desk --revision 3f1c9e2a...
 ### field export
 
 ```bash
-architect field export Phil --out ./phil-field [--json]
+architect field export Tutor --out ./tutor-field [--json]
 ```
 
 Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
@@ -164,7 +223,7 @@ Nothing of the locked test or of an organization the job never trains on goes in
 ### reward score
 
 ```bash
-architect reward score --env ./phil-field/env < attempts.jsonl > scores.jsonl
+architect reward score --env ./tutor-field/env < attempts.jsonl > scores.jsonl
 ```
 
 Scores attempts at the field's train tasks with the job's own checker, for a training framework that runs its own rollouts. It reads one JSON request per line on stdin and writes one score per line on stdout, in order, until stdin ends. It makes no network calls and starts no server.

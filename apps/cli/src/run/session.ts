@@ -11,7 +11,7 @@ import type {
 import { resolveAgent } from '../agents';
 import type { CliContext } from '../context';
 import { CliError } from '../exit';
-import { sessionStore } from './store';
+import { sessionStore, type SessionStore, type SessionStoreOptions } from './store';
 
 export type ApprovalBlock = Extract<AgentBlock, { kind: 'approval' }>;
 export type ApprovalAnswer = 'approve' | 'deny' | 'always';
@@ -22,6 +22,8 @@ export interface AgentSession {
   version: GraduateVersion;
   installation: Installation;
   host: AgentHost;
+  /** The session's own chats and messages, on the app's agents and installations. */
+  store: SessionStore;
   chat: WorkspaceChat;
   /** Errors the agent host reported: the runtime failed, rather than the agent. */
   failures: unknown[];
@@ -74,7 +76,7 @@ function checkRequirements(
 export async function openSession(
   ctx: CliContext,
   named: string,
-  options: { save: boolean },
+  options: Partial<SessionStoreOptions> = {},
 ): Promise<AgentSession> {
   const local = ctx.library();
   const agent = resolveAgent(local.library, named);
@@ -92,8 +94,12 @@ export async function openSession(
 
   ctx.io.installGuard();
   const failures: unknown[] = [];
+  const store = sessionStore(workspaceStore(local.store, local.paths.root), {
+    save: options.save ?? false,
+    proposeOnly: options.proposeOnly ?? false,
+  });
   const host = createAgentHost({
-    store: sessionStore(workspaceStore(local.store, local.paths.root), options.save),
+    store,
     // This command's own llama-server, for a version with an adapter; it stops with the host.
     adapters: local.adapterRuntime,
     // Its replies take the GPU in turns with the app's processes (decision 046).
@@ -105,7 +111,16 @@ export async function openSession(
     // Quiet mode, as in the app: a local student gets the same thread cap.
     await host.openGraduate(agent.id, ctx.localRuntime().threads);
     const chat = await host.createChat(agent.id);
-    return { agent, version, installation, host, chat, failures, close: () => host.close() };
+    return {
+      agent,
+      version,
+      installation,
+      host,
+      store,
+      chat,
+      failures,
+      close: () => host.close(),
+    };
   } catch (error) {
     await host.close();
     throw error;

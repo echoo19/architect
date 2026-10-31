@@ -12,6 +12,61 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Certify Phil v2 for real on a newer import of the tutor's job (on this computer it costs nothing; the owner decides when the GPU may run it).
 - A cap that pauses a certification can't be raised on it; if that bites, let `startCertification` take new caps.
 
+## 2026-10-30 (Fri, evening), experiments from fields in the library (branch `lab/experiments-from-fields`)
+
+**Done** (no model was called, no GPU, no spend; decision 074's amendment)
+- An experiment runs on a field in the library (by job id, the default) or on a job folder. For a library job the service stages the folder the runner reads from the stored job and tasks and the vault's sealed part (`Vault.stageSealed`), for as long as one call reads it; the preregistration pins it, and a job saved since is refused.
+- Preregistering needs a hypothesis and a primary comparison (arm A minus arm B on the whole test, the organizations taught on, or those never seen); both are hashed with the plan and lead the design, the live page and the results, which say what was measured for it.
+- A Field page's New experiment opens the design with that field chosen.
+
+**Next**
+- Merge into `field/main` after review. The experiment's copy of a library job is split again with the job's seed, so its test may not be the library's own split; a path that imports a job with its splits as they are would close that.
+
+## 2026-10-31 (Sat), a Lab field from several organizations' folders (branch `lab/own-field`)
+
+**Done** (no model was called, no GPU, no spend)
+- `docs/JOB_FORMAT.md`: the job folder format with a worked example, linked from the README and from a failed import.
+- Architect Lab: "Several organizations" on Describe and New field on Fields. Describe the job once, add each organization's folder, name it, Taught on or Never seen. The teacher drafts the specification once from the taught organizations' files; Architect makes each organization's tasks with the existing template step, writes a job folder and imports it, which seals the never-seen ones (decision 083). The personal edition is unchanged.
+- Tests: engine `drafting-field.test.ts` (scripted teacher, leak test), hidden e2e `new-field.spec.ts`, screenshot `new-field-orgs-dark.png`.
+
+**Next**
+- A field with a policy rule, or with end-state tasks, still needs a hand-written folder.
+
+## 2026-10-31 (Sat, morning), in flight: the third tutor run, post-hoc certification, serve, runner fix, the Tutor rename, a platform audit (start the next session here)
+
+**Rules learned today**
+- *Public name.* The tutor agent is called "Tutor" in anything public (README, site, docs, demos, film, the app's sample), and in this repo. Run folders outside the repo may keep their old names. Do not rewrite git history.
+- *Runs use a pinned checkout*, `C:/JakeOS/projects/architect-runs/runtree` (detached at `9e35977d`, installed and built), so development can keep merging in the main checkout. Rebuild it at a new commit only between runs.
+- *Price margin.* Projections priced at the calibration estimate ran short twice; attempts cost about $0.0106 each (hosted Glimmer, tutor job). Cap at least 2x the measured price.
+
+**In flight** (each on its own branch, merge into `field/main` when green, then a PR to `main`)
+- The third tutor run (agent, outside the repo: `architect-runs/phil-3`): a new preregistered comparison, bare vs the taught tutor, on phil-2's unopened tasks (Copperfield, Thistlewood, Bramble Hill taught; Juniper and the Real academy's second cohort never seen), caps $9 OpenRouter and $3 Spark. The second run (`architect-runs/phil-2`) halted: the runner dropped its primary arm when attempts cost more than planned and released the other arms' tests (2 attempts each recorded, unopened); disclosed in the third run's plan. Spend so far today: OpenRouter about $0.95.
+- `certify/post-hoc` (decision 079): certify an existing version after the fact on tasks its own run never touched; the Certify action in Models. Used next for the tutor's first live certificate (about $5).
+- `cli/serve` (decision 080): `architect serve` exposes a graduate on loopback as an OpenAI-compatible endpoint with a bearer token, so another app on the same computer (for example a school's platform) can use it.
+- `runner/no-silent-drop` (decision 081): a comparison pauses instead of dropping an arm it can't fund, before any release.
+- `docs/rename-tutor`: the tutor's public name in README, site and docs (comparisons renamed `tutor-1*.md`). The app's sample, fixtures, examples and screenshots get the same rename after the code lanes above merge.
+- A read-only audit of Architect Lab as a development platform (a founder using it on their own field); its gaps become the next lanes, then a Hestia-inspired pass on one visual language and smooth motion that keeps the simple flow.
+- *The third tutor run is on hold before spending anything:* its agent found that the vault's leak fingerprint keeps text the taught academies' own files show (bank questions that test tasks quote), so every mentor call on the academy job is refused. The second run's "draft" arm was therefore the blank setup plus the study's procedure. Branch `vault/fingerprint-data` fixes it (decision 082, Sol review before merge); then rebuild `architect-runs/runtree` and run the plan in `architect-runs/phil-3/PLAN.md` ($9 OpenRouter at 1.5x headroom, safe with decision 081's pause rule), then certify its frozen tutor with decision 079 (about $5).
+- *The platform audit's gaps, in order:* (1) make a field from several organizations' folders in the app (`lab/own-field`, decision 083, plus `docs/JOB_FORMAT.md`); (2) experiments on library fields and a hypothesis in the preregistration (`lab/experiments-from-fields`); then a task and split browser on the Field page (train and dev only), an attempts browser behind "Show all", a read-only harness viewer in Models and the round drawer, adding a sealed organization later and qualifying on it, per-organization check scores while training, bringing a model trained elsewhere back as a local OpenAI-compatible student, candidates in Models, and the organization word taken from the job instead of "academy". Keep all of it Lab-only and additive; the personal edition's specs are the guard.
+
+## 2026-10-31 (Sat), `architect serve` (branch `cli/serve`)
+
+**Done** (no model was called, no GPU, no spend)
+- `architect serve <agent> [--port N] [--version N] [--token-file F]`: an installed agent as an OpenAI-compatible Chat Completions endpoint (`POST /v1/chat/completions`, non-streaming; `GET /v1/models`) on 127.0.0.1 only, behind a bearer token printed once. Each request runs through the same agent host as `run` and the workspace, under the same network guard; a certified version answers with the agreed answer or hands off, and the response's `architect` object says which. It never writes: a change comes back as `proposedChange`. Ctrl+C exits 130. Decision 080, `docs/CLI.md`.
+
+**Next**
+- Streaming, if a client needs it.
+
+## 2026-10-30 (Fri, night), a comparison pauses instead of dropping an arm (branch `runner/no-silent-drop`)
+
+**Done** (no model was called, no GPU, no spend)
+- The runner no longer drops an arm for money. When an arm can't be paid for at the measured price, before it starts or before its locked test is released, the comparison stops as `needs_funding`, with the arm, what it needs, what is left and the cap, and releases nothing (decision 081). This is what lost the targeted arm in phil-2's second halt.
+- The person answers with `--raise-student-usd` or `--drop-arms` (in the app: `resume` with `studentCapUsd` or `dropArms`), only before the release. A raise is recorded as an amendment with both caps and the price; a drop is recorded as the person's decision.
+- The Experiments screen shows the sentence with Raise the cap and Drop the arm, each behind the existing confirm dialog.
+
+**Next**
+- A hidden e2e for the funding card on the experiments stand-in.
+
 ## 2026-10-31 (Sat), Sol's review of the centerpiece (branch `certify/sol-fixes`)
 
 **Done** (no model was called, no GPU, no spend)
@@ -27,12 +82,12 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - *Architect Lab* (`docs/PLATFORM.md`, decisions 073 to 075): the Lab home (Needs you, Running, Recently finished, Spend), Fields (skills, organizations, candidates, assets and export), Experiments (design, preregister, run and read comparisons in the app through the same runner, decision 074), Models (registry, panel, compare with harness diffs), Compute (targets, training plans with every memory term, experimental Slurm and Kubernetes bundles), and an inspector on Define. A blind read of every screen led to a polish pass (one word per idea, numbers that agree, answers before arithmetic).
 - *From a specialist to a field model* (`docs/SCALE.md`, decisions 071, 072): field export (train-only verified demonstrations, a JSONL outcome scorer with a Python client, a sealed-evaluation manifest), training plans sized from a model's `config.json` with every expert resident and FSDP's peak, and bundles that are written and never submitted. Wording: GPU execution, large-model compatibility and training gains remain unverified.
 - *The technical centerpiece* (`docs/CERTIFY.md`, decisions 077, 078): certified answers (a sealed calibration split, k-attempt agreement, an exact Clopper-Pearson bound with a fixed-sequence threshold; the graduate answers or hands off; the certificate is checked on never-seen organizations) and counterexample-guided repair (a failing helper is shrunk by delta debugging to a minimal case, e.g. 2,312 rows to 4, Spark repairs against it, and it stays as a regression test). Both built and tested; no live certificate has been measured yet (it needs k = 5 attempts per task).
-- *Measured on the owner's GPU* (with permission, Oct 30 night): the frozen Phil from phil-1 on the local 2-bit Glimmer passed 103/120 against 99/120 hosted, no difference shown, about 4x slower (`docs/comparisons/phil-1-local.md`).
+- *Measured on the owner's GPU* (with permission, Oct 30 night): the frozen Tutor from tutor-1 on the local 2-bit Glimmer passed 103/120 against 99/120 hosted, no difference shown, about 4x slower (`docs/comparisons/tutor-1-local.md`).
 - Sol reviewed every lane; each finding was fixed before merging.
 
 **Next**
 - Gate lesson: run `engine.spec.ts` and `hub.spec.ts` (fake models, no GPU) before a release; the packaged specs run in the release workflow on short and linked temp paths.
-- Owner: raise the OpenRouter workspace budget (Phil 2, and a live certificate for Phil at about $5); confirm the real academy's drafted policy; new film narration for the Lab.
+- Owner: raise the OpenRouter workspace budget (Tutor 2, and a live certificate for Tutor at about $5); confirm the real academy's drafted policy; new film narration for the Lab.
 
 ## 2026-10-30 (Fri, night), academy job made certifiable (branch `academy/more-tasks`)
 
@@ -49,7 +104,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Report section with `RiskCoveragePlot`, Models column, Lab figure, new-chat sentence, inspector settings with the cost. Hidden e2e `certify.spec.ts`; screenshots `report-certificate-dark.png`, `chat-handoff-dark.png`.
 
 **Next**
-- The academy sample has no spare tasks for a calibration split: generate more per academy before certifying Phil in a real run.
+- The academy sample has no spare tasks for a calibration split: generate more per academy before certifying Tutor in a real run.
 
 ## 2026-10-30 (Fri, night), certify lane "Counterexamples" (branch `certify/counterexamples`)
 
@@ -81,7 +136,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 
 **Done** (stand-in engine only: no model was called, no GPU, no spend)
 - One term per concept across Lab, Fields, Models, Experiments and the Define inspector: "Taught on" and "Never seen" (sealed only in the one line that explains it), Spark and Glimmer in place of Teacher and Student. The empty Lab says in one line what a field is and who Spark and Glimmer are.
-- Lab: Needs you groups its rows by kind; the two columns stack at their own heights, so Running no longer leaves an empty card. A new version is shown beside the active one with both check-task scores ("Version 3: 88% on check tasks, active version 2: 94%"). The Lab's stand-in agents are the ones Models lists (version 2 active for the service desk and Phil, Phil Mini too).
+- Lab: Needs you groups its rows by kind; the two columns stack at their own heights, so Running no longer leaves an empty card. A new version is shown beside the active one with both check-task scores ("Version 3: 88% on check tasks, active version 2: 94%"). The Lab's stand-in agents are the ones Models lists (version 2 active for the service desk and Tutor, Tutor Mini too).
 - Define: a time limit that stops training before its last round is said in Budget and beside Start training, with the fix ("The 20-hour limit fits 2 to 4 of 12 rounds", Allow 88 hours); retraining Glimmer with a $0 compute cap is said in Budget only, since every job allows retraining by default and the engine simply skips it. The time meter measures training with every round, so a binding limit reads past its cap. The online price was one source all along; the e2e no longer changes the rounds between captures.
 - Experiments: no spend before a run starts ("Up to $6.00"); compute with a $0 cap reads "Not used"; arms that never call a model show nothing for it; "Done teaching" in place of Frozen; a simulation is marked as one, in the badge and the summary; arms are explained once and each tile has a one-line description; Funded is gone.
 - Compute: the plan leads with its answer ("Fits on 16 GPUs in 2 nodes, 52.1 GB each of 72.0 GB usable"), the hardware it was sized for with Change hardware, and the arithmetic under "How this is worked out". Slurm and Kubernetes read "Bundle only" beside Hugging Face Jobs' "Ready"; the bundle says the SCALE.md wording once, short; paths show as their last two folders.
@@ -180,29 +235,29 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - The other platform lanes fill Experiments, Models, Fields, Compute and the inspector on Define from these parts.
 - A study brief waiting to be confirmed isn't in Needs you: the only read of it may start a study. A read-only state call in the engine would let the Lab list it.
 
-## 2026-10-30 (Fri, evening), field specialists on main, Phil 2 waiting on budget (start the next session here)
+## 2026-10-30 (Fri, evening), field specialists on main, Tutor 2 waiting on budget (start the next session here)
 
 **Where things stand**
 - *On main.* PR #1 merged `field/main` into `main` (`87bd090a`) after Linux CI passed; the site redeployed with the new claim ("Turn your organization's files into a specialist that runs on your computer.") and the results paper leads with the first field run. The one-job product stays at `base/one-job` / `base-one-job`. `field/main` is level with `main` and stays the integration branch.
-- *Since the entry below:* the run's workarounds were made proper (`field/run-fixes`: Meta replies unstreamed so usage is always known, with a conservative charge if a provider still omits it; the comparisons runner prices and runs transfer tasks, carries sealed organizations into each arm, and studies once per comparison with `--confirm-study`; record-tasks takes `--per-skill` and blank modules), the generated academies were made realistically messy (each academy its own date, test layout, grid-in forms, label quirks and policy style; four fresh academies: Copperfield, Thistlewood, Bramble Hill, and Juniper never seen), a fresh real cohort was pulled (`architect-runs/academy-real-2`: 40 attempts, Sep 19 to Oct 2, no overlap with the first), the write-up and the misses are in `docs/comparisons/phil-1*.md`, and the README, results paper and home claim were rewritten. 76 hidden stand-in e2e specs pass; the guide PDF is rebuilt from the recaptured screens.
-- *Phil 2 is blocked on money.* `architect-runs/phil-2` is prepared and preregistered (126 locked tasks: 48 seen, 48 Juniper, 30 Real academy; study confirmed, token in its PLAN.md), but the OpenRouter key's workspace budget ($25, separate from the key's $50 cap and the account's credit) is used up, so student calls get 403. $0.57 was spent before the stop; no arm froze and no locked test opened, so it resumes with the command in PLAN.md's second amendment.
+- *Since the entry below:* the run's workarounds were made proper (`field/run-fixes`: Meta replies unstreamed so usage is always known, with a conservative charge if a provider still omits it; the comparisons runner prices and runs transfer tasks, carries sealed organizations into each arm, and studies once per comparison with `--confirm-study`; record-tasks takes `--per-skill` and blank modules), the generated academies were made realistically messy (each academy its own date, test layout, grid-in forms, label quirks and policy style; four fresh academies: Copperfield, Thistlewood, Bramble Hill, and Juniper never seen), a fresh real cohort was pulled (`architect-runs/academy-real-2`: 40 attempts, Sep 19 to Oct 2, no overlap with the first), the write-up and the misses are in `docs/comparisons/tutor-1*.md`, and the README, results paper and home claim were rewritten. 76 hidden stand-in e2e specs pass; the guide PDF is rebuilt from the recaptured screens.
+- *Tutor 2 is blocked on money.* The second field run's folder is prepared and preregistered (126 locked tasks: 48 seen, 48 Juniper, 30 Real academy; study confirmed, token in its PLAN.md), but the OpenRouter key's workspace budget ($25, separate from the key's $50 cap and the account's credit) is used up, so student calls get 403. $0.57 was spent before the stop; no arm froze and no locked test opened, so it resumes with the command in PLAN.md's second amendment.
 
 **Next**
-- Owner: raise the OpenRouter workspace budget (about $10 more covers Phil 2), confirm or correct the real academy's drafted policy, and say whether question text can be exported. New film narration needs the owner too: the film still shows the returns desk.
-- After Phil 2: its write-up into `docs/comparisons/phil-2.md` and the README's marked spot and the results paper; ship its frozen tutor as a ready-made agent so Phil can be tried without training; then a release.
+- Owner: raise the OpenRouter workspace budget (about $10 more covers Tutor 2), confirm or correct the real academy's drafted policy, and say whether question text can be exported. New film narration needs the owner too: the film still shows the returns desk.
+- After Tutor 2: its write-up into `docs/comparisons/tutor-2.md` and the README's marked spot and the results paper; ship its frozen tutor as a ready-made agent so Tutor can be tried without training; then a release.
 
-## 2026-10-30 (Fri), field specialists: Phil, the academy tutor, built and measured
+## 2026-10-30 (Fri), field specialists: Tutor, the academy tutor, built and measured
 
 **Where things stand**
 - *Direction.* The owner asked for a more ambitious Architect ("not a little party trick that produces a small agent"), based on `docs/SPEC_FIELD_SPECIALIZATION.md`, useful in the real world, with a real business anonymized, and with the base kept as a fallback. The one-job product is frozen at branch `base/one-job` and tag `base-one-job` (`0b592784`, what `main` was). The plan and contract are `docs/FIELD.md`, amended after a GPT-6 Astra reading. Work goes to `field/main`; `main` is unchanged since `0b592784`.
-- *Built and merged into `field/main`* (each lane reviewed; GPT-6 Sol found 4 + 4 issues, all fixed): organizations in a job, with transfer academies sealed as snapshots in the vault and every attempt bound to its academy's files (decision 068); Study, Spark's cited brief of the train academies, confirmed before teaching (069); the report's skill-by-organization grid and the organization choice in the workspace, including "Another academy…" for a folder of your own, checked against the schema and labeled not tested there (070); `examples/academy`, four generated academies with six tutoring skills, a deterministic checker and a reference tutor; Phil as a ready-made job in the app. `pnpm check` exits 0 (3,510 tests), the build passes, and the hidden field, study and sample e2e pass.
+- *Built and merged into `field/main`* (each lane reviewed; GPT-6 Sol found 4 + 4 issues, all fixed): organizations in a job, with transfer academies sealed as snapshots in the vault and every attempt bound to its academy's files (decision 068); Study, Spark's cited brief of the train academies, confirmed before teaching (069); the report's skill-by-organization grid and the organization choice in the workspace, including "Another academy…" for a folder of your own, checked against the schema and labeled not tested there (070); `examples/academy`, four generated academies with six tutoring skills, a deterministic checker and a reference tutor; Tutor as a ready-made job in the app. `pnpm check` exits 0 (3,510 tests), the build passes, and the hidden field, study and sample e2e pass.
 - *The real academy.* An anonymized snapshot of a real test-prep academy that uses the owner's Lectern platform, pulled read-only through its connector: 16 students, 1,990 graded answers, 38 of its own topics, 11 lessons, no question text. Names, emails, ids and notes were replaced or dropped, and lesson passcodes removed. It lives only in `C:/JakeOS/projects/architect-runs/academy-real/` and is called "Real academy" everywhere in the repo. Its policy was drafted for the test and waits for the academy's confirmation.
-- *The first field result* (`architect-runs/phil-1`, preregistered, hosted Glimmer, seed 101, every arm frozen before any locked test opened). On the academies it trained with: bare 21/48, one-shot draft 22/48, Phil 44/48. On the generated academy it never saw: bare 24/48, draft 22/48, Phil 43/48 (20 wins, 1 loss, +39.6 points, interval +22.9 to +53.7). On the real academy: bare 9/24, draft 11/24, Phil 12/24 (9 wins, 6 losses, no clear gain): assign 7/8, but history 3/8 and diagnose 2/8. Spend: OpenRouter $4.26, Spark about $0.58.
+- *The first field result* (the first field run's folder, preregistered, hosted Glimmer, seed 101, every arm frozen before any locked test opened). On the academies it trained with: bare 21/48, one-shot draft 22/48, Tutor 44/48. On the generated academy it never saw: bare 24/48, draft 22/48, Tutor 43/48 (20 wins, 1 loss, +39.6 points, interval +22.9 to +53.7). On the real academy: bare 9/24, draft 11/24, Tutor 12/24 (9 wins, 6 losses, no clear gain): assign 7/8, but history 3/8 and diagnose 2/8. Spend: OpenRouter $4.26, Spark about $0.58.
 
 **Next**
-- Merge `field/run-fixes` (the run's three workarounds made proper: Meta replies without usage, the comparisons runner for organization jobs, record-tasks), and commit the write-up as `docs/comparisons/phil-1.md` with `FAILURES.md`'s diagnosis of the real academy's misses.
-- Phil 2: widen the field so a helper can't fit one policy format, then measure on a fresh real cohort (older attempts not in the first snapshot) and a fresh generated academy.
-- Positioning (README, the results paper, the site's claim) once phil-2 is in; the film needs the owner for new narration.
+- Merge `field/run-fixes` (the run's three workarounds made proper: Meta replies without usage, the comparisons runner for organization jobs, record-tasks), and commit the write-up as `docs/comparisons/tutor-1.md` with `FAILURES.md`'s diagnosis of the real academy's misses.
+- Tutor 2: widen the field so a helper can't fit one policy format, then measure on a fresh real cohort (older attempts not in the first snapshot) and a fresh generated academy.
+- Positioning (README, the results paper, the site's claim) once tutor-2 is in; the film needs the owner for new narration.
 - Owner: confirm or correct the real academy's drafted policy; say whether question text can be exported.
 
 ## 2026-10-30 (Fri), field lane "Academy realism": generated academies that differ the way real exports do (branch `field/academy-realism`)
@@ -213,7 +268,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - A fresh job: train Copperfield Learning, Thistlewood Learning, Bramble Hill Academy; transfer Juniper Study House. The first run's four academies are gone from the name list, so its unseen academy stays unseen. `buildRecordTasks` still works for stem-less folders, now tested on a "Full" export too.
 ## 2026-10-30 (Fri), fixes from the first field run (branch `field/run-fixes`)
 
-**Done** (fakes only: no model was called, no GPU, no spend). The first Phil run (`architect-runs/phil-1`) patched copies of the code around four problems; these are the fixes in the repo.
+**Done** (fakes only: no model was called, no GPU, no spend). The first Tutor run patched copies of the code around four problems; these are the fixes in the repo.
 - *Meta's usage.* Meta's streamed replies end without token usage about one time in three, and Meta still bills them. Meta's mentor and actor calls now ask for whole replies, which always carry usage. A reply from any provider that still lacks usage is refused as uncounted, and the mentor gate charges it the most it authorized, so the dollar cap holds (`docs/GOTCHAS.md`).
 - *Comparisons on a job with organizations.* The locked test is priced and counted as the test split plus every sealed organization's task; each arm's copy lists the sealed organizations again; the pin covers `orgs/`. Spark studies the organizations once for the comparison: the brief goes to `study.json`, `--confirm-study <token>` confirms it, the same confirmed brief sits beside every arm's copy, and the bare arm imports the blank harness so the procedure isn't added. Each report row has its results by organization (trained on or never seen, synthetic or real), the target is judged on the trained organizations, and the study's cost is counted once.
 - *record-tasks.* A wrong answer whose module is blank is asked about without a module (it said "module 0"); `--per-skill N` replaces the fixed eight.
@@ -223,7 +278,7 @@ Dated log, newest first. Each entry: what was done, what's next, open issues, ri
 - Nothing here was run against a live model; the next hosted run should use the repo's runner instead of the patched copies.
 - A blank-module answer is asked about by test, section and number; a test that numbers questions per module but leaves the module blank in its records would make that ambiguous.
 
-## 2026-10-30 (Fri), field lane "Sample": Phil as a ready-made job (branch `field/sample`)
+## 2026-10-30 (Fri), field lane "Sample": Tutor as a ready-made job (branch `field/sample`)
 
 **Done** (no model was called, no GPU, no spend)
 - "Try the tutor" sits beside "Try the sample job" on the empty workspace and the Describe screen. It imports `examples/academy/job` through `jobs.createSample('academy')`: the three train academies go into the job folder, the transfer academy is sealed by the engine. Define then asks Spark to study the material, and training waits for the brief to be confirmed. The service desk stays the default sample.

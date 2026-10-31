@@ -11,6 +11,7 @@ import {
   CorrectionSchema,
   ClarificationReplySchema,
   CodedError,
+  DraftOrganizationSchema,
   DraftTurnSchema,
   ErrorCodeSchema,
   ExperimentDetailSchema,
@@ -82,6 +83,7 @@ import {
   WrittenTrainBundleSchema,
   type AdapterErrorCode,
   type ArchitectApi,
+  type DraftOrganization,
   type DraftTurn,
   type MentorConfig,
 } from '@architect/shared';
@@ -91,14 +93,19 @@ import { HubError, type HubErrorCode } from '../hub';
 /**
  * The part of the app's API the engine host serves. The conversation that drafts a job also takes
  * the teacher the person chose in Settings, which only the main process knows, so the renderer's
- * two calls gain a third argument on their way to the engine.
+ * three calls gain a last argument on their way to the engine.
  */
 export type EngineApi = Pick<
   ArchitectApi,
   'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates'
 > & {
-  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply'> & {
+  jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply' | 'draftField'> & {
     draftStart(description: string, files: string[], teacher: MentorConfig): Promise<DraftTurn>;
+    draftField(
+      description: string,
+      organizations: DraftOrganization[],
+      teacher: MentorConfig,
+    ): Promise<DraftTurn>;
     draftReply(sessionId: string, text: string, teacher: MentorConfig): Promise<DraftTurn>;
   };
 };
@@ -138,6 +145,12 @@ export const ENGINE_ROUTES = {
     z.tuple([z.string().min(1), z.array(path), MentorConfigSchema]),
     DraftTurnSchema,
     (api, [description, files, teacher]) => api.jobs.draftStart(description, files, teacher),
+  ),
+  'jobs.draftField': route(
+    z.tuple([z.string().min(1), z.array(DraftOrganizationSchema).min(1), MentorConfigSchema]),
+    DraftTurnSchema,
+    (api, [description, organizations, teacher]) =>
+      api.jobs.draftField(description, organizations, teacher),
   ),
   'jobs.draftReply': route(
     z.tuple([id, z.string().min(1), MentorConfigSchema]),

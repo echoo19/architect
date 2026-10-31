@@ -10,9 +10,9 @@ import { PlacePage } from '../shell/PlacePage';
 
 export { ExperimentsScreen } from '../experiments/ExperimentList';
 
-/** Designing an experiment starts from the field it runs on. */
-export function NewExperimentScreen() {
-  return <ExperimentDesign detail={null} />;
+/** Designing an experiment starts from the field it runs on: `jobId`'s when one is named. */
+export function NewExperimentScreen({ jobId }: { jobId?: string | undefined }) {
+  return <ExperimentDesign detail={null} jobId={jobId} />;
 }
 
 /**

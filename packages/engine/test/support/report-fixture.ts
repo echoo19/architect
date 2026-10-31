@@ -346,6 +346,8 @@ export function comparisonOne(): ComparisonReport {
       order: [...ARM_ORDER],
       adapterProtocol: 'four-cell',
       releasedAt: '2026-10-28T21:56:26.858Z',
+      funding: null,
+      amendments: [],
     },
     inputs: {
       job: pinned('sample-gear-returns', 'Returns desk', '9c'),

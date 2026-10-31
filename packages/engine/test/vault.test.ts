@@ -1,10 +1,14 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { GuardError, type Task } from '@architect/shared';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GuardError, TaskSchema, type Job, type Task } from '@architect/shared';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DataPaths } from '../src/loop/paths';
+import { describeJobData } from '../src/mentor/data-files';
+import { buildOneShotView, oneShotViewParts } from '../src/mentor/view';
 import { isMentorReleased, releaseMentor, type MentorReleased } from '../src/vault/gate';
 import { Vault } from '../src/vault/vault';
+import { importJobInto } from './support/field';
 
 const INVOICE_FORMAT = 'End with: ANSWER: {"invoice_id": "<id>", "total_cents": <integer>}';
 const OVERDUE_FORMAT = 'End with: ANSWER: {"customer_id": "<id>", "overdue_cents": <integer>}';
@@ -34,7 +38,7 @@ const tests = [
   invoiceTask('inv-test-2', 'W-3307', 'Marcus Webb'),
   overdueTask('ovd-test-1', 'C-0412'),
   { ...overdueTask('brief-test', 'C-7788'), prompt: 'Total owed by C-7788 today?' },
-  { ...overdueTask('short-test', 'C1'), prompt: 'Overdue for C1?' },
+  { ...overdueTask('short-test-5', 'C1'), prompt: 'Overdue for C1?' },
 ];
 const others = [
   invoiceTask('inv-train-1', 'W-1001', 'Ana Silva'),
@@ -79,6 +83,25 @@ describe('sealing', () => {
     expect(() => vault.seal('job_twice', tests, [...others, tests[0] as Task], [])).toThrow(
       'Task inv-test-1 is in the test split and in another split.',
     );
+  });
+
+  it('refuses a task with nothing of its own to recognize it by, naming only its id', () => {
+    const answer = 'Used the perimeter of the square as its side';
+    // Its prompt and answer are a train task's, and its answer a row of the data.
+    const asking = (id: string): Task => ({
+      id,
+      type: 'error',
+      family: id,
+      prompt: 'Name the first error in the list.',
+      expected: { kind: 'answer', value: { name: answer }, compare: { mode: 'exact' } },
+    });
+    const data = [`name\n${answer}\n`, JSON.stringify([{ name: answer }])];
+    const seal = () =>
+      vault.seal('job_blank', [asking('error-test')], [asking('error-train')], data);
+    expect(seal).toThrow(GuardError);
+    expect(seal).toThrow(/^Task error-test can't be sealed: .* Give it some wording or a value/);
+    expect(seal).not.toThrow(/perimeter|first error/);
+    expect(vault.isSealed('job_blank')).toBe(false);
   });
 });
 
@@ -193,6 +216,24 @@ describe('leak detection of ids and expected results', () => {
     }
   });
 
+  it('ignores an expected result the data shows, and still finds the task asking for it', () => {
+    const row = { topic: 'Rule 3B - Area and Perimeter', name: 'Used the perimeter as a side' };
+    const asking: Task = {
+      id: 'error-test-1',
+      type: 'error',
+      family: 'error-test-1',
+      prompt: 'Which error did student S-20417 make most on the March 3 quiz of Rule 3B?',
+      expected: { kind: 'answer', value: row, compare: { mode: 'exact' } },
+    };
+    vault.seal('job_rows', [asking], [], [JSON.stringify([row])]);
+    const scan = vault.leakDetector('job_rows');
+    expect(scan.scan(JSON.stringify({ sampleRows: [{ error_id: 'E-02', ...row }] })).leaked).toBe(
+      false,
+    );
+    expect(scan.scan(asking.prompt).matchedIds).toEqual(['error-test-1']);
+    expect(scan.scan('Attempt error-test-1 failed.').matchedIds).toEqual(['error-test-1']);
+  });
+
   it('still reads a fingerprint sealed before ids and values were fingerprinted', () => {
     const file = join(root, 'vault', 'job_sample', 'fingerprint.json');
     const stored = JSON.parse(readFileSync(file, 'utf8')) as { tasks: Record<string, unknown>[] };
@@ -294,11 +335,15 @@ describe('the calibration split of a certified job (decision 077)', () => {
 
 describe("a version's certification after the fact (decision 079)", () => {
   const sets = { calibration: [others[0] as Task], checks: { north: [others[1] as Task] } };
+  /** What the job's mentor may see besides them. */
+  const visible = others.slice(2);
   const file = () => join(root, 'vault', 'job_sample', 'certifications', 'crt_1.json');
+  const seal = (id = 'crt_1', tasks = sets) =>
+    vault.sealCertification('job_sample', id, tasks, visible, []);
 
   it('seals once beside the test, and opens only on the release proof', async () => {
-    const sha256 = vault.sealCertification('job_sample', 'crt_1', sets);
-    expect(() => vault.sealCertification('job_sample', 'crt_1', sets)).toThrow(GuardError);
+    const sha256 = seal();
+    expect(() => seal()).toThrow(GuardError);
     expect(() =>
       vault.openCertification('job_sample', 'crt_1', sha256, {} as MentorReleased),
     ).toThrow("A certification's tasks open only after the mentor has been released.");
@@ -306,8 +351,32 @@ describe("a version's certification after the fact (decision 079)", () => {
     expect(vault.openCertification('job_sample', 'crt_1', sha256, proof)).toEqual(sets);
   });
 
+  it('holds text bound for the mentor to not quoting them, as the test is (decision 082)', () => {
+    expect(vault.leakDetector('job_sample').scan(others[0]?.prompt ?? '').leaked).toBe(false);
+    seal();
+    const scan = vault.leakDetector('job_sample');
+    expect(scan.scan(JSON.stringify({ prompt: others[0]?.prompt })).matchedIds).toEqual([
+      'inv-train-1',
+    ]);
+    expect(scan.scan(`the check task: ${others[1]?.prompt ?? ''}`).matchedIds).toContain(
+      'inv-train-2',
+    );
+    // The test's own prints still hold.
+    expect(scan.scan(tests[0]?.prompt ?? '').matchedIds).toContain('inv-test-1');
+  });
+
+  it('refuses a task with nothing of its own to recognize it by, and writes nothing', () => {
+    const echo = { ...(visible[0] as Task), id: 'echo' };
+    expect(() => seal('crt_2', { calibration: [echo], checks: {} })).toThrow(
+      "Task echo can't be sealed: everything it says is also in the data or in other tasks",
+    );
+    expect(() =>
+      readFileSync(join(root, 'vault', 'job_sample', 'certifications', 'crt_2.json')),
+    ).toThrow();
+  });
+
   it('refuses tasks that changed after sealing, and takes back what never started', async () => {
-    const sha256 = vault.sealCertification('job_sample', 'crt_1', sets);
+    const sha256 = seal();
     writeFileSync(file(), readFileSync(file(), 'utf8').replace('W-1001', 'W-1009'));
     const proof = await releaseMentor(session());
     expect(() => vault.openCertification('job_sample', 'crt_1', sha256, proof)).toThrow(
@@ -315,14 +384,119 @@ describe("a version's certification after the fact (decision 079)", () => {
     );
     vault.discardCertification('job_sample', 'crt_1');
     expect(() => readFileSync(file())).toThrow();
+    expect(vault.leakDetector('job_sample').scan(others[0]?.prompt ?? '').leaked).toBe(false);
     expect(vault.isSealed('job_sample')).toBe(true);
   });
 
   it('keeps them out of the locked test and its counts, under an id that names no other path', () => {
-    vault.sealCertification('job_sample', 'crt_1', sets);
+    seal();
     expect(vault.count('job_sample')).toBe(tests.length);
-    expect(() => vault.sealCertification('job_sample', '..', sets)).toThrow(
-      'is not a valid certification id',
+    expect(() => seal('..')).toThrow('is not a valid certification id');
+  });
+});
+
+describe('the leak fingerprint of the academy job, with organizations (decision 082)', () => {
+  let academyRoot: string;
+  let paths: DataPaths;
+  let academy: Job;
+  let sealed: Vault;
+
+  beforeAll(async () => {
+    academyRoot = mkdtempSync(join(tmpdir(), 'architect-vault-academy-'));
+    academy = await importJobInto(academyRoot);
+    paths = new DataPaths(academyRoot);
+    sealed = new Vault(academyRoot);
+  });
+  afterAll(() => rmSync(academyRoot, { recursive: true, force: true }));
+
+  it("lets through the taught academies' sample rows, which the mentor may see", async () => {
+    const train = readFileSync(paths.tasksFile(academy.id, 'train'), 'utf8')
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => TaskSchema.parse(JSON.parse(line)));
+    const view = buildOneShotView({
+      job: academy,
+      dataFiles: await describeJobData(
+        academy,
+        paths.jobDir(academy.id),
+        paths.dataDir(academy.id),
+      ),
+      harnessFiles: { 'AGENTS.md': 'Blank.' },
+      budgetLeft: { rounds: 2, usd: 1, minutes: 60 },
+      train,
+      devTotal: 48,
+    });
+    const parts = oneShotViewParts(view);
+    expect(parts.map((part) => part.label)).toContain('data file errors.csv of copperfield');
+    const detector = sealed.leakDetector(academy.id);
+    const refused = parts.filter((part) => detector.scan(part.text).leaked);
+    expect(refused.map((part) => part.label)).toEqual([]);
+  });
+
+  it("still refuses each locked test task's own prompt", async () => {
+    const detector = sealed.leakDetector(academy.id);
+    const tests = sealed.openForLockedTest(academy.id, await releaseMentor(session()));
+    const missed = tests.filter((task) => !detector.scan(task.prompt).matchedIds.includes(task.id));
+    expect(missed.map((task) => task.id)).toEqual([]);
+  });
+
+  it("still refuses the sealed academy's name and id, as its tasks' test content", async () => {
+    const detector = sealed.leakDetector(academy.id);
+    const proof = await releaseMentor(session());
+    const [juniper] = sealed.openTransfer(academy.id, proof).organizations;
+    if (juniper === undefined) throw new Error('The academy job has no sealed academy.');
+    const its = sealed
+      .openForLockedTest(academy.id, proof)
+      .filter((task) => task.org === juniper.id)
+      .map((task) => task.id)
+      .sort();
+    expect(its.length).toBeGreaterThan(0);
+    expect(detector.scan(`Ask ${juniper.name} about it.`).matchedIds).toEqual(its);
+    expect(detector.scan(`orgs/${juniper.id}/data`).matchedIds).toEqual(its);
+  });
+});
+
+describe("a comparison's copy of a sealed job (decision 074, amended Oct 30)", () => {
+  const org = { id: 'harbor', name: 'Harbor Services', synthetic: true, role: 'transfer' as const };
+  const calibration = [invoiceTask('inv-cal-2', 'W-5120', 'Lena Ortiz')];
+  beforeEach(() =>
+    vault.seal(
+      'job_field',
+      tests,
+      others,
+      [],
+      [{ org, files: [{ name: 'invoices.csv', content: 'id,total\nW-9,100\n' }] }],
+      calibration,
+    ),
+  );
+
+  it("appends the sealed tasks to the folder's tasks and writes each sealed organization's files", () => {
+    const dir = mkdtempSync(join(tmpdir(), 'architect-staged-'));
+    try {
+      writeFileSync(join(dir, 'tasks.jsonl'), `${JSON.stringify(others[0])}\n`);
+      expect(vault.stageSealed('job_field', dir)).toEqual([org]);
+      const ids = readFileSync(join(dir, 'tasks.jsonl'), 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => (JSON.parse(line) as Task).id);
+      expect(ids).toEqual([
+        'inv-train-1',
+        ...tests.map((task) => task.id),
+        ...calibration.map((task) => task.id),
+      ]);
+      expect(readFileSync(join(dir, 'orgs', 'harbor', 'data', 'invoices.csv'), 'utf8')).toBe(
+        'id,total\nW-9,100\n',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses a sealed file that changed after sealing', () => {
+    const file = join(root, 'vault', 'job_field', 'transfer', 'harbor', 'data', 'invoices.csv');
+    writeFileSync(file, 'id,total\nW-9,101\n');
+    expect(() => vault.stageSealed('job_field', root)).toThrow(
+      "A sealed organization's file of job job_field changed after it was sealed.",
     );
   });
 });

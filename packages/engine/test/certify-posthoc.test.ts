@@ -386,6 +386,15 @@ describe('certifying a version after the fact (decision 079)', () => {
     expect(attempts.every((attempt) => attempt.tracePath === null)).toBe(true);
     expect(attempts.every((attempt) => attempt.answerSummary === undefined)).toBe(true);
     expect(attempts.every((attempt) => /^[0-9a-f]{64}$/.test(attempt.answerKey ?? ''))).toBe(true);
+    // Fingerprinted against what the version's own job shows its mentor (decision 082).
+    const printed = world.vault.certificationPrints.get(`${job.id}/${planned.id}`);
+    const visible = [
+      ...(await engine.jobs.tasks(job.id, 'calibration')),
+      ...(await engine.jobs.tasks(job.id, 'train')),
+      ...(await engine.jobs.tasks(job.id, 'dev')),
+    ];
+    expect(new Set(printed?.others)).toEqual(new Set(visible.map((task) => task.id)));
+    expect(printed?.data.some((text) => text.includes('North policy'))).toBe(true);
     // The tasks open only on a release proof.
     expect(() =>
       world.vault.openCertification(job.id, planned.id, planned.inputs.sealedSha256, {}),

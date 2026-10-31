@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
   GuardError,
@@ -28,6 +36,8 @@ const JOB_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const TRANSFER_DIR = 'transfer';
 /** Where the tasks of versions certified after the fact are sealed (decision 079). */
 const CERTIFICATIONS_DIR = 'certifications';
+/** Beside each certification's tasks, their prints for the leak detector. */
+const PRINTS_SUFFIX = '.prints.json';
 
 /** The tasks a version is certified on after the fact: calibration, and each check by organization. */
 export interface CertificationSets {
@@ -60,8 +70,10 @@ export class Vault {
 
   /**
    * Seals a job's test tasks. `otherTasks` are every task outside the test split and `data` the
-   * text of the job's data files: wording and values they share with test tasks (templates,
-   * records every attempt reads) are left out of the fingerprint. `transfer` are organizations
+   * text of the job's data files, or of the organizations it trains on, with each table's rows as
+   * the mentor is shown them: wording and values they share with test tasks (templates, records
+   * every attempt reads, rows the mentor sees) are left out of the fingerprint (decision 082). A
+   * sealed organization's files are never `data`: they hold test content. `transfer` are organizations
    * the job never trains on: their files are kept here, hashed, and each one's name and id count
    * as test content in the fingerprint of its tasks. `certify` is a certified job's calibration
    * split (decision 077), sealed beside the test and held to the same leak detector.
@@ -112,16 +124,28 @@ export class Vault {
         return org === undefined ? [] : [org.id, org.name];
       },
     );
+    const lines = `${calibration.map((task) => JSON.stringify(task)).join('\n')}\n`;
+    // Its prints leave out only what the splits the mentor sees hold, as the test's do.
+    const certified: Fingerprint['certify'] =
+      calibration.length === 0
+        ? undefined
+        : {
+            fileSha256: sha256(lines),
+            tasks: fingerprintTests(jobId, calibration, otherTasks, data, sha256(lines)).tasks,
+          };
+    // A task with nothing of its own left to recognize it by could leak without the gate seeing.
+    const blank = [...fingerprint.tasks, ...(certified?.tasks ?? [])].find(
+      (print) => print.prompt === null && print.grams.length === 0 && print.values.length === 0,
+    );
+    if (blank !== undefined) {
+      throw new GuardError(
+        'split',
+        `Task ${blank.id} can't be sealed: everything it says is also in the data or in other tasks, so a leak of it couldn't be recognized. Give it some wording or a value of its own, such as an id with digits.`,
+      );
+    }
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(join(dir, TEST_FILE), content);
-    let certified: Fingerprint['certify'];
-    if (calibration.length > 0) {
-      const lines = `${calibration.map((task) => JSON.stringify(task)).join('\n')}\n`;
-      // Its prints leave out only what the splits the mentor sees hold, as the test's do.
-      const prints = fingerprintTests(jobId, calibration, otherTasks, data, sha256(lines));
-      writeFileAtomic(join(dir, CERTIFY_FILE), lines);
-      certified = { fileSha256: sha256(lines), tasks: prints.tasks };
-    }
+    if (certified !== undefined) writeFileAtomic(join(dir, CERTIFY_FILE), lines);
     const kept = transfer.map(({ org, files }) => {
       const folder = this.transferDir(jobId, org.id);
       return {
@@ -183,7 +207,12 @@ export class Vault {
 
   /** Checks text bound for the mentor against the sealed test tasks' fingerprints. */
   leakDetector(jobId: string): LeakDetector {
-    return createLeakDetector(this.fingerprint(jobId));
+    const fingerprint = this.fingerprint(jobId);
+    // Tasks a version was certified on after the fact are held to it like the test's (079).
+    return createLeakDetector({
+      ...fingerprint,
+      tasks: [...fingerprint.tasks, ...this.certificationPrints(jobId)],
+    });
   }
 
   /**
@@ -313,10 +342,19 @@ export class Vault {
 
   /**
    * Seals the tasks a frozen version is certified on after the fact (decision 079), in this
-   * job's vault beside its test. A sealed set is never replaced. Returns the file's sha256, which
-   * opening it again must match.
+   * job's vault beside its test. They are fingerprinted as the test is (decision 082): `others`
+   * are the tasks the job's mentor may see and `data` the text of the files it trains on, with
+   * each table's rows as the mentor is shown them, and their prints join the job's leak detector.
+   * A task with nothing of its own to be recognized by is refused, and nothing is written. A
+   * sealed set is never replaced. Returns the file's sha256, which opening it again must match.
    */
-  sealCertification(jobId: string, certificationId: string, sets: CertificationSets): string {
+  sealCertification(
+    jobId: string,
+    certificationId: string,
+    sets: CertificationSets,
+    others: readonly Task[],
+    data: readonly string[],
+  ): string {
     const file = this.certificationFile(jobId, certificationId);
     if (existsSync(file)) {
       throw new GuardError('split', `The tasks of certification ${certificationId} are sealed.`);
@@ -330,9 +368,20 @@ export class Vault {
         ]),
       ),
     };
-    const content = `${JSON.stringify(parsed)}
-`;
+    const content = `${JSON.stringify(parsed)}\n`;
+    const tasks = [...parsed.calibration, ...Object.values(parsed.checks).flat()];
+    const prints = fingerprintTests(jobId, tasks, others, data, sha256(content)).tasks;
+    const blank = prints.find(
+      (print) => print.prompt === null && print.grams.length === 0 && print.values.length === 0,
+    );
+    if (blank !== undefined) {
+      throw new GuardError(
+        'split',
+        `Task ${blank.id} can't be sealed: everything it says is also in the data or in other tasks, so a leak of it couldn't be recognized. Give it some wording or a value of its own, such as an id with digits.`,
+      );
+    }
     mkdirSync(dirname(file), { recursive: true });
+    writeFileAtomic(this.printsFile(jobId, certificationId), `${JSON.stringify(prints)}\n`);
     writeFileAtomic(file, content);
     return sha256(content);
   }
@@ -375,6 +424,22 @@ export class Vault {
   /** Takes back the sealed tasks of a certification that never started. */
   discardCertification(jobId: string, certificationId: string): void {
     rmSync(this.certificationFile(jobId, certificationId), { force: true });
+    rmSync(this.printsFile(jobId, certificationId), { force: true });
+  }
+
+  /** The prints of every certification sealed in a job's vault after the fact. */
+  private certificationPrints(jobId: string): Fingerprint['tasks'] {
+    const folder = join(this.dir(jobId), CERTIFICATIONS_DIR);
+    if (!existsSync(folder)) return [];
+    return readdirSync(folder)
+      .filter((name) => name.endsWith(PRINTS_SUFFIX))
+      .flatMap((name) =>
+        FingerprintSchema.shape.tasks.parse(JSON.parse(readFileSync(join(folder, name), 'utf8'))),
+      );
+  }
+
+  private printsFile(jobId: string, certificationId: string): string {
+    return this.certificationFile(jobId, certificationId).replace(/\.json$/, PRINTS_SUFFIX);
   }
 
   private certificationFile(jobId: string, certificationId: string): string {
@@ -382,6 +447,50 @@ export class Vault {
       throw new Error(`"${certificationId}" is not a valid certification id.`);
     }
     return join(this.dir(jobId), CERTIFICATIONS_DIR, `${certificationId}.json`);
+  }
+
+  /**
+   * Writes a job's sealed part into a job folder a comparison imports (decision 074, amended Oct
+   * 30): the locked test's tasks, the sealed organizations' among them, and a certified job's
+   * calibration split appended to `<dir>/tasks.jsonl`, and each sealed organization's files in
+   * `<dir>/orgs/<id>/data/`, as a job folder holds them before it is imported. Returns the sealed
+   * organizations, so the folder's job file lists them again. A file changed since it was sealed
+   * is refused. Only the comparisons runner's source is staged this way: it imports the folder,
+   * which seals it again in its own vault, and removes it; nothing of it goes to a mentor.
+   */
+  stageSealed(jobId: string, dir: string): Organization[] {
+    const fingerprint = this.fingerprint(jobId);
+    const tests = readFileSync(join(this.dir(jobId), TEST_FILE), 'utf8');
+    if (sha256(tests) !== fingerprint.testFileSha256) {
+      throw new GuardError('split', `The locked test of job ${jobId} changed after it was sealed.`);
+    }
+    let calibration = '';
+    if (fingerprint.certify !== undefined) {
+      calibration = readFileSync(join(this.dir(jobId), CERTIFY_FILE), 'utf8');
+      if (sha256(calibration) !== fingerprint.certify.fileSha256) {
+        throw new GuardError(
+          'split',
+          `The calibration split of job ${jobId} changed after it was sealed.`,
+        );
+      }
+    }
+    const transfer = fingerprint.transfer ?? [];
+    for (const { org, files } of transfer) {
+      const target = join(dir, 'orgs', org.id, 'data');
+      for (const file of files) {
+        const content = readFileSync(join(this.transferDir(jobId, org.id), file.name));
+        if (sha256(content) !== file.sha256) {
+          throw new GuardError(
+            'split',
+            `A sealed organization's file of job ${jobId} changed after it was sealed.`,
+          );
+        }
+        mkdirSync(dirname(join(target, file.name)), { recursive: true });
+        writeFileSync(join(target, file.name), content);
+      }
+    }
+    appendFileSync(join(dir, 'tasks.jsonl'), `${tests}${calibration}`);
+    return transfer.map(({ org }) => org);
   }
 
   private transferDir(jobId: string, orgId: string): string {

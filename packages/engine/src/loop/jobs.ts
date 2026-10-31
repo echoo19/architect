@@ -30,7 +30,7 @@ import { readInPlainerWords } from '../drafting/older-words';
 import { buildTaskPlan } from '../drafting/plan';
 import { isStudied, materialFiles, studyStateOf } from '../drafting/study';
 import { ContractBook } from '../graduates/contracts';
-import { readDataFile } from '../mentor/data-files';
+import { mentorDataTexts } from '../mentor/data-files';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
 import type { TransferOrganization } from '../vault/vault';
@@ -308,9 +308,10 @@ export class JobLibrary {
   /**
    * Imports a job file with `tasks.jsonl` and a `data/` folder beside it (the sample job ships
    * this way), and the starting harness folder when the job imports one. The tasks are split at
-   * once and the test split is sealed in the vault.
+   * once and the test split is sealed in the vault. `drafting` is what drafting a field from
+   * several organizations' folders left (decision 083), kept beside the job as a drafted job's is.
    */
-  async importFile(file: string): Promise<Job> {
+  async importFile(file: string, drafting?: DraftRecord): Promise<Job> {
     const source = dirname(resolve(file));
     const parsed = await readJobFile(file);
     const job: Job = { ...parsed, id: await this.freshId(parsed.id) };
@@ -356,6 +357,9 @@ export class JobLibrary {
           );
         }
         await cp(from, join(this.paths.jobDir(job.id), folder), { recursive: true });
+      }
+      if (drafting !== undefined) {
+        await writeJsonFile(this.paths.draftingFile(job.id), DraftRecordSchema.parse(drafting));
       }
       if (tasks.length > 0) await this.installTasks(kept, tasks, transfer);
 
@@ -789,11 +793,10 @@ export class JobLibrary {
       orgs.length === 0
         ? [this.paths.dataDir(job.id)]
         : orgs.map((org) => orgDataDir(this.paths.jobDir(job.id), org.id));
-    const data = (
-      await Promise.all(
-        folders.flatMap((folder) => job.data.files.map((file) => readDataFile(folder, file))),
-      )
-    ).filter((text) => text !== null);
+    // Each file's text, and each table's rows as the mentor is shown them, so what the mentor may
+    // see of these files is left out of the fingerprint (decision 082). Only the organizations the
+    // job trains on are read here: a sealed one's files stay secret and count against a leak.
+    const data = await mentorDataTexts(job.data.files, folders);
     await this.deps.vault.seal(
       job.id,
       [...splits.test, ...sealed],

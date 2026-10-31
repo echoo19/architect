@@ -197,4 +197,8 @@ test("shows a one-organization field's best candidate and its own records", asyn
   await tab('Organizations').click();
   await expect(card('Organizations').getByRole('button', { name: /Its records/ })).toBeVisible();
   await expect(card('Its records')).toContainText('240 rows');
+
+  // An experiment on the field starts from its page, with the field already chosen.
+  await page.getByRole('button', { name: 'New experiment' }).click();
+  await expect(page).toHaveURL(/#\/experiments\/new\/job_clinic$/);
 });

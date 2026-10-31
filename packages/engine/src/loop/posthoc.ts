@@ -19,6 +19,7 @@ import {
 } from '@architect/shared';
 import { agreementSeeds, normalizedReply } from '../certify/agreement';
 import { trainOrganizations } from '../drafting/study';
+import { mentorDataTexts } from '../mentor/data-files';
 import { splitTasks } from '../splits/split';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredCertification, StoredRun } from '../store/records';
@@ -361,7 +362,20 @@ export async function planCertification(
   }
   const id = newId('crt');
   const sets: CertificationSets = { calibration, checks };
-  const sealedSha256 = await deps.vault.sealCertification(record.run.jobId, id, sets);
+  // Fingerprinted against what the version's own job shows its mentor, as its test is (082).
+  const runOrgs = trainOrganizations(runJob);
+  const sealedSha256 = await deps.vault.sealCertification(
+    record.run.jobId,
+    id,
+    sets,
+    await visibleTasks(jobs, record.run.jobId),
+    await mentorDataTexts(
+      runJob.data.files,
+      runOrgs.length === 0
+        ? [paths.dataDir(record.run.jobId)]
+        : runOrgs.map((org) => orgDataDir(paths.jobDir(record.run.jobId), org.id)),
+    ),
+  );
   const stored: StoredCertification = {
     id,
     graduateId: request.graduateId,

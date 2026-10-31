@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, DataTable, EmptyState, PageTabs, Skeleton } from '@architect/ui';
-import { Boxes, Building2, LayoutGrid, Library, Package } from 'lucide-react';
+import { Boxes, Building2, FlaskConical, LayoutGrid, Library, Package } from 'lucide-react';
 import { useJobs } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
@@ -17,11 +17,17 @@ import {
 import { Organizations } from '../fields/Organizations';
 import { Overview } from '../fields/Overview';
 import { scoreCell } from '../fields/parts';
+import { useDraftStore } from '../flow/describe/draft-store';
 import { shortDate } from '../flow/format';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 
-const newField = () => navigate(paths.newAgent());
+/** A new field opens Describe ready for its organizations' folders. */
+const newField = () => {
+  const { organizations, setOrganizations } = useDraftStore.getState();
+  if (organizations === null) setOrganizations([]);
+  navigate(paths.newAgent());
+};
 
 /** Fields: every job, each a field of one or several organizations, with its best candidate. */
 export function FieldsScreen() {
@@ -193,9 +199,15 @@ function Field({ field }: { field: FieldSummary }) {
     <PlacePage
       title={job.name}
       action={
-        <Button size="md" onClick={() => navigate(paths.define(job.id))}>
-          Open the job
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="md" onClick={() => navigate(paths.define(job.id))}>
+            Open the job
+          </Button>
+          <Button variant="primary" size="md" onClick={() => navigate(paths.newExperiment(job.id))}>
+            <FlaskConical size={16} aria-hidden />
+            New experiment
+          </Button>
+        </div>
       }
     >
       <PageTabs aria-label={job.name} tabs={TABS} value={tab} onValueChange={setTab}>

@@ -26,7 +26,7 @@ const PROBLEMS: Record<ErrorCode, Problem> = {
   },
   not_a_job: {
     cause: "That isn't a job file.",
-    next: 'A job folder holds job.json, tasks.jsonl and a data folder with the files the job works on. Choose its job.json.',
+    next: "A job folder holds job.json, tasks.jsonl and the files the job works on, in a data folder or in each organization's orgs/<id>/data folder. Choose its job.json.",
   },
   package_changed: {
     cause: 'This package was edited after it was made.',
