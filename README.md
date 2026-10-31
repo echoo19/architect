@@ -1,8 +1,20 @@
 # Architect
 
-Architect turns an organization's own material into a specialist that runs on its own computer. A large model studies the material and teaches a small one. The small model is then tested on work it never saw; for a whole field, that means organizations it never saw, one of them real. [See it on the website](https://echoo19.github.io/architect/).
+**The training system for your own AI.**
 
-The main example is Academy desk, an operations agent for the staff of test-prep academies. A student misses a practice question and staff ask Academy desk what to do: it diagnoses the miss, sets practice in the academy's records and flags the student for their tutor. Academy desk answers from that academy's own files: its topics, question bank, lessons, the student's history and its tutoring policy. Two academies with different policies get different correct actions from the same Academy desk.
+A large model teaches a small one by rewriting its instructions and tools. Every change is tested on work neither model has seen, and Architect certifies when the result can be trusted. For a whole field, "unseen" means organizations the small model was never taught on, one of them real. [See it on the website](https://echoo19.github.io/architect/).
+
+## What you can make with it
+
+The specialists are what the system makes. They are examples, not the product.
+
+- **Returns desk** works an outdoor-gear shop's returns: it decides return requests, answers questions about orders and books carrier pickups. It asks before it changes a record.
+- **Service desk** does a home-services company's end-of-day office work: it prices finished jobs into invoices, works out overdue balances and books technicians.
+- **Academy desk** helps the staff of test-prep academies: it diagnoses a missed practice question, sets practice in the academy's records and flags the student for their tutor. It is the main example below.
+- **A pricing desk** that a large model drafted from a repair shop's files, after the owner confirmed the pricing rule it made from the shop's policy.
+- **Sweep desk and Assay desk**, for research groups running training sweeps and for screening labs, are the science set, coming soon.
+
+Academy desk answers from each academy's own files: its topics, question bank, lessons, the student's history and its tutoring policy. Two academies with different policies get different correct actions from the same Academy desk.
 
 ## How it works
 
