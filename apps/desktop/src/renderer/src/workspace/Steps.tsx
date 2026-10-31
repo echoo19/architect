@@ -133,6 +133,7 @@ function StepDetail({
   if (view.kind === 'code') {
     return <CodeView code={view.code} output={view.output} failed={failed} />;
   }
+  if (view.kind === 'consult') return null;
   return <StepTable view={view} title={title} onOpenPanel={onOpenPanel} />;
 }
 
