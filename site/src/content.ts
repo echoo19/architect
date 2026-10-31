@@ -24,13 +24,30 @@ export const HERO = {
   ],
 } as const;
 
-/** The walkthrough film under the first screen's words. Its files are in public/. */
+/** The walkthrough film under the first screen's words. Its file is in public/. */
 export const FILM = {
   src: './architect-film.mp4',
-  poster: './film-poster.jpg',
   label: 'A walkthrough of Architect, with narration: 2 minutes 50 seconds.',
   play: 'Play the walkthrough, 2 minutes 50 seconds, with sound',
 } as const;
+
+/**
+ * The specialists Architect has made, named under the film as plain links: to their figures on
+ * the results page where there are some, and to the README's list otherwise.
+ */
+export const SPECIALISTS = {
+  made: [
+    { name: 'Returns desk', to: 'results', anchor: 'results' },
+    { name: 'Service desk', to: 'readme' },
+    { name: 'Academy desk', to: 'results', anchor: 'field' },
+  ],
+  next: [
+    { name: 'Sweep desk', to: 'readme' },
+    { name: 'Assay desk', to: 'readme' },
+  ],
+} as const;
+/** The README's list of what Architect makes. */
+export const README_SPECIALISTS = `${REPO}#what-you-can-make-with-it`;
 
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',

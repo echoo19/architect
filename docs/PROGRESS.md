@@ -493,7 +493,7 @@ The previous session ended with work in flight. Read CLAUDE.md, then this entry,
   1. Edit the mocks or `site/film/`.
   2. Build `site/dist-film`.
   3. Render it with `node render.mjs --film <dist-film/index.html> --out <name> --workers 3 --audio audio/mix-v5.wav`, then check it with `research/glitch.mjs`.
-  4. Replace the site's copies: `ffmpeg -i <render> -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 160k site/public/architect-film.mp4`, and a still at 66 s for `site/public/film-poster.jpg`.
+  4. Replace the site's copies: `ffmpeg -i <render> -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 160k site/public/architect-film.mp4`. The site's cover for it is drawn in code (`site/src/components/HeroFilm.tsx`), so no still is needed.
   New narration needs new ElevenLabs lines; the owner wants to see the picture before any voice is generated.
 - *Guide.* Run `node docs/guide/build.mjs` after recapturing `docs/screenshots`. The figures come from the fake-engine specs: screenshots, flow, workspace, rule, teaching, versions and hub-screens, all run with `ARCHITECT_HIDDEN=1`.
 

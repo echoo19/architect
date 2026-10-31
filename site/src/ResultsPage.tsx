@@ -126,13 +126,13 @@ function Exhibit({
   children: ReactNode;
 }) {
   const text = (
-    <figcaption className="text-pretty">
+    <figcaption className="t-small text-pretty">
       <span className="font-semibold">{label}.</span> {caption}
     </figcaption>
   );
   return (
-    <Reveal>
-      <figure className="m-0 flex flex-col gap-5 rounded-card bg-card px-7 py-6 shadow-edge max-sm:px-4 max-sm:py-5">
+    <Reveal className="exhibit my-2">
+      <figure className="m-0 flex flex-col gap-6 rounded-card bg-card px-8 py-7 shadow-edge max-sm:px-4 max-sm:py-5">
         {table && text}
         {children}
         {!table && text}
@@ -157,10 +157,10 @@ function Section({
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="article flex scroll-mt-16 flex-col gap-6 pt-14 sm:pt-16"
+      className="article flex scroll-mt-20 flex-col gap-6 pt-16 sm:pt-20"
     >
-      <h2 id={`${id}-title`} className="t-h1">
-        <span className="mr-3 tabular-nums">{number}</span>
+      <h2 id={`${id}-title`} className="t-h1 hang">
+        <span className="sec-num">{number}</span>
         {title}
       </h2>
       {children}
@@ -170,8 +170,8 @@ function Section({
 
 function Subsection({ number, title }: { number: string; title: string }) {
   return (
-    <h3 className="m-0 mt-4 font-display text-h2 font-semibold">
-      <span className="mr-3 tabular-nums">{number}</span>
+    <h3 className="t-h2 hang mt-4">
+      <span className="sec-num">{number}</span>
       {title}
     </h3>
   );
@@ -217,7 +217,7 @@ function Table({
     <div className="overflow-x-auto">
       <table
         aria-label={label}
-        className={`w-full border-collapse text-left tabular-nums ${fit ? '' : 'min-w-[640px]'}`}
+        className={`paper-table w-full border-collapse text-left text-body tabular-nums ${fit ? '' : 'min-w-[640px]'}`}
       >
         <thead>
           <tr>
@@ -225,7 +225,7 @@ function Table({
               <th
                 key={column}
                 scope="col"
-                className={`py-3 pr-4 font-medium ${left.includes(index) ? '' : 'whitespace-nowrap text-right'}`}
+                className={`t-small pb-3 pr-4 align-bottom font-medium last:pr-0 ${left.includes(index) ? '' : 'whitespace-nowrap text-right'}`}
               >
                 {column === '' ? <span className="sr-only">Arm</span> : column}
               </th>
@@ -234,11 +234,11 @@ function Table({
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={index} className="border-t border-line">
+            <tr key={index} className="border-t border-line first:border-t-0">
               {row.map((cell, cellIndex) => (
                 <td
                   key={cellIndex}
-                  className={`py-3 pr-4 ${cellIndex === 0 ? 'min-w-[10rem] font-medium' : ''} ${left.includes(cellIndex) ? '' : 'whitespace-nowrap text-right'}`}
+                  className={`py-3 pr-4 align-top last:pr-0 ${cellIndex === 0 ? 'min-w-[10rem] font-medium' : ''} ${left.includes(cellIndex) ? '' : 'whitespace-nowrap text-right'}`}
                 >
                   {cell}
                 </td>
@@ -413,7 +413,7 @@ function FieldPassRates({ index }: { index: number }) {
   });
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="m-0 font-display text-h2 font-semibold">{group.name}</h4>
+      <h4 className="t-h2">{group.name}</h4>
       <Forest
         name={`Final-test pass rate by arm, ${group.name}`}
         rows={rows}
@@ -481,8 +481,8 @@ function SkillTable() {
       left={[0, 1]}
       columns={['Skill', 'Group', 'Blank setup', 'One-shot setup', 'Academy desk']}
       rows={SKILLS.flatMap((skill) =>
-        SKILL_ROWS.filter((row) => row.skill === skill).map((row) => [
-          skill,
+        SKILL_ROWS.filter((row) => row.skill === skill).map((row, index) => [
+          index === 0 ? skill : '',
           groupName(row.group),
           `${row.bare} of ${row.of}`,
           `${row.draft} of ${row.of}`,
@@ -650,22 +650,22 @@ export function ResultsPage() {
       </a>
       <Header page="results" />
       <main id="main" className="pb-20 sm:pb-24">
-        <section aria-labelledby="results-title" className="article pt-12 sm:pt-16">
+        <section aria-labelledby="results-title" className="article pt-12 sm:pt-20">
           <h1 id="results-title" className="t-title">
             What teaching changed
           </h1>
           <p className="m-0 mt-4">Jake Kang · October 2026</p>
-          <h2 className="m-0 mt-10 font-display text-h2 font-semibold">Abstract</h2>
-          <p className="t-read mt-3">
+          <h2 className="t-h2 mt-12">Abstract</h2>
+          <p className="t-read mt-4">
             <Actors
               text={`Architect turns an organization's own material into a specialist that runs on its own computer. A large model, Spark, studies the material and teaches a small one, Glimmer, by changing its instructions and small tools. A change is kept only if it raises the score on check tasks Spark never sees. In the run on test-prep academies, Spark taught Glimmer to be Academy desk, an agent that helps academy staff after a student's wrong answer, on three generated academies. A sealed test of ${FIELD_TEST_SIZE} tasks then included a fourth generated academy and a real one that neither model had seen. On the fourth, Academy desk passed 43 of 48 tasks and Glimmer on a blank setup 24. On the real academy, Academy desk passed 12 of 24 and the blank setup 9, a difference whose interval includes zero, so no gain is shown there. In an earlier run on one job, a returns desk, teaching took Glimmer from ${second.alone.passed} to ${second.taught.passed} of ${TEST_SIZE} requests for 42 cents of Spark. Academy desk was then frozen and taken again on the build of Glimmer that runs on one graphics card, where it passed ${LOCAL_ROWS[3]?.local} of ${FIELD_TEST_SIZE} tasks against ${LOCAL_ROWS[3]?.hosted} hosted, with no difference shown, and took about four times as long. Every figure is under one seed, and all but the local check are from Glimmer served online.`}
             />
           </p>
-          <ul className="m-0 mt-8 grid list-none gap-x-8 gap-y-5 border-y border-line p-0 py-6 sm:grid-cols-3">
+          <ul className="m-0 mt-10 grid list-none gap-x-8 gap-y-6 border-y border-line p-0 py-8 sm:grid-cols-3">
             {HEADLINE.map((item) => (
-              <li key={item.figure} className="flex flex-col gap-2.5">
+              <li key={item.figure} className="flex flex-col gap-3">
                 <span className="t-h1 leading-none tabular-nums">{item.figure}</span>
-                <span className="text-pretty">
+                <span className="t-small text-pretty">
                   <Actors text={item.text} />
                 </span>
               </li>
@@ -1069,17 +1069,17 @@ export function ResultsPage() {
         <section
           id="references"
           aria-labelledby="references-title"
-          className="article flex scroll-mt-16 flex-col gap-5 pt-14 sm:pt-16"
+          className="article flex scroll-mt-20 flex-col gap-6 pt-16 sm:pt-20"
         >
           <h2 id="references-title" className="t-h1">
             References
           </h2>
-          <ol className="m-0 flex list-none flex-col gap-3 p-0">
+          <ol className="t-small m-0 flex list-none flex-col gap-4 p-0">
             {REFERENCES.map((reference, index) => (
               <li
                 key={reference.key}
                 id={`ref-${reference.key}`}
-                className="grid scroll-mt-20 grid-cols-[2.25rem_minmax(0,1fr)]"
+                className="grid scroll-mt-24 grid-cols-[2.5rem_minmax(0,1fr)]"
               >
                 <span className="tabular-nums">[{index + 1}]</span>
                 <span className="flex flex-col">
@@ -1098,7 +1098,7 @@ export function ResultsPage() {
               </li>
             ))}
           </ol>
-          <a className="link-quiet inline-flex items-center gap-1.5" href={REPORTS}>
+          <a className="link-quiet inline-flex items-center gap-2" href={REPORTS}>
             The full reports on GitHub
             <ArrowUpRight size={16} strokeWidth={1.8} aria-hidden />
           </a>

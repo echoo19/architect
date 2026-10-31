@@ -28,7 +28,7 @@ const toneClass: Record<Tone, string> = {
 };
 
 const COLUMNS =
-  'grid-cols-[minmax(0,13rem)_minmax(0,1fr)_var(--figure)] max-sm:grid-cols-[minmax(0,1fr)_auto]';
+  'grid-cols-[minmax(0,15rem)_minmax(0,1fr)_var(--figure)] max-sm:grid-cols-[minmax(0,1fr)_auto]';
 
 export function Forest({
   rows,
