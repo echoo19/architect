@@ -91,7 +91,7 @@ const DATA_FILES: readonly DataFile[] = [
 ];
 
 /**
- * The academy job: one tutor, Phil, for every academy. Each organization's files sit in
+ * The academy job: one tutor, the Tutor, for every academy. Each organization's files sit in
  * orgs/<id>/data/ with the same names; a task names its organization. Tasks of the train
  * academies split as usual; the transfer academy is test-only.
  */
@@ -100,9 +100,9 @@ export function buildJob(organizations: readonly Organization[]): Job {
   return JobSchema.parse({
     format: JOB_FORMAT,
     id: 'sample-academy',
-    name: 'Phil',
+    name: 'Tutor',
     description:
-      'Phil tutors students at a test-prep academy right after a wrong answer on a practice test. ' +
+      'The Tutor tutors students at a test-prep academy right after a wrong answer on a practice test. ' +
       "It works from the academy's own files: its topic labels, question bank, practice tests, " +
       "every student's answers, the errors and approved hints its explanations use, its lesson " +
       'videos and its tutoring policy. It names what went wrong, gives an approved first hint, ' +
