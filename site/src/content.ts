@@ -32,34 +32,16 @@ export const FILM = {
 } as const;
 
 /**
- * The specialists Architect has made, named under the film as plain links: to their figures on
- * the results page where there are some, and to the README's list otherwise.
- */
-export const SPECIALISTS = {
-  made: [
-    { name: 'Returns desk', to: 'results', anchor: 'results' },
-    { name: 'Service desk', to: 'readme' },
-    { name: 'Academy desk', to: 'results', anchor: 'field' },
-  ],
-  next: [
-    { name: 'Sweep desk', to: 'readme' },
-    { name: 'Assay desk', to: 'readme' },
-  ],
-} as const;
-/** The README's list of what Architect makes. */
-export const README_SPECIALISTS = `${REPO}#what-you-can-make-with-it`;
-
-/**
  * Why Architect exists, under the film: our reason, then the three requests from Y Combinator that
  * came out after the build began and ask for the same thing. Each quote is one sentence, verbatim,
- * linked to its request.
+ * linked to its request, and each answer is two sentences at most.
  */
 export const WHY = {
   title: 'Why we made this',
   reason:
     "Most teams that build with AI rent it, and every request sends their data to someone else's model. Architect works the other way round: a large model teaches a small one the work and then leaves. What's left runs on the team's own computer and comes with a record of what it can and can't do.",
-  after:
-    "We started building Architect on October 27, 2026. Y Combinator's Requests for Startups for Winter 2027 came out after that, and three of them ask for what we were already making.",
+  /** One line under the title: when the build began, against when the requests came out. */
+  started: 'Started Oct 27, 2026, before these YC requests came out.',
   requests: [
     {
       title: 'Own Your Intelligence',
@@ -84,7 +66,7 @@ export const WHY = {
       href: 'https://www.ycombinator.com/rfs#vertical-foundation-models',
       quote: 'The hard part is getting high-quality, vertical-specific, verifiable rewards.',
       answer:
-        'In Architect, every field ends with a checker that gives the same answer every time. It is exported as a reward a training framework can call, along with training examples the checker verified and sealed tests the model never saw. No large model has been trained with them yet.',
+        'Every field ends with a checker that always gives the same answer, and Architect exports it as a reward a training framework can call, with verified examples and sealed tests beside it. No large model has been trained with them yet.',
     },
   ],
 } as const;
@@ -92,8 +74,8 @@ export const WHY = {
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
   author: 'Made by Jake Kang.',
-  /** The home page's note: which parts of the pictures are real. */
-  note: "Both shops are made up. The returns desk's training rounds, scores and final test are from a real run, and so are the repair shop's rule and its run. The chats, the correction and the Hugging Face page are written from the same records to show the screens.",
+  /** The home page's note: which parts of the film are real. */
+  note: 'The shops and academies in the film are generated, except the anonymized Real academy. Every measured figure is from a real run.',
   /** The results page's note. */
   resultsNote:
     'The generated academies, the returns desks and the repair shop are made up. The Real academy is a real one, anonymized, and its records are not published. The figures are from real runs, and the reports they come from are in docs/comparisons.',

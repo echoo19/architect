@@ -19,20 +19,20 @@ function Unbroken({ text }: { text: string }) {
 }
 
 /**
- * Why we made Architect: our reason beside the title, then each request that later asked for the
+ * Why we made Architect: the title and when the build began, our reason beside them, then each request that later asked for the
  * same thing, its title and author on the left and its words and our answer on the right.
  */
 export function Why() {
   return (
     <section id="why" aria-labelledby="why-title" className="page scroll-mt-16 pb-24 lg:pb-32">
       <Reveal className={`${ROW} border-t border-line pt-12 lg:pt-16`}>
-        <h2 id="why-title" className="t-title">
-          {WHY.title}
-        </h2>
-        <div className="flex max-w-[40rem] flex-col gap-6">
-          <p className="t-lead">{WHY.reason}</p>
-          <p className="t-body m-0 text-pretty">{WHY.after}</p>
+        <div className="flex flex-col gap-3">
+          <h2 id="why-title" className="t-title">
+            {WHY.title}
+          </h2>
+          <p className="t-body m-0">{WHY.started}</p>
         </div>
+        <p className="t-lead max-w-[40rem]">{WHY.reason}</p>
       </Reveal>
       <ol className="m-0 mt-12 list-none p-0 lg:mt-16">
         {WHY.requests.map((request) => (
