@@ -1,14 +1,24 @@
 import type { ReactNode } from 'react';
 import {
+  contactsLine,
   type ComparisonReport,
   type GraduateSummary,
   type Installation,
   type Job,
   type ReportCard,
   type Run,
+  type RunContact,
 } from '@architect/shared';
-import { DetailList, Disclosure, Heading, Stagger, StaggerItem, Stat } from '@architect/ui';
-import { CircleMinus } from 'lucide-react';
+import {
+  DetailList,
+  Disclosure,
+  Heading,
+  Stagger,
+  StaggerItem,
+  Stat,
+  Tooltip,
+} from '@architect/ui';
+import { CircleMinus, Network } from 'lucide-react';
 import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
@@ -69,6 +79,23 @@ interface ReportViewProps {
   here: ReportCard | null;
   /** The grid by organization as the Lab shows it, with what can be done there; else the plain grid. */
   organizations?: (grid: OrgGrid) => ReactNode;
+  /** Every host the run contacted (decision 094), when it recorded any. */
+  contacts?: readonly RunContact[] | undefined;
+}
+
+/** Where the run went, in one line, with each host and its requests on hover. */
+function Contacts({ contacts }: { contacts: readonly RunContact[] }) {
+  const hosts = contacts
+    .map(({ host, requests }) => `${host}: ${requests} ${requests === 1 ? 'request' : 'requests'}`)
+    .join(', ');
+  return (
+    <Tooltip content={hosts} side="bottom">
+      <p tabIndex={0} className="m-0 flex w-fit items-center gap-2 text-pretty">
+        <Network size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
+        {contactsLine(contacts)}
+      </p>
+    </Tooltip>
+  );
 }
 
 /** The meter's memory figures, where a meter read the final test here, for the run's details. */
@@ -180,6 +207,7 @@ export function ReportView({
   comparisonReport,
   here,
   organizations,
+  contacts,
 }: ReportViewProps) {
   const { test } = report;
   const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
@@ -214,6 +242,7 @@ export function ReportView({
           {verdict.because.length > 0 && (
             <p className="m-0 max-w-[620px] text-pretty">{verdict.because.join(' ')}</p>
           )}
+          {contacts && contacts.length > 0 && <Contacts contacts={contacts} />}
         </header>
       </StaggerItem>
 

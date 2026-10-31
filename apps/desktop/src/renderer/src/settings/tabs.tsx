@@ -6,6 +6,7 @@ import { formatBytes } from '../lib/format';
 import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
 import { EDITIONS } from '../shell/edition';
+import { ClosedNetworkRows } from './ClosedNetwork';
 import type { TabProps } from './SettingsModal';
 
 const STEPS = [
@@ -96,7 +97,7 @@ export function TrainingTab({ settings, update }: TabProps) {
   );
 }
 
-export function PrivacyTab({ settings }: TabProps) {
+export function PrivacyTab({ settings, update }: TabProps) {
   const device = deviceInSentence(currentPlatform());
   const teacher = mentorName(settings.defaultMentor);
   return (
@@ -122,6 +123,7 @@ export function PrivacyTab({ settings }: TabProps) {
       <SettingsRow label="Usage data">
         <SettingsValue>Never collected</SettingsValue>
       </SettingsRow>
+      {settings.edition === 'lab' && <ClosedNetworkRows settings={settings} update={update} />}
     </>
   );
 }

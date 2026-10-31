@@ -18,6 +18,7 @@ import {
   IconButton,
   Inspector,
   Skeleton,
+  toast,
   Tooltip,
   VersionTag,
 } from '@architect/ui';
@@ -31,10 +32,11 @@ import {
   GitBranch,
   MessageSquare,
   Package,
+  ShieldCheck,
   Undo2,
   X,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, flowApi } from '../api/client';
 import { computeApi } from '../api/compute';
 import { graduatesApi } from '../api/graduates';
 import { useQuery } from '../api/query';
@@ -48,6 +50,7 @@ import { openAgent } from '../lab/open-agent';
 import { changeSummary } from '../flow/train/diff';
 import { sentence } from '../flow/train/evidence-words';
 import { formatPercent, formatUsd } from '../lib/format';
+import { attempt } from '../lib/notify';
 import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { MoveDialog } from '../workspace/settings/MoveDialog';
@@ -154,7 +157,23 @@ function PanelHeader({
   const move = moveFor(version, active?.version.version ?? null);
   const [moving, setMoving] = useState<VersionMove | null>(null);
   const [certifying, setCertifying] = useState(false);
+  const [packing, setPacking] = useState(false);
   const others = rows.filter((other) => comparable(row, other));
+
+  // One folder for a security reviewer and an offline install, every file hashed (decision 094).
+  const exportEvidence = async () => {
+    setPacking(true);
+    const written = await attempt("Couldn't export the evidence", async () => {
+      const [directory] = await flowApi.pickFiles({
+        title: `Choose where to save the evidence for version ${version.version}`,
+        directory: true,
+      });
+      if (directory === undefined) return null;
+      return graduatesApi.exportEvidence(agent.id, { directory, version: version.version });
+    });
+    setPacking(false);
+    if (written) toast({ title: 'Evidence exported', description: written.folder });
+  };
 
   return (
     <div className="flex flex-col gap-4 border-b border-line px-4 pb-4 pt-4">
@@ -217,6 +236,10 @@ function PanelHeader({
             Export
           </Button>
         )}
+        <Button size="sm" disabled={packing} onClick={() => void exportEvidence()}>
+          <ShieldCheck size={14} strokeWidth={1.8} aria-hidden />
+          Export evidence
+        </Button>
         <Button
           size="sm"
           onClick={() =>
