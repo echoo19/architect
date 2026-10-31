@@ -7,7 +7,7 @@ import { DataPaths } from '../src/loop/paths';
 import { describeJobData } from '../src/mentor/data-files';
 import { buildOneShotView, oneShotViewParts } from '../src/mentor/view';
 import { isMentorReleased, releaseMentor, type MentorReleased } from '../src/vault/gate';
-import { Vault } from '../src/vault/vault';
+import { Vault, type CertificationSets } from '../src/vault/vault';
 import { importJobInto } from './support/field';
 
 const INVOICE_FORMAT = 'End with: ANSWER: {"invoice_id": "<id>", "total_cents": <integer>}';
@@ -334,7 +334,10 @@ describe('the calibration split of a certified job (decision 077)', () => {
 });
 
 describe("a version's certification after the fact (decision 079)", () => {
-  const sets = { calibration: [others[0] as Task], checks: { north: [others[1] as Task] } };
+  const sets: CertificationSets = {
+    calibration: [others[0] as Task],
+    checks: { north: [others[1] as Task] },
+  };
   /** What the job's mentor may see besides them. */
   const visible = others.slice(2);
   const file = () => join(root, 'vault', 'job_sample', 'certifications', 'crt_1.json');
