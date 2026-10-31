@@ -7,6 +7,7 @@ import {
   FolderFitSchema,
   GraduateSummarySchema,
   GraduateVersionSchema,
+  HarnessFileSchema,
   HubInstallResultSchema,
   ImportPreviewSchema,
   ImportResultSchema,
@@ -62,6 +63,13 @@ export const graduatesApi = {
       'graduates.harnessDiff',
       z.array(FileDiffSchema),
       architect().graduates.harnessDiff(from, to),
+    ),
+  /** The files of a version's harness, read from its folder. */
+  harnessFiles: (graduateId: string, version: number) =>
+    read(
+      'graduates.harnessFiles',
+      z.array(HarnessFileSchema),
+      architect().graduates.harnessFiles(graduateId, version),
     ),
   installation: (graduateId: string) =>
     read(

@@ -2,6 +2,17 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat, afternoon), browsing tasks, attempts and files (branch `lab/browsers`)
+
+**Done** (no model was called, no GPU, no spend; decision 084)
+- `jobs.tasks`: a field's practice and check tasks in full, the calibration and test splits by count, any other split refused with `split_sealed`. A Tasks tab on the Field page with type and organization filters and a side panel per task.
+- `runs.attempts`: a run's practice and check attempts paged by fifty with round, type, organization and verdict filters. "Show all" on Latest attempts opens them in a sheet; rows open the trace.
+- `graduates.harnessFiles` and `runs.harnessFiles`: a version's files, read-only, in a Files tab in the Models panel and under Details in the round drawer, with a Changes and Files toggle.
+- Tests: engine `browse-api.test.ts` (leak tests over the client and a raw request), hidden e2e `browse.spec.ts`, screenshots `field-tasks-dark.png`, `attempts-sheet-dark.png`, `harness-files-dark.png`.
+
+**Next**
+- Merge into `field/main` after review.
+
 ## 2026-10-31 (Sat, midday), status (start the next session here)
 
 - *Merged into `field/main` since the morning entry:* the tutor's public name in README, site and docs; `architect serve` (080); the runner's pause instead of a silent drop (081); the leak fingerprint fix with an empty-fingerprint guard (082, reviewed adversarially: no lost detection on the academy job); experiments on library fields with a hypothesis and a primary comparison (074 amended; a one-arm plan needs only a hypothesis); a Lab field made from several organizations' folders, with `docs/JOB_FORMAT.md` (083). `pnpm check` passes (3,751 tests).

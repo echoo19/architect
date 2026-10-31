@@ -1,4 +1,5 @@
 import type { ConnectionTest } from './adapters';
+import type { AttemptPage, AttemptQuery, HarnessFile, TaskListing, TaskSplit } from './browse';
 import type {
   Correction,
   CorrectionRequest,
@@ -537,6 +538,12 @@ export interface ArchitectApi {
     fieldAssets(jobId: string): Promise<FieldExportManifest>;
     /** Writes the field export into an empty folder the person picked, and returns its manifest. */
     exportField(jobId: string, directory: string): Promise<FieldExportManifest>;
+    /**
+     * A split's tasks for the person to browse (decision 084): practice and check tasks in full,
+     * the calibration and test splits by count alone. Any other split is refused with
+     * `split_sealed`, and a sealed organization's tasks are never among them.
+     */
+    tasks(jobId: string, split: TaskSplit): Promise<TaskListing>;
   };
   runs: {
     start(jobId: string, options: RunStartOptions): Promise<Run>;
@@ -560,6 +567,13 @@ export interface ArchitectApi {
     attempt(attemptId: string): Promise<ListedAttempt>;
     trace(attemptId: string): Promise<Trace>;
     roundDiff(runId: string, round: number): Promise<FileDiff[]>;
+    /**
+     * A page of the run's practice and check attempts, newest first, filtered by round, type,
+     * organization and verdict. Locked-test and calibration attempts are never among them.
+     */
+    attempts(runId: string, query?: AttemptQuery): Promise<AttemptPage>;
+    /** The files of one of the run's harness versions, read (never run) and held to its hash. */
+    harnessFiles(runId: string, version: number): Promise<HarnessFile[]>;
     /**
      * What a runtime meter read while the run's locked tests ran on this computer, oldest first:
      * peak memory and a cold start (decision 045). None where no meter ran.
@@ -702,6 +716,8 @@ export interface ArchitectApi {
      * version's harness read from its folder (never run) and held to its manifest's hash.
      */
     harnessDiff(from: VersionPick, to: VersionPick): Promise<FileDiff[]>;
+    /** The files of a version's harness, read from its folder (never run) and held to its hash. */
+    harnessFiles(graduateId: string, version: number): Promise<HarnessFile[]>;
     /**
      * Certifies a frozen version after the fact (decision 079): draws calibration tasks its run
      * never saw from a job's taught organizations, seals them with the check tasks, and projects

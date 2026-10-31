@@ -1,13 +1,20 @@
 import {
+  ATTEMPT_PAGE_SIZE,
   AttemptSchema,
+  browsedSplit,
   CodedError,
   GraduateSettingsSchema,
   JobSchema,
   TraceSchema,
+  trainOrganizations,
+  type AttemptPage,
+  type AttemptQuery,
   type ClarificationReply,
   type ComparisonReport,
   type ErrorCode,
   type FileDiff,
+  type Harness,
+  type HarnessFile,
   type ListedAttempt,
   type ListedLesson,
   type PublishProgress,
@@ -15,6 +22,7 @@ import {
   type Retest,
   type RunDetail,
   type StudentTarget,
+  type TaskListing,
   type Trace,
   type VersionPick,
 } from '@architect/shared';
@@ -274,6 +282,68 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
     );
   }
 
+  /**
+   * A split's tasks for the person to browse: practice and check tasks in full, without any of
+   * a sealed organization's, and the calibration and test splits by count alone (decision 084).
+   */
+  async function taskListing(jobId: string, asked: unknown): Promise<TaskListing> {
+    const split = browsedSplit(asked);
+    const job = await jobs.get(jobId);
+    if (split === 'calibration') {
+      return { split, count: (await jobs.tasks(jobId, 'calibration')).length };
+    }
+    if (split === 'test') {
+      const counts = (await deps.vault.isSealed(jobId)) ? await deps.vault.typeCounts(jobId) : {};
+      return { split, count: Object.values(counts).reduce((sum, count) => sum + count, 0) };
+    }
+    const taught = new Set(trainOrganizations(job).map((org) => org.id));
+    const tasks = (await jobs.tasks(jobId, split)).filter(
+      (task) => task.org === undefined || taught.has(task.org),
+    );
+    return { split, count: tasks.length, tasks };
+  }
+
+  /**
+   * A page of the run's practice and check attempts, newest first. Only those two splits are
+   * read, so a locked-test, certificate or calibration attempt is never among them.
+   */
+  async function attemptPage(runId: string, query: AttemptQuery = {}): Promise<AttemptPage> {
+    const record = run(runId);
+    const { jobId } = record.run;
+    const visible = [...(await jobs.tasks(jobId, 'train')), ...(await jobs.tasks(jobId, 'dev'))];
+    const tasks = new Map(visible.map((task) => [task.id, task]));
+    const matching = store.attempts
+      .recent(runId, ['train', 'dev'], Number.MAX_SAFE_INTEGER)
+      .filter(
+        (attempt) =>
+          !isReferenceAttempt(attempt) &&
+          (query.round === undefined || attempt.round === query.round) &&
+          (query.type === undefined || attempt.taskType === query.type) &&
+          (query.org === undefined || tasks.get(attempt.taskId)?.org === query.org) &&
+          (query.passed === undefined || attempt.check.pass === query.passed),
+      );
+    const start = Number(query.cursor ?? 0);
+    const end = start + ATTEMPT_PAGE_SIZE;
+    return {
+      attempts: matching.slice(start, end).map((attempt) => {
+        const task = tasks.get(attempt.taskId);
+        return {
+          ...AttemptSchema.parse(attempt),
+          prompt: task?.prompt,
+          ...(task?.org === undefined ? {} : { org: task.org }),
+        };
+      }),
+      total: matching.length,
+      next: end < matching.length ? String(end) : null,
+    };
+  }
+
+  /** A harness as the files its folder holds, by path. */
+  const filesOf = (harness: Harness): HarnessFile[] =>
+    Object.entries(deps.harness.harnessToFiles(harness))
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([path, content]) => ({ path, content }));
+
   /** A version's harness from its own folder, held to the hash its manifest records. */
   const packagedHarness = ({ graduateId, version }: VersionPick) => {
     const stored = graduates.version(graduateId, version);
@@ -312,6 +382,7 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
         await jobs.get(jobId);
         return exportField(await fieldSource(store, paths, jobId), directory);
       },
+      tasks: taskListing,
     },
     runs: {
       start: (jobId, { method, seed, lockedTestOn, interactive }) =>
@@ -325,6 +396,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       attempt,
       trace,
       roundDiff,
+      attempts: attemptPage,
+      harnessFiles: async (runId, version) => filesOf(await versionsOf(run(runId)).load(version)),
       runtimeMeasurements: async (runId) => store.runtimeMeasurements.list(run(runId).run.id),
       onEvent: (listener) => controller.onEvent(listener),
     },
@@ -405,6 +478,8 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       report: (graduateId, version) => graduates.report(graduateId, version),
       harnessDiff: async (from, to) =>
         deps.harness.diffHarness(await packagedHarness(from), await packagedHarness(to)),
+      harnessFiles: async (graduateId, version) =>
+        filesOf(await packagedHarness({ graduateId, version })),
       planCertification: async (request) =>
         certificationView(store, await planCertification(certifying, request)),
       startCertification: async (certificationId) => {

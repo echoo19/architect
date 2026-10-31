@@ -71,6 +71,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     field: true,
     fieldAssets: true,
     exportField: true,
+    tasks: true,
   },
   runs: {
     start: true,
@@ -83,6 +84,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     attempt: true,
     trace: true,
     roundDiff: true,
+    attempts: true,
+    harnessFiles: true,
     runtimeMeasurements: true,
   },
   mentoring: {
@@ -130,6 +133,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     history: true,
     report: true,
     harnessDiff: true,
+    harnessFiles: true,
     planCertification: true,
     startCertification: true,
     discardCertification: true,

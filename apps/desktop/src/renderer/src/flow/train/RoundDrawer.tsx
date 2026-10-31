@@ -22,13 +22,15 @@ import {
   Spinner,
 } from '@architect/ui';
 import { FilePen } from 'lucide-react';
-import { flowApi } from '../../api/client';
+import { api, flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatRange, formatRate, signed } from '../format';
 import { modelNames, typeLabel } from '../names';
 import { decisionSentence, harmSentence, predictionCheck, refusalSentence } from './decision';
 import { FilePatch } from '../../components/FilePatch';
+import { HarnessFiles } from '../../components/HarnessFiles';
+import { useEdition } from '../../shell/edition';
 import { changeSummary } from './diff';
 import {
   checkMeasurements,
@@ -539,6 +541,8 @@ function RoundFiles({
   round: Round;
   disposition: ExperimentDisposition | undefined;
 }) {
+  // The version's whole files are for the Lab; the personal edition shows the change alone.
+  const lab = useEdition() === 'lab';
   // A round's change can still be written while it runs, so its status is part of the key.
   const diff = useQuery(`round-diff:${runId}:${round.index}:${round.status}`, () =>
     flowApi.roundDiff(runId, round.index),
@@ -568,16 +572,30 @@ function RoundFiles({
       </p>
     );
   }
-  // The patches are for whoever wants every line; the summary says what was touched.
+  // The patches are for whoever wants every line; the summary says what was touched. The
+  // version's whole files sit beside them.
+  const patches = (
+    <div className="flex flex-col gap-3">
+      {diff.data.map((file) => (
+        <FilePatch key={file.path} file={file} />
+      ))}
+    </div>
+  );
+  const version = round.candidateVersion;
   return (
     <div className="flex flex-col gap-2">
       <p className="m-0 text-body text-fg text-pretty">{sentence(changeSummary(diff.data))}</p>
       <Disclosure label="Details">
-        <div className="flex flex-col gap-3">
-          {diff.data.map((file) => (
-            <FilePatch key={file.path} file={file} />
-          ))}
-        </div>
+        {version === undefined || !lab ? (
+          patches
+        ) : (
+          <HarnessFiles
+            queryKey={`run-files:${runId}:${version}`}
+            load={() => api.runHarnessFiles(runId, version)}
+            changes={patches}
+            initial="changes"
+          />
+        )}
       </Disclosure>
     </div>
   );

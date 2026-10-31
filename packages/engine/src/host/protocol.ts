@@ -1,6 +1,9 @@
 import {
   AdapterError,
+  AttemptPageSchema,
+  AttemptQuerySchema,
   BindRequestSchema,
+  browsedSplit,
   CapabilityBreakdownSchema,
   CategorySchema,
   CertificationSchema,
@@ -36,6 +39,7 @@ import {
   GraduateSummarySchema,
   GraduateVersionSchema,
   GuardError,
+  HarnessFileSchema,
   HubInstallRequestSchema,
   HubInstallResultSchema,
   ImportPreviewSchema,
@@ -72,6 +76,7 @@ import {
   SampleJobSchema,
   StudentTargetSchema,
   StudyStateSchema,
+  TaskListingSchema,
   TaskPlanSchema,
   TeachingOverviewSchema,
   TraceSchema,
@@ -174,6 +179,10 @@ export const ENGINE_ROUTES = {
   'jobs.exportField': route(z.tuple([id, path]), FieldExportManifestSchema, (api, [jobId, dir]) =>
     api.jobs.exportField(jobId, dir),
   ),
+  // The split stays a name here so the engine refuses one that can't be browsed by its code.
+  'jobs.tasks': route(z.tuple([id, z.string().min(1)]), TaskListingSchema, (api, [jobId, split]) =>
+    api.jobs.tasks(jobId, browsedSplit(split)),
+  ),
   'runs.start': route(z.tuple([id, RunStartOptionsSchema]), RunSchema, (api, [jobId, options]) =>
     api.runs.start(jobId, options),
   ),
@@ -195,6 +204,16 @@ export const ENGINE_ROUTES = {
     z.tuple([id, z.number().int().positive()]),
     z.array(FileDiffSchema),
     (api, [runId, round]) => api.runs.roundDiff(runId, round),
+  ),
+  'runs.attempts': route(
+    z.tuple([id, AttemptQuerySchema.nullable()]),
+    AttemptPageSchema,
+    (api, [runId, query]) => api.runs.attempts(runId, query ?? undefined),
+  ),
+  'runs.harnessFiles': route(
+    z.tuple([id, versionNumber]),
+    z.array(HarnessFileSchema),
+    (api, [runId, version]) => api.runs.harnessFiles(runId, version),
   ),
   'runs.runtimeMeasurements': route(
     z.tuple([id]),
@@ -358,6 +377,11 @@ export const ENGINE_ROUTES = {
     z.tuple([VersionPickSchema, VersionPickSchema]),
     z.array(FileDiffSchema),
     (api, [from, to]) => api.graduates.harnessDiff(from, to),
+  ),
+  'graduates.harnessFiles': route(
+    z.tuple([id, versionNumber]),
+    z.array(HarnessFileSchema),
+    (api, [graduateId, version]) => api.graduates.harnessFiles(graduateId, version),
   ),
   'graduates.planCertification': route(
     z.tuple([CertifyRequestSchema]),

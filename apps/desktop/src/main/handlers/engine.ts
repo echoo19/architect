@@ -95,6 +95,7 @@ export function registerEngineHandlers(
       confirmStudy: (jobId, token) => call((api) => api.jobs.confirmStudy(jobId, token)),
       field: (jobId) => call((api) => api.jobs.field(jobId)),
       fieldAssets: (jobId) => call((api) => api.jobs.fieldAssets(jobId)),
+      tasks: (jobId, split) => call((api) => api.jobs.tasks(jobId, split)),
       exportField: (jobId, directory) => {
         const chosen = picked.check(directory);
         return call((api) => api.jobs.exportField(jobId, chosen));
@@ -120,6 +121,8 @@ export function registerEngineHandlers(
     attempt: (attemptId) => call((api) => api.runs.attempt(attemptId)),
     trace: (attemptId) => call((api) => api.runs.trace(attemptId)),
     roundDiff: (runId, round) => call((api) => api.runs.roundDiff(runId, round)),
+    attempts: (runId, query) => call((api) => api.runs.attempts(runId, query)),
+    harnessFiles: (runId, version) => call((api) => api.runs.harnessFiles(runId, version)),
     runtimeMeasurements: (runId) => call((api) => api.runs.runtimeMeasurements(runId)),
   });
 
