@@ -61,8 +61,8 @@ test('lists each field with its organizations, best candidate and last activity'
   await openAt('/fields');
   await expect(page.getByRole('heading', { name: 'Fields', level: 1 })).toBeVisible();
   const table = page.getByRole('table', { name: 'Fields' });
-  // Five fields under a header of two rows: the organizations, then the best final test.
-  await expect(table.getByRole('row')).toHaveCount(7);
+  // Seven fields under a header of two rows: the organizations, then the best final test.
+  await expect(table.getByRole('row')).toHaveCount(9);
 
   // Academy desk: taught on three academies, one never seen and one real; its best candidate's
   // final test on each kind.
