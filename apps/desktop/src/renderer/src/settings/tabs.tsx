@@ -29,7 +29,7 @@ export function GeneralTab({ settings, update }: TabProps) {
     <>
       <SettingsRow
         label="Edition"
-        meta="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and runs stay in both."
+        meta="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and their training stay in both."
       >
         <Segmented
           aria-label="Edition"

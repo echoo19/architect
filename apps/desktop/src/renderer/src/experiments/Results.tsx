@@ -6,6 +6,7 @@ import type {
   ComparisonReport,
   ExperimentInput,
 } from '@architect/shared';
+import { armInSentence } from '@architect/shared';
 import {
   DataTable,
   Disclosure,
@@ -99,7 +100,7 @@ function Summary({ report }: { report: ComparisonReport }) {
     const { pair } = lead;
     const verdict = verdictOf(pair.difference);
     sentences.push(
-      `${ARM_NAMES[pair.a]} passed ${passes(pair, 'a')} of ${pair.scenarios} final-test tasks and ${ARM_NAMES[pair.b].toLowerCase()} ${passes(pair, 'b')}, under seed ${pair.seed}.`,
+      `${ARM_NAMES[pair.a]} passed ${passes(pair, 'a')} of ${pair.scenarios} final-test tasks and ${armInSentence(ARM_NAMES[pair.b])} ${passes(pair, 'b')}, under seed ${pair.seed}.`,
       `Task by task, the difference is ${points(pair.difference.rate)} points, with a 95% interval from ${points(pair.difference.low)} to ${points(pair.difference.high)}, so ${
         verdict === 'gain'
           ? 'a gain is shown.'

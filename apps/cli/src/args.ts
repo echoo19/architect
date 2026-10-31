@@ -161,8 +161,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   },
   field: {
     usage: 'architect field export <job> --out <folder> [--json]',
-    summary:
-      "Export a field's verified demonstrations, outcome scorer and final-test manifest.",
+    summary: "Export a field's verified demonstrations, outcome scorer and final-test manifest.",
     args: 2,
     options: { out: { type: 'string' }, ...json },
     help: ['  --out <folder>          the folder to write, new or empty', JSON_HELP],

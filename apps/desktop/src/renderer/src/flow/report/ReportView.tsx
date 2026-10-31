@@ -99,7 +99,7 @@ function beforeTraining(
 
 /**
  * What the final test covered, said once: its new tasks, and for a job with organizations, how
- * many came from the ones it trained with and how many from the ones it never saw.
+ * many came from the ones it was taught on and how many from the ones it had never seen.
  */
 function testedOn(report: ReportCard, grid: OrgGrid | null): string {
   const unseen = grid?.groups.filter((group) => group.group !== 'seen').flatMap((g) => g.columns);
@@ -108,7 +108,7 @@ function testedOn(report: ReportCard, grid: OrgGrid | null): string {
   }
   const tasks = unseen.reduce((sum, column) => sum + column.score.total, 0);
   const places = unseen.length === 1 ? 'an organization' : `${unseen.length} organizations`;
-  return `Tested on ${report.test.score.total} new tasks from the organizations it trained with and ${tasks} from ${places} it never saw`;
+  return `Tested on ${report.test.score.total} new tasks from the organizations it was taught on and ${tasks} from ${places} it had never seen`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -226,7 +226,9 @@ export function ReportView({
           <Stat
             size="xl"
             value={formatRate(test.score)}
-            label="of new tasks right"
+            label={
+              grid ? 'on the final test, organizations it was taught on' : 'of new tasks right'
+            }
             note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
             noteFont="text"
           />
@@ -380,7 +382,7 @@ export function ReportView({
       </StaggerItem>
 
       <StaggerItem>
-        <Disclosure label="Run details">
+        <Disclosure label="Training details">
           <DetailList
             items={[
               {

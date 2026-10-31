@@ -36,13 +36,13 @@ describe('the one verdict of a report', () => {
     for (const installation of [null, checked('ready'), checked('unchecked')]) {
       expect(reportVerdict(card(), installation, CONTEXT)).toMatchObject({
         state: 'ready',
-        title: 'Returns desk graduated',
+        title: 'Returns desk is ready',
         usable: true,
       });
     }
   });
 
-  it('never says graduated or ready beside a check that says it cannot run', () => {
+  it('never says ready beside a check that says it cannot run', () => {
     const verdict = reportVerdict(card(), checked('blocked', SETUP_FAILED), CONTEXT);
     expect(verdict).toMatchObject({
       state: 'blocked',
@@ -53,7 +53,7 @@ describe('the one verdict of a report', () => {
       "Its setup doesn't load.",
       'It scored 58 of 60 on its final test.',
     ]);
-    expect(`${verdict.title} ${verdict.because.join(' ')}`).not.toMatch(/graduated|Ready/);
+    expect(`${verdict.title} ${verdict.because.join(' ')}`).not.toMatch(/is ready|Ready/);
   });
 
   it('puts a blocked agent first even when its test fell short, and says both', () => {
@@ -133,7 +133,7 @@ describe('an agent whose final test ran on the online copy', () => {
       because: ['It got 58 of 60 there, and is marked ready once it passes on this computer too.'],
       usable: true,
     });
-    expect(`${verdict.title} ${verdict.because.join(' ')}`).not.toMatch(/graduated|Ready/);
+    expect(`${verdict.title} ${verdict.because.join(' ')}`).not.toMatch(/is ready|Ready/);
   });
 
   it("says the same of a small final test, a drafted job's 28 of 30", () => {
@@ -142,7 +142,7 @@ describe('an agent whose final test ran on the online copy', () => {
     expect(verdict.because[0]).toBe(
       'It got 28 of 30 there, and is marked ready once it passes on this computer too.',
     );
-    expect(`${verdict.title} ${verdict.because.join(' ')}`).not.toMatch(/graduated|Ready/);
+    expect(`${verdict.title} ${verdict.because.join(' ')}`).not.toMatch(/is ready|Ready/);
   });
 
   it('is ready on this computer after the same 28 of 30 passed there too', () => {
@@ -154,7 +154,7 @@ describe('an agent whose final test ran on the online copy', () => {
     } as ReportCard;
     expect(reportVerdict(elsewhere, checked('ready'), CONTEXT, local)).toMatchObject({
       state: 'ready',
-      title: 'Returns desk graduated',
+      title: 'Returns desk is ready',
       because: ['It passed on this computer too: 27 of 30 on its final test.'],
     });
   });
@@ -163,7 +163,7 @@ describe('an agent whose final test ran on the online copy', () => {
     const verdict = reportVerdict(online(), checked('ready'), CONTEXT, here(52, true));
     expect(verdict).toEqual({
       state: 'ready',
-      title: 'Returns desk graduated',
+      title: 'Returns desk is ready',
       because: ['It passed on this computer too: 52 of 60 on its final test.'],
       usable: true,
     });

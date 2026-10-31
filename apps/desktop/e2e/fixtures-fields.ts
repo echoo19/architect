@@ -198,15 +198,15 @@ export const ACADEMY_DESK_ASSETS: FieldExportManifest = {
   },
   left_out: [
     {
-      what: `the locked test (${ACADEMY_DESK_FIELD.lockedTestTasks ?? 0} tasks)`,
+      what: `the final test (${ACADEMY_DESK_FIELD.lockedTestTasks ?? 0} tasks)`,
       why: 'it stays in the vault; eval/manifest.json gives its hash only',
     },
     {
-      what: '2 organizations the job never trains on',
-      why: 'sealed in the vault with their files and tasks; eval/manifest.json gives a hash of each',
+      what: '2 organizations the job has never seen',
+      why: 'kept in the vault with their files and tasks; eval/manifest.json gives a hash of each',
     },
     {
-      what: 'the calibration and dev tasks',
+      what: 'the calibration and check tasks',
       why: 'they stay for measuring and choosing changes, not for training',
     },
     {

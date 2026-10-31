@@ -129,9 +129,7 @@ test('walks from a description to a graduate', async () => {
         exact: false,
       }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('img', { name: /^Teacher: Spark\. Reads what you send/ }),
-  ).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Spark reads what you send/ })).toBeVisible();
   await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
   await attach.click();
   const chips = page.getByRole('list', { name: 'Attached files' }).getByRole('listitem');
@@ -453,7 +451,7 @@ test('walks from a description to a graduate', async () => {
   // Results: met every requirement, with the baselines beside it. The side-by-side table is part
   // of comparison mode, a researcher's setting, so it goes on to read it and off to capture.
   await resize(REPORT_HEIGHT);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
   await expect(
     page.getByText(
       'Tested on 60 tasks it had never seen, offline on this computer, with Spark disconnected.',
@@ -488,11 +486,11 @@ test("says in the results' details where a drafted job's final test came from", 
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(REPORT_HEIGHT);
   await goTo(page, `/runs/${FLOW.runId}/report`);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
 
   // Behind the run's details: what drafting cost, and what the final test's answers rest on.
   await expect(page.getByText(/independently certified/)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Run details' }).click();
+  await page.getByRole('button', { name: 'Training details' }).click();
   await expect(page.getByText('Drafting the job')).toBeVisible();
   await expect(page.getByText('$0.04, before training')).toBeVisible();
   await expect(
@@ -503,7 +501,7 @@ test("says in the results' details where a drafted job's final test came from", 
   await capture(page, 'flow-report-drafted-dark');
 });
 
-test('says beside the score that a confirmed rule made the expected answers, with the rule under Run details', async () => {
+test('says beside the score that a confirmed rule made the expected answers, with the rule under Training details', async () => {
   const { app, page } = launched;
   await stubFlow();
   const ruled = {
@@ -592,7 +590,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   await applySettings(page, { onboarded: true, comparisonMode: false });
   await resize(REPORT_HEIGHT);
   await goTo(page, `/runs/${FLOW.runId}/report`);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
 
   // Right under the score, where it is read: the expected answers follow a rule that was
   // confirmed, and the score doesn't say the rule matches the business.
@@ -631,7 +629,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   const [noteBox, leftBox, detailsBox] = await Promise.all([
     page.getByText(note).boundingBox(),
     leftOut.boundingBox(),
-    page.getByRole('button', { name: 'Run details' }).boundingBox(),
+    page.getByRole('button', { name: 'Training details' }).boundingBox(),
   ]);
   expect(leftBox!.y).toBeGreaterThanOrEqual(noteBox!.y + noteBox!.height);
   expect(leftBox!.y + leftBox!.height).toBeLessThanOrEqual(detailsBox!.y);
@@ -642,7 +640,7 @@ test('says beside the score that a confirmed rule made the expected answers, wit
 
   // Behind the run's details: the rule and its version, where it came from, how it was read, what
   // was left out, what each side did, and whether teaching ran.
-  await page.getByRole('button', { name: 'Run details' }).click();
+  await page.getByRole('button', { name: 'Training details' }).click();
   const rule = page.getByRole('region', { name: 'The rule for Ticket totals' });
   // The rule in words is a short numbered list, the file named in a step set in mono.
   const told = rule.locator('ol > li');

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import type { Job, RecordingQuote, TaskPlan, Transcript } from '@architect/shared';
+import {
+  organizationNoun,
+  type Job,
+  type RecordingQuote,
+  type TaskPlan,
+  type Transcript,
+} from '@architect/shared';
 import {
   Button,
   Checkbox,
@@ -105,7 +111,7 @@ export function Recordings({ job, plan, mentor }: { job: Job; plan: TaskPlan; me
           <AudioLines size={16} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden />
           {recordings.transcripts.length === 0
             ? `Calls, meetings and lesson walkthroughs can be studied too, once Muse Voice writes them down.`
-            : `${mentor} studies these transcripts with each academy's files.`}
+            : `${mentor} studies these transcripts with each ${organizationNoun(job)}'s files.`}
         </p>
         {taught.length === 1 && only !== undefined ? (
           <Button size="sm" onClick={() => void add(only.id)}>

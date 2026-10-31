@@ -1453,9 +1453,7 @@ async function regressionCheck(
     REGRESSION_PER_TYPE * job.taskTypes.length,
     deriveSeed(request.config.mentoringSeed, 'regression'),
   );
-  env.log(
-    `Runtime regression check: Glimmer alone on ${tasks.length} check tasks of ${job.name}.`,
-  );
+  env.log(`Runtime regression check: Glimmer alone on ${tasks.length} check tasks of ${job.name}.`);
   await sweep({
     name: 'regression',
     job,

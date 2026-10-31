@@ -42,7 +42,7 @@ describe('a certificate in words (decision 077)', () => {
 
   it('states n, k, the rule, ε and δ', () => {
     expect(certificateBasis(issued)).toBe(
-      'Measured on 77 calibration tasks it was never taught on, 5 attempts each: it answers when 4 of 5 agree; target 10% at 95% confidence.',
+      'Measured on 77 calibration tasks it had never seen, 5 attempts each: it answers when 4 of 5 agree; target 10% at 95% confidence.',
     );
     expect(certificateBasis({ ...issued, k: 1 })).toContain('it answers every request');
   });

@@ -176,7 +176,7 @@ export function DescribeHero() {
  * laptop for one on this computer. The name and what it reads are in its tooltip and its label.
  */
 function TeacherMark({ name, local }: { name: string; local: boolean }) {
-  const says = `Teacher: ${name}. Reads what you send, ${local ? 'on this computer' : 'in the cloud'}.`;
+  const says = `${name} reads what you send, ${local ? 'on this computer' : 'in the cloud'}.`;
   const Icon = local ? Laptop : Cloud;
   return (
     <Tooltip content={says} side="top">

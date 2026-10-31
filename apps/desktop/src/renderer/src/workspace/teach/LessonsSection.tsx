@@ -178,7 +178,7 @@ function devChange(improvement: Improvement): string | null {
 }
 
 const RUNNING_LABELS: Partial<Record<Improvement['status'], string>> = {
-  queued: 'Waiting for the student',
+  queued: 'Waiting to start',
   paused: 'Paused',
   stopping: 'Stopping',
   testing: 'Writing its new version',
@@ -236,7 +236,7 @@ function ImproveRow({
   } else if (queued === 0) {
     // Nothing to improve from yet: the flagged answers row above says so.
   } else if (overview.improve) {
-    const waits = overview.improve.waits ? ' · waits for the run using it' : '';
+    const waits = overview.improve.waits ? ' · waits for the training using it' : '';
     meta = `${lessonCount(queued)} saved · ${budgetLine(overview.improve.budget)}${waits}`;
     action = (
       <Button size="xs" onClick={() => setConfirming(true)}>

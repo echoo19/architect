@@ -114,7 +114,9 @@ describe('the settings each arm ran with', () => {
     const hosted = report.backends[0];
     if (hosted === undefined) throw new Error('The fixture has a hosted table.');
     hosted.rows = [{ ...row('bare', 'Glimmer alone', 43, BLANK), sampling: null }];
-    expect(renderMarkdown(report)).toContain('| Glimmer alone | not recorded | - | - | - | - | - |');
+    expect(renderMarkdown(report)).toContain(
+      '| Glimmer alone | not recorded | - | - | - | - | - |',
+    );
   });
 });
 

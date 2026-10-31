@@ -140,7 +140,7 @@ test('takes a row away once the person has taken the agent its results were for'
     .click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${STORY.runId}/report$`));
   await resize(2060);
-  await expect(page.getByRole('heading', { name: 'Service desk graduated' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
 
   await flipSwitch(app, 'jobs:list', 'after');
   await page.getByRole('button', { name: 'Start using Service desk' }).click();
@@ -335,7 +335,7 @@ test("asks Spark's question inside the round, and shows what became of the answe
   const changes = form.getByRole('checkbox', { name: 'This changes what counts as success' });
   await changes.click();
   await expect(form).toContainText('This run stops here.');
-  await expect(form.getByRole('button', { name: 'Send answer and stop this run' })).toBeDisabled();
+  await expect(form.getByRole('button', { name: 'Send answer and stop training' })).toBeDisabled();
   await changes.click();
   await expect(form).not.toContainText('This run stops here.');
 
@@ -467,7 +467,7 @@ test('stops the run when the answer changes what counts as success, and says so'
   const form = round.getByRole('form', { name: "Spark's question" });
   await form.getByRole('textbox', { name: 'Your answer' }).fill('Yes, it should count.');
   await form.getByRole('checkbox', { name: 'This changes what counts as success' }).click();
-  await form.getByRole('button', { name: 'Send answer and stop this run' }).click();
+  await form.getByRole('button', { name: 'Send answer and stop training' }).click();
   expect(await recordedCalls(app, 'mentoring:answer')).toEqual([
     [STORY.runId, 4, { text: 'Yes, it should count.', changesCriteria: true }],
   ]);

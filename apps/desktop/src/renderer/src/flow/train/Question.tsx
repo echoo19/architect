@@ -124,7 +124,7 @@ function Asking({
             label="This changes what counts as success"
           />
           <Button type="submit" variant="primary" size="md" loading={sending} disabled={!ready}>
-            {changes ? 'Send answer and stop this run' : 'Send answer'}
+            {changes ? 'Send answer and stop training' : 'Send answer'}
           </Button>
         </div>
         <Collapse open={changes}>

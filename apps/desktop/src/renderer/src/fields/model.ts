@@ -28,8 +28,7 @@ export interface FieldSummary {
 export interface OrgCounts {
   taughtOn: number;
   sealed: number;
-  /** Null when the job doesn't say whether its one organization is real. */
-  real: number | null;
+  real: number;
 }
 
 /**
@@ -90,17 +89,13 @@ export function bestCandidate(candidates: readonly Candidate[]): Candidate | nul
   return best;
 }
 
-/** How many organizations it trains on, how many are sealed, and how many of all are real. */
+/**
+ * How many organizations it is taught on, how many it has never seen, and how many of those are
+ * real: a real one counts as real and not as never seen, as Models groups them.
+ */
 export function orgCounts(view: FieldView): OrgCounts {
-  const kinds = [
-    ...view.organizations.map((org) => org.synthetic),
-    ...view.sealed.map((org) => org.synthetic),
-  ];
-  return {
-    taughtOn: view.organizations.length,
-    sealed: view.sealed.length,
-    real: kinds.includes(null) ? null : kinds.filter((synthetic) => synthetic === false).length,
-  };
+  const real = view.sealed.filter((org) => !org.synthetic).length;
+  return { taughtOn: view.organizations.length, sealed: view.sealed.length - real, real };
 }
 
 /** Pass rate for sorting, or null for a kind not tested. */

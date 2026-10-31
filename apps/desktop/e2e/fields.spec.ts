@@ -103,7 +103,7 @@ test("shows the best candidate's skill by organization grid, the skills and the 
   await expect(grid.getByRole('columnheader', { name: 'Real academy' })).toBeVisible();
   await expect(grid.getByLabel('Topic history at Real academy, 10 of 10 passed')).toBeVisible();
   // The real academy has no question text, so some skills were never tested there.
-  await expect(grid.getByLabel('Work the question at Real academy, not tested')).toBeAttached();
+  await expect(grid.getByLabel('Work the question at Real academy, None')).toBeAttached();
 
   await expect(card('Skills').getByText('Whole tutoring turn')).toBeVisible();
   await expect(card('Skills').getByText('38 tasks').first()).toBeVisible();
@@ -235,7 +235,7 @@ test("counts the field's assets and exports them to a folder the person picks", 
   await expect(assets).toContainText(
     'Final-test tasks and 2 never-seen organizations, by hash only',
   );
-  await expect(card('Left out')).toContainText('the calibration and dev tasks');
+  await expect(card('Left out')).toContainText('the calibration and check tasks');
   await expect(
     page.getByText('GPU execution, large models and training gains are unverified', {
       exact: false,
