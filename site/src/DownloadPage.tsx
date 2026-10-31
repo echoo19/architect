@@ -67,8 +67,13 @@ export function DownloadPage() {
           <a className="link-inline" href={MAC_INTEL_DMG}>
             Intel Mac
           </a>
-          <span aria-hidden> · </span>
-          <span className="inline-block">If Windows warns you: More info, then Run anyway</span>
+          <span aria-hidden className="max-sm:hidden">
+            {' '}
+            ·{' '}
+          </span>
+          <span className="inline-block max-sm:mt-1 max-sm:block">
+            If Windows warns you: More info, then Run anyway
+          </span>
         </p>
       </main>
       <Footer page="download" />
