@@ -7,7 +7,10 @@ export type Loadable<T> =
   | { status: 'ready'; data: T };
 
 export interface WorkspaceState {
-  /** Each agent's chats by graduate id, in the host's order, newest chats added on top. */
+  /**
+   * Each agent's chats by graduate id and each team's by team id (`chatOwner`), in the host's
+   * order, newest chats added on top.
+   */
   chats: Record<string, Loadable<WorkspaceChat[]>>;
   /** Each chat's messages by chat id, oldest first. */
   messages: Record<string, Loadable<WorkspaceMessage[]>>;
@@ -15,13 +18,19 @@ export interface WorkspaceState {
 
 export type WorkspaceAction =
   | WorkspaceEvent
-  | { type: 'chats.loading'; graduateId: string }
-  | { type: 'chats.loaded'; graduateId: string; chats: WorkspaceChat[] }
-  | { type: 'chats.failed'; graduateId: string; error: Error }
+  | { type: 'chats.loading'; owner: string }
+  | { type: 'chats.loaded'; owner: string; chats: WorkspaceChat[] }
+  | { type: 'chats.failed'; owner: string; error: Error }
   | { type: 'messages.loading'; chatId: string }
   | { type: 'messages.loaded'; chatId: string; messages: WorkspaceMessage[] }
   | { type: 'messages.failed'; chatId: string; error: Error }
-  | { type: 'graduate.removed'; graduateId: string };
+  | { type: 'graduate.removed'; graduateId: string }
+  | { type: 'team.removed'; teamId: string };
+
+/** The list a chat belongs to: its team's, or its agent's when it is no team's. */
+export function chatOwner(chat: Pick<WorkspaceChat, 'graduateId' | 'teamId'>): string {
+  return chat.teamId ?? chat.graduateId;
+}
 
 export const emptyWorkspace = (): WorkspaceState => ({ chats: {}, messages: {} });
 
@@ -35,6 +44,16 @@ function failed<T>(entry: Loadable<T> | undefined, error: Error): Loadable<T> {
   return entry?.data === undefined
     ? { status: 'error', error }
     : { status: 'error', error, data: entry.data };
+}
+
+/** Drops a list of chats and the messages of every chat in it. */
+function forget(state: WorkspaceState, owner: string): WorkspaceState {
+  const { [owner]: removed, ...chats } = state.chats;
+  const gone = new Set((removed?.data ?? []).map((chat) => chat.id));
+  const messages = Object.fromEntries(
+    Object.entries(state.messages).filter(([chatId]) => !gone.has(chatId)),
+  );
+  return { chats, messages };
 }
 
 function withData<T>(entry: Loadable<T>, data: T): Loadable<T> {
@@ -68,19 +87,19 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case 'chats.loading':
       return {
         ...state,
-        chats: { ...state.chats, [action.graduateId]: loading(state.chats[action.graduateId]) },
+        chats: { ...state.chats, [action.owner]: loading(state.chats[action.owner]) },
       };
     case 'chats.loaded':
       return {
         ...state,
-        chats: { ...state.chats, [action.graduateId]: { status: 'ready', data: action.chats } },
+        chats: { ...state.chats, [action.owner]: { status: 'ready', data: action.chats } },
       };
     case 'chats.failed':
       return {
         ...state,
         chats: {
           ...state.chats,
-          [action.graduateId]: failed(state.chats[action.graduateId], action.error),
+          [action.owner]: failed(state.chats[action.owner], action.error),
         },
       };
     case 'messages.loading':
@@ -117,24 +136,20 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       };
     }
     case 'chat.updated': {
-      const { graduateId } = action.chat;
-      const entry = state.chats[graduateId];
+      const owner = chatOwner(action.chat);
+      const entry = state.chats[owner];
       if (entry?.data === undefined) return state;
       return {
         ...state,
         chats: {
           ...state.chats,
-          [graduateId]: withData(entry, upsertChat(entry.data, action.chat)),
+          [owner]: withData(entry, upsertChat(entry.data, action.chat)),
         },
       };
     }
-    case 'graduate.removed': {
-      const { [action.graduateId]: removed, ...chats } = state.chats;
-      const gone = new Set((removed?.data ?? []).map((chat) => chat.id));
-      const messages = Object.fromEntries(
-        Object.entries(state.messages).filter(([chatId]) => !gone.has(chatId)),
-      );
-      return { chats, messages };
-    }
+    case 'graduate.removed':
+      return forget(state, action.graduateId);
+    case 'team.removed':
+      return forget(state, action.teamId);
   }
 }

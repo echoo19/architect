@@ -43,7 +43,7 @@ describe('workspaceReducer', () => {
   it('loads messages and chats', () => {
     const state = run([
       { type: 'messages.loading', chatId: 'cht_1' },
-      { type: 'chats.loading', graduateId: 'grd_1' },
+      { type: 'chats.loading', owner: 'grd_1' },
     ]);
     expect(state.messages.cht_1).toEqual({ status: 'loading' });
     expect(state.chats.grd_1).toEqual({ status: 'loading' });
@@ -51,7 +51,7 @@ describe('workspaceReducer', () => {
     const loaded = run(
       [
         { type: 'messages.loaded', chatId: 'cht_1', messages: [message('msg_1')] },
-        { type: 'chats.loaded', graduateId: 'grd_1', chats: [chat('cht_1')] },
+        { type: 'chats.loaded', owner: 'grd_1', chats: [chat('cht_1')] },
       ],
       state,
     );
@@ -75,7 +75,7 @@ describe('workspaceReducer', () => {
       data: [message('m')],
     });
     const nope = new Error('Nope.');
-    const firstFailure = run([{ type: 'chats.failed', graduateId: 'grd_1', error: nope }]);
+    const firstFailure = run([{ type: 'chats.failed', owner: 'grd_1', error: nope }]);
     expect(firstFailure.chats.grd_1).toEqual({ status: 'error', error: nope });
   });
 
@@ -126,7 +126,7 @@ describe('workspaceReducer', () => {
 
   it('updates a chat in place and puts a new chat on top', () => {
     const state = run([
-      { type: 'chats.loaded', graduateId: 'grd_1', chats: [chat('cht_1'), chat('cht_2')] },
+      { type: 'chats.loaded', owner: 'grd_1', chats: [chat('cht_1'), chat('cht_2')] },
       { type: 'chat.updated', chat: chat('cht_2', { running: true, title: 'Close out Tuesday' }) },
       { type: 'chat.updated', chat: chat('cht_3') },
     ]);
@@ -137,8 +137,8 @@ describe('workspaceReducer', () => {
 
   it('keeps chats of one agent apart from another', () => {
     const state = run([
-      { type: 'chats.loaded', graduateId: 'grd_1', chats: [chat('cht_1')] },
-      { type: 'chats.loaded', graduateId: 'grd_2', chats: [] },
+      { type: 'chats.loaded', owner: 'grd_1', chats: [chat('cht_1')] },
+      { type: 'chats.loaded', owner: 'grd_2', chats: [] },
       { type: 'chat.updated', chat: chat('cht_9', { graduateId: 'grd_2' }) },
     ]);
     expect(state.chats.grd_1?.data?.map((c) => c.id)).toEqual(['cht_1']);
@@ -147,10 +147,10 @@ describe('workspaceReducer', () => {
 
   it('forgets a removed agent with its chats and their messages', () => {
     const state = run([
-      { type: 'chats.loaded', graduateId: 'grd_1', chats: [chat('cht_1')] },
+      { type: 'chats.loaded', owner: 'grd_1', chats: [chat('cht_1')] },
       {
         type: 'chats.loaded',
-        graduateId: 'grd_2',
+        owner: 'grd_2',
         chats: [chat('cht_2', { graduateId: 'grd_2' })],
       },
       { type: 'messages.loaded', chatId: 'cht_1', messages: [message('msg_1')] },
@@ -163,5 +163,30 @@ describe('workspaceReducer', () => {
     ]);
     expect(Object.keys(state.chats)).toEqual(['grd_2']);
     expect(Object.keys(state.messages)).toEqual(['cht_2']);
+  });
+
+  it("keeps a team's chats under the team, apart from its lead's own", () => {
+    const state = run([
+      { type: 'chats.loaded', owner: 'grd_1', chats: [chat('cht_1')] },
+      { type: 'chats.loaded', owner: 'team_lab', chats: [] },
+      { type: 'chat.updated', chat: chat('cht_7', { teamId: 'team_lab' }) },
+    ]);
+    expect(state.chats.grd_1?.data?.map((c) => c.id)).toEqual(['cht_1']);
+    expect(state.chats.team_lab?.data?.map((c) => c.id)).toEqual(['cht_7']);
+  });
+
+  it('forgets a removed team with its chats and their messages', () => {
+    const state = run([
+      { type: 'chats.loaded', owner: 'grd_1', chats: [chat('cht_1')] },
+      { type: 'chats.loaded', owner: 'team_lab', chats: [chat('cht_7', { teamId: 'team_lab' })] },
+      {
+        type: 'messages.loaded',
+        chatId: 'cht_7',
+        messages: [message('msg_7', { chatId: 'cht_7' })],
+      },
+      { type: 'team.removed', teamId: 'team_lab' },
+    ]);
+    expect(Object.keys(state.chats)).toEqual(['grd_1']);
+    expect(state.messages).toEqual({});
   });
 });

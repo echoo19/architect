@@ -124,6 +124,12 @@ export const api = {
       z.array(WorkspaceChatSchema),
       bridge().workspace.listChats(graduateId),
     ),
+  teamChats: (teamId: string) =>
+    read(
+      'workspace.listTeamChats',
+      z.array(WorkspaceChatSchema),
+      bridge().workspace.listTeamChats(teamId),
+    ),
   messages: (chatId: string) =>
     read(
       'workspace.messages',

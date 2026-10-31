@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import type { WorkspaceChat } from '@architect/shared';
 
 /** Every screen the app can show. The hash holds the path, e.g. `#/runs/run_1/train`. */
 export type Route =
@@ -11,8 +12,11 @@ export type Route =
   /** Designing an experiment, on a field of the library when one is named. */
   | { name: 'experiment-new'; jobId?: string }
   | { name: 'experiment'; experimentId: string }
-  /** Models, with one version's panel open when `open` names it (`graduateId:version`). */
-  | { name: 'models'; open?: string }
+  /**
+   * Models, with one version's panel open when `open` names it (`graduateId:version`), or on its
+   * Teams tab.
+   */
+  | { name: 'models'; open?: string; tab?: 'teams' }
   /**
    * Compute, planning for a field when `jobId` names one: its student's model, or `model` when a
    * version of it runs on another (the name a runtime serves it under).
@@ -20,6 +24,8 @@ export type Route =
   | { name: 'compute'; jobId?: string; model?: string }
   | { name: 'welcome' }
   | { name: 'chat'; graduateId: string; chatId: string }
+  /** A chat with a team, which its lead answers (decision 100). */
+  | { name: 'team-chat'; teamId: string; chatId: string }
   | { name: 'new' }
   | { name: 'import' }
   | { name: 'define'; jobId: string }
@@ -41,6 +47,7 @@ export const paths = {
     jobId === undefined ? '/experiments/new' : `/experiments/new/${segment(jobId)}`,
   experiment: (experimentId: string) => `/experiments/${segment(experimentId)}`,
   models: (open?: string) => (open === undefined ? '/models' : `/models/${segment(open)}`),
+  teams: () => '/models/teams',
   compute: (field?: { jobId: string; model?: string | undefined }) =>
     field === undefined
       ? '/compute'
@@ -50,6 +57,8 @@ export const paths = {
   welcome: () => '/welcome',
   chat: (graduateId: string, chatId: string) =>
     `/agents/${segment(graduateId)}/chats/${segment(chatId)}`,
+  teamChat: (teamId: string, chatId: string) =>
+    `/teams/${segment(teamId)}/chats/${segment(chatId)}`,
   newAgent: () => '/new',
   importAgent: () => '/import',
   define: (jobId: string) => `/jobs/${segment(jobId)}/define`,
@@ -57,6 +66,13 @@ export const paths = {
   report: (runId: string) => `/runs/${segment(runId)}/report`,
   improvement: (runId: string) => `/runs/${segment(runId)}/improvement`,
 };
+
+/** Where a chat opens: a team's chats under the team, every other chat under its agent. */
+export function chatPath(chat: Pick<WorkspaceChat, 'id' | 'graduateId' | 'teamId'>): string {
+  return chat.teamId === undefined
+    ? paths.chat(chat.graduateId, chat.id)
+    : paths.teamChat(chat.teamId, chat.id);
+}
 
 function decode(parts: string[]): string[] | null {
   try {
@@ -91,6 +107,7 @@ export function parsePath(path: string): Route {
     return { name: 'experiment', experimentId: id };
   }
   if (first === 'models' && exactly(1)) return { name: 'models' };
+  if (first === 'models' && id === 'teams' && exactly(2)) return { name: 'models', tab: 'teams' };
   if (first === 'models' && id && exactly(2)) return { name: 'models', open: id };
   if (first === 'compute' && exactly(1)) return { name: 'compute' };
   if (first === 'compute' && id === 'fields' && third && exactly(3)) {
@@ -101,6 +118,9 @@ export function parsePath(path: string): Route {
   }
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };
+  }
+  if (first === 'teams' && third === 'chats' && id && fourth && exactly(4)) {
+    return { name: 'team-chat', teamId: id, chatId: fourth };
   }
   if (first === 'jobs' && third === 'define' && id && exactly(3)) {
     return { name: 'define', jobId: id };
