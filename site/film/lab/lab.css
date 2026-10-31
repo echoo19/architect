@@ -1,0 +1,36 @@
+@import '../../src/styles.css';
+
+@source './';
+
+/*
+ * One 1920 by 1080 frame on the product's ground. The film draws every frame from its time, so
+ * the components' own hover and color transitions are switched off: they would run on the
+ * browser's clock between two frames.
+ */
+
+html,
+body {
+  width: 1920px;
+  height: 1080px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ui-ground);
+  color: var(--ui-fg);
+}
+
+body {
+  font-size: 15px;
+}
+
+#root {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+}
+
+*,
+*::before,
+*::after {
+  transition: none !important;
+}
