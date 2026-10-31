@@ -3,6 +3,7 @@ import { Button, EmptyState, Skeleton, Stagger } from '@architect/ui';
 import { LayoutGrid } from 'lucide-react';
 import { useGraduates, useJobs, useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
+import { newField } from '../fields/new-field';
 import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import {
@@ -133,7 +134,7 @@ function NothingYet() {
       className="pt-20"
       actions={
         <>
-          <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
+          <Button variant="primary" size="md" onClick={newField}>
             Describe a field
           </Button>
           <SampleJobButton size="md" sample="academy" />

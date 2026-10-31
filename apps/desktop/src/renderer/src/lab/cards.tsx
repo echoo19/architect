@@ -36,6 +36,7 @@ import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
 import { fetchQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
+import { newField } from '../fields/new-field';
 import { Counted } from '../flow/counted';
 import { formatCost, shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
@@ -516,7 +517,7 @@ export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
       flush
       action={
         <Tooltip content="Describe a field" side="left">
-          <IconButton label="Describe a field" size="sm" onClick={() => navigate(paths.newAgent())}>
+          <IconButton label="Describe a field" size="sm" onClick={newField}>
             <Plus size={16} strokeWidth={1.8} aria-hidden />
           </IconButton>
         </Tooltip>
