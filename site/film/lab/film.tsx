@@ -155,7 +155,7 @@ const SHOTS: readonly Shot[] = [
   { at: 22.2, dur: 1.1, to: FULL },
   { at: 25.4, dur: 1.2, to: content(108) },
   { at: 29.8, dur: 0.9, to: FULL },
-  { at: 32.0, dur: 1.3, to: content(112, 1.9) },
+  { at: 32.0, dur: 1.3, to: content(98, 1.9) },
   { at: 41.4, dur: 1.0, to: FULL },
   { at: 43.6, dur: 0.9, to: FLOW },
   { at: 84.4, dur: 0.9, to: FULL },

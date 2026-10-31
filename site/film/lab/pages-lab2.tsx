@@ -252,9 +252,11 @@ export function ModelsPage({ lt, panelAt }: { lt: number; panelAt: number }) {
             5 attempts at each calibration task; it answers when 4 of 5 agree.
           </p>
           <div
+            className="[&_figcaption]:hidden"
             style={{
-              zoom: 0.7,
-              clipPath: `inset(0 ${(1 - outQuart(span(pt, 1.6, 2.2))) * 100}% 0 0)`,
+              zoom: 0.78,
+              marginTop: 10,
+              clipPath: `inset(-16px ${(1 - outQuart(span(pt, 1.6, 2.2))) * 100}% 0 -12px)`,
             }}
           >
             <RiskCoveragePlot

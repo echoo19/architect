@@ -64,7 +64,19 @@ export function LabHome({ lt }: { lt: number }) {
       <div className="grid grid-cols-[1fr_330px] items-start gap-4">
         <Panel title="Needs you" frame="needs">
           {needs.map((need, index) => (
-            <div key={need.group} style={rise(lt, 0.5 + index * 0.09, 6)}>
+            <div
+              key={need.group}
+              className="overflow-hidden"
+              style={
+                index === 0
+                  ? {
+                      // A new question arrives while the Lab is watched, and the rest make room.
+                      height: 89 * outQuart(span(lt, 3.8, 0.7)),
+                      opacity: outQuart(span(lt, 4.0, 0.6)),
+                    }
+                  : rise(lt, 0.5 + index * 0.09, 6)
+              }
+            >
               <div className="px-6 pb-2 pt-3 text-small font-medium">{need.group}</div>
               <Row
                 icon={<Tile className={need.tone}>{need.icon}</Tile>}
@@ -274,6 +286,8 @@ const FIELD_TABS = [
  * sees, sealed until the final test, one of them real.
  */
 export function FieldPage({ lt }: { lt: number }) {
+  // After the seals close, the sealed academy is chosen: what it holds stays out of view.
+  const pick = ui(lt, 5.4, 0.3);
   return (
     <PlacePage
       title={ACADEMY}
@@ -308,7 +322,7 @@ export function FieldPage({ lt }: { lt: number }) {
             return (
               <div key={org.name} style={rise(lt, 0.4 + index * 0.08, 6)}>
                 <Row
-                  selected={index === 0 ? 1 : 0}
+                  selected={index === 0 ? 1 - pick : index === 3 ? pick : 0}
                   icon={
                     <Tile>
                       {sealed ? (
@@ -354,20 +368,46 @@ export function FieldPage({ lt }: { lt: number }) {
             Never seen: sealed away from teaching, and opened once for the final test.
           </p>
         </Panel>
-        <Panel title="Ridgeline Test Prep">
-          {RIDGELINE_FILES.map(([file, size], index) => (
-            <div
-              key={file}
-              className="flex h-11 items-center justify-between border-t border-line px-6"
-              style={rise(lt, 0.7 + index * 0.05, 5)}
-            >
-              <span className="flex items-center gap-2.5 font-mono text-small">
-                <FileText size={14} strokeWidth={1.8} aria-hidden />
-                {file}
+        <Panel
+          title={
+            <span className="grid">
+              <span className="[grid-area:1/1]" style={{ opacity: 1 - pick }}>
+                Ridgeline Test Prep
               </span>
-              <span className="text-small tabular-nums">{size}</span>
-            </div>
-          ))}
+              <span className="[grid-area:1/1]" style={{ opacity: pick }}>
+                Harborview Prep
+              </span>
+            </span>
+          }
+          className="relative"
+        >
+          <div style={{ opacity: 1 - pick }}>
+            {RIDGELINE_FILES.map(([file, size], index) => (
+              <div
+                key={file}
+                className="flex h-11 items-center justify-between border-t border-line px-6"
+                style={rise(lt, 0.7 + index * 0.05, 5)}
+              >
+                <span className="flex items-center gap-2.5 font-mono text-small">
+                  <FileText size={14} strokeWidth={1.8} aria-hidden />
+                  {file}
+                </span>
+                <span className="text-small tabular-nums">{size}</span>
+              </div>
+            ))}
+          </div>
+          <div
+            className="absolute inset-x-0 bottom-0 top-14 flex flex-col items-center justify-center gap-4 border-t border-line px-8 text-center"
+            style={{ opacity: pick, transform: `translateY(${(1 - pick) * 8}px)` }}
+          >
+            <Tile>
+              <Lock strokeWidth={1.8} aria-hidden />
+            </Tile>
+            <span className="font-medium">Sealed until the final test</span>
+            <span className="text-ui">
+              Spark and Glimmer never see its files, its tasks or its scores.
+            </span>
+          </div>
         </Panel>
       </div>
     </PlacePage>

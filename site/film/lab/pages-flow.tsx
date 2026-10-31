@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { ACADEMY, ROUNDS } from './data';
-import { clamp, count, grouped, mix, outQuart, rise, span, ui } from './time';
+import { clamp, count, grouped, inOutCubic, mix, outQuart, rise, span, ui } from './time';
 
 /** The column the guided flow's screens are set in. */
 function Column({ children, style }: { children: ReactNode; style?: CSSProperties }) {
@@ -65,7 +65,7 @@ const DIFFERENCES = [
 
 /** How far the Define screen has scrolled at a moment, in px. */
 export function defineScroll(lt: number): number {
-  return mix(0, 300, outQuart(span(lt, 4.4, 2.4))) + mix(0, 560, outQuart(span(lt, 10.4, 2.6)));
+  return mix(0, 300, inOutCubic(span(lt, 4.2, 2.6))) + mix(0, 560, inOutCubic(span(lt, 10.2, 2.9)));
 }
 
 /**
@@ -316,7 +316,7 @@ export function TrainPage({ lt }: { lt: number }) {
     <Column
       style={{
         paddingTop: 18,
-        transform: `translateY(${-mix(0, 78, outQuart(span(lt, ROUND_AT[2] + 0.3, 1.0)))}px)`,
+        transform: `translateY(${-mix(0, 78, inOutCubic(span(lt, ROUND_AT[2] + 0.2, 1.2)))}px)`,
       }}
     >
       <div className="flex h-12 items-center gap-3 border-b border-line pb-4">
@@ -522,7 +522,7 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
           className="flex flex-col gap-5 px-6 pt-5"
           data-frame="counterexample"
           style={{
-            transform: `translateY(${-(mix(0, 150, outQuart(span(lt, 4.5, 1.1))) + mix(0, 170, outQuart(span(lt, 6.5, 1.0))))}px)`,
+            transform: `translateY(${-(mix(0, 150, inOutCubic(span(lt, 4.4, 1.3))) + mix(0, 104, inOutCubic(span(lt, 6.4, 1.3))))}px)`,
           }}
         >
           <div className="flex items-center justify-between text-ui font-medium">
@@ -586,10 +586,10 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
               </span>
             </div>
           </div>
-          <Grow p={questions} height={112}>
+          <Grow p={questions} height={132}>
             <div className="flex flex-col">
               <span className="pb-2 font-mono text-small font-medium">questions.csv</span>
-              <div className="grid h-8 grid-cols-[1fr_2.6fr_0.8fr] items-center gap-2 border-b border-line font-mono text-small font-medium">
+              <div className="grid h-8 grid-cols-[0.9fr_3fr_0.7fr] items-center gap-2 border-b border-line font-mono text-small font-medium">
                 <span>question_id</span>
                 <span>topic</span>
                 <span>correct</span>
@@ -600,7 +600,7 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
               ].map((row) => (
                 <div
                   key={row[0]}
-                  className="grid h-[34px] grid-cols-[1fr_2.6fr_0.8fr] items-center gap-2 font-mono text-small"
+                  className="grid h-[34px] grid-cols-[0.9fr_3fr_0.7fr] items-center gap-2 font-mono text-small"
                 >
                   {row.map((cell) => (
                     <span key={cell}>{cell}</span>
@@ -617,7 +617,7 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
               <Check size={17} strokeWidth={2} className="text-student" aria-hidden />
               Repaired: passed 2 cases
             </span>
-            <Grow p={cases} height={104}>
+            <Grow p={cases} height={132}>
               <div className="flex flex-col gap-3 pl-7 text-ui">
                 <span className="flex flex-col">
                   <span className="font-medium">Reduced case</span>

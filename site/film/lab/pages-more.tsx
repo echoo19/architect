@@ -13,7 +13,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { ACADEMY, type Specialist } from './data';
-import { clamp, count, mix, outQuart, rise, span, ui } from './time';
+import { clamp, inOutCubic, mix, outQuart, rise, span, ui } from './time';
 
 /**
  * A staff member asks the academy desk about a missed question at Harborview Prep, an academy it
@@ -27,7 +27,7 @@ export function WorkspacePage({ lt, allowAt }: { lt: number; allowAt: number }) 
   const shown = Math.round(mix(0, answerWords.length, clamp((lt - 4.4) / 2.4)));
   const saved = ui(lt, allowAt + 0.15, 0.25);
   // The conversation rises as it grows, as a chat keeps its newest line in view.
-  const scroll = mix(0, 114, outQuart(span(lt, 7.0, 1.4)));
+  const scroll = mix(0, 158, inOutCubic(span(lt, 6.9, 1.5)));
   return (
     <div className="relative flex h-full flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between gap-3 pl-7 pr-5">
@@ -122,7 +122,7 @@ export function WorkspacePage({ lt, allowAt }: { lt: number; allowAt: number }) 
 }
 
 const ANSWER =
-  'He chose 230: he took the 10% off as $10. The answer is B, 216 (M-PRO-08 Percent Change). First hint: FH-038. I set 3 practice questions in his band, and since he has 4 misses on this topic in 30 days, I added a note for his tutor, Mira Pemberton.';
+  'He chose 230: he took the 10% off as $10. The answer is B, 216 (M-PRO-08 Percent Change). First hint: FH-038. I set 3 practice questions in his band, and since he has 4 misses on this topic in 30 days, I added a note for Mira Pemberton on staff.';
 
 function Proposal({
   file,
@@ -292,20 +292,21 @@ function Edition({ title, detail, selected }: { title: string; detail: string; s
 /** A specialist as the opening shows it: what it does, and its measured result where there is one. */
 export function GalleryCard({ agent, lt }: { agent: Specialist; lt: number }) {
   const figure = agent.figure;
-  const value = figure ? count(lt, 0, 1.4, 0, Number(figure.value)) : 0;
   return (
     <div className="flex h-full flex-col justify-between px-6 pb-6 pt-[86px]">
       <span className="text-[17px] leading-[1.45]">{agent.does}</span>
       {figure ? (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5" style={rise(lt, 0, 12, 0.9)}>
           <span className="font-display text-[48px] font-semibold leading-none tracking-[-0.03em] tabular-nums">
-            {value}
+            {figure.value}
             <span className="text-[24px] tracking-[-0.01em]"> of {figure.of}</span>
           </span>
           <span className="text-[16px]">{figure.label}</span>
         </div>
       ) : (
-        <span className="text-[16px]">The sample job that ships with Architect</span>
+        <span className="text-[16px]" style={rise(lt, 0, 12, 0.9)}>
+          The sample job that ships with Architect
+        </span>
       )}
     </div>
   );
