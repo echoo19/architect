@@ -5,11 +5,14 @@ import {
   CircleCheck,
   FileText,
   FlaskConical,
+  FolderOutput,
+  Gauge,
   GraduationCap,
   LayoutGrid,
   ListChecks,
   Lock,
   MessageCircleQuestion,
+  MessagesSquare,
   Package,
   Boxes,
   ShieldCheck,
@@ -281,6 +284,23 @@ const FIELD_TABS = [
   { label: 'Assets', Icon: Package },
 ] as const;
 
+/** The field page's tab strip, with one tab open. */
+function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
+  return (
+    <div className="-mt-2 flex h-10 w-fit items-center gap-1 rounded-full p-1 shadow-edge">
+      {FIELD_TABS.map(({ label, Icon }) => (
+        <span
+          key={label}
+          className={`flex h-8 items-center gap-2 rounded-full px-3.5 text-ui ${label === open ? 'bg-selected font-medium' : ''}`}
+        >
+          <Icon size={15} strokeWidth={1.8} aria-hidden />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /**
  * A field's page on its Organizations tab: the academies it is taught on, and the two it never
  * sees, sealed until the final test, one of them real.
@@ -303,17 +323,7 @@ export function FieldPage({ lt }: { lt: number }) {
         </span>
       }
     >
-      <div className="-mt-2 flex h-10 w-fit items-center gap-1 rounded-full p-1 shadow-edge">
-        {FIELD_TABS.map(({ label, Icon }) => (
-          <span
-            key={label}
-            className={`flex h-8 items-center gap-2 rounded-full px-3.5 text-ui ${label === 'Organizations' ? 'bg-selected font-medium' : ''}`}
-          >
-            <Icon size={15} strokeWidth={1.8} aria-hidden />
-            {label}
-          </span>
-        ))}
-      </div>
+      <FieldTabs open="Organizations" />
       <div className="grid grid-cols-[1fr_320px] items-start gap-4">
         <Panel title="Organizations" frame="orgs">
           {ORGANIZATIONS.map((org, index) => {
@@ -410,6 +420,74 @@ export function FieldPage({ lt }: { lt: number }) {
           </div>
         </Panel>
       </div>
+    </PlacePage>
+  );
+}
+
+/**
+ * The same field on its Assets tab: what an export holds (apps/desktop fields/Assets.tsx). The
+ * counts are the academy field's first run (academy-desk-1.md): 48 train tasks at the three
+ * academies it is taught on, and a final test of 120 tasks with the two it never sees. Its
+ * demonstrations were not counted, so that figure is a dash.
+ */
+export function FieldAssetsPage({ lt }: { lt: number }) {
+  const rows = [
+    {
+      Icon: MessagesSquare,
+      title: 'Verified demonstrations',
+      detail: 'From train tasks only',
+      figure: '-',
+    },
+    {
+      Icon: Gauge,
+      title: 'Outcome scorer',
+      detail: 'Train tasks at 3 organizations, with the checker and a Python client',
+      figure: String(count(lt, 0.35, 0.7, 0, 48)),
+    },
+    {
+      Icon: Lock,
+      title: 'Never-seen evaluation',
+      detail: 'Final-test tasks and 2 never-seen organizations, by hash only',
+      figure: String(count(lt, 0.45, 0.7, 0, 120)),
+    },
+  ] as const;
+  return (
+    <PlacePage
+      title={ACADEMY}
+      action={
+        <Button size="sm" variant="primary">
+          <FlaskConical size={16} strokeWidth={1.8} aria-hidden />
+          New experiment
+        </Button>
+      }
+    >
+      <FieldTabs open="Assets" />
+      <div className="flex items-start justify-between gap-8" style={rise(lt, 0.1, 6)}>
+        <p className="m-0 max-w-[560px] text-body">
+          Checker-verified training examples from this field. No model has been trained on them
+          here: GPU execution, large models and training gains are unverified.
+        </p>
+        <Button size="sm" variant="primary">
+          <FolderOutput size={15} strokeWidth={1.8} aria-hidden />
+          Export
+        </Button>
+      </div>
+      <Panel title="Field export" frame="export">
+        {rows.map(({ Icon, title, detail, figure }, index) => (
+          <div key={title} style={rise(lt, 0.3 + index * 0.08, 6)}>
+            <Row
+              icon={
+                <Tile>
+                  <Icon strokeWidth={1.8} aria-hidden />
+                </Tile>
+              }
+              title={title}
+              detail={detail}
+              end={<span className="font-display text-h2 font-semibold">{figure}</span>}
+            />
+          </div>
+        ))}
+      </Panel>
     </PlacePage>
   );
 }
