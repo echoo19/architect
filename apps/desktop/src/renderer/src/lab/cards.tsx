@@ -520,8 +520,8 @@ function SpendRow({ row }: { row: RunRow }) {
   }
   const { run, job } = detail.data;
   return (
-    <div className="flex flex-col gap-3">
-      <span className="truncate font-medium">{row.jobName}</span>
+    <div className="flex flex-col gap-2">
+      <span className="truncate text-small font-medium">{row.jobName}</span>
       <CapMeter
         tone="mentor"
         label={mentorName(job.mentor)}
