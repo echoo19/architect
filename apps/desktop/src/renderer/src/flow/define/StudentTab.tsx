@@ -12,6 +12,7 @@ import { modelNames } from '../names';
 import { InspectorRow, Issue, KeyIfMissing, NumberField } from './fields';
 import { presetOf, providerName } from './hosted';
 import type { InspectorTabProps } from './inspector-tabs';
+import { LocalServer } from './LocalServer';
 import { TYPING_PAUSE_MS } from './use-job-editor';
 
 /**
@@ -56,6 +57,7 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
         <p className="m-0 break-all font-mono text-small">{local.model}</p>
         <Issue error={issues['student.local.model']} />
       </section>
+      <LocalServer editor={editor} change={change} />
       <section aria-label="Runs on" className="flex flex-col gap-2">
         <h3 className="m-0 text-small font-medium">Runs on</h3>
         <ChoiceTiles

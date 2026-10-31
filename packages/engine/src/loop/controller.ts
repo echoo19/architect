@@ -5,10 +5,13 @@ import {
   emptyTotals,
   GuardError,
   newId,
+  QualifyRequestSchema,
   type ImprovementStart,
   type ImproveOptions,
   type Job,
   type Method,
+  type Qualification,
+  type QualifyRequest,
   type ReferenceRecord,
   type Run,
   type RunEvent,
@@ -32,6 +35,7 @@ import { ReferenceSession, referenceConfig, referenceRefusal, referenceSeed } fr
 import { RepeatSession, repeatRefusal } from './repeat';
 import { CertifySession } from './posthoc';
 import { AddedQualifySession, addedQualifyRefusal } from './qualify-added';
+import { newQualification, QualifySession, qualificationView } from './qualify';
 import { RetestSession, retestRefusal } from './retest';
 import type { SessionContext } from './run-state';
 import { fanOutSeeds } from './seeds';
@@ -89,7 +93,8 @@ type Turn =
   | { kind: 'repeat'; runId: string; target: StudentTarget }
   | { kind: 'reference'; runId: string; split: ReferenceRecord['split'] }
   | { kind: 'certify'; runId: string; certificationId: string }
-  | { kind: 'qualify_added'; runId: string; orgId: string };
+  | { kind: 'qualify_added'; runId: string; orgId: string }
+  | { kind: 'qualify'; runId: string; qualificationId: string };
 
 /** A re-test's, a repeat's or a reference's key among the sessions holding a turn. */
 function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
@@ -104,6 +109,8 @@ function sideKey(turn: Exclude<Turn, { kind: 'run' }>): string {
       return `${turn.runId}/certify/${turn.certificationId}`;
     case 'qualify_added':
       return `${turn.runId}/qualify-added/${turn.orgId}`;
+    case 'qualify':
+      return `${turn.runId}/qualify/${turn.qualificationId}`;
   }
 }
 
@@ -518,6 +525,40 @@ export class RunController {
     this.schedule(turn);
   }
 
+  /**
+   * Queues a trained model's qualification on a finished run's frozen harness (decision 086), or
+   * resumes the paused one for the same model at the same address. It holds the student like a
+   * re-test, costs nothing, and never changes the run.
+   */
+  qualify(request: QualifyRequest): Qualification {
+    const { store } = this.options;
+    const record = this.get(request.runId);
+    const { endpoint } = QualifyRequestSchema.parse(request);
+    const resumable = store.qualifications
+      .ofJob(record.run.jobId)
+      .find(
+        (item) =>
+          item.runId === record.run.id &&
+          item.model === endpoint.model &&
+          item.baseUrl === endpoint.baseUrl &&
+          item.status !== 'finished',
+      );
+    let stored =
+      resumable ?? newQualification(record, { ...request, endpoint }, isoNow(this.clock));
+    const turn: Turn = { kind: 'qualify', runId: stored.runId, qualificationId: stored.id };
+    if (resumable === undefined) {
+      store.qualifications.insert(stored);
+    } else if (this.isScheduled(turn)) {
+      throw new Error(`${endpoint.model} is already being qualified on this run's harness.`);
+    } else {
+      const { error: _error, ...rest } = resumable;
+      stored = { ...rest, status: 'testing', contextLength: endpoint.contextLength };
+      store.qualifications.update(stored);
+    }
+    this.schedule(turn);
+    return qualificationView(stored);
+  }
+
   /** On startup: runs and re-tests that were active when the app closed resume where they were. */
   recover(): void {
     const { store } = this.options;
@@ -544,6 +585,10 @@ export class RunController {
     }
     for (const { runId, orgId } of store.addedQualifications.withStatus('testing')) {
       const turn: Turn = { kind: 'qualify_added', runId, orgId };
+      if (!this.isScheduled(turn)) this.queue.push(turn);
+    }
+    for (const { runId, id } of store.qualifications.withStatus('testing')) {
+      const turn: Turn = { kind: 'qualify', runId, qualificationId: id };
       if (!this.isScheduled(turn)) this.queue.push(turn);
     }
     this.pump();
@@ -734,7 +779,9 @@ export class RunController {
             ? new CertifySession(context, turn.certificationId)
             : turn.kind === 'qualify_added'
               ? new AddedQualifySession(context, turn.orgId)
-              : new ReferenceSession(context, turn.split);
+              : turn.kind === 'qualify'
+                ? new QualifySession(context, turn.qualificationId)
+                : new ReferenceSession(context, turn.split);
     const done = session
       .run()
       .catch((error: unknown) => this.onError(error))

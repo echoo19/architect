@@ -7,6 +7,8 @@ import {
   CapabilityBreakdownSchema,
   CategorySchema,
   CertificationSchema,
+  QualificationSchema,
+  QualifyRequestSchema,
   CertifyRequestSchema,
   CounterexampleSchema,
   ComparisonReportSchema,
@@ -200,6 +202,12 @@ export const ENGINE_ROUTES = {
   ),
   'runs.retest': route(z.tuple([id, StudentTargetSchema]), z.void(), (api, [runId, target]) =>
     api.runs.retest(runId, target),
+  ),
+  'runs.qualify': route(z.tuple([QualifyRequestSchema]), QualificationSchema, (api, [request]) =>
+    api.runs.qualify(request),
+  ),
+  'runs.qualifications': route(z.tuple([id]), z.array(QualificationSchema), (api, [jobId]) =>
+    api.runs.qualifications(jobId),
   ),
   'runs.get': route(z.tuple([id]), RunDetailSchema, (api, [runId]) => api.runs.get(runId)),
   'runs.list': route(z.tuple([id.nullable()]), z.array(RunSchema), (api, [jobId]) =>

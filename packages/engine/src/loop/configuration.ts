@@ -27,6 +27,17 @@ export const STUDENT_CONFIG: AttemptConfig = { actor: 'student', backend: 'job',
 /** The backend that serves a student with adapters. */
 export const LLAMA_CPP = 'llama.cpp';
 
+/** The backend prefix of a model trained elsewhere. */
+export const TRAINED_BACKEND = 'trained:';
+
+/**
+ * A model trained elsewhere, qualified under its own id (decision 086): the session's job names
+ * its endpoint as the local student, and the key keeps its attempts apart from the run's own.
+ */
+export function trainedConfig(qualificationId: string): AttemptConfig {
+  return { actor: 'student', backend: `${TRAINED_BACKEND}${qualificationId}`, adapter: null };
+}
+
 /** The stored key of a configuration; the job's student with no adapter keeps the old key. */
 /** Whether an attempt was Spark's as a reference, which nothing about the student counts. */
 export function isReferenceAttempt(attempt: { config?: string }): boolean {

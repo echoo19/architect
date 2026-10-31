@@ -81,6 +81,8 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     stop: true,
     retest: true,
     qualifyAdded: true,
+    qualify: true,
+    qualifications: true,
     get: true,
     list: true,
     attempt: true,

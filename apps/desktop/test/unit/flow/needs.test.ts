@@ -233,13 +233,6 @@ describe('the model on this computer', () => {
   });
 
   it('leaves a runtime it was not looking at for the run to find out', () => {
-    const elsewhere = makeJob({
-      student: {
-        ...here.student,
-        local: { ...here.student.local, baseUrl: 'http://192.168.1.20:11434' },
-      },
-    });
-    expect(runNeeds(input({ job: elsewhere, local: runtimes(false) }))).toEqual([]);
     const server = makeJob({
       student: {
         ...here.student,

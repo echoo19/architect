@@ -22,6 +22,7 @@ import {
   OrgTypeResultSchema,
   PackageManifestSchema,
   PublicationSchema,
+  QualificationSchema,
   RoundSchema,
   RunImprovementSchema,
   RunSchema,
@@ -242,6 +243,16 @@ export const StoredCertificationSchema = z.object({
   endedAt: z.iso.datetime().optional(),
 });
 export type StoredCertification = z.infer<typeof StoredCertificationSchema>;
+
+/**
+ * A model trained elsewhere taking a finished run's locked test (decision 086). Its attempts are
+ * the run's, under split `test` and a configuration keyed by this id, so they never mix with the
+ * run's own. Finished, its card is evidence and never changes.
+ */
+export const StoredQualificationSchema = QualificationSchema.extend({
+  contextLength: z.number().int().positive(),
+});
+export type StoredQualification = z.infer<typeof StoredQualificationSchema>;
 
 /** The author's raw reply, saved before it is parsed so a restart never pays for it twice. */
 export const AuthorReplySchema = z.object({

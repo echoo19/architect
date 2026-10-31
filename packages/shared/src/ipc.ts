@@ -53,6 +53,7 @@ import type {
   TrainingPlanRequest,
   WrittenTrainBundle,
 } from './training-plan';
+import type { Qualification, QualifyRequest } from './qualification';
 import type { ReportCard } from './report';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
@@ -571,6 +572,15 @@ export interface ArchitectApi {
      * organizations, marked as added later. Asking again only resumes one an error paused.
      */
     qualifyAdded(runId: string, org: string): Promise<void>;
+    /**
+     * Tests a finished run's frozen harness with a model trained elsewhere and served on this
+     * computer (decision 086): the run's locked test and its never-seen organizations, no mentor,
+     * no money. Files a card for the model and never changes the run. Returns at once; asking
+     * again for the same model resumes one an error paused.
+     */
+    qualify(request: QualifyRequest): Promise<Qualification>;
+    /** The trained models qualified on a field's runs, newest first. */
+    qualifications(jobId: string): Promise<Qualification[]>;
     get(runId: string): Promise<RunDetail>;
     list(jobId?: string): Promise<Run[]>;
     /**
