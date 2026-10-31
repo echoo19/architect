@@ -6,6 +6,7 @@ import {
   type ArchitectApi,
   type ChatMessage,
   type PermissionMode,
+  type TeamMember,
   type WorkspaceChat,
   type WorkspaceEvent,
 } from '@architect/shared';
@@ -181,6 +182,9 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     const stamp = store.activeStamp(graduateId);
     if (stamp === null || stamp === graduate.stamp || answering(graduateId)) return graduate;
     const reopened = await openSession(graduateId, threads.get(graduateId));
+    // Closed while it opened again, it stays closed; opened again by another request, that one
+    // stands.
+    if (graduates.get(graduateId) !== graduate) return graduateOf(graduateId);
     graduates.set(graduateId, reopened);
     return reopened;
   }
@@ -217,28 +221,15 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
     await Promise.all(stopping.map((reply) => reply.done));
   }
 
-  /**
-   * A team chat's teammates, each opened again first if another of its versions became active,
-   * then all taken at once with the lead, so the reply runs on the sessions it registers.
-   */
-  async function teamOf(
-    chat: WorkspaceChat,
-    teamId: string,
-  ): Promise<{ lead: GraduateSession; teammates: Teammate[] }> {
+  /** A team chat's teammates as its team lists them now, the lead first and left out. */
+  function teamMembersOf(chat: WorkspaceChat, teamId: string): TeamMember[] {
     const team = store.team(teamId);
     if (!team) throw new CodedError('record_not_found', "This chat's team was removed.");
     const [lead, ...others] = team.members;
     if (lead?.graduateId !== chat.graduateId) {
       throw new Error(`${team.name} has another lead now, so this chat can't go on.`);
     }
-    for (const member of others) await current(member.graduateId);
-    return {
-      lead: graduateOf(lead.graduateId),
-      teammates: others.map((member) => {
-        const session = graduateOf(member.graduateId);
-        return { session, role: member.role ?? session.about.summary };
-      }),
-    };
+    return others;
   }
 
   function startReply(
@@ -442,9 +433,17 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
       const request = text.trim();
       if (request === '') throw new Error('Write a message to send.');
       const chat = chatOf(chatId);
-      let graduate = await current(chat.graduateId);
-      const team = chat.teamId === undefined ? undefined : await teamOf(chat, chat.teamId);
-      if (team !== undefined) graduate = team.lead;
+      const members = chat.teamId === undefined ? undefined : teamMembersOf(chat, chat.teamId);
+      // Every agent the reply runs is opened again first where another version became active.
+      await current(chat.graduateId);
+      for (const member of members ?? []) await current(member.graduateId);
+      // Nothing waits from here to the reply's start, so the sessions taken are the ones it
+      // registers: one closed meanwhile fails the send before anything is kept.
+      const graduate = graduateOf(chat.graduateId);
+      const teammates = members?.map((member): Teammate => {
+        const session = graduateOf(member.graduateId);
+        return { session, role: member.role ?? session.about.summary };
+      });
       if (replies.has(chatId)) {
         throw new Error('This chat is still answering. Stop it or wait for it to finish.');
       }
@@ -466,7 +465,7 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
         request,
         chatHistory(earlier, graduate.contextLength),
         sendOptions,
-        team?.teammates,
+        teammates,
       );
     },
 

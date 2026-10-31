@@ -1,4 +1,13 @@
-import { CodedError, newId, TeamInputSchema, type Team, type TeamInput } from '@architect/shared';
+import {
+  ASK_TEAMMATE,
+  CodedError,
+  GuardError,
+  newId,
+  TeamInputSchema,
+  type Team,
+  type TeamInput,
+} from '@architect/shared';
+import { HARNESS_DIR } from '../graduates/build';
 import type { Clock } from '../loop/deps';
 import { isoNow } from '../loop/time';
 import type { EngineStore } from '../store/engine-store';
@@ -58,12 +67,24 @@ export class TeamLibrary {
   }
 
   /**
-   * Removes the team and its chats. Whoever runs its replies stops them first: a team's replies
-   * run in the agent host, which the caller asks before this.
+   * Removes the team and its chats. Its replies run in the agent host, which the caller asks to
+   * stop them first: while one of its chats is still answering or waits on an approval, the team
+   * stays, so no reply goes on writing for a conversation that is gone.
    */
   remove(teamId: string): void {
-    this.get(teamId);
-    this.ctx.store.teams.remove(teamId);
+    this.ctx.store.transaction(() => {
+      const team = this.get(teamId);
+      const busy = this.ctx.store.chats
+        .listTeam(teamId)
+        .some((chat) => chat.running || chat.waiting);
+      if (busy) {
+        throw new CodedError(
+          'team_answering',
+          `${team.name} is still answering. Stop its replies, then remove it.`,
+        );
+      }
+      this.ctx.store.teams.remove(teamId);
+    });
   }
 
   /** The input as stored: every member an agent here, each name once, so the lead can ask by name. */
@@ -74,6 +95,17 @@ export class TeamLibrary {
       const agent = this.ctx.store.graduates.get(member.graduateId);
       if (!agent) {
         throw new CodedError('agent_not_found', `There is no agent "${member.graduateId}".`);
+      }
+      const active =
+        agent.activeVersion === null
+          ? null
+          : this.ctx.store.versions.get(agent.id, agent.activeVersion);
+      const helper = `${HARNESS_DIR}/tools/${ASK_TEAMMATE}.json`;
+      if (active?.manifest.integrity.files.some((file) => file.path === helper)) {
+        throw new GuardError(
+          'permission',
+          `${agent.name} has a helper called ${ASK_TEAMMATE}, the name of the tool a team's lead asks its teammates with, so it can't join a team.`,
+        );
       }
       if (names.has(agent.name)) {
         throw new Error(

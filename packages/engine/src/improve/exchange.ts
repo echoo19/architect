@@ -27,6 +27,11 @@ export interface ExchangeText {
   from?: string;
 }
 
+/**
+ * A reply's exchange: the agent's own work only. In a team reply a consultation is in it as the
+ * call the lead made and the answer it got back, never the teammate's work, which only the
+ * teammate's job's mentor may read.
+ */
 export function exchangeText({ request, reply }: Exchange): ExchangeText {
   return { request: request.text, work: reply.trace, answer: reply.text };
 }
