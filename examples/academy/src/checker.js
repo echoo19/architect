@@ -188,9 +188,20 @@ function practiceProblem(params, ctx) {
     .filter((row) => text(row.student_id) === params.student_id)
     .map((row) => text(row.question_id));
   const ids = change.added.map((row) => text(row.assignment_id));
-  const missingId = params.assignment_ids.find((id) => !ids.includes(id));
-  if (missingId !== undefined) {
-    return `assignment_id: expected the new rows to be ${params.assignment_ids.join(', ')}, numbered on from the file, but ${missingId} is missing.`;
+  if (params.assignment_ids === null) {
+    // The files state no id format, so any distinct ids that are not already in the file do.
+    const existing = ctx.readOriginalTable('assignments.csv').map((row) => text(row.assignment_id));
+    const bad = ids.find((id, i) => id === '' || ids.indexOf(id) !== i || existing.includes(id));
+    if (bad !== undefined) {
+      return bad === ''
+        ? 'assignment_id: a new row has no id.'
+        : `assignment_id: ${bad} is used twice or is already in the file.`;
+    }
+  } else {
+    const missingId = params.assignment_ids.find((id) => !ids.includes(id));
+    if (missingId !== undefined) {
+      return `assignment_id: expected the new rows to be ${params.assignment_ids.join(', ')}, numbered on from the file, but ${missingId} is missing.`;
+    }
   }
   const seen = [];
   for (const row of change.added) {

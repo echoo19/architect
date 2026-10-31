@@ -159,6 +159,16 @@ export class Records {
     return topicHistory(this.attemptsOn(studentId, topic), this.policy, asOf);
   }
 
+  /**
+   * Whether the new assignment ids are bookkeeping any distinct ids will do for: the file has no
+   * ids to number on from and the policy states no first id, as a real academy's doesn't.
+   */
+  idsAreFree(): boolean {
+    return (
+      this.rows('assignments.csv').length === 0 && !/A-0001/.test(this.files.text('policy.md'))
+    );
+  }
+
   /** What assigning practice on a topic to a student must do. */
   practice(student: CodeRow, topic: string) {
     const id = cell(student, 'student_id');
@@ -187,10 +197,12 @@ export class Records {
         band_high: this.policy.bandHigh,
         assigned_on: this.today,
         assigned_by: cell(student, 'tutor_id'),
-        assignment_ids: nextIds(
-          this.rows('assignments.csv').map((row) => cell(row, 'assignment_id')),
-          count,
-        ),
+        assignment_ids: this.idsAreFree()
+          ? null
+          : nextIds(
+              this.rows('assignments.csv').map((row) => cell(row, 'assignment_id')),
+              count,
+            ),
       },
     };
   }
