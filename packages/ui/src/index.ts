@@ -7,6 +7,7 @@ export {
   NumberTicker,
   PRESS_SCALE,
   Reveal,
+  STEP_SLIDE,
   Stagger,
   StaggerItem,
   StepTransition,
@@ -16,7 +17,9 @@ export {
   springs,
   staggerDelay,
   stepOffset,
+  travel,
   useInstantMotion,
+  useTravel,
   type CollapseProps,
   type DurationPart,
   type MotionProviderProps,
@@ -29,6 +32,7 @@ export {
   type StaggerProps,
   type StepDirection,
   type StepTransitionProps,
+  type TransitionKind,
 } from './motion';
 
 export {
@@ -176,6 +180,7 @@ export {
   type TextareaProps,
 } from './components/input';
 export { Kbd, Shortcut, shortcutLabel, type ShortcutProps } from './components/kbd';
+export { NavItem, type NavItemProps } from './components/nav-item';
 export { PageTabs, type PageTab, type PageTabsProps } from './components/page-tabs';
 export { Progress, type ProgressProps } from './components/progress';
 export { ProviderMark, type ProviderMarkProps } from './components/provider-mark';
