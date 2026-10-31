@@ -275,8 +275,9 @@ function against(step: number): string {
   return `${dollars(Math.abs(step))} ${step > 0 ? 'more' : 'less'} than the attempts record`;
 }
 
-/** What was spent: Spark and compute from their ledgers, and the student's three counts. */
-function moneySection(report: ComparisonReport): string[] {
+/** What was spent: the teacher and compute from their ledgers, and the student's three counts. */
+function moneySection(report: ComparisonReport, names: ModelNames): string[] {
+  const { mentor, student } = names;
   const { totals, credit, calibration, regression } = report;
   const { studentUsd, studentParts } = totals;
   const recorded = studentUsd === null ? null : tenths(studentUsd);
@@ -289,16 +290,15 @@ function moneySection(report: ComparisonReport): string[] {
     ...(regression === null ? [] : [`the regression check ${usd4(studentParts.regressionUsd)}`]),
   ];
   const bullets = [
-    `**Spark: ${usd4(totals.sparkUsd)}.** The cost ledger: every Spark call${reference ? ', and Spark doing the tasks itself as a reference' : ''}. Spark calls are not in the request journal.`,
+    `**${mentor}: ${usd4(totals.sparkUsd)}.** The cost ledger: every ${mentor} call${reference ? `, and ${mentor} doing the tasks itself as a reference` : ''}. ${mentor} calls are not in the request journal.`,
     totals.computeSettled
       ? `**Compute: ${usd4(totals.computeUsd)}.** ${totals.computeUsd === 0 ? 'No training job was paid for.' : 'The training jobs, as they ended.'}`
       : `**Compute: ${usd4(totals.computeUsd)} at most.** A training job had not ended, so this is its whole authorization and the cost may be lower.`,
     recorded === null
-      ? '**Hosted Glimmer, recorded by its attempts: unknown.** The cost of some attempt was not recorded.'
-      : `**Hosted Glimmer, recorded by its attempts: ${dollars(recorded)}.** The cost written down with each attempt, every dollar once: ${list(parts)}.`,
+      ? `**Hosted ${student}, recorded by its attempts: unknown.** The cost of some attempt was not recorded.`
+      : `**Hosted ${student}, recorded by its attempts: ${dollars(recorded)}.** The cost written down with each attempt, every dollar once: ${list(parts)}.`,
   ];
-  const lead =
-    'What was spent, from the records. The projection made before the run is further down, apart from this, and none of it is counted here. The three figures for hosted Glimmer count the same requests in different ways, so they are not added together.';
+  const lead = `What was spent, from the records. The projection made before the run is further down, apart from this, and none of it is counted here. The three figures for hosted ${student} count the same requests in different ways, so they are not added together.`;
   const bulleted = () => bullets.map((bullet) => `- ${bullet}`).join('\n');
   if (credit === null || credit.requests === 0) {
     return [lead, bulleted(), 'The request journal holds no hosted request.'];
@@ -312,19 +312,19 @@ function moneySection(report: ComparisonReport): string[] {
       : `${credit.billedRequests.toLocaleString('en-US')} of them billed by the provider and the rest at the listed price of the usage reported`;
   const held = credit.uncertainRequests + credit.inFlightRequests;
   bullets.push(
-    `**Hosted Glimmer, settled by the provider: ${dollars(settled)}.** The request journal's ${plural(settledRequests, 'request')} with a known charge, ${billed}.${
+    `**Hosted ${student}, settled by the provider: ${dollars(settled)}.** The request journal's ${plural(settledRequests, 'request')} with a known charge, ${billed}.${
       recorded === null
         ? ''
         : ` That is ${against(settled - recorded)}${settled > recorded ? ': the journal writes down every request before it is sent, so it also holds requests that no recorded attempt keeps the cost of (an attempt that failed or was cut off and was made again)' : ''}.`
     }`,
     held === 0
-      ? '**Hosted Glimmer, uncertain: $0.0000.** No request was cut off.'
-      : `**Hosted Glimmer, uncertain: ${dollars(journal - settled)}.** The journal's ${plural(held, 'request')} that a crash or a failure cut off, whose charge is not known, ${held === 1 ? '' : 'each '}counted at the most it could have cost.`,
+      ? `**Hosted ${student}, uncertain: $0.0000.** No request was cut off.`
+      : `**Hosted ${student}, uncertain: ${dollars(journal - settled)}.** The journal's ${plural(held, 'request')} that a crash or a failure cut off, whose charge is not known, ${held === 1 ? '' : 'each '}counted at the most it could have cost.`,
   );
   return [
     lead,
     bulleted(),
-    `The journal counts ${dollars(journal)} in all, settled plus uncertain, of the ${usd(credit.capUsd)} set aside for hosted Glimmer${recorded === null ? '' : `: ${against(journal - recorded)}`}.`,
+    `The journal counts ${dollars(journal)} in all, settled plus uncertain, of the ${usd(credit.capUsd)} set aside for hosted ${student}${recorded === null ? '' : `: ${against(journal - recorded)}`}.`,
   ];
 }
 
@@ -355,6 +355,7 @@ function frozenLines(
   arm: ArmReport,
   adapters: boolean,
   backends: readonly BackendTable[],
+  student: string,
 ): string[] {
   const { frozen } = arm;
   if (frozen === null) return [];
@@ -379,7 +380,7 @@ function frozenLines(
   const measured =
     local.length === 0
       ? hosted
-        ? 'All of its measurements here are from hosted Glimmer; that local build was not measured.'
+        ? `All of its measurements here are from hosted ${student}; that local build was not measured.`
         : 'It has no final-test result here, so that local build was not measured either.'
       : `Its final test ${hosted ? 'also ' : ''}ran on this computer; see ${local.length === 1 ? 'the table' : 'the tables'} ${list(local.map((table) => `"${table.label}"`))}.`;
   return [
@@ -423,8 +424,21 @@ function devNote(arms: readonly ArmReport[]): string {
   return sentences.join(' ');
 }
 
+/** The teacher's and the student's names, as the comparison's job labels them. */
+export interface ModelNames {
+  mentor: string;
+  student: string;
+}
+
+/** The defaults' names (decision 094), for a report made before the models were chosen. */
+const DEFAULT_NAMES: ModelNames = { mentor: 'Spark', student: 'Glimmer' };
+
 /** The whole report as Markdown. */
-export function renderMarkdown(report: ComparisonReport): string {
+export function renderMarkdown(
+  report: ComparisonReport,
+  names: ModelNames = DEFAULT_NAMES,
+): string {
+  const { mentor, student } = names;
   const adapters = report.arms.some(
     (arm) => ADAPTER_ARMS.includes(arm.arm) && arm.status !== 'not_run',
   );
@@ -458,19 +472,19 @@ export function renderMarkdown(report: ComparisonReport): string {
     parts.push(
       sweepLine(
         report.calibration,
-        'Glimmer alone on the calibration tasks, run first to price an attempt',
+        `${student} alone on the calibration tasks, run first to price an attempt`,
       ),
     );
   if (report.regression !== null)
     parts.push(
       sweepLine(
         report.regression,
-        'Glimmer alone on check tasks of a second job, to check the runtime',
+        `${student} alone on check tasks of a second job, to check the runtime`,
       ),
     );
 
   parts.push('## Money');
-  parts.push(...moneySection(report));
+  parts.push(...moneySection(report, names));
 
   parts.push('## Arms');
   parts.push(
@@ -499,8 +513,8 @@ export function renderMarkdown(report: ComparisonReport): string {
       [
         '#',
         'Arm',
-        'Spark: spent of its cap, tokens',
-        'Glimmer: spent of its cap, attempts',
+        `${mentor}: spent of its cap, tokens`,
+        `${student}: spent of its cap, attempts`,
         'Compute',
         'Examples / trained tokens',
       ],
@@ -523,9 +537,9 @@ export function renderMarkdown(report: ComparisonReport): string {
       ...(arm.cumulative === null || arm.cumulative.builtOn.length === 0
         ? []
         : [
-            `Its graduate's cumulative development cost, with the ${arm.cumulative.builtOn.map((other) => armInSentence(ARM_LABELS[other])).join(' and ')} arm's: Spark ${usd(arm.cumulative.sparkUsd)}, Glimmer ${usd(arm.cumulative.studentUsd)}, compute ${usd(arm.cumulative.computeUsd)}.`,
+            `Its graduate's cumulative development cost, with the ${arm.cumulative.builtOn.map((other) => armInSentence(ARM_LABELS[other])).join(' and ')} arm's: ${mentor} ${usd(arm.cumulative.sparkUsd)}, ${student} ${usd(arm.cumulative.studentUsd)}, compute ${usd(arm.cumulative.computeUsd)}.`,
           ]),
-      ...frozenLines(arm, adapters, report.backends),
+      ...frozenLines(arm, adapters, report.backends, student),
       ...arm.experiments.map((experiment) => {
         const regressed = experiment.regressions
           .map((item) => `${item.type} (${item.before} to ${item.after})`)
@@ -601,9 +615,9 @@ export function renderMarkdown(report: ComparisonReport): string {
           'Arm',
           'Hosted attempts',
           'Local attempts',
-          'Spark calls / tasks',
-          'Projected Glimmer',
-          'Projected Spark',
+          `${mentor} calls / tasks`,
+          `Projected ${student}`,
+          `Projected ${mentor}`,
           'Projected compute',
           'Local GPU',
           'Wall clock',
@@ -624,7 +638,7 @@ export function renderMarkdown(report: ComparisonReport): string {
       ),
     );
     parts.push(
-      `Projected for the funded arms: Glimmer ${usd(projection.funded.studentUsd)} of ${usd(projection.caps.studentUsd)}, Spark ${usd(projection.funded.sparkUsd)} of ${usd(projection.caps.sparkUsd)}, compute ${usd(projection.funded.computeUsd)} of ${usd(projection.caps.computeUsd)}, local GPU ${Math.ceil(projection.funded.localMinutes)} of ${Math.floor(projection.caps.localMinutes)} minutes, about ${Math.ceil(projection.funded.wallMinutes)} minutes of wall clock.`,
+      `Projected for the funded arms: ${student} ${usd(projection.funded.studentUsd)} of ${usd(projection.caps.studentUsd)}, ${mentor} ${usd(projection.funded.sparkUsd)} of ${usd(projection.caps.sparkUsd)}, compute ${usd(projection.funded.computeUsd)} of ${usd(projection.caps.computeUsd)}, local GPU ${Math.ceil(projection.funded.localMinutes)} of ${Math.floor(projection.caps.localMinutes)} minutes, about ${Math.ceil(projection.funded.wallMinutes)} minutes of wall clock.`,
     );
   }
 

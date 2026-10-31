@@ -67,9 +67,15 @@ test('the Lab shows the science lab beside the other fields', async () => {
   await expect(sweep).toContainText('92%');
   await expect(sweep).toContainText('Never seen');
   await expect(sweep).toContainText('77%');
+  // Sweep desk has no real organization, so it has no Real figure at all.
+  await expect(sweep).not.toContainText('Real');
   const fields = card('Fields');
-  await expect(fields.getByRole('button', { name: /Sweep desk.*3 organizations/ })).toBeVisible();
-  await expect(fields.getByRole('button', { name: /Assay desk.*3 organizations/ })).toBeVisible();
+  await expect(
+    fields.getByRole('button', { name: /Sweep desk.*3 taught on · 1 never seen/ }),
+  ).toBeVisible();
+  await expect(
+    fields.getByRole('button', { name: /Assay desk.*3 taught on · 1 never seen/ }),
+  ).toBeVisible();
   await expect(
     card('Experiments').getByRole('button', { name: new RegExp(SWEEP_EXPERIMENT.input.name) }),
   ).toContainText('Finished');
@@ -89,6 +95,7 @@ test('the Lab shows the science lab beside the other fields', async () => {
 test("Sweep desk's field: its skills by research group, its timeline and its groups' files", async () => {
   await openAt(`/fields/${SWEEP.job}`);
   await expect(page.getByRole('heading', { name: 'Sweep desk', level: 1 })).toBeVisible();
+  await expect(page.getByText('3 taught on · 1 never seen', { exact: true })).toBeVisible();
   const grid = page.getByRole('table', { name: 'Final test by organization' });
   await expect(grid.getByRole('columnheader', { name: 'Fennick Research' })).toBeVisible();
   await expect(grid.getByLabel('Did it help at Fennick Research, 5 of 8 passed')).toBeVisible();

@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
-import { stubFields } from './fixtures-fields';
+import { FIELD_VIEWS, stubFields } from './fixtures-fields';
+import { stubByKey } from './fixtures-flow';
 import { LAB, stubLab } from './fixtures-lab';
 import { installModelsFake } from './fixtures-models';
 import { CHATS } from './fixtures-workspace';
@@ -77,6 +78,8 @@ test('offers the ways in on a fresh install', async () => {
 
 test('shows what needs the person and what runs, then what finished, spent and serves', async () => {
   await stubLab(launched.app);
+  // The Fields card counts each field's organizations from its view.
+  await stubByKey(launched.app, 'jobs:field', FIELD_VIEWS);
   await reloadAt('/');
 
   const needs = card('Needs you');
@@ -123,7 +126,9 @@ test('shows what needs the person and what runs, then what finished, spent and s
   await expect(spend).toContainText('$0.61');
 
   await expect(
-    card('Fields').getByRole('button', { name: /Academy desk.*3 organizations/ }),
+    card('Fields').getByRole('button', {
+      name: /Academy desk.*3 taught on · 2 never seen, 1 real/,
+    }),
   ).toBeVisible();
   // The versions Models lists as active.
   await expect(

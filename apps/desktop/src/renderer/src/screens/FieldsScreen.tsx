@@ -28,7 +28,7 @@ import {
 import { Organizations } from '../fields/Organizations';
 import { Overview } from '../fields/Overview';
 import { Tasks } from '../fields/Tasks';
-import { scoreCell } from '../fields/parts';
+import { orgCountText, scoreCell } from '../fields/parts';
 import { shortDate } from '../flow/format';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
@@ -206,6 +206,7 @@ function Field({ field, opensOn }: { field: FieldSummary; opensOn: FieldTab }) {
     <PlacePage
       title={job.name}
       back={{ label: 'Fields', onClick: () => navigate(paths.fields()) }}
+      status={<span className="text-small">{orgCountText(orgCounts(field.view))}</span>}
       action={
         <div className="flex items-center gap-2">
           <Button size="md" onClick={() => navigate(paths.define(job.id))}>

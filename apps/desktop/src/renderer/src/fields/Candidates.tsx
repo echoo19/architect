@@ -5,7 +5,7 @@ import { shortDate } from '../flow/format';
 import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
-import { bestCandidate, rateOf, type Candidate, type FieldSummary } from './model';
+import { bestCandidate, orgCounts, rateOf, type Candidate, type FieldSummary } from './model';
 import { scoreCell } from './parts';
 
 /**
@@ -86,13 +86,18 @@ export function Candidates({ field }: { field: FieldSummary }) {
             cell: (candidate) => scoreCell(candidate.scores.unseen),
             sortValue: (candidate) => rateOf(candidate.scores.unseen),
           },
-          {
-            key: 'real',
-            header: 'Real',
-            align: 'end',
-            cell: (candidate) => scoreCell(candidate.scores.real),
-            sortValue: (candidate) => rateOf(candidate.scores.real),
-          },
+          // A field with no real organization has no Real column, rather than an empty one.
+          ...(orgCounts(field.view).real
+            ? [
+                {
+                  key: 'real',
+                  header: 'Real',
+                  align: 'end' as const,
+                  cell: (candidate: Candidate) => scoreCell(candidate.scores.real),
+                  sortValue: (candidate: Candidate) => rateOf(candidate.scores.real),
+                },
+              ]
+            : []),
           {
             key: 'agent',
             header: 'Agent',

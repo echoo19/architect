@@ -188,7 +188,6 @@ function card(
     name: 'Sweep desk',
     organizationNoun: SWEEP_DESK_JOB.organizationNoun,
     createdAt,
-    testedOn: 'hosted',
     test: {
       ...storyReport.test,
       score: test.score,

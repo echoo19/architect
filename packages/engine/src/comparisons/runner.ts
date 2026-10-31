@@ -1479,7 +1479,11 @@ async function report(
 ): Promise<ComparisonReport> {
   const built = await composeReport(request, env, engine, files, base, guards);
   await writeFile(files.reportJson, `${JSON.stringify(built, null, 2)}\n`);
-  await writeFile(files.reportMarkdown, renderMarkdown(built));
+  const job = comparisonJob(base, request.config, request.models);
+  await writeFile(
+    files.reportMarkdown,
+    renderMarkdown(built, { mentor: job.mentor.label, student: job.student.label }),
+  );
   return built;
 }
 
