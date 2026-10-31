@@ -68,10 +68,10 @@ describe('experiment results', () => {
     expect(verdictOf({ rate: -0.2, low: -0.3, high: -0.05 })).toBe('loss');
   });
 
-  it('writes a difference as signed points with a true minus', () => {
-    expect(points(0.23333)).toBe('+23.3');
-    expect(points(-0.0125)).toBe('\u22121.3');
-    expect(points(0)).toBe('0.0');
+  it('writes a difference as signed whole points with a true minus', () => {
+    expect(points(0.23333)).toBe('+23');
+    expect(points(-0.0125)).toBe('\u22121');
+    expect(points(0)).toBe('0');
   });
 
   it('reads a one-organization test as one group, from the report its interval', () => {
@@ -141,7 +141,7 @@ describe('experiment plans', () => {
       'Choose a part of the final test this field has.',
     );
     expect(primaryText(primary)).toBe(
-      'Targeted mentoring minus Bare student, on the organizations it never sees',
+      'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
     );
     // Taking an arm of the comparison out clears it, to be chosen again.
     expect(withArms(primary, ['bare', 'draft']).primaryComparison).toBeUndefined();

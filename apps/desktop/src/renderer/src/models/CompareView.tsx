@@ -17,7 +17,7 @@ import { ProblemState } from '../components/ProblemState';
 import { shortDate } from '../flow/format';
 import { changeSummary } from '../flow/train/diff';
 import { sentence } from '../flow/train/evidence-words';
-import { formatPercent } from '../lib/format';
+import { formatScore } from '../lib/format';
 import { PlacePage } from '../shell/PlacePage';
 import {
   baseModelOf,
@@ -144,12 +144,7 @@ const FACTS: { label: string; value: (row: ModelRow) => ReactNode }[] = [
     value: (row) => {
       const check = scoresOf(row).check;
       return check ? (
-        <span className="tabular-nums">
-          {formatPercent(check)}{' '}
-          <span className="font-mono text-small">
-            {check.pass}/{check.total}
-          </span>
-        </span>
+        <span className="tabular-nums">{formatScore(check)}</span>
       ) : (
         <span aria-label="None">–</span>
       );

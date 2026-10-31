@@ -4,7 +4,7 @@ import { Button, SettingsRow, SettingsSection, Skeleton, VersionTag } from '@arc
 import { ArrowUpRight, Undo2 } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
-import { formatPercent } from '../../lib/format';
+import { formatScore } from '../../lib/format';
 import { LessonsSection } from '../teach/LessonsSection';
 import { MoveDialog } from './MoveDialog';
 import {
@@ -125,16 +125,9 @@ function VersionRow({
         meta={meta}
       >
         <div className="flex items-center gap-4">
-          {score && (
-            <span className="flex flex-col items-end tabular-nums">
-              <span className="font-mono">{formatPercent(score)}</span>
-              <span className="text-small text-fg">
-                {score.pass} of {score.total} passed
-              </span>
-            </span>
-          )}
+          {score && <span className="whitespace-nowrap tabular-nums">{formatScore(score)}</span>}
           {/* The same width on every row, so the scores line up whether or not a row has one. */}
-          <div className="flex w-[168px] justify-end">
+          <div className="flex w-[200px] shrink-0 justify-end">
             {move !== null && (
               <Button size="xs" onClick={() => onMove(move)}>
                 {move === 'promote' ? (

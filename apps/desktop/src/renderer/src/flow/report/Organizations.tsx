@@ -15,7 +15,7 @@ function opensGroup(grid: OrgGrid, index: number): boolean {
 }
 
 function Cell({ score, label, strong }: { score: Score | null; label: string; strong?: boolean }) {
-  if (score === null) return <span aria-label={`${label}, not tested`} />;
+  if (score === null) return <span aria-label={`${label}, None`}>–</span>;
   return (
     <span
       aria-label={`${label}, ${score.pass} of ${score.total} passed`}
@@ -29,7 +29,7 @@ function Cell({ score, label, strong }: { score: Score | null; label: string; st
 /**
  * The final test, skill by skill, at each organization: those it trained with, those it never
  * saw, and a real one it never saw, each with its own result. A skill not tested at an
- * organization leaves its cell empty, which is not a zero.
+ * organization shows a dash, read as None, which is not a zero.
  */
 export function Organizations({ grid, actions }: { grid: OrgGrid; actions?: ReactNode }) {
   const columns = grid.groups.flatMap((group) => group.columns);

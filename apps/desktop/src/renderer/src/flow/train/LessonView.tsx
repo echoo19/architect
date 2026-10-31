@@ -89,7 +89,7 @@ export function LessonDrawerContent({
           names={names}
         />
         {lesson.diagnosis && sourceId !== null && (
-          <DrawerSection title={`${names.mentor}'s finding`} tone="mentor">
+          <section aria-label={`${names.mentor}'s finding`} className="flex min-w-0 flex-col gap-3">
             <p className="m-0 text-body text-fg text-pretty">{lesson.diagnosis.cause}</p>
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small text-fg">
               {lesson.diagnosis.evidence.map((item) => (
@@ -109,7 +109,7 @@ export function LessonDrawerContent({
               Open {names.student}&apos;s attempt at step {lesson.diagnosis.failureTurn}
               <ArrowRight size={14} strokeWidth={2} aria-hidden />
             </Button>
-          </DrawerSection>
+          </section>
         )}
         <LessonSteps
           lesson={lesson}
