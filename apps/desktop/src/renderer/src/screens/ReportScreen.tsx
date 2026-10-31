@@ -107,7 +107,7 @@ function useReportAgent(report: ReportCard) {
     },
     here,
   );
-  return { graduate, installation: installation.data ?? null, verdict, here };
+  return { graduate, installation: installation.data ?? null, verdict };
 }
 
 /**
@@ -184,7 +184,7 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const evidence = useReportEvidence(report);
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
-  const { graduate, installation, verdict, here } = useReportAgent(report);
+  const { graduate, installation, verdict } = useReportAgent(report);
   const lab = useEdition() === 'lab';
   const shownJob = job.status === 'success' ? job.data : null;
   const shownRun = run.data?.run ?? null;
@@ -201,7 +201,6 @@ function LoadedReport({ report }: { report: ReportCard }) {
       run={shownRun}
       installation={installation}
       comparisonReport={comparisonReport}
-      here={here}
       contacts={run.data?.contacts}
       {...(lab
         ? {

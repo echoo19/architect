@@ -340,7 +340,10 @@ test('changes what the agent may write and opens its settings', async () => {
 
   await dialog.getByRole('tab', { name: 'Results' }).click();
   await expect(dialog.getByText('92%')).toBeVisible();
-  await expect(dialog.getByText("Its job says it won't issue refunds or credits")).toBeVisible();
+  // A refused type is folded into the limit that names it, with its reason a click away.
+  expect(await infoTipText(page, dialog, 'Issues refunds or credits')).toContain(
+    "Its job says it won't issue refunds or credits",
+  );
   await capture('workspace-agent-report-dark.png');
 
   await dialog.getByRole('tab', { name: 'Permissions' }).click();
