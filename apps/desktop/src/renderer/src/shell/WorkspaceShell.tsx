@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { StepTransition } from '@architect/ui';
+import { StepTransition, useTravel } from '@architect/ui';
 import type { Route } from '../lib/router';
+import { PLACES, placeOf } from './places';
 import { AgentSettingsModal } from '../workspace/settings/AgentSettingsModal';
 import { useWorkspaceEvents } from '../workspace/store';
 import { Sidebar } from './Sidebar';
@@ -19,15 +20,31 @@ function transitionKey(route: Route): string {
   }
 }
 
-/** The sidebar of places and agents on the left, the current screen on the right. */
+/** Where a route's row stands in the sidebar: the places in order, then the agents below them. */
+function sidebarOrder(route: Route): number {
+  const place = placeOf(route);
+  const index = PLACES.findIndex((p) => p.id === place);
+  return index === -1 ? PLACES.length : index;
+}
+
+/**
+ * The sidebar of places and agents on the left, the current screen on the right. A new page
+ * rises in from the side of the sidebar the person moved toward: from below going down the
+ * places, from above going up. Coming back from the flow or setup, the page rises in too.
+ */
 export function WorkspaceShell({ route, children }: { route: Route; children: ReactNode }) {
   useWorkspaceEvents();
+  const key = transitionKey(route);
+  const direction = useTravel(key, sidebarOrder(route));
   return (
     <div className="flex h-full bg-ground">
       <Sidebar route={route} />
       <main className="flex min-w-0 flex-1 flex-col">
         <StepTransition
-          transitionKey={transitionKey(route)}
+          transitionKey={key}
+          kind="place"
+          direction={direction}
+          appear
           className="flex min-h-0 flex-1 flex-col"
         >
           {children}

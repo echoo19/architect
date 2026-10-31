@@ -12,6 +12,7 @@ import {
   Inspector,
   IntervalPlot,
   Meter,
+  NavItem,
   ToggleRow,
   intervalPercent,
   intervalText,
@@ -22,6 +23,30 @@ import {
 } from '../src';
 
 const icon = createElement('svg', { 'data-icon': true });
+
+describe('NavItem', () => {
+  const row = (props: Partial<Parameters<typeof NavItem>[0]>) =>
+    renderToStaticMarkup(
+      createElement(NavItem, { onClick: () => undefined, children: 'Models', ...props }),
+    );
+
+  it('marks the page on screen, and only that row', () => {
+    expect(row({ current: true })).toContain('aria-current="page"');
+    expect(row({})).not.toContain('aria-current');
+  });
+
+  it('draws the selected fill as the sliding piece when its rows share one', () => {
+    const sliding = row({ current: true, indicator: 'sidebar' });
+    expect(sliding).toMatch(/<span aria-hidden="true" class="absolute inset-0[^"]*bg-selected/);
+    expect(sliding).not.toMatch(/<button[^>]*class="[^"]*bg-selected/);
+    expect(row({ current: true })).toMatch(/<button[^>]*class="[^"]*bg-selected/);
+  });
+
+  it('keeps hover off the current row and on the others', () => {
+    expect(row({ current: true, indicator: 'sidebar' })).not.toContain('hover:bg-hover');
+    expect(row({})).toContain('hover:bg-hover');
+  });
+});
 
 describe('Card and CardGrid', () => {
   it('names its region by its title and puts the action in the title row', () => {

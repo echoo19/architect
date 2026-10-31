@@ -90,7 +90,7 @@ describe('ProgressStepper', () => {
     expect(html).toContain('Package<span class="sr-only">, done</span>');
     expect(html).toContain('Permissions<span class="sr-only">, done</span>');
     // The step being worked on isn't passed yet, so it says nothing of the sort.
-    expect(html).not.toContain('Install<span');
+    expect(html).not.toContain('Install<span class="sr-only">');
   });
 });
 

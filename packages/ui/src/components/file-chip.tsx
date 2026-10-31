@@ -70,7 +70,7 @@ export function FileChip({ name, icon, kind, onRemove, className }: FileChipProp
       )}
     >
       <span className="flex shrink-0" aria-hidden>
-        {icon ?? <File size={14} strokeWidth={1.6} />}
+        {icon ?? <File size={14} strokeWidth={1.8} />}
       </span>
       <span className="min-w-0 truncate">
         {name}

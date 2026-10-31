@@ -133,6 +133,22 @@
   }
 }
 
+/*
+ * A scrolling region whose scrollbar shows only while the pointer is over it, as in the sidebar,
+ * a place's page and the inspector: there when wanted, out of sight otherwise.
+ */
+@utility scroll-quiet {
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background: var(--ui-scrollbar) padding-box;
+  }
+  &:hover::-webkit-scrollbar-thumb:hover {
+    background: var(--ui-scrollbar-hover) padding-box;
+  }
+}
+
 /* Regions that move the window when dragged (custom title bar). */
 @utility app-drag {
   -webkit-app-region: drag;

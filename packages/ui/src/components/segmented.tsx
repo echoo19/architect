@@ -41,7 +41,7 @@ export function Segmented<T extends string>({
       }}
       disabled={disabled}
       aria-label={props['aria-label']}
-      className={cn('inline-flex shrink-0 rounded-full bg-field p-[3px] shadow-edge', className)}
+      className={cn('inline-flex shrink-0 rounded-full bg-field p-1 shadow-edge', className)}
     >
       {options.map((option) => (
         <ToggleGroup.Item

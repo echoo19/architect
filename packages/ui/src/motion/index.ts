@@ -20,8 +20,12 @@ export {
 } from './reveal';
 export { FLOAT_SCALE, PRESS_SCALE, motionSettings, springs, type MotionSettings } from './springs';
 export {
+  STEP_SLIDE,
   StepTransition,
   stepOffset,
+  travel,
+  useTravel,
   type StepDirection,
   type StepTransitionProps,
+  type TransitionKind,
 } from './step-transition';
