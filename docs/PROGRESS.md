@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat, midday), status (start the next session here)
+
+- *Merged into `field/main` since the morning entry:* the tutor's public name in README, site and docs; `architect serve` (080); the runner's pause instead of a silent drop (081); the leak fingerprint fix with an empty-fingerprint guard (082, reviewed adversarially: no lost detection on the academy job); experiments on library fields with a hypothesis and a primary comparison (074 amended; a one-arm plan needs only a hypothesis); a Lab field made from several organizations' folders, with `docs/JOB_FORMAT.md` (083). `pnpm check` passes (3,751 tests).
+- *In flight:* the third tutor run in `architect-runs/runtree` (rebuilt at `13ee093c`; mentoring now passes the leak gate); `certify/post-hoc` (079) is merging `field/main` to resolve vault conflicts with 082 and 074; `app/rename-tutor` (the app, fixtures, examples and screenshots); `lab/browsers` (tasks, attempts and harness files, 084).
+- *Next:* certify the third run's frozen tutor (079, about $5) once it finishes; the remaining audit gaps (adding a sealed organization later, per-organization check scores while training, a model trained elsewhere back as a local OpenAI-compatible student, candidates in Models, the organization word from the job); a Hestia-inspired pass on one visual language and smooth motion; the full stand-in e2e suite (include `engine.spec.ts` and `hub.spec.ts`), a PR to `main` and release 0.7.0.
+- *Reviews:* Codex is out of credits until Nov 4, 3:01 AM; independent Claude reviewers (adversarial brief, given code, not conclusions) stand in.
+
 ## 2026-10-30 (Fri, evening), experiments from fields in the library (branch `lab/experiments-from-fields`)
 
 **Done** (no model was called, no GPU, no spend; decision 074's amendment)
