@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun), `compute/connect` (from `field/main`): cluster training one step from the work
+
+- *Done:* decision 092. Compute opened for a field (`/compute/fields/<job>[/<model>]`) starts its plan from the field's student, mapped to its Hugging Face repository by `trainingRepoFor` (Glimmer today) and read at once; a model it can't place leaves the model empty with the field named. "Plan cluster training" on Define's Student tab (Lab only), a version's panel in Models and beside an experiment's weights arms; the export toast and the timeline's Compute rows open Compute for the field. Field exports are recorded by the main process in settings (`fieldExports`, not writable from the renderer) and survive a restart; an earlier export's folder is chosen again ("Choose again" opens the dialog there) before it is read. A third bundle target, SkyPilot (`sky.yaml`, `sky launch -c architect-train sky.yaml`), in the app and the CLI; Compute's Slurm and Kubernetes cards became one Clusters card with all three, "Bundle only".
+- *Tests:* engine `training-bundle.test.ts` (stand-in `sky`, bash parse, GPU names), CLI `train.test.ts`, shared `models.test.ts`, desktop `settings.test.ts`, `engine-handlers.test.ts`, `routing.test.ts`, `edition.test.ts`, `compute-connect.test.ts`; hidden e2e `compute-field.spec.ts` (fake Hub with a stand-in config shaped like a 30B mixture, not Glimmer's real one), `compute.spec.ts`, `links.spec.ts`, `experiments-screens.spec.ts`, `field-timeline.spec.ts` updated. Screenshots `compute-field*-dark.png`, `compute-skypilot-dark.png`; `compute-dark.png` and the link screenshots retaken.
+- *Open:* no cluster job has run; the SkyPilot task is checked structurally only, like the others. `trainingRepoFor` knows only Glimmer; any other student needs its repository typed. Bundles written aren't recorded. Not merged or pushed.
+
 ## 2026-11-01 (Sun), `lab/timeline-learned` (from `field/main`): the timeline shows Learned from
 
 - *Done:* the field timeline (091) has a "Learned from" stage (089). A version made by teaching on a never-seen organization opens with a row for the version it was made from; the earlier field gets a row for each later version taught on one of its never-seen organizations. Each row opens the other field. Read from `jobs.field` (`versionOf`, `taughtIn`) and, for a later version's date, `jobs.get`; no new engine call, `FieldSummary` unchanged.
