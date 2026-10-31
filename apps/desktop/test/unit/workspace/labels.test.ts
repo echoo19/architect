@@ -7,6 +7,7 @@ import {
   isFigureColumn,
   isTotalRow,
   listInSentence,
+  answerText,
   consultMeta,
   namesInSentence,
   previewRows,
@@ -263,6 +264,13 @@ describe('consultation words', () => {
     // Saved before outcomes were kept: a failed step failed, any other answered.
     expect(consultMeta(consult('error'))).toBe('Stopped with an error');
     expect(consultMeta(consult('done'))).toBe('Three compounds from FW-0417.');
+  });
+
+  it("keeps a teammate's words and drops the ANSWER line its task ends with", () => {
+    expect(answerText('FW-0418 passes QC.\nBoth are queued.\nANSWER: {"retests": 2}')).toBe(
+      'FW-0418 passes QC.\nBoth are queued.',
+    );
+    expect(answerText('ANSWER: {"retests": 0}')).toBe('');
   });
 
   it('joins names as written', () => {

@@ -15,6 +15,7 @@ import {
 import { ChevronRight, Layers } from 'lucide-react';
 import { CodeView } from '../components/CodeView';
 import {
+  answerText,
   cellText,
   consultMeta,
   currentStep,
@@ -110,7 +111,11 @@ export function Steps({
             ),
           )}
           {message.graduateVersion !== undefined && (
-            <VersionLine>Answered by version {message.graduateVersion}</VersionLine>
+            <VersionLine>
+              Answered by version {message.graduateVersion}
+              {/* No certificate covers an agent asking another (decision 100). */}
+              {message.team && ', not certified as a team'}
+            </VersionLine>
           )}
         </ol>
       </Collapse>
@@ -206,6 +211,7 @@ function ConsultRow({
   const working = step.status === 'running';
   const answered = !working && (view.outcome ?? 'answered') === 'answered';
   const request = consultation?.request ?? step.detail;
+  const answer = consultation ? answerText(consultation.text) : '';
   return (
     <Reveal as="li" className="flex min-w-0 flex-col py-[5px]">
       <button
@@ -229,6 +235,11 @@ function ConsultRow({
           {view.steps.map((item) => (
             <StepRow key={item.id} step={item} onOpenPanel={onOpenPanel} />
           ))}
+          {answer !== '' && (
+            <li className="whitespace-pre-wrap break-words py-[5px] text-fg text-pretty">
+              {answer}
+            </li>
+          )}
           {!working && (
             <VersionLine
               end={

@@ -103,6 +103,15 @@ export function consultMeta(step: AgentStep): string | undefined {
   return outcome === 'answered' ? step.meta : CONSULT_OUTCOME_WORDS[outcome];
 }
 
+/** What a teammate told the lead, in words: its text without the ANSWER line its task ends with. */
+export function answerText(text: string): string {
+  return text
+    .split('\n')
+    .filter((line) => !/^\s*ANSWER:/.test(line))
+    .join('\n')
+    .trim();
+}
+
 /** "1 step", "3 steps". */
 export function stepCount(count: number): string {
   return count === 1 ? '1 step' : `${count} steps`;
