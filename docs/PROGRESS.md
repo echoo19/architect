@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, morning), `trainer/lora-targets` (from `field/main` 269573f9): no q or k LoRA
+
+- *Done:* decision 104. qlora-1's A100 job trained (6 steps, loss 0.106 to 0.0071) and then failed in llama.cpp's converter. At the pinned commit, Glimmer's converter can't carry a LoRA on the q or k projections. The recipe now adapts v, o and the attention gate, and the MLP's gate, up and down.
+- *Verified:* `trainer-recipe.test.ts` (q and k are not targets), failing before the change. On the pinned image, a `cpu-upgrade` job ran the pinned converter on synthetic adapters with Glimmer's shapes: all 8 targets failed the same way, these 6 converted. The GGUF passed the product's adapter checks against the local base header.
+- *Next:* merge, re-pin, send qlora-1 again.
+
 ## 2026-11-01 (Sun, morning), `runs/assay-2`: the second Assay desk run
 
 - *Done:* `architect-runs/assay-2` on `runtree-a385c043` (field/main `a385c043`), no patches, registered before it ran: bare, draft, targeted (2 rounds, `--spark-cap targeted=1.6`) and the seed-102 repeat, $15 student and $3 Spark caps. Spark's draft failed validation (bad example files), so the taught arm drafted for itself in round 1 (kept, dev 5/36 to 12/36); round 2 was refused at its counterexample check (Z′ wrong). Primary, taught minus bare on Corvid Hill: +18.8 points (+2.2 to +34.3) under seed 101 and +16.7 (+3.8 to +29.3) under seed 102, a gain both times; all 84: 25 and 26 against 10 and 12. Spend: student $6.67, Spark $0.54. Report: `docs/comparisons/assay-desk-2.md`.
