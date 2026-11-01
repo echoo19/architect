@@ -63,8 +63,15 @@ describe('a closed network', () => {
     expect(contactsLine([at('a', true), at('b', true), at('c', true)])).toBe(
       'Contacted 3 hosts, all inside the network',
     );
-    expect(contactsLine([at('a', false), at('b', false)])).toBe(
-      'Contacted 2 hosts, with no closed network on',
+    // With no closed network on, hosts on this computer are said apart from those online.
+    expect(contactsLine([at('127.0.0.1:11434', false), at('localhost:1234', false)])).toBe(
+      'Contacted 2 hosts, both on this computer',
+    );
+    expect(contactsLine([at('127.0.0.1:11434', false), at('api.llama.com', false)])).toBe(
+      'Contacted 2 hosts: api.llama.com online, and 1 on this computer',
+    );
+    expect(contactsLine([at('a.example', false), at('b.example', false)])).toBe(
+      'Contacted 2 hosts: a.example, b.example online',
     );
     expect(contactsLine([at('a', true), at('b', false), at('c', true)])).toBe(
       'Contacted 3 hosts, 2 of them inside the network',
