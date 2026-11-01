@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, morning), `runs/team-2`: the second agent-team run, after the lead was told when to ask
+
+- *Done:* `architect-runs/team-2` on `runtree-53b52a38` (field/main `53b52a38`, with `team/ask-when`), no patches, team-1's protocol and requests, $3 cap. Amendment 1 after the first pair: round-robin over labs and a $0.45 guard, so the cap couldn't cut off Corvid Hill; all 40 ran. Team 0/20, Inventory desk alone 0/20, Corvid Hill 0/5 both. The lead asked in 18 of 20 team replies (team-1: 2); 66 asks ran and 79 more were refused at the 4-ask cap. No ask brought back a plate's list: Assay desk ran out of steps (31) or filled its context (14), 15 "answered" asks were a tool call written as text, and the 6 real answers read `retests.csv` (already-booked re-tests) instead of the plate. At Alder Row the lead twice allocated the compound the teammate returned, so its answer depended on the teammate's, but on the wrong list. Spend $2.37 (team $2.18). Report: `docs/comparisons/team-2.md`.
+- *Open:* what to ask for. The lead asks for file rows it saw named, not for the teammate's plate work. A teammate run that ends on markup counts as answered; it could be `no_answer`. Assay desk's plate tool still overflows its context, so the team can't pass until that agent can read a plate within it.
+
 ## 2026-11-01 (Sun, morning), `team/ask-when` (from `field/main` dccb1e1d): the lead is told when to ask
 
 - *Done:* after team-1 (the lead asked in 2 of 20 replies), `ask_teammate`'s description names each teammate's data files by name (`GraduateSession.about.files`), and the lead's system prompt in a team reply gets one line on when to ask and what to ask for (`ExtraTool.instruction`, `TEAM_INSTRUCTION`). Invariants unchanged: only text crosses, depth 1, 4 asks. Decision 100 amended. The tool-call-as-text failures are not a chat-path parsing difference (one loop and one stream reader for both modes, and task-mode runner traces show it too), so no change there.
