@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
-import { allowMoreTime, goTo, infoTipText, launchApp, settle, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
 import { ASK, DESCRIPTION, draftReply, ROUND_DRAFT } from './fixtures-drafting';
 import { FLOW_LOCAL } from './fixtures-flow';
@@ -290,10 +290,12 @@ test('describes a job, answers a question and trains on the tasks it made', asyn
   expect(job.student.trainOn).toBe('local');
   expect(job.student.hosted).toBeUndefined();
 
-  // This computer can't fit a round in the four hours a drafted job allows, so Start training
-  // waits and says why, with more time one button away.
-  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-  await allowMoreTime(page);
+  // A drafted job comes with a time limit this computer fits its rounds in, past the four hours
+  // a draft has, so Start training is ready and no callout asks for more time.
+  expect(job.budget.maxWallMinutes).toBeGreaterThan(240);
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Not even one round of teaching' }),
+  ).toHaveCount(0);
 
   // Start training: the run works on the tasks Architect made, and the checker grades them.
   await page.getByRole('button', { name: 'Start training' }).click();

@@ -182,7 +182,7 @@ describe('Teach this', () => {
     const { engine, graduateId } = await graduateWithChat();
     world.mentor.script = () => ({ kind: 'nonsense' });
     await expect(teachThis(engine).propose('cht_1', 'msg_2', correction)).rejects.toThrow(
-      /^The reply to your correction couldn't be read as a lesson\. Reading it cost \$\d+\.\d+; share it again to try once more\.$/,
+      /^The reply to your correction couldn't be read as a lesson\. Reading it cost less than a cent; share it again to try once more\.$/,
     );
     expect(engine.store.corrections.list(graduateId)).toEqual([]);
   });

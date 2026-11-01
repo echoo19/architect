@@ -57,6 +57,8 @@ export function DrawerContent({
           >
             <motion.div
               {...floating}
+              // Toasts read this to keep clear of the drawer and its actions.
+              data-drawer=""
               className={cn(
                 'fixed bottom-3 right-3 top-3 z-50 flex w-[min(600px,calc(100vw-24px))] flex-col',
                 'overflow-hidden rounded-card surface-float outline-none',

@@ -16,6 +16,7 @@ import { presetOf, providerName } from './hosted';
 import type { InspectorTabProps } from './inspector-tabs';
 import { LocalServer } from './LocalServer';
 import { NetworkRow } from './NetworkRow';
+import { OnlineSignIn, openRouterCopy } from './OnlineSignIn';
 import { TYPING_PAUSE_MS } from './use-job-editor';
 
 /** Where the student may practice besides this computer: a hosted API or a cluster's server. */
@@ -35,6 +36,7 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
   const lab = useEdition() === 'lab';
   const hostedPreset = hosted ? presetOf(hosted) : undefined;
   const hostedPrice = hosted ? studentPricing(hosted) : undefined;
+  const openRouter = hosted?.secretRef === 'openrouter';
   const places: readonly ChoiceTile<StudentTarget>[] = [
     { value: 'local', label: deviceLabel(currentPlatform()), icon: <Laptop strokeWidth={1.7} /> },
     {
@@ -116,6 +118,21 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
           </span>
         </ModelPicker>
         {hostedPreset && <p className="m-0 text-small text-pretty">{hostedPreset.note}</p>}
+        {/* With no copy yet, or OpenRouter's with no key, setup's sign-in is offered here too. */}
+        {(hosted === undefined || openRouter) && (
+          <OnlineSignIn
+            onConnected={() => {
+              if (hosted !== undefined) return;
+              const copy = openRouterCopy(local.contextLength);
+              if (copy) {
+                change(HOSTED, (current) => ({
+                  ...current,
+                  student: { ...current.student, hosted: copy },
+                }));
+              }
+            }}
+          />
+        )}
         <Issue error={issues['student.hosted']} />
         {(hostedPrice || hosted?.secretRef) && (
           <div className="flex flex-col">
@@ -124,7 +141,7 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
                 <span className="text-ui tabular-nums">{priceText(hostedPrice)}</span>
               </InspectorRow>
             )}
-            {hosted?.secretRef && (
+            {hosted?.secretRef && !openRouter && (
               <KeyIfMissing secretRef={hosted.secretRef} provider={providerName(hosted)} />
             )}
           </div>

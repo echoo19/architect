@@ -266,6 +266,18 @@ export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
   return minutes <= MOST_MINUTES ? minutes : null;
 }
 
+/**
+ * The time limit, in whole hours, that fits half the rounds even at their shortest and one at
+ * its longest: the least that neither the callout nor Budget says is too short. Null past a week.
+ */
+export function minutesForHalfRounds(job: Job, place: TrainPlace): number | null {
+  const { startSeconds, roundSeconds } = estimateTime(job, place);
+  const half = Math.ceil(job.budget.maxRounds / 2);
+  const seconds = startSeconds + Math.max(half * roundSeconds.least, roundSeconds.most);
+  const minutes = Math.ceil(seconds / 3600) * 60;
+  return minutes <= MOST_MINUTES ? minutes : null;
+}
+
 /** Training with every round at its longest, as if there were no time limit. */
 function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
   return estimate.startSeconds + job.budget.maxRounds * estimate.roundSeconds.most;

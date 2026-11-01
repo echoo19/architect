@@ -252,7 +252,7 @@ function specOf(
   );
   if (table === undefined || !tables.has(table)) {
     problems.push(
-      `${who} names the table "${type.table}", which isn't one of the attached CSV files (${tableNames.join(', ')}).`,
+      `The ${titled(type.id).toLowerCase()} tasks read "${type.table}", which isn't one of the attached CSV files (${tableNames.join(', ')}).`,
     );
     return undefined;
   }

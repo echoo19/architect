@@ -97,10 +97,10 @@ function NoAgentsYet() {
   const pickUp = jobs.status === 'success' ? jobToPickUp(jobs.data) : null;
   const pitch =
     settings.status === 'success'
-      ? `Describe a job. ${mentorName(settings.data.defaultMentor)}, a frontier model, teaches it to ${studentName(
+      ? `Describe a job. ${mentorName(settings.data.defaultMentor)} teaches it to ${studentName(
           settings.data.defaultStudent,
-        )}, a small open model that then runs offline on this computer.`
-      : 'Describe a job, and Architect teaches it to a small open model that runs offline on this computer.';
+        )}, which then does it offline on this computer.`
+      : 'Describe a job, and Architect teaches it to a model that then does it offline on this computer.';
 
   if (pickUp) {
     return (
