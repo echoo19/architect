@@ -369,7 +369,7 @@ test('imports a package through its folders and permissions to a ready install',
     page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
   ).toBeVisible();
   await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
-  await expect(page.getByText('All checks passed')).toBeVisible();
+  await expect(page.getByText('6 install checks passed')).toBeVisible();
   await capture('import-ready-dark.png');
   // The checks behind that one sentence wait under Details.
   await page.getByRole('button', { name: 'Details' }).click();

@@ -267,7 +267,7 @@ test("changes the agent's model to one on this computer, and its checks run agai
   await expect(page.getByText('Changed the model of Service desk', { exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(dialog.getByText('All checks passed')).toBeVisible();
+  await expect(dialog.getByText(/install checks passed/)).toBeVisible();
 
   const after = await page.evaluate((id) => window.architect.graduates.installation(id), AGENT);
   expect(after.model).toEqual({

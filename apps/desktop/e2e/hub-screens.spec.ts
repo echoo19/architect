@@ -379,7 +379,7 @@ test("changes the agent's model, the fix for a base of another build", async () 
   await picker.getByRole('option', { name: /muse-glimmer-trained:30b/ }).click();
   // Exactly the toast's title: its live region announces the same words for a moment.
   await expect(page.getByText('Changed the model of Service desk', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('All checks passed')).toBeVisible();
+  await expect(dialog.getByText(/install checks passed/)).toBeVisible();
   await expect(page.getByText("Can't run on this computer")).toHaveCount(0);
   await capture('agent-model-changed-dark.png');
   expect(await callsTo(app, 'graduates:bind')).toEqual([
