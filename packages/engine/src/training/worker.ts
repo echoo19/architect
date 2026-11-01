@@ -34,6 +34,11 @@ export interface TrainingRequest {
   baseModel: { repo: string; revision?: string };
   /** The longest the job may run, before the budget's own limit. Default three hours. */
   maxSeconds?: number;
+  /**
+   * Hardware other than the recipe's own, such as a larger GPU for longer examples. It must have a
+   * known price and at least the GPU memory the recipe asks for.
+   */
+  flavor?: string;
 }
 
 export interface TrainingWorkerOptions {
@@ -172,12 +177,19 @@ export class TrainingWorker {
         "Some of these examples may not leave this computer, so they can't go to remote training.",
       );
     }
-    const flavorId = recipe.recipe.hardware.flavor;
+    const flavorId = request.flavor ?? recipe.recipe.hardware.flavor;
     const flavor = backend.flavor(flavorId);
     if (!flavor) {
       throw new GuardError(
         'budget',
         `The price of ${flavorId} on ${backend.label} isn't known, so the compute cap can't be kept.`,
+      );
+    }
+    // The stand-in runs on no GPU, so only real hardware is held to the recipe's memory.
+    if (backend.real && flavor.gpuMemoryGb < recipe.recipe.hardware.min_gpu_memory_gb) {
+      throw new GuardError(
+        'permission',
+        `${flavor.label} has less GPU memory than the recipe needs (${recipe.recipe.hardware.min_gpu_memory_gb} GB).`,
       );
     }
     const revision =
