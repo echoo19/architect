@@ -2,6 +2,31 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon, early hours): measured runs, a real fine-tune, the Lab's language, 0.9.0 and the launch film
+
+- *Done, runs* (reports in `docs/comparisons`, each registered before it ran, keys loaded per process, no local GPU):
+  - Inventory desk 27 of 32 at Corvid Hill against 4;
+  - Assay desk's second run, a gain at the sealed lab under two seeds;
+  - Muse Spark Open teaching through Baseten, 18 to 39 of 60;
+  - the first issued risk certificate (at most 5% at 95%, held at Harborview, 53 of 54);
+  - the first real QLoRA fine-tune (Inventory desk, one A100, 8.2 min, $0.34, loss 0.106 to 0.008, file-checked against the base; effect not yet measured) and a second on Sweep desk;
+  - Sweep desk twice (the second after a split-leak fix; refinement unmeasured);
+  - two live team runs (the lead now asks, 18 of 20; no pass yet: Assay desk's plate tool overflows Glimmer's context).
+- *Done, product* (each reviewed by Codex Sol or Astra before merging):
+  - mentor routing (the teacher from the job or `--mentor`, provider pins on every path, `--spark-cap`, a structured-output switch);
+  - the study's 16,000 tokens;
+  - `architect train start` on Hugging Face Jobs (in-process export, cross-process lock, weights uploaded before conversion, the A100 flavour, LoRA targets the converter takes, the planner's fp32 and logits costs, the image's own Python);
+  - Sweep desk's per-sweep learning rates with a split-leak test;
+  - the team lead told which files each teammate holds;
+  - the Lab's vocabulary (harness, held-out checks, sealed final test, risk certificate, LoRA adapter, cluster launch bundle, on-premise, R&D) with one-line definitions, plus a clarity pass from a blind read;
+  - a field's export named fine-tuning data.
+- *Done, release:* 0.9.0 tagged, all three installers attached and downloading, site deployed. Site: new opening lines, the results page in plain prose with sections for the screening lab, the open-weight teacher, the certificate and the fine-tune, and claim fixes from an Astra review. README and `docs/HACKATHON.md` rewritten the same way.
+- *Done, film:* the launch cut (`site/film/launch`, merged), narrated in one take (`architect-runs/film/launch/audio/final5`, 162.27 s), score composed to it, final picture rendering.
+- *Next:*
+  - the owner's intro clip, at most 17 s, before 0:00, then the final cut, the web copy and the site;
+  - the owner uploads the video and submits by Wed Nov 4, 9 PM ET;
+  - Codex's browser needs the owner to allow cerebralvalley.ai to re-read the details page.
+
 ## 2026-11-01 (Sun, morning), `runs/team-2`: the second agent-team run, after the lead was told when to ask
 
 - *Done:* `architect-runs/team-2` on `runtree-53b52a38` (field/main `53b52a38`, with `team/ask-when`), no patches, team-1's protocol and requests, $3 cap. Amendment 1 after the first pair: round-robin over labs and a $0.45 guard, so the cap couldn't cut off Corvid Hill; all 40 ran. Team 0/20, Inventory desk alone 0/20, Corvid Hill 0/5 both. The lead asked in 18 of 20 team replies (team-1: 2); 66 asks ran and 79 more were refused at the 4-ask cap. No ask brought back a plate's list: Assay desk ran out of steps (31) or filled its context (14), 15 "answered" asks were a tool call written as text, and the 6 real answers read `retests.csv` (already-booked re-tests) instead of the plate. At Alder Row the lead twice allocated the compound the teammate returned, so its answer depended on the teammate's, but on the wrong list. Spend $2.37 (team $2.18). Report: `docs/comparisons/team-2.md`.
