@@ -156,14 +156,22 @@ test('in the team’s chat the lead asks its teammate, whose own work opens unde
   await page.keyboard.press('Escape');
   await expect(about).toHaveCount(0);
 
-  // The reply names who answered and whom it asked before its steps are opened.
+  // The reply names who answered and whom it asked before its steps are opened, and the ask
+  // itself, with the first line of the answer, shows while the lead's own steps are folded.
   await expect(reply()).toContainText(`${lead.name} asked ${teammate.name}`);
+  const consult = reply().getByRole('button', { name: new RegExp(`^Asked ${teammate.name}`) });
+  await expect(consult).toContainText('FW-0418 passes QC (Z′ 0.7689)');
+  // The reply waits on an approval, so nothing runs: the composer says what it waits for.
+  await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: `Message ${TEAM.name}` })).toHaveAttribute(
+    'placeholder',
+    'Allow or deny the change above',
+  );
 
   await reply()
     .getByRole('button', { name: /so far/ })
     .click();
-  const consult = reply().getByRole('button', { name: new RegExp(`^Asked ${teammate.name}`) });
-  await expect(consult).toContainText('FW-0418 passes QC (Z′ 0.7689)');
+  await expect(reply().getByRole('list', { name: 'Steps' })).toBeVisible();
   // The reply names the version that answered, and that no certificate covers the team.
   expect(await infoTipText(page, reply(), 'version 1')).toBe('Not certified as a team');
   await consult.click();

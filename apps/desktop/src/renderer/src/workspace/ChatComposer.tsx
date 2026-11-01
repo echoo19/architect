@@ -106,6 +106,11 @@ export interface ChatComposerProps {
   onStop: () => void;
   /** The agent is replying: the send button becomes stop. */
   running: boolean;
+  /**
+   * The reply is held until a write it wants to make is allowed or declined: nothing runs, so
+   * there is nothing to stop, and the field says what the reply waits for.
+   */
+  approving: boolean;
   disabled: boolean;
   /** False once the reader scrolled up, which offers a way back to the newest message. */
   pinned: boolean;
@@ -122,13 +127,15 @@ export function ChatComposer({
   onSend,
   onStop,
   running,
+  approving,
   disabled,
   pinned,
   onJumpToLatest,
   fieldRef,
 }: ChatComposerProps) {
   return (
-    <div className="relative shrink-0 px-8 pb-5">
+    // A footer, so a toast rises above the send button instead of covering it.
+    <footer className="relative shrink-0 px-8 pb-5">
       {!pinned && (
         <IconButton
           label="Jump to the latest message"
@@ -145,17 +152,17 @@ export function ChatComposer({
         <Composer
           className="mx-auto"
           label={`Message ${team ?? agent.name}`}
-          placeholder={`Ask ${agent.name}`}
+          placeholder={approving ? 'Allow or deny the change above' : `Ask ${agent.name}`}
           value={draft}
           onValueChange={onDraftChange}
           onSubmit={onSend}
-          busy={running}
+          busy={running && !approving}
           onStop={onStop}
-          disabled={disabled}
+          disabled={disabled || approving}
           autoFocus
           leading={team === undefined ? <WriteModeMenu agent={agent} /> : undefined}
         />
       </div>
-    </div>
+    </footer>
   );
 }
