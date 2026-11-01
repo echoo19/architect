@@ -161,7 +161,7 @@ describe('install check details', () => {
         check({ detail: 'win32/x64, 32 GB of memory, ollama at 127.0.0.1:11434.' }),
         installation,
       ),
-    ).toBe('Windows x64 · 32 GB');
+    ).toBe('Windows x64, 32 GB');
   });
 
   it('says a passed setup and folders check in plain words', () => {
@@ -243,7 +243,7 @@ describe('install check details', () => {
 
     it("names llama.cpp's build and the base its weights need, never in the computer's row", () => {
       expect(checkDetail(check({ detail: 'win32/x64, 32 GB of memory, llama.cpp.' }), served)).toBe(
-        'Windows x64 · 32 GB',
+        'Windows x64, 32 GB',
       );
       expect(checkDetail(server, served)).toBe('Build 10472');
       // Without the build the engine found, the row keeps the engine's words.

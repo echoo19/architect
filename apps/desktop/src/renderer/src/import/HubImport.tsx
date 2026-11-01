@@ -280,7 +280,7 @@ export function HubImportFlow() {
     body = (
       <CheckStep
         preview={preview}
-        file={`${installed.source.repository} · commit ${shortCommit(installed.source.revision)}`}
+        file={`${installed.source.repository} at commit ${shortCommit(installed.source.revision)}`}
         onRecheck={recheck}
       />
     );

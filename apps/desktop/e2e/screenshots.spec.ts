@@ -128,10 +128,10 @@ test('captures every screen', async () => {
   // The teacher, the agent's model and who it is connected to come first; the runtimes on this
   // computer and the Hugging Face token wait under Advanced.
   await expect(page.getByRole('button', { name: 'Teacher', exact: true })).toBeVisible();
-  await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeHidden();
+  await expect(page.getByText('Running version 0.12.6, 1 model')).toBeHidden();
   await capture(page, 'settings-models-dark.png');
   await page.getByRole('button', { name: 'Advanced' }).click();
-  await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
+  await expect(page.getByText('Running version 0.12.6, 1 model')).toBeVisible();
   // What opened is at the end of the tab, so it is scrolled into the picture.
   await page
     .getByRole('tabpanel', { name: 'Models' })

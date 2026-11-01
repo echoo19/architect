@@ -202,10 +202,10 @@ test("a model's panel opens its chat and results and shows every qualification",
   await expect(qualified).toContainText('Risk certificate');
   await expect(qualified).toContainText('≤ ');
   await expect(qualified).toContainText('At Maple Grove Academy');
-  await expect(qualified).toContainText('83% · 25 of 30');
+  await expect(qualified).toContainText('83% (25 of 30)');
   await expect(qualified).toContainText('academy-desk-sft-8b');
   await expect(qualified).toContainText(
-    `${Math.round((FIELD_REPORT.test.score.pass * 100) / FIELD_REPORT.test.score.total)}% · ${FIELD_REPORT.test.score.pass} of ${FIELD_REPORT.test.score.total}`,
+    `${Math.round((FIELD_REPORT.test.score.pass * 100) / FIELD_REPORT.test.score.total)}% (${FIELD_REPORT.test.score.pass} of ${FIELD_REPORT.test.score.total})`,
   );
   await capture('links-model-panel-dark.png');
 
@@ -302,11 +302,13 @@ test("an experiment's results open each arm's run and the version it froze", asy
   const runs = page.getByRole('table', { name: "Each arm's run" });
   const targeted = runs.getByRole('row', { name: /Spark-engineered harness/ });
   await targeted.scrollIntoViewIfNeeded();
-  await expect(targeted).toContainText(/v\d+ · [0-9a-f]{7}/);
+  await expect(targeted).toContainText(/v\d+ \([0-9a-f]{7}\)/);
   await targeted.click();
   const drawer = page.getByRole('dialog', { name: 'Spark-engineered harness' });
   await expect(drawer.getByRole('region', { name: 'Rounds' })).toBeVisible();
-  await expect(drawer.getByRole('region', { name: 'Version' })).toContainText(/v\d+ · [0-9a-f]{7}/);
+  await expect(drawer.getByRole('region', { name: 'Version' })).toContainText(
+    /v\d+ \([0-9a-f]{7}\)/,
+  );
   await capture('links-experiment-arm-dark.png');
   await page.keyboard.press('Escape');
   await expect(drawer).toHaveCount(0);

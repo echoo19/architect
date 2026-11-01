@@ -66,7 +66,7 @@ function ConnectionResult({ result }: { result: ConnectionTest }) {
         aria-hidden
       />
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span>{result.ok ? `Connected · ${result.latencyMs} ms` : result.error}</span>
+        <span>{result.ok ? `Connected in ${result.latencyMs} ms` : result.error}</span>
         {!result.ok && result.hint && (
           <span className="text-small text-fg text-pretty">{result.hint}</span>
         )}

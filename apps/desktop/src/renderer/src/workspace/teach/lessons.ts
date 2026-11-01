@@ -109,13 +109,13 @@ export function openCorrections(corrections: readonly Correction[]): Correction[
   );
 }
 
-/** "3 flagged answers · 1 to review", or null when nothing is open. */
+/** "3 flagged answers, 1 to review", or null when nothing is open. */
 export function flaggedSummary(corrections: readonly Correction[]): string | null {
   const open = openCorrections(corrections).length;
   if (open === 0) return null;
   const waiting = corrections.filter((correction) => correction.status === 'proposed').length;
   const count = `${open} flagged ${open === 1 ? 'answer' : 'answers'}`;
-  return waiting > 0 ? `${count} · ${waiting} to review` : count;
+  return waiting > 0 ? `${count}, ${waiting} to review` : count;
 }
 
 const ACTIVE: ReadonlySet<RunStatus> = new Set([

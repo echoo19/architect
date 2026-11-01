@@ -164,9 +164,12 @@ export function FieldOrganizations({
                 />
               }
               detail={
-                <span className="px-2">
+                <span className="flex flex-wrap gap-x-3 px-2">
                   {misnamed === null ? (
-                    `${fileName(org.folder)} · ${ROLE_MEANS[org.role]}`
+                    <>
+                      <span>{fileName(org.folder)}</span>
+                      <span>{ROLE_MEANS[org.role]}</span>
+                    </>
                   ) : (
                     <span className="text-danger">{misnamed}</span>
                   )}

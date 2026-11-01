@@ -80,13 +80,13 @@ export function Targets() {
             ? loading
             : local.data.gpu === null
               ? 'Not found'
-              : `${local.data.gpu.name} · ${formatBytes(local.data.gpu.memoryBytes)}`}
+              : `${local.data.gpu.name}, ${formatBytes(local.data.gpu.memoryBytes)}`}
         </Fact>
         <Fact label="Ollama">
           {local.data === undefined
             ? loading
             : local.data.ollama.running
-              ? `Running${local.data.ollama.version ? ` · ${local.data.ollama.version}` : ''}`
+              ? `Running${local.data.ollama.version ? ` version ${local.data.ollama.version}` : ''}`
               : 'Not running'}
         </Fact>
         <Fact label="llama-server">
@@ -94,7 +94,7 @@ export function Targets() {
             ? loading
             : llama.data.source === null
               ? 'Not found'
-              : `${llama.data.ready ? 'Ready' : 'Too old'}${llama.data.build ? ` · build ${llama.data.build}` : ''}`}
+              : `${llama.data.ready ? 'Ready' : 'Too old'}${llama.data.build ? `, build ${llama.data.build}` : ''}`}
         </Fact>
       </Card>
       <Card

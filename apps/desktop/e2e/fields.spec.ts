@@ -143,7 +143,7 @@ test('lists the organizations taught on with their files, and the sealed ones by
   const orgs = card('Organizations');
   const northside = orgs.getByRole('button', { name: /Northside Prep/ });
   await expect(northside).toHaveAttribute('aria-pressed', 'true');
-  await expect(northside).toContainText('Generated · 12 files · 3,545 rows');
+  await expect(northside).toContainText('Generated, 12 files, 3,545 rows');
   await expect(northside).toContainText('Taught on');
 
   // The sealed academies are named for the person whose they are, and nothing else of them shows.
@@ -152,7 +152,7 @@ test('lists the organizations taught on with their files, and the sealed ones by
     await expect(row).toBeVisible();
     await expect(orgs.getByRole('button', { name: new RegExp(name) })).toContainText('Never seen');
   }
-  await expect(orgs).toContainText('Real · 7 files');
+  await expect(orgs).toContainText('Real, 7 files');
   await expect(orgs.getByText('Never seen', { exact: true })).toHaveCount(2);
 
   const files = card('Northside Prep');

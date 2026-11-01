@@ -96,7 +96,7 @@ export function CheckStep({
           {manifest.contract.summary ?? manifest.contract.description}
         </p>
         <p className="m-0 font-mono text-small text-fg">
-          Version {manifest.identity.version} · {file}
+          Version {manifest.identity.version} of {file}
         </p>
       </header>
 
@@ -104,7 +104,7 @@ export function CheckStep({
         <SettingsRow
           icon={<StatusMark state="ok" label="Passed" />}
           label="Safe to open"
-          meta={`${preview.files} files · ${formatBytes(preview.bytes)}`}
+          meta={`${preview.files} files, ${formatBytes(preview.bytes)}`}
           info={`Checked without running any of it${
             preview.migratedFrom === undefined ? '' : ', and converted from an older format'
           }.`}
@@ -139,7 +139,7 @@ export function CheckStep({
           meta={fit?.status === 'passed' ? 'Can run it' : fit?.detail}
         >
           <SettingsValue>
-            {osName(machine.os)} · {formatBytes(machine.memoryBytes)} of memory
+            {osName(machine.os)}, {formatBytes(machine.memoryBytes)} of memory
           </SettingsValue>
         </SettingsRow>
         {server && (

@@ -161,7 +161,7 @@ export function Comparisons({
                   <span className={arm.current ? 'font-medium' : undefined}>
                     {armLabel(arm.key, names, blankStart, lab)}
                   </span>
-                  {arm.current && <span className="whitespace-nowrap"> · this agent</span>}
+                  {arm.current && <span className="whitespace-nowrap"> (this agent)</span>}
                 </th>
                 <td className="py-3.5 pl-6 text-right align-middle">
                   <ScoreCell score={arm.check} perRun={checkTasks} />

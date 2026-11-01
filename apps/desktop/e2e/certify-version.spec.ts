@@ -233,7 +233,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
 
   // The newest job of its field is offered first: its tasks are new to version 2.
   await expect(dialog().getByRole('combobox', { name: 'Tasks from' })).toContainText(
-    'Academy desk ·',
+    'Academy desk,',
   );
   await expect(dialog().getByRole('textbox', { name: 'Calibration tasks' })).toHaveValue('60');
   await expect(dialog().getByRole('textbox', { name: 'Attempts per task' })).toHaveValue('5');

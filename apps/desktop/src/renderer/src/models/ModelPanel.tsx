@@ -209,8 +209,9 @@ function PanelHeader({
             <VersionTag version={version.version} active={version.active} />
             <span className="sr-only">version {version.version}</span>
           </h2>
-          <span className="truncate text-small">
-            <StatusWord status={statusOf(version)} /> · {fieldOf(version)}
+          <span className="flex min-w-0 gap-x-3 text-small">
+            <StatusWord status={statusOf(version)} />
+            <span className="truncate">{fieldOf(version)}</span>
           </span>
         </div>
         <OpenLinks row={row} />
@@ -457,8 +458,8 @@ function ReportTab({ row }: { row: ModelRow }) {
   );
 }
 
-/** "83% · 30 of 36". */
-const scoreText = (score: Score) => `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+/** "83% (30 of 36)". */
+const scoreText = (score: Score) => `${formatPercent(score)} (${score.pass} of ${score.total})`;
 
 const STATE_WORDS = {
   testing: 'Testing',

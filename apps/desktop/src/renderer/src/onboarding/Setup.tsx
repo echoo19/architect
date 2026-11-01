@@ -149,7 +149,7 @@ export function Setup({ settings, update }: SetupProps) {
                   {pull.state.phase === 'failed'
                     ? 'Try again'
                     : build
-                      ? `Download ${names.student} · ${formatBytes(build.downloadBytes)}`
+                      ? `Download ${names.student} (${formatBytes(build.downloadBytes)})`
                       : `Download ${names.student}`}
                 </Button>
               </>

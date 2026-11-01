@@ -45,7 +45,7 @@ export function rowCounts({ added, changed, removed }: RowDiff): string {
     removed.length > 0 && `${removed.length} ${rows(removed.length)} removed`,
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(', ');
 }
 
 /** What a change does, counted: its rows for a table, its lines for any other file. */

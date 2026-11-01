@@ -237,7 +237,7 @@ function TaskPanel({
   return (
     <DrawerContent
       title={taskTitle(task.prompt)}
-      subtitle={[type, org, `${SPLIT_WORDS[split]} task`].filter(Boolean).join(' · ')}
+      subtitle={[type, org, `${SPLIT_WORDS[split].toLowerCase()} task`].filter(Boolean).join(', ')}
     >
       <div className="flex flex-col gap-7">
         <DrawerSection title="Request">

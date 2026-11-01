@@ -88,7 +88,7 @@ export function ComparisonTable({
                     <span className="flex flex-col gap-0.5">
                       <span className={row.current ? 'font-medium' : undefined}>
                         {lab ? LAB_METHOD_NAMES[row.method] : row.label}
-                        {row.current && <span> · this training</span>}
+                        {row.current && <span> (this training)</span>}
                       </span>
                       <span className="text-small">
                         {methodExplanation(row.method, names, lab)}

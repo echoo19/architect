@@ -412,7 +412,7 @@ function ModelFacts({ read, plan }: { read: ModelConfigRead; plan: TrainingPlan 
         {read.model.revision && (
           <span className="font-mono text-small"> @ {read.model.revision.slice(0, 12)}</span>
         )}
-        <span> · {size.architecture}</span>
+        <span>, {size.architecture}</span>
       </p>
       <div className="grid grid-cols-4 gap-6">
         <Stat value={paramsText(size.totalParams)} label="Parameters" />

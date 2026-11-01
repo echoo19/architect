@@ -90,7 +90,7 @@ test('lists every connection on Models with how it stands and the roles it can f
   await expect(row('Meta')).toContainText('Key saved');
   await expect(row('Anthropic')).toContainText('Key saved');
   await expect(row('gpu-node-7:8000')).toContainText(VLLM);
-  await expect(row('Ollama')).toContainText('Running · 1 model');
+  await expect(row('Ollama')).toContainText('Running, 1 model');
   await expect(row('LM Studio')).toContainText('Not found');
 
   // Any of them can teach; a cluster serves the copy it practices on; agents run only here.

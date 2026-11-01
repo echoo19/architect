@@ -50,10 +50,10 @@ describe('a change the agent asks to make', () => {
   });
 
   it('counts the rows of a table and the lines of any other file', () => {
-    expect(rowCounts(rows)).toBe('1 new row · 1 row changed');
-    expect(changeCounts({ op: 'append', diff: rows })).toBe('1 new row · 1 row changed');
+    expect(rowCounts(rows)).toBe('1 new row, 1 row changed');
+    expect(changeCounts({ op: 'append', diff: rows })).toBe('1 new row, 1 row changed');
     expect(changeCounts({ op: 'write', patch: created })).toBe('3 lines');
-    expect(changeCounts({ op: 'edit', patch: edited })).toBe('1 new line · 1 line removed');
+    expect(changeCounts({ op: 'edit', patch: edited })).toBe('1 new line, 1 line removed');
     expect(changeCounts({ op: 'edit' })).toBe('');
   });
 

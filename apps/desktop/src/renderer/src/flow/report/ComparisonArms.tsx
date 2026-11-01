@@ -104,7 +104,7 @@ function Rows({
                   <span className="flex flex-col gap-0.5">
                     <span>
                       <span className={arm.current ? 'font-medium' : undefined}>{arm.label}</span>
-                      {arm.current && <span className="whitespace-nowrap"> · this agent</span>}
+                      {arm.current && <span className="whitespace-nowrap"> (this agent)</span>}
                     </span>
                     {arm.status !== 'complete' && arm.status !== 'not_run' && (
                       <span className="text-small text-pretty">

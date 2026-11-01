@@ -15,8 +15,8 @@ const POLL_MS = 2000;
 function versionLabel(field: FieldSummary, runId: string): string {
   const candidate = field.candidates.find((item) => item.run.id === runId);
   if (!candidate) return runId;
-  const best = bestCandidate(field.candidates) === candidate ? ' · best' : '';
-  return `Harness v${candidate.run.currentVersion} · ${shortDate(candidate.report.createdAt)}${best}`;
+  const best = bestCandidate(field.candidates) === candidate ? ', best' : '';
+  return `Harness v${candidate.run.currentVersion}, ${shortDate(candidate.report.createdAt)}${best}`;
 }
 
 function resultText(item: Qualification): string {

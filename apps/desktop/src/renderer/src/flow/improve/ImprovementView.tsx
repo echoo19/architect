@@ -244,7 +244,7 @@ function TypeSection({
                   {formatRate(change.before)} → {formatRate(change.after)}
                   <span>
                     {' '}
-                    · {change.after.pass} of {change.after.total}
+                    ({change.after.pass} of {change.after.total})
                   </span>
                 </span>
               </div>

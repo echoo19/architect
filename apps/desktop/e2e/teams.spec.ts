@@ -186,7 +186,7 @@ test('each agent asks for its own files', async () => {
     name: `${teammate.name}: write to data/retests.csv`,
   });
   await expect(theirs).toContainText('Allowed');
-  await expect(theirs).toContainText(`${teammate.name} · 2 new rows`);
+  await expect(theirs).toContainText(`${teammate.name}: 2 new rows`);
   const ours = reply().getByRole('group', { name: `${lead.name}: write to data/reservations.csv` });
   await expect(ours).toContainText('HOLD-0163');
   await expect(ours).toContainText('FL-04159');

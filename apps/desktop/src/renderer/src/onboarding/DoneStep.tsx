@@ -37,7 +37,7 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
           ) : student.state === 'downloading' ? (
             <span className="flex items-center gap-2 text-fg">
               <Spinner tone="student" size={13} />
-              Downloading{percent === null ? '' : ` · ${percent}%`}
+              Downloading{percent === null ? '' : ` ${percent}%`}
             </span>
           ) : (
             <StatusValue done={false}>Not downloaded</StatusValue>

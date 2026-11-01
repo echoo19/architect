@@ -230,7 +230,7 @@ function ScoreBar({
         {score.pass} of {score.total}
         {spark && (
           <span className="text-mentor">
-            {' · '}
+            {', '}
             {mentor} {spark.pass} of {spark.total}
           </span>
         )}

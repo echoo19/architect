@@ -266,9 +266,9 @@ test('shows what is being taught above the versions, and the flagged answers to 
   const dialog = await openTeaching();
   const lessons = dialog.getByRole('region', { name: 'Lessons' });
   await expect(lessons).toContainText('Flagged answers');
-  await expect(lessons).toContainText('3 flagged answers · 1 to review');
+  await expect(lessons).toContainText('3 flagged answers, 1 to review');
   await expect(lessons).toContainText('Teach it something new');
-  await expect(lessons).toContainText('2 lessons saved · up to $5 and 4 hours');
+  await expect(lessons).toContainText('2 lessons saved, up to $5 and 4 hours');
   await expect(dialog.getByRole('list', { name: 'Versions' }).getByRole('listitem')).toHaveCount(2);
   await capture('agent-teaching-lessons-dark.png');
 
@@ -445,7 +445,7 @@ test('improves the agent into a new version while the active one keeps answering
   await page.getByRole('button', { name: 'Back to Teaching' }).click();
   const again = page.getByRole('dialog', { name: 'Service desk', exact: true });
   const lessons = again.getByRole('region', { name: 'Lessons' });
-  await expect(lessons).toContainText('2 lessons saved · up to $5 and 4 hours');
+  await expect(lessons).toContainText('2 lessons saved, up to $5 and 4 hours');
   await lessons.getByRole('button', { name: 'Improve' }).click();
   await page
     .getByRole('dialog', { name: 'Improve Service desk?' })
@@ -464,7 +464,7 @@ test('improves the agent into a new version while the active one keeps answering
 
   await finishImprovement(app);
   const made = running.getByRole('region', { name: 'Lessons' });
-  await expect(made).toContainText('Made version 3 · 93% → 98% on check tasks');
+  await expect(made).toContainText('Made version 3, 93% → 98% on check tasks');
   const versions = running.getByRole('list', { name: 'Versions' });
   await expect(
     versions

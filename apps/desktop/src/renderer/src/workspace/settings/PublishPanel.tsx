@@ -294,7 +294,7 @@ export function PublishPanel({ agent }: { agent: GraduateSummary }) {
 
       {current && (
         <Drawer open={previewing} onOpenChange={setPreviewing}>
-          <DrawerContent title="Model card" subtitle={`${CARD} · ${current.repository}`}>
+          <DrawerContent title="Model card" subtitle={`${CARD} in ${current.repository}`}>
             <Markdown text={cardBody(current.card)} />
           </DrawerContent>
         </Drawer>
@@ -341,7 +341,7 @@ function PublishedSection({ result }: { result: PublishResult }) {
       <SettingsRow
         icon={<StatusMark state="ok" label="Published" />}
         label={`Version ${publication.version} is on Hugging Face`}
-        meta={`Commit ${shortCommit(commit)} · ${publication.visibility === 'private' ? 'Private' : 'Public'}`}
+        meta={`Commit ${shortCommit(commit)}, ${publication.visibility === 'private' ? 'private' : 'public'}`}
       >
         {publication.url && (
           <Button size="xs" onClick={() => openOnHub(publication.url ?? '')}>
@@ -411,7 +411,7 @@ function ReviewSections({
         title="Files"
         actions={
           <span className="text-small text-fg">
-            {review.files.length} files · {formatBytes(review.bytes)}
+            {review.files.length} files, {formatBytes(review.bytes)}
           </span>
         }
       >
@@ -531,7 +531,7 @@ function PublicationsSection({ publications }: { publications: readonly Publicat
                   />
                 }
                 label={publication.repository}
-                meta={facts.join(' · ')}
+                meta={facts.join(', ')}
               >
                 {complete && publication.url && (
                   <IconButton

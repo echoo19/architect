@@ -106,7 +106,7 @@ function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
         >
           <span className="truncate">{org.name}</span>
           <span className="tabular-nums">
-            {percent(score)}% · {perRun(score.pass)} of {perRun(score.total)}
+            {percent(score)}% ({perRun(score.pass)} of {perRun(score.total)})
           </span>
         </li>
       ))}

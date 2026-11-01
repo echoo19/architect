@@ -77,11 +77,11 @@ export function matchesFilter(row: ModelRow, filter: RegistryFilter): boolean {
   }
 }
 
-/** The base model as people know it, with how it is quantized: "Glimmer · 4-bit". */
+/** The base model as people know it, with how it is quantized: "Glimmer, 4-bit". */
 export function baseModelOf(version: GraduateVersion): string {
   const { label, base } = version.manifest.model;
   const name = shortModelName(label);
-  return base.quantization ? `${name} · ${quantizationLabel(base.quantization)}` : name;
+  return base.quantization ? `${name}, ${quantizationLabel(base.quantization)}` : name;
 }
 
 export const fieldOf = (version: GraduateVersion) => version.manifest.contract.name;

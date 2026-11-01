@@ -65,7 +65,7 @@ test('lists every agent and version with its scores, and filters and searches th
   // Academy desk's active version: seen, unseen and real apart, and its check tasks on their own.
   const academyDesk = row(/^Academy desk\s+version 2/);
   await expect(academyDesk).toContainText('Academy desk');
-  await expect(academyDesk).toContainText('Glimmer · 4-bit');
+  await expect(academyDesk).toContainText('Glimmer, 4-bit');
   // Its harness hash and its runtime are behind a hover, not in the row.
   await expect(academyDesk).not.toContainText('61b8a9d');
   await expect(academyDesk).not.toContainText('Ollama');
@@ -93,7 +93,7 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(page.getByRole('tooltip')).toContainText('harness 61b8a9d');
   await page.mouse.move(0, 0);
   // Its runtime is behind the base model, which says so when it takes focus.
-  const base = academyDesk.locator('span[tabindex="0"]', { hasText: 'Glimmer · 4-bit' });
+  const base = academyDesk.locator('span[tabindex="0"]', { hasText: 'Glimmer, 4-bit' });
   await base.focus();
   await expect(page.getByRole('tooltip')).toContainText('Runs on Ollama');
   await base.blur();
@@ -125,8 +125,8 @@ test('lists the candidates waiting to be accepted, each labeled, and compares on
   await expect(candidates.getByText('Service desk v3', { exact: true })).toBeVisible();
   await expect(candidates).toContainText('Improvement of v2');
   await expect(candidates).toContainText('Imported');
-  await expect(candidates).toContainText('Sealed final test 85%');
-  await expect(candidates).toContainText('No sealed final test');
+  await expect(candidates).toContainText('sealed final test 85%');
+  await expect(candidates).toContainText('no sealed final test');
   await expect(candidates.getByRole('button', { name: /^Compare / })).toHaveCount(2);
   await capture('models-candidates-dark.png');
 
@@ -219,10 +219,10 @@ test('compares two versions skill by organization, with the harness diff between
   // The check tasks stand apart from the final test, with each version's own result.
   const versions = page.getByRole('table', { name: 'Versions' });
   await expect(versions.getByRole('row', { name: /Held-out checks/ })).toContainText(
-    '80% · 64 of 80',
+    '80% (64 of 80)',
   );
   await expect(versions.getByRole('row', { name: /Held-out checks/ })).toContainText(
-    '89% · 71 of 80',
+    '89% (71 of 80)',
   );
   const harness = page.getByRole('region', { name: 'Harness' });
   await expect(harness).toContainText('Changed its instructions and 1 skill.');

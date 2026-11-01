@@ -314,7 +314,7 @@ test('reads the released results like a short paper', async () => {
   const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
   expect(await above(hypothesis, page.getByRole('figure').first())).toBe(true);
   await expect(hypothesis).toContainText(
-    /Spark-engineered harness \d+% · \d+ of \d+, Glimmer alone/,
+    /Spark-engineered harness \d+% \(\d+ of \d+\), Glimmer alone/,
   );
   const plot = page.getByRole('figure', { name: /Final-test pass rate, Hosted/ });
   await expect(plot.getByRole('group', { name: 'Organizations it was taught on' })).toBeVisible();

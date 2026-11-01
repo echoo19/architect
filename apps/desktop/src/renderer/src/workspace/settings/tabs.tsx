@@ -141,7 +141,7 @@ function InstallRow({
   // badge beside it doesn't say.
   const meta =
     status === 'ready' && machine && checked?.checkedAt
-      ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
+      ? `${osName(machine.os)} ${machine.arch}, checked ${versionDate(checked.checkedAt)}`
       : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 

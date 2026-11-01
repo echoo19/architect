@@ -553,7 +553,7 @@ function FieldCard({
       </Card>
     );
   }
-  const splits = ` · splits seed ${detail.experiment.job.splitsSeed}`;
+  const splits = `, splits seed ${detail.experiment.job.splitsSeed}`;
   return (
     <Card title="Field" flush>
       <CardRow
@@ -679,7 +679,7 @@ function EstimateCard({
             key={arm.arm}
             icon={<ArmTile arm={arm.arm} />}
             title={armNames(names)[arm.arm]}
-            detail={parts.join(' · ')}
+            detail={parts.join(', ')}
             end={
               arm.funded ? undefined : (
                 <Tooltip content={arm.reason ?? 'Not funded'}>

@@ -91,7 +91,7 @@ export function playbackSteps(trace: Trace, first = 1): PlaybackStep[] {
   return steps;
 }
 
-/** A call's line: "Read data/orders.csv · 12 rows", or "Loaded the skill refunds". */
+/** A call's line: "Read data/orders.csv" with "12 rows", or "Loaded the skill refunds". */
 export interface CallLine {
   action: string;
   target: string;

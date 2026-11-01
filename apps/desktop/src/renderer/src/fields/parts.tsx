@@ -31,8 +31,8 @@ export function plural(value: number, one: string, many = `${one}s`): string {
 }
 
 /**
- * A field's organizations in one line, by the Fields table's columns: "3 taught on · 1 never
- * seen, 1 real", "3 taught on · 1 never seen", or "One organization". A real organization is
+ * A field's organizations in one line, by the Fields table's columns: "3 taught on, 1 never
+ * seen, 1 real", "3 taught on, 1 never seen", or "One organization". A real organization is
  * counted as real and not as never seen, as the table counts it.
  */
 export function orgCountText(counts: {
@@ -47,5 +47,5 @@ export function orgCountText(counts: {
     ...(counts.sealed > 0 ? [`${count(counts.sealed)} never seen`] : []),
     ...(real > 0 ? [`${count(real)} real`] : []),
   ];
-  return unseen.length === 0 ? taught : `${taught} · ${unseen.join(', ')}`;
+  return unseen.length === 0 ? taught : `${taught}, ${unseen.join(', ')}`;
 }

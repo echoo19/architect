@@ -89,7 +89,7 @@ async function walkToTheEndOfSetup(): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   await page.getByLabel('Meta API key', { exact: true }).fill('not-a-real-key');
   await page.getByRole('button', { name: 'Test connection' }).click();
-  await expect(page.getByText('Connected · 640 ms')).toBeVisible();
+  await expect(page.getByText('Connected in 640 ms')).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await expect(page.getByRole('heading', { name: "You're set up" })).toBeVisible();

@@ -79,7 +79,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
       {imported && <span className="-mb-5 text-small text-fg">{AUTHOR_RESULT_TITLE}</span>}
       <div>
         <Figure label="Of new tasks right" value={formatPercent(test.score)}>
-          {test.score.pass} of {test.score.total} · target{' '}
+          {test.score.pass} of {test.score.total}, target{' '}
           {Math.round(requirements.passRate.target * 100)}%
         </Figure>
         <Figure label={`Typical answer, ${place}`} value={formatAnswerTime(test.latencyMs.p50)}>
@@ -121,7 +121,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
                 {formatPercent(type)}
                 <span className="text-fg">
                   {' '}
-                  · {type.pass} of {type.total}
+                  ({type.pass} of {type.total})
                 </span>
               </span>
             </div>

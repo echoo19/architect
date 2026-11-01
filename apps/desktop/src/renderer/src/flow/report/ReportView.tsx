@@ -237,13 +237,13 @@ function Lines({ lines }: { lines: readonly (string | false | undefined | null)[
   );
 }
 
-/** How much training ran: "7 of 12 rounds · 3 h 21 min". */
+/** How much training ran: "7 of 12 rounds in 3 h 21 min". */
 function trainingNote(report: ReportCard, job: Job | null): string {
   const { rounds, wallMs } = report.cost;
   const count = job
     ? `${rounds} of ${job.budget.maxRounds} rounds`
     : `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`;
-  return `${count} · ${formatDuration(wallMs)}`;
+  return `${count} in ${formatDuration(wallMs)}`;
 }
 
 export function ReportView({
@@ -495,7 +495,7 @@ export function ReportView({
                 value: `Typically ${formatAnswerTime(test.latencyMs.p50)}, 95% within ${formatAnswerTime(test.latencyMs.p95)}`,
               },
               { label: 'Training', value: trainingNote(report, job) },
-              ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(' · ') }] : []),
+              ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(', ') }] : []),
               ...(memory ? [{ label: `Memory in the ${w.finalTest}`, value: memory }] : []),
               ...(figures !== null && figures.coldStartMs !== null
                 ? [

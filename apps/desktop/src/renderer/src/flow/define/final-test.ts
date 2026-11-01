@@ -13,8 +13,8 @@ function tasks(count: number): string {
 }
 
 /**
- * How long the final test takes where it runs, and what it costs: "About 2.5 hours for 60 tasks ·
- * Free" on this computer, "About 15 minutes for 60 tasks · About $0.20" on the online copy. A copy
+ * How long the final test takes where it runs, and what it costs: "About 2.5 hours for 60 tasks,
+ * free" on this computer, "About 15 minutes for 60 tasks, about $0.20" on the online copy. A copy
  * with no price says no price, rather than a cost it can't know.
  */
 export function finalTestFacts(job: Job, place: StudentTarget): string {
@@ -24,9 +24,9 @@ export function finalTestFacts(job: Job, place: StudentTarget): string {
       ? tasks(job.splits.test)
       : `${tasks(job.splits.test)} and ${tasks(calibrationTasks(job))} to calibrate, ${certify.k} tries each`;
   const time = `${formatAbout(testSeconds(job, place))} for ${what}`;
-  if (place === 'local') return `${time} · Free`;
+  if (place === 'local') return `${time}, free`;
   const pricing = job.student.hosted ? studentPricing(job.student.hosted) : undefined;
-  return pricing === undefined ? time : `${time} · ${aboutUsd(testUsd(job, pricing))}`;
+  return pricing === undefined ? time : `${time}, ${aboutUsd(testUsd(job, pricing)).toLowerCase()}`;
 }
 
 /** Where the final test runs, and whether the online copy can take it. */

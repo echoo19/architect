@@ -10,9 +10,9 @@ export function formatPercent(score: Score): string {
   return `${percentOf(score)}%`;
 }
 
-/** A score in a row or a sentence, the one way every screen writes it: "83% · 30 of 36". */
+/** A score in a row or a sentence, the one way every screen writes it: "83% (30 of 36)". */
 export function formatScore(score: Score): string {
-  return `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+  return `${formatPercent(score)} (${score.pass} of ${score.total})`;
 }
 
 /** A score inside a grid, where the columns already say what it is: "30/36". */

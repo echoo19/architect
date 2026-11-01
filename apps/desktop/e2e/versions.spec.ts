@@ -191,7 +191,7 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   await expect(row(2)).toContainText('57 of 60');
   // Each row is named by its number; a version with a move says what it is by its button.
   await expect(row(3)).not.toContainText('New, not in use yet');
-  await expect(row(3)).toContainText('Below its 90% target · Oct');
+  await expect(row(3)).toContainText('Below its 90% target, Oct');
   await expect(row(4)).toContainText('No test');
   await expect(row(4)).toContainText('From version 2, imported');
   await expect(row(1)).toContainText('55 of 60');
@@ -336,7 +336,7 @@ test('imports a package through its folders and permissions to a ready install',
   await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
   await expect(page.getByText('returns-desk-v1.architect.zip')).toBeVisible();
   await expect(page.getByText('Tested by its author')).toBeVisible();
-  await expect(page.getByText('Passed: 92% · 55 of 60')).toBeVisible();
+  await expect(page.getByText('Passed: 92% (55 of 60)')).toBeVisible();
   await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
   await capture('import-check-dark.png');
 

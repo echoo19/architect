@@ -70,13 +70,10 @@ export function Findings({
       <ul className="m-0 flex list-none flex-col gap-4 p-0">
         {intervention.findings.map((finding) => (
           <li key={`${finding.attemptId}-${finding.failureTurn}`} className="flex flex-col gap-2">
-            <span className="flex flex-wrap items-baseline gap-x-2 text-small text-fg">
+            <span className="flex flex-wrap items-baseline gap-x-3 text-small text-fg">
               <span>{typeLabel(job, finding.taskType)}</span>
               {categoryLabel(categories, finding.categoryId) && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{categoryLabel(categories, finding.categoryId)}</span>
-                </>
+                <span>{categoryLabel(categories, finding.categoryId)}</span>
               )}
             </span>
             <p className="m-0 text-body text-fg text-pretty">{finding.cause}</p>
@@ -395,7 +392,7 @@ export function RoundCost({ experiment, names }: { experiment: Experiment; names
         <Figure label="Compute">
           {formatCost(budget.computeUsd)}
           {budget.computeMinutes > 0 && (
-            <span className="text-small text-fg"> · {Math.round(budget.computeMinutes)} min</span>
+            <span className="text-small text-fg"> for {Math.round(budget.computeMinutes)} min</span>
           )}
         </Figure>
         <Figure label="Time">{formatDuration(budget.minutes * 60_000)}</Figure>

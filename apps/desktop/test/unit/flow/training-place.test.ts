@@ -381,9 +381,7 @@ describe('the rows of the plan', () => {
     expect(text(renderRows(jobOf('hosted')))).not.toMatch(/comparison|simpler versions/i);
     const html = renderRows(jobOf('hosted'), true);
     expect(text(html)).toContain('Also train three simpler versions to compare');
-    expect(text(html)).toMatch(
-      /Adds [\d.]+ h · \$[\d.]+ Online practice · \$[\d.]+ Spark teaching/,
-    );
+    expect(text(html)).toMatch(/Adds [\d.]+ h, \$[\d.]+ Online practice, \$[\d.]+ Spark teaching/);
   });
 });
 

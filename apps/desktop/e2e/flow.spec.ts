@@ -373,9 +373,9 @@ test('walks from a description to a graduate', async () => {
   await failed.click();
   const traceDrawer = page.getByRole('dialog');
   await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
-  await expect(traceDrawer).toContainText(
-    'Scheduling · Practice task, round 4 · using the setup from round 3',
-  );
+  for (const fact of ['Scheduling', 'Practice task, round 4', 'using the setup from round 3']) {
+    await expect(traceDrawer).toContainText(fact);
+  }
   // Each step reads the way the workspace words it; the first is open, with its evidence.
   const steps = traceDrawer.getByRole('list', { name: "Glimmer's steps" });
   await expect(steps).toContainText('Read data/technicians.csv 3 rows');
@@ -762,7 +762,7 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   });
   await expect(compare).not.toBeChecked();
   await expect(
-    page.getByText('Adds 11.5 h · $3 Online practice · $0.06 Spark teaching', { exact: true }),
+    page.getByText('Adds 11.5 h, $3 Online practice, $0.06 Spark teaching', { exact: true }),
   ).toBeVisible();
   const estimate = page.getByRole('region', { name: 'Estimate', exact: true });
   await estimate.getByRole('button', { name: 'Breakdown' }).click();
@@ -829,9 +829,9 @@ test('says what a run needs before it starts, with one action for each', async (
   await expect(needs).toContainText("Glimmer isn't on this computer yet");
 
   // The download is on the row too; once the model is there the whole list is gone.
-  await expect(needs.getByRole('button', { name: 'Download · 17 GB' })).toBeVisible();
+  await expect(needs.getByRole('button', { name: 'Download (17 GB)' })).toBeVisible();
   await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
-  await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
+  await needs.getByRole('button', { name: 'Download (17 GB)' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
 });
@@ -924,7 +924,7 @@ test('still asks for the model on this computer when practice and the final test
 
   // With the model downloaded the list is gone, and the run starts with both ends online.
   await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
-  await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
+  await needs.getByRole('button', { name: 'Download (17 GB)' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
   await start.click();
@@ -959,9 +959,9 @@ test('takes the final test on the online copy when asked', async () => {
   const here = where.getByRole('radio', { name: /On this computer/ });
   const online = where.getByRole('radio', { name: /On the hosted or cluster endpoint/ });
   await expect(here).toBeChecked();
-  await expect(here).toContainText('About 2.5 hours for 60 tasks · Free');
+  await expect(here).toContainText('About 2.5 hours for 60 tasks, free');
   await expect(here).toContainText('The agent is marked ready when it passes.');
-  await expect(online).toContainText('About 15 minutes for 60 tasks · About $0.20');
+  await expect(online).toContainText('About 15 minutes for 60 tasks, about $0.20');
   await expect(online).toContainText(
     'The agent is marked as tested online. You can test it on this computer later.',
   );

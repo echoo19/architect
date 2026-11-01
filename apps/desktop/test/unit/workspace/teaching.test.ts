@@ -139,7 +139,7 @@ describe('the flagged answers', () => {
       correction({ id: 'cor_d', status: 'used', candidateVersion: 3 }),
       correction({ id: 'cor_e', status: 'discarded' }),
     ];
-    expect(flaggedSummary(list)).toBe('3 flagged answers · 1 to review');
+    expect(flaggedSummary(list)).toBe('3 flagged answers, 1 to review');
     expect(flaggedSummary([correction({ id: 'cor_f', status: 'queued' })])).toBe(
       '1 flagged answer',
     );

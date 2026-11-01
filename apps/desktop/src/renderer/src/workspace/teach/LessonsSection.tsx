@@ -229,7 +229,7 @@ function ImproveRow({
       </div>
     );
   } else if (made) {
-    meta = [`Made version ${made.candidateVersion}`, devChange(made)].filter(Boolean).join(' · ');
+    meta = [`Made version ${made.candidateVersion}`, devChange(made)].filter(Boolean).join(', ');
     action = (
       <Button size="xs" onClick={() => go(paths.improvement(made.runId))}>
         See what changed
@@ -238,15 +238,15 @@ function ImproveRow({
   } else if (queued === 0) {
     meta = 'No lessons saved yet. Flag an answer in a chat to save one.';
   } else if (overview.improve) {
-    const waits = overview.improve.waits ? ' · waits for the training using it' : '';
-    meta = `${lessonCount(queued)} saved · ${budgetLine(overview.improve.budget)}${waits}`;
+    const waits = overview.improve.waits ? ', waits for the training using it' : '';
+    meta = `${lessonCount(queued)} saved, ${budgetLine(overview.improve.budget)}${waits}`;
     action = (
       <Button size="xs" onClick={() => setConfirming(true)}>
         Improve
       </Button>
     );
   } else {
-    meta = `${lessonCount(queued)} saved · no version of it can run here to improve`;
+    meta = `${lessonCount(queued)} saved. No version of it can run here to improve.`;
   }
 
   return (

@@ -10,7 +10,7 @@ function statusOf(connection: Connection): string {
   if (!runtime) return connection.secretRef ? 'Key saved' : 'Connected';
   if (!runtime.running) return connection.provider === 'ollama' ? 'Not running' : 'Not found';
   const count = runtime.models.length;
-  return `Running · ${count} ${count === 1 ? 'model' : 'models'}`;
+  return `Running, ${count} ${count === 1 ? 'model' : 'models'}`;
 }
 
 const ROLES = 'Can run';

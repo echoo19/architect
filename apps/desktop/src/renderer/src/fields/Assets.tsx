@@ -118,7 +118,7 @@ function Counterexamples({ counterexamples }: { counterexamples: readonly Counte
             title={`${predicateSentence(counterexample.helper.name, counterexample.predicate)}`}
             detail={
               <span className="font-mono">
-                {counterexample.taskId} · round {counterexample.round}
+                {counterexample.taskId}, round {counterexample.round}
               </span>
             }
             end={reductionLine(counterexample)}

@@ -116,7 +116,7 @@ export function checkDetail(check: InstallCheck, context: CheckContext): string 
   switch (check.kind) {
     case 'compatibility':
       return machine
-        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)}`
+        ? `${osName(machine.os)} ${machine.arch}, ${formatBytes(machine.memoryBytes)}`
         : asRow(check.detail);
     case 'harness_valid':
       return 'The same setup that was tested';

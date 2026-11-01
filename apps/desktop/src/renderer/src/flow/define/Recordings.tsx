@@ -160,7 +160,7 @@ export function Recordings({ job, plan, mentor }: { job: Job; plan: TaskPlan; me
                     <span className="shrink-0 tabular-nums">
                       {file.done
                         ? 'Already transcribed'
-                        : `${length(file.seconds)} · ${cost(file.usd)}`}
+                        : `${length(file.seconds)}, ${cost(file.usd)}`}
                     </span>
                   </li>
                 ))}
@@ -226,7 +226,7 @@ function TranscriptRow({
         <span className="truncate">{names.get(transcript.org) ?? transcript.org}</span>
       </span>
       <span className="shrink-0 tabular-nums">
-        {`${length(transcript.seconds)} · ${cost(transcript.usd)}`}
+        {`${length(transcript.seconds)}, ${cost(transcript.usd)}`}
       </span>
     </li>
   );

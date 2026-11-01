@@ -257,7 +257,7 @@ export function connectionOf(
  */
 export function localModelName(model: string): string {
   const build = GLIMMER_BUILDS.find((candidate) => candidate.model === model);
-  if (build) return `${shortModelName(DEFAULT_STUDENT.label)} · ${build.label.split(',')[0]}`;
+  if (build) return `${shortModelName(DEFAULT_STUDENT.label)}, ${build.label.split(',')[0]}`;
   const preset = STUDENT_PRESETS.find((candidate) => candidate.model === model);
   return preset ? preset.label.replace(/\s+on\s+.*$/i, '') : model;
 }

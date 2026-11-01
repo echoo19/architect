@@ -57,7 +57,7 @@ export function AgentModelRow({
           base.sizeBytes && `${formatBytes(base.sizeBytes)} on disk`,
         ]
           .filter(Boolean)
-          .join(' · ')
+          .join(', ')
       : '';
 
   const choose = async (choice: ModelChoice) => {
@@ -85,7 +85,7 @@ export function AgentModelRow({
       meta={
         binding && (
           <>
-            {details && `${details} · `}
+            {details && `${details}, `}
             <span className="font-mono text-small">{binding.model}</span>
           </>
         )

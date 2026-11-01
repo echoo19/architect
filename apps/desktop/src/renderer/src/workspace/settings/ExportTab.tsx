@@ -314,7 +314,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
                 </span>
               }
               label={label}
-              meta={`${partFile(review, part.part)} · ${formatBytes(part.bytes)}`}
+              meta={`${partFile(review, part.part)}, ${formatBytes(part.bytes)}`}
               metaFont="code"
             >
               <Button

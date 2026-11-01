@@ -271,7 +271,7 @@ export function TrainingRows(props: PlanFacts) {
   const adds = [
     shortDuration(comparisonSeconds(job, chosen, testPlace)),
     ...billLines(bills.comparison).map((line) => `${line.value} ${line.label}`),
-  ].join(' · ');
+  ].join(', ');
   const notes = estimateNotes(job, {
     names,
     device: { inSentence: device, label: deviceLabel(currentPlatform()) },

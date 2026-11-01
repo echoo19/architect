@@ -130,16 +130,15 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
             <RadioCard
               key={option.key}
               value={option.model}
-              title={`${baseModelName(option.model)} · ${sizeWord(option, recommended)}`}
+              title={`${baseModelName(option.model)}, ${sizeWord(option, recommended)}`}
               disabled={downloading && option.model !== student.model}
             >
               <span>
                 {downloaded(option.model)
                   ? 'Downloaded'
                   : `${formatBytes(option.downloadBytes)} download`}
-                {' · '}
-                {tradeoff(option)}
               </span>
+              <span>{tradeoff(option)}</span>
               {fitLine(option, gpu) && <span>{fitLine(option, gpu)}</span>}
             </RadioCard>
           ))}

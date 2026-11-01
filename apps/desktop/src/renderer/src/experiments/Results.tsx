@@ -378,15 +378,15 @@ function SpendTable({
   );
 }
 
-/** "83% · 30 of 36", or null for nothing measured. */
+/** "83% (30 of 36)", or null for nothing measured. */
 const scoreText = (score: { pass: number; total: number } | null) =>
   score === null || score.total === 0
     ? null
-    : `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+    : `${formatPercent(score)} (${score.pass} of ${score.total})`;
 
-/** The harness version an arm froze, and its hash as a person reads it: "v3 · 61b8a9d". */
+/** The harness version an arm froze, and its hash as a person reads it: "v3 (61b8a9d)". */
 const versionText = (frozen: NonNullable<ArmReport['frozen']>) =>
-  `v${frozen.harnessVersion} · ${frozen.harnessHash.replace(/^sha256[:-]/, '').slice(0, 7)}`;
+  `v${frozen.harnessVersion} (${frozen.harnessHash.replace(/^sha256[:-]/, '').slice(0, 7)})`;
 
 /** Each arm's run: its rounds, its check tasks at the last kept change, and the version it froze. */
 function RunsTable({

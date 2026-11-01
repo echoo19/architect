@@ -121,7 +121,7 @@ function VersionRow({
       shortDate(version.createdAt),
     ]
       .filter(Boolean)
-      .join(' · '),
+      .join(', '),
   );
   const word = standing(version);
 
@@ -174,7 +174,7 @@ function Score({ score }: { score: { pass: number; total: number } }) {
       <span className="font-mono">{formatPercent(score)}</span>
       <span className="text-small">
         {' '}
-        · {score.pass} of {score.total}
+        ({score.pass} of {score.total})
       </span>
     </>
   );

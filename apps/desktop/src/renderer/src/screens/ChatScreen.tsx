@@ -83,7 +83,16 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
     <div className="flex items-center gap-1">
       {agent.status === 'blocked' && <BlockedBadge agent={agent} named={false} />}
       <OrganizationMenu agent={agent} />
-      <Tooltip content={facts.join(' · ')} side="bottom">
+      <Tooltip
+        content={
+          <span className="flex flex-col">
+            {facts.map((fact) => (
+              <span key={fact}>{fact}</span>
+            ))}
+          </span>
+        }
+        side="bottom"
+      >
         <IconButton label={`About ${agent.name}`} size="sm" onClick={() => showSettings(agent.id)}>
           <Info size={16} strokeWidth={1.8} aria-hidden />
         </IconButton>
@@ -137,7 +146,7 @@ function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }
             })}
           </ul>
           <p className="m-0 mt-3 text-small">
-            {`Not certified as a team · Runs on ${deviceInSentence(currentPlatform())}`}
+            {`Not certified as a team. Runs on ${deviceInSentence(currentPlatform())}.`}
           </p>
           <Button size="xs" className="mt-3" onClick={() => navigate(paths.teams())}>
             Edit team

@@ -10,14 +10,14 @@ import { organizationGrid } from './org-grid';
  * sealed final test.
  */
 
-/** A score as rows say it, with where the organization stood: "65% · 31 of 48, never seen". */
+/** A score as rows say it, with where the organization stood: "65% (31 of 48), never seen". */
 function said(score: Score, standing: string): string {
-  return `${formatPercent(score)} · ${score.pass} of ${score.total}, ${standing}`;
+  return `${formatPercent(score)} (${score.pass} of ${score.total}), ${standing}`;
 }
 
-/** A skill's score in a row of its own: "65% · 31 of 48". */
+/** A skill's score in a row of its own: "65% (31 of 48)". */
 function skillSaid(score: Score): string {
-  return `${formatPercent(score)} · ${score.pass} of ${score.total}`;
+  return `${formatPercent(score)} (${score.pass} of ${score.total})`;
 }
 
 export interface SkillPlace {

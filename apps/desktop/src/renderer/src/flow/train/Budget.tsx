@@ -87,7 +87,7 @@ function BudgetMeter({
         <span className="min-w-0 truncate">
           {label}
           {/* A cap is checked between steps, so the last step can carry the count past it. */}
-          {fraction >= 1 && <span title={reachedHint}> · limit reached</span>}
+          {fraction >= 1 && <span title={reachedHint}>, limit reached</span>}
         </span>
         <span className="shrink-0 tabular-nums">
           <Counted said={used}>
