@@ -50,26 +50,25 @@ This is a draft for the owner. It is written platform first: the training system
 
 **Why we made this:** Most teams that build with AI rent it, and every request sends their data to someone else's model. Architect works the other way round: a large model teaches a small one the work and then leaves. What's left runs on the team's own computer and comes with a record of what it can and can't do. We started building on October 27, 2026. Y Combinator's Requests for Startups for Winter 2027 came out after that, and three of them ask for what we were already making: [Own Your Intelligence](https://www.ycombinator.com/rfs#own-your-intelligence) (Jon Xu), [AI for the Air-Gapped Economy](https://www.ycombinator.com/rfs#ai-for-the-air-gapped-economy) (Brad Flora) and [Vertical Foundation Models](https://www.ycombinator.com/rfs#vertical-foundation-models) (Diana Hu). They confirm the idea; they didn't give it to us.
 
-**What it does:** Architect is an R&D platform for specialist models. A frontier model, Muse Spark, trains a small one, Muse Glimmer, on an organization's own work: it engineers Glimmer's harness (its prompts, tools and lessons), and when the harness isn't enough it fine-tunes Glimmer's weights with LoRA or QLoRA. Every change is a hypothesis tested on held-out checks Spark never sees, and the result is judged once, on a sealed final test of organizations neither model has seen. The specialist that comes out runs on-premise, offline, with a risk certificate that bounds how often it is wrong.
+**What it does:** Architect is an R&D platform for specialist models. A frontier model, Muse Spark, trains a small one, Muse Glimmer, on an organization's own work: it engineers Glimmer's harness (its prompts, tools and lessons), and when the harness isn't enough it fine-tunes Glimmer's weights with LoRA or QLoRA. Every refinement is a hypothesis tested on held-out checks Spark never sees, and the result is judged once, on a sealed final test that includes organizations neither model has seen. The specialist that comes out runs on-premise and offline, and it can carry a risk certificate that bounds how often it is wrong.
 
 How it works:
 
 - **A field, not a prompt.** You describe a kind of work done across several organizations, such as test-prep academies or screening labs, each with its own files and policy. Spark studies all of it (recordings too, through Muse Voice Transcribe) and writes a brief where every rule is traced to its source.
-- **Harness engineering.** Spark reads Glimmer's failed attempts, finds the step that went wrong, and changes the harness. A change stays only if it beats held-out checks; otherwise it is rolled back. Every change is logged with the failure that caused it, the predicted effect and the measured one.
+- **Harness engineering.** Spark drafts the harness, then reads Glimmer's failed attempts, finds the step that went wrong, and refines it. A refinement stays only if it beats held-out checks; otherwise it is rolled back. Every change is logged with the failure that caused it, the predicted effect and the measured one.
 - **Counterexample-guided repair.** When a tool Spark wrote gives a wrong result, Architect shrinks the failing case (2,312 rows down to 4 in one repair), Spark fixes the tool against it, and the case joins the field's regression suite.
 - **Fine-tuning.** Architect exports checker-verified training data, sizes a LoRA, QLoRA or full fine-tune from the model's own config, trains on Hugging Face Jobs, and writes launch bundles for Slurm, Kubernetes and SkyPilot clusters.
 - **Risk certificates.** A sealed calibration set sets when the specialist answers and when it hands off to a person, with a stated bound and confidence, then the bound is checked on organizations it never trained on.
 - **Agent teams.** Specialists work together: a lead asks a teammate when the answer is in the teammate's files. Each still reads only its own files and asks before it writes.
 - **Two editions in one app.** Architect teaches one job, for anyone. Architect Lab is the R&D workbench: fields, preregistered experiments, a registry of model versions with their scores, and compute plans.
 
-**Results:** from the reports in `docs/comparisons`, each on organizations neither model saw.
+**Results:** from the reports in `docs/comparisons`. The organizations are generated, except the anonymized real academy.
 
-- **Test-prep academies:** on Harborview Prep, the Spark-engineered harness passed 43 of 48 tasks, against 24 for Glimmer alone.
-- **A screening lab:** Inventory desk, which reserves compound stock for re-tests, passed 27 of 32 at Corvid Hill Discovery, against 4 for Glimmer alone.
+- **Test-prep academies:** on Harborview Prep, an academy neither model saw, the Spark-engineered harness passed 43 of 48 tasks, against 24 for Glimmer alone.
+- **A screening lab:** Inventory desk, which reserves compound stock for re-tests, passed 27 of 32 at Corvid Hill Discovery, a lab neither model saw, against 4 for Glimmer alone.
 - **The first risk certificate:** when Academy desk answers, it is wrong on at most 5% of requests like these, at 95% confidence, and the bound held at Harborview Prep: 53 of 54 answered, none wrong.
-- **An open-weight teacher:** with Muse Spark Open as the teacher, served by Baseten, the whole pipeline runs on Meta's open weights. Its engineered harness took Glimmer from 18 to 39 of 60 on the sealed final test.
-- **On-premise:** the same Academy desk passed 103 of 120 on one 12 GB graphics card, as many as hosted.
-- **A real academy:** on an anonymized real academy, the specialist passed 12 of 24, up from 9.
+- **An open-weight teacher:** with Muse Spark Open as the teacher, served by Baseten, the whole pipeline runs on Meta's open weights. Its engineered harness took Glimmer from 18 to 39 of 60 requests on a returns desk's sealed final test.
+- **On-premise:** the same Academy desk passed 103 of 120 on one 12 GB graphics card, against 99 of 120 hosted.
 
 **How it uses Meta's models:**
 
@@ -80,14 +79,14 @@ How it works:
 
 **Bonus fits:**
 
-- **Best Build on Open Weight Models:** Spark Open teaching through Baseten, Glimmer on-premise on a 12 GB card, and LoRA adapters trained on Glimmer's open weights.
+- **Best Build on Open Weight Models:** Spark Open teaching through Baseten, Glimmer on-premise on a 12 GB card, and LoRA fine-tuning on Glimmer's open weights through Hugging Face Jobs.
 - **Best Agentic Use-Case:** specialists that act on an organization's records and work as a team, checked by a program on the state they leave behind.
 
 **Track:** indie developer. **Problem statement:** Build for Your World.
 
 **Links:** https://github.com/echoo19/architect, https://echoo19.github.io/architect/, the latest release for Windows and macOS, and the video (to add).
 
-**X post (draft):** I built Architect: an R&D platform that trains specialist AI on your own work. A frontier model engineers a small model's harness and fine-tunes it with LoRA, every change tested on data neither model has seen. On a lab it never saw: 27 of 32, up from 4. Open source: github.com/echoo19/architect
+**X post (draft):** I built Architect: an R&D platform that trains specialist AI on your own work. A frontier model engineers a small model's harness and fine-tunes it with LoRA, every refinement tested on held-out checks and the result judged on a sealed test. On a lab it never saw: 27 of 32, up from 4. Open source: github.com/echoo19/architect
 
 ## Demo script
 
