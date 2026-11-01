@@ -169,7 +169,7 @@ test('offers it on the last screen of setup and on the screen after it', async (
 
   await page.getByRole('button', { name: 'Get started' }).click();
   await expect(page).toHaveURL(/#\/$/);
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teach your first agent' })).toBeVisible();
   await expect(sampleJob()).toBeVisible();
   await expect(readyMade()).toBeVisible();
   await capture('sample-agent-empty-dark.png');
@@ -190,7 +190,7 @@ test('offers nothing, and says nothing of it, in a build that does not ship the 
   await walkToTheEndOfSetup();
   await expect(page.getByText('Next, describe a job. Or try the sample job first.')).toBeVisible();
   await page.getByRole('button', { name: 'Get started' }).click();
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teach your first agent' })).toBeVisible();
   await expect(sampleJob()).toBeVisible();
   await expect(page.getByText(/ready-made/)).toHaveCount(0);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { GraduateSummary } from '@architect/shared';
-import { Button, EmptyState, Skeleton } from '@architect/ui';
+import { Button, EmptyState, Heading, Skeleton } from '@architect/ui';
 import { Bot } from 'lucide-react';
 import { useGraduates, useJobs, useSettings } from '../api/hooks';
 import { toError } from '../api/query';
@@ -97,10 +97,10 @@ function NoAgentsYet() {
   const pickUp = jobs.status === 'success' ? jobToPickUp(jobs.data) : null;
   const pitch =
     settings.status === 'success'
-      ? `Describe a job, and ${mentorName(settings.data.defaultMentor)} teaches ${studentName(
+      ? `Describe a job. ${mentorName(settings.data.defaultMentor)}, a frontier model, teaches it to ${studentName(
           settings.data.defaultStudent,
-        )} to do it.`
-      : 'Describe a job and Architect trains an agent to do it.';
+        )}, a small open model that then runs offline on this computer.`
+      : 'Describe a job, and Architect teaches it to a small open model that runs offline on this computer.';
 
   if (pickUp) {
     return (
@@ -127,19 +127,20 @@ function NoAgentsYet() {
   }
 
   return (
-    <EmptyState
-      icon={<Bot aria-hidden />}
-      title="No agents yet"
-      description={pitch}
-      actions={
-        <>
-          <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
-            New agent
-          </Button>
-          <SampleJobButton size="md" />
-          <ReadyMadeAgentButton size="md" />
-        </>
-      }
-    />
+    <div className="flex max-w-[600px] animate-rise flex-col items-center gap-6 px-6 text-center">
+      <div className="flex flex-col items-center gap-3.5">
+        <Heading as="h1" size="display">
+          Teach your first agent
+        </Heading>
+        <p className="m-0 text-body text-balance">{pitch}</p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
+          New agent
+        </Button>
+        <SampleJobButton size="md" />
+        <ReadyMadeAgentButton size="md" />
+      </div>
+    </div>
   );
 }
