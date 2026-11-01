@@ -107,6 +107,8 @@ export function TeachSheet({
     }
   }, [draftKey, wrong, wanted, files, rows]);
   const [error, setError] = useState<ProposeFailure | null>(null);
+  // Each failed share counts, so sharing again shows that it ran even when it fails the same way.
+  const [failures, setFailures] = useState(0);
   const versions = useVersions(agent.id);
   const corrections = useCorrections(agent.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
@@ -148,6 +150,7 @@ export function TeachSheet({
       setStage({ kind: 'proposed', correction });
     } catch (failure) {
       setError(proposeFailure(toError(failure), mentor, ready.correctionCapUsd));
+      setFailures((count) => count + 1);
       setStage({ kind: 'write' });
     }
   };
@@ -244,7 +247,7 @@ export function TeachSheet({
         jobFiles={jobFiles}
         disabled={sending}
         error={error}
-        onRetry={() => void send()}
+        failures={failures}
         onWrong={setWrong}
         onWanted={setWanted}
         onFiles={setFiles}
@@ -311,8 +314,8 @@ interface CorrectionFormProps {
   jobFiles: string[];
   disabled: boolean;
   error: ProposeFailure | null;
-  /** Shares the same notes again, for a failure that may not happen twice. */
-  onRetry: () => void;
+  /** How many shares have failed, said once there is more than one. */
+  failures: number;
   onWrong: (text: string) => void;
   onWanted: (text: string) => void;
   onFiles: (files: string[]) => void;
@@ -329,7 +332,7 @@ function CorrectionForm({
   jobFiles,
   disabled,
   error,
-  onRetry,
+  failures,
   onWrong,
   onWanted,
   onFiles,
@@ -396,12 +399,12 @@ function CorrectionForm({
         />
       </Field>
       {error && (
+        // Sharing again is the footer's button, so the error offers no second one.
         <ErrorState
           layout="inline"
-          title={error.title}
+          title={failures > 1 ? `${error.title}, ${failures} tries` : error.title}
           message={error.text}
           {...(error.details === undefined ? {} : { details: error.details })}
-          {...(error.again && !disabled ? { onRetry } : {})}
         />
       )}
     </div>

@@ -182,8 +182,6 @@ export interface ProposeFailure {
   /** The engine's own message, for whoever opens Details. */
   details?: string;
   retry: boolean;
-  /** Whether the same notes may go through if shared again unchanged, so Try again is offered. */
-  again: boolean;
 }
 
 /**
@@ -201,7 +199,6 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
       text: `It matches a question from the final test, which ${mentor} must never see. Flag a different answer.`,
       details: error.message,
       retry: false,
-      again: false,
     };
   }
   if (code === 'guard_budget') {
@@ -210,13 +207,11 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
       text: `Reading it would cost more than the ${formatUsd(capUsd)} limit. Shorten your note, or flag a shorter answer.`,
       details: error.message,
       retry: true,
-      again: false,
     };
   }
   return {
     title: `${mentor} couldn't propose a lesson`,
     text: error.message,
     retry: true,
-    again: true,
   };
 }
