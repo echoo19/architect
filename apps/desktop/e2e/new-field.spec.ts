@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { DraftTurn, Job } from '@architect/shared';
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { stubEngine } from './fixtures';
 import { stubFields } from './fixtures-fields';
 import { recordedCalls, stubRecorded, stubSequence } from './fixtures-flow';
 import { job } from './story';
@@ -56,6 +57,8 @@ test.beforeAll(async () => {
     FOLDERS.map((folder) => [folder]),
   );
   await stubRecorded(launched.app, 'jobs:draftField', DRAFTED);
+  // Each folder added reads.
+  await stubEngine(launched.app, { 'files:check': [null] });
 });
 
 test.afterAll(async () => {
@@ -92,6 +95,11 @@ test('describes the job once, then adds each folder, named, taught on or never s
   await expect(names.nth(0)).toHaveValue('Acme outfitters');
   await expect(names.nth(2)).toHaveValue('Cedar goods');
   await names.nth(0).fill('Acme Outfitters');
+  // Two organizations can't share a name, which the row says as it is typed.
+  await names.nth(2).fill('acme outfitters');
+  await expect(organizations()).toContainText('Another organization has this name');
+  await names.nth(2).fill('Cedar goods');
+  await expect(organizations()).not.toContainText('Another organization has this name');
 
   // The first is taught on; the person marks the second as taught on too.
   await expect(role('Acme Outfitters').getByRole('radio', { name: 'Taught on' })).toBeChecked();

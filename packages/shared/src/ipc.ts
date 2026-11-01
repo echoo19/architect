@@ -544,6 +544,11 @@ export interface ArchitectApi {
       defaultName: string;
       filters?: { name: string; extensions: string[] }[];
     }): Promise<string | null>;
+    /**
+     * What keeps each chosen file or folder from being read, in order, or null where it reads: a
+     * file as a job's attachment, a folder as an organization's. Only paths chosen in a dialog.
+     */
+    check(paths: string[]): Promise<(string | null)[]>;
   };
   jobs: {
     list(): Promise<JobSummary[]>;

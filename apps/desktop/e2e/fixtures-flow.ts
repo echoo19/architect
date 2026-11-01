@@ -206,6 +206,8 @@ export const FLOW_ENGINE: EngineReplies = {
   'connections:detectLocal': FLOW_LOCAL,
   'connections:testStudent': COPY_ANSWERS,
   'files:pick': ATTACHED,
+  // Each file attached reads.
+  'files:check': ATTACHED.map(() => null),
   'jobs:draftStart': turns.start,
   'jobs:save': job,
   'jobs:get': job,

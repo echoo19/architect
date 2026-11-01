@@ -1,3 +1,4 @@
+import { pickedProblems } from '@architect/engine';
 import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
@@ -24,7 +25,8 @@ const SaveOptionsSchema = z
 
 /**
  * The system's open and save dialogs. What the user chooses is remembered as allowed for the
- * engine: a file or folder to read, or the one file to write.
+ * engine: a file or folder to read, or the one file to write. What was chosen can be checked for
+ * whether it can be read, as soon as it is.
  */
 export function registerFilesHandlers(router: IpcRouter, picked: PickedPaths): void {
   router.registerHandlers(
@@ -62,7 +64,12 @@ export function registerFilesHandlers(router: IpcRouter, picked: PickedPaths): v
         picked.add([result.filePath], 'files');
         return result.filePath;
       },
+      check: (paths) => pickedProblems(paths.map((path) => picked.check(path))),
     },
-    { pick: z.tuple([PickOptionsSchema]), save: z.tuple([SaveOptionsSchema]) },
+    {
+      pick: z.tuple([PickOptionsSchema]),
+      save: z.tuple([SaveOptionsSchema]),
+      check: z.tuple([z.array(z.string().min(1)).max(64)]),
+    },
   );
 }
