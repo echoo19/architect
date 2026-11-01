@@ -1,5 +1,6 @@
 export { cn } from './lib/cn';
 export { WINDOW_CHROME, type WindowChrome } from './chrome';
+export { defineTerm, type LabTerm } from './terms';
 export {
   Collapse,
   FLOAT_SCALE,
