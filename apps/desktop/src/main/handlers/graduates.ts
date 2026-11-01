@@ -210,7 +210,7 @@ export function registerGraduateHandlers(
         call((api) => api.graduates.updateSettings(graduateId, patch)),
     },
     {
-      report: z.union([z.tuple([text]), z.tuple([text, version])]),
+      report: z.tuple([text, version.optional()]),
       harnessDiff: z.tuple([VersionPickSchema, VersionPickSchema]),
       harnessFiles: z.tuple([text, version]),
       acceptVersion: z.tuple([text, version]),
