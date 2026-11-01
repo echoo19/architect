@@ -72,7 +72,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
     ? "on the author's computer"
     : test.ranOffline
       ? `on ${deviceInSentence(currentPlatform())}`
-      : 'on the online copy';
+      : 'on a hosted copy of the model';
 
   return (
     <div className="flex flex-col gap-8 pt-1">
@@ -117,7 +117,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
           <div key={type.type} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
               <span>{type.label}</span>
-              <span className="font-mono text-fg">
+              <span className="text-fg tabular-nums">
                 {formatPercent(type)}
                 <span className="text-fg">
                   {' '}
@@ -150,7 +150,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
                   <span className="flex items-baseline justify-between gap-3 text-fg">
                     {type.label}
                     {result && (
-                      <span className="font-mono text-fg">
+                      <span className="text-fg tabular-nums">
                         {result.pass} of {result.total}
                       </span>
                     )}

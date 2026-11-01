@@ -56,7 +56,7 @@ export function ProposalView({
         {correction.note !== undefined && <Fact label="Last try">{correction.note}</Fact>}
         <Fact label="Why">{proposal.reason}</Fact>
         <Fact label="Cost">
-          <span className="font-mono tabular-nums">{costLabel(correction.costUsd)}</span>
+          <span className="tabular-nums">{costLabel(correction.costUsd)}</span>
         </Fact>
       </dl>
       {onEdit && (

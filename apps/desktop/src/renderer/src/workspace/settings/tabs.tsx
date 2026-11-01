@@ -70,13 +70,18 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { manifest } = agent;
   const { score, testedOn } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
-  // A test taken on the online copy of its model says so: the agent itself never goes online.
-  const hosted = testedOn === 'hosted' ? ' on the online copy' : '';
   const result = met
-    ? `Passed${hosted}: ${formatScore(score)}`
-    : `Needs ${Math.round(target * 100)}%: ${formatScore(score)}${hosted}`;
+    ? `Passed: ${formatScore(score)}`
+    : `Needs ${Math.round(target * 100)}%: ${formatScore(score)}`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
+  // A test taken on a hosted copy of its model says so: the agent itself never goes online.
+  const hosted = testedOn === 'hosted';
+  const testedWhere = hosted
+    ? `${evaluatedHere ? 'On' : 'By its author, on'} a hosted copy of the model`
+    : evaluatedHere
+      ? undefined
+      : AUTHOR_RESULT_TITLE;
 
   return (
     <>
@@ -95,7 +100,15 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       <SettingsRow label="Answers with">
         <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
-      <SettingsRow label="Final test" meta={evaluatedHere ? undefined : AUTHOR_RESULT_TITLE}>
+      <SettingsRow
+        label="Final test"
+        meta={testedWhere}
+        info={
+          hosted
+            ? 'It took its final test on a hosted copy of the model, not on this computer.'
+            : undefined
+        }
+      >
         <SettingsValue>{result}</SettingsValue>
       </SettingsRow>
       <AgentModelRow agent={agent} active={active} />
@@ -369,7 +382,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       </SettingsRow>
       <SettingsRow label="Files it can read" error={errorOf(versions)}>
         {contract ? (
-          <span className="max-w-[340px] text-right font-mono text-small text-fg text-pretty">
+          <span className="max-w-[340px] text-right text-small text-fg text-pretty">
             {files.map((file) => file.name).join(', ')}
           </span>
         ) : (
@@ -383,7 +396,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       >
         {contract ? (
           writable.length > 0 ? (
-            <span className="font-mono text-small text-fg">{writable.join(', ')}</span>
+            <span className="text-small text-fg">{writable.join(', ')}</span>
           ) : (
             <SettingsValue>None</SettingsValue>
           )

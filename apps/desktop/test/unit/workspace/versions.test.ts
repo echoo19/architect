@@ -111,7 +111,7 @@ describe('promoting a version its final test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(promoteCaution(hosted)).toBe(
-      'Version 2 took its final test on the online copy of its model, not on a computer like this one.',
+      'Version 2 took its final test on a hosted copy of its model, not on this computer.',
     );
   });
 
@@ -127,7 +127,7 @@ describe('promoting a version its final test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(evaluationNote(short)).toBe('Below its 90% target');
-    expect(evaluationNote(hosted)).toBe('Final test on the online copy');
+    expect(evaluationNote(hosted)).toBe('Tested on a hosted model');
     expect(evaluationNote(version({ version: 3 }))).toBe('Passed its final test');
     expect(evaluationNote(version({ version: 4, evaluation: 'unevaluated' }))).toBe(
       'No final test yet',
