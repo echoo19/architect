@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon, early), `film/launch`: the launch film's picture
+
+- *Done:* a launch-style film beside the walkthrough, `site/film/launch/` (built with `vite.film-launch.config.ts`), following `SCRIPT-launch.md` draft 2. It reuses the walkthrough's screens under a new orchestration: the claim with the app's screens arriving in depth and a flight through them, the three requests with a camera move between each, Architect Lab beside its window, then one window through the field and its vault, the study, the harness changing round by round (round 1's prompt, tool and lesson, round 2's skill diff rolled back), the counterexample locked into the field's regression suite, the vault opening into Harborview's 43 of 48 and back into the plot, the real academy's 12, the risk certificate, the fine-tune (a 235B model's plan read from its config, LoRA, 16 GPUs in 2 nodes, Slurm and Kubernetes bundles), Inventory desk's 27 of 32 at Corvid Hill, the team, Offline, the editions, and the window becoming the mark. The film's words follow the app's newer glossary through a labels context (`site/film/lab/labels.ts`); the walkthrough keeps its own words and renders pixel-identical. Authored at about 150 words a minute, 2:57; `cues.ts` exports the `BEATS` and a placeholder `TIMING` for the voice. Unmeasured figures are the PENDING constants in `launch/data.ts` (the certificate, still shown as an Example; the open-weight teacher's beat, one flag).
+- *Next:* the voice and score, then `TIMING` from the take's word times and the final render.
+
 ## 2026-11-01 (Sun, late night): film final 3 live, 0.8.0 released
 
 - *Done:* the owner approved final 3 ("looks good"). PR #5 (`field/main` to `main`) passed Linux CI and was merged; the site serves the 2:41 film and the reworded results page. Then 0.8.0 (`chore(release): 0.8.0`: app, CLI, `docs/CLI.md`), tagged `v0.8.0` with release notes (agent teams, `architect run --team`, Inventory desk, the quieter app); the release workflow builds the installers. The site's download version moves to 0.8.0 only once they are attached, so its buttons never point at a missing file.
