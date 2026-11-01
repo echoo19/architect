@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import type { GraduateSummary, GraduateVersion, ModelBinding } from '@architect/shared';
+import {
+  GLIMMER_BUILDS,
+  type GraduateSummary,
+  type GraduateVersion,
+  type ModelBinding,
+} from '@architect/shared';
 import { SettingsRow, Spinner, toast } from '@architect/ui';
 import { useShallow } from 'zustand/react/shallow';
 import { graduateKeys, graduatesApi, refreshAgent, useInstallation } from '../../api/graduates';
@@ -48,12 +53,15 @@ export function AgentModelRow({
   const [saving, setSaving] = useState(false);
   const binding = installation.data?.model;
   const weights = active?.manifest.model.adapter !== undefined;
-  // The package's own base: its build and size only describe that model.
+  // The package's own base: its build and size only describe that model. A build the app knows
+  // is named by the picker ("Glimmer, 2-bit"), so the runtime's word for its file type, which can
+  // differ (Ollama calls the 2-bit build Q4_K_M), isn't said beside it.
   const base = active?.manifest.model.base;
+  const known = GLIMMER_BUILDS.some((build) => build.model === base?.name);
   const details =
     base && binding?.model === base.name
       ? [
-          base.quantization && quantizationLabel(base.quantization),
+          !known && base.quantization && quantizationLabel(base.quantization),
           base.sizeBytes && `${formatBytes(base.sizeBytes)} on disk`,
         ]
           .filter(Boolean)
