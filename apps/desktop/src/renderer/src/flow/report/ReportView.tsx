@@ -8,8 +8,10 @@ import {
   type ReportCard,
   type Run,
   type RunContact,
+  type Score,
 } from '@architect/shared';
 import {
+  defineTerm,
   DetailList,
   Disclosure,
   Heading,
@@ -18,6 +20,7 @@ import {
   StaggerItem,
   Stat,
   Tooltip,
+  type LabTerm,
   type Words,
 } from '@architect/ui';
 import { CircleMinus, Network } from 'lucide-react';
@@ -45,7 +48,7 @@ import {
 } from './evidence';
 import { LocalTest } from './LocalTest';
 import { Organizations } from './Organizations';
-import { organizationGrid, type OrgGrid } from './org-grid';
+import { organizationGrid, type OrgColumn, type OrgGrid, type OrgGroup } from './org-grid';
 import { RuleNotes } from './RuleNotes';
 import { ScoreNotes } from './ScoreNotes';
 import { testSourceNote } from './test-source';
@@ -141,6 +144,42 @@ function testedOn(report: ReportCard, grid: OrgGrid | null): string {
   return `Tested on ${report.test.score.total} new tasks and ${tasks} from ${places} it had never seen`;
 }
 
+/**
+ * The claim a field's report leads with, named as the Lab names it: its score at the generated
+ * organizations it never saw, with the real ones' score beside it; or, with no generated ones,
+ * its score at the real ones. Null for a job taught and tested on the same organizations, whose
+ * headline stays its final test.
+ */
+function neverSeenScore(
+  grid: OrgGrid | null,
+): { score: Score; label: string; real: string | null } | null {
+  const columns = (group: OrgGroup) =>
+    grid?.groups.filter((item) => item.group === group).flatMap((item) => item.columns) ?? [];
+  const sum = (list: readonly OrgColumn[]): Score =>
+    list.reduce(
+      (total, column) => ({
+        pass: total.pass + column.score.pass,
+        total: total.total + column.score.total,
+      }),
+      { pass: 0, total: 0 },
+    );
+  const unseen = columns('unseen');
+  const real = columns('real');
+  const realName = real.length === 1 ? (real[0]?.name ?? 'the real organization') : 'the real ones';
+  if (unseen.length > 0 && sum(unseen).total > 0) {
+    const realScore = sum(real);
+    return {
+      score: sum(unseen),
+      label: 'at never-seen organizations',
+      real: realScore.total > 0 ? `${formatRate(realScore)} at ${realName}` : null,
+    };
+  }
+  if (real.length > 0 && sum(real).total > 0) {
+    return { score: sum(real), label: `at ${realName}, real and never seen`, real: null };
+  }
+  return null;
+}
+
 /** Whether training began with a first full draft rather than a setup (decision 026). */
 function startedBlank(report: ReportCard, job: Job | null): boolean {
   return (
@@ -175,6 +214,16 @@ function costParts(
     total: mentorUsd + (studentUsd ?? 0) + computeUsd,
     parts: parts.length > 1 ? parts : [],
   };
+}
+
+/** A stat's label with what its term means behind an info icon beside it. */
+function Termed({ term, mentor, text }: { term: LabTerm; mentor: string; text: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      {text}
+      <InfoTip about={text}>{defineTerm(term, mentor)}</InfoTip>
+    </span>
+  );
 }
 
 /** Short facts stacked one per line under a stat. */
@@ -232,6 +281,7 @@ export function ReportView({
   const memory = memoryFact(figures);
   const source = testSourceNote(report.tasks, names.mentor, w.finalTest);
   const grid = organizationGrid(test.perOrg);
+  const neverSeen = neverSeenScore(grid);
 
   return (
     <Stagger className="flex flex-col gap-12">
@@ -259,20 +309,37 @@ export function ReportView({
 
       <StaggerItem className="flex flex-col gap-6">
         <div className="grid grid-cols-2 items-baseline gap-x-12 gap-y-8 border-y border-line py-8 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
-          <Stat
-            size="xl"
-            value={formatRate(test.score)}
-            label={
-              grid ? `on the ${w.finalTest}, organizations it was taught on` : 'of new tasks right'
-            }
-            note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
-            noteFont="text"
-          />
-          <Stat
-            value={formatAnswerTime(test.latencyMs.p50)}
-            label="Typical answer time"
-            noteFont="text"
-          />
+          {neverSeen ? (
+            <>
+              <Stat
+                size="xl"
+                value={formatRate(neverSeen.score)}
+                label={<Termed term="neverSeen" mentor={names.mentor} text={neverSeen.label} />}
+                note={
+                  <Lines
+                    lines={[`${neverSeen.score.pass} of ${neverSeen.score.total}`, neverSeen.real]}
+                  />
+                }
+                noteFont="text"
+              />
+              <Stat
+                value={formatRate(test.score)}
+                label={
+                  <Termed term="taughtOn" mentor={names.mentor} text="at taught-on organizations" />
+                }
+                note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
+                noteFont="text"
+              />
+            </>
+          ) : (
+            <Stat
+              size="xl"
+              value={formatRate(test.score)}
+              label={grid ? `on the ${w.finalTest}` : 'of new tasks right'}
+              note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
+              noteFont="text"
+            />
+          )}
           {size ? (
             <Stat value={names.student} label={`${formatBytes(size)} on disk`} noteFont="text" />
           ) : null}
@@ -398,7 +465,7 @@ export function ReportView({
                           : `Round ${change.round}`}
                       </th>
                       <td className="py-3.5 pr-4">{change.title}</td>
-                      <td className="py-3.5 pl-6 text-right font-mono tabular-nums">
+                      <td className="py-3.5 pl-6 text-right tabular-nums">
                         {signed(change.runs ? change.delta / change.runs : change.delta)}
                       </td>
                     </tr>
@@ -417,12 +484,16 @@ export function ReportView({
       <StaggerItem>
         <Disclosure label="Training details">
           <DetailList
+            valueFont="text"
             items={[
               {
                 label: 'Model',
                 value: `${report.student.model} on ${RUNTIMES[report.student.runtime] ?? report.student.runtime}`,
               },
-              { label: 'Answer time', value: `95% within ${formatAnswerTime(test.latencyMs.p95)}` },
+              {
+                label: 'Answer time',
+                value: `Typically ${formatAnswerTime(test.latencyMs.p50)}, 95% within ${formatAnswerTime(test.latencyMs.p95)}`,
+              },
               { label: 'Training', value: trainingNote(report, job) },
               ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(' · ') }] : []),
               ...(memory ? [{ label: `Memory in the ${w.finalTest}`, value: memory }] : []),

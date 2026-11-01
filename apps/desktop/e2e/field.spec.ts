@@ -174,7 +174,7 @@ test('shows each skill at each organization, trained-with, never-seen and real a
 
   // The headline's figures at the top, the grid whole below them.
   await page
-    .getByText('on the sealed final test, organizations it was taught on')
+    .getByText('at never-seen organizations')
     .evaluate((label) => {
       const figures = label.closest('.border-y') ?? label;
       let box = figures.parentElement;
