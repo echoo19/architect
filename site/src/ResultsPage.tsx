@@ -33,7 +33,6 @@ import {
   type FieldPair,
   type GroupKey,
   type LocalRow,
-  type Pair,
   type Round,
   type SourceKey,
 } from './evidence';
@@ -207,13 +206,6 @@ function Subsection({ number, title }: { number: string; title: string }) {
 
 function Text({ children }: { children: ReactNode }) {
   return <p className="t-read">{children}</p>;
-}
-
-/** One pair of arms from a comparison, by its label. */
-function pair(comparison: Comparison, label: string): Pair {
-  const found = comparison.pairs.find((each) => each.label === label);
-  if (!found) throw new Error(`The ${comparison.id} comparison has no pair "${label}".`);
-  return found;
 }
 
 /** One arm of a comparison, by its name. */
@@ -604,63 +596,63 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
 
 const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   {
-    title: 'Mostly hosted Glimmer, one seed, for the Academy desk.',
-    text: 'Every figure in section 1 except 1.5 is from hosted Glimmer at full precision under seed 101, and section 1.5 is one check on the local build, also under one seed. A second seed was declared and not run.',
+    title: 'One seed, mostly hosted Glimmer, for the Academy desk.',
+    text: "Every Academy desk figure comes from one seed, the number that fixes a run's chance choices, and all but section 1.5 from hosted Glimmer; a second declared seed was not run.",
     from: 'academyDesk',
   },
   {
-    title: 'The local check is one seed and one setup.',
-    text: 'Only Academy desk ran on this computer: the blank setup stopped after 2 of 24 Real academy tasks when the system ran low on memory, so the check says nothing about the untaught Glimmer there. The test had already been opened, and nothing was tuned for it.',
+    title: 'The local check covers one setup.',
+    text: 'Only Academy desk ran on this computer, because the blank setup ran out of memory early, so the check says nothing about untaught Glimmer here.',
     from: 'local',
   },
   {
     title: 'A small real sample.',
-    text: 'The Real academy gave 24 tasks from a snapshot of 16 students in the first run and 30 from a snapshot of 17 in the third, and tasks that share students and files are not independent. Its records have no question text, so hint, solve and the tutoring turn were not tested there, and a gain on it is not yet confirmed.',
+    text: 'The real academy gave only 24 tasks in the first run and 30 in the third, many sharing students and files, and its records have no question text, so a gain there is not yet confirmed.',
     from: 'academyDesk',
   },
   {
-    title: "The third run's Real academy assign tasks could not be passed.",
-    text: "They asked for new rows in an empty assignments file that never says how to number the first one, so both setups scored 0 of 10; the task builder was fixed afterwards, and the numbers stand as measured. The one-shot setup's final test was held back, so the run cannot say how much of the gain came from it, and Academy desk ran with high reasoning at about three times the blank setup's spend.",
+    title: "The third run's real academy assign tasks could not be passed.",
+    text: 'The empty assignments file never said how to number the first row, so both setups failed every one, and in the same run the one-shot setup was not tested and Academy desk spent about three times what the blank setup did.',
     from: 'third',
   },
   {
     title: 'A policy written for the test.',
-    text: "The Real academy's policy was drafted for this test and awaits the academy's confirmation. Its follow-up and history numbers came from the generated academies, so transfer to it is weaker evidence than Harborview's, whose numbers no taught academy has.",
+    text: "The real academy's policy was drafted for this test and awaits the academy's confirmation, and some of its numbers came from the generated academies, so it tests transfer less strictly than Harborview Prep.",
     from: 'academyDesk',
   },
   {
-    title: 'Settings differ by arm.',
-    text: 'The blank setup ran at temperature 1 with a 16-turn limit and low reasoning, the one-shot setup and Academy desk at temperature 0 with 30 turns and medium reasoning. Each row compares a whole configuration.',
+    title: 'Settings differ by setup.',
+    text: 'The setups ran with different temperatures, turn limits and reasoning levels (Table 2), so each row compares a whole configuration.',
     from: 'academyDesk',
   },
   {
     title: 'A scripted study and a patched runner.',
-    text: 'A script confirmed the study brief, not a person. The comparisons runner was a patched copy outside the repository.',
+    text: 'A script, not a person, confirmed the study brief, and the comparisons ran on a patched copy of the runner outside the repository.',
     from: 'academyDesk',
   },
   {
     title: 'Two desks of one kind.',
-    text: 'Both are returns desks for a made-up shop, made by the same generator, so they test one kind of job, not other businesses.',
+    text: 'Both returns desks are for a made-up shop from the same generator, so they test one kind of job, not other businesses.',
     from: 'plan',
   },
   {
-    title: 'One seed.',
-    text: 'Each returns desk final test was taken under seed 101, and a declared second seed, 102, was not run. Self-reflection, where the student refines the setup itself, was not one of the arms.',
+    title: 'One seed for the returns desks.',
+    text: 'Each returns desk final test ran under one seed with a second declared seed not run, and the student refining its own setup was not one of the setups compared.',
     from: 'second',
   },
   {
     title: 'Glimmer served online.',
-    text: 'The returns desk figures are from Glimmer served online. The build that runs on your computer has not taken those final tests, and none of these agents has trained weights.',
+    text: 'The returns desk figures come from Glimmer served online, not the build on your computer, and none of these agents has trained weights.',
     from: 'second',
   },
   {
     title: 'A target met is not proof.',
-    text: 'Meeting the 95% target as observed is not proof of 95% reliability: the interval around 58 of 60 runs from 88.6% to 99.1%. Gains seen while developing lean upward, so only the final test is claimed.',
+    text: 'Meeting the 95% target on the final test does not prove 95% reliability, since its interval reaches well below that (Table 6), and only the final test is claimed because gains seen while teaching lean upward.',
     from: 'second',
   },
   {
     title: 'One certificate run, on hosted Glimmer.',
-    text: 'It used one set of five seeds at temperature 0, which makes agreement a weak signal, calibration tasks from generated academies, and a Real academy check of 10 tasks on a drafted policy. Five attempts that all ran out of steps counted as agreement, a flaw fixed after the run, and counterexample repair is tested only on stand-ins and generated practice data.',
+    text: 'Its five attempts ran with no randomness, which makes agreement a weak signal, a counting flaw was fixed only after it, and counterexample repair is tested only on stand-ins and practice data.',
     from: 'cert',
   },
   {
@@ -679,24 +671,18 @@ const HEADLINE: readonly { figure: string; text: string }[] = [
 
 const TAUGHT = "Glimmer after Spark's teaching";
 const ALONE = 'Glimmer on its own';
-const ONE_SHOT = "Spark's one-shot setup";
 
 export function ResultsPage() {
   const second = {
     taught: arm(SECOND, TAUGHT),
     alone: arm(SECOND, ALONE),
-    oneShot: arm(SECOND, ONE_SHOT),
-    againstAlone: pair(SECOND, 'Teaching against Glimmer on its own'),
   };
   const first = {
     taught: arm(FIRST, TAUGHT),
     alone: arm(FIRST, ALONE),
-    againstAlone: pair(FIRST, 'Teaching against Glimmer on its own'),
   };
   const local = found(LOCAL_ROWS[3], 'local row for all groups');
   const juniper = found(THIRD_ROWS[1], 'third-run row for Juniper Study House');
-  const realThird = found(THIRD_ROWS[2], 'third-run row for the Real academy');
-  const strictest = found(CERT_ROWS[0], 'certificate row at full agreement');
   return (
     <div id="top">
       <a
@@ -715,16 +701,12 @@ export function ResultsPage() {
           <h2 className="t-h2 mt-16">Abstract</h2>
           <p className="t-read mt-4">
             Architect turns an organization&apos;s own material into a specialist that runs on its
-            own computer: a large model, Spark, teaches a small one, Glimmer, by changing its
-            instructions and small tools, and keeps a change only if it raises the score on check
-            tasks Spark never sees. Taught on three generated test-prep academies to be Academy
-            desk, an agent for academy staff, Glimmer passed 43 of 48 sealed tasks on Harborview
-            Prep, an academy neither model had seen, against 24 on a blank setup; run on one 12 GB
-            graphics card through Ollama, the same agent passed 103 of 120. On a real academy,
-            anonymized, it passed 12 of 24 against 9; a later run on a second snapshot scored lower
-            ({realThird.academyDesk.passed} against {realThird.bare.passed} of {realThird.n}), and
-            replaying its tools traces that to three specific causes. Every figure is under one
-            seed, and all but the local check are from Glimmer served online.
+            own computer. A large model, Spark, teaches a small one, Glimmer, by changing its
+            instructions and small tools, and keeps a change only if it helps on check tasks Spark
+            never sees. Taught on three generated test-prep academies to be Academy desk, an agent
+            for academy staff, Glimmer passed 43 of 48 tasks on an academy neither model had seen,
+            against 24 untaught. On a real academy that gain is not yet confirmed, and a later run
+            on a second snapshot scored lower, for three causes we traced.
           </p>
           <ul className="m-0 mt-16 grid list-none gap-x-8 gap-y-10 border-y border-line p-0 py-10 sm:grid-cols-3">
             {HEADLINE.map((item) => (
@@ -740,32 +722,32 @@ export function ResultsPage() {
           <Subsection number="1.1" title="The run" />
           <Text>
             Academy desk is Glimmer with the instructions and small tools Spark built for it. When a
-            student misses a practice question, staff ask it what to do, and it answers from the
+            student misses a practice question, staff ask it what to do. It answers from the
             academy&apos;s own files: topic labels, question bank, practice tests, answers, hints,
-            videos and tutoring policy. A program checks facts and file changes, never wording
+            videos and tutoring policy. A program checks the facts and file changes, never the
+            wording
             <Cite to={['academyDesk']} />.
           </Text>
           <Text>
-            Spark taught Glimmer over three rounds on three generated academies, which differ in
-            labels, id formats, wording and policy numbers. Then everything was frozen and a sealed
-            test of {FIELD_TEST_SIZE} tasks was opened once: 48 held-out tasks from the taught
-            academies, 48 from Harborview Prep, a generated academy neither model had seen, and 24
-            from a real tutoring academy, anonymized. The real academy&apos;s records have no
-            question text, so only diagnose, history and assign could be checked there. Three setups
-            took the test: Glimmer on a blank setup, Spark&apos;s one-shot setup, written once and
-            kept without a check, and Academy desk
+            Spark taught Glimmer over three rounds on three generated academies. Each one differs in
+            labels, id formats, wording and policy numbers. Then everything was frozen, and a sealed
+            test was opened once. It held new tasks from the taught academies, tasks from Harborview
+            Prep, a generated academy neither model had seen, and tasks from a real tutoring
+            academy, anonymized. The real academy&apos;s records have no question text, so only
+            diagnose, history and assign could be checked there. Three setups took the test: Glimmer
+            on a blank setup, Spark&apos;s one-shot setup (written once and kept without a check),
+            and Academy desk
             <Cite to={['academyDesk']} />.
           </Text>
 
           <Subsection number="1.2" title="Final-test results" />
           <Text>
-            Across all {FIELD_TEST_SIZE} tasks Academy desk passed {FIELD_ARMS[2]?.all.passed}, the
-            blank setup {FIELD_ARMS[0]?.all.passed} and the one-shot setup{' '}
-            {FIELD_ARMS[1]?.all.passed} (Figure 1).
+            Across all {FIELD_TEST_SIZE} tasks, Academy desk passed {FIELD_ARMS[2]?.all.passed}. The
+            blank setup passed {FIELD_ARMS[0]?.all.passed} (Figure 1).
           </Text>
           <Exhibit
             label="Figure 1"
-            caption="Final-test passes by setup in each group of organizations, with 95% intervals."
+            caption={`Final-test passes by setup in each group of organizations, with 95% intervals. The one-shot setup passed ${FIELD_ARMS[1]?.all.passed} of ${FIELD_TEST_SIZE} in all.`}
           >
             <div className="flex flex-col gap-8">
               {GROUPS.map((group, index) => (
@@ -774,31 +756,29 @@ export function ResultsPage() {
             </div>
           </Exhibit>
           <Text>
-            On Harborview Prep Academy desk passed 43 of 48 and the blank setup 24. Matched task by
-            task it won 20 and lost 1, a difference of +39.6 points with a 95% interval of +22.9 to
-            +53.7, so a gain is shown on that one generated academy, mostly from assign and the
-            tutoring turn. On the real academy it passed 12 of 24 against 9: +12.5 points, with an
-            interval from -17.9 to +40.2 that 24 tasks are too few to narrow, so that gain is not
-            yet confirmed. The one-shot setup showed no gain over the blank setup in any group
-            (Figure 2)
+            On Harborview Prep, an academy neither model had seen, Academy desk passed 43 of 48. The
+            blank setup passed 24. Most of the gain came from assign and the tutoring turn (Table
+            1). On the real academy Academy desk also passed more, but there were too few tasks to
+            confirm that gain yet. The one-shot setup did no better than the blank setup in any
+            group (Figure 2)
             <Cite to={['academyDesk']} />.
           </Text>
           <Exhibit
             label="Figure 2"
-            caption="Differences in final-test pass rate for Academy desk, matched task by task, in percentage points with 95% intervals."
+            caption="How many more tasks Academy desk passed than each other setup, in percentage points, with 95% intervals."
           >
             <FieldPairForest />
           </Exhibit>
           <Tables label="Tables for the final test">
             <TableExhibit
               label="Table 1"
-              caption="Passes by skill and organization, out of the tasks in each cell. The Real academy had no tasks for solve, hint and the tutoring turn."
+              caption="Passes by skill and organization, out of the tasks in each cell. The Real academy, a snapshot of 16 students, had no tasks for solve, hint and the tutoring turn. There, 6 of 8 diagnose tasks ended at the step limit, as 11 of its 19 practice tests list the section as Full, and history lost 1 task to wording and 3 to the date (section 1.4)."
             >
               <SkillTable />
             </TableExhibit>
             <TableExhibit
               label="Table 2"
-              caption="Tasks the first setup passed and the second failed (won), the reverse (lost), and where they agreed. The two comparisons planned as primary are Academy desk against a blank setup on Harborview Prep and on the Real academy."
+              caption="Tasks the first setup passed and the second failed (won), the reverse (lost), and where they agreed. The two comparisons planned as primary are Academy desk against a blank setup on Harborview Prep and on the Real academy. The blank setup ran at temperature 1 with a 16-turn limit and low reasoning; the one-shot setup and Academy desk at temperature 0 with 30 turns and medium reasoning."
             >
               <FieldPairTable />
             </TableExhibit>
@@ -806,15 +786,14 @@ export function ResultsPage() {
 
           <Subsection number="1.3" title="The three rounds" />
           <Text>
-            Teaching took about 15 minutes and 31 cents of Spark, and two of its three changes were
-            kept. The whole run cost Spark about {dollars(FIELD_MONEY.spark)}, including about 8
-            cents of estimates, and the hosted Glimmer {dollars(FIELD_MONEY.glimmer)}
+            Teaching took about 15 minutes, and two of Spark&apos;s three changes were kept (Table
+            3)
             <Cite to={['academyDesk']} />.
           </Text>
           <Tables label="Table for the rounds">
             <TableExhibit
               label="Table 3"
-              caption="Each round of teaching for Academy desk: the change, check tasks before and after, the same change measured again on new seeds, and the result."
+              caption={`Each round of teaching for Academy desk: the change, check tasks before and after, the same change measured again on new seeds, and the result. Teaching cost 31 cents of Spark. The whole run cost about ${dollars(FIELD_MONEY.spark)} of Spark, including about 8 cents of estimates, and ${dollars(FIELD_MONEY.glimmer)} of hosted Glimmer.`}
             >
               <RoundList rounds={ROUNDS_FIELD} label="Rounds of teaching for Academy desk" />
             </TableExhibit>
@@ -822,32 +801,28 @@ export function ResultsPage() {
 
           <Subsection number="1.4" title="Where Academy desk missed on the real academy" />
           <Text>
-            The records keep pass or fail, not replies, so these causes come from replaying Academy
-            desk&apos;s tools on the real academy&apos;s files after the test, with no model. Six of
-            eight diagnose tasks ended at the step limit: the question lookup tool finds a test by
-            its section, and 11 of the 19 practice tests list the section as Full. History lost one
-            task to answers the academy marks right in other wording, and three to the date: the
-            agent was told it was Nov 16 and the requests said Oct 30, a cause that fits the records
-            and is not confirmed by them
+            The records keep pass or fail, not replies. So after the test, Academy desk&apos;s tools
+            were replayed on the real academy&apos;s files, with no model. Most diagnose tasks ended
+            at the step limit. The question lookup tool finds a test by its section, and most of the
+            academy&apos;s practice tests list the section as Full. History lost tasks to answers
+            the academy marks right in other wording, and to the date: the agent was told it was Nov
+            16, and the requests said Oct 30. That last cause fits the records, but they do not
+            confirm it (Table 1)
             <Cite to={['academyDesk']} />.
           </Text>
 
           <Subsection number="1.5" title="On this computer" />
           <Text>
-            Frozen as it was, Academy desk took the same {FIELD_TEST_SIZE} tasks again on the 2-bit
-            Glimmer that runs on one 12 GB graphics card, through Ollama. It passed {local.local} of{' '}
-            {FIELD_TEST_SIZE}, against {local.hosted} hosted, a difference of {signed(local.diff)}{' '}
-            points ({interval(local)}), and no group shows a difference. The median task took{' '}
-            {LOCAL_SPEED.medianLocal} s here and {LOCAL_SPEED.medianHosted} s hosted, the slowest 5%
-            over {LOCAL_SPEED.slowestLocal} s against {LOCAL_SPEED.slowestHosted} s, and{' '}
-            {LOCAL_SPEED.stepLimitLocal} tasks reached the step limit here against{' '}
-            {LOCAL_SPEED.stepLimitHosted} hosted
+            Frozen as it was, Academy desk took the same test again on the small Glimmer build that
+            runs on one 12 GB graphics card, through Ollama. It passed {local.local} of{' '}
+            {FIELD_TEST_SIZE}, about as many as hosted, and no group shows a difference. It was
+            slower here, and more tasks reached the step limit (Table 4)
             <Cite to={['local']} />.
           </Text>
           <Tables label="Table for this computer">
             <TableExhibit
               label="Table 4"
-              caption="Academy desk's final-test passes on this computer and hosted, with the tasks won and lost on this computer, and the difference with its 95% interval."
+              caption={`Academy desk's final-test passes on the 2-bit build on this computer and hosted, with the tasks won and lost on this computer, and the difference with its 95% interval. The median task took ${LOCAL_SPEED.medianLocal} s here and ${LOCAL_SPEED.medianHosted} s hosted, the slowest 5% over ${LOCAL_SPEED.slowestLocal} s against ${LOCAL_SPEED.slowestHosted} s, and ${LOCAL_SPEED.stepLimitLocal} tasks reached the step limit here against ${LOCAL_SPEED.stepLimitHosted} hosted.`}
             >
               <LocalTable />
             </TableExhibit>
@@ -857,37 +832,33 @@ export function ResultsPage() {
           <Text>
             A second run stopped twice before any result was read, so a third replaced it. Spark
             taught Glimmer on three other generated academies over two rounds, and both changes were
-            kept. The sealed test of {THIRD_TEST_SIZE} tasks held 48 from those academies, 48 from
-            Juniper Study House, which neither model had seen, and 30 from a second snapshot of the
-            real academy, from 17 students. The one-shot setup&apos;s test was held back. The run
-            cost {dollars(THIRD_MONEY.spark)} of Spark and {dollars(THIRD_MONEY.glimmer)} of hosted
-            Glimmer
+            kept. The sealed test held tasks from those academies, from Juniper Study House, which
+            neither model had seen, and from a second snapshot of the real academy. The one-shot
+            setup&apos;s test was held back
             <Cite to={['third']} />.
           </Text>
           <Text>
-            On Juniper Study House Academy desk passed {juniper.academyDesk.passed} of 48 against{' '}
-            {juniper.bare.passed}, winning {juniper.wins} and losing {juniper.losses}: +33.3 points
-            (+16.2 to +47.5), so a gain is shown. On the real academy it passed{' '}
-            {realThird.academyDesk.passed} of 30 against {realThird.bare.passed}: -33.3 points
-            (-50.3 to -14.2), lower than the blank setup, and the replays below trace it to three
-            specific causes
+            On Juniper Study House, Academy desk passed {juniper.academyDesk.passed} of 48. The
+            blank setup passed {juniper.bare.passed}. On the second snapshot of the real academy,
+            Academy desk scored lower than the blank setup. Replaying its tools traced that to three
+            causes
             <Cite to={['third']} />.
           </Text>
           <Text>
-            Replayed after the test with no model, its diagnose instructions load on phrases like
-            &quot;what topic&quot;, and the real academy asks &quot;Which topic was that&quot;, so
-            none of its 10 requests matched. Every history attempt ran to the 30-step limit: the
-            instructions ask for a number of days this policy doesn&apos;t have, and the second
-            round allowed one tool call per turn, which fits the records and is not confirmed.
-            Assign was 0 of 10 for both setups, since the empty assignments file gave no way to
-            number the first row; the task builder was fixed afterwards and the numbers stand as
-            measured
+            The replays ran after the test, with no model. First, the diagnose instructions load on
+            phrases like &quot;what topic&quot;, but the real academy asks &quot;Which topic was
+            that&quot;, so none of its requests matched. Second, every history attempt ran to the
+            step limit. The instructions ask for a number of days this policy doesn&apos;t have, and
+            the second round allowed one tool call per turn; that fits the records but is not
+            confirmed. Third, assign failed for both setups, because the empty assignments file gave
+            no way to number the first row. The task builder was fixed afterwards, and the numbers
+            stand as measured
             <Cite to={['thirdMisses']} />.
           </Text>
           <Tables label="Table for the third run">
             <TableExhibit
               label="Table 5"
-              caption="The third run: final-test passes for the blank setup and Academy desk in each group, with 95% intervals, and Academy desk against the blank setup task by task, with the difference in points and its 95% interval. The primary comparisons are Juniper Study House and the Real academy."
+              caption={`The third run, a sealed test of ${THIRD_TEST_SIZE} tasks: final-test passes for the blank setup and Academy desk in each group, with 95% intervals, and Academy desk against the blank setup task by task, with the difference in points and its 95% interval. The primary comparisons are Juniper Study House and the Real academy, here a snapshot of 17 students. On the Real academy none of the 10 diagnose requests matched, every history attempt ran to the 30-step limit, and assign was 0 of 10 for both setups. The run cost ${dollars(THIRD_MONEY.spark)} of Spark and ${dollars(THIRD_MONEY.glimmer)} of hosted Glimmer; Academy desk ran with high reasoning at about three times the blank setup's spend.`}
             >
               <ThirdTable />
             </TableExhibit>
@@ -895,11 +866,10 @@ export function ResultsPage() {
 
           <Subsection number="1.7" title="Direction" />
           <Text>
-            The larger idea is that the same loop, run over many organizations of one field, would
-            give the verified curricula and checkable rewards that models built for a field need.
-            These runs are its first step: one field, six taught academies, two unseen generated
-            ones and two snapshots of one real academy. They show the gain on academies neither
-            model saw; on the real academy it is not yet confirmed
+            The larger idea: run the same loop over many organizations in one field, and it would
+            give the verified lessons and checkable rewards that a model built for that field needs.
+            These runs are a first step, in one field. They show a gain on academies neither model
+            saw. On the real academy, that gain is not yet confirmed
             <Cite to={['academyDesk', 'third']} />.
           </Text>
         </Section>
@@ -907,13 +877,12 @@ export function ResultsPage() {
         <Section id="results" number={2} title="An earlier run: one job, a returns desk">
           <Text>
             Before the academies, Architect was tried on one job with no organizations: a returns
-            desk for a made-up shop. Glimmer took a sealed final test of {TEST_SIZE} requests,{' '}
-            {PER_TYPE} each of refunds, order questions and pickups, three ways: on its own, with a
-            one-shot setup Spark wrote, and after Spark taught it in rounds (Figure 3). A change is
-            kept only if check-task passes rise by at least 2 a run, measured again on new seeds,
-            and no kind of task loses more than 1
-            <Cite to={['plan', 'second']} />. Learning from failures and checking an agent by the
-            state it leaves both have published precedent
+            desk for a made-up shop. Glimmer took a sealed final test of refunds, order questions
+            and pickups three ways: on its own, with a one-shot setup Spark wrote, and after Spark
+            taught it in rounds (Figure 3). A change was kept only if it clearly raised passes on
+            check tasks, measured twice, and cost no kind of task more than one pass
+            <Cite to={['plan', 'second']} />. Learning from failures, and checking an agent by the
+            state it leaves, both have published precedent
             <Cite to={['gepa', 'ace', 'taubench']} />.
           </Text>
           <Exhibit
@@ -923,16 +892,12 @@ export function ResultsPage() {
             <RoundDiagram />
           </Exhibit>
           <Text>
-            On a new returns desk, after four rounds and 42 cents of Spark, Glimmer passed{' '}
-            {second.taught.passed} of {TEST_SIZE}, against {second.alone.passed} on its own and{' '}
-            {second.oneShot.passed} with the one-shot setup (Figure 4). Matched request by request,
-            teaching won {second.againstAlone.wins} and lost {second.againstAlone.losses} against
-            Glimmer alone, {signed(second.againstAlone.diff)} points (
-            {interval(second.againstAlone)})
+            On a new returns desk, after four rounds of teaching, Glimmer passed{' '}
+            {second.taught.passed} of {TEST_SIZE}. On its own it passed {second.alone.passed}{' '}
+            (Figure 4)
             <Cite to={['second']} />. On the returns desk that ships with the app, held to two
-            rounds, teaching passed {first.taught.passed} against {first.alone.passed}, an interval
-            of {interval(first.againstAlone)} that includes zero, so no gain was shown there; the
-            second comparison was designed after it, and its plan published before it ran
+            rounds, teaching showed no clear gain (Table 9). The second comparison was designed
+            after that one, and its plan was published before it ran
             <Cite to={['first', 'plan']} />.
           </Text>
           <Exhibit
@@ -942,12 +907,10 @@ export function ResultsPage() {
             <PassRates comparison={SECOND} />
           </Exhibit>
           <Text>
-            After teaching, Glimmer&apos;s median answer took {second.taught.p50} s, against{' '}
-            {second.alone.p50} s on its own (Figure 5)
+            Taught Glimmer also answered much faster than Glimmer on its own (Figure 5)
             <Cite to={['second']} />. On a second kind of job, a repair shop&apos;s ticket costs,
-            one round took Glimmer from {REPAIR.checkBefore} to {REPAIR.checkAfter} of{' '}
-            {REPAIR.checkTotal} check tasks, and it passed {REPAIR.finalPassed} of{' '}
-            {REPAIR.finalTotal} on its final test for {REPAIR.cents} cents in all
+            one round of teaching was enough. Glimmer then passed all {REPAIR.finalTotal} of its
+            final-test tasks (Table 12)
             <Cite to={['hackathon']} />.
           </Text>
           <Exhibit
@@ -982,7 +945,7 @@ export function ResultsPage() {
           <Tables label="Tables for the returns desks">
             <TableExhibit
               label="Table 6"
-              caption="Passes by kind of request on the new returns desk, of 20 each, and in all with 95% intervals."
+              caption={`Passes by kind of request on the new returns desk, of ${PER_TYPE} each, and in all, of ${TEST_SIZE}, with 95% intervals.`}
             >
               <ArmTable comparison={SECOND} />
             </TableExhibit>
@@ -1000,7 +963,7 @@ export function ResultsPage() {
             </TableExhibit>
             <TableExhibit
               label="Table 9"
-              caption="Requests won and lost in each pairing on the first returns desk, as in Table 7."
+              caption={`Requests won and lost in each pairing on the first returns desk, as in Table 7. Teaching passed ${first.taught.passed} against ${first.alone.passed} for Glimmer on its own, and the interval includes zero.`}
             >
               <PairTable comparison={FIRST} />
             </TableExhibit>
@@ -1022,7 +985,10 @@ export function ResultsPage() {
                 label="Rounds of teaching on the first returns desk"
               />
             </TableExhibit>
-            <TableExhibit label="Table 12" caption="What each arm cost on the new returns desk.">
+            <TableExhibit
+              label="Table 12"
+              caption={`What each arm cost on the new returns desk. On the repair shop, one round took Glimmer from ${REPAIR.checkBefore} to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} check tasks, and it passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test for ${REPAIR.cents} cents in all.`}
+            >
               <Table
                 fit
                 label="What each arm cost on the new returns desk"
@@ -1039,18 +1005,18 @@ export function ResultsPage() {
 
         <Section id="scale" number={3} title="From a specialist to a field model">
           <Text>
-            A field&apos;s work leaves three things besides the specialist: verified demonstrations,
-            worked examples from train tasks that the checker confirmed; an outcome scorer, so an
-            outside training framework can ask for a score; and sealed evaluations, organizations a
-            model never trained on, opened once for a frozen candidate
+            A field&apos;s work leaves three things besides the specialist. Verified demonstrations
+            are worked examples from training tasks that the checker confirmed. An outcome scorer
+            lets an outside training framework ask for a score. Sealed evaluations are organizations
+            a model never trained on, opened once for a frozen candidate
             <Cite to={['scale']} />.
           </Text>
           <Text>
-            From a model&apos;s configuration on Hugging Face, Architect sizes a training job and
-            writes a launch bundle for Slurm or Kubernetes, to run with your own tools; it never
-            holds cluster credentials. The bundles are checked structurally and against simulated
-            schedulers, and GPU execution, large-model compatibility and training gains remain
-            unverified (Table 13)
+            From a model&apos;s configuration on Hugging Face, Architect sizes a training job. It
+            writes a launch bundle for Slurm or Kubernetes for you to run with your own tools, and
+            it never holds cluster credentials. The bundles are checked for structure and against
+            simulated schedulers. Running on GPUs, large-model support and training gains are not
+            yet verified (Table 13)
             <Cite to={['scale']} />.
           </Text>
           <Tables label="Table for the path to a field model">
@@ -1070,34 +1036,30 @@ export function ResultsPage() {
 
         <Section id="certified" number={4} title="Certified answers and counterexamples">
           <Text>
-            A specialist should know when not to answer. Academy desk attempts each request in a
-            sealed calibration set {CERT.attempts} times and answers only when enough attempts
-            agree; Architect picks the loosest agreement threshold whose exact upper bound on error
-            stays under a target, following conformal risk control, Learn-then-Test and conformal
-            abstention
-            <Cite to={['crc', 'ltt', 'abstention']} />. If no threshold qualifies, no certificate is
+            A specialist should know when not to answer. Academy desk tries each request in a sealed
+            calibration set {CERT.attempts} times, and answers only when enough attempts agree.
+            Architect picks the loosest agreement level whose exact upper bound on error stays under
+            a target, following conformal risk control, Learn-then-Test and conformal abstention
+            <Cite to={['crc', 'ltt', 'abstention']} />. If no level qualifies, no certificate is
             issued. When a tool Spark wrote fails on practice data, the failing case is shrunk by
             delta debugging
-            <Cite to={['zeller']} /> and kept as a regression test; one question lookup&apos;s case
+            <Cite to={['zeller']} /> and kept as a regression test. One question lookup&apos;s case
             shrank from 2,312 rows to 4
             <Cite to={['certify']} />.
           </Text>
           <Text>
             The first live run, on the third run&apos;s Academy desk with hosted Glimmer, issued no
-            certificate. Even answering only when all five attempts agreed, it would have answered{' '}
-            {strictest.answered} of {CERT.calibration} calibration tasks and been wrong on{' '}
-            {strictest.wrong}, an upper bound of {strictest.bound.toFixed(1)}% against a target of{' '}
-            {CERT.target}% at {CERT.confidence}% confidence (Table 14). At temperature 0 a wrong
-            answer repeats as reliably as a right one, so its errors were confident ones. On the
-            Real academy&apos;s {CERT.checkTasks} check tasks it got none right: on every history
-            task all five attempts ran out of steps, and the run counted that as agreement, a flaw
-            fixed after the run. The run cost {dollars(CERT.usd)} of hosted Glimmer
+            certificate. Even when all five attempts agreed, it was wrong too often to meet the
+            target (Table 14). Its attempts ran with no randomness, so a wrong answer repeated as
+            reliably as a right one, and its errors were confident ones. On the real academy&apos;s
+            check tasks it got none right. On every history task all five attempts ran out of steps,
+            and the run counted that as agreement, a flaw fixed after the run
             <Cite to={['cert']} />.
           </Text>
           <Tables label="Table for the certificate run">
             <TableExhibit
               label="Table 14"
-              caption="The first live certificate run. For each agreement threshold: the calibration tasks Academy desk would answer, of 60, how many of those were wrong, the share handed to staff, and the one-sided 95% upper bound on the error rate among answered tasks, against a 10% target; then the same thresholds on the Real academy's 10 check tasks. No threshold met the target, so no certificate was issued."
+              caption={`The first live certificate run, at temperature 0. For each agreement threshold: the calibration tasks Academy desk would answer, of ${CERT.calibration}, how many of those were wrong, the share handed to staff, and the one-sided ${CERT.confidence}% upper bound on the error rate among answered tasks, against a ${CERT.target}% target; then the same thresholds on the Real academy's ${CERT.checkTasks} check tasks. No threshold met the target, so no certificate was issued. The run cost ${dollars(CERT.usd)} of hosted Glimmer.`}
             >
               <CertTable />
             </TableExhibit>
