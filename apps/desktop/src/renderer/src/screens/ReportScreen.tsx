@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import type { ReportCard } from '@architect/shared';
 import { Button, Skeleton } from '@architect/ui';
-import { ArrowRight, Boxes, Library, TriangleAlert } from 'lucide-react';
+import { ArrowRight, Boxes, Library, RotateCw, TriangleAlert } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
 import {
@@ -132,6 +132,7 @@ function ReportFooter({
   const { finalTest } = useWords();
   const notHeld = notHeldLine(report.certificate, finalTest);
   const notHeldId = useId();
+  const belowTarget = verdict.state === 'below_target';
   return (
     <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-end gap-2">
       {edition === 'lab' && <LabLinks report={report} />}
@@ -146,7 +147,7 @@ function ReportFooter({
             </span>
           )}
           <Button
-            variant="primary"
+            variant={belowTarget ? 'secondary' : 'primary'}
             loading={accepting}
             onClick={onAccept}
             {...(notHeld ? { 'aria-describedby': notHeldId } : {})}
@@ -154,6 +155,13 @@ function ReportFooter({
             Start using {report.name}
             <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Button>
+          {/* Below its target, training again leads; using it as it is stays open beside it. */}
+          {belowTarget && (
+            <Button variant="primary" onClick={() => navigate(paths.define(report.jobId))}>
+              <RotateCw size={16} strokeWidth={1.8} aria-hidden />
+              Train again
+            </Button>
+          )}
         </>
       ) : (
         <Button

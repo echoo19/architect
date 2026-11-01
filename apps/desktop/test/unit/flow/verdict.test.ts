@@ -80,7 +80,9 @@ describe('the one verdict of a report', () => {
       usable: true,
     });
     expect(verdict.because[0]).toMatch(/^It missed the job's target: /);
-    expect(verdict.because.at(-1)).toBe('You can still use it.');
+    expect(verdict.because.at(-1)).toBe(
+      'Train it again with more rounds or time, or start using it and teach it from its answers.',
+    );
   });
 
   it('asks for the one step that is missing when an agent that met its targets needs attention', () => {
@@ -176,7 +178,9 @@ describe('an agent whose final test ran on the online copy', () => {
       "It missed the job's target on this computer: 40 of 60 right, and the job needs 90%, which is 54 of 60.",
     );
     expect(verdict.because[1]).toBe('It scored 58 of 60 on its final test, run online.');
-    expect(verdict.because.at(-1)).toBe('You can still use it.');
+    expect(verdict.because.at(-1)).toBe(
+      'Train it again with more rounds or time, or start using it and teach it from its answers.',
+    );
   });
 
   it('says it fell short online when that is the only test there is', () => {

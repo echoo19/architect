@@ -37,6 +37,7 @@ import { importPackage, inspectPackage, previewImport } from '../graduates/impor
 import { listPublications, publishVersion, reviewPublication } from '../graduates/publish';
 import { prepareSampleAgent, sampleAgentAvailable } from '../graduates/sample';
 import type { HubClient } from '../hub';
+import type { LocalRuntimeSettings } from '../local-runtime';
 import type { GraduateLibrary } from '../graduates/library';
 import { improvementsOf } from '../improve/improvement';
 import { certificationView, discardCertification, planCertification } from '../loop/posthoc';
@@ -89,6 +90,8 @@ export interface EngineApiContext {
   experiments: ExperimentService;
   /** The repository's trainer folder, whose pins and experimental script a bundle carries. */
   trainerDir?: string;
+  /** The local runtime settings, read at each use: imports serve their model on its Ollama. */
+  localRuntime?: () => LocalRuntimeSettings;
 }
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
@@ -137,7 +140,12 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
   const drafter: JobDrafter = new JobDrafting({ jobs, deps, clock: ctx.clock });
   const studying = new JobStudy({ jobs, paths, deps, clock: ctx.clock });
   const recordings = new JobRecordings({ jobs, paths, deps, clock: ctx.clock });
-  const packages = { library: graduates, secrets: deps.secrets, hub: ctx.hub };
+  const packages = {
+    library: graduates,
+    secrets: deps.secrets,
+    hub: ctx.hub,
+    ollamaUrl: () => ctx.localRuntime?.().ollamaUrl,
+  };
   /** Who hears a publication move. Listeners only pass it on, so none of them throws. */
   const publishListeners = new Set<(progress: PublishProgress) => void>();
   const publishUpdate = (progress: PublishProgress) => {

@@ -89,12 +89,11 @@ describe("a run's hosts", () => {
     expect(contact?.requests).toBeGreaterThan(0);
     expect(contactsLine(store.runs.contacts('run_a'))).toBe('Contacted 1 host, inside the network');
 
-    // With no closed network on, the same requests are recorded as outside one.
+    // With no closed network on, the same requests are recorded as outside one, on this computer.
     allowed = undefined;
     await student.testConnection();
-    expect(contactsLine(store.runs.contacts('run_a'))).toBe(
-      'Contacted 1 host, with no closed network on',
-    );
+    expect(store.runs.contacts('run_a')[0]?.inside).toBe(false);
+    expect(contactsLine(store.runs.contacts('run_a'))).toBe('Contacted 1 host, on this computer');
   });
 });
 

@@ -28,6 +28,7 @@ function setup() {
   const engine = {
     graduates: {
       list: vi.fn(async () => [graduate]),
+      report: vi.fn(async () => ({ graduateId: 'grd_1' })),
       accept: vi.fn(async () => graduate),
       promote: vi.fn(async () => graduate),
       rollback: vi.fn(async () => graduate),
@@ -80,6 +81,16 @@ describe('graduate handlers', () => {
     expect(engine.graduates.rollback).toHaveBeenCalledWith('grd_1', 1);
     expect(workspace.open).toHaveBeenCalledTimes(2);
     expect((await call('graduates:promote', 'grd_1', 'v2')).ok).toBe(false);
+  });
+
+  it("read the active version's report card when the page names no version", async () => {
+    const { engine, call } = setup();
+    // The page's call leaves the version undefined, and the bridge passes it along as it is.
+    expect((await call('graduates:report', 'grd_1', undefined)).ok).toBe(true);
+    expect((await call('graduates:report', 'grd_1')).ok).toBe(true);
+    expect((await call('graduates:report', 'grd_1', 2)).ok).toBe(true);
+    expect(engine.graduates.report).toHaveBeenLastCalledWith('grd_1', 2);
+    expect((await call('graduates:report', 'grd_1', 0)).ok).toBe(false);
   });
 
   it('import only a folder the user picked, then open it in the workspace', async () => {

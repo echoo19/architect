@@ -1,5 +1,6 @@
 import {
   customSecretRef,
+  DEFAULT_STUDENT,
   GLIMMER_BUILDS,
   isLoopbackUrl,
   MENTOR_PRESETS,
@@ -15,6 +16,7 @@ import {
   type ReasoningEffort,
   type StudentEndpoint,
 } from '@architect/shared';
+import { shortModelName } from '../../lib/names';
 
 /** Somewhere models come from: a provider with a saved key, an added endpoint, or a runtime here. */
 export interface Connection {
@@ -249,10 +251,13 @@ export function connectionOf(
   );
 }
 
-/** How the app names a local model: Glimmer's builds by their build, anything else by its id. */
+/**
+ * How the app names a local model: Glimmer's builds by the short name the app uses everywhere and
+ * their build, anything else by its id.
+ */
 export function localModelName(model: string): string {
   const build = GLIMMER_BUILDS.find((candidate) => candidate.model === model);
-  if (build) return `Muse Glimmer · ${build.label.split(',')[0]}`;
+  if (build) return `${shortModelName(DEFAULT_STUDENT.label)} · ${build.label.split(',')[0]}`;
   const preset = STUDENT_PRESETS.find((candidate) => candidate.model === model);
   return preset ? preset.label.replace(/\s+on\s+.*$/i, '') : model;
 }

@@ -147,7 +147,7 @@ function proposalOf(reply: z.infer<typeof ProposalReplySchema>, job: Job): Corre
   const kind = !asks && reply.kind === 'ambiguous' ? 'invalid' : reply.kind;
   const instruction = INSTRUCTION_KINDS.includes(kind) ? reply.instruction : undefined;
   if (INSTRUCTION_KINDS.includes(kind) && instruction === undefined) {
-    throw new Error(`The mentor read this as a ${kind} lesson but wrote no instruction.`);
+    throw new Error(`The proposed ${kind} lesson came back with no instruction. Try again.`);
   }
   const question = kind === 'ambiguous' ? reply.question : undefined;
   const known = job.taskTypes.some((type) => type.id === reply.taskType);
@@ -431,7 +431,9 @@ export class TeachThis {
       parts,
     });
     const reply = ProposalReplySchema.safeParse(completion.json);
-    if (!reply.success) throw new Error("The mentor's reading of the correction wasn't usable.");
+    if (!reply.success) {
+      throw new Error("The reply to your correction couldn't be read as a lesson. Try again.");
+    }
     const at = this.now();
     const correction: Correction = {
       id: newId('cor'),

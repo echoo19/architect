@@ -385,7 +385,11 @@ test('says it fell short on this computer when it passed online', async () => {
   await expect(page.getByRole('heading', { name: / is ready$/ })).toHaveCount(0);
   await expect(page.getByText("It missed the job's target on this computer:")).toBeVisible();
   await expect(page.getByText('It scored 54 of 60 on its final test, run online.')).toBeVisible();
-  await expect(page.getByText('You can still use it.')).toBeVisible();
+  await expect(
+    page.getByText(
+      'Train it again with more rounds or time, or start using it and teach it from its answers.',
+    ),
+  ).toBeVisible();
 });
 
 test('says why the test on this computer stopped, and goes on when asked again', async () => {

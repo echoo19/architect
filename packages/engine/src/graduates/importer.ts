@@ -47,6 +47,11 @@ import { exists, nextVersion, registerVersion } from './versions';
 export interface ImportContext {
   library: GraduateLibrary;
   limits?: PackageLimits;
+  /**
+   * The Ollama on this computer the person's settings name, which a new agent's model is served
+   * from unless the import names another. Ollama's own address when absent or unset.
+   */
+  ollamaUrl?: () => string | undefined;
 }
 
 /** What only the engine says about an import, never its caller: where the package came from. */
@@ -285,10 +290,11 @@ export async function inspectPackage(ctx: ImportContext, path: string): Promise<
 }
 
 /**
- * The local runtime to serve a package's model with, when the user named none. A package with an
- * adapter gets Ollama, whose store holds the base llama.cpp serves the adapter on.
+ * The local runtime to serve a package's model with, when the user named none, at the address the
+ * settings give this computer's Ollama. A package with an adapter gets Ollama, whose store holds
+ * the base llama.cpp serves the adapter on.
  */
-function defaultModel(manifest: PackageManifest): ModelBinding {
+function defaultModel(ctx: ImportContext, manifest: PackageManifest): ModelBinding {
   const { compatible } = manifest.model.runtime;
   const runtime =
     manifest.model.adapter === undefined &&
@@ -296,7 +302,10 @@ function defaultModel(manifest: PackageManifest): ModelBinding {
     !compatible.includes('ollama')
       ? 'openai_compatible'
       : 'ollama';
-  return { runtime, baseUrl: OLLAMA_BASE_URL, model: manifest.model.base.name };
+  const configured = ctx.ollamaUrl?.();
+  const baseUrl =
+    configured !== undefined && isLoopbackUrl(configured) ? configured : OLLAMA_BASE_URL;
+  return { runtime, baseUrl, model: manifest.model.base.name };
 }
 
 /**
@@ -356,8 +365,8 @@ export async function previewImport(ctx: ImportContext, path: string): Promise<I
     // import would put it.
     const model =
       place.kind === 'new'
-        ? defaultModel(manifest)
-        : (store.installations.get(place.graduateId)?.model ?? defaultModel(manifest));
+        ? defaultModel(ctx, manifest)
+        : (store.installations.get(place.graduateId)?.model ?? defaultModel(ctx, manifest));
     const fit = await library.fit(manifest, model, staged.dir);
     return {
       ok: true,
@@ -477,7 +486,7 @@ export async function importPackage(
           state: isNew ? 'accepted' : 'candidate',
           installation: {
             graduateId,
-            model: request.model ?? defaultModel(manifest),
+            model: request.model ?? defaultModel(ctx, manifest),
             bindings,
             grants: grantsFor(manifest, request.grants),
             createdAt: at,

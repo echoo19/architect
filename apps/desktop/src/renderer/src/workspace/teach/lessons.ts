@@ -208,5 +208,5 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
       retry: true,
     };
   }
-  return { title: "Couldn't propose a lesson", text: error.message, retry: true };
+  return { title: `${mentor} couldn't propose a lesson`, text: error.message, retry: true };
 }

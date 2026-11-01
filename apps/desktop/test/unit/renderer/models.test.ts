@@ -189,8 +189,8 @@ describe('choices', () => {
 
 describe('names and figures', () => {
   it('names local models by their build, and others by their id', () => {
-    expect(localModelName('muse-glimmer:30b-iq2')).toBe('Muse Glimmer · 2-bit');
-    expect(localModelName('muse-glimmer:30b')).toBe('Muse Glimmer · 4-bit');
+    expect(localModelName('muse-glimmer:30b-iq2')).toBe('Glimmer · 2-bit');
+    expect(localModelName('muse-glimmer:30b')).toBe('Glimmer · 4-bit');
     expect(localModelName('granite4.2:8b')).toBe('granite4.2:8b');
     expect(modelLabel('x/y', { id: 'x/y', label: 'Maker: Model Y' })).toBe('Model Y');
     expect(modelLabel('gpt-6-luna')).toBe('gpt-6-luna');

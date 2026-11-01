@@ -1314,3 +1314,27 @@ test('offers to edit the description when the conversation is gone, since asking
   await page.getByRole('button', { name: 'Edit the description' }).click();
   await expect(page.getByRole('textbox', { name: 'Describe the job' })).toHaveValue(DESCRIPTION);
 });
+
+test('offers to edit the description when a reply fails mid-conversation, since asking again may fail the same way', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await applySettings(page, { onboarded: true, comparisonMode: false });
+  await stubEngineFailure(app, {
+    'jobs:draftReply': {
+      message: "The draft couldn't be used: the file customers.csv wasn't attached.",
+    },
+  });
+  await resize(900);
+  await goTo(page, '/new');
+  await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
+  await page.getByRole('button', { name: 'Send' }).click();
+  const reply = page.getByRole('textbox', { name: 'Reply' });
+  await reply.fill('North');
+  await reply.press('Enter');
+
+  const failure = page.getByRole('alert');
+  await expect(failure).toContainText('customers.csv');
+  await expect(failure.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit the description' }).click();
+  await expect(page.getByRole('textbox', { name: 'Describe the job' })).toHaveValue(DESCRIPTION);
+});

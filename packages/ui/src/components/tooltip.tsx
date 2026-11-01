@@ -18,9 +18,14 @@ export interface TooltipProps {
   side?: 'top' | 'right' | 'bottom' | 'left';
   /** A single focusable element, such as an IconButton. */
   children: ReactNode;
+  /**
+   * A click opens it too, rather than closing it: for a trigger that does nothing else, such as
+   * an info icon, which a pointer that can't hover must still be able to read.
+   */
+  openOnClick?: boolean;
 }
 
-export function Tooltip({ content, side = 'top', children }: TooltipProps) {
+export function Tooltip({ content, side = 'top', children, openOnClick = false }: TooltipProps) {
   const [open, setOpen] = useState(false);
   const floating = useFloatingMotion({
     origin: 'var(--radix-tooltip-content-transform-origin)',
@@ -28,7 +33,20 @@ export function Tooltip({ content, side = 'top', children }: TooltipProps) {
   });
   return (
     <RadixTooltip.Root open={open} onOpenChange={setOpen}>
-      <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
+      <RadixTooltip.Trigger
+        asChild
+        {...(openOnClick
+          ? {
+              onClick: (event) => {
+                // Radix closes a tooltip on a click; this one opens instead.
+                event.preventDefault();
+                setOpen(true);
+              },
+            }
+          : {})}
+      >
+        {children}
+      </RadixTooltip.Trigger>
       <RadixTooltip.Portal forceMount>
         <AnimatePresence>
           {open && (

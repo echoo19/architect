@@ -191,10 +191,25 @@ function InstallLine({ installation }: { installation: Installation }) {
       <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
       <span className="flex items-center gap-2 font-normal">
         <StatusMark state={statusMark(installation.status)} size={14} />
-        {STATUS_LABELS[installation.status]}
+        {installation.status === 'ready'
+          ? readyLine(installation)
+          : STATUS_LABELS[installation.status]}
       </span>
     </span>
   );
+}
+
+/**
+ * A ready agent's checks counted, so the line reads as this computer's install checks beside the
+ * task scores above it, and never claims a skipped check passed: "5 install checks passed, 1 skipped".
+ */
+function readyLine(installation: Installation): string {
+  const count = (status: string) =>
+    installation.checks.filter((check) => check.status === status).length;
+  const passed = count('passed');
+  const skipped = count('skipped');
+  const line = `${passed} install ${passed === 1 ? 'check' : 'checks'} passed`;
+  return skipped > 0 ? `${line}, ${skipped} skipped` : line;
 }
 
 function ScoreBar({
