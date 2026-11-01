@@ -255,11 +255,9 @@ test("counts the field's assets and exports them to a folder the person picks", 
   // Each row of what it leaves out starts as a line does.
   await expect(card('Left out')).toContainText('The calibration and check tasks');
   await expect(card('Left out')).toContainText('They stay for measuring');
-  // What an export is and isn't is said beside its Experimental mark, when asked.
-  await expect(page.getByText('Experimental', { exact: true })).toBeVisible();
-  expect(await infoTipText(page, page, 'these assets')).toContain(
-    'GPU runs, large models and fine-tuning gains are unverified',
-  );
+  // What an export is for is said beside its name, when asked.
+  await expect(page.getByText('Fine-tuning data', { exact: true })).toBeVisible();
+  expect(await infoTipText(page, page, 'these assets')).toContain('LoRA or QLoRA job');
   await capture('field-assets-dark.png');
 
   await stubEngine(launched.app, { 'files:pick': [EXPORT_DIR] });

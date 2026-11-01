@@ -5,7 +5,6 @@ import {
   type FieldExportManifest,
 } from '@architect/shared';
 import {
-  Badge,
   Button,
   Card,
   CardGrid,
@@ -31,7 +30,7 @@ import { count, EmptyRow, plural } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
 const WORDING =
-  'Checker-verified fine-tuning data from this field. No model has been fine-tuned on it yet, so GPU runs, large models and fine-tuning gains are unverified.';
+  'Checker-verified fine-tuning data from this field, ready for a LoRA or QLoRA job: Architect trains it on Hugging Face Jobs, then measures the adapter on the sealed final test.';
 
 /**
  * A row's figure, with its unit after it ("96 tasks") unless the row's title already names what
@@ -164,9 +163,9 @@ function AssetsView({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between gap-8">
-        {/* What an export is and isn't, said on demand beside the mark that it is experimental. */}
+        {/* What an export is for, said on demand. */}
         <span className="flex items-center gap-1">
-          <Badge>Experimental</Badge>
+          <span className="text-ui font-medium">Fine-tuning data</span>
           <InfoTip about="these assets">{WORDING}</InfoTip>
         </span>
         <Button variant="primary" size="md" loading={exporting} onClick={() => void exportTo()}>
