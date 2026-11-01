@@ -28,7 +28,7 @@ export function Words({
           <span key={index} className="inline-block overflow-hidden pb-[0.12em]">
             <span
               className="inline-block"
-              style={{ transform: `translateY(${(1 - enter) * 110 - leave * 110}%)` }}
+              style={{ transform: `translateY(${(1 - enter) * 110 - leave * 140}%)` }}
             >
               {word}
             </span>

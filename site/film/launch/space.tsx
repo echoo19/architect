@@ -269,9 +269,10 @@ function Deck({ t, camera }: { t: number; camera: Point }) {
             w={WINDOW.width}
             h={WINDOW.height}
             base={deck.base}
-            opacity={clamp(rise * 2.5)}
+            opacity={clamp(rise * 2.5) * mix(0.42, 1, outQuart(span(t, T.hits[0] - 0.35, 0.5)))}
           >
-            <Screen view={deckView(deck.key, t - deck.arrive)} style={{ left: 0, top: 0 }} />
+            {/* Held still and quieter behind the claim, so the claim reads first. */}
+            <Screen view={deckView(deck.key, 99)} style={{ left: 0, top: 0 }} />
           </Placed>
         );
       })}

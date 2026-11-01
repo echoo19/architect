@@ -27,7 +27,14 @@ const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
  * The Lab: what needs you and what is running (apps/desktop lab/cards.tsx). The row's icon names
  * the kind and its end word what to do; a detail line stays only where it says something specific.
  */
-export function LabHome({ lt }: { lt: number }) {
+export function LabHome({
+  lt,
+  hover = 0,
+}: {
+  lt: number;
+  /** How far the pointer's hover has lit the academy desk's running row, from 0 to 1. */
+  hover?: number;
+}) {
   const needs: readonly {
     kind: string;
     icon: ReactNode;
@@ -99,6 +106,7 @@ export function LabHome({ lt }: { lt: number }) {
           <Card title="Running" flush>
             <RunRow
               name={ACADEMY}
+              hover={hover}
               state="Teaching, round 2 of 3"
               figure={`${score}%`}
               progress={mix(0.36, 0.5, outQuart(span(lt, 7.2, 4)))}
@@ -126,14 +134,19 @@ function RunRow({
   state,
   figure,
   progress,
+  hover = 0,
 }: {
   name: string;
   state: string;
   figure?: string;
   progress: number;
+  hover?: number;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-line px-6 py-3.5">
+    <div className="relative flex flex-col gap-3 border-t border-line px-6 py-3.5">
+      {hover > 0 && (
+        <span aria-hidden className="absolute inset-0 bg-hover" style={{ opacity: hover }} />
+      )}
       <div className="flex items-center gap-3">
         <RowIcon>
           <Spinner size={16} />

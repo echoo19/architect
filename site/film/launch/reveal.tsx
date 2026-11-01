@@ -2,6 +2,7 @@ import type { Framing, Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { inOutCubic, mix, outExpo, outQuart, span } from '../lab/time';
 import { CircleCheck } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import {
   CERTIFICATE,
   CERTIFICATE_CHECK,
@@ -41,6 +42,10 @@ export interface Figure {
   /** A line under the figure, in its own words, and when it rises. */
   under?: string;
   underAt?: number;
+  /** When the number rises, if not with its count or just after the title. */
+  numberAt?: number;
+  /** A figure shown first in the same place, which gives way to the number as it rises. */
+  lead?: { value: string; unit: string };
   /** Glimmer's passed work, in its blue. */
   student: boolean;
   /** When it rises, when its count lands on `to`, and when it goes back into its point. */
@@ -81,11 +86,14 @@ export const FIGURES: readonly Figure[] = [
   },
   {
     // The fine-tune's plan for a 235B model, out of its memory card.
-    title: `${PLAN.figures[0][0]} parameters, LoRA`,
+    title: `${PLAN.model}, LoRA`,
+    lead: { value: PLAN.figures[0][0], unit: 'parameters' },
     from: PLAN.fit.gpus,
     to: PLAN.fit.gpus,
     unit: 'GPUs',
     under: `in ${PLAN.fit.nodes} nodes, ${PLAN.fit.each} each`,
+    underAt: T.gpuNumber + 0.3,
+    numberAt: T.gpuNumber,
     student: false,
     at: T.gpuHero,
     lands: T.gpuHero,
@@ -121,16 +129,19 @@ export function Hero({
   );
   const blue = figure.student ? 1 : 0;
   // A count rises as it starts, so no figure is on screen before it means something.
-  const numberAt = figure.from === figure.to ? figure.at + 0.08 : figure.lands - 0.95;
+  const numberAt =
+    figure.numberAt ?? (figure.from === figure.to ? figure.at + 0.08 : figure.lands - 0.95);
   // The frame is the window's card up close: it settles to the film's ground under the figure.
   const ground = Math.min(
     outQuart(span(t, figure.at - 0.2, 0.4)),
     1 - outQuart(span(t, figure.resolve, 0.45)),
   );
   const gone = outQuart(span(t, figure.resolve + 0.62, 0.3));
-  const rise = (at: number) => {
+  // Rises into its mask, and when it gives way to another figure, rises out of it.
+  const rise = (at: number, until = Infinity) => {
     const p = outExpo(span(t, at, 0.9));
-    return { transform: `translateY(${(1 - p) * 110}%)` };
+    const out = inOutCubic(span(t, until, 0.4));
+    return { transform: `translateY(${(1 - p) * 110 - out * 140}%)` };
   };
   return (
     <>
@@ -154,23 +165,21 @@ export function Hero({
               {figure.title}
             </span>
           </span>
-          <span className="flex items-baseline gap-10 whitespace-nowrap font-display font-semibold leading-[0.9] tabular-nums">
-            <span className="inline-block overflow-hidden pt-[0.06em]">
-              <span
-                className="inline-block text-[420px] tracking-[-0.05em]"
-                style={{ ...rise(numberAt), color: tone(blue) }}
-              >
-                {counted}
-              </span>
-            </span>
-            <span className="inline-block overflow-hidden">
-              <span
-                className="inline-block text-[150px] tracking-[-0.035em]"
-                style={rise(numberAt + 0.12)}
-              >
-                {figure.unit}
-              </span>
-            </span>
+          <span className="grid">
+            {figure.lead && (
+              <FigureRow
+                value={figure.lead.value}
+                unit={figure.lead.unit}
+                small
+                style={(delay) => rise(figure.at + 0.08 + delay, numberAt - 0.2)}
+              />
+            )}
+            <FigureRow
+              value={String(counted)}
+              unit={figure.unit}
+              color={tone(blue)}
+              style={(delay) => rise(numberAt + delay)}
+            />
           </span>
           {figure.under && (
             <span className="absolute left-0 top-full inline-block overflow-hidden pt-4">
@@ -200,7 +209,7 @@ export function CertFigure({ t }: { t: number }) {
   return (
     <div
       className="absolute flex w-[820px] flex-col gap-10"
-      style={{ left: -900, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
+      style={{ left: -1120, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
     >
       <span className="flex flex-col">
         <Words
@@ -248,17 +257,54 @@ export function CertFigure({ t }: { t: number }) {
   );
 }
 
+/** A figure's row: its number large, what follows it smaller, each rising in its own mask. */
+function FigureRow({
+  value,
+  unit,
+  color,
+  small,
+  style,
+}: {
+  value: string;
+  unit: string;
+  color?: string;
+  /** Set smaller, for a longer figure that has to fit the frame. */
+  small?: boolean;
+  style: (delay: number) => CSSProperties;
+}) {
+  return (
+    <span className="flex items-baseline gap-10 whitespace-nowrap font-display font-semibold leading-[0.9] tabular-nums [grid-area:1/1]">
+      <span className="inline-block overflow-hidden pt-[0.06em]">
+        <span
+          className={`inline-block tracking-[-0.05em] ${small ? 'text-[300px]' : 'text-[420px]'}`}
+          style={{ ...style(0), color }}
+        >
+          {value}
+        </span>
+      </span>
+      <span className="inline-block overflow-hidden">
+        <span
+          className={`inline-block tracking-[-0.035em] ${small ? 'text-[110px]' : 'text-[150px]'}`}
+          style={style(0.12)}
+        >
+          {unit}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 /** The real academy's figure, on the ground at the window's right. */
 export function RealFigure({ t }: { t: number }) {
   if (t < T.twelve - 0.05 || t > T.models + 1.5) return null;
   return (
     <div
-      className="absolute flex flex-col gap-2"
-      style={{ left: WINDOW.width + 96, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
+      className="absolute flex w-max flex-col gap-2"
+      style={{ left: WINDOW.width + 300, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
     >
       <span className="inline-block overflow-hidden">
         <span
-          className="inline-block font-display text-[300px] font-semibold leading-[0.9] tracking-[-0.05em] text-student tabular-nums"
+          className="inline-block font-display text-[200px] font-semibold leading-[0.9] tracking-[-0.05em] text-student tabular-nums"
           style={{ transform: `translateY(${(1 - outExpo(span(t, T.twelve, 0.9))) * 110}%)` }}
         >
           {REAL_ACADEMY.taught}
@@ -268,7 +314,7 @@ export function RealFigure({ t }: { t: number }) {
         t={t}
         text={`up from ${REAL_ACADEMY.alone}`}
         at={T.nine - 0.35}
-        className="whitespace-nowrap font-display text-[76px] font-semibold leading-none tracking-[-0.03em]"
+        className="whitespace-nowrap font-display text-[64px] font-semibold leading-none tracking-[-0.03em]"
       />
     </div>
   );
@@ -317,7 +363,7 @@ export function OpenTeacher({ t, measured }: { t: number; measured: Measured }) 
     transform: `scale(${mix(0.8, 1, outExpo(span(t, at, 0.7)))})`,
   });
   return (
-    <div className="absolute left-0 flex flex-col gap-6" style={{ top: WINDOW.height + 64 }}>
+    <div className="absolute left-0 flex flex-col gap-6" style={{ top: WINDOW.height + 220 }}>
       <span className="flex items-center gap-7">
         <span style={appear(T.openBeat + 0.45)}>
           <ModelMark name="Spark" color="mentor" />

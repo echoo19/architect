@@ -55,6 +55,18 @@ interface PageSpan {
 
 const local = (pairs: readonly (readonly [number, number])[]) => smoothMap(pairs);
 
+/**
+ * How far Define has scrolled, in its own time: further than the walkthrough's first scroll, so
+ * the passages open in view, then on to Confirm. It ends where the walkthrough's does.
+ */
+function defineScroll(lt: number): number {
+  return (
+    mix(0, BRIEF_SCROLL, inOutCubic(span(lt, 4.2, 2.6))) +
+    mix(0, 860 - BRIEF_SCROLL, inOutCubic(span(lt, 10.2, 2.9)))
+  );
+}
+const BRIEF_SCROLL = 640;
+
 /** The experiment page's own time: it is already finished up to the plot when it is cut in. */
 const experimentTime = (t: number) => 6 + Math.max(0, t - T.vaultCut);
 
@@ -70,7 +82,9 @@ const PAGES: readonly PageSpan[] = [
     at: T.toLab + 0.3,
     mode: 'place',
     fill: place(0),
-    draw: (lt) => <LabHome lt={lt} />,
+    draw: (lt, t) => (
+      <LabHome lt={lt} hover={ui(t, T.labHover, 0.15) - ui(t, T.labHover + 3.6, 0.2)} />
+    ),
   },
   {
     key: 'fields',
@@ -97,7 +111,7 @@ const PAGES: readonly PageSpan[] = [
     at: T.define,
     mode: 'flow',
     fill: place(1),
-    draw: (lt) => <DefinePage lt={lt} />,
+    draw: (lt) => <DefinePage lt={lt} scroll={defineScroll(lt)} />,
     clock: [
       [0, 0],
       [2.8, 2.8],
@@ -412,16 +426,16 @@ const onto = (point: readonly [number, number]): Framing => ({
 });
 
 /** The window to the left, the real academy's figure on the ground at its right. */
-export const SIDE: Framing = { cx: 905, cy: WINDOW.height / 2, s: 0.97 };
+export const SIDE: Framing = { cx: 1590, cy: WINDOW.height / 2, s: 2.4 };
 
 /** The window above, the open teacher on the ground under it. */
-export const OPEN_VIEW: Framing = { cx: WINDOW.width / 2, cy: 470, s: 0.98 };
+export const OPEN_VIEW: Framing = { cx: 446, cy: 976, s: 1.8 };
 
 /** A little closer on the whole window, so the sidebar stays in frame while it scrolls. */
 const SIDEBAR_VIEW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 1.62 };
 
 /** The team's chat, the frame's left edge just right of the sidebar. */
-const TEAM_VIEW: Framing = { cx: 250 + 960 / 2.15, cy: 4 + 540 / 2.15, s: 2.15 };
+const TEAM_VIEW: Framing = { cx: 695, cy: 56 + 540 / 2.43, s: 2.43 };
 
 /** The academy desk's chat, as the walkthrough frames it. */
 const CHAT_VIEW: Framing = { cx: 258 + 480, cy: 250, s: 2.0 };
@@ -433,7 +447,19 @@ const DRAWER_VIEW: Framing = { cx: 637, cy: 357, s: 1.8 };
 const COMPUTE_VIEW: Framing = content(104, 1.95);
 
 /** The window to the right, the certificate's bound on the ground at its left. */
-export const CERT_VIEW: Framing = { cx: 125, cy: WINDOW.height / 2, s: 0.84 };
+export const CERT_VIEW: Framing = { cx: -710, cy: WINDOW.height / 2, s: 1.6 };
+
+/**
+ * Where academies differ, as its passages open: the frame's top in the gutter above the row, the
+ * brief's card whole across, the window's bottom under it.
+ */
+function brief(measured: Measured): Framing {
+  const s = 2.45;
+  const row = measured.get('brief-differ');
+  // Measured with Define scrolled to its end; here it has scrolled only to the passages.
+  const top = (row ? row.y + 860 - BRIEF_SCROLL : 199) - 7;
+  return { cx: WINDOW.width / 2, cy: top + FRAME.height / 2 / s, s };
+}
 
 /** The two editions. */
 const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
@@ -462,7 +488,7 @@ const SHOTS: readonly Shot[] = [
   { at: T.real - 0.1, dur: 1.0, to: content(103, 1.9) },
   // 5. The study.
   { at: T.define - 0.3, dur: 0.6, to: FLOW, ease: inOutQuint },
-  { at: T.source - 0.6, dur: 1.4, to: { ...FLOW, s: 1.68 } },
+  { at: T.source - 0.6, dur: 1.2, to: (m) => brief(m) },
   { at: T.confirm - 0.9, dur: 0.6, to: FLOW },
   // 6. The harness: its drawer over the rounds, then the rounds, then into the score.
   { at: T.harness - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
@@ -478,7 +504,7 @@ const SHOTS: readonly Shot[] = [
   { at: T.dive, dur: 0.85, to: (m) => onto(vaultPoint(m)), ease: inOutCubic, still: true },
   { at: T.vaultCut, dur: 0, to: (m) => onto(harborviewPoint(m)), still: true },
   { at: T.resolve, dur: 1.25, to: (m) => frameOf(m, 'plot', 30), ease: inOutQuint },
-  { at: T.side, dur: 1.4, to: SIDE, ease: inOutQuint },
+  { at: T.side + 1.4, dur: 0.8, to: SIDE, ease: inOutQuint },
   // 9. The certificate, then the fine-tune: the plan, the model it read, the GPUs, the cluster.
   { at: T.models - 0.5, dur: 0.8, to: FULL, ease: inOutQuint },
   { at: T.certHero - 0.6, dur: 1.3, to: CERT_VIEW, ease: inOutQuint },
@@ -501,7 +527,8 @@ const SHOTS: readonly Shot[] = [
   { at: T.teamClick + 0.25, dur: 1.1, to: TEAM_VIEW },
   // 11. Offline: back for the sidebar, then the chat as the network goes.
   { at: T.backScroll - 0.5, dur: 0.6, to: SIDEBAR_VIEW, ease: inOutQuint },
-  { at: T.workspace + 0.15, dur: 1.0, to: CHAT_VIEW },
+  { at: T.workspace + 0.15, dur: 0.9, to: (m) => frameOf(m, 'status', 60, 3.6) },
+  { at: T.chatBack, dur: 1.0, to: CHAT_VIEW, ease: inOutQuint },
   // 12. The editions, then the whole window again for the end.
   { at: T.welcome - 0.4, dur: 0.6, to: FULL, ease: inOutQuint },
   { at: T.welcome + 0.8, dur: 1.2, to: EDITIONS },
@@ -538,11 +565,14 @@ interface Click {
   target: string | readonly [number, number];
   /** How far the page under it has scrolled since it was measured. */
   dy?: number;
+  /** A hover, held this long, with no press. */
+  hover?: number;
 }
 
 const navPoint = (index: number): readonly [number, number] => [92, ROW.place(index) + 20];
 
 const CLICKS: readonly Click[] = [
+  { at: T.labHover, target: [880, 205], hover: 3.4 },
   { at: T.fields - 0.1, target: navPoint(1) },
   { at: T.field - 0.1, target: 'academy-field' },
   { at: T.define - 0.15, target: 'open-job' },
@@ -577,7 +607,7 @@ function pointOf(measured: Measured, click: Click): readonly [number, number] {
 }
 
 export function Cursor({ measured, t }: { measured: Measured; t: number }) {
-  const index = CLICKS.findIndex((click) => t < click.at + 0.7);
+  const index = CLICKS.findIndex((click) => t < click.at + (click.hover ?? 0) + 0.7);
   if (index < 0) return null;
   const click = CLICKS[index]!;
   if (t < click.at - 1.0) return null;
@@ -590,10 +620,10 @@ export function Cursor({ measured, t }: { measured: Measured; t: number }) {
   const travel = span(t, click.at - 0.85, 0.75);
   const x = mix(from[0], to[0], outQuart(travel));
   const y = mix(from[1], to[1], inOutCubic(travel));
-  const press = Math.sin(Math.PI * span(t, click.at - 0.04, 0.18));
+  const press = click.hover ? 0 : Math.sin(Math.PI * span(t, click.at - 0.04, 0.18));
   const shown = Math.min(
     outQuart(span(t, click.at - 1.0, 0.25)),
-    1 - outQuart(span(t, click.at + 0.35, 0.3)),
+    1 - outQuart(span(t, click.at + (click.hover ?? 0) + 0.35, 0.3)),
   );
   return <Pointer x={x} y={y} shown={clamp(shown)} press={press} />;
 }

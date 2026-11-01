@@ -74,10 +74,10 @@ export function defineScroll(lt: number): number {
  * passage it came from, where the academies differ, and what is unclear (the field's first run's
  * brief, architect-runs/phil-1/brief.json). Ends with the confirmation.
  */
-export function DefinePage({ lt }: { lt: number }) {
+export function DefinePage({ lt, scroll }: { lt: number; scroll?: number }) {
   const confirmed = ui(lt, 13.9, 0.25);
   return (
-    <Column style={{ transform: `translateY(${-defineScroll(lt)}px)`, paddingTop: 44 }}>
+    <Column style={{ transform: `translateY(${-(scroll ?? defineScroll(lt))}px)`, paddingTop: 44 }}>
       <h1 className="m-0 font-display text-title font-semibold">{ACADEMY}</h1>
       <p className="mb-0 mt-3 text-body">
         Diagnoses a missed question, sets practice in the academy's records and flags students for

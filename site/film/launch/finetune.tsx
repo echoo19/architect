@@ -138,7 +138,7 @@ export function FineTunePage({ lt, still }: { lt: number; still?: boolean }) {
                   <span className="font-mono text-ui" style={rise(lt, FINE_TUNE_AT.config, 6)}>
                     {PLAN.config}
                   </span>
-                  <div className="grid grid-cols-4">
+                  <div data-frame="ft-figures" className="grid grid-cols-4">
                     {PLAN.figures.map(([value, label], index) => (
                       <span
                         key={label}
@@ -152,7 +152,7 @@ export function FineTunePage({ lt, still }: { lt: number; still?: boolean }) {
                       </span>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div data-frame="ft-methods" className="grid grid-cols-3 gap-2">
                     {METHODS.map(({ label, Icon }, index) => (
                       <Tile
                         key={label}
