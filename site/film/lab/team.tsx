@@ -3,8 +3,9 @@ import { AgentAvatar, Button, cn, InfoTip, Spinner, VersionTag } from '@architec
 import { Check, ChevronDown, ChevronRight, Info, Square } from 'lucide-react';
 import { TEAM } from './data';
 import { camera, MOMENT, pageAt, Pointer, type Framing, type Measured } from './film';
+import { Fields } from './pages-lab';
 import { WelcomePage, WorkspacePage } from './pages-more';
-import { CHAT_AGENT, ROW, SIDEBAR, Sidebar, TEAM_ROW, TEAM_SCROLL, WINDOW } from './shell';
+import { CHAT_AGENT, ROW, SIDEBAR, Sidebar, TEAM_ROW, WINDOW } from './shell';
 import { clamp, inOutCubic, mix, outQuart, span, ui } from './time';
 import { World } from './why';
 
@@ -14,41 +15,49 @@ import { World } from './why';
  * workspace/blocks.tsx ApprovalCard; docs/screenshots/team-*.png). Inventory desk leads: it asks
  * Assay desk which compounds need a re-test, whose own steps open under its avatar, then reserves
  * stock for exactly those, and each desk's write to its own file is a card of its own. The scene
- * leaves the Lab's window as Offline ends, scrolls the sidebar down to the team, and goes on to the
- * first screen as the walkthrough does, so the cut on each side is seamless.
+ * leaves the Lab's window as Offline ends and turns to another kind of work: Fields opens with the
+ * academy's row lit, the light moves to the screening labs' desks, then the sidebar scrolls down to
+ * the team. It goes on to the first screen as the walkthrough does, so the cut on each side is
+ * seamless.
  */
 
 /** The walkthrough's moment the scene leaves, in authored seconds: Offline, the write saved. */
 export const TEAM_FROM = 135.4;
 /** The walkthrough's moment the scene returns to: the first screen, just in. */
 export const TEAM_BACK = 143.8;
+/** How long the turn from the academy to the screening labs takes, before the team's chat. */
+const BRIDGE = 3.4;
 /** The scene's length, in seconds. Its last 0.6 s are the first screen coming in. */
-export const TEAM_LENGTH = 10.8;
+export const TEAM_LENGTH = BRIDGE + 10.8;
 
 /** When each part comes in, in seconds from the scene's start. */
 const AT = {
-  click: 0.75,
-  request: 0.95,
-  read: 1.35,
+  /** Fields opens, its academy row lit, then the screening labs' desks. */
+  fields: 0.75,
+  academy: 1.15,
+  lab: 2.35,
+  click: BRIDGE + 0.75,
+  request: BRIDGE + 0.95,
+  read: BRIDGE + 1.35,
   /** The version that answers, on the steps' summary while it is still in view. */
-  version: 1.5,
-  ask: 1.65,
-  open: 2.0,
-  quote: 2.1,
-  policy: 2.4,
-  code: 2.65,
-  output: 2.95,
-  added: 3.55,
-  answer: 3.85,
-  answered: 4.15,
-  search: 4.5,
-  reservations: 4.75,
-  adding: 5.0,
-  reply: 5.5,
-  bullets: [5.8, 6.15],
-  assay: 6.6,
-  hold: 6.9,
-  allow: 8.1,
+  version: BRIDGE + 1.5,
+  ask: BRIDGE + 1.65,
+  open: BRIDGE + 2.0,
+  quote: BRIDGE + 2.1,
+  policy: BRIDGE + 2.4,
+  code: BRIDGE + 2.65,
+  output: BRIDGE + 2.95,
+  added: BRIDGE + 3.55,
+  answer: BRIDGE + 3.85,
+  answered: BRIDGE + 4.15,
+  search: BRIDGE + 4.5,
+  reservations: BRIDGE + 4.75,
+  adding: BRIDGE + 5.0,
+  reply: BRIDGE + 5.5,
+  bullets: [BRIDGE + 5.8, BRIDGE + 6.15],
+  assay: BRIDGE + 6.6,
+  hold: BRIDGE + 6.9,
+  allow: BRIDGE + 8.1,
   /** When the first screen comes in, as the walkthrough has it 0.6 s before it returns. */
   leave: TEAM_LENGTH - (TEAM_BACK - pageAt('welcome')),
 } as const;
@@ -428,14 +437,17 @@ export function TeamChatPage({ t }: { t: number }) {
 }
 
 /**
- * Where the pointer clicks, in window pixels: the team's chat in the sidebar, then Inventory desk's
- * Allow once, read off the page at the click (the chat is anchored to its last line, so it holds).
+ * Where the pointer clicks, in window pixels: Fields, the team's chat in the sidebar, then
+ * Inventory desk's Allow once, read off the page at the click (the chat is anchored to its last
+ * line, so it holds).
  */
+const FIELDS_ROW: readonly [number, number] = [92, ROW.place(1) + 20];
 const CHAT_ROW: readonly [number, number] = [120, TEAM_ROW.chat + TEAM_ROW.chatHeight / 2];
 const ALLOW: readonly [number, number] = [956, 348];
 
 function TeamPointer({ t }: { t: number }) {
   const clicks = [
+    { at: AT.fields, to: FIELDS_ROW, lead: 0.6 },
     { at: AT.click, to: CHAT_ROW, lead: 0.7 },
     { at: AT.allow, to: ALLOW, lead: 0.85 },
   ];
@@ -454,15 +466,20 @@ function TeamPointer({ t }: { t: number }) {
 }
 
 /**
- * The window over the scene: Offline's chat goes as the sidebar scrolls down to the team and its
- * chat is chosen; at the end the team's chat goes and the first screen comes in, with the sidebar
- * sliding away, as the walkthrough turns to it.
+ * The window over the scene: Offline's chat gives way to Fields, where the light moves from the
+ * academy to the screening labs; the sidebar scrolls down to the team and its chat is chosen; at
+ * the end the team's chat goes and the first screen comes in, with the sidebar sliding away, as
+ * the walkthrough turns to it.
  */
 function TeamWindow({ t }: { t: number }) {
-  const scroll = inOutCubic(span(t, 0, 0.65));
+  const scroll = inOutCubic(span(t, BRIDGE, 0.65));
   const chosen = t >= AT.click - 0.1;
-  const swap = outQuart(span(t, AT.click, 0.5));
-  const offline = 1 - outQuart(span(t, AT.click, 0.3));
+  const swap = outQuart(span(t, AT.click + 0.12, 0.45));
+  // Each page leaves before the next arrives, so no two are ever seen through each other.
+  const offline = 1 - outQuart(span(t, AT.fields, 0.18));
+  const arrive = outQuart(span(t, AT.fields + 0.08, 0.45));
+  const fields = Math.min(arrive, 1 - outQuart(span(t, AT.click, 0.2)));
+  const toFields = ui(t, AT.fields - 0.12, 0.32);
   const leave = outQuart(span(t, AT.leave, 0.3));
   const welcome = outQuart(span(t, AT.leave, 0.5));
   const sidebar = 1 - outQuart(span(t, AT.leave, 0.55));
@@ -484,6 +501,25 @@ function TeamWindow({ t }: { t: number }) {
           <WorkspacePage
             lt={TEAM_FROM - pageAt('workspace')}
             allowAt={MOMENT.allow - pageAt('workspace')}
+          />
+        </div>
+      )}
+      {fields > 0 && (
+        <div
+          className="absolute overflow-hidden"
+          style={{
+            left: SIDEBAR,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            opacity: fields,
+            transform: `translateY(${(1 - arrive) * 10}px)`,
+          }}
+        >
+          <Fields
+            lt={t - AT.fields}
+            selected={Math.min(ui(t, AT.academy, 0.25), 1 - ui(t, AT.lab, 0.35))}
+            lab={ui(t, AT.lab, 0.35)}
           />
         </div>
       )}
@@ -512,9 +548,9 @@ function TeamWindow({ t }: { t: number }) {
       )}
       <Sidebar
         state={{
-          fillTop: chosen ? TEAM_ROW.chat : chatRow - scroll * TEAM_SCROLL,
-          fillHeight: TEAM_ROW.chatHeight,
-          fill: chosen ? ui(t, AT.click - 0.05, 0.25) : 1 - clamp(scroll / 0.5),
+          fillTop: chosen ? TEAM_ROW.chat : mix(chatRow, ROW.place(1), toFields),
+          fillHeight: chosen ? TEAM_ROW.chatHeight : mix(TEAM_ROW.chatHeight, ROW.height, toFields),
+          fill: chosen ? ui(t, AT.click - 0.05, 0.25) : 1,
           chat: 1,
           agents: 1,
           rest: 1,
@@ -533,18 +569,22 @@ function TeamWindow({ t }: { t: number }) {
  */
 const ZOOM: Framing = { cx: 250 + 960 / 2.15, cy: 4 + 540 / 2.15, s: 2.15 };
 
+/** A little closer on the whole window while Fields shows, so the sidebar stays in frame. */
+const FIELDS_VIEW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 1.62 };
+
 export function TeamScene({ t, measured }: { t: number; measured: Measured }) {
-  const from = camera(measured, TEAM_FROM);
   const welcome = pageAt('welcome');
   const back = camera(measured, welcome + clamp(t - AT.leave, 0, TEAM_BACK - welcome));
-  const push = inOutCubic(span(t, 0.85, 1.1));
-  const pull = inOutCubic(span(t, 9.0, 1.1));
-  const drift = 1 + 0.012 * span(t, 1.95, 9.0 - 1.95);
+  const look = inOutCubic(span(t, AT.fields + 0.1, 1.1));
+  const push = inOutCubic(span(t, BRIDGE + 0.85, 1.1));
+  const pull = inOutCubic(span(t, BRIDGE + 9.0, 1.1));
+  const drift = 1 + 0.012 * span(t, BRIDGE + 1.95, 9.0 - 1.95);
   const toward = (a: Framing, b: Framing, p: number): Framing => ({
     cx: mix(a.cx, b.cx, p),
     cy: mix(a.cy, b.cy, p),
     s: Math.exp(mix(Math.log(a.s), Math.log(b.s), p)),
   });
+  const from = toward(camera(measured, TEAM_FROM), FIELDS_VIEW, look);
   const held = toward(from, { ...ZOOM, s: ZOOM.s * drift }, push);
   const view = toward(held, back, pull);
   return (
