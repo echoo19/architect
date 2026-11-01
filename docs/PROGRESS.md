@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, morning), `runs/assay-2`: the second Assay desk run
+
+- *Done:* `architect-runs/assay-2` on `runtree-a385c043` (field/main `a385c043`), no patches, registered before it ran: bare, draft, targeted (2 rounds, `--spark-cap targeted=1.6`) and the seed-102 repeat, $15 student and $3 Spark caps. Spark's draft failed validation (bad example files), so the taught arm drafted for itself in round 1 (kept, dev 5/36 to 12/36); round 2 was refused at its counterexample check (Z′ wrong). Primary, taught minus bare on Corvid Hill: +18.8 points (+2.2 to +34.3) under seed 101 and +16.7 (+3.8 to +29.3) under seed 102, a gain both times; all 84: 25 and 26 against 10 and 12. Spend: student $6.67, Spark $0.54. Report: `docs/comparisons/assay-desk-2.md`.
+- *Open:* the gain is Spark's first harness; no refinement was measured on this field yet. The taught harness's plate tool returns every well and overflows the 16,384-token context on large plates (14 of 14 dev and train errors). Graduate `grd_mvxiq84u45d329855b` is kept in `architect-runs/assay-2/agent-data` for the Inventory desk team run.
+
 ## 2026-11-01 (Sun, night), `examples/sweep-split` (from `field/main` a446bd6f): Sweep desk's splits pass the leak check
 
 - *Done:* sweep-1's refused mentor call came from expected results, not request wording. Every sweep drew its learning rates from one shared ladder, so the `ran` and `proposed` config lists of a sealed `next_runs` task matched a mentor-written tool's list of a practice sweep's configs. The reference solution's own `did_it_help` code matched the same way. Each sweep now scales its ladder by its own factor (1.00 to 1.49), so no learning rate is in two sweeps. The losses were drawn on the ladder and are unchanged, and so is every count in the README. `early_stop`'s expected result drops `unit`, which let a plain `{stop_at, best_at, unit}` of another run match. Job folder regenerated; README's grid example and the reference solutions' largest result (6,381 characters) updated.
