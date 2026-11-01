@@ -4,6 +4,7 @@ import { api, flowApi } from '../../api/client';
 import { queryKeys, useHubToken, useLocalRuntimes, useSecretsStatus } from '../../api/hooks';
 import { fetchQuery, type QueryState } from '../../api/query';
 import { attempt } from '../../lib/notify';
+import { useWords } from '../../shell/edition';
 import type { KeyStatus } from './hosted';
 import { needsSummary, runNeeds, type HostedProblem, type LocalState, type Need } from './needs';
 import { tokenState } from './teacher-menu';
@@ -53,6 +54,7 @@ export function usePreflight(
   const copy = copyKey(job);
   const hostedProblem = found !== null && found.copy === copy ? found.problem : null;
   const localState = localStateOf(local);
+  const words = useWords();
   const needs = runNeeds({
     job,
     testPlace,
@@ -60,6 +62,7 @@ export function usePreflight(
     local: localState,
     hostedProblem,
     token: tokenState(hubToken),
+    words,
   });
 
   /** Asks the online copy whether it answers. True when it does; false says why in the needs. */

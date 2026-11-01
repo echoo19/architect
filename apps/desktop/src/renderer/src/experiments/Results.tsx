@@ -11,6 +11,7 @@ import {
 import { armInSentence } from '@architect/shared';
 import {
   DataTable,
+  defineTerm,
   DetailList,
   Disclosure,
   Drawer,
@@ -345,10 +346,12 @@ const versionText = (frozen: NonNullable<ArmReport['frozen']>) =>
 function RunsTable({
   arms,
   named,
+  mentor,
   onOpen,
 }: {
   arms: readonly ArmReport[];
   named: ArmNames;
+  mentor?: string | undefined;
   onOpen: (arm: ArmId) => void;
 }) {
   return (
@@ -379,6 +382,7 @@ function RunsTable({
         {
           key: 'check',
           header: 'Held-out checks',
+          hint: defineTerm('heldOutChecks', mentor),
           align: 'end',
           width: '176px',
           cell: (arm) => scoreText(arm.dev.kept?.after ?? arm.dev.baseline),
@@ -478,10 +482,13 @@ function ArmRuns({
   report,
   input,
   named,
+  mentor,
 }: {
   report: ComparisonReport;
   input: ExperimentInput;
   named: ArmNames;
+  /** The teacher's short name, for what a held-out check is; the general one when unknown. */
+  mentor?: string | undefined;
 }) {
   const asked = new Set(input.arms.map((item) => item.arm));
   const arms = report.arms.filter((arm) => asked.has(arm.arm) && arm.runId !== null);
@@ -497,6 +504,7 @@ function ArmRuns({
       <RunsTable
         arms={arms}
         named={named}
+        mentor={mentor}
         onOpen={(arm) => {
           setOpen(arm);
           setShown(true);
@@ -586,7 +594,7 @@ export function Results({
       >
         <SpendTable report={report} input={input} measured={measured} names={names} />
       </TableExhibit>
-      <ArmRuns report={report} input={input} named={arms} />
+      <ArmRuns report={report} input={input} named={arms} mentor={names.mentor} />
       {report.disclosures.length > 0 && (
         <Disclosure label="Notes from the report">
           <ul className="m-0 flex max-w-[76ch] list-disc flex-col gap-2 pl-5 text-ui text-pretty">

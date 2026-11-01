@@ -23,12 +23,13 @@ import {
 } from '@architect/ui';
 import { ArrowRight, Check, ChevronRight, CircleMinus, CircleX } from 'lucide-react';
 import { formatDuration } from '../../lib/format';
+import { useWords } from '../../shell/edition';
 import { formatAnswerTime, formatCost } from '../format';
 import { typeLabel } from '../names';
 import {
   checkMeasurements,
-  GATES,
-  INTERVENTIONS,
+  gateLabel,
+  interventionNamed,
   lessonOrigin,
   lessonVerdict,
   measurementLabel,
@@ -112,7 +113,7 @@ export function Findings({
 
 /** The kind of change Spark chose, by its icon and name, with what that kind is behind an InfoTip. */
 export function InterventionKind({ intervention }: { intervention: Intervention }) {
-  const { label, icon: Icon, meaning } = INTERVENTIONS[intervention.type];
+  const { label, icon: Icon, meaning } = interventionNamed(intervention.type, useWords());
   return (
     <span className="flex items-center gap-1.5 text-small">
       <Icon size={16} strokeWidth={1.8} aria-hidden className="shrink-0 text-mentor" />
@@ -242,6 +243,7 @@ export function CheckTasks({
   names: ModelNames;
 }) {
   const measured = orderedMeasurements(experiment);
+  const w = useWords();
   if (measured.length === 0) return null;
   const types = job.taskTypes.filter((type) =>
     measured.some((item) => item.perType.some((score) => score.type === type.id)),
@@ -254,7 +256,7 @@ export function CheckTasks({
   const runs = measured[0]?.seeds.length ?? 1;
   return (
     <DrawerSection
-      title="Check tasks"
+      title={w.Checks}
       actions={
         <EvidenceMark kind="check">
           {runs > 1
@@ -263,13 +265,13 @@ export function CheckTasks({
         </EvidenceMark>
       }
     >
-      <Table aria-label="Check tasks by type">
+      <Table aria-label={`${w.Checks} by type`}>
         <TableHeader>
           <TableRow>
             <TableHead>Task type</TableHead>
             {measured.map((item) => (
               <TableHead key={item.label} className="text-right">
-                {measurementLabel(item)}
+                {measurementLabel(item, w)}
               </TableHead>
             ))}
           </TableRow>
@@ -341,6 +343,7 @@ export function CheckTasks({
 
 /** The hard gates every change must pass whatever it gained: writes, answer time, real weights. */
 export function Gates({ experiment }: { experiment: Experiment }) {
+  const w = useWords();
   if (experiment.gates.length === 0) return null;
   return (
     <DrawerSection title="Rules every change must pass">
@@ -363,7 +366,7 @@ export function Gates({ experiment }: { experiment: Experiment }) {
               />
             )}
             <span className="min-w-0 text-pretty">
-              <span className="text-fg">{GATES[gate.gate]}</span>{' '}
+              <span className="text-fg">{gateLabel(gate.gate, w)}</span>{' '}
               <span className="text-fg">{sentence(gate.detail)}</span>
             </span>
           </li>
@@ -416,6 +419,7 @@ export function ExperimentDetails({
   intervention: Intervention | undefined;
 }) {
   const { inputs } = experiment;
+  const w = useWords();
   return (
     <Disclosure label="Details">
       <DetailList
@@ -424,7 +428,7 @@ export function ExperimentDetails({
           ...(intervention ? [{ label: 'Intervention', value: intervention.id }] : []),
           { label: 'Kind', value: experiment.kind },
           {
-            label: 'Setup',
+            label: w.Setup,
             value:
               inputs.candidateVersion === null
                 ? `version ${inputs.baseVersion}`
@@ -433,7 +437,7 @@ export function ExperimentDetails({
           ...(inputs.candidateAdapter
             ? [
                 {
-                  label: 'Trained weights',
+                  label: w.Weights,
                   value: `${inputs.candidateAdapter.id} (${inputs.candidateAdapter.label}${inputs.candidateAdapter.standIn ? ', stand-in' : ''})`,
                 },
               ]
@@ -447,13 +451,16 @@ export function ExperimentDetails({
                 },
               ]
             : []),
-          { label: 'Check seeds', value: seedsOf(checkMeasurements(experiment)) },
+          {
+            label: w.lab ? 'Held-out check seeds' : 'Check seeds',
+            value: seedsOf(checkMeasurements(experiment)),
+          },
           ...(experiment.seeds.train === null
             ? []
             : [{ label: 'Practice seed', value: String(experiment.seeds.train) }]),
           ...experiment.measurements.map((item) => ({
-            label: measurementLabel(item),
-            value: `${item.configuration.actor}, ${item.configuration.backend}, setup version ${item.configuration.harnessVersion}; ${item.provenance}`,
+            label: measurementLabel(item, w),
+            value: `${item.configuration.actor}, ${item.configuration.backend}, ${w.setup} version ${item.configuration.harnessVersion}; ${item.provenance}`,
           })),
           { label: 'Tokens', value: tokensOf(experiment) },
           { label: 'Examples', value: inputs.lessonIds.join(', ') || 'none' },

@@ -6,12 +6,16 @@ import type { ReportCard } from '@architect/shared';
  * job the teacher drafted, which nobody has certified as right for the business. Null for a job
  * whose tasks came with it, which has nothing to add. `mentor` is the teacher's short name.
  */
-export function testSourceNote(tasks: ReportCard['tasks'], mentor: string): string | null {
+export function testSourceNote(
+  tasks: ReportCard['tasks'],
+  mentor: string,
+  finalTest = 'final test',
+): string | null {
   if (tasks === undefined) return null;
   if (tasks.source === 'attached') {
-    return 'The final test is part of the tasks you attached. Its expected answers are the ones they came with.';
+    return `The ${finalTest} is part of the tasks you attached. Its expected answers are the ones they came with.`;
   }
-  const made = `The final test's requests were made by Architect from your files, following a job ${mentor} drafted.`;
+  const made = `The ${finalTest}'s requests were made by Architect from your files, following a job ${mentor} drafted.`;
   // A job with a rule says what its answers rest on beside the score, in more words and once.
   if (tasks.rules !== undefined) return made;
   return `${made} Answers are checked against that job, not independently certified as right for your business.`;

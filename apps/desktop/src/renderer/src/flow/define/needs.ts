@@ -8,6 +8,7 @@ import {
   type StudentEndpoint,
   type StudentTarget,
 } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { mentorProvider } from '../../onboarding/mentor';
@@ -15,7 +16,7 @@ import { isInstalled } from '../../settings/models/StudentRows';
 import { modelNames } from '../names';
 import type { ModelNames } from '../train/phase';
 import { aKey, hostedAvailability, providerName, type KeyStatus } from './hosted';
-import { BLOCK_REASONS, blockFix, idleBlock, keyHint } from './teacher-menu';
+import { blockFix, blockReason, idleBlock, keyHint } from './teacher-menu';
 
 /** The one thing that puts a missing piece right. */
 export type NeedAction =
@@ -56,6 +57,8 @@ export interface RunNeedsInput {
   hostedProblem: HostedProblem | null;
   /** Whether a Hugging Face token comes from anywhere, which weights are trained with. */
   token: 'found' | 'none' | 'unknown';
+  /** The words of this edition; the personal edition's when left out. */
+  words?: Words;
 }
 
 /** The provider an endpoint's key belongs to, by its address; `other` for one the user added. */
@@ -104,6 +107,7 @@ function modelNeed(
   student: string,
   testPlace: StudentTarget,
   local: LocalState,
+  w: Words,
 ): Need | null {
   const endpoint = job.student.local;
   const device = deviceInSentence(currentPlatform());
@@ -131,7 +135,7 @@ function modelNeed(
   if (isInstalled(local.ollama, endpoint.model)) return null;
   const runs = [
     job.student.trainOn === 'local' ? 'practice' : null,
-    testPlace === 'local' ? 'the final test' : null,
+    testPlace === 'local' ? `the ${w.finalTest}` : null,
   ].filter((part): part is string => part !== null);
   const bytes = GLIMMER_BUILDS.find((build) => build.model === endpoint.model)?.downloadBytes;
   // Neither is here when both run online; the agent that training ends with still is.
@@ -208,6 +212,7 @@ function idleNeed(
   names: ModelNames,
   testPlace: StudentTarget,
   token: RunNeedsInput['token'],
+  w: Words,
 ): Need | null {
   const block = idleBlock(job, { token, testPlace });
   if (block === null) return null;
@@ -215,7 +220,7 @@ function idleNeed(
   return {
     id: 'teacher-idle',
     title: `${names.mentor} can't change anything yet`,
-    detail: `Only retraining ${names.student} itself is on, and it ${BLOCK_REASONS[block]}.${keyHint(block)} ${blockFix(block, device)}`,
+    detail: `Only ${w.lab ? `fine-tuning a LoRA adapter for ${names.student}` : `retraining ${names.student} itself`} is on, and it ${blockReason(block, w)}.${keyHint(block)} ${blockFix(block, device, w)}`,
     label: `Open ${names.mentor}'s settings`,
     action: { kind: 'open', tab: 'teaching' },
   };
@@ -236,6 +241,7 @@ export function runNeeds({
   local,
   hostedProblem,
   token,
+  words = WORDS.personal,
 }: RunNeedsInput): Need[] {
   const names = modelNames(job);
   const usesHosted = job.student.trainOn === 'hosted' || testPlace === 'hosted';
@@ -255,9 +261,9 @@ export function runNeeds({
     const teacher = teacherNeed(job, names.mentor, keys);
     if (teacher) needs.push(teacher);
   }
-  const idle = idleNeed(job, names, testPlace, token);
+  const idle = idleNeed(job, names, testPlace, token, words);
   if (idle) needs.push(idle);
-  const model = modelNeed(job, names.student, testPlace, local);
+  const model = modelNeed(job, names.student, testPlace, local, words);
   if (model) needs.push(model);
   if (usesHosted) {
     const host = hostNeed(job, names.student, keys, hostedProblem);

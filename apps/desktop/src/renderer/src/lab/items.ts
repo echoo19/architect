@@ -223,7 +223,7 @@ export function runWord(run: Pick<LatestRun, 'status' | 'phase'>): string {
     baseline: 'Measuring baseline',
     attempting: 'Practicing',
     diagnosing: 'Diagnosing',
-    teaching: 'Engineering harness',
+    teaching: 'Verifying corrections',
     training: 'Fine-tuning LoRA adapter',
     clarifying: 'Asking',
     evaluating: 'Scoring held-out checks',

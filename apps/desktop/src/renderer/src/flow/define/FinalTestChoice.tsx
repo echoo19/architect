@@ -1,6 +1,7 @@
 import type { Job, StudentTarget } from '@architect/shared';
 import { RadioCard, RadioCardGroup, SettingsSection } from '@architect/ui';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { useWords } from '../../shell/edition';
 import { modelNames } from '../names';
 import { finalTestFacts, FINAL_TEST_MARKS } from './final-test';
 import { aKey, providerName, type HostedAvailability } from './hosted';
@@ -29,10 +30,11 @@ interface FinalTestChoiceProps {
  * is tested here. Each says how long it takes and what it costs.
  */
 export function FinalTestChoice({ job, place, onPlaceChange, hosted }: FinalTestChoiceProps) {
+  const w = useWords();
   return (
-    <SettingsSection title="Final test">
+    <SettingsSection title={w.FinalTest}>
       <RadioCardGroup
-        aria-label="Where the final test runs"
+        aria-label={`Where the ${w.finalTest} runs`}
         value={place}
         onValueChange={onPlaceChange}
         className="grid-cols-1"

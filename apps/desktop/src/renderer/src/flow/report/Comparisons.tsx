@@ -3,7 +3,7 @@ import { Disclosure, EvidenceMark } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import { Section } from '../ledger';
-import { useEdition } from '../../shell/edition';
+import { useEdition, useWords } from '../../shell/edition';
 import type { ModelNames } from '../train/phase';
 import { armCost, notRunReason, wasRun, type Arm, type ArmKey } from './arms';
 
@@ -92,6 +92,7 @@ export function Comparisons({
   checkTasks: number | undefined;
 }) {
   const lab = useEdition() === 'lab';
+  const w = useWords();
   const measured = arms.filter(wasRun);
   const unmeasured = arms.filter((arm) => !wasRun(arm));
   const metered = measured.filter((arm) => arm.memory !== null);
@@ -149,13 +150,15 @@ export function Comparisons({
               <li key={arm.key} className="text-pretty">
                 {armLabel(arm.key, names, blankStart, lab)} used at most{' '}
                 {memoryLine(arm.memory?.peakProcessBytes ?? null, arm.memory?.peakGpuBytes ?? null)}{' '}
-                in its final test.
+                in its {w.finalTest}.
               </li>
             ))}
             {unmeasured.map((arm) => (
               <li key={arm.key} className="text-pretty">
                 {armLabel(arm.key, names, blankStart, lab)} wasn&apos;t measured
-                {notRunReason(arm.key, names.mentor) && `: ${notRunReason(arm.key, names.mentor)}`}.
+                {notRunReason(arm.key, names.mentor, w.weights) &&
+                  `: ${notRunReason(arm.key, names.mentor, w.weights)}`}
+                .
               </li>
             ))}
           </ul>

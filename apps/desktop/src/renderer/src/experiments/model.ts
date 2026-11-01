@@ -95,6 +95,18 @@ export function armNames({ mentor, student }: ModelNames): Record<ArmId, string>
   };
 }
 
+/**
+ * The arms as a narrow row names them, such as a cap's row in the inspector: the engineered
+ * harness without the teacher's name, which a long model name would cut short.
+ */
+export function shortArmNames(names: ModelNames): Record<ArmId, string> {
+  return {
+    ...armNames(names),
+    targeted: 'Engineered harness',
+    'reference-targeted': 'Reference, engineered',
+  };
+}
+
 /** The arms under the defaults' names. */
 export const ARM_NAMES = armNames(DEFAULT_NAMES);
 

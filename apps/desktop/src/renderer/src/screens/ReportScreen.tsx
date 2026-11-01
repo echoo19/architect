@@ -31,7 +31,7 @@ import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { chatPath, navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
-import { useEdition } from '../shell/edition';
+import { useEdition, useWords } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 
@@ -98,6 +98,7 @@ function useReportAgent(report: ReportCard) {
   );
   // A run whose own test ran online is ready only once it has been tested here.
   const here = useLocalCard(report).data ?? null;
+  const { finalTest } = useWords();
   const verdict = reportVerdict(
     report,
     installation.data ?? null,
@@ -106,6 +107,7 @@ function useReportAgent(report: ReportCard) {
       baseBytes: graduate?.manifest.student.sizeBytes,
     },
     here,
+    finalTest,
   );
   return { graduate, installation: installation.data ?? null, verdict };
 }

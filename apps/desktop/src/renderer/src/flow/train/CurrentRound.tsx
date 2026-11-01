@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import type { Round } from '@architect/shared';
-import { cn, StepTransition } from '@architect/ui';
+import { cn, StepTransition, type Words } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
+import { useWords } from '../../shell/edition';
 import { formatRange } from '../format';
 import { draftRoundOf } from './draft';
 import { failureLine } from './failure-line';
@@ -22,12 +23,13 @@ function studentLine(
   round: Round,
   failure: RecentAttempt | null,
   draft: boolean,
+  w: Words,
 ): string {
   const { job } = live;
   if (draft) {
     return round.status === 'evaluating'
-      ? `Taking the ${job.splits.dev} check tasks with the first draft.`
-      : 'No practice this round. It waits for its first setup.';
+      ? `Taking the ${job.splits.dev} ${w.checks} with the first draft.`
+      : `No practice this round. It waits for its first ${w.setup}.`;
   }
   if (failure) return failureLine(failure);
   const attempts = roundAttempts(live, round.index);
@@ -37,10 +39,16 @@ function studentLine(
   return `Working through ${job.evaluation.trainBatch} practice tasks.`;
 }
 
-function mentorLine(live: LiveRun, round: Round, names: ModelNames, draft: boolean): string {
+function mentorLine(
+  live: LiveRun,
+  round: Round,
+  names: ModelNames,
+  draft: boolean,
+  w: Words,
+): string {
   if (round.diagnosis) return round.diagnosis;
   if (draft) {
-    return `Writing ${names.student}'s first full setup from the job and its example tasks.`;
+    return `Writing ${names.student}'s first full ${w.setup} from the job and its example tasks.`;
   }
   if (live.mentorBusy || round.status === 'diagnosing') {
     const failed = round.train.total - round.train.pass;
@@ -68,6 +76,7 @@ export function CurrentRound({
   /** The question the round put to the person, when it was one. */
   question: QuestionView | null;
 }) {
+  const w = useWords();
   const draft = round.index === draftRoundOf(live);
   const over = round.status === 'decided' || round.status === 'failed';
   // Once the round is over, or the run has moved on to its test or its end, the student's last
@@ -91,7 +100,7 @@ export function CurrentRound({
     <section aria-label="Current round" className="flex flex-col gap-5 pb-6 pl-11">
       {active && (
         <Line who={names.student} tone="student">
-          {studentLine(live, round, failure, draft)}
+          {studentLine(live, round, failure, draft, w)}
         </Line>
       )}
       <StepTransition transitionKey={asking ? 'asking' : 'answered'} className="empty:hidden">
@@ -100,7 +109,7 @@ export function CurrentRound({
         ) : answered?.answer ? (
           <Line who={names.mentor} tone="mentor">
             <p className="m-0 text-pretty">You answered: {answered.answer.text}</p>
-            <p className="m-0 text-pretty">{answerEffect(answered, names)}</p>
+            <p className="m-0 text-pretty">{answerEffect(answered, names, w)}</p>
           </Line>
         ) : unanswered ? (
           <Line who={names.mentor} tone="mentor">
@@ -112,7 +121,7 @@ export function CurrentRound({
         ) : (
           showDiagnosis && (
             <Line who={names.mentor} tone="mentor">
-              {mentorLine(live, round, names, draft)}
+              {mentorLine(live, round, names, draft, w)}
             </Line>
           )
         )}
@@ -134,7 +143,7 @@ export function CurrentRound({
         <dl className="m-0">
           <Fact label={over ? 'Expected' : 'Expects'}>
             <span className="tabular-nums">
-              {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)} check tasks
+              {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)} {w.checks}
             </span>
           </Fact>
         </dl>

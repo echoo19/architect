@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   ChoiceTiles,
+  defineTerm,
   ErrorState,
   Field,
   Input,
@@ -52,9 +53,14 @@ const TABS: readonly InspectorTab<Tab>[] = [
 ];
 
 const METHODS = [
-  { value: 'lora', label: 'LoRA', icon: <Layers2 aria-hidden /> },
-  { value: 'qlora', label: 'QLoRA', icon: <Binary aria-hidden /> },
-  { value: 'full', label: 'Full fine-tune', icon: <Boxes aria-hidden /> },
+  { value: 'lora', label: 'LoRA', icon: <Layers2 aria-hidden />, tip: defineTerm('loraAdapter') },
+  { value: 'qlora', label: 'QLoRA', icon: <Binary aria-hidden />, tip: defineTerm('qlora') },
+  {
+    value: 'full',
+    label: 'Full fine-tune',
+    icon: <Boxes aria-hidden />,
+    tip: defineTerm('fullFineTune'),
+  },
 ] as const;
 
 /**

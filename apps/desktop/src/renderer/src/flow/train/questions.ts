@@ -1,6 +1,7 @@
 import type { Intervention, Round } from '@architect/shared';
 import type { QueryState } from '../../api/query';
 import type { MentoringRecords } from '../../api/mentoring';
+import { WORDS, type Words } from '@architect/ui';
 import type { ModelNames } from './phase';
 
 /**
@@ -83,10 +84,14 @@ export function isOpen(round: Round, intervention: Intervention): boolean {
  * success ends the run, since its final test belongs to the job as it was; any other is kept as
  * what the person meant, and the mentor is shown it with every round that follows.
  */
-export function answerEffect(intervention: Intervention, names: ModelNames): string | null {
+export function answerEffect(
+  intervention: Intervention,
+  names: ModelNames,
+  w: Words = WORDS.personal,
+): string | null {
   const { answer } = intervention;
   if (answer === undefined) return null;
   return answer.changesCriteria
-    ? 'It changes what counts as success, so this run stopped. Its final test belongs to the job as it was. Train again on the changed job.'
+    ? `It changes what counts as success, so this run stopped. Its ${w.finalTest} belongs to the job as it was. Train again on the changed job.`
     : `${names.mentor} kept it as what you meant, and sees it with every round from here on.`;
 }

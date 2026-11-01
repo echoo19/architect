@@ -1,4 +1,5 @@
 import type { SplitCounts, TaskPlan } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 
 /** "1 task", "120 tasks". */
 export function tasksText(count: number): string {
@@ -14,11 +15,11 @@ export function totalOf(counts: SplitCounts): number {
  * How many tasks sit in each set, in the words the screens use for them: "40 practice, 30 check,
  * 40 final test", and the ones kept aside to measure the model before any teaching last.
  */
-export function splitsText(counts: SplitCounts): string {
+export function splitsText(counts: SplitCounts, w: Words = WORDS.personal): string {
   const parts = [
     `${counts.train} practice`,
-    `${counts.dev} check`,
-    `${counts.test} final test`,
+    `${counts.dev} ${w.lab ? 'held-out' : 'check'}`,
+    `${counts.test} ${w.finalTest}`,
     ...(counts.calibration > 0 ? [`${counts.calibration} set aside`] : []),
   ];
   return parts.join(', ');

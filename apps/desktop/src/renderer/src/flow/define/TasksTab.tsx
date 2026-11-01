@@ -2,6 +2,7 @@ import type { Job, TaskPlan } from '@architect/shared';
 import { SettingsRow, SettingsSection, SettingsValue, Skeleton } from '@architect/ui';
 import { useTaskPlan } from '../../api/hooks';
 import { ProblemState } from '../../components/ProblemState';
+import { useWords } from '../../shell/edition';
 import { modelNames } from '../names';
 import { TabNote } from './fields';
 import { checkedAgainst, sourceText, splitsText, tasksText, totalOf } from './task-plan';
@@ -37,6 +38,7 @@ export function TasksTab({ job }: { job: Job }) {
 }
 
 function Plan({ job, plan }: { job: Job; plan: TaskPlan }) {
+  const w = useWords();
   const { mentor } = modelNames(job);
   const total = totalOf(plan.counts);
   return (
@@ -46,9 +48,9 @@ function Plan({ job, plan }: { job: Job; plan: TaskPlan }) {
       </SettingsRow>
       <SettingsRow
         label="How they are used"
-        info={`${mentor} teaches from the practice tasks, sees only the score on the check tasks, and never sees the final test.`}
+        info={`${mentor} teaches from the practice tasks, sees only the score on the ${w.checks}, and never sees the ${w.finalTest}.`}
       >
-        <SettingsValue>{splitsText(plan.counts)}</SettingsValue>
+        <SettingsValue>{splitsText(plan.counts, w)}</SettingsValue>
       </SettingsRow>
       {plan.source === 'generated' && <TabNote>{checkedAgainst(mentor)}</TabNote>}
       {plan.unresolved.length > 0 && (

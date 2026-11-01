@@ -2,6 +2,7 @@ import { studentPricing, type Job, type StudentTarget } from '@architect/shared'
 import { Button, CapMeter } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
+import { useWords } from '../../shell/edition';
 import { modelNames } from '../names';
 import {
   capShortfalls,
@@ -39,7 +40,8 @@ export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
   const pricing = job.student.hosted ? (studentPricing(job.student.hosted) ?? null) : null;
   const bills = planBills(job, estimate, pricing, false, testPlace).total;
   const online = sumKnown([bills.hostedUsd, bills.testUsd]);
-  const shortfalls = capShortfalls(job, { mentor, student });
+  const w = useWords();
+  const shortfalls = capShortfalls(job, { mentor, student }, w);
   const budget = (what: string, patch: Partial<Job['budget']>) =>
     change(
       what,
@@ -116,7 +118,7 @@ export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
           onChange={(maxMentorUsd) => budget(`${mentor} spending cap`, { maxMentorUsd })}
         />
         <NumberField
-          label={`Retraining ${student}`}
+          label={w.retraining(student)}
           unit="dollars"
           value={job.budget.maxComputeUsd ?? 0}
           issue={issues['budget.maxComputeUsd']}

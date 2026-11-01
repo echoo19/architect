@@ -7,8 +7,9 @@ import {
   type Round,
   type Score,
 } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 import { kindLabel, modelNames, typeLabel } from '../names';
-import { GATES } from './evidence-words';
+import { gateLabel } from './evidence-words';
 
 const NUMBER_WORDS = [
   'zero',
@@ -29,12 +30,14 @@ function inWords(count: number): string {
 }
 
 /** "8 more check tasks passed", "1 fewer check task passed". */
-function gainPhrase(gain: number): string {
+function gainPhrase(gain: number, w: Words): string {
   const count = Math.abs(gain);
-  const noun = `check ${count === 1 ? 'task' : 'tasks'}`;
+  const noun = w.lab
+    ? `held-out ${count === 1 ? 'check' : 'checks'}`
+    : `check ${count === 1 ? 'task' : 'tasks'}`;
   if (gain > 0) return `${count} more ${noun} passed`;
   if (gain < 0) return `${count} fewer ${noun} passed`;
-  return 'The same number of check tasks passed';
+  return `The same number of ${w.checks} passed`;
 }
 
 /** The rule that protects each task type, as a clause: "no task type lost more than one". */
@@ -95,18 +98,19 @@ export function decisionSentence(
   round: Round,
   lineage: LineageEntry | undefined,
   job: Job,
+  w: Words = WORDS.personal,
 ): string | null {
   const { devBefore: before, devAfter: after, decision, firstMeasurement } = round;
   if (!before || !after || !decision) return null;
   if (firstMeasurement) {
-    return measuredTwice(firstMeasurement, { before, after, decision }, lineage, job);
+    return measuredTwice(firstMeasurement, { before, after, decision }, lineage, job, w);
   }
   const repeats = job.evaluation.devRepeats;
   const margin = job.evaluation.minDevGain * repeats;
   const allowed = job.evaluation.maxTypeRegression * repeats;
   const gain = after.pass - before.pass;
   const runs = repeats > 1 ? `, adding up ${repeats} runs` : '';
-  const measured = `${gainPhrase(gain)} (${before.pass} → ${after.pass} of ${after.total}${runs})`;
+  const measured = `${gainPhrase(gain, w)} (${before.pass} → ${after.pass} of ${after.total}${runs})`;
   const worst = worstLoss(lineage, job);
 
   if (decision === 'kept') {
@@ -134,13 +138,14 @@ function measuredTwice(
   both: { before: Score; after: Score; decision: NonNullable<Round['decision']> },
   lineage: LineageEntry | undefined,
   job: Job,
+  w: Words,
 ): string {
   const runs = 2 * job.evaluation.devRepeats;
   const margin = job.evaluation.minDevGain * runs;
   const allowed = job.evaluation.maxTypeRegression * runs;
   const firstGain = first.devAfter.pass - first.devBefore.pass;
   const gain = both.after.pass - both.before.pass;
-  const opening = `${gainPhrase(firstGain)} (${first.devBefore.pass} → ${first.devAfter.pass} of ${first.devAfter.total})`;
+  const opening = `${gainPhrase(firstGain, w)} (${first.devBefore.pass} → ${first.devAfter.pass} of ${first.devAfter.total})`;
   const again =
     `Measured again to rule out luck: ${changePhrase(gain)} over both ` +
     `(${both.before.pass} → ${both.after.pass} of ${both.after.total})`;
@@ -167,10 +172,14 @@ function measuredTwice(
  * choice. It looks at the job and the kind, not at the engine's sentence, and the person's choice
  * is the reason whatever else would have refused it.
  */
-export function refusalSentence(intervention: Intervention | undefined, job: Job): string | null {
+export function refusalSentence(
+  intervention: Intervention | undefined,
+  job: Job,
+  w: Words = WORDS.personal,
+): string | null {
   if (intervention === undefined || mayIntervene(job, intervention.type)) return null;
   const { mentor, student } = modelNames(job);
-  const kind = kindLabel(intervention.type, student);
+  const kind = kindLabel(intervention.type, student, w.lab);
   return `${mentor} chose "${kind}", which is turned off for this job under Teaching in Advanced settings. Nothing changed.`;
 }
 
@@ -179,19 +188,23 @@ export function refusalSentence(intervention: Intervention | undefined, job: Job
  * type lost more check tasks than the job allows, or fewer passed in all. Null when the
  * experiment has no measurement to say it from.
  */
-export function harmSentence(experiment: Experiment, job: Job): string | null {
+export function harmSentence(
+  experiment: Experiment,
+  job: Job,
+  w: Words = WORDS.personal,
+): string | null {
   const { devBefore: before, devAfter: after } = experiment;
   if (!before || !after) return null;
   // Each dev seed is one run over the check tasks; the limit counts per run.
   const runs = Math.max(1, experiment.seeds.dev.length);
   const allowed = job.evaluation.maxTypeRegression * runs;
-  const measured = `${gainPhrase(after.pass - before.pass)} (${before.pass} → ${after.pass} of ${after.total})`;
+  const measured = `${gainPhrase(after.pass - before.pass, w)} (${before.pass} → ${after.pass} of ${after.total})`;
   const worst = worstOf(experiment.regressions, job);
   if (worst.lost > allowed) {
     const rule = capitalized(lossRule(allowed, 'may lose'));
     return `${measured}, and ${lossPhrase(worst)}. ${rule}.`;
   }
-  return `${measured}. A change that loses check tasks is rejected.`;
+  return `${measured}. A change that loses ${w.checks} is rejected.`;
 }
 
 /**
@@ -199,7 +212,11 @@ export function harmSentence(experiment: Experiment, job: Job): string | null {
  * change that made things worse harmed, or the rule it broke. The other outcomes say all of it in
  * their own words, so they add nothing.
  */
-export function outcomeNote(experiment: Experiment, job: Job): string | null {
+export function outcomeNote(
+  experiment: Experiment,
+  job: Job,
+  w: Words = WORDS.personal,
+): string | null {
   switch (experiment.disposition) {
     case 'kept':
     case 'reverted':
@@ -208,7 +225,7 @@ export function outcomeNote(experiment: Experiment, job: Job): string | null {
       return null;
     case 'rejected': {
       const failed = experiment.gates.find((gate) => !gate.passed);
-      if (failed) return `Failed the ${GATES[failed.gate].toLowerCase()} check`;
+      if (failed) return `Failed the ${gateLabel(failed.gate, w).toLowerCase()} check`;
       const runs = Math.max(1, experiment.seeds.dev.length);
       const worst = worstOf(experiment.regressions, job);
       // Short enough for a list's line, beside the round's own before and after.
@@ -216,7 +233,8 @@ export function outcomeNote(experiment: Experiment, job: Job): string | null {
         return `${worst.label} ${worst.before} → ${worst.after}`;
       }
       const { devBefore: before, devAfter: after } = experiment;
-      if (before && after && after.pass < before.pass) return gainPhrase(after.pass - before.pass);
+      if (before && after && after.pass < before.pass)
+        return gainPhrase(after.pass - before.pass, w);
       return null;
     }
   }

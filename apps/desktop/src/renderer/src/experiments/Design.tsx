@@ -47,6 +47,7 @@ import { ARM_ICONS, ArmTile } from './icons';
 import {
   armDescriptions,
   armNames,
+  shortArmNames,
   ARMS,
   DEFAULT_NAMES,
   experimentNames,
@@ -710,7 +711,7 @@ function Settings({
     return shown.map((arm) => (
       <NumberRow
         key={`${kind}-${arm}`}
-        label={armNames(names)[arm]}
+        label={shortArmNames(names)[arm]}
         value={input.arms.find((item) => item.arm === arm)?.[kind]}
         optional
         placeholder="Default"

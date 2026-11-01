@@ -4,13 +4,13 @@ import {
   type InterventionType,
   type Job,
 } from '@architect/shared';
-import { Button, ToggleRow } from '@architect/ui';
+import { Button, ToggleRow, WORDS } from '@architect/ui';
 import { useEdition } from '../../shell/edition';
 import { modelNames, kindLabel } from '../names';
 import { Issue } from './fields';
 import {
-  BLOCK_NOTES,
-  BLOCK_REASONS,
+  blockNote,
+  blockReason,
   isLastChange,
   keyHint,
   weightsBlock,
@@ -56,9 +56,13 @@ export function rowNote(
   if (last) {
     const stays = `Stays on: ${teacher} needs at least one way to change ${student}.`;
     const weights = lab ? 'Fine-tuning a LoRA adapter' : `Retraining ${student} itself`;
-    return blocked ? `${stays} ${weights} ${BLOCK_REASONS[block]}.${keyHint(block)}` : stays;
+    return blocked
+      ? `${stays} ${weights} ${blockReason(block, lab ? WORDS.lab : WORDS.personal)}.${keyHint(block)}`
+      : stays;
   }
-  return blocked ? BLOCK_NOTES[block] : explanation(type, teacher, lab);
+  return blocked
+    ? blockNote(block, lab ? WORDS.lab : WORDS.personal)
+    : explanation(type, teacher, lab);
 }
 
 /** What each kind of change is made of, at the right of its switch. */

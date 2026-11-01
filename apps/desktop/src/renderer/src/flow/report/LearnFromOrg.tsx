@@ -7,6 +7,7 @@ import { useQuery } from '../../api/query';
 import { bestCandidate, readField } from '../../fields/model';
 import { newerVersion, TeachOnDialog } from '../../fields/TeachOn';
 import { shortModelName } from '../../lib/names';
+import { useWords } from '../../shell/edition';
 import { Section } from '../ledger';
 import { places } from './before-after';
 import type { OrgGrid } from './org-grid';
@@ -38,8 +39,9 @@ function BeforeAfter({
   run: Run | null;
 }) {
   const earlier = useQuery(`field-earlier:${report.jobId}`, () => earlierCard(versionOf));
+  const { checks } = useWords();
   if (earlier.status !== 'success') return null;
-  const rows = places(earlier.data, report, job, run, versionOf.org);
+  const rows = places(earlier.data, report, job, run, versionOf.org, checks);
   const { model } = versionOf;
   const heading = (name: string, on: string | undefined) => (on ? `${name} · ${on}` : name);
   return (

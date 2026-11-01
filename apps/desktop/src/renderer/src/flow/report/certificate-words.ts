@@ -77,10 +77,10 @@ export function noCertificateSentence(
  * certification after the fact, decision 079), or one it never saw, by name, said to be measured
  * before it was taught on once a later version of the field teaches on it (decision 089).
  */
-export function checkPlace(check: CertificateCheck): string {
+export function checkPlace(check: CertificateCheck, FinalTest = 'Final test'): string {
   if (check.seen) {
     return check.orgName === undefined
-      ? 'Final test, organizations it was taught on'
+      ? `${FinalTest}, organizations it was taught on`
       : `New tasks at ${check.orgName}`;
   }
   const place = check.orgName ?? 'An organization it never saw';

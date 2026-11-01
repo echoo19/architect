@@ -226,7 +226,7 @@ test('designs an experiment on a field of the library and shows its estimate bef
     page.getByRole('region', { name: 'Seeds and rounds' }).getByText('Repeat', { exact: true }),
   ).toBeVisible();
   await settings.getByRole('tab', { name: 'Spark' }).click();
-  await settings.getByLabel('Spark-engineered harness').fill('5');
+  await settings.getByLabel('Engineered harness').fill('5');
   await expect
     .poll(() => page.evaluate(() => window.architect.experiments.get('cmp_1')))
     .toMatchObject({

@@ -96,7 +96,7 @@ test('states the certificate, its curve and whether it held where it was not cal
   const checks = section.getByRole('list', { name: 'Where the bound was checked' });
   await expect(checks.getByRole('listitem')).toHaveCount(3);
   await expect(checks.getByRole('listitem').nth(0)).toContainText(
-    'Final test, organizations it was taught on',
+    'Sealed final test, organizations it was taught on',
   );
   await expect(checks.getByRole('listitem').nth(0)).toContainText('Held');
   await expect(checks.getByRole('listitem').nth(1)).toContainText('Harbor Learning');
@@ -187,7 +187,9 @@ test('sets the certificate in the inspector, with what it costs before a run', a
   await expect(group.getByRole('textbox', { name: 'Risk target' })).toHaveValue('10');
   await expect(group.getByRole('textbox', { name: 'Confidence' })).toHaveValue('95');
   await expect(group).toContainText('30 tasks');
-  await expect(group).toContainText(`The final test makes ${5 * (job.splits.test + 30)} tries`);
+  await expect(group).toContainText(
+    `The sealed final test makes ${5 * (job.splits.test + 30)} tries`,
+  );
   await group.getByRole('textbox', { name: 'Attempts per request' }).fill('3');
   await expect
     .poll(async () => {
@@ -195,7 +197,9 @@ test('sets the certificate in the inspector, with what it costs before a run', a
       return (calls.at(-1)?.[0] as Job | undefined)?.evaluation.certify?.k;
     })
     .toBe(3);
-  await expect(group).toContainText(`The final test makes ${3 * (job.splits.test + 30)} tries`);
+  await expect(group).toContainText(
+    `The sealed final test makes ${3 * (job.splits.test + 30)} tries`,
+  );
 });
 
 test('in the personal edition, hands a request it is unsure of to a person, attempts shown', async () => {

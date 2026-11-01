@@ -1,6 +1,7 @@
 import type { Job } from '@architect/shared';
 import { Button, EvidenceMark, Stagger, StaggerItem } from '@architect/ui';
 import { Check, ChevronRight, X } from 'lucide-react';
+import { useWords } from '../../shell/edition';
 import { Appear, useFirstKeys } from '../appear';
 import { taskTitle } from '../format';
 import { ROW_CHEVRON, RowButton, Section } from '../ledger';
@@ -80,9 +81,10 @@ export function AttemptRow({
   mentor: string;
   onOpen: () => void;
 }) {
+  const w = useWords();
   const passed = attempt.check.pass;
   const check = attempt.split === 'dev';
-  const kind = check ? 'Check task' : 'Practice task';
+  const kind = check ? w.CheckTask : 'Practice task';
   // A check task's score is all the mentor ever sees of it.
   const what = `${attempt.round ? `${kind}, round ${attempt.round}` : kind}${check ? `, ${mentor} sees only the score` : ''}`;
   return (

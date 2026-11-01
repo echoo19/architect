@@ -1,5 +1,6 @@
 import { Meter, NumberTicker, type NumberKind } from '@architect/ui';
 import { formatDuration, formatUsd } from '../../lib/format';
+import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
 import { budgetMeters, type LiveRun } from './run-state';
 
@@ -16,6 +17,7 @@ function roundCents(amount: number): number {
  * count shows how near the run is to it.
  */
 export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
+  const w = useWords();
   const { minutes, usd, rounds } = budgetMeters(live);
   // Training stops at the time limit, and the final test still runs: its time counts here too.
   // An improvement takes no final test, so it says only that the limit was reached.
@@ -36,7 +38,7 @@ export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
         max={formatDuration(minutes.max * 60_000)}
         fraction={share(minutes.used, minutes.max)}
         reachedHint={
-          testedPast ? 'Training stopped at the limit, then the final test ran' : undefined
+          testedPast ? `Training stopped at the limit, then the ${w.finalTest} ran` : undefined
         }
       />
       <BudgetMeter

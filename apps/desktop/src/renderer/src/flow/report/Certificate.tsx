@@ -80,7 +80,9 @@ export function Certificate({
                 ) : (
                   <CircleX size={16} strokeWidth={1.8} className="text-danger" aria-hidden />
                 )}
-                <span className="truncate">{checkPlace(check)}</span>
+                <span className="truncate">
+                  {checkPlace(check, lab ? 'Sealed final test' : 'Final test')}
+                </span>
                 <span className="hidden text-small tabular-nums sm:block">
                   {checkCounts(check)}
                 </span>
