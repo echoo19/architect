@@ -50,7 +50,7 @@ Every group has the same files in `job/orgs/<id>/data/`, and `configs.json` wher
 | proposed_runs.csv | proposal_id, sweep_id, the two knobs, seed, proposed_on (writable)    | 9 to 12        |
 | decisions.csv     | decision_id, sweep_id, decided_on, the two knobs, decision (writable) | 3              |
 
-A grid is written `lr=1e-4/2e-4/3e-4/6e-4; warmup=0/500/2000`, with the group's own knob names. Each sweep ran five of its twelve grid points, the baseline among them, with every seed, now and then missing one.
+A grid is written `lr=3.69e-4/7.38e-4/1.23e-3/2.46e-3; warmup=0/500/1000`, with the group's own knob names. Every sweep has learning rates of its own: no two sweeps in the job share one, so a list of one sweep's configs never reads like another's. Each sweep ran five of its twelve grid points, the baseline among them, with every seed, now and then missing one.
 
 **Written another way.** In about a fifth of the rows of `metrics.csv` past the first five, a metric name comes with other capitals, separators or spaces (`VAL_LOSS`, `Eval/Loss`, `train-loss`, ` val_loss`), or a loss in scientific notation (`3.4988e+00`). NaN and infinity come in the tracker's own spellings (`nan`, `NaN`, `-nan`, `inf`, `Infinity`). About one run in eight is listed newest first, as a resumed run's export does. In `runs.csv` or `configs.json` a learning rate is sometimes `3e-4` or `3.0e-04` for 0.0003. Every form reads back to one value: a metric name to exactly one of the group's two metrics with its capitals, separators and spaces set aside, a loss or a learning rate to its number.
 
@@ -79,7 +79,7 @@ Of the 32 comparisons `did_it_help` asks about, 14 helped, 6 hurt and 12 are unc
 
 ## Reference solutions
 
-`src/reference/solver.ts` solves every task with the agent's built-in tools only: it reads policy.md, sends one piece of code to `run` that reads the group's files and applies the policy to the sweep the request names, and appends any rows. It knows nothing about any one group: the metric names and numbers come from policy.md, the knob names, grid, configs and ids from the files. What it knows on its own is how training logs differ: configs in `runs.csv` or `configs.json`, knob names in their usual spellings, metric names matched with capitals, separators and spaces set aside, NaN and infinity in any spelling, a run's evals sorted by step or epoch, and `status` left alone. Every task takes at most three tool calls and 6,365 characters of tool results, the policy included.
+`src/reference/solver.ts` solves every task with the agent's built-in tools only: it reads policy.md, sends one piece of code to `run` that reads the group's files and applies the policy to the sweep the request names, and appends any rows. It knows nothing about any one group: the metric names and numbers come from policy.md, the knob names, grid, configs and ids from the files. What it knows on its own is how training logs differ: configs in `runs.csv` or `configs.json`, knob names in their usual spellings, metric names matched with capitals, separators and spaces set aside, NaN and infinity in any spelling, a run's evals sorted by step or epoch, and `status` left alone. Every task takes at most three tool calls and 6,381 characters of tool results, the policy included.
 
 ## Tests
 
@@ -90,6 +90,7 @@ Of the 32 comparisons `did_it_help` asks about, 14 helped, 6 hurt and 12 are unc
 - In `metrics.csv`, 15 to 25 percent of each group's rows past the first five are written another way, none in the first five and some in every quarter. Every metric name reads back to exactly one metric and every loss to its value; every learning rate, grid and baseline reads back to its number.
 - The checker passes the ground truth and any other round the policy allows. It fails the common mistakes for the right reason: the best config by the other score or the other handling of diverged seeds, a patience off by one, divergence by `status` or by NaN alone, the difference the wrong way round, an unpaired interval, a round over or under the budget, a config already run, already proposed, off the grid or not next to the best, the wrong date or ids, a missing decision row and a write to the other table.
 - The tasks split into the sizes the job asks for, every family in one split.
+- Sealed the way the runner seals it, the vault's leak check finds no final-test task in any other task, in the reference solutions' calls and answers on them, or in an open sweep's configs, grid and early stops listed the way a tool lists them.
 - The reference solutions fit 16 turns and 24,000 characters. Their calls are replayed through the engine's own tools on each group's files, the text they get back is compared, and every task passes the engine's checker.
 
 ## Known gaps

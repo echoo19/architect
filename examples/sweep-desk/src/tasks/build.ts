@@ -125,7 +125,7 @@ export function buildTasks(random: Random, group: Group): Task[] {
         `If our early-stopping rule had been on, at which ${unit} would run ${run.run_id} have stopped, and which eval was its best?`,
         `${person} here. Where would our early-stopping rule have stopped ${run.run_id}? I also need the ${unit} of its best eval.`,
       ])}\nEnd with: ANSWER: {"stop_at": <${unit}>, "best_at": <${unit}>}`,
-      { kind: 'end_state', validator: 'early_stop', params: { ...stop, unit } },
+      { kind: 'end_state', validator: 'early_stop', params: { ...stop } },
       {
         request: { ...request, run_id: run.run_id },
         summary: `stops at ${stop.stop_at} of ${run.evals.at(-1)!.at}`,

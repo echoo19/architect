@@ -39,12 +39,10 @@ validators.early_stop = (params, ctx) => {
   for (const field of ['stop_at', 'best_at']) {
     if (!hasOwn(answer, field)) return fail(`${field} is missing from the ANSWER line.`);
     if (numberOf(answer[field]) !== params[field]) {
-      return fail(
-        `${field} is ${show(answer[field])} but should be ${params[field]} (the ${params.unit}).`,
-      );
+      return fail(`${field} is ${show(answer[field])} but should be ${params[field]}.`);
     }
   }
-  return pass(`The run stops at ${params.unit} ${params.stop_at}, best at ${params.best_at}.`);
+  return pass(`The run stops at ${params.stop_at}, best at ${params.best_at}.`);
 };
 
 // diverged_runs: no table changed, and the ANSWER lists exactly the runs that diverged.
