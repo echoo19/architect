@@ -29,6 +29,18 @@ From the event page and the participants' event guide:
 - Then a score from 0 to 10: impact 30%, use of Meta's AI tools 25%, demo 25% (working, holds up live, the quality of the 3-minute video), technical depth 20%. The indie track is judged on creativity, technical ambition and whether it works. The top 5 of each track go to a live final on Nov 9, on the same rubric.
 - Bonus awards: Best Build on Open Weight Models (Glimmer or Spark Open on your own hardware or partner inference), Best Agentic Use-Case, Most Viral Project (engagement on an X post of the demo through Nov 8, its link submitted on the platform), Community Vote (the public gallery) and Best Creative Build (Muse Image or Muse Wonder, which Architect doesn't use).
 
+## Participant guide, re-read Nov 1
+
+Read in the owner's signed-in browser on Nov 1. What it adds to the notes above:
+
+- Original work is a disqualification rule: "Failure to clearly identify your original contributions will result in immediate disqualification at Judges sole discretion." The submission text below says it in its first lines, and the README's "Built during" section says the same.
+- One project per team, entered by one representative, with every contributor listed on the submission page. The repository must be public and the video link accessible.
+- The video is a "three minute demo video" of the work made during the event; judges use it alongside the code and the live product.
+- The deadline reads Nov 4, 9:00 PM EST in the submission section and 9:00 PM ET in the schedule. Nov 3 is the last full day for questions in Discord's #questions and #office-hours.
+- "Push the Frontier" names scientific experiments and physical systems, which the screening-lab desks also fit; the entry stays on "Build for Your World" unless the owner picks otherwise.
+- Muse Glimmer and Muse Spark Open are the open-weight options; Baseten's event id for Spark Open is `meta-models/muse-spark-open-1026`.
+- The page doesn't define the indie track beyond its prizes.
+
 ## Submission checklist
 
 - [x] Repository public, README complete, licence present
@@ -47,6 +59,8 @@ This is a draft for the owner. It is written platform first: the training system
 **Name:** Architect
 
 **One line:** The training system for your own AI.
+
+**Original work:** all of Architect was built during the event, from an empty repository on October 27, 2026: the desktop app, the engine, the site, the film and every run in the results. The idea came first; no code did. The commit history shows when each part was written.
 
 **Why we made this:** Most teams that build with AI rent it, and every request sends their data to someone else's model. Architect works the other way round: a large model teaches a small one the work and then leaves. What's left runs on the team's own computer and comes with a record of what it can and can't do. We started building on October 27, 2026. Y Combinator's Requests for Startups for Winter 2027 came out after that, and three of them ask for what we were already making: [Own Your Intelligence](https://www.ycombinator.com/rfs#own-your-intelligence) (Jon Xu), [AI for the Air-Gapped Economy](https://www.ycombinator.com/rfs#ai-for-the-air-gapped-economy) (Brad Flora) and [Vertical Foundation Models](https://www.ycombinator.com/rfs#vertical-foundation-models) (Diana Hu). They confirm the idea; they didn't give it to us.
 
