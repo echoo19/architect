@@ -381,6 +381,9 @@ describe('asking and answering', () => {
     expect(recordOf(turn.draft?.id ?? '')['answers']).toEqual([
       { question: 'Should cancelled orders count?', answer },
     ]);
+    // Define shows the answer beside the tasks it shaped.
+    const plan = await world.jobs.taskPlan(turn.draft?.id ?? '');
+    expect(plan.answers).toEqual([{ question: 'Should cancelled orders count?', answer }]);
   });
 
   it('sends the answer to the last question as it was written, before the words that close it', async () => {

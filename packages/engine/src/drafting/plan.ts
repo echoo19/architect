@@ -183,5 +183,8 @@ export function buildTaskPlan({ job, draft, visible, sealed }: PlanInput): TaskP
     types,
     unresolved: draft?.unresolved ?? [],
     notes: draft?.notes ?? [],
+    ...(draft?.answers === undefined
+      ? {}
+      : { answers: draft.answers.map(({ question, answer }) => ({ question, answer })) }),
   };
 }
