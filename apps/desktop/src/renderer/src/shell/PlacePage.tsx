@@ -15,6 +15,8 @@ export interface PlacePageProps {
   crumb?: { label: string; icon?: ReactNode; onClick: () => void };
   /** Beside the title, such as the page's status in a word. */
   status?: ReactNode;
+  /** One quiet line under the title, for the one page that has to say what the app does. */
+  lede?: ReactNode;
   /** A panel at the page's right, full height, such as an inspector. */
   aside?: ReactNode;
   children: ReactNode;
@@ -26,7 +28,16 @@ export interface PlacePageProps {
  * runs the window's full height, its edge unbroken from the top, and its own top strip drags the
  * window too.
  */
-export function PlacePage({ title, back, crumb, action, status, aside, children }: PlacePageProps) {
+export function PlacePage({
+  title,
+  back,
+  crumb,
+  action,
+  status,
+  lede,
+  aside,
+  children,
+}: PlacePageProps) {
   return (
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -58,6 +69,7 @@ export function PlacePage({ title, back, crumb, action, status, aside, children 
               </div>
               {action}
             </div>
+            {lede && <p className="-mt-5 mb-0 max-w-[760px] text-body text-pretty">{lede}</p>}
             {children}
           </div>
         </div>

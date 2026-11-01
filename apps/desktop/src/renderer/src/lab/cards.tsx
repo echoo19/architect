@@ -10,17 +10,20 @@ import {
   type Team,
 } from '@architect/shared';
 import {
-  AgentAvatar,
+  Button,
   CapMeter,
   Card,
   CardRow,
+  defineTerm,
   IconButton,
+  InfoTip,
   Meter,
   NumberTicker,
   RowIcon,
   Skeleton,
   Spinner,
   Tooltip,
+  type LabTerm,
 } from '@architect/ui';
 import {
   ChevronRight,
@@ -34,7 +37,6 @@ import {
   Plus,
   ShieldCheck,
   ArrowBigUpDash,
-  Users,
 } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
@@ -42,19 +44,20 @@ import { fetchQuery, useQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
 import { minutesText, STATUS_WORDS as EXPERIMENT_WORDS } from '../experiments/model';
-import { membersOf } from '../models/team-form';
 import { newField } from '../fields/new-field';
 import { orgCountText } from '../fields/parts';
 import { Counted } from '../flow/counted';
 import { formatCost, shortDate } from '../flow/format';
-import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
+import {
+  certificateFigure,
+  certificateHint,
+  riskCertificateFigures,
+} from '../flow/report/certificate-words';
 import { formatPercent, percentOf } from '../lib/format';
-import { activeVersionName, agentModelName, mentorName, studentName } from '../lib/names';
+import { mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
-import { namesInSentence } from '../workspace/labels';
 import { useAgentChats, useTeamChats } from '../workspace/store';
-import { openAgent, openTeam } from './open-agent';
 import { EmptyRow } from '../fields/parts';
 import {
   approvalNeeds,
@@ -477,6 +480,124 @@ function Certified({ certificate }: { certificate: ReportCard['certificate'] }) 
   );
 }
 
+interface HeroFigure {
+  label: string;
+  term: LabTerm;
+  value: string;
+  /** What the figure rests on: "55 of 66", "95% confidence". */
+  note: string;
+}
+
+/**
+ * The figures that make the claim, in the order it is made: organizations it never saw, the real
+ * one among them, and the risk bound; a job of one organization has its sealed final test instead.
+ */
+function heroFigures(card: ReportCard): HeroFigure[] {
+  const scores = card.test.perOrg?.length ? orgScores(card.test.perOrg) : null;
+  const scored = (label: string, term: LabTerm, score: Score): HeroFigure => ({
+    label,
+    term,
+    value: formatPercent(score),
+    note: `${score.pass} of ${score.total}`,
+  });
+  const figures: HeroFigure[] = [];
+  if (scores?.unseen) figures.push(scored('Never seen', 'neverSeen', scores.unseen));
+  if (scores?.real) figures.push(scored('Real', 'realOrganization', scores.real));
+  if (figures.length === 0)
+    figures.push(scored('Sealed final test', 'sealedFinalTest', card.test.score));
+  const bound = certificateFigure(card.certificate);
+  if (card.certificate?.issued === true && bound !== null) {
+    const [, confidence] = riskCertificateFigures(card.certificate);
+    figures.push({
+      label: 'Risk bound',
+      term: 'riskBound',
+      value: bound,
+      note: `${confidence?.value ?? ''} confidence`,
+    });
+  }
+  return figures;
+}
+
+/**
+ * The newest finished result, leading the Lab: how the specialist did on organizations it never
+ * saw, the real one among them and its risk bound, each term explained behind its info icon, with
+ * the organizations it was taught on beside them.
+ */
+export function HeroResultCard({ row, mentor }: { row: RunRow; mentor?: string | undefined }) {
+  const report = useReport(row.runId);
+  const card = report.data;
+  const taught = card?.test.perOrg?.length ? orgScores(card.test.perOrg).seen : null;
+  return (
+    <Card
+      title={card ? `${row.jobName}, ${shortDate(card.createdAt) ?? 'finished'}` : row.jobName}
+      icon={<CircleCheck strokeWidth={1.8} aria-hidden />}
+      action={
+        <Button variant="ghost" size="sm" onClick={() => navigate(paths.report(row.runId))}>
+          Open report
+          {chevron}
+        </Button>
+      }
+    >
+      {card ? (
+        <div className="flex flex-wrap items-end gap-x-14 gap-y-6 pt-2">
+          {heroFigures(card).map((figure) => (
+            <HeroNumber key={figure.label} figure={figure} mentor={mentor} />
+          ))}
+          {taught && (
+            <span className="ml-auto self-end">
+              <HeroNumber
+                figure={{
+                  label: 'Taught on',
+                  term: 'taughtOn',
+                  value: formatPercent(taught),
+                  note: `${taught.pass} of ${taught.total}`,
+                }}
+                mentor={mentor}
+                quiet
+              />
+            </span>
+          )}
+        </div>
+      ) : report.status === 'error' ? (
+        <ProblemState
+          layout="inline"
+          error={report.error}
+          title="Couldn't read this report"
+          onRetry={report.reload}
+        />
+      ) : (
+        <Skeleton className="h-24 w-full" />
+      )}
+    </Card>
+  );
+}
+
+function HeroNumber({
+  figure,
+  mentor,
+  quiet = false,
+}: {
+  figure: HeroFigure;
+  mentor: string | undefined;
+  /** The figure beside the claim, a step smaller. */
+  quiet?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span
+        className={`font-display font-semibold tabular-nums ${quiet ? 'text-h1' : 'text-title'}`}
+      >
+        {figure.value}
+      </span>
+      <span className="flex items-center gap-1 font-medium">
+        {figure.label}
+        <InfoTip about={figure.label}>{defineTerm(figure.term, mentor)}</InfoTip>
+      </span>
+      <span className="text-small tabular-nums">{figure.note}</span>
+    </div>
+  );
+}
+
 function FinishedRow({ row }: { row: RunRow }) {
   const report = useReport(row.runId);
   const card = report.data;
@@ -500,26 +621,22 @@ function FinishedRow({ row }: { row: RunRow }) {
             <span className="flex gap-5">
               {scores ? (
                 <>
-                  <Figure
-                    label="Taught on"
-                    score={scores.seen}
-                    hint="Organizations it was taught on"
-                  />
-                  <Figure
-                    label="Never seen"
-                    score={scores.unseen}
-                    hint="Generated organizations it never saw"
-                  />
+                  <Figure label="Taught on" score={scores.seen} hint={defineTerm('taughtOn')} />
+                  <Figure label="Never seen" score={scores.unseen} hint={defineTerm('neverSeen')} />
                   {hasReal && (
                     <Figure
                       label="Real"
                       score={scores.real}
-                      hint="Real organizations it never saw"
+                      hint={defineTerm('realOrganization')}
                     />
                   )}
                 </>
               ) : (
-                <Figure label="Passed" score={card.test.score} hint="Sealed final test" />
+                <Figure
+                  label="Passed"
+                  score={card.test.score}
+                  hint={defineTerm('sealedFinalTest')}
+                />
               )}
               <Certified certificate={card.certificate} />
             </span>
@@ -686,77 +803,5 @@ export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
         <EmptyRow title="No fields yet" className="group-has-[li:not([aria-busy])]:hidden" />
       </div>
     </Card>
-  );
-}
-
-const STATUS_WORDS: Partial<Record<GraduateSummary['status'], string>> = {
-  needs_attention: 'Needs a look',
-  blocked: 'Blocked',
-};
-
-export function AgentsCard({
-  graduates,
-  teams,
-}: {
-  graduates: readonly GraduateSummary[];
-  teams: readonly Team[];
-}) {
-  return (
-    <Card title="Agents" flush>
-      {graduates.length === 0 ? (
-        <EmptyRow title="No agents yet" />
-      ) : (
-        <ul className="m-0 flex list-none flex-col p-0">
-          {graduates.map((graduate) => {
-            const status = STATUS_WORDS[graduate.status];
-            return (
-              <li key={graduate.id}>
-                <CardRow
-                  icon={<AgentAvatar name={graduate.name} />}
-                  title={graduate.name}
-                  detail={`${activeVersionName(graduate)}, ${agentModelName(graduate.manifest.student)}`}
-                  end={
-                    status ? (
-                      <span className={graduate.status === 'blocked' ? 'text-danger' : ''}>
-                        {status}
-                      </span>
-                    ) : (
-                      chevron
-                    )
-                  }
-                  label={`Open ${graduate.name}`}
-                  onClick={() => openAgent(graduate)}
-                />
-              </li>
-            );
-          })}
-          {teams.map((team) => (
-            <li key={team.id}>
-              <TeamRow team={team} graduates={graduates} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
-/** A team among the agents: its name and whom its lead asks; it opens at its last chat. */
-function TeamRow({ team, graduates }: { team: Team; graduates: readonly GraduateSummary[] }) {
-  const { lead, teammates } = membersOf(team, graduates);
-  const asked = namesInSentence(teammates.map((teammate) => teammate.name));
-  return (
-    <CardRow
-      icon={
-        <RowIcon>
-          <Users strokeWidth={1.8} aria-hidden />
-        </RowIcon>
-      }
-      title={team.name}
-      detail={lead ? `${lead.name} asks ${asked}` : asked}
-      end={chevron}
-      label={`Open ${team.name}`}
-      onClick={() => openTeam(team)}
-    />
   );
 }

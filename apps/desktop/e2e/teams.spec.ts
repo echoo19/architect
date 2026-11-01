@@ -119,16 +119,13 @@ test('a team is made in Models, from a lead and a teammate', async () => {
   await expect(sidebar().getByRole('group', { name: 'Teams' })).toContainText(TEAM.name);
   await capture('models-teams-dark.png');
 
-  // The Lab names the team among the agents, and its chat that waits for an approval.
+  // The Lab names the team's chat that waits for an approval.
   await goTo(page, '/');
   await expect(
     page
       .getByRole('region', { name: 'Needs you' })
       .getByRole('button', { name: new RegExp(`${TEAM_CHAT.title}.*${TEAM.name}.*Approve$`) }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('region', { name: 'Agents' }).getByRole('button', { name: `Open ${TEAM.name}` }),
-  ).toContainText(`${lead.name} asks ${teammate.name}`);
 });
 
 test('in the team’s chat the lead asks its teammate, whose own work opens under it', async () => {

@@ -163,9 +163,10 @@ test('shows a recent graduate’s certificate in the Lab', async () => {
     run_clinic: storyReport,
   });
   await reloadAt('/');
-  const finished = page.getByRole('region', { name: 'Recently finished' });
-  await expect(finished).toContainText('Risk bound');
-  await expect(finished).toContainText('≤ 8%');
+  // The newest result leads the Lab, its risk bound beside its scores.
+  const hero = page.getByRole('region', { name: /^Academy desk, / });
+  await expect(hero).toContainText('Risk bound');
+  await expect(hero).toContainText('≤ 8%');
 });
 
 test('sets the certificate in the inspector, with what it costs before a run', async () => {

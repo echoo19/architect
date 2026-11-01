@@ -175,9 +175,12 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   a figure, a status word or a chevron at the right. A grid holds one column on a narrow
   window and two or three on a wide one; rows of cards on one page share their columns so their
   edges line up. The cards rise in one after another on first mount.
-- **The Lab** has one focal point: Needs you and Running side by side at the top of two columns,
-  each column a stack of cards at its own height, so a short card never stretches into an empty
-  one. Needs you groups what waits by kind (questions, results, approvals, lessons, versions). What
+- **The Lab** says what Architect does in one quiet line under its title, naming Spark and
+  Glimmer by role, then leads with the newest result: its never-seen and real scores and its risk
+  bound, each term explained behind an info icon, with its taught-on score a step smaller beside
+  them. Under it, Needs you and Running sit side by side at the top of two columns, each column a
+  stack of cards at its own height, so a short card never stretches into an empty one. The agents
+  are in the sidebar and aren't listed again. Needs you groups what waits by kind (questions, results, approvals, lessons, versions). What
   a card lacks is said in a few words on a quiet line ("Nothing is running"), never with a
   placeholder illustration.
 - **One word per concept.** Organizations are "Taught on" or "Never seen" ("sealed" only where a
