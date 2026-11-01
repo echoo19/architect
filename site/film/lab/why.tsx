@@ -1,14 +1,15 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { FieldAssetsPage, LabHome } from './pages-lab';
-import { ROW, SIDEBAR, Sidebar, WINDOW } from './shell';
-import { AppWindow, camera, content, FLOW, type Framing, type Measured } from './film';
+import { WHY, WHY_AT, WHY_END } from './cues';
+import { AppWindow, camera, type Framing, type Measured } from './film';
+import { WINDOW } from './shell';
 import { clamp, inOutCubic, mix, outExpo, outQuart, span } from './time';
 
 /**
  * Why we made Architect, between the opening and the walkthrough. Our reason first, in two lines;
- * then the three requests Y Combinator published after we had started, each in its own words and
- * each answered by the part of Architect that does it. The scene leaves the Lab's window at one
- * moment of the walkthrough and returns to it at the same moment, so the cut around it is seamless.
+ * then the three requests Y Combinator published after we had started, each in its own words, one
+ * after another, while the narration says what each asks for. The scene leaves the Lab's window at
+ * one moment of the walkthrough and comes back to it at the same moment, so the cut on each side
+ * is seamless.
  */
 
 /** The walkthrough's moment the scene leaves and returns to, in authored seconds. */
@@ -17,7 +18,7 @@ export const WHY_FROM = 13.6;
 const FRAME = { width: 1920, height: 1080 } as const;
 
 /** The scene's length, in seconds: it ends on the Lab's window, as the walkthrough has it. */
-export const WHY_LENGTH = 23.4;
+const WHY_LENGTH = WHY_END - WHY_AT;
 
 /** One block of type on the ground: when it comes in and when it goes. */
 interface Card {
@@ -25,16 +26,10 @@ interface Card {
   until: number;
 }
 
-const REASON: Card = { at: 0.45, until: 2.7 };
-const ANSWER: Card = { at: 3.05, until: 5.6 };
-const ASKED: Card = { at: 5.95, until: 7.6 };
-
-interface Request extends Card {
+interface Request {
   title: string;
   author: string;
   quote: string;
-  /** The part of Architect that answers it: when it is on screen. */
-  cut: Card;
 }
 
 const REQUESTS: readonly Request[] = [
@@ -43,33 +38,18 @@ const REQUESTS: readonly Request[] = [
     author: 'Jon Xu',
     quote:
       'Someone has to turn workflows into evals, expertise into training data, production failures into improvements, and carry all of it forward with each new base model.',
-    at: 7.95,
-    until: 11.85,
-    cut: { at: 12.15, until: 13.8 },
   },
   {
     title: 'AI for the Air-Gapped Economy',
     author: 'Brad Flora',
     quote: "The most valuable data in the world isn't in the cloud.",
-    at: 14.1,
-    until: 16.1,
-    cut: { at: 16.4, until: 18.05 },
   },
   {
     title: 'Vertical Foundation Models',
     author: 'Diana Hu',
     quote: 'The hard part is getting high-quality, vertical-specific, verifiable rewards.',
-    at: 18.35,
-    until: 20.95,
-    cut: { at: 21.25, until: WHY_LENGTH },
   },
 ];
-
-/** The two parts of the walkthrough the first two requests cut to, in authored seconds. */
-const TRAIN_FROM = 69.0;
-const OFFLINE_FROM = 128.0;
-/** The Lab's page at the moment the scene returns to it, in seconds from its start. */
-const LAB_AT = WHY_FROM - 12.0;
 
 /**
  * Words that rise into place behind a mask and leave upward, as the opening's line does. Each
@@ -150,28 +130,28 @@ function Statement({
 }
 
 /** One request: its title, who wrote it, and its words. */
-function RequestCard({ t, request }: { t: number; request: Request }) {
-  if (!shown(t, request)) return null;
+function RequestCard({ t, request, card }: { t: number; request: Request; card: Card }) {
+  if (!shown(t, card)) return null;
   return (
     <Block>
       <span className="flex flex-col gap-3">
         <Words
           t={t}
           text={request.title}
-          card={request}
+          card={card}
           className="font-display text-[76px] font-semibold leading-[1.05] tracking-[-0.03em]"
         />
         <Words
           t={t}
           text={request.author}
-          card={{ at: request.at + 0.2, until: request.until }}
+          card={{ at: card.at + 0.2, until: card.until }}
           className="text-[36px] font-medium"
         />
       </span>
       <Words
         t={t}
         text={`“${request.quote}”`}
-        card={{ at: request.at + 0.4, until: request.until }}
+        card={{ at: card.at + 0.4, until: card.until }}
         stagger={0.022}
         className="mt-4 max-w-[1500px] text-[46px] leading-[1.32]"
       />
@@ -209,145 +189,44 @@ export function World({
   );
 }
 
-/** A framing pushed in a little over a cut, so a held view still moves. */
-const push = (view: Framing, p: number, by = 0.035): Framing => ({
-  ...view,
-  s: view.s * (1 + by * p),
-});
-
-/** How far a cut is in, from 0 to 1, and back out. */
-function cutIn(t: number, cut: Card): number {
-  return Math.min(outQuart(span(t, cut.at, 0.45)), 1 - outQuart(span(t, cut.until, 0.3)));
-}
-
-/**
- * The Lab's window on the academy field's Assets tab, with Fields chosen in the sidebar. As the
- * scene ends the window goes back to the Lab as the app does: the selection slides up, the page
- * goes and the Lab's page rises in, as the walkthrough left it.
- */
-function AssetsWindow({ lt, back }: { lt: number; back: number }) {
-  const going = outQuart(span(back, 0, 0.3));
-  const coming = outQuart(span(back, 0.1, 0.5));
-  return (
-    <div
-      className="absolute overflow-hidden rounded-[14px] bg-ground"
-      style={{
-        width: WINDOW.width,
-        height: WINDOW.height,
-        boxShadow: 'inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 30px 80px rgb(0 0 0 / 0.5)',
-      }}
-    >
-      {going < 1 && (
-        <div
-          className="absolute overflow-hidden"
-          style={{ left: SIDEBAR, top: 0, right: 0, bottom: 0, opacity: 1 - going }}
-        >
-          <FieldAssetsPage lt={lt} />
-        </div>
-      )}
-      {coming > 0 && (
-        <div
-          className="absolute overflow-hidden"
-          style={{
-            left: SIDEBAR,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            opacity: coming,
-            transform: `translateY(${(1 - coming) * 10}px)`,
-          }}
-        >
-          <LabHome lt={LAB_AT} />
-        </div>
-      )}
-      <Sidebar
-        state={{
-          fillTop: mix(ROW.place(1), ROW.place(0), outQuart(span(back, 0, 0.32))),
-          fillHeight: ROW.height,
-          fill: 1,
-          chat: 0,
-          agents: 1,
-          rest: 1,
-        }}
-      />
-    </div>
-  );
-}
-
 export function WhyScene({ t, measured }: { t: number; measured: Measured }) {
   const lab = camera(measured, WHY_FROM);
-  // The Lab's window steps back and goes as the first line comes in.
+  // The Lab's window steps back and goes as the first line comes in, and comes back the same way
+  // as the last request leaves, to the framing the walkthrough left it in.
   const leave = inOutCubic(span(t, 0, 0.7));
-  const [first, second, third] = REQUESTS as [Request, Request, Request];
-
-  const train = push(FLOW, span(t, first.cut.at, 1.8));
-  const offline = push({ cx: 700, cy: 190, s: 2.1 }, span(t, second.cut.at, 1.8));
-  const assets = push(content(108, 2.08), span(t, third.cut.at, 1.2), 0.02);
-  // The last cut pulls back to the Lab as the walkthrough left it, and the page turns to it.
-  const returning = WHY_LENGTH - 1.0;
-  const back = inOutCubic(span(t, returning, 0.95));
-  const assetsView: Framing = {
-    cx: mix(assets.cx, lab.cx, back),
-    cy: mix(assets.cy, lab.cy, back),
-    s: Math.exp(mix(Math.log(assets.s), Math.log(lab.s), back)),
-  };
-  const arrive = outQuart(span(t, third.cut.at, 0.45));
-
+  const back = inOutCubic(span(t, WHY_LENGTH - 1.1, 1.0));
+  const away = leave - back;
   return (
     <>
-      {leave < 1 && (
+      {away < 1 && (
         <World
-          view={{ ...lab, s: lab.s * mix(1, 0.9, leave) }}
-          style={{ opacity: 1 - outQuart(clamp(leave * 1.25)) }}
+          view={{ ...lab, s: lab.s * mix(1, 0.9, away) }}
+          style={{ opacity: 1 - outQuart(clamp(away * 1.25)) }}
         >
           <AppWindow t={WHY_FROM} />
         </World>
       )}
       <Statement
         t={t}
-        card={REASON}
+        card={WHY.reason}
         line="Teams that build with AI rent it."
         under="Their data goes to someone else's model with every request."
       />
       <Statement
         t={t}
-        card={ANSWER}
+        card={WHY.answer}
         line="Architect has a large model teach a small one the work, then leave."
         under="What's left runs on the team's own computer, with a record of what it can and can't do."
       />
       <Statement
         t={t}
-        card={ASKED}
+        card={WHY.asked}
         line="After we started building, Y Combinator asked for the same thing three times."
         under="Requests for Startups, Winter 2027"
       />
-      {REQUESTS.map((request) => (
-        <RequestCard key={request.title} t={t} request={request} />
+      {REQUESTS.map((request, index) => (
+        <RequestCard key={request.title} t={t} request={request} card={WHY.requests[index]!} />
       ))}
-      {cutIn(t, first.cut) > 0 && (
-        <World
-          view={{ ...train, s: train.s * mix(0.94, 1, cutIn(t, first.cut)) }}
-          style={{ opacity: cutIn(t, first.cut) }}
-        >
-          <AppWindow t={TRAIN_FROM + (t - first.cut.at)} />
-        </World>
-      )}
-      {cutIn(t, second.cut) > 0 && (
-        <World
-          view={{ ...offline, s: offline.s * mix(0.94, 1, cutIn(t, second.cut)) }}
-          style={{ opacity: cutIn(t, second.cut) }}
-        >
-          <AppWindow t={OFFLINE_FROM + (t - second.cut.at)} />
-        </World>
-      )}
-      {arrive > 0 && (
-        <World
-          view={{ ...assetsView, s: assetsView.s * mix(0.94, 1, arrive) }}
-          style={{ opacity: arrive }}
-        >
-          <AssetsWindow lt={t - third.cut.at} back={t - returning} />
-        </World>
-      )}
     </>
   );
 }

@@ -1,28 +1,15 @@
-import {
-  Badge,
-  Button,
-  Card,
-  CardRow,
-  EmptyState,
-  InfoTip,
-  Meter,
-  RowIcon,
-  Spinner,
-} from '@architect/ui';
+import { Badge, Button, Card, CardRow, EmptyState, Meter, RowIcon, Spinner } from '@architect/ui';
 import {
   Building2,
   ChevronRight,
   CircleCheck,
   FileText,
   FlaskConical,
-  FolderOutput,
-  Gauge,
   GraduationCap,
   LayoutGrid,
   ListChecks,
   Lock,
   MessageCircleQuestion,
-  MessagesSquare,
   Package,
   Boxes,
   ShieldCheck,
@@ -448,85 +435,6 @@ export function FieldPage({ lt }: { lt: number }) {
             </Card>
           </div>
         </div>
-      </div>
-    </PlacePage>
-  );
-}
-
-/**
- * The same field on its Assets tab: what an export holds (apps/desktop fields/Assets.tsx). The
- * counts are the academy field's first run (academy-desk-1.md): 48 train tasks at the three
- * academies it is taught on, and a final test of 120 tasks with the two it never sees. Its
- * demonstrations were not counted, so that figure is a dash. No model has been trained on them
- * here, which the Experimental badge's tip says.
- */
-export function FieldAssetsPage({ lt }: { lt: number }) {
-  const rows = [
-    {
-      Icon: MessagesSquare,
-      title: 'Verified demonstrations',
-      detail: 'From train tasks only',
-      figure: '-',
-    },
-    {
-      Icon: Gauge,
-      title: 'Outcome scorer',
-      detail: 'Train tasks at 3 organizations, with the checker and a Python client',
-      figure: String(count(lt, 0.35, 0.7, 0, 48)),
-    },
-    {
-      Icon: Lock,
-      title: 'Never-seen evaluation',
-      detail: 'Final-test tasks and 2 never-seen organizations, by hash only',
-      figure: String(count(lt, 0.45, 0.7, 0, 120)),
-    },
-  ] as const;
-  return (
-    <PlacePage
-      title={ACADEMY}
-      action={
-        <Button size="sm" variant="primary">
-          <FlaskConical size={16} strokeWidth={1.8} aria-hidden />
-          New experiment
-        </Button>
-      }
-    >
-      <FieldTabs open="Assets" />
-      <div style={rise(lt, 0.1, 6)}>
-        <Card
-          title="Verified training examples"
-          flush
-          action={
-            <span className="flex items-center gap-2">
-              <span className="flex items-center gap-0.5">
-                <Badge tone="emphasis">Experimental</Badge>
-                <InfoTip about="Experimental">
-                  No model has been trained on them here: GPU execution, large models and training
-                  gains are unverified.
-                </InfoTip>
-              </span>
-              <Button size="sm">
-                <FolderOutput size={15} strokeWidth={1.8} aria-hidden />
-                Export
-              </Button>
-            </span>
-          }
-        >
-          {rows.map(({ Icon, title, detail, figure }, index) => (
-            <div key={title} style={rise(lt, 0.3 + index * 0.08, 6)}>
-              <CardRow
-                icon={
-                  <RowIcon>
-                    <Icon strokeWidth={1.8} aria-hidden />
-                  </RowIcon>
-                }
-                title={title}
-                detail={detail}
-                end={<span className="font-display text-h2 font-semibold">{figure}</span>}
-              />
-            </div>
-          ))}
-        </Card>
       </div>
     </PlacePage>
   );

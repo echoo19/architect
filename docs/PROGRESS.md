@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat), `film/cohesive` (from `field/main` 5b64dc1c): the Lab film retimed to one take of its narration
+
+- *Done:* the Lab walkthrough film (`site/film/lab`) now follows its narration, recorded as one take (`architect-runs/film/launch/audio/final2`). `cues.ts`, written from the take's word times, pairs moments of the walkthrough and of the team scene with when they are played, and `smoothMap` (`time.ts`) moves between them without a jump in speed; it replaces the old stretch table. Each scene starts as its narration does, and each beat lands on the word that names it. The why scene shows only our two lines, the YC line and the three requests, with no cuts to the app, and goes back to the Lab's window as it left it. The terminal (`architect serve`) and the Assets page left the film with their lines; the team scene leaves the chat as the write is saved. The film is 2:37.8: `architect-runs/film/launch/renders/lab-walkthrough-final-2.mp4`, with its voice and score; `SCRIPT-lab.md` and `BRIEF.md` there have the script, the timing and the sound.
+- *Next:* the owner's review of final 2. Not merged or pushed. Open: the score has no pull-back under Offline or lift for the team (neither generation followed those sections of its plan).
+
 ## 2026-10-31 (Sat, night): the declutter merged across the app, the site and the film
 
 - *Done:* `declutter/app-1` (shared `InfoTip`, facts-only row meta, drawer subtitles and field hints; chat approvals, Define, Lab Needs you, certificate, report, Compute, Fields), `declutter/app-2` (evidence drawers, models table, version rows, paused and idle runs, team dialog, onboarding, the sidebar's approval icon), `declutter/site` (no line under the film, one meta row on Download, a shorter abstract and headline strip, the returns desk study under one part heading) and `declutter/film` (silent draft 4: the library's cards and rows, no loose lines, the counterexample shows only its true 4 rows) are on `field/main`. They follow the owner's "less confusing and cluttered with floating text": every line of text sits in a component, explanations behind an info icon, each state said once.

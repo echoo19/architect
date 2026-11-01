@@ -3,7 +3,7 @@ import { ACADEMY, SPECIALISTS } from './data';
 import { CounterexampleDrawer, DefinePage, TrainPage } from './pages-flow';
 import { FieldPage, Fields, LabHome } from './pages-lab';
 import { ComputePage, ExperimentPage, ModelsPage } from './pages-lab2';
-import { GalleryCard, Terminal, WelcomePage, WorkspacePage } from './pages-more';
+import { GalleryCard, WelcomePage, WorkspacePage } from './pages-more';
 import {
   AgentRow,
   CHAT_AGENT,
@@ -24,70 +24,11 @@ import { LogoMark } from '@architect/ui';
  * film's time alone.
  */
 
+/** The walkthrough's length on its own clock, in seconds; cues.ts says when each moment is played. */
 export const DURATION = 163;
 
 /** When the lockup comes in over the wall at the end. */
 const LOCKUP = 156.6;
-
-/**
- * The cut is authored on one clock and played on another: each stretch of the authored time
- * below is played over a new length, so a beat can be given room for its narration without
- * moving every cue inside it. Everything in a stretch keeps moving, only slower or faster.
- */
-const STRETCHES: readonly (readonly [number, number, number])[] = [
-  [6.1, 10.0, 1.7],
-  [15.4, 22.0, 4.8],
-  [24.6, 43.5, 15.6],
-  [45.0, 56.2, 9.8],
-  [59.6, 72.4, 13.6],
-  [72.4, 83.3, 9.7],
-  [84.6, 100.4, 15.2],
-  [100.4, 114.0, 14.4],
-  // Compute: the plan, a held moment passed over quickly, the cluster bundle, and the way out.
-  [114.0, 116.9, 2.2],
-  [116.9, 118.9, 0.5],
-  [118.9, 122.6, 2.35],
-  [122.6, 124.6, 1.5],
-  [124.6, 143.0, 16.5],
-  // 143.0 to 143.8 is the team scene's: it ends on the first screen coming in (team.tsx).
-  [143.8, 150.4, 5.4],
-  [150.4, LOCKUP, 5.2],
-  [LOCKUP, DURATION, 4.9],
-];
-
-/** The walkthrough's length as played, in seconds. */
-export const WALKTHROUGH = STRETCHES.reduce(
-  (total, [from, to, length]) => total + length - (to - from),
-  DURATION,
-);
-
-/** The authored time for a moment of the walkthrough as played. */
-export function filmTime(played: number): number {
-  let authored = 0;
-  let clock = 0;
-  for (const [from, to, length] of STRETCHES) {
-    if (played < clock + (from - authored)) return authored + (played - clock);
-    clock += from - authored;
-    if (played < clock + length) return from + ((played - clock) / length) * (to - from);
-    clock += length;
-    authored = to;
-  }
-  return Math.min(DURATION, authored + (played - clock));
-}
-
-/** When an authored moment of the walkthrough is played, in seconds. */
-export function playedTime(authored: number): number {
-  let clock = 0;
-  let last = 0;
-  for (const [from, to, length] of STRETCHES) {
-    if (authored < from) return clock + (authored - last);
-    clock += from - last;
-    if (authored < to) return clock + ((authored - from) / (to - from)) * length;
-    clock += length;
-    last = to;
-  }
-  return clock + (authored - last);
-}
 
 const FRAME = { width: 1920, height: 1080 } as const;
 
@@ -135,8 +76,6 @@ export const MOMENT = {
   drawerOut: 83.3,
   panel: 102.5,
   allow: 134.6,
-  terminalIn: 136.6,
-  terminalOut: 142.6,
   choose: 147.5,
   wall: 150.4,
   lockup: LOCKUP,
@@ -232,8 +171,6 @@ export function camera(measured: Measured, t: number): Framing {
   });
   return current;
 }
-
-const TERMINAL = { x: 430, y: 318, w: 690, h: 290 } as const;
 
 interface Click {
   at: number;
@@ -512,7 +449,6 @@ export function AppWindow({
       />
       {!still && !measuring && <Drawer t={t} />}
       {(still === 'train' || measuring) && <Drawer t={MOMENT.drawerIn + 20} hold />}
-      {!still && !measuring && <TerminalLayer t={t} />}
     </div>
   );
 }
@@ -532,28 +468,6 @@ function Drawer({ t, hold }: { t: number; hold?: boolean }) {
       }}
     >
       <CounterexampleDrawer lt={t - MOMENT.drawerIn} />
-    </div>
-  );
-}
-
-function TerminalLayer({ t }: { t: number }) {
-  const open = outExpo(span(t, MOMENT.terminalIn, 0.8));
-  const close = outQuart(span(t, MOMENT.terminalOut, 0.45));
-  if (open <= 0 || close >= 1) return null;
-  return (
-    <div
-      className="absolute"
-      style={{
-        left: TERMINAL.x,
-        top: TERMINAL.y,
-        width: TERMINAL.w,
-        height: TERMINAL.h,
-        transform: `translateY(${(1 - open) * 90 + close * 60}px)`,
-        opacity: clamp(open * 2) * (1 - close),
-        zIndex: 30,
-      }}
-    >
-      <Terminal lt={t - MOMENT.terminalIn} />
     </div>
   );
 }

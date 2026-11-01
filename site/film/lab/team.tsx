@@ -18,8 +18,8 @@ import { World } from './why';
  * first screen as the walkthrough does, so the cut on each side is seamless.
  */
 
-/** The walkthrough's moment the scene leaves, in authored seconds: Offline, finished. */
-export const TEAM_FROM = 143.0;
+/** The walkthrough's moment the scene leaves, in authored seconds: Offline, the write saved. */
+export const TEAM_FROM = 135.4;
 /** The walkthrough's moment the scene returns to: the first screen, just in. */
 export const TEAM_BACK = 143.8;
 /** The scene's length, in seconds. Its last 0.6 s are the first screen coming in. */
