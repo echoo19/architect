@@ -1,7 +1,7 @@
 import type { Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { Ending, Wordmark } from './ending';
-import { FIGURES, Hero, MuseWord, OpenTeacher, RealFigure } from './reveal';
+import { CertFigure, FIGURES, Hero, MuseWord, OpenTeacher, RealFigure } from './reveal';
 import { Screen } from './screen';
 import { SpaceScene } from './space';
 import { T } from './timeline';
@@ -38,6 +38,7 @@ function Walk({ t, measured }: { t: number; measured: Measured }) {
           <Screen view={walkView(t)} style={{ left: 0, top: 0 }} />
           <Cursor measured={measured} t={t} />
           <RealFigure t={t} />
+          <CertFigure t={t} />
           {SHOW_OPEN_TEACHER && <OpenTeacher t={t} measured={measured} />}
         </div>
       </div>

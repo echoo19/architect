@@ -87,6 +87,7 @@ export const T = {
   models: 103.4,
   panel: 105.0,
   bound: 106.6,
+  certHero: 107.4,
   certificate: 109.4,
   compute: 111.6,
   readConfig: 113.1,

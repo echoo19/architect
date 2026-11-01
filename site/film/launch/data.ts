@@ -1,10 +1,10 @@
 import type { Labels } from '../lab/labels';
-import { EXAMPLE_CERTIFICATE, type Certificate } from '../lab/pages-lab2';
+import type { Certificate } from '../lab/pages-lab2';
 
 /**
  * What the launch film shows that the walkthrough doesn't. Every figure is a measured one, from the
  * same reports as the walkthrough's (site/film/lab/data.ts) and the runs named beside each. The
- * figures still to come from a run are the PENDING constants at the end, each with what fills it.
+ * one beat that depends on a run is the PENDING flag at the end.
  */
 
 /** The final test on Harborview Prep, which neither model saw (academy-desk-1.md): of 48 tasks. */
@@ -96,19 +96,33 @@ export const PLAN = {
 export const OPEN_TEACHER = 'Muse Spark Open';
 
 /**
- * PENDING: the version panel's certified answers. Until a run issues a certificate the panel shows
- * the report's stand-in data under an Example badge, as the walkthrough does. Fill in the live
- * certificate's figures and set `example: false`.
+ * The risk certificate issued on the first field run's Academy desk (academy-desk-cert-2.md): on 60
+ * calibration tasks it answered all 60 with none wrong, a 95% bound of 4.87%, shown as 5%; the
+ * check at Harborview Prep answered 53 of 54 with none wrong, so the bound held. The plot is the
+ * report's risk and coverage by threshold.
  */
-export const PENDING_CERTIFICATE: Certificate = EXAMPLE_CERTIFICATE;
+export const CERTIFICATE: Certificate = {
+  wrong: 0.05,
+  handed: 0,
+  handedTo: 'a person',
+  basis: 'It answers when 1 of 5 attempts agree, measured on 60 calibration tasks.',
+  points: [
+    { coverage: 59 / 60, bound: 0.0495, risk: 0 },
+    { coverage: 59 / 60, bound: 0.0495, risk: 0 },
+    { coverage: 1, bound: 0.0487, risk: 0 },
+  ],
+  chosen: 2,
+  checks: [
+    { name: 'Harborview Prep, never seen', detail: 'Answered 53 of 54, 0 wrong', held: true },
+  ],
+  example: false,
+};
 
-/** The certificate as the launch film's panel shows it, in the app's newer words. */
-export const LAUNCH_CERTIFICATE: Certificate = {
-  ...PENDING_CERTIFICATE,
-  checks: PENDING_CERTIFICATE.checks.map((check) => ({
-    ...check,
-    name: check.name.replace(/^Final test/, 'Sealed final test'),
-  })),
+/** The certificate's check where the specialist never trained, as the film sets it large. */
+export const CERTIFICATE_CHECK = {
+  name: 'Harborview Prep',
+  answered: '53 of 54',
+  wrong: '0 wrong',
 };
 
 /** The app's newer words for the screens' concepts (the glossary the app is moving to). */

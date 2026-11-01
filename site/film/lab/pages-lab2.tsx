@@ -199,10 +199,15 @@ function Giving({ open, end, children }: { open: number; end?: boolean; children
 
 /** What the version panel's certified answers show: its sentence, its plot and its checks. */
 export interface Certificate {
-  /** Wrong at most, and handed to staff, as shares. */
+  /** Wrong at most, and handed off, as shares, and who it hands to. */
   wrong: number;
   handed: number;
+  handedTo: string;
+  /** How the threshold was chosen and measured, in the panel's disclosure. */
+  basis: string;
   points: readonly { coverage: number; bound: number; risk: number }[];
+  /** The certified point, by its index in `points`. */
+  chosen: number;
   checks: readonly { name: string; detail: string; held: boolean }[];
   /** Marked as an example on screen, never as measured, until a run issues one. */
   example: boolean;
@@ -212,6 +217,9 @@ export interface Certificate {
 export const EXAMPLE_CERTIFICATE: Certificate = {
   wrong: 0.08,
   handed: 0.22,
+  handedTo: 'staff',
+  basis: '5 attempts at each calibration task; it answers when 4 of 5 agree.',
+  chosen: 1,
   points: [
     { coverage: 0.58, bound: 0.068, risk: 0 },
     { coverage: 0.79, bound: 0.08, risk: 0.018 },
@@ -321,12 +329,10 @@ export function ModelsPage({
           <p className="m-0 text-body" style={rise(pt, 0.7, 6)}>
             When {ACADEMY} answers, it is wrong on at most {Math.round(certificate.wrong * 100)}% of
             requests like these, with 95% confidence. It handed{' '}
-            {Math.round(certificate.handed * 100)}% to staff.
+            {Math.round(certificate.handed * 100)}% to {certificate.handedTo}.
           </p>
           <div style={rise(pt, 1.0, 6)}>
-            <Disclosure label="How this is measured">
-              5 attempts at each calibration task; it answers when 4 of 5 agree.
-            </Disclosure>
+            <Disclosure label="How this is measured">{certificate.basis}</Disclosure>
           </div>
           <div
             className="[&_figcaption]:hidden"
@@ -339,7 +345,7 @@ export function ModelsPage({
             <RiskCoveragePlot
               aria-label="Wrong at most, by share answered"
               points={certificate.points}
-              chosen={1}
+              chosen={certificate.chosen}
               target={0.1}
             />
           </div>

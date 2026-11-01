@@ -1,7 +1,16 @@
 import type { Framing, Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { inOutCubic, mix, outExpo, outQuart, span } from '../lab/time';
-import { CORVID, HARBORVIEW, OPEN_TEACHER, PLAN, REAL_ACADEMY } from './data';
+import { CircleCheck } from 'lucide-react';
+import {
+  CERTIFICATE,
+  CERTIFICATE_CHECK,
+  CORVID,
+  HARBORVIEW,
+  OPEN_TEACHER,
+  PLAN,
+  REAL_ACADEMY,
+} from './data';
 import { T } from './timeline';
 import { DIVE, gpuPoint, harborviewPoint, sciencePoint, vaultPoint } from './walk';
 import { Words } from './words';
@@ -176,6 +185,66 @@ export function Hero({
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * The risk certificate's bound, on the ground at the window's left: wrong at most 5% when it
+ * answers, then the check at the academy it never trained on, landing as held.
+ */
+export function CertFigure({ t }: { t: number }) {
+  if (t < T.certHero - 0.05 || t > T.compute + 1.2) return null;
+  const pct = Math.round(CERTIFICATE.wrong * 100);
+  const held = outQuart(span(t, T.certificate + 0.5, 0.35));
+  const type = 'whitespace-nowrap font-display font-semibold tracking-[-0.03em]';
+  return (
+    <div
+      className="absolute flex w-[820px] flex-col gap-10"
+      style={{ left: -900, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
+    >
+      <span className="flex flex-col">
+        <Words
+          t={t}
+          text="Wrong at most"
+          at={T.certHero}
+          className={`${type} text-[72px] leading-none`}
+        />
+        <span className="inline-block overflow-hidden">
+          <span
+            className={`inline-block ${type} text-[300px] leading-[0.9] tracking-[-0.05em] tabular-nums`}
+            style={{
+              transform: `translateY(${(1 - outExpo(span(t, T.certHero + 0.15, 0.9))) * 110}%)`,
+            }}
+          >
+            {pct}%
+          </span>
+        </span>
+      </span>
+      <span className="flex flex-col gap-3">
+        <Words
+          t={t}
+          text={CERTIFICATE_CHECK.name}
+          at={T.certificate}
+          className={`${type} text-[56px] leading-none`}
+        />
+        <span className="flex items-center gap-[0.4em] text-[56px]">
+          <Words
+            t={t}
+            text={`${CERTIFICATE_CHECK.answered} · ${CERTIFICATE_CHECK.wrong}`}
+            at={T.certificate + 0.15}
+            stagger={0.04}
+            className={`${type} leading-none`}
+          />
+          <span
+            className={`flex items-center gap-3 text-student ${type} leading-none`}
+            style={{ opacity: held, transform: `translateX(${(1 - held) * -12}px)` }}
+          >
+            <CircleCheck size={52} strokeWidth={2} aria-hidden />
+            Held
+          </span>
+        </span>
+      </span>
+    </div>
   );
 }
 

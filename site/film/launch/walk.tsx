@@ -18,7 +18,7 @@ import {
   ui,
 } from '../lab/time';
 import { FieldAssets } from './assets';
-import { INVENTORY_SCORES, LAUNCH_CERTIFICATE, SHOW_OPEN_TEACHER } from './data';
+import { CERTIFICATE, INVENTORY_SCORES, SHOW_OPEN_TEACHER } from './data';
 import { FINE_TUNE_AT, FINE_TUNE_SCROLL, FineTunePage } from './finetune';
 import { HarnessDrawer } from './harness';
 import type { Layer, Mode, ScreenView } from './screen';
@@ -158,9 +158,7 @@ const PAGES: readonly PageSpan[] = [
     at: T.models,
     mode: 'place',
     fill: place(3),
-    draw: (lt) => (
-      <ModelsPage lt={lt} panelAt={T.panel - T.models} certificate={LAUNCH_CERTIFICATE} />
-    ),
+    draw: (lt) => <ModelsPage lt={lt} panelAt={T.panel - T.models} certificate={CERTIFICATE} />,
   },
   {
     key: 'finetune',
@@ -434,6 +432,9 @@ const DRAWER_VIEW: Framing = { cx: 637, cy: 357, s: 1.8 };
 /** Compute's page: its left edge in the gutter past the sidebar, its top under the title. */
 const COMPUTE_VIEW: Framing = content(104, 1.95);
 
+/** The window to the right, the certificate's bound on the ground at its left. */
+export const CERT_VIEW: Framing = { cx: 125, cy: WINDOW.height / 2, s: 0.84 };
+
 /** The two editions. */
 const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
 
@@ -480,7 +481,8 @@ const SHOTS: readonly Shot[] = [
   { at: T.side, dur: 1.4, to: SIDE, ease: inOutQuint },
   // 9. The certificate, then the fine-tune: the plan, the model it read, the GPUs, the cluster.
   { at: T.models - 0.5, dur: 0.8, to: FULL, ease: inOutQuint },
-  { at: T.compute - 0.45, dur: 0.45, to: FULL, ease: inOutQuint },
+  { at: T.certHero - 0.6, dur: 1.3, to: CERT_VIEW, ease: inOutQuint },
+  { at: T.compute - 0.75, dur: 0.75, to: FULL, ease: inOutQuint },
   { at: T.compute + 0.35, dur: 1.0, to: COMPUTE_VIEW },
   { at: T.gpuDive, dur: 0.85, to: (m) => onto(gpuPoint(m)), ease: inOutCubic, still: true },
   { at: T.gpuResolve, dur: 1.2, to: COMPUTE_VIEW, ease: inOutQuint },
