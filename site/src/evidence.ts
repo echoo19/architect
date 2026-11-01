@@ -17,6 +17,13 @@ export const SOURCES = {
     path: 'docs/comparisons/academy-desk-3-misses.md',
   },
   cert: { name: 'academy-desk-cert-1.md', path: 'docs/comparisons/academy-desk-cert-1.md' },
+  cert2: { name: 'academy-desk-cert-2.md', path: 'docs/comparisons/academy-desk-cert-2.md' },
+  inventory: { name: 'inventory-desk-1.md', path: 'docs/comparisons/inventory-desk-1.md' },
+  open: { name: 'returns-desk-open-1.md', path: 'docs/comparisons/returns-desk-open-1.md' },
+  assay: { name: 'assay-desk-1.md', path: 'docs/comparisons/assay-desk-1.md' },
+  qlora1: { name: 'qlora-1.md', path: 'docs/comparisons/qlora-1.md' },
+  qlora2: { name: 'qlora-2.md', path: 'docs/comparisons/qlora-2.md' },
+  sweep2: { name: 'sweep-desk-2.md', path: 'docs/comparisons/sweep-desk-2.md' },
   scale: { name: 'SCALE.md', path: 'docs/SCALE.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
@@ -73,7 +80,7 @@ export interface Pair {
 }
 
 export interface Comparison {
-  id: 'second' | 'first';
+  id: 'second' | 'first' | 'open';
   title: string;
   /** The business, the rounds teaching was given, and the seed of the final test, in words. */
   setting: string;
@@ -84,12 +91,12 @@ export interface Comparison {
 
 export const SECOND: Comparison = {
   id: 'second',
-  title: 'A new returns desk, up to 8 rounds of teaching',
+  title: 'The returns desk that ships, up to 8 rounds of teaching',
   setting: 'Final test of 60 requests, seed 101. Glimmer served online.',
   source: 'second',
   arms: [
     {
-      name: 'Glimmer on its own',
+      name: 'Glimmer on the base harness',
       passed: 44,
       low: 61.0,
       high: 82.9,
@@ -101,7 +108,7 @@ export const SECOND: Comparison = {
       tone: 'plain',
     },
     {
-      name: "Spark's one-shot setup",
+      name: "Spark's one-shot harness",
       passed: 38,
       low: 50.7,
       high: 74.4,
@@ -113,7 +120,7 @@ export const SECOND: Comparison = {
       tone: 'plain',
     },
     {
-      name: "Glimmer after Spark's teaching",
+      name: 'Glimmer on the Spark-engineered harness',
       passed: 58,
       low: 88.6,
       high: 99.1,
@@ -127,7 +134,7 @@ export const SECOND: Comparison = {
   ],
   pairs: [
     {
-      label: 'Teaching against Glimmer on its own',
+      label: 'Spark-engineered against the base harness',
       wins: 15,
       losses: 1,
       both: 43,
@@ -137,7 +144,7 @@ export const SECOND: Comparison = {
       high: 35.9,
     },
     {
-      label: 'The one-shot setup against Glimmer on its own',
+      label: 'The one-shot harness against the base harness',
       wins: 8,
       losses: 14,
       both: 30,
@@ -147,7 +154,7 @@ export const SECOND: Comparison = {
       high: 5.5,
     },
     {
-      label: 'Teaching against the one-shot setup',
+      label: 'Spark-engineered against the one-shot harness',
       wins: 20,
       losses: 0,
       both: 38,
@@ -161,12 +168,12 @@ export const SECOND: Comparison = {
 
 export const FIRST: Comparison = {
   id: 'first',
-  title: 'The returns desk that ships, teaching held to 2 rounds',
+  title: 'The first returns desk, teaching held to 2 rounds',
   setting: 'Final test of 60 requests, seed 101. Glimmer served online.',
   source: 'first',
   arms: [
     {
-      name: 'Glimmer on its own',
+      name: 'Glimmer on the base harness',
       passed: 43,
       low: 59.2,
       high: 81.5,
@@ -178,7 +185,7 @@ export const FIRST: Comparison = {
       tone: 'plain',
     },
     {
-      name: "Spark's one-shot setup",
+      name: "Spark's one-shot harness",
       passed: 47,
       low: 66.4,
       high: 86.9,
@@ -190,7 +197,7 @@ export const FIRST: Comparison = {
       tone: 'plain',
     },
     {
-      name: "Glimmer after Spark's teaching",
+      name: 'Glimmer on the Spark-engineered harness',
       passed: 45,
       low: 62.8,
       high: 84.2,
@@ -216,7 +223,7 @@ export const FIRST: Comparison = {
   ],
   pairs: [
     {
-      label: 'Teaching against Glimmer on its own',
+      label: 'Spark-engineered against the base harness',
       wins: 11,
       losses: 9,
       both: 34,
@@ -226,7 +233,7 @@ export const FIRST: Comparison = {
       high: 18.0,
     },
     {
-      label: 'The one-shot setup against Glimmer on its own',
+      label: 'The one-shot harness against the base harness',
       wins: 13,
       losses: 9,
       both: 34,
@@ -236,7 +243,7 @@ export const FIRST: Comparison = {
       high: 21.8,
     },
     {
-      label: 'Teaching against the one-shot setup',
+      label: 'Spark-engineered against the one-shot harness',
       wins: 3,
       losses: 5,
       both: 42,
@@ -246,7 +253,7 @@ export const FIRST: Comparison = {
       high: 6.6,
     },
     {
-      label: 'Spark itself against Glimmer on its own',
+      label: 'Spark itself against the base harness',
       wins: 17,
       losses: 0,
       both: 43,
@@ -258,11 +265,100 @@ export const FIRST: Comparison = {
   ],
 };
 
-/** One round of teaching: what Spark changed and how the check tasks scored it. */
+/**
+ * The returns desk taught by Muse Spark Open, Meta's open-weight teacher, served by BaseTen, from
+ * `returns-desk-open-1.md`. Every arm ran under Glimmer's on-device context of 16,384 tokens, so it
+ * is not set against the earlier returns desk runs. Costs are each arm's own, from the runner's table.
+ */
+export const OPEN: Comparison = {
+  id: 'open',
+  title: 'The returns desk, taught by Muse Spark Open',
+  setting:
+    'Final test of 60 requests, seed 101. Glimmer served online, under a 16,384-token context.',
+  source: 'open',
+  arms: [
+    {
+      name: 'Glimmer on the base harness',
+      passed: 18,
+      low: 19.9,
+      high: 42.5,
+      byType: [7, 6, 5],
+      p50: 8.8,
+      p95: 67.7,
+      spark: 0,
+      glimmer: 0.65,
+      tone: 'plain',
+    },
+    {
+      name: "Spark Open's one-shot harness",
+      passed: 31,
+      low: 39.3,
+      high: 63.8,
+      byType: [13, 7, 11],
+      p50: 8.4,
+      p95: 99.1,
+      spark: 0.11,
+      glimmer: 0.93,
+      tone: 'plain',
+    },
+    {
+      name: 'Glimmer on the Spark Open-engineered harness',
+      passed: 39,
+      low: 52.4,
+      high: 75.8,
+      byType: [14, 10, 15],
+      p50: 6.0,
+      p95: 38.4,
+      spark: 0.08,
+      glimmer: 1.49,
+      tone: 'student',
+    },
+  ],
+  pairs: [
+    {
+      label: 'Spark Open-engineered against the base harness',
+      wins: 28,
+      losses: 7,
+      both: 11,
+      neither: 14,
+      diff: 35.0,
+      low: 16.8,
+      high: 50.2,
+    },
+    {
+      label: 'The one-shot harness against the base harness',
+      wins: 21,
+      losses: 8,
+      both: 10,
+      neither: 21,
+      diff: 21.7,
+      low: 4.2,
+      high: 37.4,
+    },
+    {
+      label: 'Spark Open-engineered against the one-shot harness',
+      wins: 8,
+      losses: 0,
+      both: 31,
+      neither: 21,
+      diff: 13.3,
+      low: 4.1,
+      high: 22.1,
+    },
+  ],
+};
+
+/** What the Spark Open run cost in all, from its report. */
+export const OPEN_MONEY = {
+  sparkOpen: 0.19,
+  glimmer: 3.13,
+} as const;
+
+/** One round of teaching: what Spark changed and how the held-out checks scored it. */
 export interface Round {
   n: number;
   change: string;
-  /** Check tasks passed out of 45 before and after, in the first measurement. */
+  /** Held-out checks passed out of 45 before and after, in the first measurement. */
   before: number;
   after: number;
   /** The same change measured again on new seeds, over two runs (out of 90), where it was. */
@@ -270,7 +366,7 @@ export interface Round {
   kept: boolean;
   /** Why a change was not kept, in the report's words. */
   why?: string;
-  /** Check tasks in one run, and in the two runs of a measurement made again. Default 45 and 90. */
+  /** Held-out checks in one run, and in the two runs of a measurement made again. Default 45 and 90. */
   total?: number;
   againTotal?: number;
 }
@@ -355,9 +451,9 @@ export type GroupKey = (typeof GROUPS)[number]['short'];
 
 export interface FieldArm {
   name: string;
-  /** Passes in each group, in the order of GROUPS, with the Wilson interval in percent. */
+  /** Passes in each group, in the order of its run's groups, with the Wilson interval in percent. */
   groups: readonly { passed: number; low: number; high: number }[];
-  /** Passes out of all 120, with its interval. */
+  /** Passes in all groups together, with its interval. */
   all: { passed: number; low: number; high: number };
   tone: Tone;
 }
@@ -366,7 +462,7 @@ export const FIELD_TEST_SIZE = 120;
 
 export const FIELD_ARMS: readonly FieldArm[] = [
   {
-    name: 'Glimmer on a blank setup',
+    name: 'Glimmer on the base harness',
     groups: [
       { passed: 21, low: 30.7, high: 57.7 },
       { passed: 24, low: 36.4, high: 63.6 },
@@ -376,7 +472,7 @@ export const FIELD_ARMS: readonly FieldArm[] = [
     tone: 'plain',
   },
   {
-    name: "Spark's one-shot setup",
+    name: "Spark's one-shot harness",
     groups: [
       { passed: 22, low: 32.6, high: 59.7 },
       { passed: 22, low: 32.6, high: 59.7 },
@@ -402,7 +498,7 @@ export const SKILLS = ['Diagnose', 'Solve', 'Hint', 'History', 'Assign', 'Tutori
 export interface SkillRow {
   skill: (typeof SKILLS)[number];
   group: GroupKey;
-  /** Tasks in the cell; passes for the blank setup, the one-shot setup and Academy desk. */
+  /** Tasks in the cell; passes for the base harness, the one-shot harness and Academy desk. */
   of: number;
   bare: number;
   draft: number;
@@ -428,10 +524,11 @@ export const SKILL_ROWS: readonly SkillRow[] = [
   { skill: 'Tutoring turn', group: 'harborview', of: 8, bare: 0, draft: 0, academyDesk: 6 },
 ];
 
-export interface FieldPair {
+/** A pairing of two arms in one group of a field run, or in all of them. */
+export interface FieldPair<G extends string = GroupKey> {
   /** "A against B": the first arm less the second. */
   label: string;
-  group: GroupKey | 'all';
+  group: G | 'all';
   n: number;
   wins: number;
   losses: number;
@@ -445,7 +542,7 @@ export interface FieldPair {
 
 export const FIELD_PAIRS: readonly FieldPair[] = [
   {
-    label: 'Academy desk against a blank setup',
+    label: 'Academy desk against the base harness',
     group: 'harborview',
     n: 48,
     wins: 20,
@@ -457,7 +554,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 53.7,
   },
   {
-    label: 'Academy desk against a blank setup',
+    label: 'Academy desk against the base harness',
     group: 'real',
     n: 24,
     wins: 9,
@@ -469,7 +566,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 40.2,
   },
   {
-    label: 'Academy desk against a blank setup',
+    label: 'Academy desk against the base harness',
     group: 'taught',
     n: 48,
     wins: 24,
@@ -481,7 +578,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 61.7,
   },
   {
-    label: 'Academy desk against a blank setup',
+    label: 'Academy desk against the base harness',
     group: 'all',
     n: 120,
     wins: 53,
@@ -493,7 +590,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 47.7,
   },
   {
-    label: 'Academy desk against the one-shot setup',
+    label: 'Academy desk against the one-shot harness',
     group: 'harborview',
     n: 48,
     wins: 23,
@@ -505,7 +602,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 58.3,
   },
   {
-    label: 'Academy desk against the one-shot setup',
+    label: 'Academy desk against the one-shot harness',
     group: 'real',
     n: 24,
     wins: 7,
@@ -517,7 +614,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 31.0,
   },
   {
-    label: 'Academy desk against the one-shot setup',
+    label: 'Academy desk against the one-shot harness',
     group: 'taught',
     n: 48,
     wins: 23,
@@ -529,7 +626,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 59.8,
   },
   {
-    label: 'The one-shot setup against a blank setup',
+    label: 'The one-shot harness against the base harness',
     group: 'harborview',
     n: 48,
     wins: 6,
@@ -541,7 +638,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 11.2,
   },
   {
-    label: 'The one-shot setup against a blank setup',
+    label: 'The one-shot harness against the base harness',
     group: 'real',
     n: 24,
     wins: 6,
@@ -553,7 +650,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 32.6,
   },
   {
-    label: 'The one-shot setup against a blank setup',
+    label: 'The one-shot harness against the base harness',
     group: 'taught',
     n: 48,
     wins: 8,
@@ -565,7 +662,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
     high: 17.7,
   },
   {
-    label: 'The one-shot setup against a blank setup',
+    label: 'The one-shot harness against the base harness',
     group: 'all',
     n: 120,
     wins: 20,
@@ -578,7 +675,7 @@ export const FIELD_PAIRS: readonly FieldPair[] = [
   },
 ];
 
-/** Academy desk's three rounds of teaching, on the 36 check tasks of the taught academies. */
+/** Academy desk's three rounds of teaching, on the 36 held-out checks of the taught academies. */
 export const ROUNDS_FIELD: readonly Round[] = [
   {
     n: 1,
@@ -692,9 +789,9 @@ export const LOCAL_SPEED = {
 } as const;
 
 /**
- * The third field run, from `academy-desk-3.md`: the blank setup and Academy desk on a sealed test of
+ * The third field run, from `academy-desk-3.md`: the base harness and Academy desk on a sealed test of
  * 126 tasks, by group. Passes carry the report's Wilson intervals; wins and losses are Academy desk
- * against the blank setup, task by task, with the report's Newcombe interval.
+ * against the base harness, task by task, with the report's Newcombe interval.
  */
 export interface ThirdRow {
   group: 'taught' | 'juniper' | 'real' | 'all';
@@ -835,3 +932,306 @@ export const CERT_ROWS: readonly CertRow[] = [
     realWrong: 10,
   },
 ];
+
+/**
+ * The second live certificate run, from `academy-desk-cert-2.md`: the first field run's Academy
+ * desk, frozen, on 60 calibration tasks from the taught academies, five attempts each, checked on
+ * 54 sealed Harborview Prep tasks. Bounds are the report's one-sided 95% Clopper-Pearson upper
+ * bounds, in percent.
+ */
+export const CERT2 = {
+  calibration: 60,
+  attempts: 5,
+  target: 10,
+  confidence: 95,
+  /** The certificate's bound, and the whole percent the app states it as. */
+  bound: 4.87,
+  stated: 5,
+  /** The share of calibration tasks answered at the certified threshold, in percent. */
+  coverage: 100,
+  checkTasks: 54,
+  checkAnswered: 53,
+  checkWrong: 0,
+  /** The upper bound on 0 wrong of 53 on its own, in percent. */
+  checkBound: 5.5,
+  runs: 570,
+  usd: 1.28,
+} as const;
+
+export interface CertCalibrationRow {
+  /** How many of the five attempts must agree for Academy desk to answer. */
+  when: string;
+  /** Calibration tasks answered and wrong, of 60, the share handed off and the bound, in percent. */
+  answered: number;
+  wrong: number;
+  handedOff: number;
+  bound: number;
+}
+
+export const CERT2_ROWS: readonly CertCalibrationRow[] = [
+  { when: '5 of 5 agree', answered: 59, wrong: 0, handedOff: 2, bound: 4.95 },
+  { when: '4 or more of 5', answered: 59, wrong: 0, handedOff: 2, bound: 4.95 },
+  { when: '3, 2 or 1 or more of 5', answered: 60, wrong: 0, handedOff: 0, bound: 4.87 },
+];
+
+/** The check at Harborview Prep, by threshold: tasks answered, wrong and handed off, of 54. */
+export interface CertCheckRow {
+  when: string;
+  answered: number;
+  wrong: number;
+  handedOff: number;
+}
+
+export const CERT2_CHECK: readonly CertCheckRow[] = [
+  { when: '5 of 5 agree', answered: 48, wrong: 0, handedOff: 6 },
+  { when: '4 or more of 5', answered: 50, wrong: 0, handedOff: 4 },
+  { when: '3 or more of 5', answered: 51, wrong: 0, handedOff: 3 },
+  { when: '2 or more of 5', answered: 52, wrong: 0, handedOff: 2 },
+  { when: '1 or more of 5', answered: 53, wrong: 0, handedOff: 1 },
+];
+
+/**
+ * Inventory desk, a screening lab's compound store, from `inventory-desk-1.md`: the base harness,
+ * Spark's one-shot harness and the Spark-engineered harness on a sealed final test of 56 tasks, by
+ * group, under seed 101. Corvid Hill Discovery was sealed from both models. Intervals are the
+ * report's own: Wilson for a pass rate, Newcombe for a paired difference.
+ */
+export const LAB_GROUPS = [
+  { name: 'Taught labs', short: 'seen', n: 24 },
+  { name: 'Corvid Hill Discovery', short: 'corvid', n: 32 },
+] as const;
+
+export type LabGroupKey = (typeof LAB_GROUPS)[number]['short'];
+
+export const LAB_TEST_SIZE = 56;
+
+export const LAB_ARMS: readonly FieldArm[] = [
+  {
+    name: 'Glimmer on the base harness',
+    groups: [
+      { passed: 3, low: 4.3, high: 31.0 },
+      { passed: 4, low: 5.0, high: 28.1 },
+    ],
+    all: { passed: 7, low: 6.2, high: 23.6 },
+    tone: 'plain',
+  },
+  {
+    name: "Spark's one-shot harness",
+    groups: [
+      { passed: 14, low: 38.8, high: 75.5 },
+      { passed: 28, low: 71.9, high: 95.0 },
+    ],
+    all: { passed: 42, low: 62.3, high: 84.5 },
+    tone: 'plain',
+  },
+  {
+    name: 'Inventory desk',
+    groups: [
+      { passed: 21, low: 69.0, high: 95.7 },
+      { passed: 27, low: 68.2, high: 93.1 },
+    ],
+    all: { passed: 48, low: 74.3, high: 92.6 },
+    tone: 'student',
+  },
+];
+
+export const LAB_SKILLS = ['Usable', 'Pick a lot', 'Allocate', 'Reserve'] as const;
+
+export interface LabSkillRow {
+  skill: (typeof LAB_SKILLS)[number];
+  group: LabGroupKey;
+  /** Tasks in the cell; passes for the base harness, the one-shot harness and Inventory desk. */
+  of: number;
+  bare: number;
+  draft: number;
+  inventoryDesk: number;
+}
+
+export const LAB_SKILL_ROWS: readonly LabSkillRow[] = [
+  { skill: 'Usable', group: 'seen', of: 6, bare: 1, draft: 5, inventoryDesk: 5 },
+  { skill: 'Usable', group: 'corvid', of: 8, bare: 3, draft: 8, inventoryDesk: 5 },
+  { skill: 'Pick a lot', group: 'seen', of: 6, bare: 2, draft: 3, inventoryDesk: 5 },
+  { skill: 'Pick a lot', group: 'corvid', of: 8, bare: 0, draft: 8, inventoryDesk: 8 },
+  { skill: 'Allocate', group: 'seen', of: 6, bare: 0, draft: 5, inventoryDesk: 6 },
+  { skill: 'Allocate', group: 'corvid', of: 8, bare: 0, draft: 6, inventoryDesk: 7 },
+  { skill: 'Reserve', group: 'seen', of: 6, bare: 0, draft: 1, inventoryDesk: 5 },
+  { skill: 'Reserve', group: 'corvid', of: 8, bare: 1, draft: 6, inventoryDesk: 7 },
+];
+
+/** Every pairing the report gives, task by task. */
+export const LAB_PAIRS: readonly FieldPair<LabGroupKey>[] = [
+  {
+    label: 'Inventory desk against the base harness',
+    group: 'corvid',
+    n: 32,
+    wins: 24,
+    losses: 1,
+    both: 3,
+    neither: 4,
+    diff: 71.9,
+    low: 48.4,
+    high: 84.0,
+  },
+  {
+    label: 'Inventory desk against the base harness',
+    group: 'seen',
+    n: 24,
+    wins: 19,
+    losses: 1,
+    both: 2,
+    neither: 2,
+    diff: 75.0,
+    low: 45.9,
+    high: 87.8,
+  },
+  {
+    label: 'Inventory desk against the base harness',
+    group: 'all',
+    n: 56,
+    wins: 43,
+    losses: 2,
+    both: 5,
+    neither: 6,
+    diff: 73.2,
+    low: 56.1,
+    high: 83.2,
+  },
+  {
+    label: 'The one-shot harness against the base harness',
+    group: 'corvid',
+    n: 32,
+    wins: 24,
+    losses: 0,
+    both: 4,
+    neither: 4,
+    diff: 75.0,
+    low: 53.0,
+    high: 85.6,
+  },
+  {
+    label: 'The one-shot harness against the base harness',
+    group: 'seen',
+    n: 24,
+    wins: 12,
+    losses: 1,
+    both: 2,
+    neither: 9,
+    diff: 45.8,
+    low: 19.0,
+    high: 64.9,
+  },
+  {
+    label: 'Inventory desk against the one-shot harness',
+    group: 'corvid',
+    n: 32,
+    wins: 3,
+    losses: 4,
+    both: 24,
+    neither: 1,
+    diff: -3.1,
+    low: -20.9,
+    high: 14.7,
+  },
+  {
+    label: 'Inventory desk against the one-shot harness',
+    group: 'seen',
+    n: 24,
+    wins: 10,
+    losses: 3,
+    both: 11,
+    neither: 0,
+    diff: 29.2,
+    low: 0.2,
+    high: 52.6,
+  },
+  {
+    label: 'Inventory desk against the one-shot harness',
+    group: 'all',
+    n: 56,
+    wins: 13,
+    losses: 7,
+    both: 35,
+    neither: 1,
+    diff: 10.7,
+    low: -5.0,
+    high: 25.8,
+  },
+];
+
+/**
+ * What Inventory desk's run cost and what its draft and kept round did on the held-out checks,
+ * from its report. Spark's recorded spend leaves out a study call that was cut off, at most about
+ * $0.18. The held-out checks are the taught labs' 24; the kept round is confirmed over two runs, of 48.
+ */
+export const LAB_RUN = {
+  spark: 0.34,
+  sparkUnrecorded: 0.18,
+  glimmer: 1.38,
+  checks: 24,
+  draftBefore: 8,
+  draftAfter: 22,
+  keptBefore: 34,
+  keptAfter: 40,
+  keptTotal: 48,
+} as const;
+
+/** The training loss at each optimizer step of Inventory desk's QLoRA run, from its report. */
+export const FINETUNE_LOSS: readonly { step: number; loss: number }[] = [
+  { step: 1, loss: 0.106 },
+  { step: 2, loss: 0.0879 },
+  { step: 3, loss: 0.0693 },
+  { step: 4, loss: 0.0328 },
+  { step: 5, loss: 0.0255 },
+  { step: 6, loss: 0.0078 },
+];
+
+/**
+ * The two QLoRA adapters of Glimmer, each trained on one A100 on Hugging Face Jobs, with the
+ * checks the product ran on each at the file level, from their reports. Neither has been measured
+ * on a sealed final test.
+ */
+export interface Adapter {
+  desk: string;
+  source: 'qlora1' | 'qlora2';
+  examples: number;
+  steps: number;
+  gpuMinutes: number;
+  trainingMinutes: number;
+  usd: number;
+  pairs: number;
+  rank: number;
+  alpha: number;
+  sha256: string;
+}
+
+export const ADAPTERS: readonly Adapter[] = [
+  {
+    desk: 'Inventory desk',
+    source: 'qlora1',
+    examples: 22,
+    steps: 6,
+    gpuMinutes: 8.2,
+    trainingMinutes: 4.8,
+    usd: 0.34,
+    pairs: 312,
+    rank: 16,
+    alpha: 32,
+    sha256: '1ff8de7b',
+  },
+  {
+    desk: 'Sweep desk',
+    source: 'qlora2',
+    examples: 6,
+    steps: 2,
+    gpuMinutes: 5.1,
+    trainingMinutes: 1.8,
+    usd: 0.21,
+    pairs: 312,
+    rank: 16,
+    alpha: 32,
+    sha256: 'b1564f43',
+  },
+];
+
+/** Sweep desk's second run on all 84 final-test tasks: the draft-based taught arm against bare. */
+export const SWEEP_RUN = { tasks: 84, taught: 37, bare: 26 } as const;

@@ -5,8 +5,8 @@ import { Check, Gauge, Lock, Play, Search, Wrench, type LucideIcon } from 'lucid
  * How a round of teaching works, and why the final test is sealed, drawn in the page's own
  * parts: the job's tasks cut into four sets once, then the five steps of a round, then the one
  * opening of the final test. The numbers are the second comparison's plan and report: 15
- * calibration, 60 practice, 45 check and 60 final-test tasks, a change kept only if check-task
- * passes rise by at least 2 a run over two runs, and teaching that stops at the target, after 4
+ * calibration, 60 practice, 45 held-out checks and 60 final-test tasks, a change kept only if
+ * held-out passes rise by at least 2 a run over two runs, and teaching that stops at the target, after 4
  * rounds in a row with nothing kept, or when its money runs out.
  */
 
@@ -21,11 +21,11 @@ interface Part {
 const PARTS: readonly Part[] = [
   { name: 'Calibration', count: 15, rule: 'Prices one attempt before anything runs.' },
   { name: 'Practice', count: 60, rule: "Spark reads Glimmer's attempts at these." },
-  { name: 'Check', count: 45, rule: 'Spark sees the score, never the tasks.' },
+  { name: 'Held-out checks', count: 45, rule: 'Spark sees the score, never the tasks.' },
   {
-    name: 'Final test',
+    name: 'Sealed final test',
     count: 60,
-    rule: 'Sealed. Nobody opens it until every setup is frozen.',
+    rule: 'Nobody opens it until every harness is frozen.',
     sealed: true,
   },
 ];
@@ -48,12 +48,12 @@ const STEPS: readonly Step[] = [
   {
     name: 'Change',
     Icon: Wrench,
-    text: 'Spark makes one change to the instructions or the small tools.',
+    text: 'Spark makes one change to the harness: its instructions or its small tools.',
   },
   {
     name: 'Check',
     Icon: Gauge,
-    text: 'Glimmer attempts the check tasks again, over two runs on new seeds.',
+    text: 'Glimmer attempts the held-out checks again, over two runs on new seeds.',
   },
   {
     name: 'Keep or revert',
@@ -67,7 +67,7 @@ export function RoundDiagram() {
     <div className="@container flex flex-col gap-12">
       <div
         role="img"
-        aria-label="The job's tasks are cut once into 15 calibration, 60 practice, 45 check and 60 final-test tasks."
+        aria-label="The job's tasks are cut once into 15 calibration, 60 practice, 45 held-out check and 60 sealed final-test tasks."
       >
         <div className="flex gap-1" aria-hidden>
           {PARTS.map((part) => (
@@ -120,8 +120,8 @@ export function RoundDiagram() {
             aria-hidden
           />
           <span>
-            Then the final test opens once, with Spark disconnected. A program grades it, not a
-            model.
+            Then the sealed final test opens once, with Spark disconnected. A program grades it, not
+            a model.
           </span>
         </p>
       </div>
