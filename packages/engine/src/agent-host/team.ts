@@ -31,6 +31,9 @@ import { showStep, type NewStep, type StepList, type Teammates } from './steps';
 /** Sampler seeds stay within a signed 32-bit integer, which every runtime accepts. */
 const SEED_LIMIT = 2 ** 31;
 
+/** What a team's lead is told about when to ask, in its system prompt, in team replies only. */
+export const TEAM_INSTRUCTION = `You work in a team. When a request names something your files don't have, or needs work your teammates' files cover, ask that teammate with ${ASK_TEAMMATE} first, and say exactly what you need back from it, such as the list or the records you will work from.`;
+
 /** A teammate as one reply has it: the session it opened with and what the lead may ask it. */
 export interface Teammate {
   session: GraduateSession;
@@ -95,8 +98,9 @@ export function askTeammate(options: TeamReplyOptions): ExtraTool {
 
   const lines = teammates.map(({ session, role }) => {
     const skills = session.about.skills.join(', ');
+    const files = session.about.files.join(', ');
     const said = /[.!?]$/.test(role) ? role : `${role}.`;
-    return `- ${session.name}: ${said}${skills === '' ? '' : ` It handles: ${skills}.`}`;
+    return `- ${session.name}: ${said}${skills === '' ? '' : ` It handles: ${skills}.`}${files === '' ? '' : ` Its files: ${files}.`}`;
   });
 
   async function consult(teammate: Teammate, request: string, callId: string): Promise<string> {
@@ -185,6 +189,7 @@ export function askTeammate(options: TeamReplyOptions): ExtraTool {
   }
 
   return {
+    instruction: TEAM_INSTRUCTION,
     spec: {
       name: ASK_TEAMMATE,
       description: [

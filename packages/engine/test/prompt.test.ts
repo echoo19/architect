@@ -219,6 +219,23 @@ describe('buildSystemPrompt', () => {
     expect(buildSystemPrompt(input)).toBe(prompt);
   });
 
+  it("adds the run's extra instructions after the refusals and before the chat line", () => {
+    const prompt = buildSystemPrompt({
+      harness: makeHarness(),
+      folder,
+      mode: 'chat',
+      today: '2026-11-03',
+      loadedSkills: [],
+      examples: [],
+      instructions: ['Ask a teammate when your files lack what the request names.'],
+    });
+    expect(
+      prompt.endsWith(
+        'Ask a teammate when your files lack what the request names.\n\nYou are talking with the user directly. Reply in plain language; no ANSWER line is needed.',
+      ),
+    ).toBe(true);
+  });
+
   it('rejects a date that is not a real YYYY-MM-DD day', () => {
     for (const today of ['2026-02-30', '11/03/2026', '']) {
       expect(() =>
