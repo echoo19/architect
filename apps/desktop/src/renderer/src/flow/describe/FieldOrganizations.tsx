@@ -13,6 +13,12 @@ const ROLES = [
   { value: 'transfer', label: 'Never seen' },
 ] as const satisfies readonly { value: Role; label: string }[];
 
+/** What each choice does with an organization's files, said under its name. */
+const ROLE_MEANS: Record<Role, string> = {
+  train: 'Its files are taught on',
+  transfer: 'Sealed for the final test',
+};
+
 /** A folder's name as an organization's first name: "acme_outfitters" reads "Acme outfitters". */
 function nameOf(folder: string): string {
   const words = fileName(folder).replace(/[_-]+/g, ' ').trim();
@@ -48,7 +54,8 @@ export function FieldOrganizations({
     );
     const folder = picked?.[0];
     if (!folder || organizations.some((org) => org.folder === folder)) return;
-    // The first is taught on; after that, the person says which.
+    // The first is taught on; after that, never seen until the person says otherwise, which the
+    // row says under its name.
     const role: Role = organizations.length === 0 ? 'train' : 'transfer';
     onChange([...organizations, { name: nameOf(folder), folder, role }]);
   };
@@ -94,7 +101,11 @@ export function FieldOrganizations({
                 className="h-8 bg-transparent px-2 shadow-none hover:bg-field focus-visible:bg-field focus-visible:shadow-edge-strong"
               />
             }
-            detail={<span className="px-2">{fileName(org.folder)}</span>}
+            detail={
+              <span className="px-2">
+                {fileName(org.folder)} · {ROLE_MEANS[org.role]}
+              </span>
+            }
             end={
               <>
                 <Segmented
