@@ -20,7 +20,13 @@ Academy desk, the field runs on test-prep academies, has its own reports. Their 
 
 Inventory desk, which reserves screening labs' compound stock for re-tests, has its own report: [inventory-desk-1.md](inventory-desk-1.md), the first run. Its sealed test covers a generated lab it never saw.
 Assay desk, a field of screening labs, has its first report: [assay-desk-1.md](assay-desk-1.md). No gain was shown on the lab neither model saw, and the taught arm's refinement never ran, so it measures Spark's one-shot setup against Glimmer on its own.
+The first agent-team run, Inventory desk asking Assay desk as a teammate on plate-only requests, has its report: [team-1.md](team-1.md). Neither the team nor Inventory desk alone passed any of 20 attempts, and the lead asked its teammate in only 2.
+Sweep desk, which reads ML research groups' training runs, has its first report: [sweep-desk-1.md](sweep-desk-1.md). No gain was shown at Fennick Research, the group neither model saw. The leak check stopped the taught arm's only round, because two practice tasks matched final-test tasks, so the report measures Spark's one-shot setup against Glimmer on its own. Its second, [sweep-desk-2.md](sweep-desk-2.md), ran after the generator was fixed: the leak check passed, but the taught arm's Spark cap stopped its first round, so again the draft took the test. At Fennick, the taught arm (the draft's harness) showed no gain over Glimmer on its own, +10.4 points (-3.4 to +23.6); the draft's own run of the same harness did, +16.7 (+2.6 to +29.6).
 
 An earlier comparison, on the service desk sample job with the first version of Glimmer's tools, is described in the README's Results section and in [docs/PROGRESS.md](../PROGRESS.md).
 
 `screens/` holds captures of comparison 2's taught agent in the app, made by opening that run's own records in Architect: its training, its first round and its results page.
+
+Fine-tuning has its own report: [qlora-1.md](qlora-1.md), the first real QLoRA job. Inventory desk's 22 checker-passed practice attempts trained a LoRA adapter on Glimmer's open weights on one A100 on Hugging Face Jobs, in 8.2 minutes for $0.34 (about $0.98 with the three failed jobs that found and fixed three faults). The adapter passes the product's file-level checks against the local base. Its effect on the sealed final test is measured next.
+
+A second fine-tune, [qlora-2.md](qlora-2.md), ran on Sweep desk's export after its generator fix: 6 checker-passed practice attempts, one A100, 5.1 minutes, $0.21, clean the first time. With so few examples the adapter took one update during warmup, so it shows the path on an AI lab's data rather than anything taught.

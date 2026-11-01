@@ -32,14 +32,18 @@ export interface GeneratedGroup {
   group: Group;
 }
 
-/** One group from its style and seed: its files and its tasks. The same seed gives the same bytes. */
+/**
+ * One group from its style and seed: its files and its tasks. The same seed gives the same bytes.
+ * `taken` holds the learning rates the job's other groups use, which this group's sweeps avoid.
+ */
 export function buildGroup(
   style: GroupStyle,
   seed: number,
   role: Organization['role'] = 'train',
+  taken: Set<number> = new Set(),
 ): GeneratedGroup {
   const random = new Random(seed);
-  const group = buildRecords(style, random.fork('records'));
+  const group = buildRecords(style, random.fork('records'), taken);
   const files = groupFiles(group, random.fork('export'));
   const tasks = buildTasks(random.fork('tasks'), group).map((task) => TaskSchema.parse(task));
   return {
@@ -60,11 +64,13 @@ export interface GeneratedJob {
 
 /** The whole job folder in memory: job.json, the checker, every group's files and the tasks. */
 export function buildJobFiles(): GeneratedJob {
+  const taken = new Set<number>();
   const groups = GROUP_SEEDS.map(({ id, seed, role }) =>
     buildGroup(
       GROUPS.find((style) => style.id === id)!,
       seed,
       role,
+      taken,
     ),
   );
   const job = buildJob(groups.map((g) => g.organization));

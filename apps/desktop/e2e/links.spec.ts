@@ -199,7 +199,7 @@ test("a model's panel opens its chat and results and shows every qualification",
   await openAt(`/models/${VERSION_KEY}`);
   await expectVersionOpen();
   const qualified = panel().getByRole('region', { name: 'Qualified' });
-  await expect(qualified).toContainText('Certified');
+  await expect(qualified).toContainText('Risk certificate');
   await expect(qualified).toContainText('≤ ');
   await expect(qualified).toContainText('At Maple Grove Academy');
   await expect(qualified).toContainText('83% · 25 of 30');
@@ -218,7 +218,7 @@ test("a model's panel opens its chat and results and shows every qualification",
 
   // Cluster training is planned for the version's field, from the model it runs on.
   await goTo(page, `/models/${VERSION_KEY}`);
-  await panel().getByRole('button', { name: 'Plan cluster training' }).click();
+  await panel().getByRole('button', { name: 'Plan cluster fine-tuning' }).click();
   await expect(page).toHaveURL(/#\/compute\/fields\/[^/]+\/[^/]+$/);
 
   // Closing the panel takes it out of the path too.
@@ -300,11 +300,11 @@ test("an experiment's results open each arm's run and the version it froze", asy
   await openAt(`/experiments/${id}`);
 
   const runs = page.getByRole('table', { name: "Each arm's run" });
-  const targeted = runs.getByRole('row', { name: /Targeted mentoring/ });
+  const targeted = runs.getByRole('row', { name: /Spark-engineered harness/ });
   await targeted.scrollIntoViewIfNeeded();
   await expect(targeted).toContainText(/v\d+ · [0-9a-f]{7}/);
   await targeted.click();
-  const drawer = page.getByRole('dialog', { name: 'Targeted mentoring' });
+  const drawer = page.getByRole('dialog', { name: 'Spark-engineered harness' });
   await expect(drawer.getByRole('region', { name: 'Rounds' })).toBeVisible();
   await expect(drawer.getByRole('region', { name: 'Version' })).toContainText(/v\d+ · [0-9a-f]{7}/);
   await capture('links-experiment-arm-dark.png');
@@ -332,13 +332,13 @@ test("a field's export leads to Compute, whose bundle offers it as the field's l
   // A plan from a config.json on this computer, so the bundle has something to carry.
   const config = join(folders, 'config.json');
   await writeFile(config, await readFile(join(CONFIGS, 'moe-235b.json'), 'utf8'));
-  const plan = region('Training plan');
+  const plan = region('Fine-tuning plan');
   await plan.getByRole('radio', { name: 'config.json' }).click();
   await picks(config);
   await plan.getByRole('button', { name: 'Choose config.json' }).click();
   await expect(region('Memory on each GPU').getByText('Estimate')).toBeVisible();
 
-  const bundle = region('Bundle');
+  const bundle = region('Cluster launch bundle');
   await expect(bundle).toContainText('Field export of Academy desk');
   await expect(bundle).toContainText(/…[\\/]exports[\\/]academy-desk/);
   await bundle.evaluate((element) => element.scrollIntoView({ block: 'start' }));

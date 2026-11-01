@@ -297,7 +297,7 @@ function RunningRow({ row }: { row: RunRow }) {
           </span>
           {dev && dev.total > 0 && (
             <Tooltip
-              content="Check tasks passed now. Spark sees only this score, never the tasks."
+              content="Held-out checks passed now. Spark sees only this score, never the tasks."
               side="left"
             >
               <span className="font-display text-h2 font-semibold tabular-nums">
@@ -468,7 +468,7 @@ function Certified({ certificate }: { certificate: ReportCard['certificate'] }) 
   const figure = certificateFigure(certificate);
   if (certificate === undefined || figure === null) return null;
   return (
-    <Labeled label="Certified" hint={certificateHint(certificate)}>
+    <Labeled label="Risk bound" hint={certificateHint(certificate)}>
       {figure}
     </Labeled>
   );
@@ -505,14 +505,18 @@ function FinishedRow({ row }: { row: RunRow }) {
                   <Figure
                     label="Never seen"
                     score={scores.unseen}
-                    hint="Generated ones it never saw"
+                    hint="Generated organizations it never saw"
                   />
                   {hasReal && (
-                    <Figure label="Real" score={scores.real} hint="Real ones it never saw" />
+                    <Figure
+                      label="Real"
+                      score={scores.real}
+                      hint="Real organizations it never saw"
+                    />
                   )}
                 </>
               ) : (
-                <Figure label="Passed" score={card.test.score} hint="Final test" />
+                <Figure label="Passed" score={card.test.score} hint="Sealed final test" />
               )}
               <Certified certificate={card.certificate} />
             </span>

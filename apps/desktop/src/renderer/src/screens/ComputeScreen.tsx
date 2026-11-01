@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   ChoiceTiles,
+  defineTerm,
   ErrorState,
   Field,
   Input,
@@ -18,6 +19,7 @@ import {
   Segmented,
   Select,
   Stat,
+  Tooltip,
   type InspectorTab,
 } from '@architect/ui';
 import { Binary, Boxes, Cpu, FileJson, Layers2, SlidersHorizontal } from 'lucide-react';
@@ -48,13 +50,18 @@ const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
 const TABS: readonly InspectorTab<Tab>[] = [
   { value: 'hardware', label: 'Hardware', icon: <Cpu {...tabIcon} /> },
-  { value: 'training', label: 'Training', icon: <SlidersHorizontal {...tabIcon} /> },
+  { value: 'training', label: 'Fine-tuning', icon: <SlidersHorizontal {...tabIcon} /> },
 ];
 
 const METHODS = [
-  { value: 'lora', label: 'LoRA', icon: <Layers2 aria-hidden /> },
-  { value: 'qlora', label: 'QLoRA', icon: <Binary aria-hidden /> },
-  { value: 'full', label: 'Full', icon: <Boxes aria-hidden /> },
+  { value: 'lora', label: 'LoRA', icon: <Layers2 aria-hidden />, tip: defineTerm('loraAdapter') },
+  { value: 'qlora', label: 'QLoRA', icon: <Binary aria-hidden />, tip: defineTerm('qlora') },
+  {
+    value: 'full',
+    label: 'Full fine-tune',
+    icon: <Boxes aria-hidden />,
+    tip: defineTerm('fullFineTune'),
+  },
 ] as const;
 
 /**
@@ -274,7 +281,7 @@ function PlanCard({
 
   return (
     <Card
-      title="Training plan"
+      title="Fine-tuning plan"
       action={
         <Segmented
           aria-label="Where the config comes from"
@@ -317,15 +324,30 @@ function PlanCard({
                 onChange={(event) => setRevision(event.target.value)}
               />
             </Field>
-            <Button
-              type="submit"
-              variant={read === null ? 'primary' : 'secondary'}
-              size="md"
-              loading={reading}
-              disabled={!/^[\w.-]+\/[\w.-]+$/.test(repo.trim())}
-            >
-              Read config
-            </Button>
+            {/^[\w.-]+\/[\w.-]+$/.test(repo.trim()) ? (
+              <Button
+                type="submit"
+                variant={read === null ? 'primary' : 'secondary'}
+                size="md"
+                loading={reading}
+              >
+                Read config
+              </Button>
+            ) : (
+              // A disabled button takes no pointer, so what holds it back hangs on the span.
+              <Tooltip content="Enter a Hugging Face model as owner/name">
+                <span tabIndex={0} className="inline-flex rounded-control">
+                  <Button
+                    type="submit"
+                    variant={read === null ? 'primary' : 'secondary'}
+                    size="md"
+                    disabled
+                  >
+                    Read config
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
           </form>
         ) : (
           <div className="flex items-center gap-3">

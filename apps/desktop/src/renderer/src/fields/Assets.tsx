@@ -5,11 +5,11 @@ import {
   type FieldExportManifest,
 } from '@architect/shared';
 import {
-  Badge,
   Button,
   Card,
   CardGrid,
   CardRow,
+  defineTerm,
   InfoTip,
   Skeleton,
   toast,
@@ -22,6 +22,7 @@ import { reductionLine } from '../flow/train/Counterexamples';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { shortPath } from '../lib/format';
+import { capitalized } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { useSessionExports } from './exports';
@@ -29,10 +30,19 @@ import { count, EmptyRow, plural } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
 const WORDING =
-  'Checker-verified training examples from this field. No model has been trained on them here: GPU execution, large models and training gains are unverified.';
+  'Checker-verified fine-tuning data from this field, ready for a LoRA or QLoRA job: Architect trains it on Hugging Face Jobs, then measures the adapter on the sealed final test.';
 
-function Figure({ children }: { children: ReactNode }) {
-  return <span className="font-display text-h2 font-semibold tabular-nums">{children}</span>;
+/**
+ * A row's figure, with its unit after it ("96 tasks") unless the row's title already names what
+ * it counts.
+ */
+function Figure({ children, unit }: { children: ReactNode; unit?: string }) {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className="font-display text-h2 font-semibold tabular-nums">{children}</span>
+      {unit && <span className="text-ui">{unit}</span>}
+    </span>
+  );
 }
 
 /**
@@ -67,9 +77,16 @@ export function Assets({ jobId }: { jobId: string }) {
 function Counterexamples({ counterexamples }: { counterexamples: readonly Counterexample[] }) {
   return (
     <Card
-      title="Counterexamples"
+      title="Regression suite"
       icon={<Bug strokeWidth={1.8} aria-hidden />}
-      action={<Figure>{count(counterexamples.length)}</Figure>}
+      action={
+        <span className="flex items-center gap-2">
+          <InfoTip about="the regression suite">{defineTerm('regressionSuite')}</InfoTip>
+          <Figure unit={counterexamples.length === 1 ? 'test' : 'tests'}>
+            {count(counterexamples.length)}
+          </Figure>
+        </span>
+      }
       wide
       flush
     >
@@ -135,7 +152,7 @@ function AssetsView({
         record({ jobId, name: written.job.name, dir: folder });
         toast({
           title: 'Field exported',
-          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the final test's manifest, by hash only.`,
+          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the sealed final test's manifest, by hash only.`,
           action: { label: 'Open Compute', onClick: () => navigate(paths.compute({ jobId })) },
         });
       }
@@ -146,9 +163,9 @@ function AssetsView({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between gap-8">
-        {/* What an export is and isn't, said on demand beside the mark that it is experimental. */}
+        {/* What an export is for, said on demand. */}
         <span className="flex items-center gap-1">
-          <Badge>Experimental</Badge>
+          <span className="text-ui font-medium">Fine-tuning data</span>
           <InfoTip about="these assets">{WORDING}</InfoTip>
         </span>
         <Button variant="primary" size="md" loading={exporting} onClick={() => void exportTo()}>
@@ -176,7 +193,11 @@ function AssetsView({
             }
             title="Outcome scorer"
             detail={`Train tasks at ${plural(counts.train_organizations, 'organization')}, with the checker and a Python client`}
-            end={<Figure>{count(counts.train_tasks)}</Figure>}
+            end={
+              <Figure unit={counts.train_tasks === 1 ? 'task' : 'tasks'}>
+                {count(counts.train_tasks)}
+              </Figure>
+            }
           />
           <CardRow
             icon={
@@ -185,8 +206,12 @@ function AssetsView({
               </RowIcon>
             }
             title="Never-seen evaluation"
-            detail={`Final-test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
-            end={<Figure>{count(counts.locked_test_tasks)}</Figure>}
+            detail={`Sealed final test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
+            end={
+              <Figure unit={counts.locked_test_tasks === 1 ? 'task' : 'tasks'}>
+                {count(counts.locked_test_tasks)}
+              </Figure>
+            }
           />
         </Card>
         <Card title="Left out" flush>
@@ -199,8 +224,8 @@ function AssetsView({
                   key={entry.what}
                   className="flex flex-col gap-0.5 border-t border-line px-6 py-3 text-ui"
                 >
-                  <span className="font-medium">{entry.what}</span>
-                  <span className="text-small text-pretty">{entry.why}</span>
+                  <span className="font-medium">{capitalized(entry.what)}</span>
+                  <span className="text-small text-pretty">{capitalized(entry.why)}</span>
                 </li>
               ))}
             </ul>

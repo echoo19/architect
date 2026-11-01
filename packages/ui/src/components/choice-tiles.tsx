@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ToggleGroup } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { PRESS_SCALE, springs } from '../motion/springs';
+import { Tooltip } from './tooltip';
 
 export interface ChoiceTile<T extends string> {
   value: T;
@@ -11,6 +13,8 @@ export interface ChoiceTile<T extends string> {
   icon: ReactNode;
   /** One plain line under the name, for a choice whose name is a term of art. */
   description?: string;
+  /** What a term-of-art name means, in one sentence: a tooltip, marked by an info icon. */
+  tip?: string;
   disabled?: boolean;
 }
 
@@ -88,7 +92,7 @@ export function ChoiceTiles<T extends string>(props: ChoiceTilesProps<T>) {
 }
 
 function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; chosen: boolean }) {
-  return (
+  const tile = (
     <ToggleGroup.Item value={option.value} disabled={option.disabled} asChild>
       <motion.button
         type="button"
@@ -102,8 +106,9 @@ function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; cho
           chosen && 'bg-selected shadow-edge-strong inset-ring-1 inset-ring-fg/50',
         )}
       >
-        <span aria-hidden className="flex [&_svg]:size-4">
+        <span aria-hidden className="flex w-full items-center justify-between [&_svg]:size-4">
           {option.icon}
+          {option.tip && <Info strokeWidth={1.8} />}
         </span>
         <span className="flex w-full flex-col gap-0.5">
           <span className="line-clamp-2 w-full break-words font-medium">{option.label}</span>
@@ -114,4 +119,5 @@ function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; cho
       </motion.button>
     </ToggleGroup.Item>
   );
+  return option.tip ? <Tooltip content={option.tip}>{tile}</Tooltip> : tile;
 }

@@ -54,7 +54,7 @@ export function Candidates({
             detail={[
               originOf(row, rows),
               shortDate(row.version.createdAt),
-              seen === null ? 'No final test' : `Final test ${formatPercent(seen)}`,
+              seen === null ? 'No sealed final test' : `Sealed final test ${formatPercent(seen)}`,
             ].join(' · ')}
             end={
               <>

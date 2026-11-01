@@ -43,6 +43,7 @@ export function places(
   job: Job | null,
   run: Run | null,
   moved: string | undefined,
+  checks = 'check tasks',
 ): Place[] {
   const columns = (card: ReportCard | null) =>
     organizationGrid(card?.test.perOrg)?.groups.flatMap((group) => group.columns) ?? [];
@@ -80,8 +81,8 @@ export function places(
   // The organization now taught on has no final test here: its check tasks say how it does.
   const movedId =
     moved === undefined ? undefined : job?.organizations?.find((org) => org.name === moved)?.id;
-  const checks = run?.devByOrg?.find((score) => score.org === movedId);
+  const scored = run?.devByOrg?.find((score) => score.org === movedId);
   const row = rows.find((item) => item.org === movedId);
-  if (row && checks) row.after = said(checks, 'check tasks, taught on');
+  if (row && scored) row.after = said(scored, `${checks}, taught on`);
   return rows;
 }

@@ -1,4 +1,5 @@
 import type { Edition } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 import { useSettings } from '../api/hooks';
 import type { Route } from '../lib/router';
 import { PLACES, placeOf, type Place } from './places';
@@ -6,7 +7,7 @@ import { PLACES, placeOf, type Place } from './places';
 /** Each edition's name, as the shell shows it, and what it is for in one line (decision 076). */
 export const EDITIONS: Record<Edition, { name: string; says: string }> = {
   personal: { name: 'Architect', says: 'Teach an agent one job' },
-  lab: { name: 'Architect Lab', says: 'Fields, experiments, models and compute' },
+  lab: { name: 'Architect Lab', says: 'R&D for an entire field' },
 };
 
 /** The places an edition shows: the personal app has its agents and none of the Lab's places. */
@@ -35,4 +36,12 @@ export function readsTeams(route: Route): boolean {
 /** The edition in the settings; null until they have loaded. */
 export function useEdition(): Edition | null {
   return useSettings().data?.edition ?? null;
+}
+
+/**
+ * The words a shared screen uses for its parts in this edition (`WORDS` in @architect/ui): the
+ * personal edition's until the settings have loaded.
+ */
+export function useWords(): Words {
+  return WORDS[useEdition() ?? 'personal'];
 }

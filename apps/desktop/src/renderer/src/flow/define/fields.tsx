@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Button, cn, Input, SettingsRow } from '@architect/ui';
+import { Button, cn, InfoTip, Input, SettingsRow } from '@architect/ui';
 import { CircleAlert, FolderOpen } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useSecretsStatus } from '../../api/hooks';
@@ -114,10 +114,22 @@ export function KeyIfMissing({ secretRef, provider }: { secretRef: string; provi
 }
 
 /** A titled group of rows in an inspector tab. */
-export function Group({ title, children }: { title: string; children: ReactNode }) {
+export function Group({
+  title,
+  info,
+  children,
+}: {
+  title: string;
+  /** What the title's term means, in one sentence behind an info icon. */
+  info?: string | undefined;
+  children: ReactNode;
+}) {
   return (
     <section aria-label={title} className="flex flex-col">
-      <h3 className="m-0 pb-1 text-small font-medium">{title}</h3>
+      <h3 className="m-0 flex items-center gap-1 pb-1 text-small font-medium">
+        {title}
+        {info !== undefined && <InfoTip about={title.toLowerCase()}>{info}</InfoTip>}
+      </h3>
       {children}
     </section>
   );

@@ -58,6 +58,8 @@ export interface ToolboxOptions {
 /** A tool the runner offers one run on its own terms, outside the harness and the sandbox. */
 export interface ExtraTool {
   spec: ToolSpec;
+  /** One line the system prompt adds while this tool is offered, on when to use it. */
+  instruction?: string;
   /** Runs one call. Mistakes the model can fix throw a `ToolError`. */
   run(call: ToolCall, signal?: AbortSignal): Promise<ExecutorResult>;
 }

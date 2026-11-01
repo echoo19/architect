@@ -207,7 +207,7 @@ test('teaches on it in a new version of the field, and seals a fresh cohort ther
   await expect(changes).toContainText('Makes Academy desk v2, a new version of the field.');
   await expect(changes).toContainText('Academy desk stays as it is.');
   await expect(changes).toContainText(
-    `${HARBOR}’s files become material Spark may read, and its tasks become practice and check tasks.`,
+    `${HARBOR}’s files become material Spark may read, and its tasks become practice tasks and held-out checks.`,
   );
   await expect(changes).toContainText('Real academy stays never seen, sealed again');
   await expect(changes).toContainText(
@@ -301,7 +301,7 @@ test("shows each organization before and after on the new version's report", asy
   await expect(table.getByRole('columnheader', { name: 'Academy desk v2' })).toBeVisible();
   const harbor = table.getByRole('row', { name: new RegExp(HARBOR) });
   await expect(harbor).toContainText('never seen');
-  await expect(harbor).toContainText('83% · 10 of 12, check tasks, taught on');
+  await expect(harbor).toContainText('83% · 10 of 12, held-out checks, taught on');
   await table.scrollIntoViewIfNeeded();
   await capture('learn-from-org-report-dark.png');
 });

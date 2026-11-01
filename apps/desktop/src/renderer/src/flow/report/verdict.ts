@@ -22,10 +22,10 @@ export interface Verdict {
 }
 
 /** The final test's own result, said once: "58 of 60 on its final test", and where if online. */
-function testResult(report: ReportCard): string {
+function testResult(report: ReportCard, finalTest: string): string {
   const { pass, total } = report.test.score;
   const where = report.testedOn === 'hosted' ? ', run online' : '';
-  return `${pass} of ${total} on its final test${where}`;
+  return `${pass} of ${total} on its ${finalTest}${where}`;
 }
 
 /**
@@ -40,6 +40,7 @@ export function reportVerdict(
   installation: Pick<Installation, 'status' | 'checks'> | null,
   context: InstallProblemContext,
   here: ReportCard | null = null,
+  finalTest = 'final test',
 ): Verdict {
   // The test that decides is one taken on this computer: the run's own when it ran here, else
   // the one taken since. Until there is one, the online test is all there is.
@@ -52,7 +53,7 @@ export function reportVerdict(
       ? installProblem(installation, context)
       : null;
   const { name } = report;
-  const where = !online ? '' : local === null ? ' on its online final test' : ' on this computer';
+  const where = !online ? '' : local === null ? ` on its online ${finalTest}` : ' on this computer';
 
   if (installation?.status === 'blocked') {
     return {
@@ -61,7 +62,7 @@ export function reportVerdict(
       because: [
         problem?.cause ?? "One of this computer's checks failed.",
         missed.length === 0
-          ? `It scored ${testResult(deciding)}.`
+          ? `It scored ${testResult(deciding, finalTest)}.`
           : `It also fell short: ${missed.join(', and ')}.`,
       ],
       usable: false,
@@ -73,7 +74,7 @@ export function reportVerdict(
       title: `${name} finished training`,
       because: [
         `It missed the job's target${where}: ${missed.join(', and ')}.`,
-        ...(online && local !== null ? [`It scored ${testResult(report)}.`] : []),
+        ...(online && local !== null ? [`It scored ${testResult(report, finalTest)}.`] : []),
         ...(problem ? [problem.cause] : []),
         'You can still use it.',
       ],

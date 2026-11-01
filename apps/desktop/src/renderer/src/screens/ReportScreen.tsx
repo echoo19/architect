@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ReportCard } from '@architect/shared';
 import { Button, Skeleton } from '@architect/ui';
-import { ArrowRight, Boxes, Library } from 'lucide-react';
+import { ArrowRight, Boxes, Library, TriangleAlert } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
 import {
@@ -15,6 +15,7 @@ import {
 import { useQuery } from '../api/query';
 import { refreshRunLists } from '../api/updates';
 import { ProblemState } from '../components/ProblemState';
+import { notHeldLine } from '../flow/report/certificate-words';
 import { useComparison } from '../flow/report/ComparisonTable';
 import {
   useBareReport,
@@ -31,7 +32,7 @@ import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { chatPath, navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
-import { useEdition } from '../shell/edition';
+import { useEdition, useWords } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 
@@ -98,6 +99,7 @@ function useReportAgent(report: ReportCard) {
   );
   // A run whose own test ran online is ready only once it has been tested here.
   const here = useLocalCard(report).data ?? null;
+  const { finalTest } = useWords();
   const verdict = reportVerdict(
     report,
     installation.data ?? null,
@@ -106,6 +108,7 @@ function useReportAgent(report: ReportCard) {
       baseBytes: graduate?.manifest.student.sizeBytes,
     },
     here,
+    finalTest,
   );
   return { graduate, installation: installation.data ?? null, verdict };
 }
@@ -126,15 +129,32 @@ function ReportFooter({
   const { graduate, verdict } = useReportAgent(report);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const edition = useEdition();
+  const { finalTest } = useWords();
+  const notHeld = notHeldLine(report.certificate, finalTest);
+  const notHeldId = useId();
   return (
-    <div className="mx-auto flex max-w-[1120px] flex-wrap justify-end gap-2">
+    <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-end gap-2">
       {edition === 'lab' && <LabLinks report={report} />}
       <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
       {verdict.usable || !graduate ? (
-        <Button variant="primary" loading={accepting} onClick={onAccept}>
-          Start using {report.name}
-          <ArrowRight size={16} strokeWidth={2} aria-hidden />
-        </Button>
+        <>
+          {/* A bound that failed somewhere is said beside the button, never passed over. */}
+          {notHeld && (
+            <span id={notHeldId} className="flex items-center gap-2 px-2 text-ui font-medium">
+              <TriangleAlert size={16} strokeWidth={1.8} className="text-danger" aria-hidden />
+              {notHeld}
+            </span>
+          )}
+          <Button
+            variant="primary"
+            loading={accepting}
+            onClick={onAccept}
+            {...(notHeld ? { 'aria-describedby': notHeldId } : {})}
+          >
+            Start using {report.name}
+            <ArrowRight size={16} strokeWidth={2} aria-hidden />
+          </Button>
+        </>
       ) : (
         <Button
           variant="primary"

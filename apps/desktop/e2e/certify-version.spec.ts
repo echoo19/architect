@@ -236,8 +236,8 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
     'Academy desk ·',
   );
   await expect(dialog().getByRole('textbox', { name: 'Calibration tasks' })).toHaveValue('60');
-  await expect(dialog().getByRole('textbox', { name: 'Tries per task' })).toHaveValue('5');
-  await expect(dialog().getByRole('textbox', { name: 'Wrong at most' })).toHaveValue('10');
+  await expect(dialog().getByRole('textbox', { name: 'Attempts per task' })).toHaveValue('5');
+  await expect(dialog().getByRole('textbox', { name: 'Risk target' })).toHaveValue('10');
   await expect(dialog().getByRole('textbox', { name: 'Confidence' })).toHaveValue('95');
   const checks = dialog().getByRole('group', { name: 'Check at' });
   await expect(checks.getByRole('checkbox')).toHaveCount(6);
@@ -256,7 +256,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
   await expect(plan).toContainText(
     'Checked at Summit Tutoring (12 tasks), Brookfield Academy (24 tasks)',
   );
-  await expect(plan).toContainText('480 tries, 5 at each task');
+  await expect(plan).toContainText('480 attempts, 5 per task');
   await expect(plan).toContainText('Free');
   const asked = await launched.app.evaluate(() =>
     (globalThis as typeof globalThis & { certifyCalls?: unknown[] }).certifyCalls?.at(-1),
@@ -276,11 +276,12 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
 
   await dialog().getByRole('button', { name: 'Certify', exact: true }).click();
   await expect(dialog().getByRole('progressbar', { name: 'Certifying' })).toBeVisible();
-  const certificate = dialog().getByRole('region', { name: 'Certified answers' });
+  const certificate = dialog().getByRole('region', { name: 'Risk certificate' });
   await expect(certificate).toContainText(
     'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence.',
     { timeout: 15_000 },
   );
+  await expect(certificate.getByLabel('Risk certificate figures')).toContainText('Risk bound8%');
   await certificate.getByRole('button', { name: 'How this is measured' }).click();
   await expect(certificate).toContainText('Measured on 60 calibration tasks it had never seen');
   const where = certificate.getByRole('list', { name: 'Where the bound was checked' });
@@ -292,7 +293,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
   await dialog().getByRole('button', { name: 'Close' }).click();
   await expect(dialog()).toBeHidden();
   await panel.getByRole('button', { name: 'Certify' }).click();
-  await expect(dialog().getByRole('region', { name: 'Certified answers' })).toBeVisible();
+  await expect(dialog().getByRole('region', { name: 'Risk certificate' })).toBeVisible();
   await expect(dialog().getByRole('button', { name: 'Certify again' })).toBeVisible();
   await page.keyboard.press('Escape');
 });

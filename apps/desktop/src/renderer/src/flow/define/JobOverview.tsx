@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Job, PermissionMode } from '@architect/shared';
 import { Heading, NumberTicker, Segmented, SettingsValue } from '@architect/ui';
 import { Check, X, type LucideIcon } from 'lucide-react';
+import { useWords } from '../../shell/edition';
 import { WRITE_MODE_LABELS, WRITE_MODES, WRITE_SETTING } from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
 import { changeableOf, type Changeable } from './permissions';
@@ -78,6 +79,7 @@ function Figure({ value, label }: { value: ReactNode; label: string }) {
 
 /** What the agent must reach before training is done: the share of new tasks it gets right. */
 export function ReadyWhen({ job }: { job: Job }) {
+  const w = useWords();
   const { passRate, p95LatencyMs } = job.requirements;
   return (
     <SheetRow label="Ready when">
@@ -90,7 +92,7 @@ export function ReadyWhen({ job }: { job: Job }) {
           }
           label={
             (job.organizations ?? []).length > 1
-              ? 'on the final test, organizations it was taught on'
+              ? `on the ${w.finalTest}, organizations it was taught on`
               : 'of new tasks right'
           }
         />

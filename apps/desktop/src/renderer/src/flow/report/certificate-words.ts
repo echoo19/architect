@@ -33,6 +33,45 @@ export function certificateSentence(certificate: Issued, name: string): string {
   return `When ${name} answers, it is wrong on at most ${boundPercent(bound)}% of requests like these, with ${confidence(certificate.delta)}. ${rest}`;
 }
 
+/**
+ * The certificate's three figures as the Lab names them, under its plain sentence: the risk
+ * bound, its confidence and its coverage.
+ */
+export function riskCertificateFigures(certificate: Issued): { label: string; value: string }[] {
+  const { bound, coverage } = certificate.threshold;
+  return [
+    { label: 'Risk bound', value: `${boundPercent(bound)}%` },
+    { label: 'Confidence', value: `${share(1 - certificate.delta)}%` },
+    { label: 'Coverage', value: `${share(coverage)}%` },
+  ];
+}
+
+/**
+ * Where the bound didn't hold, for the line beside "Start using": "Not held at Real academy",
+ * "Not held at Harbor Learning and at Real academy", or "Not held on the final test". Null when it
+ * held everywhere it was checked, or when there is no certificate.
+ */
+export function notHeldLine(
+  certificate: Certificate | undefined,
+  finalTest = 'final test',
+): string | null {
+  if (certificate?.issued !== true) return null;
+  const places = certificate.checks
+    .filter((check) => !check.held)
+    .map((check) => {
+      if (check.seen) {
+        return check.orgName === undefined
+          ? `on the ${finalTest}`
+          : `on new tasks at ${check.orgName}`;
+      }
+      return `at ${check.orgName ?? 'an organization it never saw'}`;
+    });
+  const last = places.at(-1);
+  if (last === undefined) return null;
+  const listed = places.length === 1 ? last : `${places.slice(0, -1).join(', ')} and ${last}`;
+  return `Not held ${listed}`;
+}
+
 /** How it was measured, in one line: what the sentence rests on. */
 export function certificateBasis(certificate: Certificate): string {
   const tasks = `${certificate.n} calibration ${certificate.n === 1 ? 'task' : 'tasks'}`;
@@ -68,10 +107,10 @@ export function noCertificateSentence(
  * certification after the fact, decision 079), or one it never saw, by name, said to be measured
  * before it was taught on once a later version of the field teaches on it (decision 089).
  */
-export function checkPlace(check: CertificateCheck): string {
+export function checkPlace(check: CertificateCheck, FinalTest = 'Final test'): string {
   if (check.seen) {
     return check.orgName === undefined
-      ? 'Final test, organizations it was taught on'
+      ? `${FinalTest}, organizations it was taught on`
       : `New tasks at ${check.orgName}`;
   }
   const place = check.orgName ?? 'An organization it never saw';
@@ -93,7 +132,7 @@ export function certificateFigure(certificate: Certificate | undefined): string 
 
 /** A certificate's figure explained, for a tooltip or a screen reader. */
 export function certificateHint(certificate: Certificate): string {
-  if (!certificate.issued) return 'Not certified';
+  if (!certificate.issued) return 'No risk certificate';
   const { bound, coverage } = certificate.threshold;
-  return `Wrong on at most ${boundPercent(bound)}% of the requests it answers, with ${confidence(certificate.delta)}; it answers ${share(coverage)}%`;
+  return `Risk certificate: bound ${boundPercent(bound)}% at ${confidence(certificate.delta)}, coverage ${share(coverage)}%`;
 }

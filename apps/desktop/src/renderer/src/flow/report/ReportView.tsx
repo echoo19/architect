@@ -18,6 +18,7 @@ import {
   StaggerItem,
   Stat,
   Tooltip,
+  type Words,
 } from '@architect/ui';
 import { CircleMinus, Network } from 'lucide-react';
 import type { QueryState } from '../../api/query';
@@ -25,6 +26,7 @@ import { ProblemState } from '../../components/ProblemState';
 import { formatBytes, formatDuration, formatUsd } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { useWords } from '../../shell/edition';
 import { formatAnswerTime, formatRate, percent, signed } from '../format';
 import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
@@ -159,12 +161,15 @@ function costParts(
   report: ReportCard,
   mentor: string,
   computeUsd: number,
+  w: Words,
 ): { total: number; parts: string[] } {
   const { mentorUsd, studentUsd } = report.cost;
   const parts = [
     `${mentor} ${cents(mentorUsd)}`,
     studentUsd ? `Training online ${cents(studentUsd)}` : null,
-    computeUsd > 0 ? `Training weights ${cents(computeUsd)}` : null,
+    computeUsd > 0
+      ? `${w.lab ? 'LoRA fine-tuning' : 'Training weights'} ${cents(computeUsd)}`
+      : null,
   ].filter((part): part is string => part !== null);
   return {
     total: mentorUsd + (studentUsd ?? 0) + computeUsd,
@@ -208,6 +213,7 @@ export function ReportView({
   contacts,
 }: ReportViewProps) {
   const { test } = report;
+  const w = useWords();
   const figures = evidence.data ? runtimeFigures(evidence.data.measurements, report) : null;
   const names: ModelNames = {
     mentor: shortModelName(report.mentor.label),
@@ -215,12 +221,16 @@ export function ReportView({
   };
   const device = deviceInSentence(currentPlatform());
   // Where the final test ran; a test taken again here has its own card below, so it isn't said.
-  const where = test.ranOffline ? `offline on ${device}` : `on an online copy of ${names.student}`;
-  const bill = costParts(report, names.mentor, evidence.data?.progress.spent.computeUsd ?? 0);
+  const where = test.ranOffline
+    ? w.lab
+      ? 'on-premise and offline'
+      : `offline on ${device}`
+    : `on an online copy of ${names.student}`;
+  const bill = costParts(report, names.mentor, evidence.data?.progress.spent.computeUsd ?? 0, w);
   const before = beforeTraining(report, comparison, bare);
   const size = graduate?.manifest.student.sizeBytes;
   const memory = memoryFact(figures);
-  const source = testSourceNote(report.tasks, names.mentor);
+  const source = testSourceNote(report.tasks, names.mentor, w.finalTest);
   const grid = organizationGrid(test.perOrg);
 
   return (
@@ -253,7 +263,7 @@ export function ReportView({
             size="xl"
             value={formatRate(test.score)}
             label={
-              grid ? 'on the final test, organizations it was taught on' : 'of new tasks right'
+              grid ? `on the ${w.finalTest}, organizations it was taught on` : 'of new tasks right'
             }
             note={<Lines lines={[`${test.score.pass} of ${test.score.total}`, before]} />}
             noteFont="text"
@@ -376,7 +386,7 @@ export function ReportView({
                   <tr className="text-small">
                     <th className="w-24 pb-3" />
                     <th className="pb-3" />
-                    <th className="pb-3 pl-6 text-right font-normal">Check tasks</th>
+                    <th className="pb-3 pl-6 text-right font-normal">{w.Checks}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,7 +425,7 @@ export function ReportView({
               { label: 'Answer time', value: `95% within ${formatAnswerTime(test.latencyMs.p95)}` },
               { label: 'Training', value: trainingNote(report, job) },
               ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(' · ') }] : []),
-              ...(memory ? [{ label: 'Memory in the final test', value: memory }] : []),
+              ...(memory ? [{ label: `Memory in the ${w.finalTest}`, value: memory }] : []),
               ...(figures !== null && figures.coldStartMs !== null
                 ? [
                     {

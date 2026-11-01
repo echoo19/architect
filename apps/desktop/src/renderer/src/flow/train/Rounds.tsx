@@ -1,8 +1,17 @@
 import type { ReactNode } from 'react';
 import type { Experiment, Intervention, Job, Round, RunStopReason } from '@architect/shared';
-import { cn, Collapse, NumberTicker, Spinner, Stagger, StaggerItem } from '@architect/ui';
+import {
+  cn,
+  Collapse,
+  NumberTicker,
+  Spinner,
+  Stagger,
+  StaggerItem,
+  type Words,
+} from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { ProblemState } from '../../components/ProblemState';
+import { useWords } from '../../shell/edition';
 import { Appear, useFirstKeys } from '../appear';
 import { Counted } from '../counted';
 import { percent } from '../format';
@@ -10,6 +19,7 @@ import { RowButton, Section } from '../ledger';
 import { outcomeNote } from './decision';
 import {
   DISPOSITIONS,
+  dispositionMeaning,
   FIRST_DRAFT,
   INTERVENTIONS,
   TRAINING_END_ICONS,
@@ -19,7 +29,7 @@ import { questionOfRound } from './questions';
 import { changeCounts } from './run-state';
 
 /** What a round is doing before the mentor has named its change. */
-function untitled(round: Round): string {
+function untitled(round: Round, w: Words): string {
   switch (round.status) {
     case 'attempting':
       return 'Practice tasks';
@@ -28,7 +38,7 @@ function untitled(round: Round): string {
     case 'teaching':
       return 'Checking corrections';
     case 'training':
-      return 'Training weights';
+      return w.TrainingWeights;
     case 'clarifying':
       return 'Waiting for your answer';
     case 'evaluating':
@@ -46,23 +56,18 @@ export interface RoundRecords {
 }
 
 /**
- * Changes kept of those tried: from the experiment records when the run has them, rejected,
- * invalid and stopped ones included, else from its rounds. The first draft is the starting
- * point, not a change, so it isn't counted among them.
+ * Changes kept of those tried, counted from the rows the list shows, so the two always agree. The
+ * first draft is the starting point, not a change, so it isn't counted among them.
  */
 function keptChanges(
   rounds: readonly Round[],
   draftRound: number | null,
   records: RoundRecords | null,
 ): { kept: number; tried: number } {
-  const changes = records?.experiments.filter((experiment) => experiment.kind !== 'draft') ?? [];
-  if (changes.length > 0) {
-    return {
-      kept: changes.filter((experiment) => experiment.disposition === 'kept').length,
-      tried: changes.length,
-    };
-  }
-  return changeCounts(rounds.filter((round) => round.index !== draftRound));
+  return changeCounts(
+    rounds.filter((round) => round.index !== draftRound),
+    records?.experiments ?? [],
+  );
 }
 
 /**
@@ -99,6 +104,7 @@ export function Rounds({
   /** The newest round, opened: what is happening in it. */
   current: ReactNode;
 }) {
+  const w = useWords();
   const EndIcon = stopReason ? TRAINING_END_ICONS[stopReason] : null;
   const first = useFirstKeys(rounds.map((round) => String(round.index)));
   const newest = rounds.at(-1)?.index;
@@ -110,10 +116,21 @@ export function Rounds({
         counts &&
         counts.tried > 0 && (
           <span className="text-small tabular-nums">
-            <Counted said={`${counts.kept} of ${counts.tried}`}>
-              <NumberTicker value={counts.kept} /> of <NumberTicker value={counts.tried} />
-            </Counted>{' '}
-            kept
+            {w.lab ? (
+              <Counted
+                said={`${counts.kept} kept of ${counts.tried} ${counts.tried === 1 ? 'change' : 'changes'}`}
+              >
+                <NumberTicker value={counts.kept} /> kept of <NumberTicker value={counts.tried} />{' '}
+                {counts.tried === 1 ? 'change' : 'changes'}
+              </Counted>
+            ) : (
+              <>
+                <Counted said={`${counts.kept} of ${counts.tried}`}>
+                  <NumberTicker value={counts.kept} /> of <NumberTicker value={counts.tried} />
+                </Counted>{' '}
+                kept
+              </>
+            )}
           </span>
         )
       }
@@ -192,6 +209,7 @@ function RoundRow({
   open: boolean;
   onOpen: () => void;
 }) {
+  const w = useWords();
   // A question says what was asked, or what the person answered, unless the round is open under
   // its line and says so there; a change that was made worse says what it harmed. Every other
   // outcome says all of it in its own words.
@@ -202,7 +220,7 @@ function RoundRow({
         ? `Your answer: ${asked.answer.text}`
         : asked.question
     : experiment && !draft
-      ? outcomeNote(experiment, job)
+      ? outcomeNote(experiment, job, w)
       : null;
   return (
     <RowButton
@@ -213,7 +231,7 @@ function RoundRow({
         {String(round.index).padStart(2, '0')}
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="truncate">{round.title ?? untitled(round)}</span>
+        <span className="truncate">{round.title ?? untitled(round, w)}</span>
         {note && <span className="truncate text-small">{note}</span>}
       </span>
       <RoundResult
@@ -244,6 +262,7 @@ function RoundResult({
   experiment: Experiment | undefined;
   asked: Intervention | undefined;
 }) {
+  const w = useWords();
   const disposition = experiment?.disposition ?? round.decision;
   const before = experiment?.devBefore ?? round.devBefore;
   const after = experiment?.devAfter ?? round.devAfter;
@@ -260,7 +279,7 @@ function RoundResult({
         <Outcome
           icon={named.icon}
           tone={draft ? 'text-student' : words.tone}
-          title={draft ? undefined : words.meaning}
+          title={draft ? undefined : dispositionMeaning(disposition, w)}
         >
           {named.label}
         </Outcome>

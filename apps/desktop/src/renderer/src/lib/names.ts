@@ -51,13 +51,13 @@ export function mentorIsLocal(mentor: MentorConfig): boolean {
  * A kept setup by where it came from rather than its internal number: "the first draft", "the
  * setup from round 4", or "the starting setup" when no round made it.
  */
-export function setupName(origin: {
-  round?: number | undefined;
-  draft?: boolean | undefined;
-}): string {
+export function setupName(
+  origin: { round?: number | undefined; draft?: boolean | undefined },
+  setup = 'setup',
+): string {
   if (origin.draft) return 'the first draft';
-  if (origin.round !== undefined) return `the setup from round ${origin.round}`;
-  return 'the starting setup';
+  if (origin.round !== undefined) return `the ${setup} from round ${origin.round}`;
+  return `the starting ${setup}`;
 }
 
 /**

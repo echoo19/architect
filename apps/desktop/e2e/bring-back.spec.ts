@@ -119,9 +119,9 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, '/compute');
 
-  const card = page.getByRole('region', { name: 'Qualify a trained model' });
+  const card = page.getByRole('region', { name: 'Qualify a fine-tuned model' });
   await expect(card).toContainText("this computer's GPU");
-  await expect(card).toContainText('costs no money');
+  await expect(card).toContainText('at no cost');
   await card.getByRole('combobox', { name: 'Field' }).click();
   await page.getByRole('option', { name: 'Academy desk' }).click();
   await expect(card.getByRole('combobox', { name: 'Harness version' })).toContainText('Harness');
@@ -138,7 +138,7 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
 
   const listed = card.getByRole('list', { name: 'Qualified models' });
   await expect(listed).toContainText(ENDPOINT.model);
-  await expect(listed).toContainText('Trained elsewhere');
+  await expect(listed).toContainText('Fine-tuned elsewhere');
   const calls = await launched.app.evaluate(
     () => (globalThis as typeof globalThis & { qualifyCalls?: unknown[] }).qualifyCalls,
   );

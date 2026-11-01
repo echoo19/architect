@@ -11,6 +11,7 @@ import {
 import { armInSentence } from '@architect/shared';
 import {
   DataTable,
+  defineTerm,
   DetailList,
   Disclosure,
   Drawer,
@@ -241,7 +242,7 @@ function SkillTable({
           { key: 'skill', header: 'Skill', cell: (skill) => skill.label },
           ...groups.map((group) => ({
             key: group.key,
-            header: group.label || 'Final test',
+            header: group.label || 'Sealed final test',
             align: 'end' as const,
             cell: (skill: { type: string }) => {
               const count = skillIn(row, group, skill.type);
@@ -345,10 +346,12 @@ const versionText = (frozen: NonNullable<ArmReport['frozen']>) =>
 function RunsTable({
   arms,
   named,
+  mentor,
   onOpen,
 }: {
   arms: readonly ArmReport[];
   named: ArmNames;
+  mentor?: string | undefined;
   onOpen: (arm: ArmId) => void;
 }) {
   return (
@@ -378,7 +381,8 @@ function RunsTable({
         },
         {
           key: 'check',
-          header: 'Check tasks',
+          header: 'Held-out checks',
+          hint: defineTerm('heldOutChecks', mentor),
           align: 'end',
           width: '176px',
           cell: (arm) => scoreText(arm.dev.kept?.after ?? arm.dev.baseline),
@@ -433,7 +437,7 @@ function ArmRun({ arm, named }: { arm: ArmReport; named: ArmNames }) {
             </ol>
           )}
         </DrawerSection>
-        <DrawerSection title="Check tasks">
+        <DrawerSection title="Held-out checks">
           <DetailList
             items={[
               { label: 'At the start', value: scoreText(arm.dev.baseline) ?? '–' },
@@ -458,7 +462,7 @@ function ArmRun({ arm, named }: { arm: ArmReport; named: ArmNames }) {
                 { label: 'Model', value: frozen.localModel },
                 { label: 'Runs on', value: frozen.backend },
                 ...(frozen.adapter
-                  ? [{ label: 'Adapter', value: frozen.adapter.sha256.slice(0, 7) }]
+                  ? [{ label: 'LoRA adapter', value: frozen.adapter.sha256.slice(0, 7) }]
                   : []),
                 { label: 'Final-test seeds', value: frozen.testSeeds.join(', ') },
               ]}
@@ -478,10 +482,13 @@ function ArmRuns({
   report,
   input,
   named,
+  mentor,
 }: {
   report: ComparisonReport;
   input: ExperimentInput;
   named: ArmNames;
+  /** The teacher's short name, for what a held-out check is; the general one when unknown. */
+  mentor?: string | undefined;
 }) {
   const asked = new Set(input.arms.map((item) => item.arm));
   const arms = report.arms.filter((arm) => asked.has(arm.arm) && arm.runId !== null);
@@ -492,11 +499,12 @@ function ArmRuns({
   return (
     <TableExhibit
       label="Table 5"
-      caption="Each arm's run: its rounds, its check tasks, and the version of its harness it froze."
+      caption="Each arm's run: its rounds, its held-out checks, and the harness version it froze."
     >
       <RunsTable
         arms={arms}
         named={named}
+        mentor={mentor}
         onOpen={(arm) => {
           setOpen(arm);
           setShown(true);
@@ -547,11 +555,14 @@ export function Results({
           )}
           <Figure
             label="Figure 1"
-            caption={`Final-test pass rate of each arm${groups.length > 1 ? ' in each group' : ''}, with its 95% interval. ${measured.backend.label}, seed ${seed}.`}
+            caption={`Sealed final test pass rate of each arm${groups.length > 1 ? ' in each group' : ''}, with its 95% interval. ${measured.backend.label}, seed ${seed}.`}
           >
             <IntervalPlot
               aria-label={`Final-test pass rate, ${measured.backend.label}`}
               groups={plotGroups(measured.rows, groups, arms)}
+              domain={[0, 1]}
+              ticks={[0, 0.25, 0.5, 0.75, 1]}
+              axis="both"
             />
           </Figure>
         </div>
@@ -586,7 +597,7 @@ export function Results({
       >
         <SpendTable report={report} input={input} measured={measured} names={names} />
       </TableExhibit>
-      <ArmRuns report={report} input={input} named={arms} />
+      <ArmRuns report={report} input={input} named={arms} mentor={names.mentor} />
       {report.disclosures.length > 0 && (
         <Disclosure label="Notes from the report">
           <ul className="m-0 flex max-w-[76ch] list-disc flex-col gap-2 pl-5 text-ui text-pretty">

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   describeTrainingJob,
   FileTrainingStore,
+  HF_JOB_FLAVORS,
   HfJobsBackend,
   loadRecipe,
   TrainingWorker,
@@ -150,6 +151,15 @@ async function start(ctx: CliContext, parsed: Parsed, signal: AbortSignal): Prom
   }
   const maxComputeUsd = dollars(values);
   const maxMinutes = countOption(values, 'max-minutes');
+  const flavor = stringOption(values, 'flavor');
+  if (flavor !== undefined && !HF_JOB_FLAVORS.some((known) => known.id === flavor)) {
+    throw new CliError(
+      'invalid_input',
+      'usage',
+      `--flavor takes ${HF_JOB_FLAVORS.map((known) => known.id).join(' or ')}, not "${flavor}".`,
+      'Architect trains only on hardware whose price it knows, so the compute cap holds.',
+    );
+  }
   let built;
   try {
     built = await fieldDataset(ctx.dataDir, name);
@@ -188,6 +198,7 @@ async function start(ctx: CliContext, parsed: Parsed, signal: AbortSignal): Prom
         ...(revision === undefined ? {} : { revision }),
       },
       ...(maxMinutes === undefined ? {} : { maxSeconds: maxMinutes * 60 }),
+      ...(flavor === undefined ? {} : { flavor }),
     },
     signal,
   );

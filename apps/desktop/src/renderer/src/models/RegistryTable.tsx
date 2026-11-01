@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import type { Score } from '@architect/shared';
-import { AgentAvatar, DataTable, Tooltip, type DataColumn } from '@architect/ui';
+import { AgentAvatar, DataTable, defineTerm, Tooltip, type DataColumn } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
+import { SCORE_HINTS } from '../fields/parts';
 import { shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
 import { formatPercent } from '../lib/format';
@@ -13,12 +14,14 @@ import {
   shortHash,
   sortScore,
   statusOf,
+  STATUS_HINTS,
   STATUS_WORDS,
   type ModelRow,
+  type ModelStatus,
   type RowScores,
 } from './registry';
 
-const FINAL_TEST = 'Final test';
+const FINAL_TEST = 'Sealed final test';
 
 /** A score as its share passed; null, which the table shows as absent, when it wasn't measured. */
 function scoreCell(score: Score | null): ReactNode {
@@ -53,6 +56,17 @@ const scoreColumn = (
     ),
 });
 
+/** A version's status in its word, with what the word means on hover or focus. */
+export function StatusWord({ status }: { status: ModelStatus }) {
+  return (
+    <Tooltip content={STATUS_HINTS[status]} side="top">
+      <span tabIndex={0} className="rounded-mark">
+        {STATUS_WORDS[status]}
+      </span>
+    </Tooltip>
+  );
+}
+
 const NAME: DataColumn<ModelRow> = {
   key: 'name',
   header: 'Agent',
@@ -75,14 +89,14 @@ const STATUS: DataColumn<ModelRow> = {
   key: 'status',
   header: 'Status',
   sortValue: (row) => STATUS_WORDS[statusOf(row.version)],
-  cell: (row) => STATUS_WORDS[statusOf(row.version)],
+  cell: (row) => <StatusWord status={statusOf(row.version)} />,
 };
 
 const SCORES = [
-  scoreColumn('seen', 'Taught on', FINAL_TEST, 'Organizations it was taught on'),
-  scoreColumn('unseen', 'Never seen', FINAL_TEST, 'Generated organizations it never saw'),
-  scoreColumn('real', 'Real', FINAL_TEST, 'Real organizations it never saw'),
-  scoreColumn('check', 'Check tasks', undefined, CHECK_HINT),
+  scoreColumn('seen', 'Taught on', FINAL_TEST, SCORE_HINTS.seen),
+  scoreColumn('unseen', 'Never seen', FINAL_TEST, SCORE_HINTS.unseen),
+  scoreColumn('real', 'Real', FINAL_TEST, SCORE_HINTS.real),
+  scoreColumn('check', 'Held-out checks', undefined, CHECK_HINT),
 ];
 
 /**
@@ -91,9 +105,9 @@ const SCORES = [
  */
 const CERTIFIED: DataColumn<ModelRow> = {
   key: 'certified',
-  header: 'Certified',
+  header: 'Risk bound',
   align: 'end',
-  hint: 'The most it is wrong when it answers, certified on calibration tasks',
+  hint: defineTerm('riskCertificate'),
   sortValue: (row) =>
     row.report?.certificate?.issued === true ? row.report.certificate.threshold.bound : null,
   cell: (row) => {
@@ -130,11 +144,12 @@ const COLUMNS: DataColumn<ModelRow>[] = [
   {
     key: 'method',
     header: 'Method',
+    hint: `Harness: ${defineTerm('harness').toLowerCase()} LoRA: ${defineTerm('loraAdapter').toLowerCase()}`,
     sortValue: (row) => (row.version.manifest.model.adapter ? 1 : 0),
     cell: (row) => {
       // The hashes tell versions apart; they show on hover and in the panel.
       const { model, harness } = row.version.manifest;
-      const method = model.adapter ? 'Adapter' : 'Harness';
+      const method = model.adapter ? 'LoRA' : 'Harness';
       const hashes = model.adapter
         ? `adapter ${shortHash(model.adapter.sha256)}, harness ${shortHash(harness.hash)}`
         : `harness ${shortHash(harness.hash)}`;

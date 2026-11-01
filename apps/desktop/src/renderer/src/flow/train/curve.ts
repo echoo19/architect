@@ -176,7 +176,7 @@ export function curveGeometry(input: CurveInput): CurveGeometry {
 }
 
 /** The chart in words, for screen readers. */
-export function describeCurve(input: CurveInput): string {
+export function describeCurve(input: CurveInput, checks = 'check tasks'): string {
   const parts: string[] = [];
   const start = baselineOf(input);
   if (start) parts.push(`${Math.round(rate(start))}% at the start`);
@@ -193,7 +193,6 @@ export function describeCurve(input: CurveInput): string {
     }
   }
   const target = `Target ${Math.round(input.target * 100)}%.`;
-  if (parts.length === 0)
-    return `Score on the check tasks by round: nothing measured yet. ${target}`;
-  return `Score on the check tasks by round: ${parts.join(', ')}. ${target}`;
+  if (parts.length === 0) return `Score on the ${checks} by round: nothing measured yet. ${target}`;
+  return `Score on the ${checks} by round: ${parts.join(', ')}. ${target}`;
 }
