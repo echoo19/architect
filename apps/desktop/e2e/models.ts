@@ -115,8 +115,10 @@ export async function startFakeOllama(
 
   async function answer(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const body = (await readBody(request)) as {
+      model?: string;
       messages?: ChatRequestMessage[];
       options?: Record<string, unknown>;
+      keep_alive?: number;
     };
     if (request.url === '/api/ps') {
       loadedAsked += 1;
@@ -143,6 +145,16 @@ export async function startFakeOllama(
     }
     if (request.url !== '/api/chat') {
       response.writeHead(404).end();
+      return;
+    }
+    // Asked to unload, with no messages and keep_alive 0, Ollama answers at once, as one object.
+    if (body.keep_alive === 0 && (body.messages ?? []).length === 0) {
+      sendJson(response, {
+        model: body.model,
+        message: { role: 'assistant', content: '' },
+        done: true,
+        done_reason: 'unload',
+      });
       return;
     }
     chats.push(body.messages ?? []);
