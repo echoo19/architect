@@ -115,12 +115,18 @@ export function MentorStep({
   const metaSaved = secrets.data?.['meta'] === true;
   const waiting = signIn.state.phase === 'waiting';
 
+  // The teacher each way last had, so going back to a way brings its teacher back with it.
+  const [chosen, setChosen] = useState<Partial<Record<MentorRoute, MentorConfig>>>({});
+
   const chooseRoute = (next: MentorRoute) => {
     onResult(null);
     onRoute(next);
-    if (next === 'meta' && model?.provider !== 'meta') {
-      onMentor(mentorFromPreset(mentorPreset('meta-spark'), mentor));
-    }
+    const remembered = model ? { ...chosen, [routeOf(model)]: model } : chosen;
+    setChosen(remembered);
+    const earlier = remembered[next];
+    if (model !== null && routeOf(model) === next) return;
+    if (earlier) onMentor(earlier);
+    else if (next === 'meta') onMentor(mentorFromPreset(mentorPreset('meta-spark'), mentor));
   };
 
   const test = async (event?: FormEvent) => {

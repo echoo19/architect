@@ -361,6 +361,14 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   expect(tested).toMatchObject({ provider: 'ollama', model: GRANITE });
   expect(tested).not.toHaveProperty('secretRef');
 
+  // Looking at another way and coming back keeps the teacher chosen here.
+  await page.getByRole('radio', { name: /^Spark/ }).click();
+  await page.getByRole('radio', { name: /On this computer/ }).click();
+  await expect(next).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Teacher', exact: true })).not.toContainText(
+    'Choose a model',
+  );
+
   // OpenRouter's way signs in first, then offers its models.
   await page.getByRole('radio', { name: /OpenRouter/ }).click();
   await expect(next).toHaveCount(0);
