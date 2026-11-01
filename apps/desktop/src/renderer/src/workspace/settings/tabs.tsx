@@ -40,6 +40,7 @@ import {
   installProblem,
   osName,
   STATUS_LABELS,
+  statusLine,
   statusMark,
   WORKS_HERE_TITLE,
 } from '../../install/labels';
@@ -69,9 +70,11 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { manifest } = agent;
   const { score, testedOn } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
-  // A test taken on the online copy says so: the agent isn't marked ready until it is taken here.
-  const online = testedOn === 'hosted' ? ' online' : '';
-  const result = `${met ? `Passed${online}` : `Needs ${Math.round(target * 100)}%${online}`}: ${formatScore(score)}`;
+  // A test taken on the online copy of its model says so: the agent itself never goes online.
+  const hosted = testedOn === 'hosted' ? ' on the online copy' : '';
+  const result = met
+    ? `Passed${hosted}: ${formatScore(score)}`
+    : `Needs ${Math.round(target * 100)}%: ${formatScore(score)}${hosted}`;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
 
@@ -152,7 +155,7 @@ function InstallRow({
             tone={status === 'ready' ? 'student' : status === 'blocked' ? 'danger' : 'outline'}
             icon={<StatusMark state={statusMark(status)} size={14} />}
           >
-            {STATUS_LABELS[status]}
+            {checked ? statusLine(checked) : STATUS_LABELS[status]}
           </Badge>
         )}
       </SettingsRow>

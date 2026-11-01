@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { graduateKeys, graduatesApi, refreshAgent, useInstallation } from '../../api/graduates';
 import { setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
-import { STATUS_LABELS, WORKS_HERE_TITLE } from '../../install/labels';
+import { statusLine, WORKS_HERE_TITLE } from '../../install/labels';
 import { formatBytes } from '../../lib/format';
 import { capitalized, quantizationLabel, STUDENT_ROLE } from '../../lib/names';
 import { attempt } from '../../lib/notify';
@@ -74,7 +74,7 @@ export function AgentModelRow({
     if (bound) {
       toast({
         title: `Changed the model of ${agent.name}`,
-        description: `${WORKS_HERE_TITLE}: ${STATUS_LABELS[bound.status]}`,
+        description: `${WORKS_HERE_TITLE}: ${statusLine(bound)}`,
       });
     }
   };
