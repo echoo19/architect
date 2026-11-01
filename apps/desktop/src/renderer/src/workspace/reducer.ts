@@ -60,6 +60,17 @@ function withData<T>(entry: Loadable<T>, data: T): Loadable<T> {
   return { ...entry, data };
 }
 
+/**
+ * A chat in `owner`'s list known to have no messages yet, the newest first, so starting a new
+ * chat opens it rather than adding another empty one.
+ */
+export function unusedChat(state: WorkspaceState, owner: string): WorkspaceChat | undefined {
+  return state.chats[owner]?.data?.find((chat) => {
+    const messages = state.messages[chat.id];
+    return !chat.running && messages?.status === 'ready' && messages.data.length === 0;
+  });
+}
+
 /** Replaces a message in place, or adds it at the end when it's new. */
 function upsertMessage(
   messages: WorkspaceMessage[],

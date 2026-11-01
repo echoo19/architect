@@ -291,9 +291,10 @@ test('shows what is being taught above the versions, and the flagged answers to 
   await page.keyboard.press('Escape');
   await expect(lessons).toContainText('3 flagged answers');
 
-  // Teaching it something new starts a chat to show it.
+  // Teaching it something new opens a chat to show it: its empty one, rather than another.
   await lessons.getByRole('button', { name: 'New chat' }).click();
-  await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_teach_1$/);
+  await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_new$/);
+  expect(await callsTo(launched.app, 'workspace:createChat')).toEqual([]);
   await expect(dialog).toBeHidden();
   // The new chat says how to teach from it.
   await expect(
