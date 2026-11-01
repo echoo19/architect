@@ -285,6 +285,7 @@ function ConsultRow({
                 consultation &&
                 onFlag && (
                   <FlagButton
+                    graduateId={consultation.graduateId}
                     label={`Flag ${step.name}'s answer for teaching`}
                     onFlag={() => onFlag(consultation)}
                   />
