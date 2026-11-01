@@ -14,8 +14,9 @@ export type JsonMode =
   /** `response_format` carries the schema and the server constrains decoding to it. */
   | 'schema'
   /**
-   * The schema goes in `response_format` and in the prompt too: a router passes the field on to
-   * models that honour it and quietly drops it for the rest.
+   * The schema goes in `response_format` and in the prompt too, for a router whose providers don't
+   * all constrain decoding to it. OpenRouter sends a request only to providers that take the field,
+   * so a mentor pinned to one that doesn't turns it off (`structuredOutput: false`).
    */
   | 'schema_and_prompt'
   /** The schema goes in the prompt only; a reply that doesn't parse gets one repair call. */
@@ -101,8 +102,18 @@ export function providerRouting(
   };
 }
 
-/** The traits of a mentor behind an OpenAI-compatible Chat Completions endpoint. */
+/**
+ * The traits of a mentor behind an OpenAI-compatible Chat Completions endpoint. A mentor whose
+ * settings turn structured output off is asked for its schema in the prompt only.
+ */
 export function chatTraits(config: ModelMentorConfig): ChatTraits {
+  const traits = providerTraits(config);
+  return config.structuredOutput === false
+    ? { ...traits, json: 'prompt', strictSchema: false }
+    : traits;
+}
+
+function providerTraits(config: ModelMentorConfig): ChatTraits {
   const { baseUrl } = config;
   switch (config.provider) {
     case 'meta':

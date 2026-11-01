@@ -59,6 +59,13 @@ export const ModelMentorSchema = z.object({
    * hosted student's do. Any provider when absent.
    */
   providers: z.array(z.string().min(1)).min(1).optional(),
+  /**
+   * Whether the reply is asked for with `response_format`, where the endpoint takes it. False puts
+   * the schema in the prompt only, with one repair call for a reply that doesn't parse: OpenRouter
+   * removes every provider that lacks the field, so a pin to one such provider needs it off.
+   * On when absent.
+   */
+  structuredOutput: z.boolean().optional(),
 });
 export type ModelMentor = z.infer<typeof ModelMentorSchema>;
 
