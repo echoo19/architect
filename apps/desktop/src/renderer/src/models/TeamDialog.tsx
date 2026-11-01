@@ -17,7 +17,7 @@ import {
 import { CircleAlert, MessagesSquare, Trash2 } from 'lucide-react';
 import { useVersions } from '../api/graduates';
 import { toError } from '../api/query';
-import { refreshTeams, removeTeam, teamsApi } from '../api/teams';
+import { refreshTeams, removeTeam, teamsApi, useTeams } from '../api/teams';
 import { ProblemState } from '../components/ProblemState';
 import { useTeamChats } from '../workspace/store';
 import {
@@ -81,6 +81,11 @@ function TeamForm({
   onDone: () => void;
 }) {
   const id = useId();
+  // The other teams' names as the dialog opens, so the team it saves isn't one of them.
+  const saved = useTeams().data;
+  const [others] = useState(() =>
+    (saved ?? []).filter((item) => item.id !== team?.id).map((item) => item.name),
+  );
   const agents = teamAgents(graduates);
   const [name, setName] = useState(team?.name ?? '');
   const [lead, setLead] = useState<string | undefined>(
@@ -103,7 +108,7 @@ function TeamForm({
     return <RemoveTeam team={team} onBack={() => setRemoving(false)} onRemoved={onDone} />;
   }
 
-  const problem = teamProblem(name, lead, picks, graduates);
+  const problem = teamProblem(name, lead, picks, graduates, others);
   const full = picks.length >= MAX_TEAMMATES;
   const teammates = agents.filter((agent) => agent.id !== lead);
 

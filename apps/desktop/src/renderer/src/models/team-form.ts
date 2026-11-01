@@ -62,14 +62,20 @@ export function teamInput(
   };
 }
 
-/** Why a team can't be saved yet, in a few words; null once it can. */
+/**
+ * Why a team can't be saved yet, in a few words; null once it can. `others` are the names of the
+ * other teams, which the sidebar and the Teams table tell apart by name alone.
+ */
 export function teamProblem(
   name: string,
   lead: string | undefined,
   picks: readonly TeammatePick[],
   graduates: readonly GraduateSummary[],
+  others: readonly string[] = [],
 ): string | null {
   if (name.trim() === '') return 'Name the team';
+  const same = (other: string) => other.trim().toLowerCase() === name.trim().toLowerCase();
+  if (others.some(same)) return `Another team is named ${name.trim()}`;
   if (lead === undefined) return 'Choose a lead';
   if (picks.length === 0) return 'Choose a teammate';
   const names = [lead, ...picks.map((pick) => pick.graduateId)].map(
