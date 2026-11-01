@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Button, cn, Collapse, Reveal, ReplyComposer, Spinner } from '@architect/ui';
-import { CodedError } from '@architect/shared';
 import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
@@ -156,11 +155,11 @@ export function Clarify() {
                     title={`${mentor} couldn't answer`}
                     onRetry={retryLastMessage}
                   />
-                  {(!sessionId || lost(failure.error)) && (
-                    <Button size="sm" className="self-start" onClick={startAgain}>
-                      Edit the description
-                    </Button>
-                  )}
+                  {/* Asking again may fail the same way, so the description and its files can
+                      always be changed instead. */}
+                  <Button size="sm" className="self-start" onClick={startAgain}>
+                    Edit the description
+                  </Button>
                 </div>
               )}
             </Collapse>
@@ -187,11 +186,6 @@ export function Clarify() {
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
-/** The conversation is gone from the engine, so asking again can't help. */
-function lost(error: Error): boolean {
-  return error instanceof CodedError && error.code === 'draft_not_found';
 }
 
 function UserMessage({ entry }: { entry: UserEntry }) {
