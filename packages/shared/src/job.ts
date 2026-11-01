@@ -53,6 +53,12 @@ export const ModelMentorSchema = z.object({
    * model was chosen, or what the user entered for an endpoint they added.
    */
   pricing: TokenPricingSchema.optional(),
+  /**
+   * On OpenRouter, the providers a call may go to, in order, with no fallback to any other, so
+   * every call of a comparison's teacher runs on one provider's serving of the model, as the
+   * hosted student's do. Any provider when absent.
+   */
+  providers: z.array(z.string().min(1)).min(1).optional(),
 });
 export type ModelMentor = z.infer<typeof ModelMentorSchema>;
 

@@ -97,6 +97,34 @@ export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
   concurrency: 6,
 };
 
+/** Why a `--spark-cap` entry can't be read: a sentence that says what it takes. */
+export class SparkCapError extends Error {}
+
+/**
+ * The Spark caps with each `<cap>=<usd>` entry set over its default, as `--spark-cap` gives them;
+ * a cap named twice takes the last. Every cap is recorded in the plan as the defaults are.
+ */
+export function sparkCapsWith(
+  entries: readonly string[],
+  caps: ComparisonConfig['sparkCaps'] = DEFAULT_CONFIG.sparkCaps,
+): ComparisonConfig['sparkCaps'] {
+  const names = Object.keys(caps) as (keyof ComparisonConfig['sparkCaps'])[];
+  const chosen = { ...caps };
+  for (const entry of entries) {
+    const [name, usd, ...rest] = entry.split('=');
+    const cap = names.find((candidate) => candidate === name?.trim());
+    if (cap === undefined || rest.length > 0) {
+      throw new SparkCapError(`--spark-cap takes <cap>=<usd>, a cap of ${names.join(', ')}.`);
+    }
+    const value = Number(usd);
+    if (usd === undefined || usd.trim() === '' || !Number.isFinite(value) || value <= 0) {
+      throw new SparkCapError(`--spark-cap ${cap}= takes a positive number of dollars.`);
+    }
+    chosen[cap] = value;
+  }
+  return chosen;
+}
+
 /** The L40S's price on Hugging Face Jobs (decision 035), per hour. */
 export const JOB_PRICE_PER_HOUR = 1.8;
 

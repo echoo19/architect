@@ -165,6 +165,15 @@ describe('OpenRouter', () => {
     });
     expect(sent['provider']).toEqual({ max_price: { prompt: 0, completion: 0 } });
   });
+
+  it('pins the providers it is given, in order, with no fallback', async () => {
+    const { sent } = await call({ ...config, providers: ['BaseTen', 'Nebius'] });
+    expect(sent['provider']).toEqual({
+      order: ['BaseTen', 'Nebius'],
+      allow_fallbacks: false,
+      max_price: { prompt: 0.3, completion: 1.2 },
+    });
+  });
 });
 
 describe('a model on this computer', () => {
