@@ -21,6 +21,9 @@ export const SOURCES = {
   inventory: { name: 'inventory-desk-1.md', path: 'docs/comparisons/inventory-desk-1.md' },
   open: { name: 'returns-desk-open-1.md', path: 'docs/comparisons/returns-desk-open-1.md' },
   assay: { name: 'assay-desk-1.md', path: 'docs/comparisons/assay-desk-1.md' },
+  qlora1: { name: 'qlora-1.md', path: 'docs/comparisons/qlora-1.md' },
+  qlora2: { name: 'qlora-2.md', path: 'docs/comparisons/qlora-2.md' },
+  sweep2: { name: 'sweep-desk-2.md', path: 'docs/comparisons/sweep-desk-2.md' },
   scale: { name: 'SCALE.md', path: 'docs/SCALE.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
@@ -1171,3 +1174,64 @@ export const LAB_RUN = {
   keptAfter: 40,
   keptTotal: 48,
 } as const;
+
+/** The training loss at each optimizer step of Inventory desk's QLoRA run, from its report. */
+export const FINETUNE_LOSS: readonly { step: number; loss: number }[] = [
+  { step: 1, loss: 0.106 },
+  { step: 2, loss: 0.0879 },
+  { step: 3, loss: 0.0693 },
+  { step: 4, loss: 0.0328 },
+  { step: 5, loss: 0.0255 },
+  { step: 6, loss: 0.0078 },
+];
+
+/**
+ * The two QLoRA adapters of Glimmer, each trained on one A100 on Hugging Face Jobs, with the
+ * checks the product ran on each at the file level, from their reports. Neither has been measured
+ * on a sealed final test.
+ */
+export interface Adapter {
+  desk: string;
+  source: 'qlora1' | 'qlora2';
+  examples: number;
+  steps: number;
+  gpuMinutes: number;
+  trainingMinutes: number;
+  usd: number;
+  pairs: number;
+  rank: number;
+  alpha: number;
+  sha256: string;
+}
+
+export const ADAPTERS: readonly Adapter[] = [
+  {
+    desk: 'Inventory desk',
+    source: 'qlora1',
+    examples: 22,
+    steps: 6,
+    gpuMinutes: 8.2,
+    trainingMinutes: 4.8,
+    usd: 0.34,
+    pairs: 312,
+    rank: 16,
+    alpha: 32,
+    sha256: '1ff8de7b',
+  },
+  {
+    desk: 'Sweep desk',
+    source: 'qlora2',
+    examples: 6,
+    steps: 2,
+    gpuMinutes: 5.1,
+    trainingMinutes: 1.8,
+    usd: 0.21,
+    pairs: 312,
+    rank: 16,
+    alpha: 32,
+    sha256: 'b1564f43',
+  },
+];
+
+/** Sweep desk's second run on all 84 final-test tasks: the draft-based taught arm against bare. */
+export const SWEEP_RUN = { tasks: 84, taught: 37, bare: 26 } as const;

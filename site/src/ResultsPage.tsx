@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import { REPORTS } from './content';
 import {
+  ADAPTERS,
   CERT,
   CERT_ROWS,
   CERT2,
@@ -11,6 +12,7 @@ import {
   FIELD_MONEY,
   FIELD_PAIRS,
   FIELD_TEST_SIZE,
+  FINETUNE_LOSS,
   FIRST,
   GROUPS,
   LAB_ARMS,
@@ -34,6 +36,7 @@ import {
   SKILLS,
   sourceUrl,
   SOURCES,
+  SWEEP_RUN,
   TARGET_PASSES,
   TEST_SIZE,
   THIRD_MONEY,
@@ -110,14 +113,26 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'first', what: "The first comparison's report." },
   { key: 'hackathon', what: "The repair shop's run." },
   { key: 'scale', what: 'The plan for going from a specialist to a field model.' },
+  { key: 'qlora1', what: "The first fine-tune: Inventory desk's work as a QLoRA adapter." },
+  { key: 'qlora2', what: "The second fine-tune: Sweep desk's work as a QLoRA adapter." },
   { key: 'assay', what: "Assay desk's first run, at a screening lab's plate reader." },
+  { key: 'sweep2', what: "Sweep desk's second run, at ML research groups' training runs." },
 ];
 
 /**
  * Sections, figures and tables take their numbers from their place in these lists, so a section
  * added later takes its place in them and everything after it renumbers.
  */
-const SECTIONS = ['field', 'inventory', 'open', 'certified', 'results', 'scale', 'limits'] as const;
+const SECTIONS = [
+  'field',
+  'inventory',
+  'open',
+  'certified',
+  'results',
+  'scale',
+  'finetune',
+  'limits',
+] as const;
 const FIGURES = [
   'fieldGroups',
   'fieldPairs',
@@ -127,6 +142,7 @@ const FIGURES = [
   'round',
   'returns',
   'speed',
+  'loss',
 ] as const;
 const TABLES = [
   'fieldSkills',
@@ -149,6 +165,7 @@ const TABLES = [
   'firstRounds',
   'costs',
   'scale',
+  'adapters',
 ] as const;
 
 const sec = (key: (typeof SECTIONS)[number]) => SECTIONS.indexOf(key) + 1;
@@ -720,6 +737,52 @@ function CertCheckTable() {
   );
 }
 
+/** The training loss at each optimizer step, as a dot on a shared axis. */
+function LossFigure() {
+  const rows: ForestRow[] = FINETUNE_LOSS.map((row) => ({
+    label: `Step ${row.step}`,
+    value: row.loss,
+    low: row.loss,
+    high: row.loss,
+    tone: 'student',
+    figure: <span className="font-display text-h2 font-semibold">{row.loss.toFixed(4)}</span>,
+    summary: `Step ${row.step}: training loss ${row.loss.toFixed(4)}.`,
+  }));
+  return (
+    <Forest
+      name="Training loss by optimizer step, Inventory desk's QLoRA run"
+      rows={rows}
+      min={0}
+      max={0.12}
+      ticks={[0, 0.04, 0.08, 0.12]}
+      formatTick={(value) => value.toFixed(2)}
+    />
+  );
+}
+
+/** Each adapter: what it was trained on, what it cost, and the checks it passed. */
+function AdapterTable() {
+  return (
+    <Table
+      label="The two QLoRA adapters and their checks"
+      columns={['', ...ADAPTERS.map((adapter) => adapter.desk)]}
+      rows={[
+        ['Examples', ...ADAPTERS.map((adapter) => adapter.examples)],
+        ['Optimizer steps', ...ADAPTERS.map((adapter) => adapter.steps)],
+        [
+          'GPU time, of it training',
+          ...ADAPTERS.map((adapter) => `${adapter.gpuMinutes} min, ${adapter.trainingMinutes} min`),
+        ],
+        ['Cost', ...ADAPTERS.map((adapter) => dollars(adapter.usd))],
+        ['LoRA pairs', ...ADAPTERS.map((adapter) => adapter.pairs)],
+        ['Rank, alpha', ...ADAPTERS.map((adapter) => `${adapter.rank}, ${adapter.alpha}`)],
+        ['sha256', ...ADAPTERS.map((adapter) => <code key={adapter.desk}>{adapter.sha256}</code>)],
+        ['Checked against the base', ...ADAPTERS.map(() => 'Pass')],
+      ]}
+    />
+  );
+}
+
 /** What is measured, what is built and tested on stand-ins, and what has not been done. */
 const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
@@ -730,7 +793,7 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
     'Export of verified demonstrations and an outcome scorer',
     'Built',
-    'Tested on stand-ins. Nothing from a sealed organization goes in.',
+    'The export fed both fine-tunes. Nothing from a sealed organization goes in.',
   ],
   [
     "Training plans sized from a model's configuration",
@@ -742,13 +805,17 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
     'Built, experimental',
     'Checked structurally and against simulated schedulers. Run by you, with your own tools.',
   ],
-  ['QLoRA fine-tuning on one rented GPU', 'Built', 'Tested against stand-ins.'],
   [
-    'GPU execution, large-model compatibility, training gains',
-    'Unverified',
-    'No cluster job has run.',
+    'LoRA and QLoRA fine-tuning on one rented GPU',
+    'Run, effect not measured',
+    `Two QLoRA adapters of Glimmer trained for real on Hugging Face Jobs, each on one A100, and checked against the base (section ${sec('finetune')}).`,
   ],
-  ['A model trained on a field', 'Future', 'None has been trained.'],
+  ['Cluster execution and training gains', 'Unverified', 'No cluster job has run.'],
+  [
+    'A model trained on a field',
+    'Run, effect not measured',
+    "Glimmer with a QLoRA adapter trained on Inventory desk's verified work. Its effect on the sealed final test is measured next.",
+  ],
 ];
 
 const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
@@ -853,9 +920,14 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'assay',
   },
   {
-    title: 'The training path is built, not yet run at scale.',
-    text: 'Cluster launch bundles are checked for structure and against simulated schedulers; running on GPUs, large-model support and training gains are not yet verified.',
-    from: 'scale',
+    title: "Sweep desk's rounds were not measured.",
+    text: `The teacher's budget stopped its refinement rounds after one call, so its taught arm ran on the one-shot draft; on all ${SWEEP_RUN.tasks} tasks it passed ${SWEEP_RUN.taught} against ${SWEEP_RUN.bare} for the base harness.`,
+    from: 'sweep2',
+  },
+  {
+    title: 'The fine-tunes ran on one GPU, and their effect is not measured.',
+    text: "Both QLoRA adapters trained on one A100 and passed their checks against the base at the file level, but neither has been run on a sealed final test, and Inventory desk's 22 examples are Glimmer's own successes, so its low loss is expected, not evidence. Cluster launch bundles are checked only for structure and against simulated schedulers.",
+    from: 'qlora1',
   },
   {
     title: 'The repair shop ran once.',
@@ -899,6 +971,8 @@ export function ResultsPage() {
     base: found(LAB_ARMS[0]?.groups[1], "the base harness's Corvid Hill result"),
   };
   const corvidSize = found(LAB_GROUPS[1], 'Corvid Hill group').n;
+  const inventoryAdapter = found(ADAPTERS[0], "Inventory desk's adapter");
+  const sweepAdapter = found(ADAPTERS[1], "Sweep desk's adapter");
   return (
     <div id="top">
       <a
@@ -1421,14 +1495,69 @@ export function ResultsPage() {
           <Tables label="Table for the path to a field model">
             <TableExhibit
               label={tab('scale')}
-              caption="Each part of the path from a specialist to a field model, by whether it is measured, built, unverified or future."
+              caption="Each part of the path from a specialist to a field model, by whether it is measured, run with its effect not yet measured, built or unverified."
             >
               <Table
-                label="What is measured, built and future on the path to a field model"
+                label="What is measured, run, built and unverified on the path to a field model"
                 left={[0, 1, 2]}
                 columns={['Part', 'Status', 'What backs it']}
                 rows={SCALE_STATUS.map(([part, status, backing]) => [part, status, backing])}
               />
+            </TableExhibit>
+          </Tables>
+        </Section>
+
+        <Section id="finetune" number={sec('finetune')} title="Fine-tuning on Hugging Face Jobs">
+          <Text>
+            Architect fine-tuned Glimmer&apos;s open weights on a screening lab&apos;s
+            checker-verified work, as a QLoRA adapter trained on one A100 in about{' '}
+            {Math.round(inventoryAdapter.gpuMinutes)} minutes, for {dollars(inventoryAdapter.usd)}
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Text>
+            The training data were the {inventoryAdapter.examples} practice attempts at Inventory
+            desk&apos;s training tasks that the checker passed, made by Glimmer on its engineered
+            harness. The export takes training tasks only and scans every example for the sealed
+            final test and the sealed lab, so nothing sealed went in
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Text>
+            Over {FINETUNE_LOSS.length} optimizer steps the training loss fell from{' '}
+            {found(FINETUNE_LOSS[0], 'first loss').loss.toFixed(4)} to{' '}
+            {found(FINETUNE_LOSS.at(-1), 'last loss').loss.toFixed(4)} ({fig('loss')}). The examples
+            are Glimmer&apos;s own successes, so the loss starts low, and it shows the adapter fits
+            them, not that it helps
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Exhibit
+            label={fig('loss')}
+            caption="Training loss at each optimizer step of Inventory desk's QLoRA run. Five of the six steps were warmup, so the learning rate reached its peak, 1e-4, only at the last."
+          >
+            <LossFigure />
+          </Exhibit>
+          <Text>
+            The adapter holds {inventoryAdapter.pairs} LoRA pairs at rank {inventoryAdapter.rank},
+            and it passes the product&apos;s file-level checks against the base model it was trained
+            on ({tab('adapters')})
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Text>
+            The adapter&apos;s effect on the sealed final test is measured next
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Text>
+            The runs also fixed the product: the converter&apos;s targets, which now leave out the
+            projections the pinned converter can&apos;t convert, the trained weights, now uploaded
+            before conversion so a failed conversion can&apos;t lose them, and the memory planner,
+            which now counts the fp32 weights and fp32 logits it had left out
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Tables label="Table for the adapters">
+            <TableExhibit
+              label={tab('adapters')}
+              caption={`Both QLoRA adapters of Glimmer, each trained in 4 bits on one A100 80 GB on Hugging Face Jobs. Sweep desk's had ${sweepAdapter.examples} examples, so it took ${sweepAdapter.steps} optimizer steps, the first at learning rate 0, and is not expected to change anything. The checks are at the file level; no model was loaded.`}
+            >
+              <AdapterTable />
             </TableExhibit>
           </Tables>
         </Section>
