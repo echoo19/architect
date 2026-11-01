@@ -31,7 +31,7 @@ const REQUEST: StudentChatRequest = {
 };
 
 describe('the mentor acting as the agent', () => {
-  it('keeps an OpenRouter mentor on the providers it pins, under its price cap', async () => {
+  it('keeps an OpenRouter mentor on its pin and price cap, with structured output off', async () => {
     const server = await startServer((request, res) =>
       answer(request, res, textReply('Done.', { prompt_tokens: 10, completion_tokens: 2 })),
     );
@@ -43,6 +43,7 @@ describe('the mentor acting as the agent', () => {
         model: 'example/open-teacher',
         pricing: { inputPerM: 1.25, cachedInputPerM: 0.15, outputPerM: 4.25 },
         providers: ['BaseTen'],
+        structuredOutput: false,
       }),
       { apiKey: API_KEY, fetch: routeTo(server) },
     );
@@ -53,6 +54,7 @@ describe('the mentor acting as the agent', () => {
       allow_fallbacks: false,
       max_price: { prompt: 1.25, completion: 4.25 },
     });
+    expect(body).not.toHaveProperty('response_format');
   });
 
   it("asks the mentor's provider with the student's tools, and hands the calls back", async () => {
