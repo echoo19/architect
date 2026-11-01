@@ -92,7 +92,7 @@ test('a team is made in Models, from a lead and a teammate', async () => {
   await expect(make).toBeDisabled();
   await expect(make).toHaveAccessibleDescription('Choose a teammate');
   await dialog.getByRole('checkbox', { name: teammate.name }).click();
-  const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks it for` });
+  const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks ${teammate.name} for` });
   await expect(role).toHaveValue("Reads a screening lab's plate exports by the lab's own rules.");
   await capture('team-new-dark.png');
 
@@ -106,6 +106,8 @@ test('a team is made in Models, from a lead and a teammate', async () => {
 
   await dialog.getByRole('button', { name: 'Make team' }).click();
   await expect(dialog).toHaveCount(0);
+  // Closed, it gives focus back to the button that opened it.
+  await expect(page.getByRole('button', { name: 'New team' }).first()).toBeFocused();
   // A role left at the contract's summary isn't saved, so the teammate keeps following it.
   expect(await teamCallsTo(launched.app, 'teams:create')).toEqual([
     [{ name: TEAM.name, members: [{ graduateId: lead.id }, { graduateId: teammate.id }] }],
