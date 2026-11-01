@@ -213,7 +213,7 @@ export function CertFigure({ t }: { t: number }) {
           <span
             className={`inline-block ${type} text-[300px] leading-[0.9] tracking-[-0.05em] tabular-nums`}
             style={{
-              transform: `translateY(${(1 - outExpo(span(t, T.certHero + 0.15, 0.9))) * 110}%)`,
+              transform: `translateY(${(1 - outExpo(span(t, T.certHero + 1.1, 0.9))) * 110}%)`,
             }}
           >
             {pct}%

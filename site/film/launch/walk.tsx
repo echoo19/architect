@@ -485,7 +485,7 @@ const SHOTS: readonly Shot[] = [
   { at: T.compute - 0.75, dur: 0.75, to: FULL, ease: inOutQuint },
   { at: T.compute + 0.35, dur: 1.0, to: COMPUTE_VIEW },
   { at: T.gpuDive, dur: 0.85, to: (m) => onto(gpuPoint(m)), ease: inOutCubic, still: true },
-  { at: T.gpuResolve, dur: 1.2, to: COMPUTE_VIEW, ease: inOutQuint },
+  { at: T.gpuResolve, dur: 0.9, to: COMPUTE_VIEW, ease: inOutQuint },
   ...(SHOW_OPEN_TEACHER
     ? [
         { at: T.openBeat, dur: 1.3, to: OPEN_VIEW, ease: inOutQuint },

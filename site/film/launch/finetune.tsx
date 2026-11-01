@@ -3,6 +3,7 @@ import { CloudCog, Container, Layers, Network, Server, SquareStack } from 'lucid
 import { PlacePage } from '../lab/shell';
 import { clamp, inOutCubic, mix, rise, span, ui } from '../lab/time';
 import { PLAN } from './data';
+import { T } from './timeline';
 
 /**
  * Compute on the fine-tune, rebuilt from the app's Compute page (compute/, the plan in
@@ -13,15 +14,15 @@ import { PLAN } from './data';
 
 /** Its moments, in seconds from the page's start. */
 export const FINE_TUNE_AT = {
-  read: 1.5,
-  config: 1.7,
-  figures: 2.8,
-  lora: 4.6,
-  toFit: 7.1,
-  fit: 3.4,
-  toBundle: 11.0,
-  slurm: 11.8,
-  kubernetes: 12.6,
+  read: T.readConfig - T.compute,
+  config: T.readConfig - T.compute + 0.2,
+  figures: T.weights - T.compute,
+  lora: T.lora - T.compute,
+  fit: T.fit - T.compute,
+  toFit: T.gpuDive - T.compute - 0.6,
+  toBundle: T.gpuResolve - T.compute + 0.3,
+  slurm: T.slurm - T.compute,
+  kubernetes: T.kubernetes - T.compute,
 } as const;
 
 /** How far the page has scrolled at each stop: the plan, the memory card, the bundle. */

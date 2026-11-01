@@ -4,6 +4,7 @@ import { ROUNDS } from '../lab/data';
 import { Grow } from '../lab/pages-flow';
 import { clamp, mix, outQuart, rise, span, ui } from '../lab/time';
 import { HARNESS } from './data';
+import { T } from './timeline';
 
 /**
  * The round's drawer on the harness itself, rebuilt from the app's round drawer
@@ -12,11 +13,11 @@ import { HARNESS } from './data';
  * which is rolled back when the held-out checks say no. Its moments, in seconds from its start.
  */
 export const HARNESS_AT = {
-  files: [0.4, 1.2, 2.0],
-  second: 3.5,
-  lines: 4.0,
-  blind: 5.6,
-  rolledBack: 9.4,
+  files: [T.prompts - T.harness, T.tools - T.harness, T.lessons - T.harness],
+  second: T.hypothesis - T.harness,
+  lines: T.hypothesis - T.harness + 0.5,
+  blind: T.blind - T.harness,
+  rolledBack: T.rolledBack - T.harness,
 } as const;
 
 const KINDS = {
