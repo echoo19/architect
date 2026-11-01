@@ -2,8 +2,10 @@ import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
+  ChoiceTiles,
   cn,
   Combobox,
+  DataTable,
   Disclosure,
   EvidenceMark,
   EvidenceMeter,
@@ -410,5 +412,44 @@ describe('RiskCoveragePlot', () => {
     );
     expect(html).not.toContain('bg-student');
     expect(html).not.toContain('Certified');
+  });
+});
+
+describe('ChoiceTiles', () => {
+  it('marks a chosen tile with a check, not by its fill alone', () => {
+    const html = renderToStaticMarkup(
+      createElement(ChoiceTiles<'a' | 'b'>, {
+        multiple: true,
+        'aria-label': 'Arms',
+        value: ['a'],
+        onValueChange: () => undefined,
+        options: [
+          { value: 'a', label: 'Chosen', icon: null },
+          { value: 'b', label: 'Not chosen', icon: null },
+        ],
+      }),
+    );
+    const [chosen, other] = html.split('</button>');
+    expect(chosen).toContain('lucide-circle-check');
+    expect(other).not.toContain('lucide-circle-check');
+  });
+});
+
+describe('DataTable', () => {
+  it('keeps one fill on the selected row, pointed at or not', () => {
+    const html = renderToStaticMarkup(
+      createElement(DataTable<{ id: string }>, {
+        'aria-label': 'Rows',
+        rows: [{ id: 'one' }, { id: 'two' }],
+        rowKey: (row) => row.id,
+        onRowClick: () => undefined,
+        selectedKey: 'one',
+        columns: [{ key: 'id', header: 'Id', cell: (row) => row.id }],
+      }),
+    );
+    const rows = html.split('<tr').slice(2);
+    expect(rows[0]).toContain('bg-selected');
+    expect(rows[0]).not.toContain('hover:bg-hover');
+    expect(rows[1]).toContain('hover:bg-hover');
   });
 });

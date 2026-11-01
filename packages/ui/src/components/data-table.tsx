@@ -143,146 +143,167 @@ export function DataTable<R>({
     );
 
   return (
+    // The card's edge is drawn over the table, so the first column, which stays in view on the
+    // card's fill, never covers it.
     <div
-      className={cn('min-w-0 overflow-auto rounded-card surface-card scroll-quiet', className)}
-      style={maxHeight === undefined ? undefined : { maxHeight }}
+      className={cn(
+        'relative isolate min-w-0 rounded-card bg-card',
+        'after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-card after:shadow-[var(--ui-rim-top),var(--ui-rim)]',
+        className,
+      )}
     >
-      <table
-        aria-label={props['aria-label']}
-        className="w-full border-separate border-spacing-0 text-ui"
+      <div
+        className="min-w-0 overflow-auto rounded-card scroll-quiet"
+        style={maxHeight === undefined ? undefined : { maxHeight }}
       >
-        <thead className="sticky top-0 z-10">
-          {groups && (
-            <tr>
-              {groups.map((run) => (
-                <th
-                  key={run.key}
-                  scope={run.group ? 'colgroup' : undefined}
-                  colSpan={run.span}
-                  className={cn(
-                    'bg-card px-3 pt-3 text-center text-small font-normal first:pl-6 last:pr-6',
-                    STICKY,
-                  )}
-                >
-                  {run.group && (
-                    <span className="block border-b border-line pb-1.5">{run.group}</span>
-                  )}
-                </th>
-              ))}
-            </tr>
-          )}
-          <tr>
-            {shown.map((column) => {
-              const active = sort?.key === column.key ? sort.direction : undefined;
-              const Arrow = active === 'descending' ? ArrowDown : ArrowUp;
-              return (
-                <th
-                  key={column.key}
-                  scope="col"
-                  aria-sort={active ?? (column.sortValue ? 'none' : undefined)}
-                  style={column.width ? { width: column.width } : undefined}
-                  className={cn(
-                    'h-11 whitespace-nowrap border-b border-line bg-card px-3 font-medium',
-                    'first:pl-6 last:pr-6',
-                    STICKY,
-                    column.align === 'end' ? 'text-right' : 'text-left',
-                  )}
-                >
-                  <HeaderHint hint={column.hint}>
-                    {column.sortValue ? (
-                      <button
-                        type="button"
-                        onClick={() => toggle(column.key)}
-                        className={cn(
-                          '-mx-1.5 inline-flex h-7 items-center gap-1 rounded-mark px-1.5',
-                          'transition-colors duration-150 hover:bg-hover',
-                          column.align === 'end' && 'flex-row-reverse',
-                        )}
-                      >
-                        {column.header}
-                        <Arrow
-                          size={13}
-                          strokeWidth={2}
-                          aria-hidden
-                          className={cn('transition-opacity duration-150', !active && 'opacity-0')}
-                        />
-                      </button>
-                    ) : (
-                      <span tabIndex={column.hint ? 0 : undefined}>{column.header}</span>
-                    )}
-                  </HeaderHint>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((row) => (
-            <tr
-              key={rowKey(row)}
-              aria-current={selectedKey === rowKey(row) ? 'true' : undefined}
-              tabIndex={onRowClick ? 0 : undefined}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-              onKeyDown={
-                onRowClick
-                  ? (event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        onRowClick(row);
-                      }
-                      // The arrows move between rows, as in a list.
-                      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                        event.preventDefault();
-                        const next =
-                          event.key === 'ArrowDown'
-                            ? event.currentTarget.nextElementSibling
-                            : event.currentTarget.previousElementSibling;
-                        if (next instanceof HTMLElement) next.focus();
-                      }
-                    }
-                  : undefined
-              }
-              className={cn(
-                'group/row',
-                selectedKey === rowKey(row) && 'bg-selected',
-                onRowClick &&
-                  'cursor-pointer transition-colors duration-150 hover:bg-hover focus-visible:relative focus-visible:z-[2] focus-visible:bg-hover focus-visible:-outline-offset-2',
-              )}
-            >
-              {shown.map((column, index) => {
-                const value = column.cell(row);
-                return (
-                  <td
-                    key={column.key}
+        <table
+          aria-label={props['aria-label']}
+          className="w-full border-separate border-spacing-0 text-ui"
+        >
+          <thead className="sticky top-0 z-10">
+            {groups && (
+              <tr>
+                {groups.map((run) => (
+                  <th
+                    key={run.key}
+                    scope={run.group ? 'colgroup' : undefined}
+                    colSpan={run.span}
                     className={cn(
-                      'h-12 border-t border-line px-3 first:pl-6 last:pr-6',
-                      'group-first/row:border-t-0',
-                      // Figures line up; words keep their own spacing ("Held-out", "4-bit").
-                      column.align === 'end' && 'text-right tabular-nums',
-                      index === 0 && [
-                        'font-medium',
-                        STICKY,
-                        selectedKey === rowKey(row)
-                          ? 'shadow-[inset_0_0_0_100vmax_var(--color-selected)]'
-                          : onRowClick &&
-                            'group-hover/row:shadow-[inset_0_0_0_100vmax_var(--color-hover)]',
-                        // The focused row's ring, drawn again on this cell, which sits above it.
-                        onRowClick &&
-                          'group-focus-visible/row:shadow-[inset_2px_0_0_var(--color-ring),inset_0_2px_0_var(--color-ring),inset_0_-2px_0_var(--color-ring),inset_0_0_0_100vmax_var(--color-hover)]',
-                      ],
+                      'bg-card px-3 pt-3 text-center text-small font-normal first:pl-6 last:pr-6',
+                      STICKY,
                     )}
                   >
-                    {value === null || value === undefined ? <Absent /> : value}
-                  </td>
+                    {run.group && (
+                      <span className="block border-b border-line pb-1.5">{run.group}</span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            )}
+            <tr>
+              {shown.map((column) => {
+                const active = sort?.key === column.key ? sort.direction : undefined;
+                const Arrow = active === 'descending' ? ArrowDown : ArrowUp;
+                return (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    aria-sort={active ?? (column.sortValue ? 'none' : undefined)}
+                    style={column.width ? { width: column.width } : undefined}
+                    className={cn(
+                      'h-11 whitespace-nowrap border-b border-line bg-card px-3 font-medium',
+                      'first:pl-6 last:pr-6',
+                      STICKY,
+                      column.align === 'end' ? 'text-right' : 'text-left',
+                    )}
+                  >
+                    <HeaderHint hint={column.hint}>
+                      {column.sortValue ? (
+                        <button
+                          type="button"
+                          onClick={() => toggle(column.key)}
+                          className={cn(
+                            '-mx-1.5 inline-flex h-7 items-center gap-1 rounded-mark px-1.5',
+                            'transition-colors duration-150 hover:bg-hover',
+                            column.align === 'end' && 'flex-row-reverse',
+                          )}
+                        >
+                          {column.header}
+                          <Arrow
+                            size={13}
+                            strokeWidth={2}
+                            aria-hidden
+                            className={cn(
+                              'transition-opacity duration-150',
+                              !active && 'opacity-0',
+                            )}
+                          />
+                        </button>
+                      ) : (
+                        <span tabIndex={column.hint ? 0 : undefined}>{column.header}</span>
+                      )}
+                    </HeaderHint>
+                  </th>
                 );
               })}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {sorted.length === 0 && empty !== undefined && (
-        <div className="flex min-h-24 items-center justify-center px-6 py-6 text-ui">{empty}</div>
-      )}
+          </thead>
+          <tbody>
+            {sorted.map((row) => {
+              const selected = selectedKey === rowKey(row);
+              return (
+                <tr
+                  key={rowKey(row)}
+                  aria-current={selected ? 'true' : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onRowClick(row);
+                          }
+                          // The arrows move between rows, as in a list.
+                          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                            event.preventDefault();
+                            const next =
+                              event.key === 'ArrowDown'
+                                ? event.currentTarget.nextElementSibling
+                                : event.currentTarget.previousElementSibling;
+                            if (next instanceof HTMLElement) next.focus();
+                          }
+                        }
+                      : undefined
+                  }
+                  className={cn(
+                    'group/row',
+                    // The selected row keeps one fill, pointed at or not, across every cell.
+                    selected
+                      ? 'bg-selected'
+                      : onRowClick && 'hover:bg-hover focus-visible:bg-hover',
+                    onRowClick &&
+                      'cursor-pointer transition-colors duration-150 focus-visible:relative focus-visible:z-[2] focus-visible:-outline-offset-2',
+                  )}
+                >
+                  {shown.map((column, index) => {
+                    const value = column.cell(row);
+                    return (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          'h-12 border-t border-line px-3 first:pl-6 last:pr-6',
+                          'group-first/row:border-t-0',
+                          // Figures line up; words keep their own spacing ("Held-out", "4-bit").
+                          column.align === 'end' && 'text-right tabular-nums',
+                          index === 0 && [
+                            'font-medium',
+                            STICKY,
+                            selected
+                              ? 'shadow-[inset_0_0_0_100vmax_var(--color-selected)]'
+                              : onRowClick &&
+                                'group-hover/row:shadow-[inset_0_0_0_100vmax_var(--color-hover)]',
+                            // The focused row's ring, drawn again on this cell, which sits above it.
+                            onRowClick &&
+                              (selected
+                                ? 'group-focus-visible/row:shadow-[inset_2px_0_0_var(--color-ring),inset_0_2px_0_var(--color-ring),inset_0_-2px_0_var(--color-ring),inset_0_0_0_100vmax_var(--color-selected)]'
+                                : 'group-focus-visible/row:shadow-[inset_2px_0_0_var(--color-ring),inset_0_2px_0_var(--color-ring),inset_0_-2px_0_var(--color-ring),inset_0_0_0_100vmax_var(--color-hover)]'),
+                          ],
+                        )}
+                      >
+                        {value === null || value === undefined ? <Absent /> : value}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {sorted.length === 0 && empty !== undefined && (
+          <div className="flex min-h-24 items-center justify-center px-6 py-6 text-ui">{empty}</div>
+        )}
+      </div>
     </div>
   );
 }
