@@ -13,12 +13,12 @@ const TOKEN_SOURCES: Record<NonNullable<HubTokenStatus['source']>, string> = {
   token_file: "From Hugging Face's token file",
 };
 
-/** One fact of a target: its name at the left, its value at the right. */
+/** One fact of a target: its name at the left, its value at the right, wrapped when long. */
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex min-h-9 items-center justify-between gap-4 border-t border-line text-ui">
-      <span className="font-medium">{label}</span>
-      <span className="min-w-0 truncate text-right tabular-nums">{children}</span>
+    <div className="flex min-h-9 items-center justify-between gap-4 border-t border-line py-1.5 text-ui">
+      <span className="shrink-0 whitespace-nowrap font-medium">{label}</span>
+      <span className="min-w-0 break-words text-right text-pretty">{children}</span>
     </div>
   );
 }

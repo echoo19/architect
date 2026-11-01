@@ -90,7 +90,7 @@ function LabBoard({
   // A team that can't be read is said so in the sidebar; the Lab shows the rest without it.
   const teams = useTeams().data ?? [];
   return (
-    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Stagger className={COLUMN}>
         <NeedsYouCard jobs={jobs} graduates={graduates} teams={teams} experiments={records} />
         <FinishedCard rows={finished} />
@@ -113,11 +113,11 @@ function LabBoard({
 function LabSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading the lab" className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+      <div className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <Skeleton className="h-56 rounded-card" />
         <Skeleton className="h-56 rounded-card" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Skeleton className="h-44 rounded-card" />
         <Skeleton className="h-44 rounded-card" />
       </div>
