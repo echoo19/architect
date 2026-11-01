@@ -1241,7 +1241,7 @@ test('recovers when the mentor fails, and says so when it is slow', async () => 
 const NOTE =
   "I couldn't settle this from your files and answers, so I left it open:\nWhether cancelled orders count in totals.\n\nI've drafted the job for you to review.";
 const TOO_FEW =
-  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.';
+  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a file of example requests and their right answers, saved as tasks.jsonl, and describe the job again.';
 
 test('shows what a draft left open, beside the way to review it', async () => {
   const { app, page } = launched;

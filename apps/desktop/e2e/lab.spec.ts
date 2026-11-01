@@ -124,7 +124,7 @@ test('shows what needs the person and what runs, then what finished, spent and s
 
   await expect(
     card('Fields').getByRole('button', {
-      name: /Academy desk.*3 taught on · 2 never seen, 1 real/,
+      name: /Academy desk.*3 taught on · 1 never seen, 1 real/,
     }),
   ).toBeVisible();
   // The versions Models lists as active.

@@ -122,7 +122,7 @@ export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise
  */
 export async function allowMoreTime(page: Page): Promise<void> {
   const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
-  await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
+  await callout.getByRole('button', { name: /^Allow \d+ hours? of training$/ }).click();
   await expect(callout).toHaveCount(0);
 }
 

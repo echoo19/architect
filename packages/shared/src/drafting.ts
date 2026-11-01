@@ -201,6 +201,8 @@ export const TaskPlanSchema = z.object({
   /** Rules the files and answers didn't settle. */
   unresolved: z.array(z.string()),
   notes: z.array(z.string()),
+  /** What the person answered while the job was drafted, each with the question it answers. */
+  answers: z.array(z.object({ question: z.string(), answer: z.string() })).optional(),
   /** Present when the job has a rule: whether the person has confirmed it over these records. */
   confirmation: RuleConfirmationStateSchema.optional(),
   /** Present when the job lists organizations: where the study of their material stands. */

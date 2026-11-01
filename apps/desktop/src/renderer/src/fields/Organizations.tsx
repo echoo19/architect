@@ -452,7 +452,6 @@ function AddOrganizationDialog({
               id="added-org-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Maple Grove Academy"
             />
           </Field>
           <Segmented

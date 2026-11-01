@@ -38,6 +38,8 @@ import {
   trainsTooSlow,
   wontTeachBody,
   wontTeachTitle,
+  allowLabel,
+  finalTestAfter,
   type Bills,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
@@ -258,6 +260,18 @@ describe('what each part of a run takes', () => {
     const hour = makeJob({ budget: { maxRounds: 12, maxMentorUsd: 5, maxWallMinutes: 60 } });
     expect(wontTeachBody(hour, estimateTime(hour, 'local'))).toBe(
       'Scoring the check tasks once takes about 1 h 40 min.',
+    );
+  });
+
+  it('names training in the button and says the final test that runs after it, so the estimate adds up', () => {
+    const job = makeJob();
+    // The limit is training's; the final test is outside it, and the estimate adds the two.
+    expect(allowLabel(540)).toBe('Allow 9 hours of training');
+    expect(finalTestAfter(job, 'local', 'final test')).toBe(
+      'The final test adds about 2.5 h after training.',
+    );
+    expect(finalTestAfter(job, 'hosted', 'sealed final test')).toBe(
+      'The sealed final test adds about 15 min after training.',
     );
   });
 
