@@ -120,7 +120,7 @@ const FACTS: { label: string; value: (row: ModelRow) => ReactNode }[] = [
   { label: 'Base model', value: (row) => baseModelOf(row.version) },
   {
     label: 'Method',
-    value: (row) => (row.version.manifest.model.adapter ? 'Adapter' : 'Harness'),
+    value: (row) => (row.version.manifest.model.adapter ? 'LoRA adapter' : 'Harness'),
   },
   {
     label: 'Harness',
@@ -129,7 +129,7 @@ const FACTS: { label: string; value: (row: ModelRow) => ReactNode }[] = [
     ),
   },
   {
-    label: 'Adapter',
+    label: 'LoRA adapter',
     value: (row) => {
       const adapter = row.version.manifest.model.adapter;
       return adapter ? (
@@ -140,7 +140,7 @@ const FACTS: { label: string; value: (row: ModelRow) => ReactNode }[] = [
     },
   },
   {
-    label: 'Check tasks',
+    label: 'Held-out checks',
     value: (row) => {
       const check = scoresOf(row).check;
       return check ? (
@@ -240,7 +240,7 @@ function opensGroup(scores: ScoreComparison, index: number): boolean {
 function FinalTest({ before, after }: { before: ModelRow; after: ModelRow }) {
   const comparison = compareScores(before, after);
   return (
-    <Card title="Final test" flush>
+    <Card title="Sealed final test" flush>
       {comparison.kind === 'apart' ? (
         <p className="m-0 px-6 pb-6 text-ui">{comparison.reason}</p>
       ) : (
@@ -256,7 +256,7 @@ function DeltaGrid({ scores }: { scores: ScoreComparison }) {
   return (
     <div className="overflow-x-auto">
       <table
-        aria-label="Final test by skill and organization"
+        aria-label="Sealed final test by skill and organization"
         className="w-full min-w-[640px] table-fixed border-collapse text-ui"
       >
         <thead>

@@ -60,7 +60,7 @@ export function ExperimentsScreen() {
           <EmptyState
             icon={<FlaskConical aria-hidden />}
             title="No experiments yet"
-            description="Compare ways of teaching on one field, with the seeds and caps fixed before it runs."
+            description="Compare harnesses on one field, preregistered before anything runs."
             className="pt-16"
             actions={create}
           />
@@ -94,7 +94,7 @@ export function ExperimentsScreen() {
               {
                 key: 'arms',
                 header: 'Arms',
-                hint: 'Arms are the setups compared, each taught and tested the same way',
+                hint: 'Each arm is a harness or a LoRA adapter, engineered and tested the same way',
                 align: 'end',
                 width: '88px',
                 sortValue: (record) => record.input.arms.length,

@@ -1,9 +1,10 @@
 import type { ComparisonReport, Spend, StudentTarget } from '@architect/shared';
-import { Badge, Disclosure, EvidenceMark } from '@architect/ui';
+import { Badge, Disclosure, EvidenceMark, type Words } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
+import { useWords } from '../../shell/edition';
 import { reportArms, type ArmScore, type ReportArm } from './comparison-report';
 
 const percentOf = (share: number) => Math.round(share * 100);
@@ -36,7 +37,7 @@ function counts(score: ArmScore): string {
  * same test run again, the other copy's result, the same setup without its trained weights, and
  * the memory a meter saw.
  */
-function extras(arm: ReportArm, testedOn: StudentTarget): string[] {
+function extras(arm: ReportArm, testedOn: StudentTarget, w: Words): string[] {
   const shown = scoreOn(arm, testedOn);
   const other = testedOn === 'hosted' ? arm.local : arm.hosted;
   const facts = [
@@ -45,11 +46,11 @@ function extras(arm: ReportArm, testedOn: StudentTarget): string[] {
     shown &&
       other &&
       shown.where === '' &&
-      `${testedOn === 'hosted' ? 'on this computer' : 'online'}: ${counts(other)}`,
+      `${testedOn === 'hosted' ? (w.lab ? 'on-premise' : 'on this computer') : 'online'}: ${counts(other)}`,
     shown?.score.repeat &&
       `tested again: ${shown.score.repeat.pass} of ${shown.score.repeat.total}${shown.score.repeat.complete ? '' : ', partial'}`,
     shown?.score.without &&
-      `without the weights: ${shown.score.without.pass} of ${shown.score.without.total}`,
+      `without ${w.lab ? 'the LoRA adapter' : 'the weights'}: ${shown.score.without.pass} of ${shown.score.without.total}`,
     arm.memory &&
       [
         arm.memory.processBytes !== null && `${formatBytes(arm.memory.processBytes)} of RAM`,
@@ -75,6 +76,7 @@ function Rows({
   testedOn: StudentTarget;
   label: string;
 }) {
+  const w = useWords();
   return (
     <div className="border-b border-line">
       <table aria-label={label} className="w-full border-collapse text-ui">
@@ -83,7 +85,7 @@ function Rows({
             <th className="pb-3" />
             <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
               <EvidenceMark kind="final" className="justify-end">
-                Final test
+                {w.FinalTest}
               </EvidenceMark>
             </th>
             <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">Cost</th>
@@ -164,11 +166,12 @@ export function ComparisonArms({
   /** Where this run's own final test ran, so its row reads the same figure as the stats above. */
   testedOn: StudentTarget;
 }) {
-  const arms = reportArms(report, runId, names);
+  const w = useWords();
+  const arms = reportArms(report, runId, names, w.lab);
   const main = arms.filter(isHeadline);
   const more = arms.filter((arm) => !isHeadline(arm));
   const notes = arms
-    .map((arm) => ({ arm, facts: extras(arm, testedOn) }))
+    .map((arm) => ({ arm, facts: extras(arm, testedOn, w) }))
     .filter(({ facts }) => facts.length > 0);
   return (
     <Section

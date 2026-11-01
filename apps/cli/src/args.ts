@@ -264,7 +264,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   },
   train: {
     usage:
-      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output <folder> [options] | architect train start <job> --max-usd <n> [--max-minutes <n>] | architect train status <job> [--wait] [--logs] | architect train cancel <job>',
+      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output <folder> [options] | architect train start <job> --max-usd <n> [--max-minutes <n>] [--flavor <id>] | architect train status <job> [--wait] [--logs] | architect train cancel <job>',
     summary:
       'Size a training job for a cluster or write its launch bundle (experimental), or train an adapter on Hugging Face Jobs.',
     args: 1,
@@ -286,6 +286,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       output: { type: 'string' },
       'max-usd': { type: 'string' },
       'max-minutes': { type: 'string' },
+      flavor: { type: 'string' },
       wait: { type: 'boolean' },
       logs: { type: 'boolean' },
       ...json,
@@ -307,6 +308,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --output <folder>       bundle: an empty or new folder to write it to',
       "  --max-usd <n>           start: the field's cap on compute dollars, for all its jobs",
       '  --max-minutes <n>       start: the longest the job may run (default 180)',
+      "  --flavor <id>           start: l40sx1 (the recipe's, default) or a100-large, for longer examples",
       '  --wait                  status: check until the job ends, every 30 seconds',
       "  --logs                  status: print the job's log so far",
       JSON_HELP,
@@ -328,6 +330,7 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       student: { type: 'string' },
       'max-usd': { type: 'string' },
       'max-minutes': { type: 'string' },
+      flavor: { type: 'string' },
       ...json,
     },
     help: [

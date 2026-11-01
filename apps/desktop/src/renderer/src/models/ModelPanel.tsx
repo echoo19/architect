@@ -10,6 +10,7 @@ import {
   AgentAvatar,
   Button,
   cn,
+  defineTerm,
   Disclosure,
   DropdownMenu,
   DropdownMenuContent,
@@ -70,9 +71,9 @@ import {
   scoresOf,
   shortHash,
   statusOf,
-  STATUS_WORDS,
   type ModelRow,
 } from './registry';
+import { StatusWord } from './RegistryTable';
 
 type PanelTab = 'report' | 'lineage' | 'files';
 
@@ -189,7 +190,7 @@ function PanelHeader({
             <span className="sr-only">version {version.version}</span>
           </h2>
           <span className="truncate text-small">
-            {STATUS_WORDS[statusOf(version)]} · {fieldOf(version)}
+            <StatusWord status={statusOf(version)} /> · {fieldOf(version)}
           </span>
         </div>
         <OpenLinks row={row} />
@@ -261,7 +262,7 @@ function PanelHeader({
           }
         >
           <Cpu size={14} strokeWidth={1.8} aria-hidden />
-          Plan cluster training
+          Plan cluster fine-tuning
         </Button>
       </div>
       {certifying && <CertifyDialog row={row} onClose={() => setCertifying(false)} />}
@@ -368,12 +369,12 @@ function ReportTab({ row }: { row: ModelRow }) {
   const { model, harness } = version.manifest;
   return (
     <div className="flex flex-col gap-7">
-      <section aria-label="Final test" className="flex flex-col gap-3">
-        <Heading>Final test</Heading>
+      <section aria-label="Sealed final test" className="flex flex-col gap-3">
+        <Heading>Sealed final test</Heading>
         {reportError ? (
           <ProblemState layout="inline" error={reportError} title="Couldn't read its report card" />
         ) : scores.seen === null && scores.unseen === null && scores.real === null ? (
-          <p className="m-0 text-ui">No final test yet</p>
+          <p className="m-0 text-ui">No sealed final test yet</p>
         ) : (
           <div className="grid grid-cols-3 gap-3">
             <Figure label="Taught on" score={scores.seen} />
@@ -384,7 +385,7 @@ function ReportTab({ row }: { row: ModelRow }) {
       </section>
       <Qualified row={row} />
       <dl className="m-0 flex flex-col">
-        <Fact label="Check tasks" hint={CHECK_HINT}>
+        <Fact label="Held-out checks" hint={CHECK_HINT}>
           {scores.check ? (
             <span className="tabular-nums">
               {formatPercent(scores.check)}{' '}
@@ -398,10 +399,10 @@ function ReportTab({ row }: { row: ModelRow }) {
         </Fact>
         <Fact label="Base model">{baseModelOf(version)}</Fact>
         <Fact label="Runs on">{runtimeName(model.runtime.compatible[0])}</Fact>
-        <Fact label="Harness">
+        <Fact label="Harness" hint={defineTerm('harness')}>
           <span className="font-mono text-small">{shortHash(harness.hash)}</span>
         </Fact>
-        <Fact label="Adapter">
+        <Fact label="LoRA adapter" hint={defineTerm('loraAdapter')}>
           {model.adapter ? (
             <span className="font-mono text-small">{shortHash(model.adapter.sha256)}</span>
           ) : (
@@ -410,10 +411,8 @@ function ReportTab({ row }: { row: ModelRow }) {
         </Fact>
         {report && (
           <>
-            <Fact label="Tested">
-              {report.testedOn === 'hosted' ? 'Online copy' : 'This computer'}
-            </Fact>
-            <Fact label="Taught by">{shortModelName(report.mentor.label)}</Fact>
+            <Fact label="Tested">{report.testedOn === 'hosted' ? 'Hosted' : 'On-premise'}</Fact>
+            <Fact label="Harness engineered by">{shortModelName(report.mentor.label)}</Fact>
             <Fact label="Rounds">
               <span className="tabular-nums">{report.cost.rounds}</span>
             </Fact>
@@ -451,11 +450,11 @@ function certificationResult(item: Certification): Result | null {
   const figure = certificateFigure(item.certificate);
   return {
     key: `certification:${item.id}`,
-    label: 'Certified',
+    label: 'Risk certificate',
     detail: shortDate(item.endedAt ?? item.createdAt),
     value:
       item.status === 'finished'
-        ? (figure ?? 'Not certified')
+        ? (figure ?? 'Not issued')
         : `${STATE_WORDS[item.status]}, ${item.done} of ${item.plan.attempts}`,
     ...(item.certificate ? { hint: certificateHint(item.certificate) } : {}),
   };
@@ -475,7 +474,7 @@ function trainedResult(item: Qualification): Result {
   return {
     key: `trained:${item.id}`,
     label: item.model,
-    detail: ['Trained elsewhere', shortDate(item.endedAt ?? item.startedAt)]
+    detail: ['Fine-tuned elsewhere', shortDate(item.endedAt ?? item.startedAt)]
       .filter(Boolean)
       .join(', '),
     value:
@@ -594,7 +593,9 @@ function LineageTab({
           >
             <VersionTag version={parent.version.version} active={parent.version.active} />
             <span className="min-w-0 flex-1 truncate">Version {parent.version.version}</span>
-            <span className="text-small">{STATUS_WORDS[statusOf(parent.version)]}</span>
+            <span className="text-small">
+              <StatusWord status={statusOf(parent.version)} />
+            </span>
           </button>
         ) : version.origin ? (
           <p className="m-0 text-ui">
@@ -707,7 +708,7 @@ function ChangedFrom({ row, parent }: { row: ModelRow; parent: ModelRow }) {
         <p className="m-0 text-ui">
           {row.version.manifest.model.adapter?.sha256 !==
           parent.version.manifest.model.adapter?.sha256
-            ? 'The same harness, with new trained weights'
+            ? 'The same harness, with a new LoRA adapter'
             : 'Nothing in its harness'}
         </p>
       ) : (

@@ -93,7 +93,7 @@ test('shows what needs the person and what runs, then what finished, spent and s
   // The new version beside the active one, so a lower score is never offered as the better one.
   await expect(
     needs.getByRole('button', {
-      name: /Version 3: 88% on check tasks, active version 2: 94%/,
+      name: /Version 3: 88% on held-out checks, active version 2: 94%/,
     }),
   ).toBeVisible();
   await expect(needs.getByRole('heading')).toHaveCount(1);
@@ -194,7 +194,7 @@ test('leads to each place from the sidebar and the command palette', async () =>
   await capture('places-models-dark.png');
 
   await places().getByRole('button', { name: 'Compute' }).click();
-  await expect(page.getByRole('region', { name: 'Training plan' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Fine-tuning plan' })).toBeVisible();
   await capture('places-compute-dark.png');
 
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');

@@ -176,19 +176,23 @@ describe('fieldTimeline', () => {
     );
     expect(entries.map((entry) => [entry.stage, entry.sentence, entry.link.place])).toEqual([
       ['studied', 'You confirmed the study of 1 organization: 0 skills and 0 rules', 'Study'],
-      ['taught', 'Trained 7 rounds, kept 2 changes and found 2 counterexamples', 'Results'],
+      [
+        'taught',
+        'Trained 7 rounds, kept 2 changes and added 2 counterexamples to the regression suite',
+        'Results',
+      ],
       [
         'tested',
-        'Academy desk v2 took its final test: 92% taught on and 83% never seen',
+        'Academy desk v2 took its sealed final test: 92% taught on and 83% never seen',
         'Results',
       ],
       [
         'certified',
-        'Academy desk v2 was certified: wrong on at most 8% of the answers it gives, and it held on 1 of the 2 organizations it never saw',
+        'Academy desk v2 was issued a risk certificate: risk bound 8% on the answers it gives, and it held on 1 of the 2 organizations it never saw',
         'Models',
       ],
       ['compared', 'Comparing 3 arms in “Targeted against draft”', 'Experiments'],
-      ['exported', "Exported the field's training examples to …\\Exports\\academy-desk", 'Compute'],
+      ['exported', "Exported the field's fine-tuning data to …\\Exports\\academy-desk", 'Compute'],
     ]);
   });
 
@@ -200,7 +204,7 @@ describe('fieldTimeline', () => {
     );
     expect(result.entries.map((entry) => entry.stage)).toEqual(['studied', 'taught', 'tested']);
     expect(result.next).toMatchObject({
-      sentence: 'Certify the best version',
+      sentence: 'Issue a risk certificate for the best version',
       link: { place: 'Results' },
     });
 

@@ -13,6 +13,13 @@ export function scoreCell(score: Score | null): ReactNode {
   return score ? formatPercent(score) : null;
 }
 
+/** What a column of sealed final test scores means, by the kind of organization it scores. */
+export const SCORE_HINTS = {
+  seen: 'Pass rate on the sealed final test at organizations it was taught on',
+  unseen: 'Pass rate on the sealed final test at generated organizations it never saw',
+  real: 'Pass rate on the sealed final test at real organizations it never saw',
+} as const;
+
 /** "4,210": a count as the person reads one. */
 export function count(value: number): string {
   return value.toLocaleString('en-US');

@@ -146,6 +146,8 @@ async function capture(file: string): Promise<void> {
   await page.screenshot({ path: join(OUT_DIR, file), animations: 'disabled', timeout: 15_000 });
 }
 
+const EXPERIMENT_NAME = 'Teaching for unseen desks';
+
 const heading = (name: string) => page.getByRole('heading', { name, level: 1 });
 
 /** Whether `first` sits above `second` on the page. */
@@ -178,6 +180,9 @@ test('designs an experiment on a field of the library and shows its estimate bef
   await expect(heading('Returns desk')).toBeVisible();
   await expect(page.getByText('Draft', { exact: true })).toBeVisible();
   await expect(field).toContainText('In your library');
+  // It takes its field's name until it is given its own.
+  await field.getByLabel('Name', { exact: true }).fill(EXPERIMENT_NAME);
+  await expect(heading(EXPERIMENT_NAME)).toBeVisible();
   expect(await page.evaluate(() => window.architect.experiments.get('cmp_1'))).toMatchObject({
     experiment: { input: { jobId: 'returns-desk' } },
   });
@@ -189,12 +194,12 @@ test('designs an experiment on a field of the library and shows its estimate bef
   await hypothesis
     .getByRole('textbox', { name: 'Hypothesis' })
     .fill(
-      "Targeted mentoring passes more of the desks Glimmer never sees than Glimmer alone, since Spark's fixes come from the failures it found.",
+      "The Spark-engineered harness passes more of the desks Glimmer never sees than Glimmer alone, since Spark's fixes come from the failures it found.",
     );
   await expect(page.getByText('Choose the primary comparison.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Preregister' })).toBeDisabled();
   await hypothesis.getByRole('combobox', { name: 'Arm A' }).click();
-  await page.getByRole('option', { name: 'Targeted mentoring' }).click();
+  await page.getByRole('option', { name: 'Spark-engineered harness' }).click();
   await expect(hypothesis.getByRole('combobox', { name: 'Arm B' })).toHaveText('Glimmer alone');
   await hypothesis.getByRole('combobox', { name: 'Part of the final test' }).click();
   await page.getByRole('option', { name: 'the organizations it has never seen' }).click();
@@ -202,11 +207,11 @@ test('designs an experiment on a field of the library and shows its estimate bef
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });
   await expect(arms.getByRole('button')).toHaveCount(10);
-  for (const name of ['One-shot adapter', 'Failure-specific adapter']) {
+  for (const name of ['One-shot LoRA adapter', 'Failure-targeted LoRA adapter']) {
     await expect(arms.getByRole('button', { name })).toBeDisabled();
   }
   // The weights arms can't run here; a cluster plan for the field is one step away.
-  await expect(page.getByRole('button', { name: 'Plan cluster training' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Plan cluster fine-tuning' })).toBeVisible();
   await arms.getByRole('button', { name: 'Decoding repeat' }).click();
   await expect(arms.getByRole('button', { name: 'Decoding repeat' })).toHaveAttribute(
     'aria-pressed',
@@ -226,7 +231,7 @@ test('designs an experiment on a field of the library and shows its estimate bef
     page.getByRole('region', { name: 'Seeds and rounds' }).getByText('Repeat', { exact: true }),
   ).toBeVisible();
   await settings.getByRole('tab', { name: 'Spark' }).click();
-  await settings.getByLabel('Targeted mentoring').fill('5');
+  await settings.getByLabel('Engineered harness').fill('5');
   await expect
     .poll(() => page.evaluate(() => window.architect.experiments.get('cmp_1')))
     .toMatchObject({
@@ -238,7 +243,7 @@ test('designs an experiment on a field of the library and shows its estimate bef
         },
       },
     });
-  await heading('Returns desk').scrollIntoViewIfNeeded();
+  await heading(EXPERIMENT_NAME).scrollIntoViewIfNeeded();
   await capture('experiment-new-dark.png');
   await estimate.scrollIntoViewIfNeeded();
   await capture('experiment-new-estimate-dark.png');
@@ -254,7 +259,7 @@ test('preregisters, saying what freezes, then starts and runs without a locked r
     'Returns desk, in your library',
   );
   await expect(page.getByRole('region', { name: 'Hypothesis' })).toContainText(
-    'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
+    'Spark-engineered harness minus Glimmer alone, on the organizations it has never seen',
   );
 
   await page.getByRole('button', { name: 'Start' }).click();
@@ -298,17 +303,33 @@ test('lists every experiment with its status, field, arms, spend and caps', asyn
 
 test('reads the released results like a short paper', async () => {
   await expect(page.getByText('Finished', { exact: true })).toBeVisible();
+  // Titled by its own name, under its field, which the breadcrumb opens; a simulation says so.
+  await expect(heading(EXPERIMENT_NAME)).toBeVisible();
+  const crumb = page.getByRole('navigation', { name: 'Breadcrumb' });
+  await expect(crumb.getByRole('button', { name: 'Returns desk' })).toBeVisible();
+  await expect(page.getByText('Simulation, no model called', { exact: true })).toBeVisible();
   await expect(page.getByText(/Task by task, the difference is \+23 points/)).toBeVisible();
   // The hypothesis leads, with what was measured on the part of the test it named.
   const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
   expect(await above(hypothesis, page.getByRole('figure').first())).toBe(true);
-  await expect(hypothesis).toContainText(/Targeted mentoring \d+% · \d+ of \d+, Glimmer alone/);
+  await expect(hypothesis).toContainText(
+    /Spark-engineered harness \d+% · \d+ of \d+, Glimmer alone/,
+  );
   const plot = page.getByRole('figure', { name: /Final-test pass rate, Hosted/ });
   await expect(plot.getByRole('group', { name: 'Organizations it was taught on' })).toBeVisible();
   await expect(plot.getByRole('group', { name: 'Ridgeline Gear, never seen' })).toBeVisible();
   await expect(
     plot.getByRole('group', { name: 'Corner Bike Shop, real, never seen' }),
   ).toBeVisible();
+  // Spark answering itself reads apart from the harness it engineered for Glimmer.
+  const taught = plot.getByRole('group', { name: 'Organizations it was taught on' });
+  for (const arm of [
+    'Spark-engineered harness',
+    'Spark on the base harness',
+    'Spark on the engineered harness',
+  ]) {
+    await expect(taught.getByText(arm, { exact: true })).toBeVisible();
+  }
   const pairs = page.getByRole('table', { name: 'Paired comparisons' });
   await expect(pairs).toContainText('Gain shown');
   await expect(pairs).toContainText('No gain shown');
@@ -322,7 +343,7 @@ test('reads the released results like a short paper', async () => {
   await expect(
     page.getByRole('figure', { name: /Final-test pass rate, This computer/ }),
   ).toBeVisible();
-  await expect(pairs).toContainText('Failure-specific adapter vs Glimmer alone');
+  await expect(pairs).toContainText('Failure-targeted LoRA adapter vs Glimmer alone');
 });
 
 test('sets the teacher alone beside the taught student, by accuracy and cost per 1,000 requests', async () => {
@@ -345,13 +366,13 @@ test('sets the teacher alone beside the taught student, by accuracy and cost per
   const teacher = table.getByRole('row').filter({ hasText: 'Spark alone' });
   await expect(teacher).toContainText('Hosted');
   // Spark answered both, on the same tasks: the same cost per 1,000 requests, from the same records.
-  const reference = table.getByRole('row').filter({ hasText: 'Spark reference' });
+  const reference = table.getByRole('row').filter({ hasText: 'Spark on the base harness' });
   const perThousand = async (row: Locator) =>
     (await row.getByRole('cell').last().innerText()).trim();
   expect(await perThousand(teacher)).toMatch(/^\$\d/);
   expect(await perThousand(reference)).toBe(await perThousand(teacher));
   await expect(
-    table.getByRole('row').filter({ hasText: 'Targeted mentoring' }).first(),
+    table.getByRole('row').filter({ hasText: 'Spark-engineered harness' }).first(),
   ).toContainText('Glimmer');
   await expect(table).toContainText('This computer');
   await expect(page.getByText('Table 2.', { exact: false })).toBeVisible();

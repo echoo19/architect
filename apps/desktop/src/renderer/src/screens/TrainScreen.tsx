@@ -42,7 +42,7 @@ import { useLiveRun } from '../flow/train/use-live-run';
 import { useQuestion } from '../flow/train/use-question';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
-import { useEdition } from '../shell/edition';
+import { useEdition, useWords } from '../shell/edition';
 import { FlowShell, IMPROVE_STEPS } from '../shell/FlowShell';
 import { StopImprovementDialog } from '../workspace/teach/StopImprovement';
 
@@ -363,10 +363,11 @@ function TrainBoard({
 }) {
   const { run, job, improves } = live;
   const names = modelNames(job);
+  const words = useWords();
   const draft = draftRoundOf(live);
   const round = currentRound(live);
   const drafting = draft !== null && round?.index === draft;
-  const view = phaseView(run, names, drafting, improves !== null);
+  const view = phaseView(run, names, drafting, improves !== null, words);
   const score = run.devCurrent ?? run.devBaseline;
   const evidence = records.data ?? null;
   const failure =

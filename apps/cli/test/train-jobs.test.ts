@@ -204,7 +204,10 @@ describe('architect train on Hugging Face Jobs', () => {
       expect(hub.jobs.size).toBe(0);
 
       // Two commands started at once make one job between them.
-      const start = ['train', 'start', job, '--max-usd', '25', '--max-minutes', '90', '--json'];
+      const start = [
+        ...['train', 'start', job, '--max-usd', '25', '--max-minutes', '90'],
+        ...['--flavor', 'a100-large', '--json'],
+      ];
       const [one, two] = await Promise.all([cli(start, { env }), cli(start, { env })]);
       expect(one.code, one.stderr).toBe(0);
       expect(two.code, two.stderr).toBe(0);
@@ -216,7 +219,7 @@ describe('architect train on Hugging Face Jobs', () => {
       expect(settled.code, settled.stderr).toBe(0);
       const record = JSON.parse(settled.stdout) as JobJson;
       expect(record.format).toBe('architect.training-job/1');
-      expect(record.compute).toMatchObject({ flavor: 'l40sx1', authorized_seconds: 90 * 60 });
+      expect(record.compute).toMatchObject({ flavor: 'a100-large', authorized_seconds: 90 * 60 });
       expect(record.base_model.repo).toBe(GLIMMER_TRAINING_BASE.repo);
       expect(record.dataset.example_count).toBe(2);
       // Inputs and outputs share one private repository; the examples go without verdicts.
@@ -284,6 +287,14 @@ describe('architect train on Hugging Face Jobs', () => {
       expect(here.stderr).toContain(
         'has no demonstrations to train on off this computer: its data may not leave this computer',
       );
+      const unpriced = await cli(
+        ['train', 'start', kept.job, '--max-usd', '5', '--flavor', 't4-small'],
+        {
+          env: kept.env,
+        },
+      );
+      expect(unpriced.code).toBe(2);
+      expect(unpriced.stderr).toContain('--flavor takes l40sx1 or a100-large, not "t4-small"');
       const nobody = await cli(['train', 'start', 'nobody', '--max-usd', '5'], { env: kept.env });
       expect(nobody.code).toBe(2);
 

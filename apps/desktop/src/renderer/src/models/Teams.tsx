@@ -89,7 +89,7 @@ export function TeamsView({ onOpen }: { onOpen: (team: Team) => void }) {
       <EmptyState
         icon={<Users aria-hidden />}
         title="No teams yet"
-        description="A team's lead answers its chats and asks its teammates for their part."
+        description="Make a team whose lead asks its teammates for their part."
         className="pt-16"
       />
     );

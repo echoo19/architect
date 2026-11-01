@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  ADAPTERS,
   CERT,
   CERT_ROWS,
   CERT2,
@@ -11,6 +12,7 @@ import {
   FIELD_ARMS,
   FIELD_PAIRS,
   FIELD_TEST_SIZE,
+  FINETUNE_LOSS,
   FIRST,
   GROUPS,
   LAB_ARMS,
@@ -28,6 +30,7 @@ import {
   SECOND,
   SKILL_ROWS,
   SOURCES,
+  SWEEP_RUN,
   TEST_SIZE,
   THIRD_ROWS,
   THIRD_TEST_SIZE,
@@ -297,6 +300,35 @@ describe('the results page', () => {
     expect(report).toContain(`The bound is ${CERT2.bound}%`);
     expect(report).toContain(`upper bound of ${CERT2.checkBound}%`);
     expect(report).toContain(`$${CERT2.usd.toFixed(2)}** for ${CERT2.runs} attempts`);
+  });
+
+  it('gives the fine-tuning reports their loss curve and their adapters', () => {
+    const read = (key: 'qlora1' | 'qlora2' | 'sweep2') =>
+      readFileSync(join(ROOT, SOURCES[key].path), 'utf8').replaceAll('**', '');
+    const first = read('qlora1');
+    expect(FINETUNE_LOSS.map((row) => row.step)).toEqual([1, 2, 3, 4, 5, 6]);
+    for (const row of FINETUNE_LOSS) {
+      expect(first).toMatch(
+        new RegExp(`\\| ${row.step} \\| [0-9.]+ \\| ${row.loss.toFixed(4)} \\|`),
+      );
+    }
+    expect(ADAPTERS[0]?.steps).toBe(FINETUNE_LOSS.length);
+    for (const adapter of ADAPTERS) {
+      const report = read(adapter.source);
+      expect(report).toContain(`the ${adapter.examples} practice attempts`);
+      expect(report).toContain(
+        `${adapter.gpuMinutes} minutes of GPU, of which ${adapter.trainingMinutes} were training, for $${adapter.usd.toFixed(2)}`,
+      );
+      expect(report).toContain(`LoRA of rank ${adapter.rank} on ${adapter.pairs} modules`);
+      expect(report).toMatch(new RegExp(`${adapter.pairs} (\`lora_a\`/\`lora_b\` )?pairs`));
+      expect(report).toContain(`adapter type \`lora\`, alpha ${adapter.alpha}`);
+      expect(report).toContain(`sha256 \`${adapter.sha256}`);
+      expect(report).toMatch(/`checkLoraAgainstBase`[^|]*\| pass, no problems \|/);
+    }
+    expect(read('qlora2')).toMatch(/\| 2 \| 2 \| 0\.1398 \|/);
+    expect(read('sweep2')).toContain(
+      `On all ${SWEEP_RUN.tasks} tasks the taught arm passed ${SWEEP_RUN.taught} against bare's ${SWEEP_RUN.bare}`,
+    );
   });
 
   it('cites documents that exist', () => {

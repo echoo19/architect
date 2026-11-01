@@ -26,17 +26,18 @@ import {
   matchesFilter,
   matchesSearch,
   ordered,
+  STATUS_HINTS,
   type ModelRow,
   type RegistryFilter,
 } from '../models/registry';
 import { PlacePage } from '../shell/PlacePage';
 import { useUi } from '../state/ui';
 
-const FILTERS: readonly { value: RegistryFilter; label: string }[] = [
+const FILTERS: readonly { value: RegistryFilter; label: string; hint?: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'candidates', label: 'Candidates' },
-  { value: 'imported', label: 'Imported' },
+  { value: 'active', label: 'Active', hint: STATUS_HINTS.active },
+  { value: 'candidates', label: 'Candidates', hint: STATUS_HINTS.candidate },
+  { value: 'imported', label: 'Imported', hint: STATUS_HINTS.imported },
 ];
 
 type View = 'versions' | 'teams' | 'connections';
@@ -149,7 +150,7 @@ export function ModelsScreen({
               <EmptyState
                 icon={<Boxes aria-hidden />}
                 title="No models yet"
-                description="Each agent Architect teaches is kept here, with every version of it."
+                description="Every specialist you engineer is kept here, with each version."
                 className="pt-16"
                 actions={
                   <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>

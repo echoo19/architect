@@ -114,7 +114,8 @@ export function Organizations({ field }: { field: FieldSummary }) {
         action={
           view.sealed.length > 0 ? (
             <InfoTip about="never seen">
-              Never seen: kept in the vault, away from teaching, and opened once for the final test.
+              Never seen: kept in the vault, away from teaching, and opened once for the sealed
+              final test.
             </InfoTip>
           ) : undefined
         }
@@ -318,14 +319,14 @@ function QualifyCard({
       action={
         field.candidates.length > 0 ? (
           <InfoTip about="Qualify">
-            The version takes its final test here once, with no {modelNames(field.job).mentor}, and
-            the result joins its report.
+            The version takes its sealed final test here once, with no{' '}
+            {modelNames(field.job).mentor}, and the result joins its report.
           </InfoTip>
         ) : undefined
       }
     >
       {field.candidates.length === 0 ? (
-        <EmptyRow title="No candidate has taken its final test yet" />
+        <EmptyRow title="No candidate has taken its sealed final test yet" />
       ) : (
         field.candidates.map((candidate) => {
           const done = of(candidate);
@@ -437,8 +438,8 @@ function AddOrganizationDialog({
         title={cohortOf === undefined ? 'Add a never-seen organization' : 'Seal a fresh cohort'}
         description={
           cohortOf === undefined
-            ? `Kept beside the final test. ${modelNames(field.job).mentor} never sees it.`
-            : `New work of ${cohortOf.name} that no run has used, kept beside the final test as never seen.`
+            ? `Kept beside the sealed final test. ${modelNames(field.job).mentor} never sees it.`
+            : `New work of ${cohortOf.name} that no run has used, kept beside the sealed final test as never seen.`
         }
       >
         <div className="flex flex-col gap-5 px-6 pt-5">

@@ -178,13 +178,17 @@ export function wasRun(arm: Arm): boolean {
  * Why a comparison wasn't run, from what the records lack, in a few words for its row. The
  * agent's own configuration always ran, so it has none.
  */
-export function notRunReason(key: ArmKey, mentor: string): string | null {
+export function notRunReason(
+  key: ArmKey,
+  mentor: string,
+  weights = 'trained weights',
+): string | null {
   switch (key) {
     case 'untouched':
       return 'nothing was measured before training';
     case 'weights':
     case 'both':
-      return 'no round measured trained weights';
+      return `no round measured ${weights}`;
     case 'mentor':
       return `${mentor} wasn't measured on these tasks`;
     case 'setup':

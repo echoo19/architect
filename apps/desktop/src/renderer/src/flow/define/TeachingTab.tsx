@@ -1,6 +1,7 @@
 import type { Job, StartingHarness, StudentTarget } from '@architect/shared';
-import { Segmented, Select } from '@architect/ui';
+import { defineTerm, Segmented, Select } from '@architect/ui';
 import { useHubToken } from '../../api/hooks';
+import { useEdition } from '../../shell/edition';
 import { useUi } from '../../state/ui';
 import { kindLabel, modelNames } from '../names';
 import { Group, InspectorRow, NumberField, PathField } from './fields';
@@ -23,6 +24,7 @@ export function TeachingTab({ editor, change, testPlace }: TeachingTabProps) {
   const { student } = modelNames(job);
   const token = useHubToken();
   const openSettings = useUi((state) => state.openSettings);
+  const lab = useEdition() === 'lab';
   const typed = (what: string, recipe: (current: Job) => Job) =>
     change(what, recipe, TYPING_PAUSE_MS);
   const evaluation = (what: string, patch: Partial<Job['evaluation']>) =>
@@ -72,7 +74,7 @@ export function TeachingTab({ editor, change, testPlace }: TeachingTabProps) {
       </Group>
       <Group title="A change stays when">
         <NumberField
-          label="Check tasks gain at least"
+          label={lab ? 'Held-out checks gain at least' : 'Check tasks gain at least'}
           unit="tasks"
           value={job.evaluation.minDevGain}
           issue={issues['evaluation.minDevGain']}
@@ -104,20 +106,29 @@ const STARTS = [
   { value: 'import', label: 'Agent' },
 ] as const satisfies readonly { value: StartingHarness['kind']; label: string }[];
 
+/** The same starts as the Lab names them: a blank start is the base harness. */
+const LAB_STARTS = STARTS.map((start) =>
+  start.value === 'blank' ? { ...start, label: 'Base' } : start,
+);
+
 const TEMPLATES = [{ value: 'ops-analyst', label: 'Ops analyst' }] as const;
 
 /** The instructions the agent starts from: none, a template, or an agent already made. */
 function Start({ editor, change }: InspectorTabProps) {
   const { job, issues } = editor;
   const { startingHarness } = job;
+  const lab = useEdition() === 'lab';
   const set = (next: StartingHarness) =>
     change('Starting instructions', (current) => ({ ...current, startingHarness: next }));
   return (
-    <Group title="Starting instructions">
+    <Group
+      title={lab ? 'Starting harness' : 'Starting instructions'}
+      info={lab ? defineTerm('harness') : undefined}
+    >
       <InspectorRow label="Start from">
         <Segmented
           aria-label="Start from"
-          options={STARTS}
+          options={lab ? LAB_STARTS : STARTS}
           value={startingHarness.kind}
           onValueChange={(kind) =>
             set(

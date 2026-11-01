@@ -83,16 +83,26 @@ export const DEFAULT_NAMES: ModelNames = {
 export function armNames({ mentor, student }: ModelNames): Record<ArmId, string> {
   return {
     bare: `${student} alone`,
-    draft: 'One-shot draft',
-    targeted: 'Targeted mentoring',
-    reference: `${mentor} reference`,
-    'reference-targeted': `${mentor}, targeted harness`,
+    draft: 'One-shot harness',
+    targeted: `${mentor}-engineered harness`,
+    // The references are the teacher answering the sealed final test itself, with the base
+    // harness or the one it engineered (decision 051); the teacher alone is a run of its own.
+    reference: `${mentor} on the base harness`,
+    'reference-targeted': `${mentor} on the engineered harness`,
     teacher: `${mentor} alone`,
     repeat: 'Decoding repeat',
     fixed: 'Fixed intervention',
-    'weights-one-shot': 'One-shot adapter',
-    'weights-targeted': 'Failure-specific adapter',
+    'weights-one-shot': 'One-shot LoRA adapter',
+    'weights-targeted': 'Failure-targeted LoRA adapter',
   };
+}
+
+/**
+ * The arms as a narrow row names them, such as a cap's row in the inspector: the engineered
+ * harness without the teacher's name, which a long model name would cut short.
+ */
+export function shortArmNames(names: ModelNames): Record<ArmId, string> {
+  return { ...armNames(names), targeted: 'Engineered harness' };
 }
 
 /** The arms under the defaults' names. */
@@ -101,16 +111,16 @@ export const ARM_NAMES = armNames(DEFAULT_NAMES);
 /** What each arm does, in one plain line under its name. */
 export function armDescriptions({ mentor, student }: ModelNames): Record<ArmId, string> {
   return {
-    bare: `${student} alone, with no teaching`,
+    bare: `${student} on the base harness, with no teaching`,
     draft: `${mentor} writes one harness before any practice`,
-    targeted: `${mentor} edits the harness round by round from ${student}'s failures`,
-    reference: `${mentor} takes the test itself, with a blank harness`,
-    'reference-targeted': `${mentor} takes the test itself, with the taught harness`,
+    targeted: `${mentor} engineers the harness round by round from ${student}'s failures`,
+    reference: `${mentor} takes the test itself, with a base harness`,
+    'reference-targeted': `${mentor} takes the test itself, with the engineered harness`,
     teacher: `${mentor} does the job itself in a run of its own, with no teaching`,
     repeat: 'The finished arms tested again on a new seed, to show the noise',
     fixed: `${mentor} may use one kind of change only`,
-    'weights-one-shot': `Retrains ${student}'s weights once on verified examples`,
-    'weights-targeted': `Retrains ${student}'s weights on the failures ${mentor} found`,
+    'weights-one-shot': `Fine-tunes a LoRA adapter for ${student} once on verified examples`,
+    'weights-targeted': `Fine-tunes a LoRA adapter for ${student} on the failures ${mentor} found`,
   };
 }
 
@@ -176,12 +186,12 @@ export function withArms(input: ExperimentInput, arms: readonly ArmId[]): Experi
 
 /** Each part of the final test a primary comparison can read, in words. */
 export const GROUP_WORDS: Record<ExperimentGroup, string> = {
-  all: 'the whole final test',
+  all: 'the whole sealed final test',
   seen: 'the organizations it is taught on',
   unseen: 'the organizations it has never seen',
 };
 
-/** The primary comparison in one line: "Targeted mentoring minus Bare student, on …". */
+/** The primary comparison in one line: "Spark-engineered harness minus Glimmer alone, on …". */
 export function primaryText(input: ExperimentInput, arms = ARM_NAMES): string | null {
   const primary = input.primaryComparison;
   if (primary === undefined) return null;

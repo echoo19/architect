@@ -37,10 +37,11 @@ export interface GraduateSession {
   readonly id: string;
   readonly name: string;
   /**
-   * What the version's contract says it does: its summary, or its description, and its task
-   * types. A team's lead reads it in the tool it asks its teammates with (decision 100).
+   * What the version's contract says it does: its summary, or its description, its task types,
+   * and the names of the data files it holds here (never their contents). A team's lead reads it
+   * in the tool it asks its teammates with (decision 100).
    */
-  readonly about: { summary: string; skills: readonly string[] };
+  readonly about: { summary: string; skills: readonly string[]; files: readonly string[] };
   /** The version that answers. Every reply records it. */
   readonly version: number;
   /** The version and installation it was opened with (`activeStamp`). */
@@ -274,6 +275,7 @@ export async function openGraduateSession(
     about: {
       summary: contract.summary ?? contract.description,
       skills: contract.capabilities.taskTypes.map((type) => type.label),
+      files: files.map((file) => file.name),
     },
     version: active.version.version,
     stamp: active.stamp,

@@ -2,6 +2,7 @@ import { Fragment, useMemo, type CSSProperties } from 'react';
 import type { RunStatus } from '@architect/shared';
 import { cn, NumberTicker, StepTransition, Tooltip } from '@architect/ui';
 import { Check, ChevronRight, CircleAlert, Cloud, Laptop, Square } from 'lucide-react';
+import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
 import { ROUND_STAGES, STAGE_LABELS, type PhaseView, type Stage } from './phase';
 import type { EvalProgress } from './run-state';
@@ -59,17 +60,18 @@ export function LiveStatus({
   passRate,
   progress,
 }: LiveStatusProps) {
+  const w = useWords();
   // A draft round makes no practice attempts: the mentor writes the draft, then it is checked.
   const stages: readonly Stage[] =
     view.stage === 'testing' ? ['testing'] : drafting ? ['diagnosing', 'evaluating'] : ROUND_STAGES;
   const label =
     view.motion === 'testing'
-      ? `${student} is taking the final test`
+      ? `${student} is taking the ${w.finalTest}`
       : `${mentor} is mentoring ${student}`;
   const stepsLabel = view.stage === 'testing' ? 'After training' : 'Each round';
   const place =
     view.motion === 'testing'
-      ? `taking the final test ${studentPlace}`
+      ? `taking the ${w.finalTest} ${studentPlace}`
       : `learning ${studentPlace}`;
 
   return (
@@ -109,7 +111,11 @@ export function LiveStatus({
                 stage === view.stage ? 'border-fg font-medium' : 'border-transparent',
               )}
             >
-              {drafting && stage === 'diagnosing' ? 'Write first draft' : STAGE_LABELS[stage]}
+              {drafting && stage === 'diagnosing'
+                ? 'Write first draft'
+                : stage === 'testing'
+                  ? w.FinalTest
+                  : STAGE_LABELS[stage]}
             </span>
           </li>
         ))}

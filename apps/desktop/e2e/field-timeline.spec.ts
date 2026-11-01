@@ -180,20 +180,22 @@ test("tells the field's life oldest first, from its records, and ends on the one
     'You confirmed the study of 3 organizations: 6 skills and 3 rules',
     expect.stringMatching(/^Trained 5 rounds and kept \d+ changes?$/),
     expect.stringMatching(
-      /^Harness v6 took its final test: \d+% taught on, \d+% never seen and \d+% real$/,
+      /^Harness v6 took its sealed final test: \d+% taught on, \d+% never seen and \d+% real$/,
     ),
-    'Harness v6 was certified: wrong on at most 8% of the answers it gives, and it held on 1 of the 2 organizations it never saw',
-    expect.stringMatching(/^Trained 7 rounds, kept \d+ changes? and found \d+ counterexamples?$/),
+    'Harness v6 was issued a risk certificate: risk bound 8% on the answers it gives, and it held on 1 of the 2 organizations it never saw',
     expect.stringMatching(
-      /^Academy desk v2 took its final test: \d+% taught on, 83% never seen and 90% real$/,
+      /^Trained 7 rounds, kept \d+ changes? and added \d+ counterexamples? to the regression suite$/,
+    ),
+    expect.stringMatching(
+      /^Academy desk v2 took its sealed final test: \d+% taught on, 83% never seen and 90% real$/,
     ),
     'Comparing 3 arms in “Targeted against one-shot draft”',
     'Academy desk v2 was tested on Maple Grove Academy, added later and never seen: 83%',
     expect.stringMatching(
-      /^academy-desk-sft-8b, trained elsewhere, took the final test with harness v9:/,
+      /^academy-desk-sft-8b, fine-tuned elsewhere, took the sealed final test with harness v9:/,
     ),
-    "Exported the field's training examples to …\\Exports\\academy-desk",
-    'Certify the best version',
+    "Exported the field's fine-tuning data to …\\Exports\\academy-desk",
+    'Issue a risk certificate for the best version',
   ]);
   expect(rows.map((row) => row.length)).toEqual([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3]);
   expect(rows.at(-1)?.[1]).toBe('Next step');
