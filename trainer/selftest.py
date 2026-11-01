@@ -126,5 +126,75 @@ class SystemPackages(unittest.TestCase):
         self.assertEqual(pipeline.system_packages(True, False, (3, 13, 0)), ["python3.13-venv"])
 
 
+class Finish(unittest.TestCase):
+    """The trained adapter is hashed and uploaded before conversion, so a failed one loses nothing."""
+
+    JOB = {
+        "job_id": "trn_test",
+        "base_model": {"repo": "meta-models/Muse-Glimmer-30B", "revision": "c" * 40},
+        "dataset": {"sha256": "d" * 64, "example_count": 2},
+        "recipe": {"name": "glimmer-qlora", "version": 1, "sha256": "e" * 64},
+        "lora": {"r": 16, "alpha": 32, "target_modules": "v_proj"},
+        "converter": {"commit": "f" * 40, "outtype": "f16"},
+    }
+    RESULT = {
+        "base_dir": "/base", "steps": 6, "loss_first": 0.1, "loss_last": 0.01, "train_seconds": 295.0,
+        "trained_examples": 2, "trained_tokens": 40, "skipped": [], "stopped_early": False,
+    }
+
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+
+        self.dir = tempfile.TemporaryDirectory()
+        self.out = Path(self.dir.name) / "outputs"
+        (self.out / "peft").mkdir(parents=True)
+        (self.out / "peft" / "adapter_config.json").write_text('{"r": 16}')
+        (self.out / "peft" / "adapter_model.safetensors").write_bytes(b"weights")
+        (self.out / "train.log").write_text("step 1: loss 0.1000\n")
+        self.uploads = []
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def upload(self, out, paths, message):
+        self.uploads.append((list(paths), message))
+
+    def test_a_failed_conversion_keeps_the_trained_adapter_uploaded_and_hashed(self):
+        def broken(*args):
+            raise RuntimeError("AttributeError: 'LoraTorchTensor' object has no attribute 'ndim'")
+
+        with self.assertRaises(RuntimeError):
+            pipeline.finish(self.JOB, self.out, self.out.parent / "work", self.RESULT, True, broken, self.upload)
+        self.assertEqual(len(self.uploads), 1)
+        paths, message = self.uploads[0]
+        self.assertEqual(
+            paths,
+            ["peft/adapter_config.json", "peft/adapter_model.safetensors", "train.log", "peft-manifest.json"],
+        )
+        self.assertIn("before conversion", message)
+        manifest = json.loads((self.out / "peft-manifest.json").read_text())
+        self.assertEqual(manifest["format"], pipeline.PEFT_FORMAT)
+        weights = next(entry for entry in manifest["files"] if entry["kind"] == "peft_weights")
+        self.assertEqual(weights["sha256"], pipeline.sha256_file(self.out / "peft" / "adapter_model.safetensors"))
+        self.assertFalse((self.out / "manifest.json").exists())
+
+    def test_a_good_conversion_adds_the_gguf_and_a_manifest_of_both(self):
+        def convert(job, base, peft, gguf, work):
+            gguf.write_bytes(b"GGUF")
+            return 12.5
+
+        manifest = pipeline.finish(self.JOB, self.out, self.out.parent / "work", self.RESULT, True, convert, self.upload)
+        self.assertEqual([paths for paths, _ in self.uploads][1], ["adapter.gguf", "manifest.json"])
+        kinds = {entry["kind"] for entry in manifest["files"]}
+        self.assertTrue({"peft_config", "peft_weights", "gguf_lora", "log"} <= kinds)
+
+    def test_nothing_is_sent_without_the_trained_weights(self):
+        (self.out / "peft" / "adapter_model.safetensors").unlink()
+        with self.assertRaises(pipeline.JobError):
+            pipeline.finish(self.JOB, self.out, self.out.parent / "work", self.RESULT, True, None, self.upload)
+        self.assertEqual(self.uploads, [])
+
+
 if __name__ == "__main__":
     unittest.main()
