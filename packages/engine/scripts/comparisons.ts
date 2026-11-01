@@ -9,8 +9,8 @@
  *     [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
  *     [--adapter-protocol four-cell|reduced] [--smoke-tasks N]
- *     [--providers DeepInfra|any] [--local-model <name>] [--headroom N] [--parallel N]
- *     [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N]
+ *     [--providers DeepInfra|any] [--mentor <preset>] [--local-model <name>] [--headroom N]
+ *     [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N]
  *     [--raise-student-usd N] [--drop-arms a,b]
  *
  * Commands:
@@ -22,6 +22,10 @@
  *           has really cost: run again with --raise-student-usd or --drop-arms (decision 081)
  *   probe   times this computer's build on --tasks calibration tasks: uses the GPU, owner only
  *   report  rebuilds report.md and report.json from the output folder's records
+ *
+ * The job's own teacher mentors every arm, Spark when a coding agent teaches it, unless --mentor
+ * names a mentor preset by its key instead. --providers pins the hosted student; a teacher on
+ * OpenRouter is pinned by the providers in the job's mentor settings.
  *
  * Money and the GPU are held at each request. Every hosted request is reserved against
  * --student-usd at the most it could cost and written to requests.jsonl before it is sent, so
@@ -41,14 +45,15 @@
  */
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { AdapterProtocolSchema, ArmIdSchema, type ArmId } from '@architect/shared';
+import { AdapterProtocolSchema, ArmIdSchema, MENTOR_PRESETS, type ArmId } from '@architect/shared';
 import { hubTokenResolver } from '../src/hub';
 import { appDataDir, describeLlamaServer, LocalRuntimeError } from '../src/local-runtime';
 import {
   ARM_ORDER,
   DEFAULT_CONFIG,
-  DEFAULT_MODELS,
+  jobModels,
   probeLocal,
+  readJob,
   realEnvironment,
   reportOnly,
   runComparison,
@@ -61,7 +66,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N] [--raise-student-usd N] [--drop-arms a,b]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--mentor <preset>] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N] [--raise-student-usd N] [--drop-arms a,b]';
 
 class UsageError extends Error {}
 
@@ -152,6 +157,13 @@ function parse(args: readonly string[]): Parsed {
   const studyToken = values.get('--confirm-study');
   const raise = values.get('--raise-student-usd');
   const drops = values.get('--drop-arms');
+  const mentor = values.get('--mentor');
+  const preset = MENTOR_PRESETS.find((candidate) => candidate.key === mentor);
+  if (mentor !== undefined && preset === undefined) {
+    throw new UsageError(
+      `--mentor takes a mentor preset: ${MENTOR_PRESETS.map((preset) => preset.key).join(', ')}.`,
+    );
+  }
   return {
     command: command as Command,
     request: {
@@ -160,7 +172,7 @@ function parse(args: readonly string[]): Parsed {
       out: resolve(out),
       config,
       models: {
-        ...DEFAULT_MODELS,
+        ...jobModels(readJob(resolve(jobDir)), preset?.key),
         ...(localModel === undefined ? {} : { localModel }),
         ...(providers === undefined
           ? {}

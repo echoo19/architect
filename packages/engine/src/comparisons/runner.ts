@@ -268,7 +268,8 @@ async function ensureJob(
 
 const noHarness = async () => undefined;
 
-function readJob(dir: string): Job {
+/** A job folder's job.json, parsed. */
+export function readJob(dir: string): Job {
   return JobSchema.parse(JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8')));
 }
 

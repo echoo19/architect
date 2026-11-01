@@ -7,6 +7,7 @@ import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
   fieldModels,
+  jobModels,
   modelInputs,
   needsConfirmation,
   paired,
@@ -17,6 +18,7 @@ import {
   wilson,
   type ComparisonConfig,
 } from '../src/comparisons';
+import { modelKeys } from '../src/comparisons/arms';
 import type { SweepAttempt } from '../src/comparisons/records';
 import { RETURNS_DESK } from './support/comparison-world';
 
@@ -370,6 +372,55 @@ describe("a comparison on the field's own models", () => {
       mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'Coding agent' },
     });
     expect(fieldModels(job).mentor).toBe(DEFAULT_MODELS.mentor);
+  });
+});
+
+describe("the comparisons script's models", () => {
+  const source = JobSchema.parse(JSON.parse(readFileSync(join(RETURNS_DESK, 'job.json'), 'utf8')));
+  const openTeacher = {
+    kind: 'model' as const,
+    provider: 'openrouter' as const,
+    label: 'Open teacher',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'example/open-teacher',
+    reasoningEffort: 'medium' as const,
+    secretRef: 'openrouter',
+    pricing: { inputPerM: 1.25, cachedInputPerM: 0.15, outputPerM: 4.25 },
+    providers: ['BaseTen'],
+  };
+  const taughtOnOpenRouter = JobSchema.parse({ ...source, mentor: openTeacher });
+
+  it('runs exactly the defaults on a job that teaches with Spark', () => {
+    expect(jobModels(source)).toEqual(DEFAULT_MODELS);
+  });
+
+  it("mentors every arm with the job's own teacher, its provider pin and all", () => {
+    const models = jobModels(taughtOnOpenRouter);
+    expect(models).toEqual({ ...DEFAULT_MODELS, mentor: openTeacher });
+    expect(comparisonJob(taughtOnOpenRouter, config({}), models).mentor).toEqual(openTeacher);
+    // A resume that pins the teacher elsewhere asks for another plan.
+    expect(modelKeys(models).mentor).toBe(
+      'example/open-teacher at https://openrouter.ai/api/v1 via BaseTen',
+    );
+  });
+
+  it('keeps a pinned teacher whole even where a preset is the same model at the same address', () => {
+    // The sample job teaches with the Spark preset, so only its pin tells the two apart.
+    const job = JobSchema.parse({ ...source, mentor: { ...source.mentor, providers: ['Meta'] } });
+    expect(jobModels(job).mentor).toEqual(job.mentor);
+  });
+
+  it("takes the mentor preset --mentor names over the job's teacher", () => {
+    const opus = MENTOR_PRESETS.find((preset) => preset.key === 'anthropic-opus');
+    if (!opus) throw new Error('No Opus preset.');
+    expect(jobModels(taughtOnOpenRouter, opus.key)).toEqual({
+      ...DEFAULT_MODELS,
+      mentor: opus.key,
+    });
+    expect(comparisonJob(source, config({}), jobModels(source, opus.key)).mentor).toMatchObject({
+      provider: opus.provider,
+      model: opus.model,
+    });
   });
 });
 

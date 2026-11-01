@@ -4,7 +4,13 @@
  * before any locked result exists, and a report made from stored records only. A developer tool:
  * the app reads its JSON report, and never runs it.
  */
-export { comparisonJob, DEFAULT_MODELS, fieldModels, type ComparisonModels } from './arms';
+export {
+  comparisonJob,
+  DEFAULT_MODELS,
+  fieldModels,
+  jobModels,
+  type ComparisonModels,
+} from './arms';
 export { realEnvironment, type RealEnvironmentOptions } from './environment';
 export { GPU_REFUSAL, GpuWindow } from './gpu';
 export { guardedDeps, isGuardRefusal } from './guards';
@@ -24,6 +30,7 @@ export { ComparisonFiles, reportBeside } from './records';
 export { armRun, buildReport, roundsOf } from './report';
 export {
   probeLocal,
+  readJob,
   reportOnly,
   runComparison,
   type ComparisonControl,
