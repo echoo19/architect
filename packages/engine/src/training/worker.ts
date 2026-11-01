@@ -103,13 +103,12 @@ class Queue {
  * job at its share, and the worker stops it too if it is seen running past it.
  *
  * Every change to a job goes through one queue per job, so a check, a cancel and a download never
- * work from a stale copy of its record; new jobs go through one queue per budget scope, so two
- * can't be paid from the same dollars.
+ * work from a stale copy of its record; a new job reserves its compute under the store's lock,
+ * which every process on the same records takes, so two can't be paid from the same dollars.
  */
 export class TrainingWorker {
   private readonly watchers = new Map<string, AbortController>();
   private readonly jobs = new Queue();
-  private readonly scopes = new Queue();
 
   constructor(private readonly options: TrainingWorkerOptions) {}
 
@@ -195,9 +194,14 @@ export class TrainingWorker {
       )
       .digest('hex');
 
-    // The budget check and the record that reserves its dollars happen together, one job at a
-    // time per scope; the same job asked for twice finds the first one's record here.
-    const made = await this.scopes.run(request.scope, async () => {
+    // Named before the lock, since naming the repository may ask the provider who we are.
+    const id = newId('trn');
+    const outputRepo = await backend.outputRepo(id, signal);
+    // The budget check and the record that reserves its dollars happen together, under the
+    // training records' lock, so no other process (another command, the app) can reserve the
+    // same dollars or make the same job meanwhile; the same job asked for twice finds the first
+    // one's record here. Nothing in it waits on anything, so the lock is held only for a moment.
+    const made = this.options.store.exclusive(() => {
       const existing = this.list().find(
         (record) =>
           record.idempotencyKey === key &&
@@ -212,8 +216,6 @@ export class TrainingWorker {
         MIN_JOB_SECONDS,
         flavor.label,
       );
-      const id = newId('trn');
-      const outputRepo = await backend.outputRepo(id, signal);
       const job = buildTrainerJob({
         jobId: id,
         recipe,

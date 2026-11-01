@@ -5,13 +5,24 @@ import { describe, expect, it } from 'vitest';
 import {
   CERT,
   CERT_ROWS,
+  CERT2,
+  CERT2_CHECK,
+  CERT2_ROWS,
   FIELD_ARMS,
   FIELD_PAIRS,
   FIELD_TEST_SIZE,
   FIRST,
   GROUPS,
+  LAB_ARMS,
+  LAB_GROUPS,
+  LAB_PAIRS,
+  LAB_RUN,
+  LAB_SKILL_ROWS,
+  LAB_TEST_SIZE,
   LOCAL_ROWS,
   LOCAL_SPEED,
+  OPEN,
+  OPEN_MONEY,
   PER_TYPE,
   REPAIR,
   SECOND,
@@ -27,7 +38,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 /** The results page's figures hold together, and the reports it cites are there to be read. */
 describe('the results page', () => {
   it('counts every final test as 60 requests and every kind as 20', () => {
-    for (const comparison of [FIRST, SECOND]) {
+    for (const comparison of [FIRST, SECOND, OPEN]) {
       for (const arm of comparison.arms) {
         expect(arm.passed).toBeLessThanOrEqual(TEST_SIZE);
         expect(arm.byType.reduce((sum, passed) => sum + passed, 0)).toBe(arm.passed);
@@ -39,7 +50,7 @@ describe('the results page', () => {
   });
 
   it('splits each pair of arms into wins, losses, both and neither of the 60 requests', () => {
-    for (const comparison of [FIRST, SECOND]) {
+    for (const comparison of [FIRST, SECOND, OPEN]) {
       for (const pair of comparison.pairs) {
         expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(TEST_SIZE);
         expect(((pair.wins - pair.losses) / TEST_SIZE) * 100).toBeCloseTo(pair.diff, 0);
@@ -152,6 +163,140 @@ describe('the results page', () => {
       );
     }
     expect(report).toContain(`$${CERT.usd.toFixed(2)}`);
+  });
+
+  it('adds up the screening lab run and gives the report its numbers', () => {
+    const report = readFileSync(
+      join(ROOT, 'docs', 'comparisons', 'inventory-desk-1.md'),
+      'utf8',
+    ).replaceAll('**', '');
+    const point = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+    expect(LAB_GROUPS.reduce((sum, group) => sum + group.n, 0)).toBe(LAB_TEST_SIZE);
+    const passes = new Map<string, readonly number[]>();
+    for (const arm of LAB_ARMS) {
+      expect(arm.groups.reduce((sum, group) => sum + group.passed, 0)).toBe(arm.all.passed);
+      const field =
+        arm.name === 'Inventory desk'
+          ? 'inventoryDesk'
+          : arm.name.includes('base')
+            ? 'bare'
+            : 'draft';
+      const counts = [...arm.groups, arm.all].map((result, index) => {
+        const n = LAB_GROUPS[index]?.n ?? LAB_TEST_SIZE;
+        const rate = (result.passed / n) * 100;
+        expect(result.low).toBeLessThanOrEqual(rate);
+        expect(result.high).toBeGreaterThanOrEqual(rate);
+        expect(report).toContain(
+          `${result.passed}, ${rate.toFixed(1)}% (${result.low.toFixed(1)} to ${result.high.toFixed(1)})`,
+        );
+        return result.passed;
+      });
+      LAB_GROUPS.forEach((group, index) => {
+        const rows = LAB_SKILL_ROWS.filter((row) => row.group === group.short);
+        expect(rows.reduce((sum, row) => sum + row.of, 0)).toBe(group.n);
+        expect(rows.reduce((sum, row) => sum + row[field], 0)).toBe(counts[index]);
+      });
+      passes.set(field, counts);
+    }
+    for (const row of LAB_SKILL_ROWS) {
+      expect(report).toContain(
+        `| ${row.bare}/${row.of} | ${row.draft}/${row.of} | ${row.inventoryDesk}/${row.of} |`,
+      );
+    }
+    const arms = {
+      'Inventory desk against the base harness': ['inventoryDesk', 'bare'],
+      'The one-shot harness against the base harness': ['draft', 'bare'],
+      'Inventory desk against the one-shot harness': ['inventoryDesk', 'draft'],
+    } as const;
+    for (const pair of LAB_PAIRS) {
+      const index =
+        pair.group === 'all'
+          ? LAB_GROUPS.length
+          : LAB_GROUPS.findIndex((g) => g.short === pair.group);
+      const [one, two] = arms[pair.label as keyof typeof arms];
+      expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(pair.n);
+      expect(pair.both + pair.wins).toBe(passes.get(one)?.[index]);
+      expect(pair.both + pair.losses).toBe(passes.get(two)?.[index]);
+      expect(((pair.wins - pair.losses) / pair.n) * 100).toBeCloseTo(pair.diff, 0);
+      expect(report).toContain(
+        `| ${pair.n} | ${pair.wins} / ${pair.losses} | ${pair.both} / ${pair.neither} | ${point(pair.diff)} (${point(pair.low)} to ${point(pair.high)})`,
+      );
+    }
+    expect(report).toContain(`Hosted student: $${LAB_RUN.glimmer.toFixed(2)}`);
+    expect(report).toContain(`Spark: $${LAB_RUN.spark.toFixed(2)} recorded`);
+    expect(report).toContain(`about $${LAB_RUN.sparkUnrecorded.toFixed(2)}`);
+    expect(report).toContain(`${LAB_RUN.draftBefore}/24 to ${LAB_RUN.draftAfter}/24`);
+    expect(report).toContain(`${LAB_RUN.keptBefore}/48 to ${LAB_RUN.keptAfter}/48`);
+  });
+
+  it('adds up the open-weight teacher run and gives the report its numbers', () => {
+    const report = readFileSync(
+      join(ROOT, 'docs', 'comparisons', 'returns-desk-open-1.md'),
+      'utf8',
+    );
+    const point = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+    for (const arm of OPEN.arms) {
+      const rate = (arm.passed / TEST_SIZE) * 100;
+      expect(report).toContain(
+        `${arm.passed}, ${rate.toFixed(1)}% (${arm.low.toFixed(1)}% to ${arm.high.toFixed(1)}%)`,
+      );
+      expect(report).toContain(
+        `| ${arm.byType.map((passed) => `${passed}/${PER_TYPE}`).join(' | ')} |`,
+      );
+      expect(report).toContain(`${arm.p50.toFixed(1)} s / ${arm.p95.toFixed(1)} s`);
+      expect(report).toContain(`$${arm.spark.toFixed(2)} of`);
+      expect(report).toContain(`$${(arm.glimmer ?? 0).toFixed(2)} of`);
+    }
+    const [base, draft, engineered] = OPEN.arms.map((arm) => arm.passed);
+    const order = [
+      [engineered, base],
+      [draft, base],
+      [engineered, draft],
+    ];
+    OPEN.pairs.forEach((pair, index) => {
+      expect(pair.both + pair.wins).toBe(order[index]?.[0]);
+      expect(pair.both + pair.losses).toBe(order[index]?.[1]);
+      expect(report).toContain(
+        `| ${pair.wins} | ${pair.losses} | ${pair.both} | ${pair.neither} | ${point(pair.diff)} (${point(pair.low)} to ${point(pair.high)}) |`,
+      );
+    });
+    expect(report).toContain(`Spark Open: $${OPEN_MONEY.sparkOpen.toFixed(2)}`);
+    expect(report).toContain(`Glimmer: $${OPEN_MONEY.glimmer.toFixed(2)}`);
+    expect(report).toContain('context 16,384 tokens');
+  });
+
+  it('adds up the certificate and its check, and gives the report its numbers', () => {
+    const report = readFileSync(
+      join(ROOT, 'docs', 'comparisons', 'academy-desk-cert-2.md'),
+      'utf8',
+    );
+    for (const row of CERT2_ROWS) {
+      expect(row.wrong).toBeLessThanOrEqual(row.answered);
+      expect(row.handedOff).toBe(Math.round((1 - row.answered / CERT2.calibration) * 100));
+      expect(row.bound).toBeLessThan(CERT2.target);
+      expect(report).toContain(
+        `| ${row.answered} | ${row.wrong} | ${100 - row.handedOff}% | ${row.handedOff}% | ${row.bound.toFixed(2)}% |`,
+      );
+    }
+    for (const row of CERT2_CHECK) {
+      expect(row.answered + row.handedOff).toBe(CERT2.checkTasks);
+      expect(report).toContain(`| ${row.answered} | ${row.wrong} | ${row.handedOff} |`);
+    }
+    const certified = CERT2_ROWS.find((row) => row.bound === CERT2.bound);
+    expect(certified?.answered).toBe(CERT2.calibration);
+    expect(CERT2.coverage).toBe((CERT2.calibration / CERT2.calibration) * 100);
+    expect(CERT2_CHECK.at(-1)?.answered).toBe(CERT2.checkAnswered);
+    expect(CERT2_CHECK.at(-1)?.wrong).toBe(CERT2.checkWrong);
+    expect(Math.round(CERT2.bound)).toBe(CERT2.stated);
+    expect(report).toContain(
+      `wrong on at most ${CERT2.stated}% of requests like these, with ${CERT2.confidence}% confidence`,
+    );
+    expect(report).toContain(
+      `answered ${CERT2.checkAnswered} of ${CERT2.checkTasks}, ${CERT2.checkWrong} wrong. Held.`,
+    );
+    expect(report).toContain(`The bound is ${CERT2.bound}%`);
+    expect(report).toContain(`upper bound of ${CERT2.checkBound}%`);
+    expect(report).toContain(`$${CERT2.usd.toFixed(2)}** for ${CERT2.runs} attempts`);
   });
 
   it('cites documents that exist', () => {

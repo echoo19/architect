@@ -45,7 +45,8 @@ export function DownloadPage() {
           Download Architect
         </h1>
         <p className="t-lead enter m-0 mt-4 max-w-[36ch] text-center sm:max-w-none" style={beat(1)}>
-          One download, two editions: Architect for one job, Architect Lab for R&amp;D across a whole field.
+          One download, two editions: Architect for one job, Architect Lab for R&amp;D across a
+          whole field.
         </p>
         <ul
           className="enter m-0 mt-12 grid w-full max-w-[560px] list-none gap-3 p-0 sm:grid-cols-2"

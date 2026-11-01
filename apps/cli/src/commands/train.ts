@@ -23,6 +23,7 @@ import type { CliContext } from '../context';
 import { CliError } from '../exit';
 import { line, printJson } from '../render';
 import { trainerDir } from '../trainer';
+import { TRAINING_JOB_ACTIONS } from './train-jobs';
 
 function choice<T extends string>(
   values: Values,
@@ -109,7 +110,8 @@ async function plan(ctx: CliContext, values: Values, signal: AbortSignal): Promi
  * `architect train plan`: sizes a training job from the model's config.json, each memory term
  * with its arithmetic. `architect train bundle`: writes the launch bundle for Slurm or
  * Kubernetes and prints the command that submits it. Neither submits anything or holds a
- * credential; the bundles are experimental and have not run on a cluster.
+ * credential; the bundles are experimental and have not run on a cluster. `start`, `status` and
+ * `cancel` train an adapter on Hugging Face Jobs with the pinned recipe (decision 101).
  */
 export async function train(
   ctx: CliContext,
@@ -119,11 +121,21 @@ export async function train(
   const { io } = ctx;
   const { values } = parsed;
   const action = parsed.args[0];
+  if (action === 'start' || action === 'status' || action === 'cancel') {
+    return TRAINING_JOB_ACTIONS[action](ctx, parsed, signal);
+  }
   if (action !== 'plan' && action !== 'bundle') {
     throw new CliError(
       'invalid_input',
       'usage',
-      `architect train takes plan or bundle, not "${action ?? ''}".`,
+      `architect train takes plan, bundle, start, status or cancel, not "${action ?? ''}".`,
+    );
+  }
+  if (parsed.args.length > 1) {
+    throw new CliError(
+      'invalid_input',
+      'usage',
+      `architect train ${action} takes no other argument.`,
     );
   }
   try {
