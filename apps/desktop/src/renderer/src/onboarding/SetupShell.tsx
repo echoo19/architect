@@ -76,7 +76,7 @@ export function StepIntro({ title, children }: StepIntroProps) {
       <Heading ref={heading} tabIndex={-1} as="h1" size="display-sm" className="outline-none">
         {title}
       </Heading>
-      <p className="m-0 text-body text-fg text-pretty">{children}</p>
+      <p className="m-0 text-body text-fg text-balance">{children}</p>
     </div>
   );
 }
