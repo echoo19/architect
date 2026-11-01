@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, night), `train/hf-jobs-from-export` (from `field/main` a385c043): a field's passing attempts train on Hugging Face Jobs
+
+- *Done:* decision 101. The first real QLoRA job (run folder `architect-runs/qlora-1`) couldn't go through the product: the Inventory desk's export had no demonstrations (no lessons; 22 train attempts its checker passed), and only a run's weights round, which then needs this computer's GPU, sent a job to Hugging Face Jobs. Now a field export takes the student's passing train attempts as `passed_attempt` demonstrations, each checked against the harness and files it ran with; `architect train start --export <folder> --max-usd <n>`, `train status <job> [--wait]` and `train cancel` send an export to Hugging Face Jobs through the existing worker and backend; the trainer logs each step's loss to `train.log`.
+- *Verified:* `field-attempts.test.ts` (the Academy desk with a scripted student: targets, what is left out and why, train only, the export and its dataset) and `apps/cli/test/train-jobs.test.ts` (the fake Hub: the cap, the private repository, one job per export, the adapter downloaded and checked, no token, no demonstrations). A read-only preview on the Inventory desk's data: all 22 attempts pass the checks and are left out only by the job's data-sharing setting.
+- *Next:* merge, re-pin, allow remote training for the Inventory desk's job, then run qlora-1.
+
 ## 2026-11-01 (Sun, late night): film final 3 live, 0.8.0 released
 
 - *Done:* the owner approved final 3 ("looks good"). PR #5 (`field/main` to `main`) passed Linux CI and was merged; the site serves the 2:41 film and the reworded results page. Then 0.8.0 (`chore(release): 0.8.0`: app, CLI, `docs/CLI.md`), tagged `v0.8.0` with release notes (agent teams, `architect run --team`, Inventory desk, the quieter app); the release workflow builds the installers. The site's download version moves to 0.8.0 only once they are attached, so its buttons never point at a missing file.

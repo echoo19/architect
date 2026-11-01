@@ -264,9 +264,11 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
   },
   train: {
     usage:
-      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output <folder> [options]',
-    summary: 'Size a training job for a cluster, or write its launch bundle (experimental).',
+      'architect train plan --model owner/name [options] | architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output <folder> [options] | architect train start --export <folder> --max-usd <n> [--max-minutes <n>] | architect train status <job> [--wait] [--logs] | architect train cancel <job>',
+    summary:
+      'Size a training job for a cluster or write its launch bundle (experimental), or train an adapter on Hugging Face Jobs.',
     args: 1,
+    maxArgs: 2,
     options: {
       model: { type: 'string' },
       revision: { type: 'string' },
@@ -282,6 +284,10 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       target: { type: 'string' },
       export: { type: 'string' },
       output: { type: 'string' },
+      'max-usd': { type: 'string' },
+      'max-minutes': { type: 'string' },
+      wait: { type: 'boolean' },
+      logs: { type: 'boolean' },
       ...json,
     },
     help: [
@@ -297,8 +303,12 @@ export const COMMANDS: Readonly<Record<CommandName, CommandSpec>> = {
       '  --micro-batch <n>       examples per GPU per step (default 1)',
       '  --lora-rank <n>         the adapter rank (default 16)',
       '  --target <t>            bundle: slurm, kubernetes or skypilot',
-      '  --export <folder>       bundle: a field export, whose sft/*.jsonl become the data',
+      '  --export <folder>       bundle or start: a field export, whose demonstrations become the data',
       '  --output <folder>       bundle: an empty or new folder to write it to',
+      "  --max-usd <n>           start: the field's cap on compute dollars, for all its jobs",
+      '  --max-minutes <n>       start: the longest the job may run (default 180)',
+      '  --wait                  status: check until the job ends, every 30 seconds',
+      "  --logs                  status: print the job's log so far",
       JSON_HELP,
     ],
   },

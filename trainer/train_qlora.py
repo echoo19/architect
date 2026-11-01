@@ -150,6 +150,8 @@ def train(job: dict, examples: list, peft_dir: Path, deadline: float, log) -> di
         def on_log(self, args, state, control, logs=None, **kwargs):
             if logs and "loss" in logs:
                 losses.append(float(logs["loss"]))
+                # Each step's loss goes in train.log, which the manifest hashes: the curve as data.
+                log(f"step {state.global_step}: loss {float(logs['loss']):.4f}, learning rate {float(logs.get('learning_rate', 0)):.3g}")
 
         def on_step_end(self, args, state, control, **kwargs):
             if time.monotonic() >= deadline:
