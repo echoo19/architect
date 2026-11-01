@@ -1,10 +1,11 @@
 import type { ExperimentRecord } from '@architect/shared';
-import { Button, DataTable, EmptyState, Skeleton } from '@architect/ui';
+import { Button, DataTable, defineTerm, EmptyState, Skeleton } from '@architect/ui';
 import { FlaskConical, Plus } from 'lucide-react';
 import { useExperiment, useExperiments } from '../api/experiments';
 import { ProblemState } from '../components/ProblemState';
 import { formatCost, shortDate } from '../flow/format';
-import { shortModelName } from '../lib/names';
+import { useSettings } from '../api/hooks';
+import { mentorName, shortModelName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 import { ARM_NAMES, STATUS_WORDS } from './model';
@@ -20,9 +21,12 @@ const NOT_STARTED = new Set<ExperimentRecord['status']>(['draft', 'calibrating',
 function SpendCell({
   record,
   kind,
+  heading,
 }: {
   record: ExperimentRecord;
   kind: 'sparkUsd' | 'studentUsd';
+  /** The model the column is headed by; a cell names its own model only when it is another. */
+  heading: string | undefined;
 }) {
   const detail = useExperiment(record.id);
   const cap = formatCost(record.input.caps[kind]);
@@ -38,7 +42,7 @@ function SpendCell({
           <span className="font-medium">{formatCost(spent)}</span> of {cap}
         </span>
       )}
-      {model && <span className="text-small">{model}</span>}
+      {model && model !== heading && <span className="text-small">{model}</span>}
     </span>
   );
 }
@@ -46,6 +50,10 @@ function SpendCell({
 /** Experiments: comparisons of ways of teaching, each designed, preregistered and run here. */
 export function ExperimentsScreen() {
   const experiments = useExperiments();
+  const settings = useSettings();
+  // The spend columns are headed by the models that spent it, as the rest of the Lab names them.
+  const mentor = settings.data ? mentorName(settings.data.defaultMentor) : undefined;
+  const student = settings.data ? studentName(settings.data.defaultStudent) : undefined;
   const create = (
     <Button variant="primary" size="md" onClick={() => navigate(paths.newExperiment())}>
       <Plus size={16} aria-hidden />
@@ -94,7 +102,7 @@ export function ExperimentsScreen() {
               {
                 key: 'arms',
                 header: 'Arms',
-                hint: 'Each arm is a harness or a LoRA adapter, engineered and tested the same way',
+                hint: defineTerm('arm'),
                 align: 'end',
                 width: '88px',
                 sortValue: (record) => record.input.arms.length,
@@ -106,19 +114,19 @@ export function ExperimentsScreen() {
               },
               {
                 key: 'spark',
-                header: 'Teacher',
+                header: `${mentor ?? 'Teacher'} spend`,
                 hint: "What the field's teacher spent of its cap",
                 align: 'end',
                 width: '150px',
-                cell: (record) => <SpendCell record={record} kind="sparkUsd" />,
+                cell: (record) => <SpendCell record={record} kind="sparkUsd" heading={mentor} />,
               },
               {
                 key: 'student',
-                header: 'Student',
-                hint: 'What the hosted copy of the student spent of its cap',
+                header: `${student ?? 'Specialist'} spend`,
+                hint: 'What its hosted copy spent of its cap while it practiced',
                 align: 'end',
                 width: '150px',
-                cell: (record) => <SpendCell record={record} kind="studentUsd" />,
+                cell: (record) => <SpendCell record={record} kind="studentUsd" heading={student} />,
               },
               {
                 key: 'created',

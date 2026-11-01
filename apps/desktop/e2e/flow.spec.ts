@@ -642,8 +642,8 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   expect(leftBox!.y).toBeGreaterThanOrEqual(noteBox!.y + noteBox!.height);
   expect(leftBox!.y + leftBox!.height).toBeLessThanOrEqual(detailsBox!.y);
 
-  // The tiles say what they are: the time of an answer, and the model's size on disk.
-  await expect(page.getByText('Typical answer time', { exact: true })).toBeVisible();
+  // The tiles say what they are: the model's size on disk. The time of an answer is in the
+  // run's details, where it has the slowest answers beside it.
   await expect(page.getByText(/^\d+(\.\d)? GB on disk$/)).toBeVisible();
 
   // Behind the run's details: the rule and its version, where it came from, how it was read, what

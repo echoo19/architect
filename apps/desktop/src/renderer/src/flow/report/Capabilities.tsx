@@ -239,10 +239,10 @@ function ScoreBar({
         className="min-w-16 flex-1"
         {...(spark ? { marker: spark.total === 0 ? 0 : rate(spark) / 100 } : {})}
       />
-      <span className="shrink-0 whitespace-nowrap font-mono text-small tabular-nums">
+      <span className="shrink-0 whitespace-nowrap text-small tabular-nums">
         {score.pass} of {score.total}
         {spark && (
-          <span className="font-sans text-mentor">
+          <span className="text-mentor">
             {' · '}
             {mentor} {spark.pass} of {spark.total}
           </span>

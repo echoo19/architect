@@ -192,7 +192,7 @@ test('training closes back to its field', async () => {
   await openAt('/runs/run_desk/train');
   await expect(page.getByRole('banner')).toContainText('Service desk');
   await button('Close').click();
-  await expect(page).toHaveURL(/#\/fields\/job_desk$/);
+  await expect(page).toHaveURL(/#\/fields\/job_servicedesk$/);
 });
 
 test("a model's panel opens its chat and results and shows every qualification", async () => {

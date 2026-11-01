@@ -95,18 +95,16 @@ export function ComparisonTable({
                       </span>
                     </span>
                   </th>
-                  <td className="py-3.5 pl-6 text-right align-middle font-mono font-medium tabular-nums">
+                  <td className="py-3.5 pl-6 text-right align-middle font-medium tabular-nums">
                     {Math.round(row.testRate)}%
                   </td>
-                  <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
+                  <td className="py-3.5 pl-6 text-right align-middle tabular-nums">
                     {row.vsBare === null || row.method === 'bare' ? '–' : formatPoints(row.vsBare)}
                   </td>
-                  <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
+                  <td className="py-3.5 pl-6 text-right align-middle tabular-nums">
                     {formatUsd(row.mentorUsd)}
                   </td>
-                  <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
-                    {row.rounds}
-                  </td>
+                  <td className="py-3.5 pl-6 text-right align-middle tabular-nums">{row.rounds}</td>
                 </tr>
               ))}
             </tbody>

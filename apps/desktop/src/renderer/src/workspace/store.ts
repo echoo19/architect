@@ -135,14 +135,6 @@ async function findLatestChat(graduateIds: string[]): Promise<WorkspaceChat> {
   return createChat(first);
 }
 
-/** The team chat used last, or a new one when the team has none yet. */
-export async function latestTeamChat(teamId: string): Promise<WorkspaceChat> {
-  await loadTeamChats(teamId);
-  const entry = useWorkspace.getState().chats[teamId];
-  if (entry?.status === 'error') throw entry.error;
-  return newest(entry?.data ?? []) ?? createTeamChat(teamId);
-}
-
 function newest(chats: readonly WorkspaceChat[]): WorkspaceChat | undefined {
   return chats.reduce<WorkspaceChat | undefined>(
     (best, chat) => (!best || chat.updatedAt > best.updatedAt ? chat : best),

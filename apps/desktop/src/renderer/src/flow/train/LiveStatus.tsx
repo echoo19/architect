@@ -67,7 +67,7 @@ export function LiveStatus({
   const label =
     view.motion === 'testing'
       ? `${student} is taking the ${w.finalTest}`
-      : `${mentor} is mentoring ${student}`;
+      : `${mentor} is teaching ${student}`;
   const stepsLabel = view.stage === 'testing' ? 'After training' : 'Each round';
   const place =
     view.motion === 'testing'

@@ -53,11 +53,13 @@ export interface DetailItem {
 
 export interface DetailListProps {
   items: readonly DetailItem[];
+  /** `code` sets the values in mono, for ids, hashes and settings; `text` for figures and phrases. */
+  valueFont?: 'code' | 'text';
   className?: string;
 }
 
-/** Names and values set in mono, for ids, hashes and settings a person may need to quote. */
-export function DetailList({ items, className }: DetailListProps) {
+/** Names and values, set in mono by default for ids, hashes and settings a person may need to quote. */
+export function DetailList({ items, valueFont = 'code', className }: DetailListProps) {
   return (
     <dl
       className={cn(
@@ -68,7 +70,14 @@ export function DetailList({ items, className }: DetailListProps) {
       {items.map((item) => (
         <Fragment key={item.label}>
           <dt className="font-medium">{item.label}</dt>
-          <dd className="m-0 min-w-0 break-all font-mono text-small leading-5">{item.value}</dd>
+          <dd
+            className={cn(
+              'm-0 min-w-0 text-small leading-5',
+              valueFont === 'code' ? 'break-all font-mono' : 'break-words tabular-nums',
+            )}
+          >
+            {item.value}
+          </dd>
         </Fragment>
       ))}
     </dl>

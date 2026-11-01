@@ -36,6 +36,11 @@ const WORDING =
  * A row's figure, with its unit after it ("96 tasks") unless the row's title already names what
  * it counts.
  */
+/** A row's detail that wraps onto a second line on a narrow window rather than being cut. */
+function Wraps({ children }: { children: string }) {
+  return <span className="whitespace-normal">{children}</span>;
+}
+
 function Figure({ children, unit }: { children: ReactNode; unit?: string }) {
   return (
     <span className="flex items-baseline gap-1.5">
@@ -192,7 +197,9 @@ function AssetsView({
               </RowIcon>
             }
             title="Outcome scorer"
-            detail={`Train tasks at ${plural(counts.train_organizations, 'organization')}, with the checker and a Python client`}
+            detail={
+              <Wraps>{`Train tasks at ${plural(counts.train_organizations, 'organization')}, checker and Python client`}</Wraps>
+            }
             end={
               <Figure unit={counts.train_tasks === 1 ? 'task' : 'tasks'}>
                 {count(counts.train_tasks)}
@@ -206,7 +213,9 @@ function AssetsView({
               </RowIcon>
             }
             title="Never-seen evaluation"
-            detail={`Sealed final test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
+            detail={
+              <Wraps>{`Sealed tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash`}</Wraps>
+            }
             end={
               <Figure unit={counts.locked_test_tasks === 1 ? 'task' : 'tasks'}>
                 {count(counts.locked_test_tasks)}

@@ -159,7 +159,7 @@ test('captures the empty workspace and a failed action', async () => {
   });
   await reload(page);
   await goTo(page, '/');
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teach your first agent' })).toBeVisible();
   await capture(page, 'workspace-empty-dark.png');
 
   // With creating the sample job made to fail, the app says why in a toast.

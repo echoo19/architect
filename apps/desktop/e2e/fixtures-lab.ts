@@ -125,7 +125,8 @@ const ENTRIES: Record<string, Entry> = {
   assay_desk: { name: 'Assay desk', job: ASSAY_DESK_JOB, taskCount: 192 },
 };
 
-const jobId = (key: string) => `job_${key}`;
+/** The service desk's job is the one its agent was trained on, so a version leads back to it. */
+const jobId = (key: string) => (key === 'desk' ? STORY.jobId : `job_${key}`);
 const runId = (key: string) => `run_${key}`;
 
 export const LAB_JOBS: JobSummary[] = Object.entries(ENTRIES).map(([key, entry]) => ({

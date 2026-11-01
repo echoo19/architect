@@ -83,7 +83,7 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
   return (
     <>
       <StepIntro title="Your agent's model">
-        {names.student} runs your agents on {device}, so they work offline.
+        {names.student}, a small open model, runs your agents on {device}, so they work offline.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         {local.status === 'error' && !local.data && (

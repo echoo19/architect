@@ -65,6 +65,9 @@ export function DrawerContent({
               className={cn(
                 'fixed bottom-3 right-3 top-3 z-50 flex w-[min(600px,calc(100vw-24px))] flex-col',
                 'overflow-hidden rounded-card surface-float outline-none',
+                // A panel this tall sits over the header's bright buttons, which its frost would
+                // smear into blurred patches, so it is the solid raised fill instead.
+                '[--ui-float:var(--ui-raised)] [--ui-float-blur:none]',
                 className,
               )}
             >
