@@ -148,6 +148,16 @@ test('in the team’s chat the lead asks its teammate, whose own work opens unde
   await page.keyboard.press('Escape');
   // Each agent asks before writing as its own setting says, so the team's composer has none.
   await expect(page.getByRole('button', { name: /^Saving files/ })).toHaveCount(0);
+  // The header's icon says what the team is, in place.
+  await header.getByRole('button', { name: `About ${TEAM.name}` }).click();
+  const about = page.getByRole('dialog', { name: TEAM.name });
+  await expect(about).toContainText('A teammate sees only what it is asked, never this chat');
+  await expect(about).toContainText(`${teammate.name}, version 1`);
+  await page.keyboard.press('Escape');
+  await expect(about).toHaveCount(0);
+
+  // The reply names who answered and whom it asked before its steps are opened.
+  await expect(reply()).toContainText(`${lead.name} asked ${teammate.name}`);
 
   await reply()
     .getByRole('button', { name: /so far/ })
