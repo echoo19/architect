@@ -28,7 +28,7 @@ import { queryKeys, useHubToken } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { repositoryOf, shortCommit, tokenSourceText } from '../hub/labels';
-import { needsAnotherModel, needsLlama, stepsNeedingAttention } from '../install/labels';
+import { needsAnotherModel, needsLlama } from '../install/labels';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
@@ -37,7 +37,13 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, forgetAgent } from '../workspace/store';
 import { CheckStep, WaitsForLlama } from './CheckStep';
 import { InstallStep } from './InstallStep';
-import { FoldersStep, foldersNotSetUp, NotSetUp, PermissionsStep } from './SetupSteps';
+import {
+  FoldersStep,
+  foldersNotSetUp,
+  NotSetUp,
+  PermissionsStep,
+  stepsLeftUndone,
+} from './SetupSteps';
 
 type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
 
@@ -132,6 +138,8 @@ export function HubImportFlow() {
   const graduateId = downloaded?.result.graduate.id ?? null;
   const name = downloaded ? downloaded.result.graduate.name : 'Install from Hugging Face';
   const home = () => navigate(paths.home());
+  const bind = (resource: string, folder: string) =>
+    setBindings((current) => ({ ...current, [resource]: folder }));
 
   const download = async () => {
     setDownloading(true);
@@ -331,15 +339,7 @@ export function HubImportFlow() {
       </Footer>
     );
   } else if (stage === 'Folders') {
-    body = (
-      <FoldersStep
-        manifest={preview.manifest}
-        bindings={bindings}
-        onBind={(resource, folder) =>
-          setBindings((current) => ({ ...current, [resource]: folder }))
-        }
-      />
-    );
+    body = <FoldersStep manifest={preview.manifest} bindings={bindings} onBind={bind} />;
     footer = (
       <Footer>
         <Button size="lg" onClick={() => setStage(back('Folders'))}>
@@ -360,6 +360,7 @@ export function HubImportFlow() {
         bindings={bindings}
         grants={grants}
         writes={writes}
+        onBind={bind}
         onGrant={(resource, grant) => setGrants((current) => ({ ...current, [resource]: grant }))}
         onWrites={setWrites}
       />
@@ -438,7 +439,9 @@ export function HubImportFlow() {
       step={stage}
       steps={steps}
       footer={footer}
-      attention={stage === 'Install' ? stepsNeedingAttention(result?.installation) : []}
+      attention={
+        preview ? stepsLeftUndone(preview.manifest, bindings, grants, result?.installation) : []
+      }
       // Leaving partway takes back what the download installed, as Cancel does.
       {...(downloaded && !result ? { onClose: () => void cancel() } : {})}
     >

@@ -1,4 +1,5 @@
 import type {
+  Installation,
   PackageManifest,
   PackageResource,
   PermissionMode,
@@ -16,7 +17,7 @@ import {
 import { FolderOpen } from 'lucide-react';
 import { architect } from '../api/client';
 import { folderName } from '../install/folders';
-import { GRANT_LABELS } from '../install/labels';
+import { GRANT_LABELS, stepsNeedingAttention } from '../install/labels';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
@@ -65,6 +66,36 @@ export function NotSetUp({ resources }: { resources: readonly PackageResource[] 
   );
 }
 
+/**
+ * The import steps passed that left something undone, so the pills mark them instead of ticking
+ * them: a folder not chosen, which has no access given either, or one not allowed yet. Once it is
+ * installed, its checks say, since a folder can be chosen and allowed after.
+ */
+export function stepsLeftUndone(
+  manifest: PackageManifest,
+  bindings: Record<string, string>,
+  grants: Record<string, ResourceGrant>,
+  installation: Pick<Installation, 'checks'> | undefined,
+): ('Folders' | 'Permissions')[] {
+  if (installation) {
+    const marked = stepsNeedingAttention(installation);
+    return marked.includes('Folders') ? ['Folders', 'Permissions'] : marked;
+  }
+  if (foldersNotSetUp(manifest, bindings).length > 0) return ['Folders', 'Permissions'];
+  return foldersNotSetUp(manifest, bindings, grants).length > 0 ? ['Permissions'] : [];
+}
+
+/** Asks for the folder a resource names, and binds it once one is chosen. */
+function chooseFolder(resource: PackageResource, onBind: (name: string, folder: string) => void) {
+  void attempt("Couldn't choose that folder", async () => {
+    const [folder] = await architect().files.pick({
+      title: `Choose the ${folderName(resource).toLowerCase()}`,
+      directory: true,
+    });
+    if (folder) onBind(resource.name, folder);
+  });
+}
+
 /** Step two: where on this computer the files are, for each folder the agent works in. */
 export function FoldersStep({
   manifest,
@@ -75,15 +106,6 @@ export function FoldersStep({
   bindings: Record<string, string>;
   onBind: (name: string, folder: string) => void;
 }) {
-  const choose = (resource: PackageResource) =>
-    void attempt("Couldn't choose that folder", async () => {
-      const [folder] = await architect().files.pick({
-        title: `Choose the ${folderName(resource).toLowerCase()}`,
-        directory: true,
-      });
-      if (folder) onBind(resource.name, folder);
-    });
-
   return (
     <>
       <Heading as="h1" size="display-sm">
@@ -108,7 +130,6 @@ export function FoldersStep({
                     ? resource.files.map((file) => file.name).join(', ')
                     : undefined
                 }
-                metaFont="code"
                 info={folderInfo(resource, manifest)}
               >
                 <div className="flex items-center gap-3">
@@ -123,7 +144,7 @@ export function FoldersStep({
                           : 'Optional'}
                     </SettingsValue>
                   )}
-                  <Button size="xs" onClick={() => choose(resource)}>
+                  <Button size="xs" onClick={() => chooseFolder(resource, onBind)}>
                     <FolderOpen size={14} strokeWidth={1.7} aria-hidden />
                     {folder === undefined ? 'Choose' : 'Change'}
                   </Button>
@@ -157,13 +178,15 @@ const WRITE_CHOICES = WRITE_MODES.map((value) => ({ value, label: WRITE_MODE_LAB
 
 /**
  * Step three: what the package asks to do, and what this computer grants. Nothing it asks for is
- * granted until it is chosen here, and a folder left unchosen has nothing to grant.
+ * granted until it is chosen here. A folder left unchosen has nothing to grant, so it can be
+ * chosen here, and its access given in the same place.
  */
 export function PermissionsStep({
   manifest,
   bindings,
   grants,
   writes,
+  onBind,
   onGrant,
   onWrites,
 }: {
@@ -171,6 +194,7 @@ export function PermissionsStep({
   bindings: Record<string, string>;
   grants: Record<string, ResourceGrant>;
   writes: PermissionMode;
+  onBind: (name: string, folder: string) => void;
   onGrant: (name: string, grant: ResourceGrant) => void;
   onWrites: (mode: PermissionMode) => void;
 }) {
@@ -192,9 +216,15 @@ export function PermissionsStep({
             }
           >
             {bindings[resource.name] === undefined && !resource.bundled ? (
-              <SettingsValue>
-                {resource.required ? 'No folder chosen' : 'Optional, none chosen'}
-              </SettingsValue>
+              <div className="flex items-center gap-3">
+                <SettingsValue>
+                  {resource.required ? 'No folder chosen' : 'Optional, none chosen'}
+                </SettingsValue>
+                <Button size="xs" onClick={() => chooseFolder(resource, onBind)}>
+                  <FolderOpen size={14} strokeWidth={1.7} aria-hidden />
+                  Choose
+                </Button>
+              </div>
             ) : (
               <Segmented
                 aria-label={`Access to the ${folderName(resource).toLowerCase()}`}
