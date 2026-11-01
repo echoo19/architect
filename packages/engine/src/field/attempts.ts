@@ -41,7 +41,8 @@ const sameHashes = (a: Record<string, string>, b: Record<string, string>) =>
 /**
  * The student's own passing train attempts as verified episodes (decision 101). The checker's
  * verdict is what verifies them, as it verifies a lesson. An attempt goes in only when the
- * conversation is exactly what the student read: its trace records the setup it ran with, that
+ * conversation is exactly what the student read: its trace is of the attempt's task, records the
+ * setup it ran with, that
  * setup and the task's files are unchanged since, and no tool result was cleared from its view.
  * Its targets are the assistant turns the checker's outcome rests on: every turn but one whose
  * tool call failed, which a model shouldn't learn to repeat.
@@ -58,6 +59,11 @@ export function attemptEpisodes(job: Job, attempts: readonly PassedAttempt[]): A
     }
     const trace = parsed.data;
     const { replay } = trace;
+    // The row names the task its checker graded; a trace of any other task isn't that attempt.
+    if (trace.taskId !== attempt.taskId) {
+      skip(`its trace is not of task ${attempt.taskId}`);
+      continue;
+    }
     if (replay === undefined) {
       skip('its trace was made before traces recorded what an attempt ran with');
       continue;
