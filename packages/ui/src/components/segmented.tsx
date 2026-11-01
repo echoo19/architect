@@ -3,11 +3,14 @@ import { motion } from 'motion/react';
 import { ToggleGroup } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { springs } from '../motion/springs';
+import { Tooltip } from './tooltip';
 
 export interface SegmentedOption<T extends string> {
   value: T;
   label: string;
   disabled?: boolean;
+  /** What the choice means, in a sentence, shown on hover or focus of the segment. */
+  hint?: string;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -43,27 +46,36 @@ export function Segmented<T extends string>({
       aria-label={props['aria-label']}
       className={cn('inline-flex shrink-0 rounded-full bg-field p-1 shadow-edge', className)}
     >
-      {options.map((option) => (
-        <ToggleGroup.Item
-          key={option.value}
-          value={option.value}
-          disabled={option.disabled}
-          className={cn(
-            'relative h-8 rounded-full px-3.5 text-small font-medium transition-colors duration-150',
-            'hover:bg-hover disabled:pointer-events-none disabled:opacity-40',
-          )}
-        >
-          {option.value === value && (
-            <motion.span
-              layoutId={indicator}
-              transition={springs.snappy}
-              aria-hidden
-              className="absolute inset-0 rounded-full bg-raised shadow-edge-strong"
-            />
-          )}
-          <span className="relative">{option.label}</span>
-        </ToggleGroup.Item>
-      ))}
+      {options.map((option) => {
+        const item = (
+          <ToggleGroup.Item
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+            className={cn(
+              'relative h-8 rounded-full px-3.5 text-small font-medium transition-colors duration-150',
+              'hover:bg-hover disabled:pointer-events-none disabled:opacity-40',
+            )}
+          >
+            {option.value === value && (
+              <motion.span
+                layoutId={indicator}
+                transition={springs.snappy}
+                aria-hidden
+                className="absolute inset-0 rounded-full bg-raised shadow-edge-strong"
+              />
+            )}
+            <span className="relative">{option.label}</span>
+          </ToggleGroup.Item>
+        );
+        return option.hint ? (
+          <Tooltip key={option.value} content={option.hint} side="bottom">
+            {item}
+          </Tooltip>
+        ) : (
+          item
+        );
+      })}
     </ToggleGroup.Root>
   );
 }

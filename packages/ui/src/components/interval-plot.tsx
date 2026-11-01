@@ -33,6 +33,11 @@ export interface IntervalPlotProps {
   ticks?: readonly number[];
   /** Writes a value, such as `62%`. */
   format?: (value: number) => string;
+  /**
+   * Where the scale's labels go: under the plot, or over it as well, so a tall plot shows its
+   * scale before its first row.
+   */
+  axis?: 'end' | 'both';
   className?: string;
 }
 
@@ -41,6 +46,9 @@ const TONES: Record<IntervalTone, { bar: string; dot: string }> = {
   mentor: { bar: 'bg-mentor', dot: 'bg-mentor' },
   fg: { bar: 'bg-fg', dot: 'bg-fg' },
 };
+
+/** The label, the plot and the figure: one set of columns for every row and the scale. */
+const COLUMNS = 'grid grid-cols-[minmax(96px,240px)_1fr_72px] gap-4';
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
@@ -68,11 +76,14 @@ export function IntervalPlot({
   domain = [0, 1],
   ticks = [0, 0.25, 0.5, 0.75, 1],
   format = percent,
+  axis = 'end',
   className,
   ...props
 }: IntervalPlotProps) {
+  const scale = <Scale domain={domain} ticks={ticks} format={format} />;
   return (
     <figure aria-label={props['aria-label']} className={cn('m-0 flex flex-col gap-5', className)}>
+      {axis === 'both' && scale}
       {groups.map((group, index) => (
         <div
           key={`${group.label}-${index}`}
@@ -91,25 +102,37 @@ export function IntervalPlot({
           ))}
         </div>
       ))}
-      <div
-        aria-hidden
-        className="grid grid-cols-[minmax(96px,180px)_1fr_72px] gap-4 text-small tabular-nums"
-      >
-        <span />
-        <span className="relative h-5">
-          {ticks.map((tick) => (
-            <span
-              key={tick}
-              className="absolute top-0 -translate-x-1/2 first:translate-x-0 last:-translate-x-full"
-              style={{ left: `${intervalPercent(tick, domain)}%` }}
-            >
-              {format(tick)}
-            </span>
-          ))}
-        </span>
-        <span />
-      </div>
+      {scale}
     </figure>
+  );
+}
+
+/** The scale's labels at the ticks, lined up with the rows' plot column. */
+function Scale({
+  domain,
+  ticks,
+  format,
+}: {
+  domain: readonly [number, number];
+  ticks: readonly number[];
+  format: (value: number) => string;
+}) {
+  return (
+    <div aria-hidden className={cn(COLUMNS, 'text-small tabular-nums')}>
+      <span />
+      <span className="relative h-5">
+        {ticks.map((tick) => (
+          <span
+            key={tick}
+            className="absolute top-0 -translate-x-1/2 first:translate-x-0 last:-translate-x-full"
+            style={{ left: `${intervalPercent(tick, domain)}%` }}
+          >
+            {format(tick)}
+          </span>
+        ))}
+      </span>
+      <span />
+    </div>
   );
 }
 
@@ -129,7 +152,7 @@ function PlotRow({
   const from = hasInterval ? intervalPercent(row.low ?? 0, domain) : 0;
   const to = hasInterval ? intervalPercent(row.high ?? 0, domain) : 0;
   return (
-    <div className="grid min-h-9 grid-cols-[minmax(96px,180px)_1fr_72px] items-center gap-4 text-ui">
+    <div className={cn(COLUMNS, 'min-h-9 items-center text-ui')}>
       <span className="truncate">{row.label}</span>
       <span aria-hidden className="relative h-6">
         {ticks.map((tick) => (

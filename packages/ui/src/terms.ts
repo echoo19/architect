@@ -11,8 +11,10 @@ export type LabTerm =
   | 'loraAdapter'
   | 'qlora'
   | 'fullFineTune'
+  | 'practiceTasks'
   | 'heldOutChecks'
   | 'sealedFinalTest'
+  | 'calibrationTasks'
   | 'riskCertificate'
   | 'regressionSuite'
   | 'fineTuningPlan'
@@ -33,10 +35,14 @@ export function defineTerm(term: LabTerm, mentor = 'the teacher model'): string 
       return 'A LoRA adapter trained over a 4-bit copy of the base model, using less memory.';
     case 'fullFineTune':
       return 'Every weight of the model trained, which takes the most memory.';
+    case 'practiceTasks':
+      return `Tasks the specialist attempts while ${mentor} reads its failures.`;
     case 'heldOutChecks':
       return `Tasks ${mentor} never sees, used to keep or roll back each change.`;
     case 'sealedFinalTest':
       return 'Tasks locked away until the end and opened once, with no teacher.';
+    case 'calibrationTasks':
+      return 'Tasks kept from teaching, used to measure the risk certificate.';
     case 'riskCertificate':
       return 'A bound on how often the specialist is wrong when it answers.';
     case 'regressionSuite':
