@@ -20,6 +20,7 @@ Academy desk, the field runs on test-prep academies, has its own reports. Their 
 
 Inventory desk, which reserves screening labs' compound stock for re-tests, has its own report: [inventory-desk-1.md](inventory-desk-1.md), the first run. Its sealed test covers a generated lab it never saw.
 Assay desk, a field of screening labs, has its first report: [assay-desk-1.md](assay-desk-1.md). No gain was shown on the lab neither model saw, and the taught arm's refinement never ran, so it measures Spark's one-shot setup against Glimmer on its own.
+Sweep desk, which reads ML research groups' training runs, has its first report: [sweep-desk-1.md](sweep-desk-1.md). No gain was shown at Fennick Research, the group neither model saw. The leak check stopped the taught arm's only round, because two practice tasks matched final-test tasks, so the report measures Spark's one-shot setup against Glimmer on its own.
 
 An earlier comparison, on the service desk sample job with the first version of Glimmer's tools, is described in the README's Results section and in [docs/PROGRESS.md](../PROGRESS.md).
 
