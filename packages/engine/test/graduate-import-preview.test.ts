@@ -120,6 +120,23 @@ describe('previewing an import, before anything is installed', () => {
     });
   });
 
+  it('names a new agent apart from one here that already has its name, and lists it so', async () => {
+    const author = await computer();
+    const { archive } = await exported(author);
+    const recipient = await computer();
+    await addVersion(recipient, { graduateId: 'grd_local' });
+    expect(recipient.store.graduates.get('grd_local')?.name).toBe('Service desk');
+
+    const preview = await previewImport({ library: recipient.library }, archive);
+    expect(preview).toMatchObject({ ok: true, place: { kind: 'new', name: 'Service desk 2' } });
+    const { graduate } = await importPackage({ library: recipient.library }, archive);
+    expect(graduate.name).toBe('Service desk 2');
+    // The package itself keeps the name its author gave it.
+    expect(recipient.store.versions.get(graduate.id, 1)?.manifest.identity.name).toBe(
+      'Service desk',
+    );
+  });
+
   it("reports a computer that can't run it as blocked, and never asks its runtime", async () => {
     const author = await computer();
     const { archive } = await exported(author);
