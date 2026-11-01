@@ -3,7 +3,12 @@ import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { encodeGguf, float32Bytes } from '@architect/engine';
-import { FAKE_HUB_TOKEN, startFakeHub, type FakeHub } from '@architect/engine/testing';
+import {
+  FAKE_HUB_TOKEN,
+  passedAttemptsWorld,
+  startFakeHub,
+  type FakeHub,
+} from '@architect/engine/testing';
 import {
   DATASET_EXAMPLE_FORMAT,
   GLIMMER_TRAINING_BASE,
@@ -15,6 +20,8 @@ import { cleanUp, cli, tempDir, testEnv } from './support';
 
 const sha = (content: string | Buffer) => createHash('sha256').update(content).digest('hex');
 const STAMP = '2026-11-01T00:00:00.000Z';
+/** Each test builds a data folder with real scripted attempts, slow on a busy machine. */
+const WORLD_MS = 60_000;
 
 let hub: FakeHub;
 beforeEach(async () => {
@@ -28,7 +35,7 @@ afterEach(async () => {
   await cleanUp();
 });
 
-/** One demonstration as a field export writes it: an example, the checker's pass, its uses. */
+/** A demonstration as a field export writes one, for a folder made by hand rather than by Architect. */
 function demonstration(id: string) {
   return {
     format: DATASET_EXAMPLE_FORMAT,
@@ -144,8 +151,8 @@ function outputsFor(record: JobJson): Record<string, Buffer> {
     base_model: record.base_model,
     dataset: {
       sha256: record.dataset.sha256,
-      example_count: 2,
-      trained_examples: 2,
+      example_count: record.dataset.example_count,
+      trained_examples: record.dataset.example_count,
       trained_tokens: 42,
       skipped: [],
     },
@@ -174,86 +181,117 @@ function outputsFor(record: JobJson): Record<string, Buffer> {
   ]);
 }
 
+/** A data folder holding the Academy desk with two passing train attempts, and its job's id. */
+async function academy(remoteTraining: boolean, extra: Record<string, string> = {}) {
+  const env = await testEnv({ HF_ENDPOINT: hub.url, ...extra });
+  const world = await passedAttemptsWorld(env['ARCHITECT_USER_DATA'] ?? '', {
+    count: 2,
+    remoteTraining,
+  });
+  return { env, job: world.job.id };
+}
+
 describe('architect train on Hugging Face Jobs', () => {
-  it("sends a field export's demonstrations, held to the cap, then downloads and checks the adapter", async () => {
-    const env = await testEnv({ HF_ENDPOINT: hub.url, HF_TOKEN: FAKE_HUB_TOKEN });
-    const exported = await fieldExport([demonstration('att_1'), demonstration('att_2')]);
+  it(
+    "sends a field's demonstrations once, held to the cap, then downloads and checks the adapter",
+    async () => {
+      const { env, job } = await academy(true, { HF_TOKEN: FAKE_HUB_TOKEN });
 
-    // 35 minutes on an L40S cost more than 50 cents: nothing is sent.
-    const poor = await cli(['train', 'start', '--export', exported, '--max-usd', '0.5'], { env });
-    expect(poor.code).toBe(3);
-    expect(poor.stderr).toContain('a training job needs at least 35');
-    expect(hub.jobs.size).toBe(0);
+      // 35 minutes on an L40S cost more than 50 cents: nothing is sent.
+      const poor = await cli(['train', 'start', job, '--max-usd', '0.5'], { env });
+      expect(poor.code).toBe(3);
+      expect(poor.stderr).toContain('a training job needs at least 35');
+      expect(hub.jobs.size).toBe(0);
 
-    const started = await cli(
-      ['train', 'start', '--export', exported, '--max-usd', '25', '--max-minutes', '90', '--json'],
-      { env },
-    );
-    expect(started.code, started.stderr).toBe(0);
-    const record = JSON.parse(started.stdout) as JobJson;
-    expect(record.format).toBe('architect.training-job/1');
-    expect(record.state).toBe('queued');
-    expect(record.compute).toMatchObject({ flavor: 'l40sx1', authorized_seconds: 90 * 60 });
-    expect(record.base_model.repo).toBe(GLIMMER_TRAINING_BASE.repo);
-    expect(record.dataset.example_count).toBe(2);
-    expect(hub.jobs.size).toBe(1);
-    // Inputs and outputs share one private repository; the examples went without their verdicts.
-    const repo = hub.repos.get(record.provider.repo);
-    expect(repo?.private).toBe(true);
-    const examples = repo?.commits[0]?.files.get('inputs/examples.jsonl')?.toString() ?? '';
-    expect(examples.split('\n').filter(Boolean)).toHaveLength(2);
-    expect(examples).not.toContain('permitted_uses');
+      // Two commands started at once make one job between them.
+      const start = ['train', 'start', job, '--max-usd', '25', '--max-minutes', '90', '--json'];
+      const [one, two] = await Promise.all([cli(start, { env }), cli(start, { env })]);
+      expect(one.code, one.stderr).toBe(0);
+      expect(two.code, two.stderr).toBe(0);
+      const id = (JSON.parse(one.stdout) as JobJson).id;
+      // The one that came second may have found the job while the first was still sending it.
+      expect((JSON.parse(two.stdout) as JobJson).id).toBe(id);
+      expect(hub.jobs.size).toBe(1);
+      const settled = await cli(['train', 'status', id, '--json'], { env });
+      expect(settled.code, settled.stderr).toBe(0);
+      const record = JSON.parse(settled.stdout) as JobJson;
+      expect(record.format).toBe('architect.training-job/1');
+      expect(record.compute).toMatchObject({ flavor: 'l40sx1', authorized_seconds: 90 * 60 });
+      expect(record.base_model.repo).toBe(GLIMMER_TRAINING_BASE.repo);
+      expect(record.dataset.example_count).toBe(2);
+      // Inputs and outputs share one private repository; the examples go without verdicts.
+      const repo = hub.repos.get(record.provider.repo);
+      expect(repo?.private).toBe(true);
+      const examples = repo?.commits[0]?.files.get('inputs/examples.jsonl')?.toString() ?? '';
+      expect(examples.split('\n').filter(Boolean)).toHaveLength(2);
+      expect(examples).toContain('"kind":"passed_attempt"');
+      expect(examples).not.toContain('permitted_uses');
 
-    // The same export again is the same job, not a second one.
-    const again = await cli(['train', 'start', '--export', exported, '--max-usd', '25'], { env });
-    expect(again.code, again.stderr).toBe(0);
-    expect(again.stdout).toContain(record.id);
-    expect(hub.jobs.size).toBe(1);
+      const running = await cli(['train', 'status', record.id], { env });
+      expect(running.code, running.stderr).toBe(0);
+      expect(running.stdout).toContain(`${record.id}: `);
 
-    const running = await cli(['train', 'status', record.id], { env });
-    expect(running.code, running.stderr).toBe(0);
-    expect(running.stdout).toContain(`${record.id}: `);
+      hub.setStage(record.provider.id, 'COMPLETED');
+      hub.commit(record.provider.repo, outputsFor(record));
+      const done = await cli(['train', 'status', record.id, '--wait'], { env });
+      expect(done.code, done.stderr).toBe(0);
+      expect(done.stdout).toContain('Adapter: ');
+      expect(done.stdout).toContain('Trained 2 of 2 examples');
+      const artifacts = join(
+        env['ARCHITECT_USER_DATA'] ?? '',
+        'training',
+        'jobs',
+        record.id,
+        'artifacts',
+      );
+      expect(existsSync(join(artifacts, 'adapter.gguf'))).toBe(true);
+      expect(existsSync(join(artifacts, 'train.log'))).toBe(true);
 
-    hub.setStage(record.provider.id, 'COMPLETED');
-    hub.commit(record.provider.repo, outputsFor(record));
-    const done = await cli(['train', 'status', record.id, '--wait'], { env });
-    expect(done.code, done.stderr).toBe(0);
-    expect(done.stdout).toContain('Adapter: ');
-    expect(done.stdout).toContain('Trained 2 of 2 examples');
-    const dataDir = env['ARCHITECT_USER_DATA'] ?? '';
-    const adapter = join(dataDir, 'training', 'jobs', record.id, 'artifacts', 'adapter.gguf');
-    expect(existsSync(adapter)).toBe(true);
-    expect(existsSync(join(dataDir, 'training', 'jobs', record.id, 'artifacts', 'train.log'))).toBe(
-      true,
-    );
+      const cancelled = await cli(['train', 'cancel', record.id, '--json'], { env });
+      expect(cancelled.code, cancelled.stderr).toBe(0);
+      expect(JSON.parse(cancelled.stdout)).toMatchObject({ state: 'ready' });
+    },
+    WORLD_MS,
+  );
 
-    const cancelled = await cli(['train', 'cancel', record.id, '--json'], { env });
-    expect(cancelled.code, cancelled.stderr).toBe(0);
-    expect(JSON.parse(cancelled.stdout)).toMatchObject({ state: 'ready' });
-  });
+  it(
+    'never sends a folder made by hand: it builds what it sends from the job itself',
+    async () => {
+      const { env } = await academy(true, { HF_TOKEN: FAKE_HUB_TOKEN });
+      const folder = await fieldExport([demonstration('att_1'), demonstration('att_2')]);
+      const result = await cli(['train', 'start', '--export', folder, '--max-usd', '5'], { env });
+      expect(result.code).toBe(2);
+      expect(result.stderr).toContain("doesn't take --export");
+      expect(hub.jobs.size).toBe(0);
+      expect(hub.repos.size).toBe(1);
+    },
+    WORLD_MS,
+  );
 
-  it('says what stands in the way: no token, no demonstrations, an unknown job', async () => {
-    const exported = await fieldExport([demonstration('att_1')]);
-    const tokenless = await testEnv({ HF_ENDPOINT: hub.url });
-    const noToken = await cli(['train', 'start', '--export', exported, '--max-usd', '5'], {
-      env: tokenless,
-    });
-    expect(noToken.code).toBe(3);
-    expect(noToken.stderr).toContain('no Hugging Face token');
+  it(
+    'says what stands in the way: no token, data kept here, an unknown job',
+    async () => {
+      const tokenless = await academy(true);
+      const noToken = await cli(['train', 'start', tokenless.job, '--max-usd', '5'], {
+        env: tokenless.env,
+      });
+      expect(noToken.code).toBe(3);
+      expect(noToken.stderr).toContain('no Hugging Face token');
 
-    const env = await testEnv({ HF_ENDPOINT: hub.url, HF_TOKEN: FAKE_HUB_TOKEN });
-    const empty = await cli(
-      ['train', 'start', '--export', await fieldExport([]), '--max-usd', '5'],
-      { env },
-    );
-    expect(empty.code).toBe(2);
-    expect(empty.stderr).toContain(
-      'has no demonstrations to train on: its data may not leave this computer',
-    );
+      const kept = await academy(false, { HF_TOKEN: FAKE_HUB_TOKEN });
+      const here = await cli(['train', 'start', kept.job, '--max-usd', '5'], { env: kept.env });
+      expect(here.code).toBe(2);
+      expect(here.stderr).toContain(
+        'has no demonstrations to train on off this computer: its data may not leave this computer',
+      );
+      const nobody = await cli(['train', 'start', 'nobody', '--max-usd', '5'], { env: kept.env });
+      expect(nobody.code).toBe(2);
 
-    const unknown = await cli(['train', 'status', 'trn_nothing'], { env });
-    expect(unknown.code).toBe(2);
-    expect(unknown.stderr).toContain('There is no training job trn_nothing here.');
-    expect(hub.jobs.size).toBe(0);
-  });
+      const unknown = await cli(['train', 'status', 'trn_nothing'], { env: kept.env });
+      expect(unknown.code).toBe(2);
+      expect(unknown.stderr).toContain('There is no training job trn_nothing here.');
+      expect(hub.jobs.size).toBe(0);
+    },
+    WORLD_MS,
+  );
 });

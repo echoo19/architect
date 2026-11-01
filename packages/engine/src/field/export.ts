@@ -22,7 +22,7 @@ import { readJsonLines } from '../loop/files';
 import { orgDataDir } from '../loop/organizations';
 import { DataPaths } from '../loop/paths';
 import { openEngineStore, type EngineStore } from '../store/engine-store';
-import { buildTrainingDataset, DatasetError } from '../training/dataset';
+import { buildTrainingDataset, DatasetError, type BuiltDataset } from '../training/dataset';
 import type { LeakDetector } from '../vault/fingerprint';
 import { Vault } from '../vault/vault';
 import { SCORE_CLIENT_PY } from './score-client';
@@ -102,12 +102,13 @@ export function exportField(source: FieldSource, outDir: string): FieldExportMan
 
 /**
  * A field export built and checked in memory, with nothing written: each file's text by its
- * path, and the manifest. The same guards as writing it, so what it counts is what an export
- * would hold.
+ * path, the manifest, and the dataset its demonstrations come from (null when none can be
+ * trained on). The same guards as writing it, so what it counts is what an export would hold.
  */
 export function buildFieldExport(source: FieldSource): {
   files: Map<string, string>;
   manifest: FieldExportManifest;
+  dataset: BuiltDataset | null;
 } {
   const { job, jobDir, vault } = source;
   const orgs = trainOrganizations(job);
@@ -146,21 +147,20 @@ export function buildFieldExport(source: FieldSource): {
     }
     return true;
   });
-  let examples: ReturnType<typeof buildTrainingDataset>['examples'] = [];
-  let trainedTurns = 0;
+  let dataset: BuiltDataset | null = null;
   try {
-    const dataset = buildTrainingDataset(episodes, {
+    dataset = buildTrainingDataset(episodes, {
       destination: 'remote',
       leakDetector: detectors.all,
       ...(source.now === undefined ? {} : { now: source.now }),
     });
-    examples = dataset.examples;
-    trainedTurns = dataset.manifest.trained_turns;
     leftOut.push(...dataset.manifest.excluded.map(demonstrationLeftOut));
   } catch (error) {
     if (!(error instanceof DatasetError)) throw error;
     leftOut.push(...error.excluded.map(demonstrationLeftOut));
   }
+  const examples = dataset?.examples ?? [];
+  const trainedTurns = dataset?.manifest.trained_turns ?? 0;
   files.set(
     'sft/demonstrations.jsonl',
     examples
@@ -268,7 +268,7 @@ export function buildFieldExport(source: FieldSource): {
       ...leftOut,
     ],
   });
-  return { files, manifest };
+  return { files, manifest, dataset };
 }
 
 function demonstrationLeftOut(entry: { episode_id: string; reason: string }) {
@@ -291,20 +291,25 @@ export interface ExportFromDataOptions {
 export async function exportFieldFromData(
   options: ExportFromDataOptions,
 ): Promise<FieldExportManifest> {
-  const paths = new DataPaths(options.dataDir);
+  return exportField(await storedFieldSource(options.dataDir, options.job), options.outDir);
+}
+
+/** What a field export of a job in the app's data folder, named by its id or its name, is made from. */
+export async function storedFieldSource(dataDir: string, name: string): Promise<FieldSource> {
+  const paths = new DataPaths(dataDir);
   if (!existsSync(paths.database)) {
-    throw new CodedError('job_not_found', `Architect has no jobs in ${options.dataDir}.`);
+    throw new CodedError('job_not_found', `Architect has no jobs in ${dataDir}.`);
   }
   const store = openEngineStore(paths.database);
   try {
     const records = store.jobs.list();
     const record =
-      records.find((job) => job.id === options.job) ??
-      records.find((job) => job.name.toLowerCase() === options.job.toLowerCase());
+      records.find((job) => job.id === name) ??
+      records.find((job) => job.name.toLowerCase() === name.toLowerCase());
     if (record === undefined) {
-      throw new CodedError('job_not_found', `There is no job "${options.job}".`);
+      throw new CodedError('job_not_found', `There is no job "${name}".`);
     }
-    return exportField(await fieldSource(store, paths, record.id), options.outDir);
+    return await fieldSource(store, paths, record.id);
   } finally {
     store.close();
   }

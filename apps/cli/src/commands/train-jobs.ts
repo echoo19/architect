@@ -8,7 +8,7 @@ import {
   TrainingWorker,
   writeTrainingDataset,
 } from '@architect/engine';
-import { datasetFromExport, ExportDatasetError } from '@architect/engine/field';
+import { fieldDataset, FieldDatasetError } from '@architect/engine/field';
 import { findHubToken, hubTokenResolver } from '@architect/engine/hub';
 import {
   GLIMMER_TRAINING_BASE,
@@ -124,28 +124,38 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 /**
- * `architect train start`: trains an adapter for the field's student on a field export's
- * demonstrations, on Hugging Face Jobs, with the pinned recipe (decision 101). The job's record
- * goes in the app's data folder like any other, written before the Hub hears of it.
+ * `architect train start`: trains an adapter for a field's student on its demonstrations, on
+ * Hugging Face Jobs, with the pinned recipe (decision 101). The demonstrations are built here by
+ * the exporter itself, from the job's records in the data folder, never read from a folder a
+ * caller hands it. The job's record goes in the same data folder, written before the Hub hears of
+ * it.
  */
 async function start(ctx: CliContext, parsed: Parsed, signal: AbortSignal): Promise<CliOutcome> {
   const { values } = parsed;
-  const exportDir = stringOption(values, 'export');
-  if (exportDir === undefined) {
+  if (stringOption(values, 'export') !== undefined) {
     throw new CliError(
       'invalid_input',
       'usage',
-      'Name the field export to train on with --export <folder>.',
+      "architect train start doesn't take --export: it builds what it sends from the job itself.",
+      'Name the job instead: architect train start <job> --max-usd <dollars>.',
+    );
+  }
+  const name = parsed.args[1];
+  if (name === undefined) {
+    throw new CliError(
+      'invalid_input',
+      'usage',
+      'Name the field job to train on, by its id or name.',
     );
   }
   const maxComputeUsd = dollars(values);
   const maxMinutes = countOption(values, 'max-minutes');
   let built;
   try {
-    built = datasetFromExport(ctx.path(exportDir));
+    built = await fieldDataset(ctx.dataDir, name);
   } catch (error) {
-    if (error instanceof ExportDatasetError) {
-      throw new CliError('invalid_input', 'export', error.message);
+    if (error instanceof FieldDatasetError) {
+      throw new CliError('invalid_input', 'no_demonstrations', error.message);
     }
     throw error;
   }
@@ -162,7 +172,7 @@ async function start(ctx: CliContext, parsed: Parsed, signal: AbortSignal): Prom
     ctx.dataDir,
     'training',
     'datasets',
-    `export-${manifest.job.id}-${dataset.manifest.examples_sha256.slice(0, 12)}`,
+    `field-${manifest.job.id}-${dataset.manifest.examples_sha256.slice(0, 12)}`,
   );
   writeTrainingDataset(datasetDir, dataset);
   const revision = stringOption(values, 'revision');
