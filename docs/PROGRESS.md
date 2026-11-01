@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, morning), `team/ask-when` (from `field/main` dccb1e1d): the lead is told when to ask
+
+- *Done:* after team-1 (the lead asked in 2 of 20 replies), `ask_teammate`'s description names each teammate's data files by name (`GraduateSession.about.files`), and the lead's system prompt in a team reply gets one line on when to ask and what to ask for (`ExtraTool.instruction`, `TEAM_INSTRUCTION`). Invariants unchanged: only text crosses, depth 1, 4 asks. Decision 100 amended. The tool-call-as-text failures are not a chat-path parsing difference (one loop and one stream reader for both modes, and task-mode runner traces show it too), so no change there.
+- *Next:* team-2, team-1's protocol on a checkout with this change.
+
 ## 2026-11-01 (Sun, morning), `runs/team-1`: the first agent-team run
 
 - *Done:* `architect-runs/team-1` on `runtree-3b29a8e4` (field/main `3b29a8e4`), no patches, planned before it ran. Inventory desk (inventory-1's taught agent) leads and Assay desk (assay-2's) is its teammate, exported and installed into one fresh data folder, team made with `teams.create`, each member bound to its own job's files per lab. Four plate-only requests built from each lab's first `allocate` task (Saltmarsh's and Corvid Hill's read through the vault's locked-test open), 5 attempts per arm, graded by the job's `allocation` validator. Team 0/20, Inventory desk alone 0/20, Corvid Hill 0/5 both. The lead asked its teammate in 2 of 20 team replies; neither ask brought back the plate's list (one teammate ran out of steps, one answered without reading the plate). Hosted Glimmer through a loopback relay in the run folder; spend $0.47 of a $4 cap. Report: `docs/comparisons/team-1.md`.

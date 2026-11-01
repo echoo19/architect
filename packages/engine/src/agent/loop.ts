@@ -181,6 +181,9 @@ export async function runAgent(options: RunAgentOptions): Promise<Trace> {
     today,
     loadedSkills: retrieved.skills,
     examples: retrieved.examples,
+    instructions: (options.extraTools ?? []).flatMap((tool) =>
+      tool.instruction === undefined ? [] : [tool.instruction],
+    ),
   });
   const messages: ChatMessage[] = [
     { role: 'system', content: system },
