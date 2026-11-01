@@ -120,7 +120,7 @@ export function LabOrganizations({
             <Button
               variant="ghost"
               size="sm"
-              className="-ml-2.5 mt-1"
+              className="-ml-3.5 mt-1"
               aria-label={`Teach on ${column.name}`}
               onClick={() => setTeaching(column.name)}
             >

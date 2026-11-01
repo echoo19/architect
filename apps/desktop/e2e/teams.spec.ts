@@ -83,6 +83,11 @@ test('a team is made in Models, from a lead and a teammate', async () => {
 
   await page.getByRole('button', { name: 'New team' }).first().click();
   const dialog = page.getByRole('dialog', { name: 'New team' });
+  // Blank, the held button says why, as it does for anything else that holds the team back.
+  await expect(dialog.getByRole('status')).toHaveText('Name the team');
+  await expect(dialog.getByRole('button', { name: 'Make team' })).toHaveAccessibleDescription(
+    'Name the team',
+  );
   await dialog.getByLabel('Name').fill(TEAM.name);
   await dialog.getByRole('combobox', { name: 'Lead' }).click();
   await page.getByRole('option', { name: lead.name }).click();

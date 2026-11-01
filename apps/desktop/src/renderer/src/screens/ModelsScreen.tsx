@@ -8,6 +8,7 @@ import {
   Segmented,
   SidePresence,
   Skeleton,
+  useWindowBelow,
   type PageTab,
 } from '@architect/ui';
 import { Boxes, Plug, Plus, Search, Users } from 'lucide-react';
@@ -41,6 +42,9 @@ const FILTERS: readonly { value: RegistryFilter; label: string; hint?: string }[
 ];
 
 type View = 'versions' | 'teams' | 'connections';
+
+/** Below this window width a version's panel floats over the registry rather than squeezing it. */
+const PANEL_FLOATS_BELOW = 1400;
 
 const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
@@ -79,6 +83,7 @@ export function ModelsScreen({
     if (tab !== undefined) setView(tab);
   }, [tab]);
   const openSettings = useUi((state) => state.openSettings);
+  const floating = useWindowBelow(PANEL_FLOATS_BELOW);
   const rows = registry.data;
   useEffect(() => {
     if (asked === undefined) return;
@@ -123,7 +128,7 @@ export function ModelsScreen({
 
   const open = view === 'versions' && openKey !== null ? find(openKey) : undefined;
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="relative flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
         <PlacePage
           title="Models"
@@ -171,6 +176,7 @@ export function ModelsScreen({
                 <Registry
                   rows={rows}
                   openKey={open ? open.key : null}
+                  beside={open !== undefined && !floating}
                   onOpen={(row) => setOpenKey(row.key)}
                 />
               </div>
@@ -178,7 +184,10 @@ export function ModelsScreen({
           </PageTabs>
         </PlacePage>
       </div>
-      <SidePresence show={open !== undefined}>
+      <SidePresence
+        show={open !== undefined}
+        className={floating ? 'absolute inset-y-0 right-0 z-20' : undefined}
+      >
         {open && (
           <ModelPanel
             key={open.key}
@@ -208,10 +217,13 @@ export function ModelsScreen({
 function Registry({
   rows,
   openKey,
+  beside,
   onOpen,
 }: {
   rows: readonly ModelRow[];
   openKey: string | null;
+  /** The open version's panel sits beside the table, taking its room. */
+  beside: boolean;
   onOpen: (row: ModelRow) => void;
 }) {
   const [filter, setFilter] = useState<RegistryFilter>('all');
@@ -241,6 +253,7 @@ function Registry({
       <RegistryTable
         rows={shown}
         openKey={openKey}
+        beside={beside}
         onOpen={onOpen}
         empty={search.trim() ? `Nothing matches “${search.trim()}”` : 'None here'}
       />

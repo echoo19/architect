@@ -136,6 +136,7 @@ export function ChatComposer({
   return (
     // A footer, so a toast rises above the send button instead of covering it.
     <footer className="relative shrink-0 px-8 pb-5">
+      {/* On the message box's top edge, so it covers as little of the thread as it can. */}
       {!pinned && (
         <IconButton
           label="Jump to the latest message"
@@ -143,7 +144,7 @@ export function ChatComposer({
           shape="round"
           size="sm"
           onClick={onJumpToLatest}
-          className="absolute -top-12 left-1/2 z-10 -translate-x-1/2 surface-float"
+          className="absolute -top-4 left-1/2 z-10 -translate-x-1/2 surface-float"
         >
           <ArrowDown size={16} strokeWidth={1.8} aria-hidden />
         </IconButton>

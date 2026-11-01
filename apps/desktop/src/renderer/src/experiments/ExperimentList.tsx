@@ -1,5 +1,5 @@
 import type { ExperimentRecord } from '@architect/shared';
-import { Button, DataTable, defineTerm, EmptyState, Skeleton } from '@architect/ui';
+import { Button, DataTable, defineTerm, EmptyState, Skeleton, useWindowBelow } from '@architect/ui';
 import { FlaskConical, Plus } from 'lucide-react';
 import { useExperiment, useExperiments } from '../api/experiments';
 import { ProblemState } from '../components/ProblemState';
@@ -51,6 +51,9 @@ function SpendCell({
 export function ExperimentsScreen() {
   const experiments = useExperiments();
   const settings = useSettings();
+  // On a narrow window the arms and the date step aside, so each figure keeps one line; the
+  // date still sorts the list.
+  const narrow = useWindowBelow(1280);
   // The spend columns are headed by the models that spent it, as the rest of the Lab names them.
   const mentor = settings.data ? mentorName(settings.data.defaultMentor) : undefined;
   const student = settings.data ? studentName(settings.data.defaultStudent) : undefined;
@@ -84,27 +87,28 @@ export function ExperimentsScreen() {
                 key: 'name',
                 header: 'Experiment',
                 sortValue: (record) => record.input.name,
-                cell: (record) => <span className="block truncate">{record.input.name}</span>,
+                cell: (record) => <span className="text-pretty">{record.input.name}</span>,
               },
               {
                 key: 'status',
                 header: 'Status',
-                width: '128px',
                 sortValue: (record) => STATUS_WORDS[record.status],
-                cell: (record) => STATUS_WORDS[record.status],
+                cell: (record) => (
+                  <span className="whitespace-nowrap">{STATUS_WORDS[record.status]}</span>
+                ),
               },
               {
                 key: 'field',
                 header: 'Field',
                 sortValue: (record) => record.job.name,
-                cell: (record) => record.job.name,
+                cell: (record) => <span className="whitespace-nowrap">{record.job.name}</span>,
               },
               {
                 key: 'arms',
                 header: 'Arms',
                 hint: defineTerm('arm'),
                 align: 'end',
-                width: '88px',
+                hidden: narrow,
                 sortValue: (record) => record.input.arms.length,
                 cell: (record) => (
                   <span title={record.input.arms.map((item) => ARM_NAMES[item.arm]).join(', ')}>
@@ -117,7 +121,6 @@ export function ExperimentsScreen() {
                 header: `${mentor ?? 'Teacher'} spend`,
                 hint: "What the field's teacher spent of its cap",
                 align: 'end',
-                width: '150px',
                 cell: (record) => <SpendCell record={record} kind="sparkUsd" heading={mentor} />,
               },
               {
@@ -125,14 +128,13 @@ export function ExperimentsScreen() {
                 header: `${student ?? 'Specialist'} spend`,
                 hint: 'What its hosted copy spent of its cap while it practiced',
                 align: 'end',
-                width: '150px',
                 cell: (record) => <SpendCell record={record} kind="studentUsd" heading={student} />,
               },
               {
                 key: 'created',
                 header: 'Created',
                 align: 'end',
-                width: '112px',
+                hidden: narrow,
                 sortValue: (record) => record.createdAt,
                 cell: (record) => shortDate(record.createdAt),
               },

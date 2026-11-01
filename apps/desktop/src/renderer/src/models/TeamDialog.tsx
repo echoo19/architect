@@ -206,8 +206,8 @@ function TeamForm({
             title={team ? `Couldn't save ${team.name}` : "Couldn't make the team"}
           />
         )}
-        {/* An empty name speaks for itself; anything else that holds the team back is said. */}
-        {problem !== null && name.trim() !== '' && (
+        {/* Whatever holds the team back is said, beside the button it holds. */}
+        {problem !== null && (
           <p
             id={`${id}-problem`}
             role="status"
@@ -233,7 +233,7 @@ function TeamForm({
           size="md"
           loading={saving}
           disabled={problem !== null}
-          aria-describedby={problem !== null && name.trim() !== '' ? `${id}-problem` : undefined}
+          aria-describedby={problem !== null ? `${id}-problem` : undefined}
           onClick={() => void save()}
         >
           {team ? 'Save' : 'Make team'}
@@ -292,7 +292,7 @@ function TeammateRow({
             value={pick?.role ?? fallback}
             maxLength={ROLE_CHARS}
             placeholder={`What ${lead} asks it for`}
-            className="min-h-0 resize-none"
+            className="max-h-40 min-h-0 resize-none field-sizing-content"
             onChange={(event) => onRole(event.target.value)}
           />
         </div>

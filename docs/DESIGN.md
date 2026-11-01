@@ -213,20 +213,23 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   has the row's width; agents that share a name show the version each answers with.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
   teacher, the student, teaching, evaluation, budget). It floats: the float material at radius
-  20, 8px in from the window's right edge, the strip above and the edge below. Its tabs are the
-  same pill strip as every other, lined up with its content 16px in, whose selected fill slides
-  between them; a button folds it to a 48px rail of the tabs' icons, and opening it there lands
-  on that tab. It is 400px wide, room for up to five tabs by name, so no
-  name is cut and none is reduced to an icon. A screen may head it with what it is about (a
-  model's name) and may open it on a tab, such as Budget from a line that sends the person there.
-  It remembers its tab and whether it was folded, per screen.
+  20, 8px in from the window's right edge and from the page beside it, the strip above and the
+  edge below. Its tabs are the same pill strip as every other, lined up with its content 16px in,
+  whose selected fill slides between them; a button folds it to a 48px rail of the tabs' icons,
+  and opening it there lands on that tab. The panel is 392px wide, room for up to five tabs by
+  name, so no name is cut and none is reduced to an icon. A screen may head it with what it is
+  about (a model's name) and may open it on a tab, such as Budget from a line that sends the
+  person there. It remembers its tab and whether it was folded, per screen. Below 1400px a panel
+  beside a page that needs its width (a draft's settings, Compute's plan, a model's panel) floats
+  over the page instead of squeezing it; a settings panel folds again when the page is pointed at.
   Width changes with the `smooth` spring. It never holds a control that would break an invariant.
 - **PageTabs.** A place's page in sections: a segmented strip under the title, an icon and a word
   each, whose selected fill slides between them; the open tab's content below. A click opens a
   tab without drawing the keyboard ring; arrow keys move between tabs.
 - **ChoiceTiles.** A choice among a few things shown as icon tiles (an icon at the top left, the
   name under it), three to a row in an inspector. One or several may be chosen; the chosen tile
-  takes the selected fill and a light edge. Arrow keys move between tiles.
+  takes the selected fill, a light edge and a check at its top right. Arrow keys move between
+  tiles.
 - **ToggleRow.** A switch, its label, and at the far right the kind of value it governs ("Text",
   "USD", "Rounds"). The label flips the switch too.
 - **Meter and CapMeter.** A meter fills to its share and springs to a new value; past its cap it

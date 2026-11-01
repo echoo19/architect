@@ -144,6 +144,8 @@ export function DialogContent({
   const { opener, origin } = useContext(DialogOpened);
   const floating = useFloatingMotion();
   const content = useRef<HTMLDivElement>(null);
+  // Once the body scrolls under the title, a hairline divides them.
+  const [scrolled, setScrolled] = useState(false);
   // Grows from the control that opened it: its scale is centred on that point, so the few
   // pixels it travels as it grows lead from there. Set before the first frame is drawn.
   useLayoutEffect(() => {
@@ -196,8 +198,21 @@ export function DialogContent({
                 </RadixDialog.Description>
               )}
               {/* On a short window the body scrolls under the title, so nothing falls off screen. */}
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-quiet">
-                {children}
+              <div className="relative flex min-h-0 flex-1 flex-col">
+                <span
+                  aria-hidden
+                  className={cn(
+                    'pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-line',
+                    'transition-opacity duration-150',
+                    scrolled ? 'opacity-100' : 'opacity-0',
+                  )}
+                />
+                <div
+                  onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+                  className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-quiet"
+                >
+                  {children}
+                </div>
               </div>
             </motion.div>
           </RadixDialog.Content>

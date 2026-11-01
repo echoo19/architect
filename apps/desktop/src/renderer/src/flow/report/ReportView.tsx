@@ -236,12 +236,22 @@ function costParts(
   };
 }
 
-/** A stat's label with what its term means behind an info icon beside it. */
+/**
+ * A stat's label with what its term means behind an info icon at its end, on the label's last
+ * line when it wraps; the tip opens below, never over the figure it explains.
+ */
 function Termed({ term, mentor, text }: { term: LabTerm; mentor: string; text: string }) {
+  // The icon keeps to the label's last word, so it never sits on a line of its own.
+  const last = text.lastIndexOf(' ') + 1;
   return (
-    <span className="flex items-center gap-1">
-      {text}
-      <InfoTip about={text}>{defineTerm(term, mentor)}</InfoTip>
+    <span>
+      {text.slice(0, last)}
+      <span className="whitespace-nowrap">
+        {text.slice(last)}
+        <InfoTip about={text} side="bottom" className="-my-1 ml-1 align-middle">
+          {defineTerm(term, mentor)}
+        </InfoTip>
+      </span>
     </span>
   );
 }
