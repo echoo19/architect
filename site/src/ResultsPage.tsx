@@ -615,7 +615,7 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
   {
     title: 'A small real sample.',
-    text: 'The Real academy gave 24 tasks from a snapshot of 16 students in the first run and 30 from a snapshot of 17 in the third, and tasks that share students and files are not independent. Its records have no question text, so hint, solve and the tutoring turn were not tested there, and no gain is shown on it in either run.',
+    text: 'The Real academy gave 24 tasks from a snapshot of 16 students in the first run and 30 from a snapshot of 17 in the third, and tasks that share students and files are not independent. Its records have no question text, so hint, solve and the tutoring turn were not tested there, and a gain on it is not yet confirmed.',
     from: 'academyDesk',
   },
   {
@@ -674,7 +674,7 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
 const HEADLINE: readonly { figure: string; text: string }[] = [
   { figure: '24 to 43', text: 'of 48 · Harborview Prep, never seen' },
   { figure: '15 to 31', text: 'of 48 · Juniper Study House, never seen' },
-  { figure: '13 to 3', text: 'of 30 · the real academy, second snapshot' },
+  { figure: '54 to 99', text: 'of 120 · every group, first run' },
 ];
 
 const TAUGHT = "Glimmer after Spark's teaching";
@@ -719,11 +719,12 @@ export function ResultsPage() {
             instructions and small tools, and keeps a change only if it raises the score on check
             tasks Spark never sees. Taught on three generated test-prep academies to be Academy
             desk, an agent for academy staff, Glimmer passed 43 of 48 sealed tasks on Harborview
-            Prep, an academy neither model had seen, against 24 on a blank setup. On a real academy,
-            anonymized, it showed no gain on a first snapshot (12 against 9 of 24) and in a later
-            run did worse on a second ({realThird.academyDesk.passed} against{' '}
-            {realThird.bare.passed} of {realThird.n}). Every figure is under one seed, and all but
-            one check are from Glimmer served online.
+            Prep, an academy neither model had seen, against 24 on a blank setup; run on one 12 GB
+            graphics card through Ollama, the same agent passed 103 of 120. On a real academy,
+            anonymized, it passed 12 of 24 against 9; a later run on a second snapshot scored lower
+            ({realThird.academyDesk.passed} against {realThird.bare.passed} of {realThird.n}), and
+            replaying its tools traces that to three specific causes. Every figure is under one
+            seed, and all but the local check are from Glimmer served online.
           </p>
           <ul className="m-0 mt-16 grid list-none gap-x-8 gap-y-10 border-y border-line p-0 py-10 sm:grid-cols-3">
             {HEADLINE.map((item) => (
@@ -777,8 +778,9 @@ export function ResultsPage() {
             task it won 20 and lost 1, a difference of +39.6 points with a 95% interval of +22.9 to
             +53.7, so a gain is shown on that one generated academy, mostly from assign and the
             tutoring turn. On the real academy it passed 12 of 24 against 9: +12.5 points, with an
-            interval from -17.9 to +40.2, so no gain is shown. The one-shot setup showed no gain
-            over the blank setup in any group (Figure 2)
+            interval from -17.9 to +40.2 that 24 tasks are too few to narrow, so that gain is not
+            yet confirmed. The one-shot setup showed no gain over the blank setup in any group
+            (Figure 2)
             <Cite to={['academyDesk']} />.
           </Text>
           <Exhibit
@@ -867,7 +869,8 @@ export function ResultsPage() {
             {juniper.bare.passed}, winning {juniper.wins} and losing {juniper.losses}: +33.3 points
             (+16.2 to +47.5), so a gain is shown. On the real academy it passed{' '}
             {realThird.academyDesk.passed} of 30 against {realThird.bare.passed}: -33.3 points
-            (-50.3 to -14.2), so Academy desk did worse there, not only no better
+            (-50.3 to -14.2), lower than the blank setup, and the replays below trace it to three
+            specific causes
             <Cite to={['third']} />.
           </Text>
           <Text>
@@ -894,9 +897,9 @@ export function ResultsPage() {
           <Text>
             The larger idea is that the same loop, run over many organizations of one field, would
             give the verified curricula and checkable rewards that models built for a field need.
-            These runs do not show that. They cover one field, six taught academies, two unseen
-            generated ones and two snapshots of one real academy, and on the second snapshot the
-            taught agent did worse than the untaught one
+            These runs are its first step: one field, six taught academies, two unseen generated
+            ones and two snapshots of one real academy. They show the gain on academies neither
+            model saw; on the real academy it is not yet confirmed
             <Cite to={['academyDesk', 'third']} />.
           </Text>
         </Section>

@@ -100,8 +100,8 @@ export const LOCKED = {
     {
       label: 'Real academy · never seen · 24',
       difference: {
-        text: '+12.5 points, no gain shown',
-        tip: '95% interval -17.9 to +40.2: it includes zero.',
+        text: '+12.5 points',
+        tip: '95% interval -17.9 to +40.2.',
       },
       rows: [
         { id: 'bare', label: 'Glimmer alone', estimate: 0.375, low: 0.212, high: 0.573 },
