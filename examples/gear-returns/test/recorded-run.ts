@@ -324,7 +324,7 @@ function helperRound(request: MentorCompletionRequest): Diagnosis {
 function weightsRound(request: MentorCompletionRequest): Diagnosis {
   const pickup = failedAt(request, 'pickup', 2);
   return {
-    title: 'Train pickup bookings into the weights',
+    title: 'Train Glimmer on pickup bookings',
     diagnosis:
       'Two setup changes left pickups where they were; the habit of booking too soon may need training.',
     causeTaskIds: [pickup.taskId],

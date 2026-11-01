@@ -7,6 +7,7 @@ import type {
   TestedConfiguration,
 } from '@architect/shared';
 import {
+  AgentAvatar,
   DetailList,
   Disclosure,
   Heading,
@@ -108,6 +109,13 @@ export function CheckStep({
             preview.migratedFrom === undefined ? '' : ', and converted from an older format'
           }.`}
         />
+        {place.kind === 'new' && place.name !== undefined && (
+          <SettingsRow
+            icon={<AgentAvatar name={place.name} />}
+            label={`Added as ${place.name}`}
+            info={`You already have an agent called ${manifest.identity.name}. This is another agent, and it doesn't change yours.`}
+          />
+        )}
         {place.kind === 'version' && (
           <SettingsRow
             icon={<VersionTag version={place.version} />}

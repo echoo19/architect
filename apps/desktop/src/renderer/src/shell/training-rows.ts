@@ -68,6 +68,11 @@ export function trainingRows(jobs: readonly JobSummary[]): TrainingRow[] {
   });
 }
 
+/** Jobs drafted and never trained, which the sidebar lists so they can be picked up again. */
+export function draftedJobs(jobs: readonly JobSummary[]): JobSummary[] {
+  return jobs.filter((job) => job.latestRun === undefined);
+}
+
 /**
  * The job home offers to pick up while there is no agent yet: the newest one drafted and never
  * trained, or whose newest run has a row. A job whose agent was made and later deleted has none.

@@ -11,7 +11,7 @@ import {
 import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { CheckRows } from '../../install/InstallChecks';
-import { STATUS_LABELS, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
+import { statusLine, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
 import { useWords } from '../../shell/edition';
 import { rate } from '../format';
 import { Section } from '../ledger';
@@ -49,7 +49,9 @@ const COLUMNS: {
 
 /** A category's line under its task type, said only where teaching gave up on it. */
 function stoppedLine(category: Capability['categories'][number], mentor: string): string | null {
-  return category.stopped ? `${mentor} stopped teaching ${category.label}: no gain` : null;
+  return category.stopped
+    ? `${mentor} stopped teaching ${category.label}: its changes didn't help`
+    : null;
 }
 
 /** Spark's own score on a type, only from a reference measured on that same split. */
@@ -191,25 +193,10 @@ function InstallLine({ installation }: { installation: Installation }) {
       <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
       <span className="flex items-center gap-2 font-normal">
         <StatusMark state={statusMark(installation.status)} size={14} />
-        {installation.status === 'ready'
-          ? readyLine(installation)
-          : STATUS_LABELS[installation.status]}
+        {statusLine(installation)}
       </span>
     </span>
   );
-}
-
-/**
- * A ready agent's checks counted, so the line reads as this computer's install checks beside the
- * task scores above it, and never claims a skipped check passed: "5 install checks passed, 1 skipped".
- */
-function readyLine(installation: Installation): string {
-  const count = (status: string) =>
-    installation.checks.filter((check) => check.status === status).length;
-  const passed = count('passed');
-  const skipped = count('skipped');
-  const line = `${passed} install ${passed === 1 ? 'check' : 'checks'} passed`;
-  return skipped > 0 ? `${line}, ${skipped} skipped` : line;
 }
 
 function ScoreBar({

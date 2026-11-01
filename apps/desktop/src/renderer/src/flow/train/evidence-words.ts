@@ -70,15 +70,23 @@ export const INTERVENTIONS: Record<InterventionType, Named & { meaning: string }
   },
 };
 
-/** A kind of change as this edition names it: the Lab calls a weights change a LoRA adapter. */
+/**
+ * A kind of change as this edition names it: the Lab calls a weights change a LoRA adapter, and
+ * the personal edition calls retrieval a reference.
+ */
 export function interventionNamed(
   type: InterventionType,
   w: Words = WORDS.personal,
 ): Named & { meaning: string } {
   const named = INTERVENTIONS[type];
-  return w.lab && type === 'weights'
-    ? { ...named, label: 'LoRA adapter', meaning: 'a LoRA adapter fine-tuned on worked examples' }
-    : named;
+  if (w.lab && type === 'weights') {
+    return {
+      ...named,
+      label: 'LoRA adapter',
+      meaning: 'a LoRA adapter fine-tuned on worked examples',
+    };
+  }
+  return !w.lab && type === 'retrieval' ? { ...named, label: 'Reference' } : named;
 }
 
 /** A blank start's first round: the mentor's whole first setup. */

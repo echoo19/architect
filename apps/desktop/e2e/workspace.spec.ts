@@ -314,7 +314,7 @@ test('changes what the agent may write and opens its settings', async () => {
   await expect(dialog.getByText('4-bit · 17 GB on disk · muse-glimmer:30b')).toBeVisible();
   // This computer's checks sit apart from the author's final test.
   await expect(dialog.getByText('Works on this computer', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('All checks passed', { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/^\d+ install checks passed/)).toBeVisible();
   await capture('workspace-agent-general-dark.png');
 
   await dialog.getByRole('button', { name: 'Delete', exact: true }).click();

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { GraduateSummary, ReportCard } from '@architect/shared';
-import { Heading, Meter, SettingsRow, Skeleton } from '@architect/ui';
+import { Button, Heading, Meter, SettingsRow, Skeleton } from '@architect/ui';
+import { FileText, RotateCw } from 'lucide-react';
 import { useVersionReport, useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../../flow/format';
@@ -9,6 +10,7 @@ import { AUTHOR_RESULT_TITLE } from '../../install/labels';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { navigate, paths } from '../../lib/router';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
 /**
@@ -57,6 +59,12 @@ function Figure({ label, value, children }: { label: string; value: string; chil
   );
 }
 
+/** Closes the settings and opens a screen of the run or the job. */
+function leaveFor(path: string): void {
+  useAgentSettingsUi.getState().close();
+  navigate(path);
+}
+
 function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
@@ -86,6 +94,20 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
           {cost.rounds} rounds
         </Figure>
       </div>
+
+      {/* The run that made it is on this computer: its whole report, and its job to train again. */}
+      {!imported && (
+        <div className="-mt-3 flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => leaveFor(paths.report(report.runId))}>
+            <FileText size={14} strokeWidth={1.8} aria-hidden />
+            Open the full report
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => leaveFor(paths.define(report.jobId))}>
+            <RotateCw size={14} strokeWidth={1.8} aria-hidden />
+            Train again
+          </Button>
+        </div>
+      )}
 
       {!imported && report.testedOn === 'hosted' && <LocalTest report={report} />}
 

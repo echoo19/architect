@@ -42,7 +42,7 @@ import { asDiskFull } from './disk';
 import { readPackageHarness } from './harness';
 import { contractFromManifest, legacyFacts } from './legacy';
 import type { GraduateLibrary } from './library';
-import { exists, nextVersion, registerVersion } from './versions';
+import { exists, freeAgentName, nextVersion, registerVersion } from './versions';
 
 export interface ImportContext {
   library: GraduateLibrary;
@@ -350,9 +350,10 @@ export async function previewImport(ctx: ImportContext, path: string): Promise<I
       };
     } else {
       const found = placeOf(ctx, manifest);
+      const name = freeAgentName(store, manifest.identity.name);
       place =
         found.isNew || found.parent === undefined
-          ? { kind: 'new' }
+          ? { kind: 'new', ...(name === manifest.identity.name ? {} : { name }) }
           : {
               kind: 'version',
               graduateId: found.graduateId,

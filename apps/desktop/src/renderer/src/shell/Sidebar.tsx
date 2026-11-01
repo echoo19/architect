@@ -21,6 +21,7 @@ import {
   CircleCheck,
   Cloud,
   Ellipsis,
+  FilePen,
   MessageCircleQuestion,
   PackageOpen,
   Pause,
@@ -51,6 +52,7 @@ import {
   type ListState,
 } from '../workspace/store';
 import {
+  draftedJobs,
   TRAINING_ROW_WORDS,
   trainingRows,
   type TrainingRow,
@@ -140,7 +142,7 @@ export function Sidebar({ route }: { route: Route }) {
               <AgentList graduates={graduates.data} route={route} />
               {edition === 'lab' && <TeamList route={route} />}
               {jobs.data ? (
-                <TrainingList jobs={jobs.data} route={route} />
+                <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
               ) : (
                 jobs.status === 'error' && (
                   <ProblemState
@@ -472,15 +474,36 @@ function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
 /**
  * The runs a person can open from here: each job's newest run of its agent while it trains, when
  * its results are ready and nobody has taken the agent yet, and when it stopped or failed, so a
- * run that ends while they are elsewhere is never lost.
+ * run that ends while they are elsewhere is never lost. With `drafts`, jobs drafted and never
+ * trained follow; the Lab lists those in Fields.
  */
-function TrainingList({ jobs, route }: { jobs: JobSummary[]; route: Route }) {
+function TrainingList({
+  jobs,
+  route,
+  drafts,
+}: {
+  jobs: JobSummary[];
+  route: Route;
+  drafts: boolean;
+}) {
   const rows = trainingRows(jobs);
-  if (rows.length === 0) return null;
+  const drafted = drafts ? draftedJobs(jobs) : [];
+  if (rows.length === 0 && drafted.length === 0) return null;
   return (
     <div className="flex flex-col gap-0.5 border-t border-line pt-4">
       {rows.map((row) => (
         <TrainingRowButton key={row.jobId} row={row} route={route} />
+      ))}
+      {drafted.map((job) => (
+        <NavItem
+          key={job.id}
+          icon={<FilePen size={16} strokeWidth={1.8} aria-hidden />}
+          current={route.name === 'define' && route.jobId === job.id}
+          onClick={() => navigate(paths.define(job.id))}
+          end={<span className="text-fg">Draft</span>}
+        >
+          {job.name}
+        </NavItem>
       ))}
     </div>
   );

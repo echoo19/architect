@@ -82,7 +82,7 @@ export function evaluationNote(version: GraduateVersion): string {
     return EVALUATION_LABELS[version.evaluation];
   }
   return summary.passRate.met
-    ? 'Final test run online'
+    ? 'Final test on the online copy'
     : `Below its ${Math.round(summary.passRate.target * 100)}% target`;
 }
 
@@ -100,5 +100,5 @@ export function promoteCaution(version: GraduateVersion): string | null {
   if (!summary.passRate.met) {
     return `Version ${number} fell short on its final test: ${formatPercent(summary.score)} passed, ${Math.round(summary.passRate.target * 100)}% needed.`;
   }
-  return `Version ${number} took its final test online, not on a computer like this one.`;
+  return `Version ${number} took its final test on the online copy of its model, not on a computer like this one.`;
 }

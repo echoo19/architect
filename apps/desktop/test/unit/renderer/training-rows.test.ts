@@ -1,6 +1,7 @@
 import type { JobRun, JobSummary } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  draftedJobs,
   jobToPickUp,
   TRAINING_ROW_WORDS,
   trainingRows,
@@ -87,6 +88,15 @@ describe('the runs listed beside the agents', () => {
       ['First', 'run_a', 'training'],
       ['Third', 'run_c', 'failed'],
     ]);
+  });
+
+  it('lists a job drafted and never trained apart, so it can be picked up again', () => {
+    const jobs = [
+      job(null, 'Idle'),
+      job({ id: 'run_a', status: 'running' }, 'First'),
+      job({ id: 'run_b', status: 'finished', phase: 'done', accepted: true }, 'Done'),
+    ];
+    expect(draftedJobs(jobs).map((each) => each.name)).toEqual(['Idle']);
   });
 
   it('words each kind apart from the others', () => {

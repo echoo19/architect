@@ -111,7 +111,7 @@ describe('promoting a version its final test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(promoteCaution(hosted)).toBe(
-      'Version 2 took its final test online, not on a computer like this one.',
+      'Version 2 took its final test on the online copy of its model, not on a computer like this one.',
     );
   });
 
@@ -127,7 +127,7 @@ describe('promoting a version its final test did not vouch for', () => {
       score: { pass: 57, total: 60, target: 0.9 },
     });
     expect(evaluationNote(short)).toBe('Below its 90% target');
-    expect(evaluationNote(hosted)).toBe('Final test run online');
+    expect(evaluationNote(hosted)).toBe('Final test on the online copy');
     expect(evaluationNote(version({ version: 3 }))).toBe('Passed its final test');
     expect(evaluationNote(version({ version: 4, evaluation: 'unevaluated' }))).toBe(
       'No final test yet',
@@ -189,7 +189,7 @@ describe('install check details', () => {
         installation,
       );
     expect(skipped({ skipped: 'after_failure' })).toBe('Not tried, since a check above failed');
-    expect(skipped({ skipped: 'not_asked' })).toBe('Not tried yet');
+    expect(skipped({ skipped: 'not_asked' })).toBe('Not tried in these checks');
     // A check stored before the reason existed keeps its own words, never read for meaning.
     expect(skipped({ detail: 'Skipped: the model is not available.' })).toBe(
       'Skipped: the model is not available',

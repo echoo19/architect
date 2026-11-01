@@ -35,6 +35,36 @@ function folderInfo(resource: PackageResource, manifest: PackageManifest): strin
   return resource.description;
 }
 
+/**
+ * The folders it needs that it can't use yet: not chosen, or, once `grants` are given, not
+ * allowed. Installing anyway leaves it needing attention, with the way to finish in its result.
+ */
+export function foldersNotSetUp(
+  manifest: PackageManifest,
+  bindings: Record<string, string>,
+  grants?: Record<string, ResourceGrant>,
+): PackageResource[] {
+  return manifest.resources.filter(
+    (resource) =>
+      resource.required &&
+      ((bindings[resource.name] === undefined && !resource.bundled) ||
+        (grants !== undefined && (grants[resource.name] ?? 'none') === 'none')),
+  );
+}
+
+/** Beside the way on, the folders it can't use yet: "Its records folder isn't set up yet". */
+export function NotSetUp({ resources }: { resources: readonly PackageResource[] }) {
+  const [first] = resources;
+  if (first === undefined) return null;
+  return (
+    <span className="text-small text-fg">
+      {resources.length === 1
+        ? `Its ${folderName(first).toLowerCase()} isn't set up yet`
+        : `${resources.length} of its folders aren't set up yet`}
+    </span>
+  );
+}
+
 /** Step two: where on this computer the files are, for each folder the agent works in. */
 export function FoldersStep({
   manifest,
