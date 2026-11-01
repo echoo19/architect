@@ -505,7 +505,17 @@ const tableGrid =
  * as the run's own figure: no count in between is ever on screen. Then the repair passes both
  * cases.
  */
-export function CounterexampleDrawer({ lt }: { lt: number }) {
+export function CounterexampleDrawer({
+  lt,
+  task,
+  rest = true,
+}: {
+  lt: number;
+  /** The task the case came from, under the title, as the app's drawer names it. */
+  task?: string;
+  /** The line for the rows of tests.csv not shown. */
+  rest?: boolean;
+}) {
   const shrink = outQuart(span(lt, 2.0, 2.6));
   const reduced = ui(lt, 3.1, 0.3);
   const questions = outQuart(span(lt, 4.6, 0.6));
@@ -515,7 +525,10 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-line px-6 pb-4 pt-5">
-        <span className="font-display text-h2 font-semibold">The question lookup</span>
+        <span className="flex flex-col gap-0.5">
+          <span className="font-display text-h2 font-semibold">The question lookup</span>
+          {task && <span className="font-mono text-small">{task}</span>}
+        </span>
         <X size={18} strokeWidth={1.8} aria-hidden />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -581,11 +594,13 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
                 </div>
               );
             })}
-            <div className="overflow-hidden" style={{ height: 30 * (1 - shrink) }}>
-              <span className="font-mono text-small" style={{ opacity: 1 - shrink }}>
-                2,306 more rows
-              </span>
-            </div>
+            {rest && (
+              <div className="overflow-hidden" style={{ height: 30 * (1 - shrink) }}>
+                <span className="font-mono text-small" style={{ opacity: 1 - shrink }}>
+                  2,306 more rows
+                </span>
+              </div>
+            )}
           </div>
           <Grow p={questions} height={132}>
             <div className="flex flex-col">

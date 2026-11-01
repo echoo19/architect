@@ -32,7 +32,7 @@ export const INVENTORY_SCORES = ['88%', '84%', '-'] as const;
 export const HARNESS = {
   first: [
     { file: 'AGENTS.md', kind: 'prompt', added: 2, removed: 3 },
-    { file: 'tools/question_lookup.js', kind: 'tool', added: 31, removed: 0 },
+    { file: 'tools/question_lookup.js', kind: 'tool', added: 32, removed: 0 },
     { file: 'skills/diagnose/SKILL.md', kind: 'lesson', added: 7, removed: 10 },
   ],
   second: {
@@ -66,13 +66,18 @@ export const HARNESS = {
   },
 } as const;
 
-/** The case the counterexample kept, as the field's Assets list shows it (DECISIONS.md 078). */
-export const KEPT_CASE = {
-  title: 'question_lookup stops with the error "test position not found"',
-  detail: '1-minimal',
-  from: '2,312 rows',
-  to: '4 rows',
-} as const;
+/**
+ * The counterexample is the repair demonstration of DECISIONS.md 078, on the academy example's
+ * Copperfield data (engine counterexamples.test.ts), not a step of the first field run: the drawer
+ * names its task as the app does.
+ */
+export const COUNTEREXAMPLE_TASK = 'copperfield-diagnose-03';
+
+/** The first field run's check score before and after its first round (academy-desk-1.md): 17 and 25 of 36. */
+export const FIRST_ROUND = [47, 69] as const;
+
+/** Inventory desk's run finished on Nov 1 (inventory-desk-1.md). */
+export const FIELD_ACTIVITY = { 'Inventory desk': 'Nov 1' } as const;
 
 /**
  * The fine-tune's plan for a 235B mixture-of-experts model, read from its own config, and its

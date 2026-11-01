@@ -243,10 +243,16 @@ export function ModelsPage({
   lt,
   panelAt,
   certificate = EXAMPLE_CERTIFICATE,
+  row: chosen = 1,
+  basisOpen = false,
 }: {
   lt: number;
   panelAt: number;
   certificate?: Certificate;
+  /** The registry row whose panel opens: the version the certificate was issued on. */
+  row?: number;
+  /** The certificate's basis shown open, so its scope is on screen. */
+  basisOpen?: boolean;
 }) {
   const labels = useLabels();
   const panel = outExpo(span(lt, panelAt, 0.7));
@@ -281,11 +287,11 @@ export function ModelsPage({
           {MODELS.map((model, index) => (
             <div
               key={`${model.name}-${model.base}`}
-              data-click={index === 1 ? 'academy-model' : undefined}
+              data-click={index === chosen ? 'academy-model' : undefined}
               className={`${row} relative h-[60px] border-t border-line text-ui tabular-nums`}
               style={{ ...rise(lt, 0.35 + index * 0.07, 6), gridTemplateColumns: columns }}
             >
-              {index === 1 && (
+              {index === chosen && (
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-selected"
@@ -317,7 +323,7 @@ export function ModelsPage({
           <AgentAvatar name={ACADEMY} size="md" />
           <span className="flex flex-1 flex-col">
             <span className="font-display text-h2 font-semibold">{ACADEMY} v1</span>
-            <span className="text-small">Glimmer · 2-bit</span>
+            <span className="text-small">{MODELS[chosen]?.base}</span>
           </span>
           <X size={18} strokeWidth={1.8} aria-hidden />
         </div>
@@ -332,7 +338,9 @@ export function ModelsPage({
             {Math.round(certificate.handed * 100)}% to {certificate.handedTo}.
           </p>
           <div style={rise(pt, 1.0, 6)}>
-            <Disclosure label="How this is measured">{certificate.basis}</Disclosure>
+            <Disclosure label="How this is measured" defaultOpen={basisOpen}>
+              {certificate.basis}
+            </Disclosure>
           </div>
           <div
             className="[&_figcaption]:hidden"

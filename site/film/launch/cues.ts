@@ -65,7 +65,6 @@ export const BEATS: readonly Beat[] = [
   { name: 'the table shrinks', at: 79.5, played: 71.4, section: 7, word: 'hunts' },
   { name: '4 rows', at: 83.3, played: 74.72, section: 7, word: 'four' },
   { name: 'repaired', at: 85.1, played: 75.9, section: 7, word: 'Repaired' },
-  { name: 'the regression suite', at: 86.1, played: 76.55, section: 7, word: 'locked' },
   { name: 'the case locked in', at: 86.8, played: 77.12, section: 7, word: 'regression' },
   { name: 'the vault again', at: 88.9, played: 78.98, section: 8, word: 'Then' },
   { name: 'the lock opens', at: 90, played: 80.16, section: 8, word: 'opens' },

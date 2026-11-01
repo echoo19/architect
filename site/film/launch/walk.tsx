@@ -17,8 +17,14 @@ import {
   span,
   ui,
 } from '../lab/time';
-import { FieldAssets } from './assets';
-import { CERTIFICATE, INVENTORY_SCORES, SHOW_OPEN_TEACHER } from './data';
+import {
+  CERTIFICATE,
+  COUNTEREXAMPLE_TASK,
+  FIELD_ACTIVITY,
+  FIRST_ROUND,
+  INVENTORY_SCORES,
+  SHOW_OPEN_TEACHER,
+} from './data';
 import { FINE_TUNE_AT, FINE_TUNE_SCROLL, FineTunePage } from './finetune';
 import { HarnessDrawer } from './harness';
 import type { Layer, Mode, ScreenView } from './screen';
@@ -83,7 +89,11 @@ const PAGES: readonly PageSpan[] = [
     mode: 'place',
     fill: place(0),
     draw: (lt, t) => (
-      <LabHome lt={lt} hover={ui(t, T.labHover, 0.15) - ui(t, T.labHover + 3.6, 0.2)} />
+      <LabHome
+        lt={lt}
+        score={FIRST_ROUND}
+        hover={ui(t, T.labHover, 0.15) - ui(t, T.labHover + 3.6, 0.2)}
+      />
     ),
   },
   {
@@ -91,7 +101,9 @@ const PAGES: readonly PageSpan[] = [
     at: T.fields,
     mode: 'place',
     fill: place(1),
-    draw: (lt) => <Fields lt={lt} selected={ui(lt, T.academyLit - T.fields, 0.2)} />,
+    draw: (lt) => (
+      <Fields lt={lt} selected={ui(lt, T.academyLit - T.fields, 0.2)} when={FIELD_ACTIVITY} />
+    ),
   },
   {
     key: 'field',
@@ -146,13 +158,6 @@ const PAGES: readonly PageSpan[] = [
     ],
   },
   {
-    key: 'assets',
-    at: T.assets,
-    mode: 'place',
-    fill: place(1),
-    draw: (lt) => <FieldAssets lt={lt} landAt={T.regression - T.assets} />,
-  },
-  {
     key: 'vault',
     at: T.vaultPage,
     mode: 'place',
@@ -172,7 +177,15 @@ const PAGES: readonly PageSpan[] = [
     at: T.models,
     mode: 'place',
     fill: place(3),
-    draw: (lt) => <ModelsPage lt={lt} panelAt={T.panel - T.models} certificate={CERTIFICATE} />,
+    draw: (lt) => (
+      <ModelsPage
+        lt={lt}
+        panelAt={T.panel - T.models}
+        certificate={CERTIFICATE}
+        row={0}
+        basisOpen
+      />
+    ),
   },
   {
     key: 'finetune',
@@ -191,6 +204,7 @@ const PAGES: readonly PageSpan[] = [
         lt={lt}
         selected={Math.min(ui(t, T.notJust + 1.2, 0.25), 1 - ui(t, T.labDesks, 0.35))}
         lab={ui(t, T.labDesks, 0.35) - ui(t, T.scienceDive - 0.1, 0.4)}
+        when={FIELD_ACTIVITY}
         scores={t >= T.scienceResolve + 0.75 ? { 'Inventory desk': INVENTORY_SCORES } : undefined}
       />
     ),
@@ -294,7 +308,8 @@ const DRAWER_CLOCK = local([
   [4.4, 2.7],
   [T.four - T.drawer, 3.1],
   [T.fixed - T.drawer, 6.0],
-  [T.drawerOut - T.drawer, 7.6],
+  [T.regression - T.drawer, 7.3],
+  [T.drawerOut - T.drawer, 7.7],
   [12, 11.1],
 ]);
 
@@ -308,7 +323,13 @@ function drawer(t: number): ScreenView['drawer'] {
     };
   }
   return {
-    node: <CounterexampleDrawer lt={DRAWER_CLOCK(t - T.drawer)} />,
+    node: (
+      <CounterexampleDrawer
+        lt={DRAWER_CLOCK(t - T.drawer)}
+        task={COUNTEREXAMPLE_TASK}
+        rest={false}
+      />
+    ),
     open: outExpo(span(t, T.drawer, 0.75)),
     close: outQuart(span(t, T.drawerOut, 0.45)),
   };
@@ -366,7 +387,11 @@ export function measuringView(): ScreenView {
     },
     sidebarShown: 1,
     flow: { shown: 1, step: 2 },
-    drawer: { node: <CounterexampleDrawer lt={20} />, open: 1, close: 0 },
+    drawer: {
+      node: <CounterexampleDrawer lt={20} task={COUNTEREXAMPLE_TASK} rest={false} />,
+      open: 1,
+      close: 0,
+    },
   };
 }
 
@@ -497,7 +522,6 @@ const SHOTS: readonly Shot[] = [
   // 7. The counterexample, and the case locked in on the field's Assets.
   { at: T.drawer - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
   { at: T.drawerOut - 0.05, dur: 0.55, to: FULL, ease: inOutQuint },
-  { at: T.assets + 0.3, dur: 1.0, to: content(103, 1.9) },
   // 8. The vault opens: onto the sealed academy, a dive past its lock into the figure, which
   // goes back into the plot; then the real academy's figure beside the window.
   { at: T.vaultPage + 0.05, dur: 0.9, to: content(103, 2.15), still: true },
@@ -578,8 +602,7 @@ const CLICKS: readonly Click[] = [
   { at: T.define - 0.15, target: 'open-job' },
   { at: T.confirm, target: 'confirm' },
   { at: T.drawerOut - 0.15, target: [WINDOW.width - 45, 97] },
-  { at: T.assets - 0.1, target: [36, 28] },
-  { at: T.vaultPage - 0.1, target: [452, 136] },
+  { at: T.vaultPage - 0.1, target: [36, 28] },
   { at: T.models - 0.1, target: navPoint(3) },
   { at: T.panel - 0.1, target: 'academy-model' },
   { at: T.compute - 0.1, target: navPoint(4) },

@@ -1,6 +1,7 @@
 import type { Framing, Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { inOutCubic, mix, outExpo, outQuart, span } from '../lab/time';
+import { Badge } from '@architect/ui';
 import { CircleCheck } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import {
@@ -41,6 +42,8 @@ export interface Figure {
   unit: string;
   /** A line under the figure, in its own words, and when it rises. */
   under?: string;
+  /** The app's marker beside that line, such as "Estimate". */
+  badge?: string;
   underAt?: number;
   /** When the number rises, if not with its count or just after the title. */
   numberAt?: number;
@@ -93,6 +96,7 @@ export const FIGURES: readonly Figure[] = [
     unit: 'GPUs',
     under: `in ${PLAN.fit.nodes} nodes, ${PLAN.fit.each} each`,
     underAt: T.gpuNumber + 0.3,
+    badge: 'Estimate',
     numberAt: T.gpuNumber,
     student: false,
     at: T.gpuHero,
@@ -182,13 +186,26 @@ export function Hero({
             />
           </span>
           {figure.under && (
-            <span className="absolute left-0 top-full inline-block overflow-hidden pt-4">
-              <span
-                className="inline-block whitespace-nowrap font-display text-[76px] font-semibold leading-none tracking-[-0.03em]"
-                style={rise(figure.underAt ?? figure.at + 0.35)}
-              >
-                {figure.under}
+            <span className="absolute left-0 top-full flex items-center gap-8 pt-4">
+              <span className="inline-block overflow-hidden">
+                <span
+                  className="inline-block whitespace-nowrap font-display text-[76px] font-semibold leading-none tracking-[-0.03em]"
+                  style={rise(figure.underAt ?? figure.at + 0.35)}
+                >
+                  {figure.under}
+                </span>
               </span>
+              {figure.badge && (
+                // The app's own marker, small, as the plan's card shows it.
+                <span
+                  style={{
+                    zoom: 2,
+                    opacity: outQuart(span(t, (figure.underAt ?? figure.at) + 0.4, 0.4)),
+                  }}
+                >
+                  <Badge>{figure.badge}</Badge>
+                </span>
+              )}
             </span>
           )}
         </div>
@@ -228,6 +245,12 @@ export function CertFigure({ t }: { t: number }) {
             {pct}%
           </span>
         </span>
+        <Words
+          t={t}
+          text="of requests like these"
+          at={T.certHero + 1.5}
+          className={`${type} text-[56px] leading-none`}
+        />
       </span>
       <span className="flex flex-col gap-3">
         <Words

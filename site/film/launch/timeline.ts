@@ -44,8 +44,7 @@ const thirtyFive = rolledBack + 2.9;
 // Repaired, and locked in as a regression test."
 const drawer = thirtyFive + 2.1;
 const fixed = drawer + 7.6;
-const assets = fixed + 1.0;
-const regression = assets + 0.7;
+const regression = fixed + 1.7;
 
 // 8. "Then the vault opens: an academy neither model ever saw. Forty-three of forty-eight. Glimmer
 // alone, twenty-four. And at the real academy, twelve, up from nine."
@@ -130,9 +129,8 @@ export const T = {
   drawer,
   four: drawer + 5.8,
   fixed,
-  drawerOut: fixed + 0.5,
-  assets,
   regression,
+  drawerOut: regression + 0.5,
   vaultPage,
   opens: vaultPage + 1.1,
   dive: vaultPage + 1.5,

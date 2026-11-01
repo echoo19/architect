@@ -30,8 +30,11 @@ const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
 export function LabHome({
   lt,
   hover = 0,
+  score: [scoreFrom, scoreTo] = [35, 47],
 }: {
   lt: number;
+  /** The teaching run's check score before and after its last kept round, in percent. */
+  score?: readonly [number, number];
   /** How far the pointer's hover has lit the academy desk's running row, from 0 to 1. */
   hover?: number;
 }) {
@@ -69,7 +72,7 @@ export function LabHome({
     },
   ];
   // The third academy run's first round, kept: 25 to 34 of 72 check tasks (docs/PROGRESS.md).
-  const score = count(lt, 7.2, 1.2, 35, 47);
+  const score = count(lt, 7.2, 1.2, scoreFrom, scoreTo);
   return (
     <PlacePage title="Lab">
       <div className="grid grid-cols-[1fr_330px] items-start gap-4">
@@ -274,10 +277,13 @@ export function Fields({
   selected,
   lab = 0,
   scores,
+  when,
 }: {
   lt: number;
   selected: number;
   lab?: number;
+  /** Last activity to show in place of a field's own, by the field's name. */
+  when?: Readonly<Record<string, string>>;
   /** Best final tests to show in place of a field's own, by the field's name. */
   scores?: Readonly<Record<string, readonly [string, string, string]>>;
 }) {
@@ -330,7 +336,7 @@ export function Fields({
                 {score}
               </span>
             ))}
-            <span className="relative text-right">{field.when}</span>
+            <span className="relative text-right">{when?.[field.name] ?? field.when}</span>
           </div>
         ))}
         <div className="h-2" />
