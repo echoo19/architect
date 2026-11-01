@@ -214,6 +214,15 @@ const TEAMMATE = teamAgent({
 });
 
 export const TEAM_AGENTS = { lead: LEAD.summary, teammate: TEAMMATE.summary };
+/**
+ * The team's agents' versions, report cards and install checks, for a world whose registry lists
+ * them beside other agents.
+ */
+export const TEAM_RECORDS = {
+  versions: [LEAD.version, TEAMMATE.version],
+  reports: { [`${LEAD_ID}:1`]: LEAD.report, [`${TEAMMATE_ID}:1`]: TEAMMATE.report },
+  installations: { [LEAD_ID]: LEAD.installation, [TEAMMATE_ID]: TEAMMATE.installation },
+};
 
 /** The team the person makes in Models: Inventory desk leads, and asks Assay desk. */
 export const TEAM: Team = {
