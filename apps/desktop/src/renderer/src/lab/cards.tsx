@@ -290,8 +290,8 @@ function RunningRow({ row }: { row: RunRow }) {
             <span className="truncate font-medium">{row.jobName}</span>
             <span className="truncate text-small">
               {word}
-              {rounds !== undefined && maxRounds !== undefined
-                ? `, round ${Math.min(rounds + (paused ? 0 : 1), maxRounds)} of ${maxRounds}`
+              {rounds !== undefined && maxRounds !== undefined && rounds > 0
+                ? `, round ${Math.min(rounds, maxRounds)} of ${maxRounds}`
                 : ''}
             </span>
           </span>
@@ -300,10 +300,13 @@ function RunningRow({ row }: { row: RunRow }) {
               content="Held-out checks passed now. Spark sees only this score, never the tasks."
               side="left"
             >
-              <span className="font-display text-h2 font-semibold tabular-nums">
-                <Counted said={formatPercent(dev)}>
-                  <NumberTicker value={percentOf(dev)} kind="percent" />
-                </Counted>
+              <span className="flex flex-col items-end">
+                <span className="text-small">Held-out checks</span>
+                <span className="font-display text-h2 font-semibold tabular-nums">
+                  <Counted said={formatPercent(dev)}>
+                    <NumberTicker value={percentOf(dev)} kind="percent" />
+                  </Counted>
+                </span>
               </span>
             </Tooltip>
           )}
