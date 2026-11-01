@@ -24,6 +24,7 @@ export {
   type ComputeUsage,
 } from './budget';
 export {
+  assembleDataset,
   buildTrainingDataset,
   DATASET_MANIFEST_FILE,
   DatasetError,

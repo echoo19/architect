@@ -17,6 +17,7 @@ import {
   type Task,
 } from '@architect/shared';
 import { transferDetector } from '../drafting/study';
+import { attemptEpisodes, loadPassedAttempts } from './attempts';
 import { readJsonLines } from '../loop/files';
 import { orgDataDir } from '../loop/organizations';
 import { DataPaths } from '../loop/paths';
@@ -45,8 +46,13 @@ export interface FieldSource {
   jobDir: string;
   /** The job's train split. */
   trainTasks: readonly Task[];
-  /** Verified episodes of the job's lessons; only those from train tasks are used. */
+  /**
+   * Verified episodes of the job's lessons and of its passing train attempts; only those from
+   * train tasks are used.
+   */
   episodes: readonly unknown[];
+  /** What was left out before the export saw it, such as an attempt whose setup changed. */
+  leftOut?: readonly { what: string; why: string }[];
   vault: SealedView;
   now?: () => Date;
 }
@@ -120,7 +126,7 @@ export function buildFieldExport(source: FieldSource): {
   const dataFiles = new Set<string>();
 
   // sft/: the dataset builder keeps its own guards (train split only, the leak detector).
-  const leftOut: { what: string; why: string }[] = [];
+  const leftOut: { what: string; why: string }[] = [...(source.leftOut ?? [])];
   const episodes = source.episodes.filter((raw) => {
     const parsed = VerifiedEpisodeSchema.safeParse(raw);
     if (!parsed.success) return true;
@@ -279,7 +285,8 @@ export interface ExportFromDataOptions {
 
 /**
  * A field export of a job in the app's data folder: the job and its train split as the library
- * keeps them, the verified episodes of its lessons, and the vault's hashes of its sealed part.
+ * keeps them, the verified episodes of its lessons and passing train attempts, and the vault's
+ * hashes of its sealed part.
  */
 export async function exportFieldFromData(
   options: ExportFromDataOptions,
@@ -305,10 +312,11 @@ export async function exportFieldFromData(
 
 /**
  * What a field export of a stored job is made from: the job and its train split as the library
- * keeps them, the verified episodes of its lessons, and the vault's view of its sealed part.
+ * keeps them, the verified episodes of its lessons and of its passing train attempts (decision
+ * 101), and the vault's view of its sealed part.
  */
 export async function fieldSource(
-  store: Pick<EngineStore, 'lessons'>,
+  store: Pick<EngineStore, 'lessons' | 'runs' | 'attempts'>,
   paths: DataPaths,
   jobId: string,
 ): Promise<FieldSource> {
@@ -316,8 +324,16 @@ export async function fieldSource(
   const trainTasks = (await readJsonLines(paths.tasksFile(jobId, 'train'))).map((line) =>
     TaskSchema.parse(line),
   );
-  const episodes = store.lessons
+  const lessons = store.lessons
     .list({ jobId, status: 'verified' })
     .flatMap((lesson) => (lesson.episode === null ? [] : [lesson.episode]));
-  return { job, jobDir: paths.jobDir(jobId), trainTasks, episodes, vault: new Vault(paths.root) };
+  const attempts = attemptEpisodes(job, await loadPassedAttempts(store, paths, job, trainTasks));
+  return {
+    job,
+    jobDir: paths.jobDir(jobId),
+    trainTasks,
+    episodes: [...lessons, ...attempts.episodes],
+    leftOut: attempts.leftOut,
+    vault: new Vault(paths.root),
+  };
 }

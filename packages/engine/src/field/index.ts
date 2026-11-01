@@ -12,6 +12,8 @@ export {
   type FieldSource,
   type SealedView,
 } from './export';
+export { attemptEpisodes, loadPassedAttempts, type PassedAttempt } from './attempts';
+export { datasetFromExport, ExportDatasetError } from './dataset';
 export { openRewardScorer, type RewardScorer, type RewardScorerOptions } from './reward';
 export { SCORE_CLIENT_PY } from './score-client';
 export { fieldView } from './view';
