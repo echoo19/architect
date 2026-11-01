@@ -58,7 +58,7 @@ const twelve = side + 2.9;
 // 9. "Architect certifies its specialists. This one is wrong on at most five percent of what it
 // answers, with ninety-five percent confidence, and it held on an academy it never trained on.
 // And when the harness isn't enough, it fine-tunes the weights: LoRA and Q-LoRA, sized from the
-// model's own config, on a single GPU or across a Slurm or Kubernetes cluster. Even the teacher
+// model's own config, on a single GPU, or packaged for a Slurm or Kubernetes cluster. Even the teacher
 // can be open weights: Muse Spark Open, on Baseten."
 const models = twelve + 3.2;
 const panel = models + 1.6;
@@ -67,7 +67,7 @@ const certificate = certHero + 4.6;
 const compute = certificate + 2.2;
 const lora = compute + 3.5;
 const gpuDive = lora + 0.9;
-const gpuResolve = gpuDive + 3.9;
+const gpuResolve = gpuDive + 4.1;
 const slurm = gpuResolve + 1.0;
 const kubernetes = slurm + 0.8;
 const openBeat = kubernetes + 1.6;
@@ -154,7 +154,8 @@ export const T = {
   config: lora + 1.2,
   gpuDive,
   gpuHero: gpuDive + 0.5,
-  gpuNumber: gpuDive + 2.8,
+  gpuNumber: gpuDive + 1.5,
+  gpuTrained: gpuDive + 2.7,
   gpuResolve,
   slurm,
   kubernetes,

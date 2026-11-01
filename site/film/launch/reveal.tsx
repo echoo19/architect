@@ -8,6 +8,7 @@ import {
   CERTIFICATE,
   CERTIFICATE_CHECK,
   CORVID,
+  TRAINED,
   HARBORVIEW,
   OPEN_TEACHER,
   PLAN,
@@ -47,6 +48,8 @@ export interface Figure {
   underAt?: number;
   /** When the number rises, if not with its count or just after the title. */
   numberAt?: number;
+  /** When the whole figure rises out, giving way to the next figure at the same point. */
+  leaveAt?: number;
   /** A figure shown first in the same place, which gives way to the number as it rises. */
   lead?: { value: string; unit: string };
   /** Glimmer's passed work, in its blue. */
@@ -97,10 +100,25 @@ export const FIGURES: readonly Figure[] = [
     under: `in ${PLAN.fit.nodes} nodes, ${PLAN.fit.each} each`,
     underAt: T.gpuNumber + 0.3,
     badge: 'Estimate',
+    leaveAt: T.gpuTrained - 0.2,
     numberAt: T.gpuNumber,
     student: false,
     at: T.gpuHero,
     lands: T.gpuHero,
+    resolve: T.gpuResolve,
+    anchor: (measured) => gpuPoint(measured),
+  },
+  {
+    // The real fine-tune: one GPU, trained.
+    title: `${TRAINED.model}, ${TRAINED.method}`,
+    from: TRAINED.gpus,
+    to: TRAINED.gpus,
+    unit: TRAINED.gpu,
+    under: `trained in ${TRAINED.time}`,
+    underAt: T.gpuTrained + 0.3,
+    student: false,
+    at: T.gpuTrained,
+    lands: T.gpuTrained,
     resolve: T.gpuResolve,
     anchor: (measured) => gpuPoint(measured),
   },
@@ -125,6 +143,7 @@ export function Hero({
   if (t < figure.at - 0.05 || t > figure.resolve + 1.1) return null;
   const [x, y] = figure.anchor(measured, t);
   const shrink = mix(1, 0.3, inOutCubic(span(t, figure.resolve, 1.0)));
+  if (figure.leaveAt !== undefined && t > figure.leaveAt + 0.8) return null;
   const scale = (view.s / DIVE) * shrink;
   const sx = FRAME.width / 2 + (x - view.cx) * view.s;
   const sy = FRAME.height / 2 + (y - view.cy) * view.s;
@@ -142,7 +161,7 @@ export function Hero({
   );
   const gone = outQuart(span(t, figure.resolve + 0.62, 0.3));
   // Rises into its mask, and when it gives way to another figure, rises out of it.
-  const rise = (at: number, until = Infinity) => {
+  const rise = (at: number, until = figure.leaveAt ?? Infinity) => {
     const p = outExpo(span(t, at, 0.9));
     const out = inOutCubic(span(t, until, 0.4));
     return { transform: `translateY(${(1 - p) * 110 - out * 140}%)` };
@@ -200,7 +219,9 @@ export function Hero({
                 <span
                   style={{
                     zoom: 2,
-                    opacity: outQuart(span(t, (figure.underAt ?? figure.at) + 0.4, 0.4)),
+                    opacity:
+                      outQuart(span(t, (figure.underAt ?? figure.at) + 0.4, 0.4)) *
+                      (1 - outQuart(span(t, figure.leaveAt ?? Infinity, 0.3))),
                   }}
                 >
                   <Badge>{figure.badge}</Badge>

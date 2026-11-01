@@ -97,6 +97,19 @@ export const PLAN = {
   commands: { slurm: 'sbatch submit.sbatch', kubernetes: 'kubectl apply -f pytorchjob.yaml' },
 } as const;
 
+/**
+ * The first real fine-tune (docs/comparisons/qlora-1.md): Glimmer's open weights, QLoRA, on one
+ * A100 80 GB, 8.2 minutes of GPU for $0.34. Its effect on the final test is not measured yet, so
+ * the film shows only that it was trained, and where.
+ */
+export const TRAINED = {
+  model: 'Glimmer',
+  method: 'QLoRA',
+  gpus: 1,
+  gpu: 'A100',
+  time: '8 min',
+} as const;
+
 /** The open-weight teacher, as the app names it (packages/shared/src/models.ts). */
 export const OPEN_TEACHER = 'Muse Spark Open';
 
