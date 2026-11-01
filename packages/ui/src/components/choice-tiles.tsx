@@ -99,7 +99,10 @@ function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; cho
         whileTap={{ scale: PRESS_SCALE }}
         transition={springs.snappy}
         className={cn(
-          'flex min-h-[68px] min-w-0 flex-col items-start justify-between gap-2 rounded-control',
+          // A tile with a description sets its name right under the icon, so the names in a row
+          // of tiles line up whatever each description's length; a bare name sits at the foot.
+          'flex min-h-[68px] min-w-0 flex-col items-start gap-2 rounded-control',
+          option.description ? 'justify-start' : 'justify-between',
           'bg-field px-3 py-2.5 text-left text-ui shadow-edge',
           'transition-[background-color,box-shadow] duration-150 hover:bg-hover',
           'disabled:pointer-events-none disabled:opacity-40',

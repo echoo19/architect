@@ -7,8 +7,10 @@ import { shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
 import { formatPercent } from '../lib/format';
 import {
+  agentSortKey,
   baseModelOf,
   CHECK_HINT,
+  methodOf,
   runtimeName,
   scoresOf,
   shortHash,
@@ -70,7 +72,7 @@ export function StatusWord({ status }: { status: ModelStatus }) {
 const NAME: DataColumn<ModelRow> = {
   key: 'name',
   header: 'Agent',
-  sortValue: (row) => `${row.agent.name}\u0000${String(row.version.version).padStart(5, '0')}`,
+  sortValue: agentSortKey,
   cell: (row) => (
     <span className="flex items-center gap-3 whitespace-nowrap">
       <AgentAvatar name={row.agent.name} />
@@ -145,11 +147,11 @@ const COLUMNS: DataColumn<ModelRow>[] = [
     key: 'method',
     header: 'Method',
     hint: `Harness: ${defineTerm('harness').toLowerCase()} LoRA: ${defineTerm('loraAdapter').toLowerCase()}`,
-    sortValue: (row) => (row.version.manifest.model.adapter ? 1 : 0),
+    sortValue: (row) => methodOf(row.version),
     cell: (row) => {
       // The hashes tell versions apart; they show on hover and in the panel.
       const { model, harness } = row.version.manifest;
-      const method = model.adapter ? 'LoRA' : 'Harness';
+      const method = methodOf(row.version);
       const hashes = model.adapter
         ? `adapter ${shortHash(model.adapter.sha256)}, harness ${shortHash(harness.hash)}`
         : `harness ${shortHash(harness.hash)}`;
@@ -182,9 +184,13 @@ function withCertificates(rows: readonly ModelRow[]): DataColumn<ModelRow>[] {
 
 /**
  * Beside an open panel, which shows the rest: the agent, its final test and its status. The check
- * tasks lead the panel, so the table leaves them out and its Status column stays in view.
+ * tasks lead the panel, so the table leaves them out and its Status column stays in view. The
+ * others are hidden rather than dropped, so the table keeps the order it was sorted in.
  */
-const NARROW: DataColumn<ModelRow>[] = [NAME, ...SCORES.slice(0, 3), STATUS];
+const NARROW: ReadonlySet<DataColumn<ModelRow>> = new Set([NAME, ...SCORES.slice(0, 3), STATUS]);
+
+const narrowed = (columns: DataColumn<ModelRow>[]) =>
+  columns.map((column) => (NARROW.has(column) ? column : { ...column, hidden: true }));
 
 /** Every agent and version: what it runs on, how it was made, and how its final test went. */
 export function RegistryTable({
@@ -203,7 +209,7 @@ export function RegistryTable({
       aria-label="Models"
       rows={rows}
       rowKey={(row) => row.key}
-      columns={openKey === null ? withCertificates(rows) : NARROW}
+      columns={openKey === null ? withCertificates(rows) : narrowed(withCertificates(rows))}
       onRowClick={onOpen}
       initialSort={{ key: 'name', direction: 'ascending' }}
       empty={empty}

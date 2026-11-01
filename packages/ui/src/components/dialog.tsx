@@ -44,6 +44,16 @@ function useOpenedFrom(open: boolean): Origin {
   return state.origin;
 }
 
+/**
+ * Where focus goes as a dialog or drawer closes: back to what had it when it opened or, when that
+ * is gone (such as a menu item that opened it), to the page's main region, never to nothing.
+ */
+export function returnFocus(opener: HTMLElement | null): void {
+  opener?.focus();
+  if (opener && document.activeElement === opener) return;
+  document.querySelector<HTMLElement>('main')?.focus({ preventScroll: true });
+}
+
 /** Whether the dialog or drawer around is open. Its content stays mounted while it leaves. */
 export function useDialogOpen(): boolean {
   return useContext(DialogOpen);
@@ -103,7 +113,7 @@ export interface DialogContentProps {
 }
 
 const sizes = {
-  md: 'max-w-[480px]',
+  md: 'max-h-[calc(100vh-48px)] max-w-[480px]',
   lg: 'h-[min(600px,calc(100vh-48px))] max-w-[800px]',
 } as const;
 
@@ -119,6 +129,8 @@ export function DialogContent({
   const origin = useContext(DialogOrigin);
   const floating = useFloatingMotion();
   const content = useRef<HTMLDivElement>(null);
+  // Opened from a menu or a shortcut there may be no trigger to go back to; see `returnFocus`.
+  const opener = useRef<HTMLElement | null>(null);
   // Grows from the control that opened it: its scale is centred on that point, so the few
   // pixels it travels as it grows lead from there. Set before the first frame is drawn.
   useLayoutEffect(() => {
@@ -139,30 +151,43 @@ export function DialogContent({
             forceMount
             asChild
             {...(description ? {} : { 'aria-describedby': undefined })}
+            onOpenAutoFocus={() => {
+              opener.current =
+                document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              returnFocus(opener.current);
+            }}
           >
             <motion.div
               ref={content}
               {...floating}
               className={cn(
-                'fixed left-1/2 top-1/2 z-50 w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2',
-                'overflow-hidden rounded-card surface-float outline-none',
+                'fixed left-1/2 top-1/2 z-50 flex w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2',
+                'flex-col overflow-hidden rounded-card surface-float outline-none',
                 sizes[size],
                 className,
               )}
             >
               <RadixDialog.Title
-                className={hideTitle ? 'sr-only' : 'px-6 pt-6 font-display text-h2 font-semibold'}
+                className={
+                  hideTitle ? 'sr-only' : 'shrink-0 px-6 pt-6 font-display text-h2 font-semibold'
+                }
               >
                 {title}
               </RadixDialog.Title>
               {description && (
                 <RadixDialog.Description
-                  className={hideTitle ? 'sr-only' : 'px-6 pt-2 text-ui text-pretty'}
+                  className={hideTitle ? 'sr-only' : 'shrink-0 px-6 pt-2 text-ui text-pretty'}
                 >
                   {description}
                 </RadixDialog.Description>
               )}
-              {children}
+              {/* On a short window the body scrolls under the title, so nothing falls off screen. */}
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-quiet">
+                {children}
+              </div>
             </motion.div>
           </RadixDialog.Content>
         )}

@@ -34,7 +34,7 @@ export function PlacePage({ title, back, crumb, action, status, aside, children 
         <div className="min-h-0 flex-1 overflow-y-auto scroll-quiet">
           <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-10 pb-14 pt-4">
             <div className="flex min-h-12 items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                 {back && (
                   <Tooltip content={`Back to ${back.label}`} side="bottom">
                     <IconButton label={`Back to ${back.label}`} size="md" onClick={back.onClick}>
@@ -51,7 +51,9 @@ export function PlacePage({ title, back, crumb, action, status, aside, children 
                     <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
                   </nav>
                 )}
-                <h1 className="m-0 truncate font-display text-title font-semibold">{title}</h1>
+                <h1 className="m-0 min-w-0 break-words font-display text-title font-semibold text-balance">
+                  {title}
+                </h1>
                 {status}
               </div>
               {action}

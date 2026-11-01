@@ -133,7 +133,8 @@ export function Sidebar({ route }: { route: Route }) {
           <AgentMenu />
         </div>
 
-        <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1 scroll-quiet">
+        {/* Padded so a focused row's ring isn't cut by the scrolling edge. */}
+        <div className="-m-1 flex min-h-0 flex-col gap-5 overflow-y-auto p-1 scroll-quiet">
           {graduates.data ? (
             <>
               <AgentList graduates={graduates.data} route={route} />
@@ -299,11 +300,9 @@ function AgentGroup({
 
   return (
     <div className="group/agent flex flex-col gap-0.5">
-      <div className="relative flex h-9 items-center gap-2.5 pl-2.5 pr-2.5">
+      <div className="relative flex min-h-9 items-center gap-2.5 py-1.5 pl-2.5 pr-2.5">
         <AgentAvatar name={graduate.name} />
-        <span className="min-w-0 flex-1 truncate font-medium" title={graduate.name}>
-          {graduate.name}
-        </span>
+        <span className="line-clamp-2 min-w-0 flex-1 break-words font-medium">{graduate.name}</span>
         {showVersion && graduate.activeVersion !== null && (
           <span className="shrink-0 font-mono text-small">v{graduate.activeVersion}</span>
         )}
@@ -357,13 +356,11 @@ function TeamGroup({ team, route }: { team: Team; route: Route }) {
   const { creating, start } = useStartChat(team.name, () => createTeamChat(team.id));
   return (
     <div className="group/agent flex flex-col gap-0.5">
-      <div className="relative flex h-9 items-center gap-2.5 pl-2.5 pr-2.5">
+      <div className="relative flex min-h-9 items-center gap-2.5 py-1.5 pl-2.5 pr-2.5">
         <RowIcon>
           <Users size={16} strokeWidth={1.8} aria-hidden />
         </RowIcon>
-        <span className="min-w-0 flex-1 truncate font-medium" title={team.name}>
-          {team.name}
-        </span>
+        <span className="line-clamp-2 min-w-0 flex-1 break-words font-medium">{team.name}</span>
         <div className={GROUP_ACTIONS}>
           {/* One action, so a team's longer name has room; the team itself is set in Models. */}
           <NewChatButton name={team.name} creating={creating} onClick={start} />

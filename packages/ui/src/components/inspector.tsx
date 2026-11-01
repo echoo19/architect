@@ -35,6 +35,11 @@ export interface InspectorProps<T extends string> {
    */
   tab?: T;
   onTabChange?: (tab: T) => void;
+  /**
+   * Starts folded on a narrow window (`INSPECTOR_FOLDS_BELOW`) until the person opens or folds it
+   * themselves, for a panel beside a page that needs its width more than the panel does.
+   */
+  foldWhenNarrow?: boolean;
   /** Whether the panel is shown. Closing slides it shut; it stays mounted, so it keeps its tab. */
   open?: boolean;
   /** Above the tabs while the panel is open: what it is about, such as a model's name. */
@@ -65,13 +70,24 @@ interface Remembered {
 const storageKey = (name: string) => `architect.inspector.${name}`;
 
 /**
+ * Below this window width an inspector that folds when narrow, and was never folded or opened by
+ * hand, starts folded, so the page beside it keeps room for its names and figures.
+ */
+const INSPECTOR_FOLDS_BELOW = 1400;
+
+const narrowWindow = () =>
+  typeof window !== 'undefined' && window.innerWidth < INSPECTOR_FOLDS_BELOW;
+
+/**
  * What an inspector kept under a name: its tab, if that tab still exists, and whether it was
- * folded. Storage that is missing, blocked or holds something else reads as nothing kept.
+ * folded, or `folded` as given when that was never kept. Storage that is missing, blocked or
+ * holds something else reads as nothing kept.
  */
 export function readInspector<T extends string>(
   storage: Pick<Storage, 'getItem'> | undefined,
   name: string,
   tabs: readonly InspectorTab<T>[],
+  folded = false,
 ): { tab: T | undefined; folded: boolean } {
   let kept: Remembered = {};
   try {
@@ -83,7 +99,7 @@ export function readInspector<T extends string>(
     kept = {};
   }
   const tab = tabs.find((t) => t.value === kept.tab)?.value;
-  return { tab, folded: kept.folded === true };
+  return { tab, folded: typeof kept.folded === 'boolean' ? kept.folded : folded };
 }
 
 function browserStorage(): Storage | undefined {
@@ -112,6 +128,7 @@ export function Inspector<T extends string>({
   rememberAs,
   tab: asked,
   onTabChange,
+  foldWhenNarrow = false,
   open = true,
   header,
   children,
@@ -120,9 +137,10 @@ export function Inspector<T extends string>({
 }: InspectorProps<T>) {
   const first = tabs[0]?.value;
   const [state, setState] = useState(() => {
+    const folded = foldWhenNarrow && narrowWindow();
     const kept = rememberAs
-      ? readInspector(browserStorage(), rememberAs, tabs)
-      : { tab: undefined, folded: false };
+      ? readInspector(browserStorage(), rememberAs, tabs, folded)
+      : { tab: undefined, folded };
     return { tab: kept.tab ?? first, folded: kept.folded };
   });
   const indicator = useId();

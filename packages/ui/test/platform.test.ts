@@ -278,6 +278,13 @@ describe('Inspector', () => {
     expect(readInspector(blocked, 'define', tabs).tab).toBeUndefined();
     expect(readInspector(undefined, 'define', tabs).folded).toBe(false);
   });
+
+  it('starts folded when asked, unless a fold was kept either way', () => {
+    const storage = (value: string | null) => ({ getItem: () => value });
+    expect(readInspector(storage(null), 'compute', tabs, true).folded).toBe(true);
+    expect(readInspector(storage('{"folded":false}'), 'compute', tabs, true).folded).toBe(false);
+    expect(readInspector(storage('{"folded":true}'), 'compute', tabs, false).folded).toBe(true);
+  });
 });
 
 describe('IntervalPlot', () => {

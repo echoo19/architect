@@ -1,8 +1,9 @@
 import { AgentAvatar, CommandGroup, CommandItem, CommandPalette, Shortcut } from '@architect/ui';
-import { Plus, Settings } from 'lucide-react';
+import { FlaskConical, Library, Plus, Settings } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { api } from '../api/client';
-import { createChat, useGraduates } from '../api/hooks';
+import { useExperiments } from '../api/experiments';
+import { createChat, useGraduates, useJobs } from '../api/hooks';
 import { attempt } from '../lib/notify';
 import { isMac } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
@@ -37,7 +38,13 @@ export function CommandMenu() {
   };
 
   return (
-    <CommandPalette open={open} onOpenChange={setOpen}>
+    <CommandPalette
+      open={open}
+      onOpenChange={setOpen}
+      {...(edition === 'lab'
+        ? { placeholder: 'Search actions, agents, fields and experiments' }
+        : {})}
+    >
       <CommandGroup heading="Actions">
         <CommandItem
           icon={<Plus aria-hidden />}
@@ -88,6 +95,47 @@ export function CommandMenu() {
           ))}
         </CommandGroup>
       )}
+      {edition === 'lab' && <LabItems run={run} />}
     </CommandPalette>
+  );
+}
+
+/** The Lab's fields and experiments, found by name. */
+function LabItems({ run }: { run: (action: () => void) => void }) {
+  const jobs = useJobs();
+  const experiments = useExperiments();
+  return (
+    <>
+      {jobs.data && jobs.data.length > 0 && (
+        <CommandGroup heading="Fields">
+          {jobs.data.map((job) => (
+            <CommandItem
+              key={job.id}
+              value={`field-${job.id}`}
+              keywords={[job.name, 'field']}
+              icon={<Library aria-hidden />}
+              onSelect={() => run(() => navigate(paths.field(job.id)))}
+            >
+              {job.name}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
+      {experiments.data && experiments.data.length > 0 && (
+        <CommandGroup heading="Experiments">
+          {experiments.data.map((record) => (
+            <CommandItem
+              key={record.id}
+              value={`experiment-${record.id}`}
+              keywords={[record.input.name, record.job.name, 'experiment']}
+              icon={<FlaskConical aria-hidden />}
+              onSelect={() => run(() => navigate(paths.experiment(record.id)))}
+            >
+              {record.input.name}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
+    </>
   );
 }

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { StepTransition, useTravel } from '@architect/ui';
+import { useRef, type ReactNode } from 'react';
+import { Button, StepTransition, useTravel } from '@architect/ui';
 import type { Route } from '../lib/router';
 import { PLACES, placeOf } from './places';
 import { AgentSettingsModal } from '../workspace/settings/AgentSettingsModal';
@@ -37,10 +37,20 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
   useWorkspaceEvents();
   const key = transitionKey(route);
   const direction = useTravel(key, sidebarOrder(route));
+  const main = useRef<HTMLElement>(null);
   return (
     <div className="flex h-full bg-ground">
+      {/* The first stop for Tab, seen only when reached: past the sidebar to the page. */}
+      <Button
+        size="md"
+        className="pointer-events-none fixed left-3 top-2 z-50 bg-raised opacity-0 focus-visible:pointer-events-auto focus-visible:opacity-100"
+        onClick={() => main.current?.focus()}
+      >
+        Skip to content
+      </Button>
       <Sidebar route={route} />
-      <main className="flex min-w-0 flex-1 flex-col">
+      {/* Focus lands here from the skip link, and when a dialog closes with nothing to go back to. */}
+      <main ref={main} tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
         <StepTransition
           transitionKey={key}
           kind="place"
