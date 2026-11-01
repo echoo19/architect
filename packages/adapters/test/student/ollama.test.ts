@@ -447,7 +447,8 @@ describe('chat failures', () => {
     });
     const error = await failure(collect(student.chat(studentRequest())));
     expect(error.code).toBe('not_found');
-    expect(error.message).toContain(`Ollama has no model "${MODEL}"`);
+    expect(error.message).toContain(`Ollama couldn't serve "${MODEL}"`);
+    expect(error.message).toContain(`model '${MODEL}' not found`);
     expect(error.message).toContain(`Pull ${MODEL} first.`);
   });
 

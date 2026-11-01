@@ -268,7 +268,8 @@ async function ensureJob(
 
 const noHarness = async () => undefined;
 
-function readJob(dir: string): Job {
+/** A job folder's job.json, parsed. */
+export function readJob(dir: string): Job {
   return JobSchema.parse(JSON.parse(readFileSync(join(dir, 'job.json'), 'utf8')));
 }
 
@@ -309,6 +310,31 @@ function regressionProblem(plan: PlanRecord, now: PinnedInputs | null): string |
     }
   }
   return null;
+}
+
+/**
+ * A request for other models than the folder's plan was made with: its job copies were imported
+ * with the plan's teacher, student and pins, and would go on calling them.
+ */
+export class FolderModelsError extends Error {}
+
+/**
+ * Refuses models other than the plan's, confirmed or not, before anything is imported or paid: the
+ * base job is imported once, at the folder's first command, and found again after that.
+ */
+function requireFolderModels(plan: PlanRecord, models: ComparisonModels): void {
+  const asked = {
+    ...modelKeys(models),
+    providers: models.providers === undefined ? null : [...models.providers],
+    localModel: models.localModel,
+  };
+  const changed = (['mentor', 'student', 'providers', 'localModel'] as const).filter(
+    (key) => JSON.stringify(asked[key]) !== JSON.stringify(plan.settings[key]),
+  );
+  if (changed.length === 0) return;
+  throw new FolderModelsError(
+    `This folder's jobs were made for other models (${changed.join(', ')}); run it with the ones it was planned with, or use a new output folder.`,
+  );
 }
 
 /** The settings a plan is confirmed with: what a resume may not change. */
@@ -473,6 +499,7 @@ export async function runComparison(
     if (plan !== null) {
       const problem = regressionProblem(plan, inputs.regression);
       if (problem !== null) throw new Error(problem);
+      requireFolderModels(plan, request.models);
     }
     // Work on this computer's GPU runs only when the app has none of it (decision 046): when this
     // command may do some, it checks before anything is paid, and stops at once if not.

@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ExperimentArmSchema,
   MENTOR_PRESETS,
   STUDENT_PRESETS,
+  JobSchema,
   type ExperimentInput,
   type MentorConfig,
 } from '@architect/shared';
@@ -15,6 +17,7 @@ import {
   type ComparisonRequest,
 } from '../src/comparisons';
 import { ComparisonFiles } from '../src/comparisons/records';
+import { teacherJob } from '../src/comparisons/teacher';
 import { configOf } from '../src/experiments/service';
 import { systemClock } from '../src/loop/deps';
 import { DataPaths } from '../src/loop/paths';
@@ -333,5 +336,31 @@ describe('the teacher arm in an experiment', () => {
     };
     expect(configOf(input).teacher).toEqual(CHOSEN);
     expect(configOf({ ...input, arms: [{ arm: 'teacher' }] }).teacher).toBeUndefined();
+  });
+});
+
+describe("the teacher arm's endpoint", () => {
+  it('runs a pinned teacher on its providers, at its own price, as its mentor calls do', () => {
+    const source = JobSchema.parse(
+      JSON.parse(readFileSync(join(RETURNS_DESK, 'job.json'), 'utf8')),
+    );
+    const pricing = { inputPerM: 1.25, cachedInputPerM: 0.15, outputPerM: 4.25 };
+    const teacher = {
+      kind: 'model' as const,
+      provider: 'openrouter' as const,
+      label: 'Open teacher',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      model: 'example/open-teacher',
+      reasoningEffort: 'medium' as const,
+      secretRef: 'openrouter',
+      pricing,
+      providers: ['BaseTen'],
+    };
+    expect(teacherJob(source, teacher).student.hosted).toMatchObject({
+      baseUrl: teacher.baseUrl,
+      model: teacher.model,
+      pricing,
+      providers: ['BaseTen'],
+    });
   });
 });

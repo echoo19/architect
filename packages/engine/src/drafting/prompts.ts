@@ -141,8 +141,12 @@ export function fixMessage(problems: readonly string[]): string {
   ].join('\n');
 }
 
-/** Room for reasoning plus a short brief. */
-export const STUDY_MAX_OUTPUT_TOKENS = 8_000;
+/**
+ * Room for reasoning plus the brief. A field of several organizations with a long policy each
+ * (the academies, the screening labs) needs more than 8,000: its studies were cut off mid-JSON.
+ * The study's own mentor cap still bounds what it can cost.
+ */
+export const STUDY_MAX_OUTPUT_TOKENS = 16_000;
 
 /** The standing instructions of a study of a field job's material (decision 069). */
 export function studySystemPrompt(): string {

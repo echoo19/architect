@@ -42,6 +42,19 @@ describe('failureForStatus', () => {
     expect(custom.hint).toBe('Pull muse-x first.');
   });
 
+  it("gives the server's own reason for a 404 when it has one, such as a router's filters", () => {
+    const failure = failureForStatus(404, {
+      service: 'OpenRouter',
+      model: 'example/open-teacher',
+      detail:
+        'No endpoints found for example/open-teacher. Filter by Parameters removed baseten/fp4',
+    });
+    expect(failure.summary).toBe(
+      `OpenRouter couldn't serve "example/open-teacher" (HTTP 404). No endpoints found for example/open-teacher. Filter by Parameters removed baseten/fp4.`,
+    );
+    expect(failure.summary).not.toContain('has no model');
+  });
+
   it('blames the address, not a model, when the request names none', () => {
     const failure = failureForStatus(404, { service });
     expect(failure.summary).toContain('nothing at that address');
