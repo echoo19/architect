@@ -22,7 +22,6 @@ export const SOURCES = {
   plan: { name: 'returns-desk-2-plan.md', path: 'docs/comparisons/returns-desk-2-plan.md' },
   first: { name: 'returns-desk-1.md', path: 'docs/comparisons/returns-desk-1.md' },
   certify: { name: 'CERTIFY.md', path: 'docs/CERTIFY.md' },
-  readme: { name: 'README.md', path: 'README.md' },
   hackathon: { name: 'HACKATHON.md', path: 'docs/HACKATHON.md' },
 } as const;
 
@@ -339,12 +338,6 @@ export const REPAIR = {
   finalPassed: 40,
   finalTotal: 40,
   cents: 11,
-} as const;
-
-/** What the whole run cost, from the second comparison's records. */
-export const MONEY = {
-  spark: 0.4205,
-  glimmer: 3.3796,
 } as const;
 
 /**

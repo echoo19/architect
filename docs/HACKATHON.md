@@ -63,7 +63,9 @@ The path to fine-tuning and clusters is labeled experimental. Architect exports 
 
 Architect comes in two editions in one app. Architect teaches an agent one job. Architect Lab is a workbench for people who build models for a field, with fields, preregistered experiments, a registry of model versions with their scores, and compute plans.
 
-What it makes, as examples: Returns desk, Service desk, Academy desk, a pricing desk drafted from a repair shop's files, and a science set (Sweep desk and Assay desk) that is not built yet. Every specialist works offline on the organization's own files and asks before it changes one.
+What it makes, as examples: Returns desk, Service desk, Academy desk, a pricing desk drafted from a repair shop's files, and a science set for screening labs: Sweep desk, Assay desk and Inventory desk, on generated labs. Every specialist works offline on the organization's own files and asks before it changes one.
+
+Specialists can also work as a team. You pick a lead and up to three teammates; the lead asks a teammate when a question is in that teammate's files, and each one still reads only its own files and asks you before it changes one. In the film, Inventory desk asks Assay desk which compounds a screening plate needs again, then reserves stock for them. A team's answer is not certified as a team; each member keeps its own record.
 
 **Results:** all from the reports in `docs/comparisons`.
 - Academy desk, taught on three generated academies and tested on a sealed set of 120 tasks, passed 99 of 120 where Glimmer on a blank setup passed 54. On Harborview Prep, an academy it never saw, it passed 43 of 48 against 24, a difference of 39.6 points (95% interval 22.9 to 53.7). On the real academy, an anonymized one it never saw, it passed 12 of 24 against 9 and the interval includes zero, so no gain is shown there.

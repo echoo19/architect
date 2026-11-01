@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react';
 import { HERO } from '../content';
-import { Actors } from './Actors';
 import { Downloads } from './Downloads';
 import { HeroFilm } from './HeroFilm';
 
@@ -18,7 +17,7 @@ export function Hero() {
         <p className="t-lead enter mt-6" style={beat(1)}>
           {HERO.line.map((sentence) => (
             <span key={sentence} className="lg:block">
-              <Actors text={sentence} />{' '}
+              {sentence}{' '}
             </span>
           ))}
         </p>

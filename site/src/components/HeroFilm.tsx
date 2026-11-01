@@ -1,11 +1,10 @@
 import { useRef, useState } from 'react';
-import { LogoMark } from '@architect/ui';
 import { Play } from 'lucide-react';
 import { FILM } from '../content';
 
 /**
- * The walkthrough film behind a still cover: the film's own title card, set in the page's type,
- * and one button. Nothing loads before the button is pressed. The cover stays until the film is
+ * The walkthrough film behind a still cover: a frame of the Lab from the film, and one button.
+ * Only the still loads before the button is pressed. The cover stays until the film is
  * actually playing, then fades, so there is never a black frame between them; from there the
  * browser's own controls take over. If the film cannot play, the cover steps aside all the same,
  * so the browser can say why.
@@ -20,6 +19,7 @@ export function HeroFilm() {
         ref={video}
         className="block size-full"
         src={FILM.src}
+        poster={FILM.cover}
         preload="none"
         playsInline
         controls={playing}
@@ -30,7 +30,7 @@ export function HeroFilm() {
       <button
         type="button"
         aria-label={FILM.play}
-        className="film-cover absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-[6cqw] bg-ground"
+        className="film-cover absolute inset-0 grid cursor-pointer place-items-center bg-ground"
         {...(playing ? { 'data-leaving': '' } : {})}
         disabled={started}
         onClick={() => {
@@ -38,11 +38,15 @@ export function HeroFilm() {
           video.current?.play().catch(() => setPlaying(true));
         }}
       >
-        <span className="flex items-center gap-[1.4cqw] font-display text-[4.4cqw] font-semibold leading-none tracking-[-0.03em]">
-          <LogoMark size={18} className="size-[0.9em]" />
-          Architect
-        </span>
-        <span className="film-play grid size-14 place-items-center rounded-full bg-primary text-on-primary sm:size-18">
+        <img
+          className="absolute inset-0 size-full object-cover opacity-70"
+          src={FILM.cover}
+          alt=""
+          width={1920}
+          height={1080}
+          decoding="async"
+        />
+        <span className="film-play relative grid size-14 place-items-center rounded-full bg-primary text-on-primary sm:size-18">
           <Play size={24} fill="currentColor" strokeWidth={0} className="ml-1" aria-hidden />
         </span>
       </button>
