@@ -22,6 +22,7 @@ import { toError, type QueryState } from '../api/query';
 import { errorOf } from '../components/QueryValue';
 import { mentorName, shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
+import { useEdition } from '../shell/edition';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { mentorFromChoice, type Connection } from '../settings/models/connections';
 import { useConnections } from '../settings/models/hooks';
@@ -114,6 +115,7 @@ export function MentorStep({
   const chosenHere = model !== null && route === routeOf(model);
   const metaSaved = secrets.data?.['meta'] === true;
   const waiting = signIn.state.phase === 'waiting';
+  const lab = useEdition() === 'lab';
 
   // The teacher each way last had, so going back to a way brings its teacher back with it.
   const [chosen, setChosen] = useState<Partial<Record<MentorRoute, MentorConfig>>>({});
@@ -270,7 +272,8 @@ export function MentorStep({
   return (
     <>
       <StepIntro title="Connect a teacher">
-        {mentorName(mentor)}, a frontier model, teaches new agents while they train; finished agents
+        {mentorName(mentor)}
+        {lab ? ', a frontier model,' : ''} teaches new agents while they train; finished agents
         never use it.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">

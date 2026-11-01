@@ -221,7 +221,7 @@ test('walks from a description to a graduate', async () => {
   await expect(page.getByText(wont, { exact: true })).toHaveCount(1);
   await capture(page, 'flow-define-slow-dark');
   // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h
-  // 40 min of check tasks and a round of at most 7 h 10 min. Clicking it is in `allowMoreTime`.
+  // 40 min of check tasks and a round of at most 7 h 10 min.
   const allow = callout.getByRole('button', { name: 'Allow 9 hours' });
   await expect(allow).toBeVisible();
   // What the button gives is said when it is asked, and it is the limit the button names.
@@ -1241,7 +1241,7 @@ test('recovers when the mentor fails, and says so when it is slow', async () => 
 const NOTE =
   "I couldn't settle this from your files and answers, so I left it open:\nWhether cancelled orders count in totals.\n\nI've drafted the job for you to review.";
 const TOO_FEW =
-  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a file of example requests and their right answers, saved as tasks.jsonl, and describe the job again.';
+  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a file of example requests with their right answers, and describe the job again.';
 
 test('shows what a draft left open, beside the way to review it', async () => {
   const { app, page } = launched;
