@@ -32,6 +32,7 @@ import { RuleReview } from '../flow/define/RuleReview';
 import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
 import { RunNeeds } from '../flow/define/RunNeeds';
 import { StudyReview } from '../flow/define/StudyReview';
+import { TaskRows } from '../flow/define/TaskRows';
 import { TrainingPlace, TrainingRows } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { usePreflight } from '../flow/define/use-preflight';
@@ -39,6 +40,7 @@ import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
 
 /** The simpler versions a comparison trains beside the agent: every method but the agent's own. */
@@ -52,7 +54,7 @@ export function DefineScreen({ jobId }: { jobId: string }) {
   const job = useJob(jobId);
   if (job.status === 'success') return <DefineEditor key={job.data.id} initial={job.data} />;
   return (
-    <FlowShell title="New agent" step="Define">
+    <FlowShell title="New agent" step="Define" field={jobId}>
       <div className={PAGE}>
         {job.status === 'loading' ? (
           <DefineSkeleton />
@@ -112,6 +114,16 @@ function DefineEditor({ initial }: { initial: Job }) {
   const [starting, setStarting] = useState(false);
   // Where the final test runs belongs to the run, not to the job: on this computer unless chosen.
   const [testPlace, setTestPlace] = useState<StudentTarget>('local');
+
+  // Back returns to the conversation that drafted this job; a job opened from elsewhere has none,
+  // so Back goes where Close does: the field's page in the Lab, home otherwise.
+  const drafted = useDraftStore((state) => state.conversation.saved?.jobId === initial.id);
+  const edition = useEdition();
+  const back = drafted
+    ? paths.newAgent()
+    : edition === 'lab'
+      ? paths.field(initial.id)
+      : paths.home();
 
   const comparisonMode = settings.data?.comparisonMode === true;
   const baselines = comparisonMode
@@ -212,6 +224,7 @@ function DefineEditor({ initial }: { initial: Job }) {
     <FlowShell
       title={job.name}
       step="Define"
+      field={initial.id}
       aside={
         <DefineInspector
           open={advancedOpen}
@@ -242,7 +255,7 @@ function DefineEditor({ initial }: { initial: Job }) {
             <ExportJobFile editor={editor} />
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
+            <Button onClick={() => navigate(back)}>Back</Button>
             <StartButton
               starting={starting}
               disabled={preflight.blocked || wait !== null || wontTeach}
@@ -322,6 +335,9 @@ function DefineEditor({ initial }: { initial: Job }) {
         <StaggerItem className="flex flex-col">
           <TrainingRows job={job} hosted={hosted} testPlace={testPlace} baselines={baselines} />
           <ReadyWhen job={job} />
+          {taskPlan.data && taskPlan.status !== 'error' && (
+            <TaskRows plan={taskPlan.data} onMore={() => openAdvanced('evaluation')} />
+          )}
           <FilePermissions
             job={job}
             onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
