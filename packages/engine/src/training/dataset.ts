@@ -265,43 +265,25 @@ export function buildTrainingDataset(
   if (kept.length === 0) {
     throw new DatasetError('None of the episodes can be trained on.', excluded);
   }
-  return assembleDataset(
-    kept.map((entry) => entry.example),
-    {
-      remoteTrainingAllowed: kept.every((entry) => entry.allowsRemote),
-      excluded,
-      ...(options.now === undefined ? {} : { now: options.now }),
-    },
-  );
-}
-
-/** Examples, sorted by id, as one dataset: the JSON Lines file and its manifest. */
-export function assembleDataset(
-  examples: readonly DatasetExample[],
-  options: {
-    remoteTrainingAllowed: boolean;
-    excluded: readonly { episode_id: string; reason: string }[];
-    now?: () => Date;
-  },
-): BuiltDataset {
-  const sorted = [...examples].sort((a, b) => a.id.localeCompare(b.id));
-  const jsonl = sorted.map((example) => `${JSON.stringify(example)}\n`).join('');
+  kept.sort((a, b) => a.example.id.localeCompare(b.example.id));
+  const examples = kept.map((entry) => entry.example);
+  const jsonl = examples.map((example) => `${JSON.stringify(example)}\n`).join('');
   const manifest = DatasetManifestSchema.parse({
     format: DATASET_FORMAT,
     created_at: (options.now?.() ?? new Date()).toISOString(),
     examples_file: EXAMPLES_FILE,
     examples_sha256: sha256(jsonl),
-    example_count: sorted.length,
-    trained_turns: sorted.reduce(
+    example_count: examples.length,
+    trained_turns: examples.reduce(
       (total, example) => total + example.messages.filter((message) => message.train).length,
       0,
     ),
-    categories: count(sorted, (example) => example.category),
-    kinds: count(sorted, (example) => example.kind),
-    remote_training_allowed: options.remoteTrainingAllowed,
-    excluded: options.excluded,
+    categories: count(examples, (example) => example.category),
+    kinds: count(examples, (example) => example.kind),
+    remote_training_allowed: kept.every((entry) => entry.allowsRemote),
+    excluded,
   });
-  return { examples: sorted, manifest, jsonl };
+  return { examples, manifest, jsonl };
 }
 
 /** Writes `examples.jsonl` and `dataset.json` into a folder. */
