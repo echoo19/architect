@@ -184,6 +184,15 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   "Teacher" and "Student". A new version is shown beside the one in use with both scores, never
   as simply "ready". A change in a score carries its unit ("+25 points"), and a count agrees
   with its number ("1 task").
+- **The Lab's words** (owner, Nov 1: precise and confident). The Lab says harness, base harness,
+  one-shot harness, Spark-engineered harness (Engineered harness where space is short), LoRA
+  adapter, held-out checks, sealed final test, fine-tuning plan, cluster launch bundle, risk
+  certificate (its risk bound, confidence and coverage named as such), regression suite and
+  on-premise; agents are specialists where that reads naturally. The personal edition keeps
+  setup, trained weights, check tasks, final test and certified answers. A screen both editions
+  share picks its words with `useEdition()`; the film's mocks use the Lab's. Each term's one-sentence
+  meaning comes from `defineTerm` (`packages/ui/src/terms.ts`), shown behind an InfoTip or a column
+  hint where the term first appears on a screen, so the app and the film never define it twice.
 - **Sidebar.** Rows are `NavItem`s: 40px, a 16px icon, the label, and a status word or spinner at
   the right. The current page's row takes the selected fill, which slides between the places.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
