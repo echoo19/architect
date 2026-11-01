@@ -110,7 +110,10 @@ const beats: (Beat | false)[] = [
   { name: 'end', at: DURATION, section: 12, word: '(after the last word)' },
 ];
 
-export const BEATS: readonly Beat[] = beats.filter((beat): beat is Beat => beat !== false);
+/** In film order, so they pair with the take's word times as they come. */
+export const BEATS: readonly Beat[] = beats
+  .filter((beat): beat is Beat => beat !== false)
+  .sort((a, b) => a.at - b.at);
 
 /** The film's length as played, in seconds. */
 export const RUNTIME = DURATION;
