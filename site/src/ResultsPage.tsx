@@ -773,6 +773,16 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'third',
   },
   {
+    title: 'The third run reused its tasks.',
+    text: 'It reused the 126 tasks of the second run, which had released its tests and recorded two attempts per arm before it stopped; nobody opened them.',
+    from: 'third',
+  },
+  {
+    title: 'A policy in the expected layout.',
+    text: "The real academy's drafted policy used the table layout the generated academies' helper expected, so a policy in an academy's own layout was not tried.",
+    from: 'academyDesk',
+  },
+  {
     title: 'A policy written for the test.',
     text: "The real academy's policy was drafted for this test and awaits the academy's confirmation, and some of its numbers came from the generated academies, so it tests transfer less strictly than Harborview Prep.",
     from: 'academyDesk',
@@ -784,7 +794,7 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
   {
     title: 'A scripted study and a patched runner.',
-    text: 'A script, not a person, confirmed the study brief, and the comparisons ran on a patched copy of the runner outside the repository.',
+    text: 'A script, not a person, confirmed the study brief, and the first academy run used a patched copy of the runner outside the repository. Spark Open ran on an unchanged checkout, and the second certificate on unchanged release 0.8.0.',
     from: 'academyDesk',
   },
   {
@@ -801,6 +811,11 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     title: 'Two desks of one kind.',
     text: 'Both returns desks are for a made-up shop from the same generator, so they test one kind of job, not other businesses.',
     from: 'plan',
+  },
+  {
+    title: 'Unequal budgets on the returns desks.',
+    text: 'In both returns comparisons the arms had different budgets, so each row compares a harness together with what it was allowed to spend.',
+    from: 'second',
   },
   {
     title: 'One seed for the returns desks.',
@@ -823,13 +838,18 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'cert2',
   },
   {
+    title: 'Calibration on known files.',
+    text: `The certificate's calibration tasks are new student and topic pairs on files the run already knew, and leaving out the pairs it had used may tilt the draw. Its $${CERT2.usd.toFixed(2)} is the engine's own count, and the local build was not certified.`,
+    from: 'cert2',
+  },
+  {
     title: 'The earlier certificate attempt.',
     text: 'Its five attempts ran with no randomness, which makes agreement a weak signal, a counting flaw was fixed only after it, and counterexample repair is tested only on stand-ins and practice data.',
     from: 'cert',
   },
   {
     title: 'Assay desk measured its draft.',
-    text: "Its first run's Spark-engineered arm never ran a refinement, because its budget stopped the round, so it measured the one-shot draft. A second run is registered.",
+    text: "Its first run's Spark-engineered arm never ran a refinement, because its budget stopped the round, so it measured the one-shot draft. At Corvid Hill that arm and the base harness each passed 7 of 48, on labs that are all generated. A second run is registered.",
     from: 'assay',
   },
   {
@@ -1019,7 +1039,8 @@ export function ResultsPage() {
           <Text>
             Frozen as it was, Academy desk took the same test again on-premise, on the small Glimmer
             build that runs on one graphics card through Ollama. It passed {local.local} of{' '}
-            {FIELD_TEST_SIZE}, level with hosted in every group, and ran slower ({tab('local')})
+            {FIELD_TEST_SIZE} here against {local.hosted} hosted, with no group showing a
+            difference, and ran slower ({tab('local')})
             <Cite to={['local']} />.
           </Text>
           <Tables label="Table for this computer">
@@ -1047,14 +1068,15 @@ export function ResultsPage() {
           </Text>
           <Text>
             On the second snapshot of the real academy it passed {real.academyDesk.passed} of{' '}
-            {real.n}. Replaying its tools after the test, with no model, traced that to three
-            causes. First, the diagnose instructions load on phrases like &quot;what topic&quot;,
-            but the real academy asks &quot;Which topic was that&quot;, so none of its requests
-            matched. Second, every history attempt ran to the step limit. The instructions ask for a
-            number of days this policy doesn&apos;t have, and the second round allowed one tool call
-            per turn; that fits the records but is not confirmed. Third, assign failed for both
-            harnesses, because the empty assignments file gave no way to number the first row. The
-            task builder was fixed afterwards, and the numbers stand as measured
+            {real.n}, against {real.bare.passed} for the base harness. Replaying its tools after the
+            test, with no model, traced that to three causes. First, the diagnose instructions load
+            on phrases like &quot;what topic&quot;, but the real academy asks &quot;Which topic was
+            that&quot;, so none of its requests matched. Second, every history attempt ran to the
+            step limit. The instructions ask for a number of days this policy doesn&apos;t have, and
+            the second round allowed one tool call per turn; that fits the records but is not
+            confirmed. Third, assign failed for both harnesses, because the empty assignments file
+            gave no way to number the first row. The task builder was fixed afterwards, and the
+            numbers stand as measured
             <Cite to={['thirdMisses']} />.
           </Text>
           <Tables label="Table for the third run">
@@ -1265,7 +1287,8 @@ export function ResultsPage() {
           </Exhibit>
           <Text>
             On a new returns desk, after four rounds, the Spark-engineered harness took Glimmer from{' '}
-            {second.base.passed} to {second.engineered.passed} of {TEST_SIZE} ({fig('returns')})
+            {second.base.passed} to {second.engineered.passed} of {TEST_SIZE} ({fig('returns')}).
+            This is the returns desk that ships with the app
             <Cite to={['second']} />.
           </Text>
           <Exhibit
@@ -1275,10 +1298,10 @@ export function ResultsPage() {
             <PassRates comparison={SECOND} />
           </Exhibit>
           <Text>
-            On the returns desk that ships with the app, with teaching held to two rounds, the
-            Spark-engineered harness passed {first.engineered.passed} of {TEST_SIZE}, against{' '}
-            {first.base.passed} for the base harness ({tab('firstPairs')}). The second comparison
-            was designed after that one, and its plan was published before it ran
+            On the first returns desk, with teaching held to two rounds, the Spark-engineered
+            harness passed {first.engineered.passed} of {TEST_SIZE}, against {first.base.passed} for
+            the base harness ({tab('firstPairs')}). The second comparison was designed after that
+            one, and its plan was published before it ran
             <Cite to={['first', 'plan']} />.
           </Text>
           <Text>
@@ -1306,7 +1329,7 @@ export function ResultsPage() {
                     <span className="t-body ml-2">to {each.p95.toFixed(1)} s</span>
                   </span>
                 ),
-                summary: `${each.name}: typical answer ${each.p50} seconds, slowest 5 percent within ${each.p95}.`,
+                summary: `${each.name}: typical answer ${each.p50} seconds, about 95 percent within ${each.p95}, the slowest 5 percent longer.`,
               }))}
               min={0}
               max={60}

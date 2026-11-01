@@ -88,7 +88,7 @@ export interface Comparison {
 
 export const SECOND: Comparison = {
   id: 'second',
-  title: 'A new returns desk, up to 8 rounds of teaching',
+  title: 'The returns desk that ships, up to 8 rounds of teaching',
   setting: 'Final test of 60 requests, seed 101. Glimmer served online.',
   source: 'second',
   arms: [
@@ -165,7 +165,7 @@ export const SECOND: Comparison = {
 
 export const FIRST: Comparison = {
   id: 'first',
-  title: 'The returns desk that ships, teaching held to 2 rounds',
+  title: 'The first returns desk, teaching held to 2 rounds',
   setting: 'Final test of 60 requests, seed 101. Glimmer served online.',
   source: 'first',
   arms: [
