@@ -12,10 +12,17 @@ export interface InfoTipProps {
   className?: string;
 }
 
-/** An info icon beside a word, with the one sentence that explains it in a tooltip. */
+/**
+ * An info icon beside a word, with the one sentence that explains it in a tooltip that opens on
+ * hover, on focus and on a click.
+ */
 export function InfoTip({ about, children, side = 'top', className }: InfoTipProps) {
   return (
-    <Tooltip content={<span className="block max-w-72 text-pretty">{children}</span>} side={side}>
+    <Tooltip
+      content={<span className="block max-w-72 text-pretty">{children}</span>}
+      side={side}
+      openOnClick
+    >
       <IconButton label={`About ${about}`} size="xs" className={className}>
         <Info size={16} strokeWidth={1.8} aria-hidden />
       </IconButton>
