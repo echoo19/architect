@@ -1,4 +1,11 @@
-import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { resolve } from 'node:path';
+import {
+  BrowserWindow,
+  dialog,
+  shell,
+  type OpenDialogOptions,
+  type SaveDialogOptions,
+} from 'electron';
 import { z } from 'zod';
 import type { PickedPaths } from '../files/picked';
 import type { IpcRouter } from '../ipc/router';
@@ -24,9 +31,14 @@ const SaveOptionsSchema = z
 
 /**
  * The system's open and save dialogs. What the user chooses is remembered as allowed for the
- * engine: a file or folder to read, or the one file to write.
+ * engine: a file or folder to read, or the one file to write. Showing a path in the file manager
+ * takes only those, or the data folder, and does nothing when the app runs hidden for tests.
  */
-export function registerFilesHandlers(router: IpcRouter, picked: PickedPaths): void {
+export function registerFilesHandlers(
+  router: IpcRouter,
+  picked: PickedPaths,
+  options: { dataDir: string; hidden: boolean },
+): void {
   router.registerHandlers(
     'files',
     {
@@ -62,7 +74,16 @@ export function registerFilesHandlers(router: IpcRouter, picked: PickedPaths): v
         picked.add([result.filePath], 'files');
         return result.filePath;
       },
+      show: async (path) => {
+        const target =
+          resolve(path) === resolve(options.dataDir) ? options.dataDir : picked.check(path);
+        if (!options.hidden) shell.showItemInFolder(target);
+      },
     },
-    { pick: z.tuple([PickOptionsSchema]), save: z.tuple([SaveOptionsSchema]) },
+    {
+      pick: z.tuple([PickOptionsSchema]),
+      save: z.tuple([SaveOptionsSchema]),
+      show: z.tuple([z.string().min(1)]),
+    },
   );
 }

@@ -544,6 +544,11 @@ export interface ArchitectApi {
       defaultName: string;
       filters?: { name: string; extensions: string[] }[];
     }): Promise<string | null>;
+    /**
+     * Shows a file or folder in the system's file manager: one the person chose or wrote into, or
+     * Architect's own data folder.
+     */
+    show(path: string): Promise<void>;
   };
   jobs: {
     list(): Promise<JobSummary[]>;

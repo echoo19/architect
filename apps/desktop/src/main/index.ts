@@ -135,7 +135,7 @@ async function start(): Promise<void> {
       : { llamaServerCommand: launch.llamaServerCommand }),
   });
   registerOllamaHandlers(router, settings, pulls);
-  registerFilesHandlers(router, picked);
+  registerFilesHandlers(router, picked, { dataDir, hidden: launch.hidden });
   settings.onChange((next) => router.emit('settings', 'onChange', next));
 
   const localThreads = () => quietThreads(settings.get());
