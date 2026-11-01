@@ -15,8 +15,9 @@ export interface ProblemStateProps {
 /**
  * A failure said plainly: the cause as one sentence and the next step that helps. Something that
  * is gone leads with that and offers the way out, never a Try again that can't help; a failure
- * that passes says so and offers Try again. The precise message waits under Details, and a failure
- * without a code keeps its own message, which the engine writes for the person using the app.
+ * that passes says so and offers Try again. The precise message waits under Details, except for
+ * something gone, where it would only name the record by its id, and a failure without a code
+ * keeps its own message, which the engine writes for the person using the app.
  */
 export function ProblemState({
   error,
@@ -46,12 +47,7 @@ export function ProblemState({
   }
   if (isFinal(problem)) {
     return (
-      <ErrorState
-        title={problem.cause}
-        details={error.message}
-        {...(way ? { secondaryAction: way } : {})}
-        {...shared}
-      />
+      <ErrorState title={problem.cause} {...(way ? { secondaryAction: way } : {})} {...shared} />
     );
   }
   return (
