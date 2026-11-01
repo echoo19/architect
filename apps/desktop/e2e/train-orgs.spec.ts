@@ -145,6 +145,9 @@ test('shows the check score at each organization under the score and in the roun
     'Lakeview Electric70% · 14 of 20',
   ]);
   await expect(byOrg.getByLabel('Northside Plumbing: 17 of 20')).toBeVisible();
+  // Counted from the rows the list shows: round 2 was undone without a record of its own, round 3
+  // kept, and the first draft is the starting point, not a change.
+  await expect(page.getByRole('region', { name: 'Rounds' })).toContainText('1 kept of 2 changes');
   await page.mouse.move(0, 0);
   await settle(page);
   await page.screenshot({

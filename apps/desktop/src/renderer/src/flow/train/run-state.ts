@@ -1,6 +1,7 @@
 import type {
   Attempt,
   BudgetState,
+  Experiment,
   Job,
   LineageEntry,
   Round,
@@ -219,10 +220,24 @@ export function medianLatencyMs(attempts: readonly Attempt[], sample = 20): numb
     : ((times[middle - 1] ?? 0) + (times[middle] ?? 0)) / 2;
 }
 
-export function changeCounts(rounds: readonly Round[]): { kept: number; tried: number } {
-  const decided = rounds.filter((round) => round.decision !== undefined);
+/**
+ * Changes kept of those decided, as the round list shows each round: by its experiment record
+ * when the run has one for it, rejected, invalid and stopped ones included, else by the round's
+ * own decision. A round still running isn't counted.
+ */
+export function changeCounts(
+  rounds: readonly Round[],
+  experiments: readonly Pick<Experiment, 'round' | 'disposition'>[] = [],
+): { kept: number; tried: number } {
+  const decided = rounds
+    .map(
+      (round) =>
+        experiments.find((experiment) => experiment.round === round.index)?.disposition ??
+        round.decision,
+    )
+    .filter((disposition) => disposition !== undefined);
   return {
-    kept: decided.filter((round) => round.decision === 'kept').length,
+    kept: decided.filter((disposition) => disposition === 'kept').length,
     tried: decided.length,
   };
 }

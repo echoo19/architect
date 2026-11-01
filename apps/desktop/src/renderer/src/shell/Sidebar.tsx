@@ -225,10 +225,21 @@ function AgentListSkeleton() {
 function AgentList({ graduates, route }: { graduates: GraduateSummary[]; route: Route }) {
   // With none, the screen beside it says so, and New agent above is the way to make one.
   if (graduates.length === 0) return null;
+  // Agents that share a name are told apart by the version each answers with.
+  const shared = new Set(
+    graduates
+      .map((graduate) => graduate.name)
+      .filter((name, index, names) => names.indexOf(name) !== index),
+  );
   return (
     <div className="flex flex-col gap-3">
       {graduates.map((graduate) => (
-        <AgentGroup key={graduate.id} graduate={graduate} route={route} />
+        <AgentGroup
+          key={graduate.id}
+          graduate={graduate}
+          route={route}
+          showVersion={shared.has(graduate.name)}
+        />
       ))}
     </div>
   );
@@ -265,19 +276,37 @@ function NewChatButton({
   );
 }
 
+/**
+ * A group's actions sit over the end of its row, on the sidebar's ground, so the name has the
+ * row's whole width until the group is pointed at or reached with the keyboard.
+ */
 const GROUP_ACTIONS =
-  'flex items-center opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
+  'absolute inset-y-0 right-0.5 flex items-center bg-ground pl-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
 
-function AgentGroup({ graduate, route }: { graduate: GraduateSummary; route: Route }) {
+function AgentGroup({
+  graduate,
+  route,
+  showVersion,
+}: {
+  graduate: GraduateSummary;
+  route: Route;
+  /** Another agent has the same name: the row shows the version this one answers with. */
+  showVersion: boolean;
+}) {
   const chats = useAgentChats(graduate.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const { creating, start } = useStartChat(graduate.name, () => createChat(graduate.id));
 
   return (
     <div className="group/agent flex flex-col gap-0.5">
-      <div className="flex h-9 items-center gap-2.5 pl-2.5 pr-0.5">
+      <div className="relative flex h-9 items-center gap-2.5 pl-2.5 pr-2.5">
         <AgentAvatar name={graduate.name} />
-        <span className="min-w-0 flex-1 truncate font-medium">{graduate.name}</span>
+        <span className="min-w-0 flex-1 truncate font-medium" title={graduate.name}>
+          {graduate.name}
+        </span>
+        {showVersion && graduate.activeVersion !== null && (
+          <span className="shrink-0 font-mono text-small">v{graduate.activeVersion}</span>
+        )}
         <div className={GROUP_ACTIONS}>
           <NewChatButton name={graduate.name} creating={creating} onClick={start} />
           <Tooltip content="Agent settings" side="right">
@@ -328,11 +357,13 @@ function TeamGroup({ team, route }: { team: Team; route: Route }) {
   const { creating, start } = useStartChat(team.name, () => createTeamChat(team.id));
   return (
     <div className="group/agent flex flex-col gap-0.5">
-      <div className="flex h-9 items-center gap-2.5 pl-2.5 pr-0.5">
+      <div className="relative flex h-9 items-center gap-2.5 pl-2.5 pr-2.5">
         <RowIcon>
           <Users size={16} strokeWidth={1.8} aria-hidden />
         </RowIcon>
-        <span className="min-w-0 flex-1 truncate font-medium">{team.name}</span>
+        <span className="min-w-0 flex-1 truncate font-medium" title={team.name}>
+          {team.name}
+        </span>
         <div className={GROUP_ACTIONS}>
           {/* One action, so a team's longer name has room; the team itself is set in Models. */}
           <NewChatButton name={team.name} creating={creating} onClick={start} />

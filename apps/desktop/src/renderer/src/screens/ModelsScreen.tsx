@@ -26,17 +26,18 @@ import {
   matchesFilter,
   matchesSearch,
   ordered,
+  STATUS_HINTS,
   type ModelRow,
   type RegistryFilter,
 } from '../models/registry';
 import { PlacePage } from '../shell/PlacePage';
 import { useUi } from '../state/ui';
 
-const FILTERS: readonly { value: RegistryFilter; label: string }[] = [
+const FILTERS: readonly { value: RegistryFilter; label: string; hint?: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'candidates', label: 'Candidates' },
-  { value: 'imported', label: 'Imported' },
+  { value: 'active', label: 'Active', hint: STATUS_HINTS.active },
+  { value: 'candidates', label: 'Candidates', hint: STATUS_HINTS.candidate },
+  { value: 'imported', label: 'Imported', hint: STATUS_HINTS.imported },
 ];
 
 type View = 'versions' | 'teams' | 'connections';

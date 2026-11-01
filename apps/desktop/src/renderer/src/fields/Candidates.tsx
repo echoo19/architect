@@ -6,7 +6,7 @@ import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
 import { bestCandidate, orgCounts, rateOf, type Candidate, type FieldSummary } from './model';
-import { scoreCell } from './parts';
+import { SCORE_HINTS, scoreCell } from './parts';
 
 /**
  * Every version of the field that took its final test, with its scores on the organizations it
@@ -75,6 +75,7 @@ export function Candidates({ field }: { field: FieldSummary }) {
           {
             key: 'seen',
             header: 'Taught on',
+            hint: SCORE_HINTS.seen,
             align: 'end',
             cell: (candidate) => scoreCell(candidate.scores.seen),
             sortValue: (candidate) => rateOf(candidate.scores.seen),
@@ -82,6 +83,7 @@ export function Candidates({ field }: { field: FieldSummary }) {
           {
             key: 'unseen',
             header: 'Never seen',
+            hint: SCORE_HINTS.unseen,
             align: 'end',
             cell: (candidate) => scoreCell(candidate.scores.unseen),
             sortValue: (candidate) => rateOf(candidate.scores.unseen),
@@ -92,6 +94,7 @@ export function Candidates({ field }: { field: FieldSummary }) {
                 {
                   key: 'real',
                   header: 'Real',
+                  hint: SCORE_HINTS.real,
                   align: 'end' as const,
                   cell: (candidate: Candidate) => scoreCell(candidate.scores.real),
                   sortValue: (candidate: Candidate) => rateOf(candidate.scores.real),

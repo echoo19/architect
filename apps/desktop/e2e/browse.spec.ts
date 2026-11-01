@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, tooltipText, updateSettings, type LaunchedApp } from './app';
 import { SAMPLE_ENGINE, stubEngine } from './fixtures';
 import {
   stubAttempts,
@@ -82,6 +82,20 @@ test("browses a field's practice and check tasks, with the sealed splits counted
   // The final test and the calibration tasks are counts behind a lock, never rows.
   await expect(page.getByText('Sealed final test 72 tasks')).toBeVisible();
   await expect(page.getByText('Calibration 12 tasks')).toBeVisible();
+  // Each split says what it is on hover or focus, in the Lab's words.
+  const tip = (trigger: Locator) => tooltipText(page, trigger);
+  expect(await tip(page.getByRole('radio', { name: /^Practice/ }))).toBe(
+    'Tasks the specialist attempts while Spark reads its failures.',
+  );
+  expect(await tip(page.getByRole('radio', { name: /^Held-out/ }))).toBe(
+    'Tasks Spark never sees, used to keep or roll back each change.',
+  );
+  expect(await tip(page.getByText('Sealed final test 72 tasks'))).toBe(
+    'Tasks locked away until the end and opened once, with no teacher.',
+  );
+  expect(await tip(page.getByText('Calibration 12 tasks'))).toBe(
+    'Tasks kept from teaching, used to measure the risk certificate.',
+  );
   await capture('field-tasks-dark.png');
 
   await page.getByRole('combobox', { name: 'Type' }).click();

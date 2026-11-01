@@ -35,6 +35,16 @@ export const STATUS_WORDS: Record<ModelStatus, string> = {
   set_aside: 'Set aside',
 };
 
+/** What each status means, for the tip on its word. */
+export const STATUS_HINTS: Record<ModelStatus, string> = {
+  active: 'The version its chats answer with.',
+  candidate: 'A new version waiting for you to accept or set aside.',
+  imported: 'A version that came from another computer.',
+  experimental: 'Its sealed final test fell short of the bar, or ran on a hosted copy.',
+  kept: 'An earlier version, kept so you can go back to it.',
+  set_aside: 'A version you chose not to use.',
+};
+
 export const imported = (version: GraduateVersion) =>
   version.origin !== undefined || version.source !== undefined;
 

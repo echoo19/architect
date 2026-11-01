@@ -278,9 +278,10 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
   await expect(dialog().getByRole('progressbar', { name: 'Certifying' })).toBeVisible();
   const certificate = dialog().getByRole('region', { name: 'Risk certificate' });
   await expect(certificate).toContainText(
-    "8% risk bound on Academy desk's answers, at 95% confidence",
+    'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence.',
     { timeout: 15_000 },
   );
+  await expect(certificate.getByLabel('Risk certificate figures')).toContainText('Risk bound8%');
   await certificate.getByRole('button', { name: 'How this is measured' }).click();
   await expect(certificate).toContainText('Measured on 60 calibration tasks it had never seen');
   const where = certificate.getByRole('list', { name: 'Where the bound was checked' });

@@ -146,6 +146,8 @@ async function capture(file: string): Promise<void> {
   await page.screenshot({ path: join(OUT_DIR, file), animations: 'disabled', timeout: 15_000 });
 }
 
+const EXPERIMENT_NAME = 'Teaching for unseen desks';
+
 const heading = (name: string) => page.getByRole('heading', { name, level: 1 });
 
 /** Whether `first` sits above `second` on the page. */
@@ -178,6 +180,9 @@ test('designs an experiment on a field of the library and shows its estimate bef
   await expect(heading('Returns desk')).toBeVisible();
   await expect(page.getByText('Draft', { exact: true })).toBeVisible();
   await expect(field).toContainText('In your library');
+  // It takes its field's name until it is given its own.
+  await field.getByLabel('Name', { exact: true }).fill(EXPERIMENT_NAME);
+  await expect(heading(EXPERIMENT_NAME)).toBeVisible();
   expect(await page.evaluate(() => window.architect.experiments.get('cmp_1'))).toMatchObject({
     experiment: { input: { jobId: 'returns-desk' } },
   });
@@ -238,7 +243,7 @@ test('designs an experiment on a field of the library and shows its estimate bef
         },
       },
     });
-  await heading('Returns desk').scrollIntoViewIfNeeded();
+  await heading(EXPERIMENT_NAME).scrollIntoViewIfNeeded();
   await capture('experiment-new-dark.png');
   await estimate.scrollIntoViewIfNeeded();
   await capture('experiment-new-estimate-dark.png');
@@ -298,6 +303,11 @@ test('lists every experiment with its status, field, arms, spend and caps', asyn
 
 test('reads the released results like a short paper', async () => {
   await expect(page.getByText('Finished', { exact: true })).toBeVisible();
+  // Titled by its own name, under its field, which the breadcrumb opens; a simulation says so.
+  await expect(heading(EXPERIMENT_NAME)).toBeVisible();
+  const crumb = page.getByRole('navigation', { name: 'Breadcrumb' });
+  await expect(crumb.getByRole('button', { name: 'Returns desk' })).toBeVisible();
+  await expect(page.getByText('Simulation, no model called', { exact: true })).toBeVisible();
   await expect(page.getByText(/Task by task, the difference is \+23 points/)).toBeVisible();
   // The hypothesis leads, with what was measured on the part of the test it named.
   const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
@@ -311,6 +321,15 @@ test('reads the released results like a short paper', async () => {
   await expect(
     plot.getByRole('group', { name: 'Corner Bike Shop, real, never seen' }),
   ).toBeVisible();
+  // Spark answering itself reads apart from the harness it engineered for Glimmer.
+  const taught = plot.getByRole('group', { name: 'Organizations it was taught on' });
+  for (const arm of [
+    'Spark-engineered harness',
+    'Spark on the base harness',
+    'Spark on the engineered harness',
+  ]) {
+    await expect(taught.getByText(arm, { exact: true })).toBeVisible();
+  }
   const pairs = page.getByRole('table', { name: 'Paired comparisons' });
   await expect(pairs).toContainText('Gain shown');
   await expect(pairs).toContainText('No gain shown');
@@ -347,7 +366,7 @@ test('sets the teacher alone beside the taught student, by accuracy and cost per
   const teacher = table.getByRole('row').filter({ hasText: 'Spark alone' });
   await expect(teacher).toContainText('Hosted');
   // Spark answered both, on the same tasks: the same cost per 1,000 requests, from the same records.
-  const reference = table.getByRole('row').filter({ hasText: 'Spark reference' });
+  const reference = table.getByRole('row').filter({ hasText: 'Spark on the base harness' });
   const perThousand = async (row: Locator) =>
     (await row.getByRole('cell').last().innerText()).trim();
   expect(await perThousand(teacher)).toMatch(/^\$\d/);

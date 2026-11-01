@@ -560,6 +560,9 @@ export function Results({
             <IntervalPlot
               aria-label={`Final-test pass rate, ${measured.backend.label}`}
               groups={plotGroups(measured.rows, groups, arms)}
+              domain={[0, 1]}
+              ticks={[0, 0.25, 0.5, 0.75, 1]}
+              axis="both"
             />
           </Figure>
         </div>

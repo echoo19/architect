@@ -8,7 +8,7 @@ import {
   checkCounts,
   checkPlace,
   noCertificateSentence,
-  riskCertificateSentence,
+  riskCertificateFigures,
 } from './certificate-words';
 import { useEdition } from '../../shell/edition';
 
@@ -43,11 +43,22 @@ export function Certificate({
         <div className="flex max-w-[660px] flex-col gap-2">
           <p className="m-0 text-body text-pretty">
             {certificate.issued
-              ? lab
-                ? riskCertificateSentence(certificate, name)
-                : certificateSentence(certificate, name)
+              ? certificateSentence(certificate, name)
               : noCertificateSentence(certificate)}
           </p>
+          {/* The Lab names the sentence's figures as such, after it. */}
+          {lab && certificate.issued && (
+            <dl aria-label="Risk certificate figures" className="m-0 flex gap-10 py-2">
+              {riskCertificateFigures(certificate).map((figure) => (
+                <div key={figure.label} className="flex flex-col-reverse gap-1">
+                  <dt className="text-ui">{figure.label}</dt>
+                  <dd className="m-0 font-display text-h1 font-semibold tabular-nums">
+                    {figure.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
           {/* What the bound rests on and what it assumes, a click away from the sentence. */}
           <Disclosure label="How this is measured">
             <div className="flex flex-col gap-2 pt-1">

@@ -148,7 +148,7 @@ export async function infoTipText(
  * The tooltip of a focusable element, read while focus keeps it open and closed again after. It
  * is scrolled into view first: a tooltip closes when its trigger's page scrolls.
  */
-async function tooltipText(page: Page, trigger: Locator): Promise<string> {
+export async function tooltipText(page: Page, trigger: Locator): Promise<string> {
   await trigger.scrollIntoViewIfNeeded();
   await trigger.focus();
   // Read in the same moment it shows: a re-render or a scroll can close a tooltip again.

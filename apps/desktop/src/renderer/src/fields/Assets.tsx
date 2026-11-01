@@ -23,6 +23,7 @@ import { reductionLine } from '../flow/train/Counterexamples';
 import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { shortPath } from '../lib/format';
+import { capitalized } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { useSessionExports } from './exports';
@@ -32,8 +33,17 @@ import { count, EmptyRow, plural } from './parts';
 const WORDING =
   'Checker-verified fine-tuning data from this field. No model has been fine-tuned on it yet, so GPU runs, large models and fine-tuning gains are unverified.';
 
-function Figure({ children }: { children: ReactNode }) {
-  return <span className="font-display text-h2 font-semibold tabular-nums">{children}</span>;
+/**
+ * A row's figure, with its unit after it ("96 tasks") unless the row's title already names what
+ * it counts.
+ */
+function Figure({ children, unit }: { children: ReactNode; unit?: string }) {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className="font-display text-h2 font-semibold tabular-nums">{children}</span>
+      {unit && <span className="text-ui">{unit}</span>}
+    </span>
+  );
 }
 
 /**
@@ -73,7 +83,9 @@ function Counterexamples({ counterexamples }: { counterexamples: readonly Counte
       action={
         <span className="flex items-center gap-2">
           <InfoTip about="the regression suite">{defineTerm('regressionSuite')}</InfoTip>
-          <Figure>{count(counterexamples.length)}</Figure>
+          <Figure unit={counterexamples.length === 1 ? 'test' : 'tests'}>
+            {count(counterexamples.length)}
+          </Figure>
         </span>
       }
       wide
@@ -182,7 +194,11 @@ function AssetsView({
             }
             title="Outcome scorer"
             detail={`Train tasks at ${plural(counts.train_organizations, 'organization')}, with the checker and a Python client`}
-            end={<Figure>{count(counts.train_tasks)}</Figure>}
+            end={
+              <Figure unit={counts.train_tasks === 1 ? 'task' : 'tasks'}>
+                {count(counts.train_tasks)}
+              </Figure>
+            }
           />
           <CardRow
             icon={
@@ -192,7 +208,11 @@ function AssetsView({
             }
             title="Never-seen evaluation"
             detail={`Sealed final test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
-            end={<Figure>{count(counts.locked_test_tasks)}</Figure>}
+            end={
+              <Figure unit={counts.locked_test_tasks === 1 ? 'task' : 'tasks'}>
+                {count(counts.locked_test_tasks)}
+              </Figure>
+            }
           />
         </Card>
         <Card title="Left out" flush>
@@ -205,8 +225,8 @@ function AssetsView({
                   key={entry.what}
                   className="flex flex-col gap-0.5 border-t border-line px-6 py-3 text-ui"
                 >
-                  <span className="font-medium">{entry.what}</span>
-                  <span className="text-small text-pretty">{entry.why}</span>
+                  <span className="font-medium">{capitalized(entry.what)}</span>
+                  <span className="text-small text-pretty">{capitalized(entry.why)}</span>
                 </li>
               ))}
             </ul>

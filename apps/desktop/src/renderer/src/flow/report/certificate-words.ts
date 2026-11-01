@@ -34,12 +34,42 @@ export function certificateSentence(certificate: Issued, name: string): string {
 }
 
 /**
- * The certificate as the Lab reads it, the figure first: "8% risk bound on Academy desk's answers,
- * at 95% confidence and 78% coverage."
+ * The certificate's three figures as the Lab names them, under its plain sentence: the risk
+ * bound, its confidence and its coverage.
  */
-export function riskCertificateSentence(certificate: Issued, name: string): string {
+export function riskCertificateFigures(certificate: Issued): { label: string; value: string }[] {
   const { bound, coverage } = certificate.threshold;
-  return `${boundPercent(bound)}% risk bound on ${name}'s answers, at ${confidence(certificate.delta)} and ${share(coverage)}% coverage.`;
+  return [
+    { label: 'Risk bound', value: `${boundPercent(bound)}%` },
+    { label: 'Confidence', value: `${share(1 - certificate.delta)}%` },
+    { label: 'Coverage', value: `${share(coverage)}%` },
+  ];
+}
+
+/**
+ * Where the bound didn't hold, for the line beside "Start using": "Not held at Real academy",
+ * "Not held at Harbor Learning and at Real academy", or "Not held on the final test". Null when it
+ * held everywhere it was checked, or when there is no certificate.
+ */
+export function notHeldLine(
+  certificate: Certificate | undefined,
+  finalTest = 'final test',
+): string | null {
+  if (certificate?.issued !== true) return null;
+  const places = certificate.checks
+    .filter((check) => !check.held)
+    .map((check) => {
+      if (check.seen) {
+        return check.orgName === undefined
+          ? `on the ${finalTest}`
+          : `on new tasks at ${check.orgName}`;
+      }
+      return `at ${check.orgName ?? 'an organization it never saw'}`;
+    });
+  const last = places.at(-1);
+  if (last === undefined) return null;
+  const listed = places.length === 1 ? last : `${places.slice(0, -1).join(', ')} and ${last}`;
+  return `Not held ${listed}`;
 }
 
 /** How it was measured, in one line: what the sentence rests on. */

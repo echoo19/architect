@@ -56,23 +56,18 @@ export interface RoundRecords {
 }
 
 /**
- * Changes kept of those tried: from the experiment records when the run has them, rejected,
- * invalid and stopped ones included, else from its rounds. The first draft is the starting
- * point, not a change, so it isn't counted among them.
+ * Changes kept of those tried, counted from the rows the list shows, so the two always agree. The
+ * first draft is the starting point, not a change, so it isn't counted among them.
  */
 function keptChanges(
   rounds: readonly Round[],
   draftRound: number | null,
   records: RoundRecords | null,
 ): { kept: number; tried: number } {
-  const changes = records?.experiments.filter((experiment) => experiment.kind !== 'draft') ?? [];
-  if (changes.length > 0) {
-    return {
-      kept: changes.filter((experiment) => experiment.disposition === 'kept').length,
-      tried: changes.length,
-    };
-  }
-  return changeCounts(rounds.filter((round) => round.index !== draftRound));
+  return changeCounts(
+    rounds.filter((round) => round.index !== draftRound),
+    records?.experiments ?? [],
+  );
 }
 
 /**
@@ -109,6 +104,7 @@ export function Rounds({
   /** The newest round, opened: what is happening in it. */
   current: ReactNode;
 }) {
+  const w = useWords();
   const EndIcon = stopReason ? TRAINING_END_ICONS[stopReason] : null;
   const first = useFirstKeys(rounds.map((round) => String(round.index)));
   const newest = rounds.at(-1)?.index;
@@ -120,10 +116,21 @@ export function Rounds({
         counts &&
         counts.tried > 0 && (
           <span className="text-small tabular-nums">
-            <Counted said={`${counts.kept} of ${counts.tried}`}>
-              <NumberTicker value={counts.kept} /> of <NumberTicker value={counts.tried} />
-            </Counted>{' '}
-            kept
+            {w.lab ? (
+              <Counted
+                said={`${counts.kept} kept of ${counts.tried} ${counts.tried === 1 ? 'change' : 'changes'}`}
+              >
+                <NumberTicker value={counts.kept} /> kept of <NumberTicker value={counts.tried} />{' '}
+                {counts.tried === 1 ? 'change' : 'changes'}
+              </Counted>
+            ) : (
+              <>
+                <Counted said={`${counts.kept} of ${counts.tried}`}>
+                  <NumberTicker value={counts.kept} /> of <NumberTicker value={counts.tried} />
+                </Counted>{' '}
+                kept
+              </>
+            )}
           </span>
         )
       }

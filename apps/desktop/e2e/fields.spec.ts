@@ -2,7 +2,15 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import {
+  goTo,
+  infoTipText,
+  launchApp,
+  settle,
+  tooltipText,
+  updateSettings,
+  type LaunchedApp,
+} from './app';
 import { stubEngine } from './fixtures';
 import { FIELDS, ACADEMY_DESK_ASSETS, ACADEMY_DESK_FIELD, stubFields } from './fixtures-fields';
 import { recordedCalls, stubByKey, stubRecorded } from './fixtures-flow';
@@ -83,6 +91,16 @@ test('lists each field with its organizations, best candidate and last activity'
   await expect(clinic.nth(3)).toHaveText('–None');
   await expect(clinic.nth(4)).toHaveText('92%');
   await expect(clinic.nth(5)).toHaveText('–None');
+
+  // The same three headers head counts and then scores; each says which on hover or focus.
+  const taughtOn = table.getByRole('button', { name: 'Taught on' });
+  expect(await tooltipText(page, taughtOn.nth(0))).toMatch(/^Organizations \S.* learned from$/);
+  expect(await tooltipText(page, taughtOn.nth(1))).toBe(
+    'Pass rate on the sealed final test at organizations it was taught on',
+  );
+  expect(await tooltipText(page, table.getByRole('button', { name: 'Real' }).nth(1))).toBe(
+    'Pass rate on the sealed final test at real organizations it never saw',
+  );
 
   await expect(page.getByRole('button', { name: 'New field' })).toBeVisible();
   await capture('fields-dark.png');
@@ -227,11 +245,16 @@ test("counts the field's assets and exports them to a folder the person picks", 
   const assets = card('Field export');
   await expect(assets.getByText('Verified demonstrations')).toBeVisible();
   await expect(assets).toContainText('41');
+  // Each figure carries its unit.
+  await expect(assets).toContainText('96tasks');
+  await expect(assets).toContainText('138tasks');
   await expect(assets).toContainText('Train tasks at 3 organizations');
   await expect(assets).toContainText(
     'Sealed final test tasks and 2 never-seen organizations, by hash only',
   );
-  await expect(card('Left out')).toContainText('the calibration and check tasks');
+  // Each row of what it leaves out starts as a line does.
+  await expect(card('Left out')).toContainText('The calibration and check tasks');
+  await expect(card('Left out')).toContainText('They stay for measuring');
   // What an export is and isn't is said beside its Experimental mark, when asked.
   await expect(page.getByText('Experimental', { exact: true })).toBeVisible();
   expect(await infoTipText(page, page, 'these assets')).toContain(

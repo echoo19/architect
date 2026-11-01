@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ReportCard } from '@architect/shared';
 import { Button, Skeleton } from '@architect/ui';
-import { ArrowRight, Boxes, Library } from 'lucide-react';
+import { ArrowRight, Boxes, Library, TriangleAlert } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
 import {
@@ -15,6 +15,7 @@ import {
 import { useQuery } from '../api/query';
 import { refreshRunLists } from '../api/updates';
 import { ProblemState } from '../components/ProblemState';
+import { notHeldLine } from '../flow/report/certificate-words';
 import { useComparison } from '../flow/report/ComparisonTable';
 import {
   useBareReport,
@@ -128,15 +129,32 @@ function ReportFooter({
   const { graduate, verdict } = useReportAgent(report);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const edition = useEdition();
+  const { finalTest } = useWords();
+  const notHeld = notHeldLine(report.certificate, finalTest);
+  const notHeldId = useId();
   return (
-    <div className="mx-auto flex max-w-[1120px] flex-wrap justify-end gap-2">
+    <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-end gap-2">
       {edition === 'lab' && <LabLinks report={report} />}
       <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
       {verdict.usable || !graduate ? (
-        <Button variant="primary" loading={accepting} onClick={onAccept}>
-          Start using {report.name}
-          <ArrowRight size={16} strokeWidth={2} aria-hidden />
-        </Button>
+        <>
+          {/* A bound that failed somewhere is said beside the button, never passed over. */}
+          {notHeld && (
+            <span id={notHeldId} className="flex items-center gap-2 px-2 text-ui font-medium">
+              <TriangleAlert size={16} strokeWidth={1.8} className="text-danger" aria-hidden />
+              {notHeld}
+            </span>
+          )}
+          <Button
+            variant="primary"
+            loading={accepting}
+            onClick={onAccept}
+            {...(notHeld ? { 'aria-describedby': notHeldId } : {})}
+          >
+            Start using {report.name}
+            <ArrowRight size={16} strokeWidth={2} aria-hidden />
+          </Button>
+        </>
       ) : (
         <Button
           variant="primary"

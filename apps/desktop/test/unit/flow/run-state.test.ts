@@ -242,6 +242,15 @@ describe('training view selectors', () => {
   it('counts kept changes out of the ones that were decided', () => {
     const rounds = [decided(1, 16, 23), decided(2, 23, 22), makeRound(3, { status: 'evaluating' })];
     expect(changeCounts(rounds)).toEqual({ kept: 1, tried: 2 });
+    // A round's record says how it ended where there is one; a round without one keeps its own.
+    expect(changeCounts(rounds, [{ round: 1, disposition: 'rejected' }])).toEqual({
+      kept: 0,
+      tried: 2,
+    });
+    expect(changeCounts(rounds, [{ round: 3, disposition: 'invalid' }])).toEqual({
+      kept: 1,
+      tried: 3,
+    });
     expect(hasKeptChange(rounds)).toBe(true);
     expect(hasKeptChange([decided(1, 16, 16)])).toBe(false);
   });

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Score } from '@architect/shared';
 import { AgentAvatar, DataTable, defineTerm, Tooltip, type DataColumn } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
+import { SCORE_HINTS } from '../fields/parts';
 import { shortDate } from '../flow/format';
 import { certificateFigure, certificateHint } from '../flow/report/certificate-words';
 import { formatPercent } from '../lib/format';
@@ -13,8 +14,10 @@ import {
   shortHash,
   sortScore,
   statusOf,
+  STATUS_HINTS,
   STATUS_WORDS,
   type ModelRow,
+  type ModelStatus,
   type RowScores,
 } from './registry';
 
@@ -53,6 +56,17 @@ const scoreColumn = (
     ),
 });
 
+/** A version's status in its word, with what the word means on hover or focus. */
+export function StatusWord({ status }: { status: ModelStatus }) {
+  return (
+    <Tooltip content={STATUS_HINTS[status]} side="top">
+      <span tabIndex={0} className="rounded-mark">
+        {STATUS_WORDS[status]}
+      </span>
+    </Tooltip>
+  );
+}
+
 const NAME: DataColumn<ModelRow> = {
   key: 'name',
   header: 'Agent',
@@ -75,13 +89,13 @@ const STATUS: DataColumn<ModelRow> = {
   key: 'status',
   header: 'Status',
   sortValue: (row) => STATUS_WORDS[statusOf(row.version)],
-  cell: (row) => STATUS_WORDS[statusOf(row.version)],
+  cell: (row) => <StatusWord status={statusOf(row.version)} />,
 };
 
 const SCORES = [
-  scoreColumn('seen', 'Taught on', FINAL_TEST, 'Organizations it was taught on'),
-  scoreColumn('unseen', 'Never seen', FINAL_TEST, 'Generated organizations it never saw'),
-  scoreColumn('real', 'Real', FINAL_TEST, 'Real organizations it never saw'),
+  scoreColumn('seen', 'Taught on', FINAL_TEST, SCORE_HINTS.seen),
+  scoreColumn('unseen', 'Never seen', FINAL_TEST, SCORE_HINTS.unseen),
+  scoreColumn('real', 'Real', FINAL_TEST, SCORE_HINTS.real),
   scoreColumn('check', 'Held-out checks', undefined, CHECK_HINT),
 ];
 
