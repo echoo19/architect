@@ -48,11 +48,17 @@ const STAGES: Record<string, BackendState> = {
   DELETED: 'failed',
 };
 
-/** What the job runs first: fetch its inputs at their commit, then hand over to the recipe. */
+/**
+ * What the job runs first: fetch its inputs at their commit, then hand over to the recipe. The
+ * recipe's image runs Ubuntu's own Python, marked as managed by the system (PEP 668), with torch
+ * installed into it; pip refuses to install beside it unless told to, and the job is its only
+ * user, so the script tells it to (checked on the image, Nov 1).
+ */
 export function bootstrapScript(recipe: LoadedRecipe): string {
   const { bootstrap_packages: packages, entry } = recipe.recipe;
   return [
     'set -euo pipefail',
+    'export PIP_BREAK_SYSTEM_PACKAGES=1',
     `python -m pip install --no-cache-dir --quiet ${packages.join(' ')}`,
     "python - <<'PY'",
     'import os',

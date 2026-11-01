@@ -166,6 +166,9 @@ const jobPosts = () =>
 describe('Hugging Face Jobs', () => {
   it('starts the job by fetching its inputs at their commit, then running the recipe', () => {
     const script = bootstrapScript(loadRecipe(TRAINER));
+    const lines = script.split('\n');
+    // The image's Python is the system's, marked externally managed: pip installs only when told.
+    expect(lines.indexOf('export PIP_BREAK_SYSTEM_PACKAGES=1')).toBe(1);
     expect(script).toContain('pip install --no-cache-dir --quiet huggingface_hub==1.33.0');
     expect(script).toContain('revision=os.environ["ARCHITECT_INPUT_REVISION"]');
     expect(script.split('\n').at(-1)).toBe(

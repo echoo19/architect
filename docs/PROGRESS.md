@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, early morning), `train/image-pip` (from `field/main` 3b29a8e4): the trainer installs on its own image
+
+- *Done:* decision 103. qlora-1's first real job (`trn_mvxmeaycc8c67228bb`, Hugging Face job `6ae70481c78863f9c62f88ac`) waited 45 minutes for an L40S, then failed in its first minute. The pinned PyTorch image's Python is the system's, marked externally managed (PEP 668), and pip refused to install. The bootstrap now exports `PIP_BREAK_SYSTEM_PACKAGES=1`. The pipeline installs `python3.X-venv` along with `git` when the image lacks them, since the image has no `ensurepip`, so the converter's own environment could not have been made either.
+- *Verified:* `hf-jobs.test.ts` (the export comes before any install) and `trainer/selftest.py` (`system_packages`), each failing before the change. On the pinned image itself, a diagnostic job on `cpu-basic` found the cause, and one on `cpu-upgrade` ran every setup step of the fix up to the GPU.
+- *Next:* merge, re-pin, send qlora-1 again.
+
 ## 2026-11-01 (Sun, night), `examples/sweep-split` (from `field/main` a446bd6f): Sweep desk's splits pass the leak check
 
 - *Done:* sweep-1's refused mentor call came from expected results, not request wording. Every sweep drew its learning rates from one shared ladder, so the `ran` and `proposed` config lists of a sealed `next_runs` task matched a mentor-written tool's list of a practice sweep's configs. The reference solution's own `did_it_help` code matched the same way. Each sweep now scales its ladder by its own factor (1.00 to 1.49), so no learning rate is in two sweeps. The losses were drawn on the ladder and are unchanged, and so is every count in the README. `early_stop`'s expected result drops `unit`, which let a plain `{stop_at, best_at, unit}` of another run match. Job folder regenerated; README's grid example and the reference solutions' largest result (6,381 characters) updated.

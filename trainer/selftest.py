@@ -12,6 +12,7 @@ import json
 import unittest
 
 import chat_spans
+import pipeline
 
 
 def glimmer_like(messages: list, add_generation_prompt: bool) -> str:
@@ -111,6 +112,18 @@ class Examples(unittest.TestCase):
         string_arguments = [dict(message) for message in CONVERSATION]
         string_arguments[2] = dict(string_arguments[2], tool_calls=[dict(CALL, function={"name": "read", "arguments": "{}"})])
         refused(string_arguments)
+
+
+class SystemPackages(unittest.TestCase):
+    def test_the_image_as_it_is_needs_git_and_the_venv_module(self):
+        self.assertEqual(
+            pipeline.system_packages(False, False, (3, 12, 3)),
+            ["git", "ca-certificates", "python3.12-venv"],
+        )
+
+    def test_nothing_is_installed_that_is_already_there(self):
+        self.assertEqual(pipeline.system_packages(True, True, (3, 12, 3)), [])
+        self.assertEqual(pipeline.system_packages(True, False, (3, 13, 0)), ["python3.13-venv"])
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import platform
@@ -143,14 +144,31 @@ def versions() -> dict:
     return found
 
 
+def system_packages(has_git: bool, has_ensurepip: bool, version: tuple) -> list:
+    """The apt packages the converter's steps need that the image lacks: git to fetch llama.cpp,
+    and the venv module's ensurepip, without which an environment of its own can't be made. The
+    recipe's image has neither (checked Nov 1)."""
+    needed = []
+    if not has_git:
+        needed += ["git", "ca-certificates"]
+    if not has_ensurepip:
+        needed.append(f"python{version[0]}.{version[1]}-venv")
+    return needed
+
+
 def convert(job: dict, base_dir: str, peft_dir: Path, gguf_path: Path, work: Path) -> float:
     """llama.cpp's converter at the pinned commit, in a fresh environment of its own."""
     started = time.monotonic()
     converter = job["converter"]
     source = work / "llama.cpp"
-    if shutil.which("git") is None:
+    needed = system_packages(
+        shutil.which("git") is not None,
+        importlib.util.find_spec("ensurepip") is not None,
+        sys.version_info,
+    )
+    if needed:
         run(["apt-get", "update", "-qq"])
-        run(["apt-get", "install", "-y", "-qq", "--no-install-recommends", "git", "ca-certificates"])
+        run(["apt-get", "install", "-y", "-qq", "--no-install-recommends", *needed])
     run(["git", "init", "-q", source])
     run(["git", "-C", source, "fetch", "-q", "--depth", "1", converter["repo"], converter["commit"]])
     run(["git", "-C", source, "checkout", "-q", "FETCH_HEAD"])
