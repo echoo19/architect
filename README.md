@@ -272,7 +272,7 @@ Those numbers were measured on full-precision Glimmer, hosted through OpenRouter
 
 Each run above lists its own limits. Across them, the numbers are hosted Glimmer, mostly under one seed, and the organizations are generated except the anonymized real academy. Two more runs are in their reports:
 
-- **Agent teams.** The first team run passed 0 of 20 with the team and 0 of 20 alone, because the lead asked its teammate in 2 of 20 replies. The lead is now told which files each teammate holds and when to ask, and a re-run is under way ([team-1.md](docs/comparisons/team-1.md)).
+- **Agent teams.** In the first live team run the lead asked its teammate in 2 of 20 replies. Told which files each teammate holds, it asked in 18 of 20 in the second, but no answer carried the plate's list: Assay desk's plate tool overflows Glimmer's context on these plates. Both runs passed 0 of 20, team and alone ([team-1.md](docs/comparisons/team-1.md), [team-2.md](docs/comparisons/team-2.md)).
 - **Sweep desk.** Spark's first harness passed 23 of 48 at Fennick Research, the unseen group, against 15 for Glimmer alone; its refinement round stopped at the Spark cap, so what refinement adds there is unmeasured ([sweep-desk-2.md](docs/comparisons/sweep-desk-2.md)).
 
 ## From a specialist to a field model

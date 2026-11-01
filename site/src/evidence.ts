@@ -21,6 +21,8 @@ export const SOURCES = {
   inventory: { name: 'inventory-desk-1.md', path: 'docs/comparisons/inventory-desk-1.md' },
   open: { name: 'returns-desk-open-1.md', path: 'docs/comparisons/returns-desk-open-1.md' },
   assay: { name: 'assay-desk-1.md', path: 'docs/comparisons/assay-desk-1.md' },
+  assay2: { name: 'assay-desk-2.md', path: 'docs/comparisons/assay-desk-2.md' },
+  team2: { name: 'team-2.md', path: 'docs/comparisons/team-2.md' },
   qlora1: { name: 'qlora-1.md', path: 'docs/comparisons/qlora-1.md' },
   qlora2: { name: 'qlora-2.md', path: 'docs/comparisons/qlora-2.md' },
   sweep2: { name: 'sweep-desk-2.md', path: 'docs/comparisons/sweep-desk-2.md' },

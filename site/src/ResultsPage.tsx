@@ -916,8 +916,18 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
   {
     title: 'Assay desk measured its draft.',
-    text: "Its first run's Spark-engineered arm never ran a refinement, because its budget stopped the round, so it measured the one-shot draft. At Corvid Hill that arm and the base harness each passed 7 of 48, on labs that are all generated. A second run is registered.",
+    text: "Its first run's Spark-engineered arm never ran a refinement, because its budget stopped the round, so it measured the one-shot draft. At Corvid Hill that arm and the base harness each passed 7 of 48, on labs that are all generated.",
     from: 'assay',
+  },
+  {
+    title: "Assay desk's gain came from its first harness.",
+    text: 'Its second run passed 14 of 48 at Corvid Hill against 5 for the base harness, and 16 against 8 under a second seed; its one refinement was refused by the counterexample check, so refinement on this field is still unmeasured.',
+    from: 'assay2',
+  },
+  {
+    title: 'A live team has not yet passed a task.',
+    text: "Told which files each teammate holds, the lead asked Assay desk in 18 of 20 replies, but no answer carried the plate list, because Assay desk's plate tool overflows Glimmer's context on these plates; team and lead alone each passed 0 of 20.",
+    from: 'team2',
   },
   {
     title: "Sweep desk's rounds were not measured.",
