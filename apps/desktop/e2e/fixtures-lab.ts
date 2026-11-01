@@ -229,6 +229,24 @@ function experiment(
   });
 }
 
+/** The plan frozen before an experiment on `job` ran, as every started one has. */
+function preregistered(job: string, sha256: string): Pick<ExperimentRecord, 'preregistration'> {
+  return {
+    preregistration: {
+      at: at(-200),
+      sha256,
+      pinned: {
+        jobId: jobId(job),
+        name: ENTRIES[job]?.name ?? job,
+        job: '4c'.repeat(32),
+        tasks: '9e'.repeat(32),
+        data: 'b1'.repeat(32),
+        checker: '07'.repeat(32),
+      },
+    },
+  };
+}
+
 /**
  * The Lab's experiments, newest first: one running on Academy desk, one on the service desk
  * paused before its release because an arm can't be paid for at what an attempt really cost, and
@@ -236,25 +254,22 @@ function experiment(
  */
 export const LAB_EXPERIMENTS: ExperimentRecord[] = [
   experiment('cmp_targeted', 'Targeted against one-shot draft', 'academy_desk', 'running', {
+    ...preregistered(
+      'academy_desk',
+      '5b0e9a14c7d3f28e61a4b9c0d7e2f5a83c6b1d409e7f2a5c8d3b6e0f1a4c7d92',
+    ),
     runningMs: 47 * 60_000,
   }),
   experiment('cmp_funding', 'Draft on the service desk', 'desk', 'needs_funding', {
+    ...preregistered('desk', 'c2a7f4e19b0d63852e4f7a1c9d0b3e6f8a5c2d7e4b1f0a39c6d8e2b5f7a0c4d1'),
     reason: 'The targeted arm needs $4.20 more of Glimmer than its cap.',
     runningMs: 22 * 60_000,
   }),
   experiment('cmp_sweep', 'Targeted against Glimmer alone', 'sweep_desk', 'finished', {
-    preregistration: {
-      at: at(-200),
-      sha256: '8d41c2e07b9a3f65d1e48c20a7f93b6e5c0d24a19f7e83b6c5a0d1e2f3b4c5d6',
-      pinned: {
-        jobId: jobId('sweep_desk'),
-        name: 'Sweep desk',
-        job: '4c'.repeat(32),
-        tasks: '9e'.repeat(32),
-        data: 'b1'.repeat(32),
-        checker: '07'.repeat(32),
-      },
-    },
+    ...preregistered(
+      'sweep_desk',
+      '8d41c2e07b9a3f65d1e48c20a7f93b6e5c0d24a19f7e83b6c5a0d1e2f3b4c5d6',
+    ),
     runningMs: 214 * 60_000,
   }),
 ];
