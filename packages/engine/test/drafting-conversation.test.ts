@@ -312,7 +312,7 @@ describe('starting the conversation', () => {
     );
     expect(few).toMatchObject({ ended: true });
     expect(few.message).toContain('Your files hold only 3 rows between them');
-    expect(few.message).toContain('tasks.jsonl');
+    expect(few.message).toContain('example requests with their right answers');
 
     expect(world.mentor.requests).toEqual([]);
     await expect(world.drafting.reply(nothing.sessionId, 'Hello', TEACHER)).rejects.toMatchObject({
@@ -902,7 +902,7 @@ describe('drafting the job', () => {
     expect(turn).toMatchObject({ ended: true, options: [] });
     expect(turn.message).toContain('support only 12 different tasks I can check');
     expect(turn.message).toContain('training needs at least 30');
-    expect(turn.message).toContain('tasks.jsonl');
+    expect(turn.message).toContain('example requests with their right answers');
     expect(world.jobs.summaries()).toEqual([]);
     await expect(world.drafting.reply(turn.sessionId, 'More', TEACHER)).rejects.toMatchObject({
       code: 'draft_not_found',
