@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { Badge, Button, LogoMark, RowIcon } from '@architect/ui';
 import {
   ArrowUp,
@@ -323,40 +322,6 @@ export function GalleryCard({ agent, lt }: { agent: Specialist; lt: number }) {
           </span>
         )}
         <span className="text-[16px]">{figure ? figure.label : 'no test'}</span>
-      </div>
-    </div>
-  );
-}
-
-/** The command that serves the academy desk to other apps on this computer (docs/CLI.md, serve). */
-export function Terminal({ lt }: { lt: number }) {
-  const command = 'architect serve academy-desk';
-  const typed = Math.round(mix(0, command.length, clamp((lt - 0.6) / 1.3)));
-  const lines: readonly ReactNode[] = [
-    'Serving Academy desk, version 1, on muse-glimmer:30b (ollama), to apps on this computer only.',
-    'Changes to files come back as proposals; nothing is written. Ctrl+C stops.',
-    <>Base URL: http://127.0.0.1:8420/v1</>,
-    <>Model: academy-desk</>,
-  ];
-  return (
-    <div className="flex h-full flex-col rounded-card bg-raised shadow-float">
-      <div className="flex h-10 shrink-0 items-center border-b border-line px-5 text-small font-medium">
-        Terminal
-      </div>
-      <div className="flex flex-col gap-1.5 whitespace-pre px-5 py-4 font-mono text-ui">
-        <span>
-          <span className="text-fg-dim">$ </span>
-          {command.slice(0, typed)}
-        </span>
-        {lines.map((line, index) => (
-          <span
-            key={index}
-            style={{ opacity: ui(lt, 2.3 + index * 0.25, 0.2) }}
-            className="whitespace-pre-wrap"
-          >
-            {line}
-          </span>
-        ))}
       </div>
     </div>
   );
