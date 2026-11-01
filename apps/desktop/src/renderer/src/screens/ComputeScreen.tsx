@@ -188,7 +188,7 @@ function Compute({
         {read && (
           <BundleCard read={read} plan={plan} settings={settings} jobId={field?.jobId ?? null} />
         )}
-        <QualifyCard />
+        <QualifyCard key={field?.jobId ?? 'none'} initialJobId={field?.jobId} />
       </div>
     </PlacePage>
   );

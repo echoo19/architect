@@ -30,10 +30,11 @@ function resultText(item: Qualification): string {
  * its never-seen organizations, taken by a model the person serves on this computer. It costs no
  * money, and it uses this computer's GPU, which is the person's to spare.
  */
-export function QualifyCard() {
+export function QualifyCard({ initialJobId }: { initialJobId?: string | undefined }) {
   const ids = { address: useId(), model: useId() };
   const jobs = useJobs();
-  const [jobId, setJobId] = useState<string | undefined>(undefined);
+  // Opened from a field or one of its versions, the field is chosen already.
+  const [jobId, setJobId] = useState<string | undefined>(initialJobId);
   const [field, setField] = useState<FieldSummary | null>(null);
   const [runId, setRunId] = useState<string | undefined>(undefined);
   const [baseUrl, setBaseUrl] = useState('');
