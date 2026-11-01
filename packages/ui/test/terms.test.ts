@@ -6,6 +6,8 @@ const TERMS: LabTerm[] = [
   'baseHarness',
   'engineeredHarness',
   'loraAdapter',
+  'qlora',
+  'fullFineTune',
   'heldOutChecks',
   'sealedFinalTest',
   'riskCertificate',
@@ -25,9 +27,10 @@ describe("the Lab's terms", () => {
   });
 
   it("names the field's own teacher", () => {
-    expect(defineTerm('heldOutChecks')).toBe(
+    expect(defineTerm('heldOutChecks', 'Spark')).toBe(
       'Tasks Spark never sees, used to keep or roll back each change.',
     );
     expect(defineTerm('heldOutChecks', 'Qwen3 235B')).toContain('Qwen3 235B never sees');
+    expect(defineTerm('heldOutChecks')).toContain('the teacher model never sees');
   });
 });
