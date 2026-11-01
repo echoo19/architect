@@ -121,10 +121,16 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = 
       };
     }
     if (traits.sendsCacheKey) body['prompt_cache_key'] = sessionKey;
-    if (traits.capsPrice && pricing) {
-      // Never routed to a provider that charges more than the price the budget is kept with.
+    if (traits.capsPrice && (pricing || config.providers !== undefined)) {
       body['provider'] = {
-        max_price: { prompt: pricing.inputPerM, completion: pricing.outputPerM },
+        // Pinned to one provider's serving of the model, with no fallback, as the student is.
+        ...(config.providers === undefined
+          ? {}
+          : { order: [...config.providers], allow_fallbacks: false }),
+        // Never routed to a provider that charges more than the price the budget is kept with.
+        ...(pricing
+          ? { max_price: { prompt: pricing.inputPerM, completion: pricing.outputPerM } }
+          : {}),
       };
     }
     return body;
