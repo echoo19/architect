@@ -169,6 +169,8 @@ export function Inspector<T extends string>({
       animate={{ width }}
       transition={springs.smooth}
       data-folded={state.folded || undefined}
+      // Toasts read this to keep clear of the panel and its fields.
+      data-inspector={open ? (state.folded ? 'folded' : 'open') : undefined}
       aria-hidden={!open || undefined}
       className={cn('relative h-full shrink-0 overflow-hidden', className)}
     >
