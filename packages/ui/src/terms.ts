@@ -59,7 +59,7 @@ export function defineTerm(term: LabTerm, mentor = 'the teacher model'): string 
     case 'realOrganization':
       return 'A real organization, anonymized and kept out of teaching like the never-seen ones, and counted on its own.';
     case 'arm':
-      return 'One way of teaching under comparison, such as a harness or a LoRA adapter.';
+      return 'One way of teaching under comparison, such as a harness or a LoRA adapter. An experiment runs each arm the same way and compares them on the sealed final test.';
     case 'regressionSuite':
       return 'Failures cut down to a few rows, which later changes to the same helper must pass.';
     case 'fineTuningPlan':

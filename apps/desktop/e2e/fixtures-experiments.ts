@@ -70,7 +70,7 @@ export async function installExperimentsFake(
     };
     type Record = {
       id: string;
-      input: { jobId?: string; jobDir?: string; name: string };
+      input: { jobId?: string; jobDir?: string; name: string; caps: { studentUsd: number } };
       job: { id: string; name: string; splitsSeed: number };
       status: string;
       reason?: string;
@@ -79,6 +79,8 @@ export async function installExperimentsFake(
       runningMs: number;
       createdAt: string;
       updatedAt: string;
+      /** The student cap raised before the release, as the engine keeps it (decision 081). */
+      amendments?: unknown[];
     };
     const records: Record[] = [...kept];
     const now = () => new Date().toISOString();
@@ -111,12 +113,13 @@ export async function installExperimentsFake(
       groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
-      // An arm that needs $4.20 more of the hosted student than is left under its cap.
+      // An arm done teaching whose final test needs $4.20 more of the hosted student than is left
+      // under its cap.
       funding:
         record.status === 'needs_funding'
           ? {
               arm: 'targeted',
-              stage: 'start',
+              stage: 'test',
               priceUsd: 0.0123,
               needUsd: 9.2,
               leftUsd: 5,
@@ -124,7 +127,7 @@ export async function installExperimentsFake(
               at: record.updatedAt,
             }
           : null,
-      amendments: [],
+      amendments: record.amendments ?? [],
       report: released(record) ? data.released : record.status === 'draft' ? null : data.held,
     });
     const handle = (channel: string, reply: (...args: never[]) => unknown) => {
@@ -200,9 +203,27 @@ export async function installExperimentsFake(
       });
     };
     handle('experiments:start', (id: string) => run(id, ['preregistered']));
-    handle('experiments:resume', (id: string) =>
-      run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']),
-    );
+    handle('experiments:resume', (id: string, options?: { studentCapUsd?: number }) => {
+      const record = find(id);
+      // A raised cap is kept as the engine keeps it, from the cap in force before.
+      if (options?.studentCapUsd !== undefined && record.status === 'needs_funding') {
+        const before = record.amendments ?? [];
+        const last = before.at(-1) as { toUsd: number } | undefined;
+        record.amendments = [
+          ...before,
+          {
+            arm: 'targeted',
+            fromUsd: last?.toUsd ?? record.input.caps.studentUsd,
+            toUsd: options.studentCapUsd,
+            armFromUsd: null,
+            armToUsd: null,
+            priceUsd: 0.0123,
+            at: now(),
+          },
+        ];
+      }
+      return run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']);
+    });
     handle('experiments:pause', (id: string) => {
       const record = find(id);
       if (record.status !== 'running') throw coded('experiment_state', `It is ${record.status}.`);

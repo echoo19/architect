@@ -263,7 +263,8 @@ export const LAB_EXPERIMENTS: ExperimentRecord[] = [
   }),
   experiment('cmp_funding', 'Draft on the service desk', 'desk', 'needs_funding', {
     ...preregistered('desk', 'c2a7f4e19b0d63852e4f7a1c9d0b3e6f8a5c2d7e4b1f0a39c6d8e2b5f7a0c4d1'),
-    reason: 'The targeted arm needs $4.20 more of Glimmer than its cap.',
+    reason:
+      "Spark-engineered harness's sealed final test needs $4.20 more of Glimmer than its cap.",
     runningMs: 22 * 60_000,
   }),
   experiment('cmp_sweep', 'Targeted against Glimmer alone', 'sweep_desk', 'finished', {
