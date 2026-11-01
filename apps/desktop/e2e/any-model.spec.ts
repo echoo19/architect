@@ -117,11 +117,8 @@ test('lists every connection on Models with how it stands and the roles it can f
 });
 
 test("names the field's own models on every line of an experiment's design", async () => {
+  // Opened from the field, it is planned on that field at once.
   await goTo(page, '/experiments/new/returns-desk');
-  await page
-    .getByRole('region', { name: 'Field' })
-    .getByRole('button', { name: 'Use field' })
-    .click();
   await expect(page).toHaveURL(/#\/experiments\/cmp_1$/);
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });

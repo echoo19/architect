@@ -36,7 +36,7 @@ import { flowApi } from '../api/client';
 import { useJobs } from '../api/hooks';
 import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery, setQueryData, toError } from '../api/query';
-import { fileName, formatCost } from '../flow/format';
+import { formatCost } from '../flow/format';
 import { shortPath } from '../lib/format';
 import { modelTabsFit } from '../lib/names';
 import { attempt } from '../lib/notify';
@@ -115,6 +115,19 @@ export function ExperimentDesign({
 
   useEffect(() => () => clearTimeout(pending.current?.timer), []);
 
+  // Opened from a field, it is planned on that field at once; the picker is for choosing one.
+  const jobs = useJobs();
+  const named =
+    detail === null && jobId !== undefined
+      ? jobs.data?.find((job) => job.id === jobId && job.taskCount > 0)
+      : undefined;
+  const planned = useRef(false);
+  useEffect(() => {
+    if (named === undefined || planned.current) return;
+    planned.current = true;
+    void planOn({ jobId: named.id });
+  }, [named]);
+
   const send = async (next: ExperimentInput) => {
     if (id === undefined) return;
     try {
@@ -143,16 +156,17 @@ export function ExperimentDesign({
     await waiting.send();
   };
 
-  /** Plans a draft on the field chosen, named after its job, and opens it. */
-  const planOn = async (source: { jobId: string } | { jobDir: string }, name: string) => {
+  /**
+   * Plans a draft on the field chosen and opens it, named by its place among that field's
+   * experiments, so its name never repeats the field's beside it.
+   */
+  const planOn = async (source: { jobId: string } | { jobDir: string }) => {
     setChoosing(true);
     const planned = await attempt("Couldn't plan an experiment on that field", async () => {
-      const first = await experimentsApi.plan(defaultInput(source, name));
-      if (first.experiment.job.name === name) return first;
-      return experimentsApi.revise(first.experiment.id, {
-        ...first.experiment.input,
-        name: first.experiment.job.name,
-      });
+      const onField = (await experimentsApi.list()).filter((item) =>
+        'jobId' in source ? item.input.jobId === source.jobId : item.input.jobDir === source.jobDir,
+      ).length;
+      return experimentsApi.plan(defaultInput(source, `Experiment ${onField + 1}`));
     });
     setChoosing(false);
     if (!planned) return;
@@ -165,7 +179,7 @@ export function ExperimentDesign({
       (await attempt("Couldn't open the folder", () =>
         flowApi.pickFiles({ title: "Choose the field's folder", directory: true }),
       )) ?? [];
-    if (folder !== undefined) await planOn({ jobDir: folder }, fileName(folder));
+    if (folder !== undefined) await planOn({ jobDir: folder });
   };
 
   const preregister = async () => {
@@ -239,7 +253,7 @@ export function ExperimentDesign({
           detail={detail}
           jobId={jobId}
           choosing={choosing}
-          onLibrary={(job) => void planOn({ jobId: job.id }, job.name)}
+          onLibrary={(job) => void planOn({ jobId: job.id })}
           onFolder={() => void chooseFolder()}
           onName={(name) => input && change({ ...input, name })}
         />
@@ -270,7 +284,8 @@ export function ExperimentDesign({
           <div className="mt-4 flex items-center gap-4">
             <p className="m-0 flex min-w-0 flex-1 items-center gap-2 text-small">
               <Lock size={13} aria-hidden />
-              LoRA arms need this computer&apos;s GPU, which experiments never use.
+              LoRA arms are off here: they need a GPU, and experiments never use this
+              computer&apos;s.
             </p>
             {fieldId !== undefined && (
               <Button size="sm" onClick={() => navigate(paths.compute({ jobId: fieldId }))}>
