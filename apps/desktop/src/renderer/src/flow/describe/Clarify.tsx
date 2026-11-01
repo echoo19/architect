@@ -8,6 +8,7 @@ import { ProblemState } from '../../components/ProblemState';
 import { mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
+import { withFittingDefaults } from '../define/new-job';
 import { AttachedFile } from './AttachedFile';
 import { lastMentorEntry, speakerOf, type MentorEntry, type UserEntry } from './conversation';
 import {
@@ -86,7 +87,9 @@ export function Clarify() {
     const { draft } = entry;
     if (!draft) return;
     setSaving(true);
-    const stored = await attempt("Couldn't save the job", () => flowApi.saveJob(draft));
+    const stored = await attempt("Couldn't save the job", () =>
+      flowApi.saveJob(withFittingDefaults(draft)),
+    );
     setSaving(false);
     if (!stored) return;
     setQueryData(queryKeys.job(stored.id), stored);

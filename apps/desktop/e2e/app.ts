@@ -117,16 +117,6 @@ export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise
 }
 
 /**
- * Raises the training time on the Define screen through the callout that says the place chosen
- * can't fit a round in it, the way a person would: its first button sets a limit a round fits in.
- */
-export async function allowMoreTime(page: Page): Promise<void> {
-  const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
-  await callout.getByRole('button', { name: /^Allow \d+ hours? of training$/ }).click();
-  await expect(callout).toHaveCount(0);
-}
-
-/**
  * The sentence behind an InfoTip ("About {about}") inside `scope`: focusing the icon opens its
  * tooltip, and the tooltip's text is returned closed again so it covers nothing after.
  */

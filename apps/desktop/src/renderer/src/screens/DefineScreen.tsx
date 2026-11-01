@@ -156,7 +156,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   // waits like any other need, and the way out is on the page: more time, or the other place.
   const wontTeach = trainsTooSlow(estimable);
   // A time limit that stops training early is said beside Start training, with its fix.
-  // Retraining with no compute is said in Budget only: jobs allow it by default and skip it.
+  // Retraining with no compute is said in Budget only: a run skips it.
 
   // With no online copy there is nothing for the final test to run on.
   const hasCopy = job.student.hosted !== undefined;
