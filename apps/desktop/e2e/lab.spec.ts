@@ -101,9 +101,11 @@ test('shows what needs the person and what runs, then what finished, spent and s
 
   const running = card('Running');
   await expect(running.getByRole('button', { name: /Service desk/ })).toContainText(
-    'Diagnosing, round 5 of 12',
+    'Diagnosing, round 4 of 12',
   );
-  await expect(running.getByRole('button', { name: /Parts counter/ })).toContainText('53%');
+  const parts = running.getByRole('button', { name: /Parts counter/ });
+  await expect(parts).toContainText('Held-out checks');
+  await expect(parts).toContainText('53%');
 
   // Academy desk was tested on the academies it trained on, on one it never saw and on a real one.
   const finished = card('Recently finished');

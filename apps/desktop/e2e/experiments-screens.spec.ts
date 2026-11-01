@@ -171,16 +171,15 @@ test('starts empty with one way in', async () => {
 });
 
 test('designs an experiment on a field of the library and shows its estimate before anything spends', async () => {
-  // As "New experiment" on the returns desk's Field page opens it: that field chosen.
+  // As "New experiment" on the returns desk's Field page opens it: planned on that field at once.
   await goTo(page, '/experiments/new/returns-desk');
   const field = page.getByRole('region', { name: 'Field' });
-  await expect(field.getByRole('combobox', { name: 'Field' })).toHaveText('Returns desk');
-  await field.getByRole('button', { name: 'Use field' }).click();
   await expect(page).toHaveURL(/#\/experiments\/cmp_1$/);
-  await expect(heading('Returns desk')).toBeVisible();
+  await expect(heading('Experiment 1')).toBeVisible();
   await expect(page.getByText('Draft', { exact: true })).toBeVisible();
+  await expect(field).toContainText('Returns desk');
   await expect(field).toContainText('In your library');
-  // It takes its field's name until it is given its own.
+  // It is numbered among its field's experiments until it is given a name of its own.
   await field.getByLabel('Name', { exact: true }).fill(EXPERIMENT_NAME);
   await expect(heading(EXPERIMENT_NAME)).toBeVisible();
   expect(await page.evaluate(() => window.architect.experiments.get('cmp_1'))).toMatchObject({
@@ -309,7 +308,9 @@ test('reads the released results like a short paper', async () => {
   await expect(crumb.getByRole('button', { name: 'Returns desk' })).toBeVisible();
   await expect(page.getByText('Simulation, no model called', { exact: true })).toBeVisible();
   await expect(page.getByText(/Task by task, the difference is \+23 points/)).toBeVisible();
-  // The hypothesis leads, with what was measured on the part of the test it named.
+  // The hypothesis leads, with what was measured on the part of the test it named. This report
+  // pairs only the whole test, so the part gives each arm's pass rate there (unit tests cover a
+  // report that pairs each part, with its interval and verdict).
   const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
   expect(await above(hypothesis, page.getByRole('figure').first())).toBe(true);
   await expect(hypothesis).toContainText(

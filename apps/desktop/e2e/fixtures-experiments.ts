@@ -111,7 +111,19 @@ export async function installExperimentsFake(
       groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
-      funding: null,
+      // An arm that needs $4.20 more of the hosted student than is left under its cap.
+      funding:
+        record.status === 'needs_funding'
+          ? {
+              arm: 'targeted',
+              stage: 'start',
+              priceUsd: 0.0123,
+              needUsd: 9.2,
+              leftUsd: 5,
+              capUsd: 15,
+              at: record.updatedAt,
+            }
+          : null,
       amendments: [],
       report: released(record) ? data.released : record.status === 'draft' ? null : data.held,
     });

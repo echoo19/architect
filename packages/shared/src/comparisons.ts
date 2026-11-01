@@ -281,6 +281,21 @@ export const PairedSchema = z.object({
   /** The difference in pass rate, `a` less `b`, from the counts above. */
   difference: PassDifferenceSchema,
   byType: z.array(z.object({ type: z.string(), ...pairedCounts })),
+  /**
+   * The same pairing within the organizations taught on and within those never seen, each with
+   * its own difference and interval, so a comparison on either part reads like one on the whole.
+   * Absent for a one-organization job and for a report from before it was kept.
+   */
+  byGroup: z
+    .array(
+      z.object({
+        group: z.enum(['seen', 'unseen']),
+        scenarios: z.number().int().nonnegative(),
+        ...pairedCounts,
+        difference: PassDifferenceSchema,
+      }),
+    )
+    .optional(),
 });
 export type Paired = z.infer<typeof PairedSchema>;
 

@@ -283,7 +283,13 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
         items={[
           {
             label: 'Preregistered on',
-            value: new Date(preregistration.at).toLocaleString('en-US'),
+            value: new Date(preregistration.at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            }),
           },
           { label: 'Plan hash', value: preregistration.sha256 },
           {

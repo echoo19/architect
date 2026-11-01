@@ -151,6 +151,13 @@ function pair(a: Arm, b: Arm, label: string): Paired {
       type: skill.id,
       ...count(SCENARIOS.filter((scenario) => scenario.type === skill.id)),
     })),
+    byGroup: (['seen', 'unseen'] as const).map((group) => {
+      const here = SCENARIOS.filter((scenario) => scenario.org.seen === (group === 'seen'));
+      const within = count(here);
+      const difference = pairedDifference(within);
+      if (!difference) throw new Error('Every group has tasks.');
+      return { group, scenarios: here.length, ...within, difference };
+    }),
   };
 }
 
@@ -261,6 +268,9 @@ export function sweepComparison(recorded: ComparisonReport): ComparisonReport {
       ...base,
       ...DEVELOPMENT[arm],
       runId: `run_sweep_${arm}`,
+      // The targeted arm teaches for every round the experiment allows.
+      caps:
+        arm === 'targeted' ? { ...base.caps, rounds: SWEEP_EXPERIMENT.input.rounds } : base.caps,
       spent: { ...base.spent, sparkUsd: SPARK_USD[arm] },
       cumulative: base.cumulative && {
         ...base.cumulative,

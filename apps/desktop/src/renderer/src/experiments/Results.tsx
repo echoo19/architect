@@ -39,9 +39,12 @@ import {
   minutesText,
   pairName,
   points,
+  primaryDifference,
+  primaryText,
   rowLabel,
   skillIn,
   skillsOf,
+  verdictClause,
   verdictOf,
   type Measured,
   type TestGroup,
@@ -103,8 +106,19 @@ function passes(pair: { both: number; aOnly: number; bOnly: number }, side: 'a' 
 /** The arms by name, as a released experiment's figures and tables call them. */
 type ArmNames = Record<ArmId, string>;
 
-/** What the experiment found, in a few sentences: the leading pairing and what it cost. */
-function Summary({ report, names }: { report: ComparisonReport; names: ModelNames }) {
+/**
+ * What the experiment found, in a few sentences: the preregistered comparison first, then the
+ * leading pairing when it is another, and what it cost.
+ */
+function Summary({
+  report,
+  input,
+  names,
+}: {
+  report: ComparisonReport;
+  input: ExperimentInput;
+  names: ModelNames;
+}) {
   const arms = armNames(names);
   const lead = leadPair(report);
   const { totals } = report;
@@ -112,28 +126,60 @@ function Summary({ report, names }: { report: ComparisonReport; names: ModelName
   const sentences: string[] = report.dryRun
     ? ['A simulation on stand-in models: no model was called, so these figures are not a result.']
     : [];
+  const primary = input.primaryComparison;
+  const answer = primary === undefined ? null : primaryDifference(report, primary);
+  if (primary !== undefined && answer !== null) {
+    sentences.push(
+      `The preregistered comparison, ${primaryText(input, arms)}, is ${points(answer.rate)} points task by task, with a 95% interval from ${points(answer.low)} to ${points(answer.high)}, ${verdictClause(answer)}`,
+    );
+  }
+  // The leading pairing's counts, and its difference unless that is the one just given.
+  const same =
+    primary !== undefined &&
+    primary.group === 'all' &&
+    lead !== null &&
+    new Set([lead.pair.a, lead.pair.b, primary.a, primary.b]).size === 2;
   if (lead) {
     const { pair } = lead;
-    const verdict = verdictOf(pair.difference);
+    const counts = `passed ${passes(pair, 'a')} of ${pair.scenarios} final-test tasks and ${armInSentence(arms[pair.b])} ${passes(pair, 'b')}, under seed ${pair.seed}.`;
     sentences.push(
-      `${arms[pair.a]} passed ${passes(pair, 'a')} of ${pair.scenarios} final-test tasks and ${armInSentence(arms[pair.b])} ${passes(pair, 'b')}, under seed ${pair.seed}.`,
-      `Task by task, the difference is ${points(pair.difference.rate)} points, with a 95% interval from ${points(pair.difference.low)} to ${points(pair.difference.high)}, so ${
-        verdict === 'gain'
-          ? 'a gain is shown.'
-          : verdict === 'loss'
-            ? 'a loss is shown.'
-            : 'no gain is shown.'
-      }`,
+      answer === null || same
+        ? `${arms[pair.a]} ${counts}`
+        : `On the whole final test, ${armInSentence(arms[pair.a])} ${counts}`,
     );
+    if (answer === null || !same) {
+      sentences.push(
+        `Task by task, the difference is ${points(pair.difference.rate)} points, with a 95% interval from ${points(pair.difference.low)} to ${points(pair.difference.high)}, ${verdictClause(pair.difference)}`,
+      );
+    }
   } else {
     sentences.push('No two arms were measured on the same tasks, so nothing is compared.');
   }
   sentences.push(
     `${report.dryRun ? 'As simulated, it would have spent' : 'In all it spent'} ${formatCost(
       totals.sparkUsd,
-    )} of ${names.mentor}${totals.studentUsd === null ? '' : ` and ${formatCost(totals.studentUsd)} of ${names.student}`}.`,
+    )} of ${names.mentor}${totals.studentUsd === null ? '' : ` and ${formatCost(totals.studentUsd)} of ${names.student}`}${outsideArms(report, names)}.`,
   );
   return <p className="m-0 max-w-[68ch] text-body text-pretty">{sentences.join(' ')}</p>;
+}
+
+/**
+ * What the totals hold beyond the arms' own spend, so they add up to the arms' table: ", $0.15
+ * of it on calibration". Empty when nothing was spent outside the arms.
+ */
+function outsideArms(report: ComparisonReport, names: ModelNames): string {
+  const { totals, arms } = report;
+  const study = totals.sparkUsd - arms.reduce((sum, arm) => sum + arm.spent.sparkUsd, 0);
+  const parts = [
+    study >= 0.005 ? `${formatCost(study)} of ${names.mentor}'s on its study of the field` : null,
+    totals.studentParts.calibrationUsd
+      ? `${formatCost(totals.studentParts.calibrationUsd)} of ${names.student}'s on calibration`
+      : null,
+    totals.studentParts.regressionUsd
+      ? `${formatCost(totals.studentParts.regressionUsd)} of ${names.student}'s on the regression check`
+      : null,
+  ].filter((part) => part !== null);
+  return parts.length === 0 ? '' : `, ${parts.join(' and ')} outside the arms`;
 }
 
 /** Each row of a figure on each group of the final test, with its 95% interval. */
@@ -536,7 +582,7 @@ export function Results({
   const seed = report.plan.testSeeds[0];
   return (
     <div className="flex max-w-[960px] flex-col gap-10">
-      <Summary report={report} names={names} />
+      <Summary report={report} input={input} names={names} />
       {measured && (
         <div className="flex flex-col gap-4">
           {figures.length > 1 && (

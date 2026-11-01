@@ -97,7 +97,7 @@ export function ReadyWhen({ job }: { job: Job }) {
           }
           label={
             (job.organizations ?? []).length > 1
-              ? `on the ${w.finalTest}, organizations it was taught on`
+              ? `on the ${w.finalTest} at organizations it was taught on, taken once teaching ends`
               : 'of new tasks right'
           }
         />
