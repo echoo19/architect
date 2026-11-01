@@ -31,6 +31,32 @@ const REQUEST: StudentChatRequest = {
 };
 
 describe('the mentor acting as the agent', () => {
+  it('keeps an OpenRouter mentor on its pin and price cap, with structured output off', async () => {
+    const server = await startServer((request, res) =>
+      answer(request, res, textReply('Done.', { prompt_tokens: 10, completion_tokens: 2 })),
+    );
+    const actor = createMentorActor(
+      mentorConfig('meta-spark', {
+        provider: 'openrouter',
+        label: 'Open teacher',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        model: 'example/open-teacher',
+        pricing: { inputPerM: 1.25, cachedInputPerM: 0.15, outputPerM: 4.25 },
+        providers: ['BaseTen'],
+        structuredOutput: false,
+      }),
+      { apiKey: API_KEY, fetch: routeTo(server) },
+    );
+    for await (const _event of actor.chat(REQUEST)) continue;
+    const body = server.requests[0]?.json() as Record<string, unknown>;
+    expect(body['provider']).toEqual({
+      order: ['BaseTen'],
+      allow_fallbacks: false,
+      max_price: { prompt: 1.25, completion: 4.25 },
+    });
+    expect(body).not.toHaveProperty('response_format');
+  });
+
   it("asks the mentor's provider with the student's tools, and hands the calls back", async () => {
     const server = await startServer((request, res) =>
       answer(request, res, [

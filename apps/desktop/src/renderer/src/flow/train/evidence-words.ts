@@ -32,6 +32,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
+import { WORDS, type Words } from '@architect/ui';
 import { modelNames } from '../names';
 
 /*
@@ -68,6 +69,17 @@ export const INTERVENTIONS: Record<InterventionType, Named & { meaning: string }
     meaning: 'a question put to you',
   },
 };
+
+/** A kind of change as this edition names it: the Lab calls a weights change a LoRA adapter. */
+export function interventionNamed(
+  type: InterventionType,
+  w: Words = WORDS.personal,
+): Named & { meaning: string } {
+  const named = INTERVENTIONS[type];
+  return w.lab && type === 'weights'
+    ? { ...named, label: 'LoRA adapter', meaning: 'a LoRA adapter fine-tuned on worked examples' }
+    : named;
+}
 
 /** A blank start's first round: the mentor's whole first setup. */
 export const FIRST_DRAFT: Named = { label: 'First draft', icon: FilePen };
@@ -203,8 +215,28 @@ const MEASUREMENT_LABELS: Record<string, string> = {
   'H1/A1': 'Both',
 };
 
-export function measurementLabel(measurement: Pick<Measurement, 'label'>): string {
+export function measurementLabel(
+  measurement: Pick<Measurement, 'label'>,
+  w: Words = WORDS.personal,
+): string {
+  if (w.lab && measurement.label === 'H1/A0') return 'Harness only';
+  if (w.lab && measurement.label === 'H0/A1') return 'LoRA only';
   return MEASUREMENT_LABELS[measurement.label] ?? measurement.label;
+}
+
+/** What a hard gate looks at, as this edition names it. */
+export function gateLabel(gate: GateResult['gate'], w: Words = WORDS.personal): string {
+  if (w.lab && gate === 'stand_in') return 'LoRA adapter';
+  if (w.lab && gate === 'smoke') return 'Runs with the LoRA adapter';
+  return GATES[gate];
+}
+
+/** How a change ended, explained in this edition's words. */
+export function dispositionMeaning(
+  disposition: ExperimentDisposition,
+  w: Words = WORDS.personal,
+): string {
+  return DISPOSITIONS[disposition].meaning.replace('check tasks', w.checks);
 }
 
 /**

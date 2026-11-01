@@ -96,7 +96,7 @@ export function DescribeHero() {
       <Stagger className="flex w-full max-w-[680px] flex-col gap-6">
         <StaggerItem>
           <Heading as="h1" size="display-sm">
-            What should your agent do?
+            {edition === 'lab' ? 'What should your specialist do?' : 'What should your agent do?'}
           </Heading>
         </StaggerItem>
         <StaggerItem>

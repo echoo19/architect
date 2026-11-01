@@ -165,14 +165,14 @@ export function teachingNeeds(
 }
 
 /**
- * A new version beside the one in use, by their check-task scores, so the line never recommends
- * a version that scored lower: "Version 3: 88% on check tasks, active version 2: 94%". The
+ * A new version beside the one in use, by their held-out check scores, so the line never recommends
+ * a version that scored lower: "Version 3: 88% on held-out checks, active version 2: 94%". The
  * active version's score is the improvement's starting score only when it started from it.
  */
 function versionDetail(version: number, improvement: Improvement, active: number | null): string {
   const after = improvement.dev.after;
   if (!after || after.total === 0) return `Version ${version} to review`;
-  const own = `Version ${version}: ${formatPercent(after)} on check tasks`;
+  const own = `Version ${version}: ${formatPercent(after)} on held-out checks`;
   const before = improvement.dev.before;
   return active !== null && improvement.fromVersion === active && before && before.total > 0
     ? `${own}, active version ${active}: ${formatPercent(before)}`
@@ -215,19 +215,19 @@ export function finishedRuns(jobs: readonly JobSummary[], limit = 4): RunRow[] {
 /** What a run is doing, in a word or two. */
 export function runWord(run: Pick<LatestRun, 'status' | 'phase'>): string {
   if (run.status === 'paused') return 'Paused';
-  if (run.status === 'queued') return 'Waiting to start';
+  if (run.status === 'queued') return 'Queued';
   if (run.status === 'stopping') return 'Stopping';
-  if (run.status === 'testing') return 'Final test';
+  if (run.status === 'testing') return 'Sealed final test';
   const words: Record<RunPhase, string> = {
     preparing: 'Preparing',
-    baseline: 'Measuring',
+    baseline: 'Measuring baseline',
     attempting: 'Practicing',
     diagnosing: 'Diagnosing',
-    teaching: 'Teaching',
-    training: 'Training weights',
+    teaching: 'Verifying corrections',
+    training: 'Fine-tuning LoRA adapter',
     clarifying: 'Asking',
-    evaluating: 'Scoring',
-    testing: 'Final test',
+    evaluating: 'Scoring held-out checks',
+    testing: 'Sealed final test',
     done: 'Finishing',
   };
   return words[run.phase];

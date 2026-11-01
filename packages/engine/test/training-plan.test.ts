@@ -150,12 +150,29 @@ describe('planning the GPUs a training job needs', () => {
     expect(term(plan, 'fsdp_peak').sharded).toBe(false);
   });
 
-  it('stores QLoRA weights in 4 bits and gathers the unit in 4 bits too', () => {
+  it('stores QLoRA linear weights in 4 bits, the rest in fp32, and gathers the unit in 4 bits', () => {
     const size = sizeModel(fixture('moe-235b'));
     const plan = planTraining(fixture('moe-235b'), input({ method: 'qlora' }));
     const other = size.totalParams - size.linearParams;
-    expect(term(plan, 'weights').bytes).toBeCloseTo(size.linearParams * NF4_BYTES + other * 2, 0);
+    // Preparing for k-bit training casts every weight it didn't quantize to fp32.
+    expect(term(plan, 'weights').bytes).toBeCloseTo(size.linearParams * NF4_BYTES + other * 4, 0);
     expect(term(plan, 'fsdp_peak').bytes).toBeCloseTo(2_487_754_752 * NF4_BYTES * 2, 0);
+  });
+
+  it("doesn't put QLoRA on Glimmer at 5,754 tokens on one L40S, as the first real job ran out of memory there", () => {
+    const glimmer = fixture('muse-glimmer-30b');
+    const qlora = { method: 'qlora' as const, seqLen: 5754 };
+    const l40s = planTraining(glimmer, input({ ...qlora, gpu: { name: 'l40s', memoryGb: 48 } }));
+    expect(l40s.fit?.gpus ?? Infinity).toBeGreaterThan(1);
+    // The loss holds the logits three ways: the compute precision, an fp32 copy and its log-softmax.
+    const vocab = sizeModel(glimmer).vocabSize;
+    expect(term(l40s, 'activations').arithmetic).toContain('fp32 copy and log-softmax');
+    expect(term(l40s, 'activations').bytes).toBeGreaterThan(5754 * vocab * 10);
+    const a100 = planTraining(
+      glimmer,
+      input({ ...qlora, gpu: { name: 'a100-80gb', memoryGb: 80 } }),
+    );
+    expect(a100.fit).toMatchObject({ gpus: 1, nodes: 1 });
   });
 
   it('adds gradients and Adam state for every parameter in a full fine-tune', () => {

@@ -5,11 +5,13 @@ import { useQuery, type QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatUsd } from '../../lib/format';
 import { Section } from '../ledger';
+import { useEdition } from '../../shell/edition';
 import type { ModelNames } from '../train/phase';
 import {
   comparisonPeers,
   comparisonRows,
   formatPoints,
+  LAB_METHOD_NAMES,
   methodExplanation,
   type ComparisonRow,
 } from './comparison';
@@ -39,6 +41,7 @@ export function ComparisonTable({
   rows: QueryState<ComparisonRow[]>;
   names: ModelNames;
 }) {
+  const lab = useEdition() === 'lab';
   if (rows.status === 'success' && rows.data.length === 0) return null;
   return (
     <Section title="Compared with simpler methods" id="comparison">
@@ -64,8 +67,12 @@ export function ComparisonTable({
             <thead>
               <tr className="text-small">
                 <th className="pb-3 text-left font-normal">Method</th>
-                <th className="pb-3 pl-6 text-right font-normal">Final test</th>
-                <th className="pb-3 pl-6 text-right font-normal">vs. no setup</th>
+                <th className="pb-3 pl-6 text-right font-normal">
+                  {lab ? 'Sealed final test' : 'Final test'}
+                </th>
+                <th className="pb-3 pl-6 text-right font-normal">
+                  {lab ? 'vs. base harness' : 'vs. no setup'}
+                </th>
                 <th className="pb-3 pl-6 text-right font-normal">{names.mentor} cost</th>
                 <th className="pb-3 pl-6 text-right font-normal">Rounds</th>
               </tr>
@@ -80,10 +87,12 @@ export function ComparisonTable({
                   <th scope="row" className="py-3.5 pr-4 text-left font-normal">
                     <span className="flex flex-col gap-0.5">
                       <span className={row.current ? 'font-medium' : undefined}>
-                        {row.label}
+                        {lab ? LAB_METHOD_NAMES[row.method] : row.label}
                         {row.current && <span> · this training</span>}
                       </span>
-                      <span className="text-small">{methodExplanation(row.method, names)}</span>
+                      <span className="text-small">
+                        {methodExplanation(row.method, names, lab)}
+                      </span>
                     </span>
                   </th>
                   <td className="py-3.5 pl-6 text-right align-middle font-mono font-medium tabular-nums">

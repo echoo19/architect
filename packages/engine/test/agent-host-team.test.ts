@@ -11,6 +11,7 @@ import {
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createAgentHost, type AgentHost } from '../src/agent-host/host';
+import { TEAM_INSTRUCTION } from '../src/agent-host/team';
 import { workspaceStore } from '../src/agent-host/store';
 import { CHECK_PURPOSE, GpuLease } from '../src/local-runtime';
 import { DataPaths } from '../src/loop/paths';
@@ -231,6 +232,26 @@ describe('a team reply (decision 100)', () => {
       leadTurn?.tools as unknown as { function: { name: string; description: string } }[]
     ).find((tool) => tool.function.name === ASK_TEAMMATE)?.function.description;
     expect(description).toContain("- Sweep desk: Reads Halden Lab's training sweeps.");
+    // It names the files the teammate holds, by name only, never what is in them.
+    expect(description).toContain(
+      "- Sweep desk: Reads Halden Lab's training sweeps. It handles: Invoices, Overdue balances. Its files: customers.csv, invoices.csv, policy.md.",
+    );
+    expect(description).not.toContain('INV-1');
+    // Only the lead, in a team reply, is told when to ask; the teammate is not.
+    const system = (body: typeof leadTurn) => String(body?.messages[0]?.content ?? '');
+    expect(system(leadTurn)).toContain(TEAM_INSTRUCTION);
+    expect(system(sweepTurn)).not.toContain(TEAM_INSTRUCTION);
+  });
+
+  it("tells the lead when to ask only in a team reply, not in the lead's own chat", async () => {
+    const world = await setup([{ text: 'Nothing to ask.' }]);
+    const chat = await world.host.createChat(world.lead.id);
+    const reply = settled(world, chat.id);
+    await world.host.send(chat.id, 'How many invoices are there?');
+    expect(await reply).toMatchObject({ status: 'done', text: 'Nothing to ask.' });
+    const [alone] = world.model.chats();
+    expect(String(alone?.messages[0]?.content)).not.toContain(TEAM_INSTRUCTION);
+    expect(alone?.tools?.map((tool) => tool.function.name) ?? []).not.toContain(ASK_TEAMMATE);
   });
 
   it('keeps a teammate to its own files', async () => {

@@ -1,5 +1,6 @@
 import { HARNESS_INTERVENTIONS, mayIntervene } from '@architect/shared';
-import { BLOCK_REASONS, keyHint, weightsBlock, type WeightsFacts } from '../define/teacher-menu';
+import { blockReason, keyHint, weightsBlock, type WeightsFacts } from '../define/teacher-menu';
+import { WORDS, type Words } from '@architect/ui';
 import { modelNames } from '../names';
 import { neverStarted, type LiveRun } from './run-state';
 
@@ -51,7 +52,7 @@ export function hadStarted(live: LiveRun): boolean {
  * tried here, except perhaps retraining the student itself, and the app can say what keeps that
  * from running when it can see it: the key, the final test online, or the missing budget.
  */
-export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
+export function idleView(live: LiveRun, facts: IdleFacts, w: Words = WORDS.personal): IdleView {
   const { run, job } = live;
   const { mentor, student } = modelNames(job);
   const started = hadStarted(live);
@@ -85,9 +86,12 @@ export function idleView(live: LiveRun, facts: IdleFacts): IdleView {
   }
 
   const block = weightsBlock(job, { token: facts.token, testPlace: live.lockedTestOn });
-  const except = `Every kind of change ${mentor} may make is turned off for this job, except retraining ${student} itself`;
+  const weights = w.lab
+    ? `fine-tuning a LoRA adapter for ${student}`
+    : `retraining ${student} itself`;
+  const except = `Every kind of change ${mentor} may make is turned off for this job, except ${weights}`;
   if (block !== null) {
-    return view(`${except}, which ${BLOCK_REASONS[block]}.${keyHint(block)}`, {
+    return view(`${except}, which ${blockReason(block, w)}.${keyHint(block)}`, {
       missingKey: block === 'no_token',
       turnOn: true,
       next: true,

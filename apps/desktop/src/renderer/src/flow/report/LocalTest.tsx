@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { CodedError, type ReportCard } from '@architect/shared';
-import { Button, Heading, NumberTicker, Skeleton, StatusMark } from '@architect/ui';
+import { Button, Heading, NumberTicker, Skeleton, StatusMark, type Words } from '@architect/ui';
 import { Laptop } from 'lucide-react';
 import { ProblemState } from '../../components/ProblemState';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
 import { formatAnswerTime, formatRate } from '../format';
 import { localTestTime, type RetestView } from './retest';
@@ -27,13 +28,19 @@ interface Say {
   lines: ReactNode;
 }
 
-function say(view: RetestView, local: ReportCard | null, report: ReportCard, device: string): Say {
+function say(
+  view: RetestView,
+  local: ReportCard | null,
+  report: ReportCard,
+  device: string,
+  w: Words,
+): Say {
   switch (view.phase) {
     case 'idle':
       return {
         mark: <Laptop size={18} strokeWidth={1.6} className="text-fg" aria-hidden />,
         title: `Test it on ${device}`,
-        lines: `Run its final test here to see how the agent does on its own. It takes ${lowerFirst(localTestTime(report.test.score.total))} and uses the graphics card.`,
+        lines: `Run its ${w.finalTest} here to see how the agent does on its own. It takes ${lowerFirst(localTestTime(report.test.score.total))} and uses the graphics card.`,
       };
     case 'testing': {
       const far =
@@ -87,6 +94,7 @@ function say(view: RetestView, local: ReportCard | null, report: ReportCard, dev
 export function LocalTest({ report }: { report: ReportCard }) {
   const { detail, view, starting, start } = useRetest(report);
   const local = useLocalCard(report);
+  const w = useWords();
   const device = deviceInSentence(currentPlatform());
 
   if (detail.status === 'error' && detail.data === undefined) {
@@ -102,7 +110,7 @@ export function LocalTest({ report }: { report: ReportCard }) {
   }
   if (detail.data === undefined) return <Skeleton className="h-[92px] w-full rounded-card" />;
 
-  const { mark, title, lines } = say(view, local.data ?? null, report, device);
+  const { mark, title, lines } = say(view, local.data ?? null, report, device, w);
   return (
     <section
       aria-label={`Test on ${device}`}

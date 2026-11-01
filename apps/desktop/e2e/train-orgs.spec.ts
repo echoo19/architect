@@ -139,12 +139,15 @@ test('shows the check score at each organization under the score and in the roun
   });
   await openAt(`/runs/${STORY.runId}/train`);
 
-  const byOrg = page.getByRole('list', { name: 'Check tasks by organization' });
+  const byOrg = page.getByRole('list', { name: 'Held-out checks by organization' });
   await expect(byOrg.getByRole('listitem')).toHaveText([
     'Northside Plumbing85% · 17 of 20',
     'Lakeview Electric70% · 14 of 20',
   ]);
   await expect(byOrg.getByLabel('Northside Plumbing: 17 of 20')).toBeVisible();
+  // Counted from the rows the list shows: round 2 was undone without a record of its own, round 3
+  // kept, and the first draft is the starting point, not a change.
+  await expect(page.getByRole('region', { name: 'Rounds' })).toContainText('1 kept of 2 changes');
   await page.mouse.move(0, 0);
   await settle(page);
   await page.screenshot({
@@ -156,7 +159,7 @@ test('shows the check score at each organization under the score and in the roun
   const rounds = page.getByRole('region', { name: 'Rounds' });
   await rounds.getByRole('button', { name: /Cents, not dollars/ }).click();
   const drawer = page.getByRole('dialog', { name: 'Round 3: Cents, not dollars' });
-  const table = drawer.getByRole('table', { name: 'Check tasks by type' });
+  const table = drawer.getByRole('table', { name: 'Held-out checks by type' });
   const row = (name: string) =>
     table.getByRole('row').filter({ has: page.getByRole('cell', { name, exact: true }) });
   await expect(row('Northside Plumbing')).toContainText('27 of 40');
@@ -172,6 +175,6 @@ test('shows no organization rows for a job of one organization', async () => {
     'runs:roundDiff': roundDiff,
   });
   await openAt(`/runs/${STORY.runId}/train`);
-  await expect(page.getByRole('region', { name: 'Score on the check tasks' })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Check tasks by organization' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Score on the held-out checks' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Held-out checks by organization' })).toHaveCount(0);
 });

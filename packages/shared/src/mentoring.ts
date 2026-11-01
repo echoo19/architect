@@ -12,7 +12,7 @@ import {
   PredictionSchema,
   TypeScoreSchema,
 } from './mentor';
-import { EpisodeKindSchema, VerifiedEpisodeSchema } from './training';
+import { LessonKindSchema, VerifiedEpisodeSchema } from './training';
 
 /*
  * Failure-specific mentoring (decision 042): what the mentor finds in failed train attempts, the
@@ -215,7 +215,7 @@ export const LessonSchema = z.object({
   status: z.enum(['verified', 'rejected']),
   /** Why it was rejected, or the checker's reason for a verified one. */
   reason: z.string().min(1),
-  kind: EpisodeKindSchema,
+  kind: LessonKindSchema,
   categoryId: z.string().nullable(),
   taskType: z.string().min(1),
   source: LessonSourceSchema,

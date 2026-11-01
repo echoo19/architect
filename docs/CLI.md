@@ -280,7 +280,7 @@ architect field export "Academy desk" --out ./academy-desk-field [--json]
 
 Writes what a field job has taught so far into one new folder, for training a model elsewhere (`docs/SCALE.md`). The job is named by its id or its name.
 
-- `sft/demonstrations.jsonl`: worked examples from train tasks that the job's checker passed, in chat format, each with where it came from, the verdict and what it may be used for. One whose data may not leave this computer is left out.
+- `sft/demonstrations.jsonl`: worked examples from train tasks that the job's checker passed, in chat format, each with where it came from, the verdict and what it may be used for: the job's verified lessons, and the student's own train attempts that the checker passed (decision 101). An attempt goes in only when its setup and its task's files are still what it ran with; it trains on the student's own turns, except one whose tool call failed. One whose data may not leave this computer (the job's `sharing.remoteTraining`) is left out.
 - `env/`: the train tasks, the files of the organizations the job is taught on, the checker, and `score_client.py` (below).
 - `eval/manifest.json`: the final test and the organizations the job has never seen, by hash only. A trained model is qualified on them through Architect's runner.
 - `MANIFEST.json`: the job and its version, counts, every file's sha256, permitted uses, and what was left out and why.
@@ -347,12 +347,21 @@ with Scorer() as scorer:
     score = scorer.score(task_id, final_text, changes=[{"path": "data/assignments.csv", "text": csv}])
 ```
 
-### train (experimental)
+### train
 
 ```bash
 architect train plan --model owner/name [--revision main] [--method lora|qlora|full] [--gpu h100-80gb] [--seq-len 4096] [--micro-batch 1]
 architect train bundle --target slurm|kubernetes|skypilot --model owner/name --output ./bundle [--export ./field-export] [plan options]
+architect train start "Inventory desk" --max-usd 25 [--max-minutes 180] [--flavor l40sx1|a100-large] [--revision <commit>] [--json]
+architect train status <job> [--wait] [--logs] [--json]
+architect train cancel <job> [--json]
 ```
+
+`start` trains a LoRA adapter for Glimmer on a field's demonstrations, on Hugging Face Jobs, with the pinned recipe in `trainer/` (decision 101). The field is a job in the data folder, named by its id or its name. `start` builds the demonstrations itself, with `field export`'s own code and every one of its guards, from the job's records; it never reads a folder someone hands it, so it takes no `--export`. It keeps only those the checker passed that may be trained off this computer, and sends them to a job on one L40S, as a run's weights round does (decision 035), or on one A100 with `--flavor a100-large` when the examples are longer than an L40S holds (`train plan` with `--seq-len` at the longest says which; decision 102): a private repository holds the job's inputs and outputs, the base model is pinned to a commit, and the job stops by itself at the compute it was allowed. `--max-usd` is the field's hard cap on compute for every job started this way; a job is cut to what is left of it and refused when that is under 35 minutes. The job's record is kept in the data folder with the app's own. It needs a Hugging Face token that can write repositories and run jobs (exit 3 without one). Starting the same field again, from this command or another at the same moment, finds the job already sent: a new job reserves its compute under a lock that every process on the data folder takes.
+
+`status` checks the job once, or every 30 seconds with `--wait` until it ends. Once it has finished it downloads the adapter, checks it against the job's manifest of hashes and as a GGUF LoRA, and prints where it is, its sha256, the loss and the compute it cost; `--logs` adds the job's log. `cancel` asks the provider to stop the job. Nothing measures the adapter here: it is qualified like any candidate, on a computer that can serve it.
+
+`plan` and `bundle` are experimental:
 
 `plan` sizes a training job for a cluster from the model's own `config.json`, read once from the Hub at the revision you name (resolved to its commit), or from a file with `--config`. It prints each memory term with its arithmetic: the resident weights (every expert of a mixture, not only the active ones; LoRA freezes weights, it doesn't remove them), the adapter with its gradients and Adam state, or for a full fine-tune the gradients and optimizer state for every parameter, the activations of one micro-batch (an approximation, stated), FSDP's peak (the largest wrapped unit, such as a whole expert layer, gathered on each GPU), the runtime's own memory, and the headroom kept back. From those it gives the fewest GPUs and nodes that fit. Every number is an estimate and is labeled one. A configuration it can't count (a state-space or encoder-decoder model, or one missing the hidden size, layers, heads or vocabulary) is refused with what is missing; exit code 2. `--gpu` takes h100-80gb, h200, a100-80gb, a100-40gb, l40s or b200, or `--gpu-memory <GB>` for any other. `--json` prints the plan as `architect.training-plan/1`.
 
@@ -419,7 +428,7 @@ Anything else in the request is refused. A request that isn't valid JSON or does
   "started_at": "2026-11-05T18:00:00.000Z",
   "finished_at": "2026-11-05T18:00:09.412Z",
   "duration_ms": 9412,
-  "architect": { "cli_version": "0.8.0", "request_format": "architect.run-request/1" }
+  "architect": { "cli_version": "0.9.0", "request_format": "architect.run-request/1" }
 }
 ```
 

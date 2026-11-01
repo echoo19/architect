@@ -12,6 +12,7 @@ import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { CheckRows } from '../../install/InstallChecks';
 import { STATUS_LABELS, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
+import { useWords } from '../../shell/edition';
 import { rate } from '../format';
 import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
@@ -83,8 +84,15 @@ export function Capabilities({
   const breakdown = evidence.data?.capabilities;
   const references = evidence.data?.references ?? [];
   // A kind of result no task type has is left out, rather than a column of blanks.
+  const w = useWords();
   const columns = COLUMNS.filter((column) =>
     breakdown?.capabilities.some((capability) => column.pick(capability) !== null),
+  ).map((column) =>
+    column.kind === 'check'
+      ? { ...column, label: w.Checks }
+      : column.kind === 'final'
+        ? { ...column, label: w.FinalTest }
+        : column,
   );
   return (
     <Section title="By task type" id="capabilities">

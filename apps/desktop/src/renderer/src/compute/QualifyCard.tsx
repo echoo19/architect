@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { loopbackEndpointIssue, type Qualification } from '@architect/shared';
-import { Badge, Button, Card, ErrorState, Field, Input, Select } from '@architect/ui';
+import { Badge, Button, Card, ErrorState, Field, Input, Select, Tooltip } from '@architect/ui';
 import { BadgeCheck, TriangleAlert } from 'lucide-react';
 import { computeApi } from '../api/compute';
 import { useJobs } from '../api/hooks';
@@ -78,11 +78,32 @@ export function QualifyCard() {
   }, [jobId, busy]);
 
   const addressIssue = baseUrl.trim() === '' ? null : loopbackEndpointIssue(baseUrl.trim());
-  const ready =
-    runId !== undefined && model.trim() !== '' && baseUrl.trim() !== '' && addressIssue === null;
+  const versionBlocker =
+    jobId === undefined
+      ? 'Choose a field first'
+      : field === null
+        ? 'Reading the field'
+        : field.candidates.length === 0
+          ? 'No version of this field has taken its sealed final test yet'
+          : null;
+  // What holds Qualify back, in the order the form is filled; null when it can start.
+  const blocker =
+    versionBlocker ??
+    (runId === undefined
+      ? 'Choose a harness version'
+      : baseUrl.trim() === ''
+        ? 'Enter the address of the server that serves the model'
+        : addressIssue !== null
+          ? addressIssue
+          : model.trim() === ''
+            ? 'Enter the model name'
+            : busy
+              ? 'Wait until the model being tested finishes'
+              : null);
+  const ready = blocker === null;
 
   const start = async () => {
-    if (!ready || jobId === undefined) return;
+    if (!ready || jobId === undefined || runId === undefined) return;
     setStarting(true);
     setProblem(null);
     try {
@@ -99,11 +120,11 @@ export function QualifyCard() {
   };
 
   return (
-    <Card title="Qualify a trained model" icon={<BadgeCheck aria-hidden />}>
+    <Card title="Qualify a fine-tuned model" icon={<BadgeCheck aria-hidden />}>
       <div className="flex flex-col gap-5">
         <p className="m-0 max-w-[640px] text-ui">
-          A model you trained elsewhere and serve here takes a field&apos;s final test and its
-          never-seen organizations, under a frozen harness.
+          A model you fine-tuned elsewhere and serve here takes a field&apos;s sealed final test and
+          its never-seen organizations, under a frozen harness.
         </p>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Field" htmlFor="qualify-field">
@@ -117,18 +138,36 @@ export function QualifyCard() {
             />
           </Field>
           <Field label="Harness version" htmlFor="qualify-version">
-            <Select
-              aria-label="Harness version"
-              value={runId}
-              placeholder={field && field.candidates.length === 0 ? 'None tested yet' : 'Choose'}
-              onValueChange={setRunId}
-              disabled={field === null || field.candidates.length === 0}
-              options={(field?.candidates ?? []).map((item) => ({
-                value: item.run.id,
-                label: versionLabel(field as FieldSummary, item.run.id),
-              }))}
-              className="w-full"
-            />
+            {versionBlocker === null ? (
+              <Select
+                aria-label="Harness version"
+                value={runId}
+                placeholder="Choose"
+                onValueChange={setRunId}
+                options={(field?.candidates ?? []).map((item) => ({
+                  value: item.run.id,
+                  label: versionLabel(field as FieldSummary, item.run.id),
+                }))}
+                className="w-full"
+              />
+            ) : (
+              // A disabled control takes no pointer, so what holds it back hangs on the span.
+              <Tooltip content={versionBlocker}>
+                <span tabIndex={0} className="block rounded-control">
+                  <Select
+                    aria-label="Harness version"
+                    value={undefined}
+                    placeholder={
+                      field && field.candidates.length === 0 ? 'None tested yet' : 'Choose'
+                    }
+                    onValueChange={setRunId}
+                    disabled
+                    options={[]}
+                    className="w-full"
+                  />
+                </span>
+              </Tooltip>
+            )}
           </Field>
           <Field label="Server address" htmlFor={ids.address}>
             <Input
@@ -158,20 +197,24 @@ export function QualifyCard() {
         </div>
         <p className="m-0 flex items-start gap-2 text-ui">
           <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden />
-          It runs the whole test on this computer&apos;s GPU, and costs no money. Start it when the
-          GPU is free.
+          It runs the whole sealed final test on this computer&apos;s GPU at no cost. Start it when
+          the GPU is free.
         </p>
         {problem && <ErrorState layout="inline" title="Couldn't qualify" message={problem} />}
         <div>
-          <Button
-            variant="primary"
-            size="md"
-            loading={starting}
-            disabled={!ready || busy}
-            onClick={() => void start()}
-          >
-            Qualify
-          </Button>
+          {blocker === null ? (
+            <Button variant="primary" size="md" loading={starting} onClick={() => void start()}>
+              Qualify
+            </Button>
+          ) : (
+            <Tooltip content={blocker}>
+              <span tabIndex={0} className="inline-flex rounded-control">
+                <Button variant="primary" size="md" disabled>
+                  Qualify
+                </Button>
+              </span>
+            </Tooltip>
+          )}
         </div>
         {done.length > 0 && (
           <ul aria-label="Qualified models" className="m-0 flex list-none flex-col p-0">
@@ -181,7 +224,7 @@ export function QualifyCard() {
                 className="flex min-h-11 items-center gap-3 border-t border-line text-ui"
               >
                 <span className="min-w-0 flex-1 truncate font-medium">{item.model}</span>
-                <Badge>Trained elsewhere</Badge>
+                <Badge>Fine-tuned elsewhere</Badge>
                 <span className="w-24 text-right tabular-nums">{resultText(item)}</span>
               </li>
             ))}

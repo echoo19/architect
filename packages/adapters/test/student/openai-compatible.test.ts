@@ -182,6 +182,26 @@ describe('the request to a hosted student', () => {
     expect(lastBody(server)['provider']).toEqual({ order: ['DeepInfra'], allow_fallbacks: false });
   });
 
+  it("caps OpenRouter at an endpoint's own price, with its pin when it has one", async () => {
+    delays.length = 0;
+    const server = await startServer(answer);
+    const pricing = { inputPerM: 1.25, cachedInputPerM: 0.15, outputPerM: 4.25 };
+    const chat = async (changes: { providers?: string[] }) => {
+      const student = createOpenAICompatibleStudent(
+        studentEndpoint('openrouter-glimmer', { pricing, ...changes }),
+        { apiKey: API_KEY, fetch: routeTo(server), retry },
+      );
+      await collect(student.chat(studentRequest()));
+      return lastBody(server)['provider'];
+    };
+    expect(await chat({})).toEqual({ max_price: { prompt: 1.25, completion: 4.25 } });
+    expect(await chat({ providers: ['BaseTen'] })).toEqual({
+      order: ['BaseTen'],
+      allow_fallbacks: false,
+      max_price: { prompt: 1.25, completion: 4.25 },
+    });
+  });
+
   it('sends a local server the strength as a template variable and leaves the prompt alone', async () => {
     const { student, server } = await localOn(answer);
     await collect(

@@ -273,13 +273,48 @@ function supportsEveryTask(sweep: Sweep, style: GroupStyle): boolean {
   return helpPairs(sweep, style).length > 0;
 }
 
-export function buildGroup(style: GroupStyle, random: Random): Group {
+/**
+ * Gives a sweep learning rates of its own: its ladder times a scale from 1.00 to 1.49, so that
+ * no learning rate is in two sweeps of the job (`taken` holds the ones already used; two scales
+ * of the ladder share no rate, since no two rungs are less than 1.5 times apart). A list of one
+ * sweep's configs then never reads like another sweep's, so practice on one sweep can't echo the
+ * expected values of a sweep sealed for the final test. The losses were drawn on the ladder, and
+ * scaling every rate of a sweep alike leaves its curves and verdicts as they were.
+ */
+function ownRates(random: Random, sweep: Sweep, taken: Set<number>): Sweep {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    const scale = random.int(100, 149) / 100;
+    const rates = sweep.grid.lr.map((lr) => Number((lr * scale).toPrecision(3)));
+    if (rates.some((lr) => taken.has(lr))) continue;
+    for (const lr of rates) taken.add(lr);
+    const own = new Map(sweep.grid.lr.map((lr, i) => [lr, rates[i]!]));
+    const knobsOf = (knobs: Knobs): Knobs => ({ lr: own.get(knobs.lr)!, warmup: knobs.warmup });
+    return {
+      ...sweep,
+      grid: { lr: rates, warmup: sweep.grid.warmup },
+      baseline: knobsOf(sweep.baseline),
+      runs: sweep.runs.map((run) => ({ ...run, knobs: knobsOf(run.knobs) })),
+    };
+  }
+  throw new Error(`${sweep.sweep_id}: no learning rates of its own in 500 tries`);
+}
+
+/**
+ * A group's records. `taken` holds the learning rates other groups of the job already use, and
+ * gains this group's.
+ */
+export function buildGroup(
+  style: GroupStyle,
+  random: Random,
+  taken: Set<number> = new Set(),
+): Group {
   const ids = random.fork('ids');
+  const rates = random.fork('rates');
   let runNumber = style.ids.run.start;
   let day = addDays(style.today, -7 * SWEEPS - 3);
   const sweeps = Array.from({ length: SWEEPS }, (_, i) => {
     const sweepId = formatId(style.ids.sweep, style.ids.sweep.start + i * 2);
-    const sweep = buildSweep(random.fork('sweeps'), style, i, sweepId);
+    const sweep = ownRates(rates, buildSweep(random.fork('sweeps'), style, i, sweepId), taken);
     for (const run of sweep.runs) {
       runNumber += 1 + (ids.chance(0.2) ? ids.int(1, 3) : 0);
       run.run_id = formatId(style.ids.run, runNumber);

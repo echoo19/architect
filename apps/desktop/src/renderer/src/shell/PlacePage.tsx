@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { IconButton, Tooltip } from '@architect/ui';
-import { ChevronLeft } from 'lucide-react';
+import { Button, IconButton, Tooltip } from '@architect/ui';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface PlacePageProps {
   title: string;
@@ -8,6 +8,11 @@ export interface PlacePageProps {
   action?: ReactNode;
   /** Before the title, the way back to the place a page belongs to, by the place's name. */
   back?: { label: string; onClick: () => void };
+  /**
+   * Before the title, what the page's thing belongs to, by name, such as an experiment's field:
+   * a breadcrumb that opens it.
+   */
+  crumb?: { label: string; icon?: ReactNode; onClick: () => void };
   /** Beside the title, such as the page's status in a word. */
   status?: ReactNode;
   /** A panel at the page's right, full height, such as an inspector. */
@@ -21,7 +26,7 @@ export interface PlacePageProps {
  * runs the window's full height, its edge unbroken from the top, and its own top strip drags the
  * window too.
  */
-export function PlacePage({ title, back, action, status, aside, children }: PlacePageProps) {
+export function PlacePage({ title, back, crumb, action, status, aside, children }: PlacePageProps) {
   return (
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -36,6 +41,15 @@ export function PlacePage({ title, back, action, status, aside, children }: Plac
                       <ChevronLeft size={20} strokeWidth={1.8} aria-hidden />
                     </IconButton>
                   </Tooltip>
+                )}
+                {crumb && (
+                  <nav aria-label="Breadcrumb" className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={crumb.onClick}>
+                      {crumb.icon}
+                      {crumb.label}
+                    </Button>
+                    <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
+                  </nav>
                 )}
                 <h1 className="m-0 truncate font-display text-title font-semibold">{title}</h1>
                 {status}

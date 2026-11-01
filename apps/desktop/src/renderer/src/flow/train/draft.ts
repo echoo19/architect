@@ -1,4 +1,5 @@
 import type { Job, Method, Round } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 import { setupName } from '../../lib/names';
 import type { LiveRun } from './run-state';
 
@@ -23,9 +24,9 @@ export function isDraftRound(
 }
 
 /** The setup a version is, named by the round whose change made it. */
-export function setupOf({ rounds }: LiveRun, version: number): string {
+export function setupOf({ rounds }: LiveRun, version: number, w: Words = WORDS.personal): string {
   const round = rounds.find((item) => item.candidateVersion === version);
-  return setupName(round ? { round: round.index, draft: round.draft } : {});
+  return setupName(round ? { round: round.index, draft: round.draft } : {}, w.setup);
 }
 
 /** The index of the run's draft round, or null when it has none. */

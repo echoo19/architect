@@ -46,8 +46,40 @@ export interface ReportArm {
   spent: Spend;
 }
 
-/** Each arm named for what the student ran with, in the job's own model names. */
-export function armLabel(arm: ArmId, { mentor, student }: ModelNames): string {
+/**
+ * Each arm named for what the student ran with, in the job's own model names. The Lab names the
+ * parts as an engineer would: harnesses and LoRA adapters.
+ */
+export function armLabel(arm: ArmId, names: ModelNames, lab = false): string {
+  return (lab ? labArmLabel : personalArmLabel)(arm, names);
+}
+
+function labArmLabel(arm: ArmId, { mentor, student }: ModelNames): string {
+  switch (arm) {
+    case 'bare':
+      return `${student}, base harness`;
+    case 'draft':
+      return `${student}, one-shot harness`;
+    case 'targeted':
+      return `${student}, ${mentor}-engineered harness`;
+    case 'reference':
+      return `${mentor} on the tasks itself, base harness`;
+    case 'reference-targeted':
+      return `${mentor} on the tasks itself, engineered harness`;
+    case 'teacher':
+      return `${mentor} on the job itself, in a run of its own`;
+    case 'repeat':
+      return 'The first three, tested a second time';
+    case 'fixed':
+      return `${student}, harness of written rules only`;
+    case 'weights-one-shot':
+      return `${student}, one-shot LoRA adapter`;
+    case 'weights-targeted':
+      return `${student}, failure-targeted LoRA adapter`;
+  }
+}
+
+function personalArmLabel(arm: ArmId, { mentor, student }: ModelNames): string {
   switch (arm) {
     case 'bare':
       return `${student}, untouched`;
@@ -129,6 +161,7 @@ export function reportArms(
   report: ComparisonReport,
   runId: string,
   names: ModelNames,
+  lab = false,
 ): ReportArm[] {
   const seed = report.plan.testSeeds[0] ?? 101;
   return report.arms.map((arm) => {
@@ -143,7 +176,7 @@ export function reportArms(
     const localRow = rowIn(report, localOn, arm.arm, seed);
     return {
       arm: arm.arm,
-      label: armLabel(arm.arm, names),
+      label: armLabel(arm.arm, names, lab),
       status: arm.status,
       reason: arm.reason,
       current: arm.runId !== null && arm.runId === runId,

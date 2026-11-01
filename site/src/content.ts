@@ -7,7 +7,7 @@ export const RELEASES = `${REPO}/releases/latest`;
  * The Windows installer, which a visitor on Windows is sent to directly. Its name carries the
  * app's version, and a test keeps this one in step with it.
  */
-export const APP_VERSION = '0.8.0';
+export const APP_VERSION = '0.9.0';
 export const WINDOWS_INSTALLER = `${RELEASES}/download/Architect-Setup-${APP_VERSION}.exe`;
 /** The Mac disk images, one for Apple silicon and one for Intel, named by the same version. */
 export const MAC_DMG = `${RELEASES}/download/Architect-${APP_VERSION}-arm64.dmg`;
@@ -19,8 +19,8 @@ export const HERO = {
   title: 'The training system for your own AI.',
   /** Two sentences, each on its own line where there is room. */
   line: [
-    "A large model teaches a small one your team's work, checked on cases neither has seen.",
-    'The result runs on your own computer, and Architect says when it can be trusted.',
+    'A frontier model trains a specialist on your work through harness engineering and LoRA fine-tuning, and judges it on tests sealed from both.',
+    'It runs on-premise and offline, and can carry a risk certificate: a statistical bound on how often it is wrong.',
   ],
 } as const;
 
@@ -80,5 +80,5 @@ export const FOOTER = {
   note: 'The shops, labs and academies in the film are generated, except the anonymized Real academy. Every measured figure is from a real run.',
   /** The results page's note. */
   resultsNote:
-    'The generated academies, the returns desks and the repair shop are made up. The Real academy is a real one, anonymized, and its records are not published. The figures are from real runs, and the reports they come from are in docs/comparisons.',
+    'The generated academies, the screening labs, the returns desks and the repair shop are made up. The Real academy is a real one, anonymized, and its records are not published. The figures are from real runs, and the reports they come from are in docs/comparisons.',
 } as const;

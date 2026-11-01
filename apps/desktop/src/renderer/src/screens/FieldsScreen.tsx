@@ -28,8 +28,9 @@ import {
 import { Organizations } from '../fields/Organizations';
 import { Overview } from '../fields/Overview';
 import { Tasks } from '../fields/Tasks';
-import { scoreCell } from '../fields/parts';
+import { SCORE_HINTS, scoreCell } from '../fields/parts';
 import { shortDate } from '../flow/format';
+import { shortModelName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 
@@ -66,7 +67,7 @@ function NoFields() {
     <EmptyState
       icon={<Library aria-hidden />}
       title="No fields yet"
-      description="A field is one job taught across organizations and tested on ones it never saw."
+      description="Describe a field to engineer a specialist for its organizations."
       className="pt-16"
     />
   );
@@ -86,6 +87,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
     counts: orgCounts(field.view),
     best: bestCandidate(field.candidates)?.scores ?? null,
   }));
+  const student = studentOf(read.data);
   return (
     <DataTable
       aria-label="Fields"
@@ -104,7 +106,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'taught',
           header: 'Taught on',
           group: ORGANIZATIONS,
-          hint: 'Organizations it is taught on',
+          hint: `Organizations ${student} learned from`,
           align: 'end',
           cell: (row) => row.counts.taughtOn,
           sortValue: (row) => row.counts.taughtOn,
@@ -113,7 +115,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'sealed',
           header: 'Never seen',
           group: ORGANIZATIONS,
-          hint: 'Generated organizations kept from teaching for the final test',
+          hint: `Generated organizations ${student} never saw, kept for the sealed final test`,
           align: 'end',
           cell: (row) => row.counts.sealed,
           sortValue: (row) => row.counts.sealed,
@@ -122,7 +124,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'realOrgs',
           header: 'Real',
           group: ORGANIZATIONS,
-          hint: 'Real organizations kept from teaching for the final test',
+          hint: `Real organizations ${student} never saw, kept for the sealed final test`,
           align: 'end',
           cell: (row) => row.counts.real,
           sortValue: (row) => row.counts.real,
@@ -131,6 +133,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'seen',
           header: 'Taught on',
           group: BEST,
+          hint: SCORE_HINTS.seen,
           align: 'end',
           cell: (row) => scoreCell(row.best?.seen ?? null),
           sortValue: (row) => rateOf(row.best?.seen),
@@ -139,6 +142,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'unseen',
           header: 'Never seen',
           group: BEST,
+          hint: SCORE_HINTS.unseen,
           align: 'end',
           cell: (row) => scoreCell(row.best?.unseen ?? null),
           sortValue: (row) => rateOf(row.best?.unseen),
@@ -147,6 +151,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'real',
           header: 'Real',
           group: BEST,
+          hint: SCORE_HINTS.real,
           align: 'end',
           cell: (row) => scoreCell(row.best?.real ?? null),
           sortValue: (row) => rateOf(row.best?.real),
@@ -163,8 +168,18 @@ function FieldList({ ids }: { ids: readonly string[] }) {
   );
 }
 
+/**
+ * The student the fields teach, by its short name when they all teach the same one, for the
+ * headers' tips; else what the Lab calls it.
+ */
+function studentOf(fields: readonly FieldSummary[]): string {
+  const names = new Set(fields.map((field) => shortModelName(field.job.student.label)));
+  const [only] = names;
+  return names.size === 1 && only !== undefined ? only : 'the specialist';
+}
+
 const ORGANIZATIONS = 'Organizations';
-const BEST = 'Best final test';
+const BEST = 'Best sealed final test';
 
 type FieldTab = 'overview' | 'organizations' | 'tasks' | 'versions' | 'assets';
 

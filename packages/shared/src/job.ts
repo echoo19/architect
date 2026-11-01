@@ -53,6 +53,19 @@ export const ModelMentorSchema = z.object({
    * model was chosen, or what the user entered for an endpoint they added.
    */
   pricing: TokenPricingSchema.optional(),
+  /**
+   * On OpenRouter, the providers a call may go to, in order, with no fallback to any other, so
+   * every call of a comparison's teacher runs on one provider's serving of the model, as the
+   * hosted student's do. Any provider when absent.
+   */
+  providers: z.array(z.string().min(1)).min(1).optional(),
+  /**
+   * Whether the reply is asked for with `response_format`, where the endpoint takes it. False puts
+   * the schema in the prompt only, with one repair call for a reply that doesn't parse: OpenRouter
+   * removes every provider that lacks the field, so a pin to one such provider needs it off.
+   * On when absent.
+   */
+  structuredOutput: z.boolean().optional(),
 });
 export type ModelMentor = z.infer<typeof ModelMentorSchema>;
 

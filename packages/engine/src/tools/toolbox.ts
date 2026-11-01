@@ -58,6 +58,8 @@ export interface ToolboxOptions {
 /** A tool the runner offers one run on its own terms, outside the harness and the sandbox. */
 export interface ExtraTool {
   spec: ToolSpec;
+  /** One line the system prompt adds while this tool is offered, on when to use it. */
+  instruction?: string;
   /** Runs one call. Mistakes the model can fix throw a `ToolError`. */
   run(call: ToolCall, signal?: AbortSignal): Promise<ExecutorResult>;
 }
@@ -72,6 +74,25 @@ const RENAMED: Readonly<Record<string, string>> = {
   update_rows: 'edit',
   load_skill: 'read on skills/<name>/SKILL.md',
 };
+
+function offeredBuiltins(writable: boolean): BuiltinToolName[] {
+  return BUILTIN_TOOL_NAMES.filter((name) => !isWriteTool(name) || writable);
+}
+
+/**
+ * The tools a run on this harness offers, as the model sees them: the built-in ones (the write
+ * tools only when some file may change) and the harness's own, without a run's extra tools.
+ */
+export function toolSpecs(harness: Harness, writable: boolean): ToolSpec[] {
+  return [
+    ...offeredBuiltins(writable).map((name) => BUILTIN_TOOL_SPECS[name]),
+    ...harness.tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    })),
+  ];
+}
 
 export function createToolbox(options: ToolboxOptions): Toolbox {
   const { harness, files, sandbox } = options;
@@ -95,15 +116,10 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
     approveWrite: options.approveWrite,
     budget,
   });
-  const offered = BUILTIN_TOOL_NAMES.filter((name) => !isWriteTool(name) || files.writable);
+  const offered = offeredBuiltins(files.writable);
   const harnessTools = new Map(harness.tools.map((tool) => [tool.name, tool]));
   const specs: ToolSpec[] = [
-    ...offered.map((name) => BUILTIN_TOOL_SPECS[name]),
-    ...harness.tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    })),
+    ...toolSpecs(harness, files.writable),
     ...[...extra.values()].map((tool) => tool.spec),
   ];
 

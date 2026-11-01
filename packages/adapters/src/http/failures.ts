@@ -62,8 +62,13 @@ export function failureForStatus(status: number, ctx: StatusContext): Failure {
           }
         : {
             code: 'not_found',
-            summary: `${service} has no model "${ctx.model}" ${at}.`,
-            hint: ctx.modelNotFoundHint ?? 'Check the model id in the job settings.',
+            // The server's own reason when it gives one: a router that filtered out every provider
+            // of the model has it, and says which filter removed each.
+            summary:
+              ctx.detail === undefined || ctx.detail === ''
+                ? `${service} has no model "${ctx.model}" ${at}.`
+                : withDetail(`${service} couldn't serve "${ctx.model}" ${at}.`, ctx.detail),
+            hint: ctx.modelNotFoundHint ?? "Check the model id and the job's provider settings.",
           };
     case 408:
       return {

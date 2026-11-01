@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportCard } from '@architect/shared';
+import { WORDS } from '@architect/ui';
 import { missedRequirements } from '../../../src/renderer/src/flow/report/requirements';
 import { phaseView } from '../../../src/renderer/src/flow/train/phase';
 import { makeRun } from './factories';
@@ -32,6 +33,18 @@ describe('phaseView', () => {
     });
     expect(view({ phase: 'baseline' }).text).toBe(
       'Scoring Glimmer on the check tasks before any teaching',
+    );
+  });
+
+  it('says the same steps in the Lab’s words', () => {
+    const lab = (phase: Parameters<typeof makeRun>[0]) =>
+      phaseView(makeRun(phase), NAMES, false, false, WORDS.lab).text;
+    expect(lab({ phase: 'evaluating' })).toBe('Scoring the change on the held-out checks');
+    expect(lab({ phase: 'training' })).toBe(
+      'Fine-tuning a LoRA adapter on the checked corrections',
+    );
+    expect(lab({ status: 'testing', phase: 'testing' })).toBe(
+      'Sealed final test, Spark disconnected',
     );
   });
 

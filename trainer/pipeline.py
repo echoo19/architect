@@ -11,16 +11,20 @@ scripts. The steps:
    ``--dry-run`` stops here and prints a summary as JSON; it needs only the standard library.
 2. Install the pinned packages.
 3. Train a QLoRA adapter (train_qlora.py) and save it in PEFT's format.
-4. Convert it with llama.cpp's convert_lora_to_gguf.py at the pinned commit, in its own
+4. Write outputs/peft-manifest.json with the PEFT files' and the log's SHA-256, and with
+   ``--upload`` send them to the job's repository first, so a failed conversion never loses the
+   trained weights.
+5. Convert it with llama.cpp's convert_lora_to_gguf.py at the pinned commit, in its own
    environment with that commit's own requirements.
-5. Write outputs/manifest.json with every file's SHA-256, and with ``--upload`` send the outputs
-   to the job's repository on Hugging Face.
+6. Write outputs/manifest.json with every file's SHA-256, and with ``--upload`` send the GGUF
+   adapter and the manifest beside the PEFT files.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import platform
@@ -36,6 +40,7 @@ JOB_FORMAT = "architect.trainer-job/1"
 RECIPE_FORMAT = "architect.trainer-recipe/1"
 DATASET_FORMAT = "architect.chat-dataset/1"
 OUTPUT_FORMAT = "architect.trainer-output/1"
+PEFT_FORMAT = "architect.trainer-peft/1"
 PINNED = ("python_packages", "quantization", "lora", "training", "converter")
 # Time kept back from training for converting and uploading.
 RESERVE_SECONDS = 15 * 60
@@ -143,14 +148,31 @@ def versions() -> dict:
     return found
 
 
+def system_packages(has_git: bool, has_ensurepip: bool, version: tuple) -> list:
+    """The apt packages the converter's steps need that the image lacks: git to fetch llama.cpp,
+    and the venv module's ensurepip, without which an environment of its own can't be made. The
+    recipe's image has neither (checked Nov 1)."""
+    needed = []
+    if not has_git:
+        needed += ["git", "ca-certificates"]
+    if not has_ensurepip:
+        needed.append(f"python{version[0]}.{version[1]}-venv")
+    return needed
+
+
 def convert(job: dict, base_dir: str, peft_dir: Path, gguf_path: Path, work: Path) -> float:
     """llama.cpp's converter at the pinned commit, in a fresh environment of its own."""
     started = time.monotonic()
     converter = job["converter"]
     source = work / "llama.cpp"
-    if shutil.which("git") is None:
+    needed = system_packages(
+        shutil.which("git") is not None,
+        importlib.util.find_spec("ensurepip") is not None,
+        sys.version_info,
+    )
+    if needed:
         run(["apt-get", "update", "-qq"])
-        run(["apt-get", "install", "-y", "-qq", "--no-install-recommends", "git", "ca-certificates"])
+        run(["apt-get", "install", "-y", "-qq", "--no-install-recommends", *needed])
     run(["git", "init", "-q", source])
     run(["git", "-C", source, "fetch", "-q", "--depth", "1", converter["repo"], converter["commit"]])
     run(["git", "-C", source, "checkout", "-q", "FETCH_HEAD"])
@@ -173,15 +195,42 @@ KINDS = {
 }
 
 
-def write_manifest(job: dict, out: Path, result: dict, convert_seconds: float) -> dict:
+def file_entries(out: Path, required: tuple, kinds: tuple = tuple(KINDS.values())) -> list:
+    """Every output file of the given kinds, with its hash; a required kind that is missing fails."""
     files = []
     for relative, kind in KINDS.items():
         path = out / relative
-        if path.is_file():
+        if kind in kinds and path.is_file():
             files.append({"path": relative, "sha256": sha256_file(path), "bytes": path.stat().st_size, "kind": kind})
-    for required in ("peft_config", "peft_weights", "gguf_lora"):
-        if not any(entry["kind"] == required for entry in files):
-            raise JobError(f"the job produced no {required} file")
+    for kind in required:
+        if not any(entry["kind"] == kind for entry in files):
+            raise JobError(f"the job produced no {kind} file")
+    return files
+
+
+def write_peft_manifest(job: dict, out: Path, result: dict) -> dict:
+    """outputs/peft-manifest.json: the trained PEFT adapter and the log, hashed, before conversion."""
+    manifest = {
+        "format": PEFT_FORMAT,
+        "job_id": job["job_id"],
+        "base_model": job["base_model"],
+        "dataset": {"sha256": job["dataset"]["sha256"], "trained_examples": result["trained_examples"]},
+        "recipe": job["recipe"],
+        "lora": {"r": job["lora"]["r"], "alpha": job["lora"]["alpha"], "target_modules": job["lora"]["target_modules"]},
+        "metrics": {
+            "steps": result["steps"],
+            "loss_first": result["loss_first"],
+            "loss_last": result["loss_last"],
+            "train_seconds": result["train_seconds"],
+        },
+        "files": file_entries(out, ("peft_config", "peft_weights"), ("peft_config", "peft_weights", "log")),
+    }
+    (out / "peft-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return manifest
+
+
+def write_manifest(job: dict, out: Path, result: dict, convert_seconds: float) -> dict:
+    files = file_entries(out, ("peft_config", "peft_weights", "gguf_lora"))
     manifest = {
         "format": OUTPUT_FORMAT,
         "job_id": job["job_id"],
@@ -212,19 +261,37 @@ def write_manifest(job: dict, out: Path, result: dict, convert_seconds: float) -
     return manifest
 
 
-def upload(out: Path, manifest: dict) -> None:
+def upload(out: Path, paths: list, message: str) -> None:
     from huggingface_hub import HfApi
 
     repo = os.environ["ARCHITECT_REPO"]
-    patterns = [entry["path"] for entry in manifest["files"]] + ["manifest.json"]
     HfApi().upload_folder(
         repo_id=repo,
         folder_path=str(out),
         path_in_repo="outputs",
-        allow_patterns=patterns,
-        commit_message=f"Outputs of training job {manifest['job_id']}",
+        allow_patterns=paths,
+        commit_message=message,
     )
-    log(f"Uploaded {len(patterns)} files to {repo}/outputs")
+    log(f"Uploaded {len(paths)} files to {repo}/outputs")
+
+
+def finish(job: dict, out: Path, work: Path, result: dict, send: bool, convert_fn=None, upload_fn=None) -> dict:
+    """After training: the PEFT adapter hashed and, with ``send``, uploaded before anything can fail
+    in conversion; then the GGUF conversion, the manifest of every file, and its upload."""
+    convert_fn = convert_fn or convert
+    upload_fn = upload_fn or upload
+    peft = write_peft_manifest(job, out, result)
+    if send:
+        upload_fn(
+            out,
+            [entry["path"] for entry in peft["files"]] + ["peft-manifest.json"],
+            f"Trained PEFT adapter of job {job['job_id']}, before conversion",
+        )
+    convert_seconds = convert_fn(job, result["base_dir"], out / "peft", out / "adapter.gguf", work)
+    manifest = write_manifest(job, out, result, convert_seconds)
+    if send:
+        upload_fn(out, ["adapter.gguf", "manifest.json"], f"Outputs of training job {job['job_id']}")
+    return manifest
 
 
 def main(argv: list) -> int:
@@ -262,10 +329,7 @@ def main(argv: list) -> int:
             log_file.write(message + "\n")
 
         result = train_qlora.train(job, examples, out / "peft", deadline, note)
-    convert_seconds = convert(job, result["base_dir"], out / "peft", out / "adapter.gguf", work)
-    manifest = write_manifest(job, out, result, convert_seconds)
-    if args.upload:
-        upload(out, manifest)
+    finish(job, out, work, result, args.upload)
     log("Done")
     return 0
 

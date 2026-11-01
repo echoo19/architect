@@ -21,6 +21,8 @@ export interface SystemPromptInput {
   /** Skills loaded by retrieval rules: their full text goes in the prompt. */
   loadedSkills: readonly Skill[];
   examples: readonly Example[];
+  /** Lines the run's extra tools add, such as a team lead's on when to ask a teammate. */
+  instructions?: readonly string[];
 }
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -49,6 +51,7 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
   }
   for (const example of examples) sections.push(renderExample(example));
   if (harness.guardrails.refuse.length > 0) sections.push(refusals(harness.guardrails.refuse));
+  sections.push(...(input.instructions ?? []));
   if (mode === 'chat') sections.push(CHAT_LINE);
   return sections.filter((section) => section !== '').join('\n\n');
 }

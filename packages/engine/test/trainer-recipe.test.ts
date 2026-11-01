@@ -73,13 +73,18 @@ describe('the pinned recipe', () => {
   it("adapts only the text decoder's linear layers, never the vision tower", () => {
     const pattern = new RegExp(loadRecipe(TRAINER).recipe.lora.target_modules);
     for (const name of [
-      'model.language_model.layers.0.self_attn.q_proj',
+      'model.language_model.layers.0.self_attn.v_proj',
+      'model.language_model.layers.3.self_attn.o_proj',
       'model.language_model.layers.51.self_attn.gate_proj',
       'model.language_model.layers.7.mlp.down_proj',
     ]) {
       expect(pattern.test(name)).toBe(true);
     }
     for (const name of [
+      // llama.cpp's converter at the pinned commit can't convert a LoRA on Glimmer's q or k
+      // projections (decision 104), so the recipe leaves them out.
+      'model.language_model.layers.0.self_attn.q_proj',
+      'model.language_model.layers.0.self_attn.k_proj',
       'model.vision_tower.layers.0.attn.q_proj',
       'model.language_model.embed_tokens',
       'lm_head',

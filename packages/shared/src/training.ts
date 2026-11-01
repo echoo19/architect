@@ -16,7 +16,7 @@ const sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
 const gitCommit = z.string().regex(/^[0-9a-f]{40}$/);
 
 /** How a lesson's target behavior was obtained (spec section 6). */
-export const EpisodeKindSchema = z.enum([
+export const LessonKindSchema = z.enum([
   /** Resumed from a saved state between tool batches; the continuation passed the checker. */
   'replay_correction',
   /** Replay wasn't reliable, so a whole attempt was redone and verified. Never shown as a repair. */
@@ -26,6 +26,14 @@ export const EpisodeKindSchema = z.enum([
   /** A correction the user accepted from Teach this, verified before it joined the queue. */
   'user_correction',
 ]);
+export type LessonKind = z.infer<typeof LessonKindSchema>;
+
+/**
+ * How an episode's target behavior was obtained: a lesson's, or the student's own train attempt
+ * that the checker passed, as a field export takes it (decision 101). The second is never a
+ * lesson: no mentor wrote or repaired it.
+ */
+export const EpisodeKindSchema = z.enum([...LessonKindSchema.options, 'passed_attempt']);
 export type EpisodeKind = z.infer<typeof EpisodeKindSchema>;
 
 const EpisodeAssistantSchema = z.object({

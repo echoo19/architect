@@ -144,9 +144,9 @@ describe('accuracy against cost', () => {
     expect(
       rows.map((item) => [rowLabel(item.row), item.model, item.runsOn, item.perThousandUsd]),
     ).toEqual([
-      ['Targeted mentoring', 'Glimmer', 'hosted', 10],
+      ['Spark-engineered harness', 'Glimmer', 'hosted', 10],
       ['GPT-6.1 Sol alone', 'GPT-6.1 Sol', 'hosted', 61.2],
-      ['Targeted mentoring', 'Glimmer', 'this_computer', 0],
+      ['Spark-engineered harness', 'Glimmer', 'this_computer', 0],
     ]);
   });
 
@@ -218,18 +218,19 @@ describe('experiment plans', () => {
       'Choose a part of the final test this field has.',
     );
     expect(primaryText(primary)).toBe(
-      'Targeted mentoring minus Glimmer alone, on the organizations it has never seen',
+      'Spark-engineered harness minus Glimmer alone, on the organizations it has never seen',
     );
     // On a field of other models, the arms go by their names (decision 094).
     const names = experimentNames({ names: { mentor: 'Qwen3 235B on vLLM', student: 'Qwen' } });
     expect(names).toEqual({ mentor: 'Qwen3 235B', student: 'Qwen' });
     expect(primaryText(primary, armNames(names))).toBe(
-      'Targeted mentoring minus Qwen alone, on the organizations it has never seen',
+      'Qwen3 235B-engineered harness minus Qwen alone, on the organizations it has never seen',
     );
     expect(armDescriptions(names).targeted).toBe(
-      "Qwen3 235B edits the harness round by round from Qwen's failures",
+      "Qwen3 235B engineers the harness round by round from Qwen's failures",
     );
-    expect(armNames(DEFAULT_NAMES).reference).toBe('Spark reference');
+    expect(armNames(DEFAULT_NAMES).reference).toBe('Spark on the base harness');
+    expect(armNames(DEFAULT_NAMES)['reference-targeted']).toBe('Spark on the engineered harness');
     // Taking an arm of the comparison out clears it, to be chosen again.
     expect(withArms(primary, ['bare', 'draft']).primaryComparison).toBeUndefined();
     expect(withArms(primary, ['bare', 'targeted']).primaryComparison).toEqual({

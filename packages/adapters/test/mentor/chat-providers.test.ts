@@ -165,6 +165,48 @@ describe('OpenRouter', () => {
     });
     expect(sent['provider']).toEqual({ max_price: { prompt: 0, completion: 0 } });
   });
+
+  it('keeps response_format unless structured output is turned off', async () => {
+    expect((await call(config)).sent['response_format']).toMatchObject({ type: 'json_schema' });
+    const { sent } = await call({ ...config, structuredOutput: false, providers: ['BaseTen'] });
+    expect(sent).not.toHaveProperty('response_format');
+    expect(systemText(sent)).toContain('single code block marked json');
+    expect(sent['provider']).toMatchObject({ order: ['BaseTen'], allow_fallbacks: false });
+  });
+
+  it('repairs a reply without structured output once, and parses the second', async () => {
+    let calls = 0;
+    const server = await startServer((sent, res) => {
+      calls += 1;
+      const text = calls === 1 ? 'The fix is to parse money.' : '```json\n{"title":"Fix"}\n```';
+      answer(sent, res, [
+        deltaChunk({ role: 'assistant', content: text }),
+        deltaChunk({}, 'stop'),
+        usageChunk({ prompt_tokens: 10, completion_tokens: 5 }),
+        '[DONE]',
+      ]);
+    });
+    const mentor = createModelMentor(
+      { ...config, structuredOutput: false },
+      { apiKey: API_KEY, fetch: routeTo(server), retry: { maxAttempts: 1 } },
+    );
+    const completion = await mentor.complete(REQUEST);
+    expect(completion.json).toEqual({ title: 'Fix' });
+    expect(server.requests).toHaveLength(2);
+    for (const request of server.requests) {
+      expect(body(request)).not.toHaveProperty('response_format');
+    }
+    expect(completion.usage).toMatchObject({ inputTokens: 20, outputTokens: 10 });
+  });
+
+  it('pins the providers it is given, in order, with no fallback', async () => {
+    const { sent } = await call({ ...config, providers: ['BaseTen', 'Nebius'] });
+    expect(sent['provider']).toEqual({
+      order: ['BaseTen', 'Nebius'],
+      allow_fallbacks: false,
+      max_price: { prompt: 0.3, completion: 1.2 },
+    });
+  });
 });
 
 describe('a model on this computer', () => {

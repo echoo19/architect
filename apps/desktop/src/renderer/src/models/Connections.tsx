@@ -62,7 +62,11 @@ const COLUMNS: readonly DataColumn<Connection>[] = [
     'Practice',
     'The student can practice on it while it is taught: here, or a hosted or cluster copy',
   ),
-  roleColumn('agent', 'Agent', 'A finished agent can run on it. Agents run only on this computer'),
+  roleColumn(
+    'agent',
+    'Agent',
+    'A finished specialist can run on it. Specialists run only on-premise',
+  ),
 ];
 
 /**

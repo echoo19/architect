@@ -17,7 +17,7 @@ import { toWireMessages, toWireTools } from '../openai/messages';
 import { openUnstreamed } from '../openai/unstreamed';
 import { readChatCompletionStream } from '../openai/stream';
 import { countToolCalls } from '../tool-calls';
-import { chatTraits, type ModelMentorConfig } from './providers';
+import { chatTraits, providerRouting, type ModelMentorConfig } from './providers';
 
 const CHAT_PATH = '/chat/completions';
 
@@ -28,7 +28,7 @@ export function mentorCanAct(config: MentorConfig): config is ModelMentorConfig 
 
 /**
  * The mentor's model as an agent with the student's tools (decision 042): the same provider, key,
- * price, token field, reasoning control and price cap as the mentor, with the tools offered and
+ * price, token field, reasoning control, provider pin and price cap as the mentor, with the tools offered and
  * their calls streamed back the way a student's are. The runner admits every call through the
  * mentor's gate. Sampling and the runner's seed are left to the provider, which may not take
  * them. Anthropic's Messages API isn't spoken here yet.
@@ -77,11 +77,8 @@ export function createMentorActor(config: MentorConfig, deps: MentorDeps = {}): 
     if (traits.reasoning === 'reasoning_effort') wire['reasoning_effort'] = model.reasoningEffort;
     if (traits.reasoning === 'openrouter') wire['reasoning'] = { effort: model.reasoningEffort };
     if (traits.sendsCacheKey) wire['prompt_cache_key'] = sessionKey;
-    if (traits.capsPrice && pricing) {
-      wire['provider'] = {
-        max_price: { prompt: pricing.inputPerM, completion: pricing.outputPerM },
-      };
-    }
+    const routing = providerRouting(traits, model, pricing);
+    if (routing !== undefined) wire['provider'] = routing;
     return wire;
   }
 

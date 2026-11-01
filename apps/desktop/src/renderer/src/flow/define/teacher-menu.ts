@@ -8,6 +8,7 @@ import {
   type Job,
   type StudentTarget,
 } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 import type { QueryState } from '../../api/query';
 
 /*
@@ -72,11 +73,21 @@ export const BLOCK_REASONS: Record<WeightsBlock, string> = {
   no_budget: 'needs a training budget, and this job has none',
 };
 
+/** A row's note for a block, in this edition's words. */
+export function blockNote(block: WeightsBlock, w: Words = WORDS.personal): string {
+  return BLOCK_NOTES[block].replace('final test', w.finalTest);
+}
+
+/** Why the weights can't run, as the end of a sentence, in this edition's words. */
+export function blockReason(block: WeightsBlock, w: Words = WORDS.personal): string {
+  return BLOCK_REASONS[block].replace('final test', w.finalTest);
+}
+
 /** What the person can do about it besides turning another kind of change on. */
-export function blockFix(block: WeightsBlock, device: string): string {
+export function blockFix(block: WeightsBlock, device: string, w: Words = WORDS.personal): string {
   switch (block) {
     case 'online_test':
-      return `Turn something else on, or run the final test on ${device}.`;
+      return `Turn something else on, or run the ${w.finalTest} on ${device}.`;
     case 'no_token':
       return 'Turn something else on, or add the key.';
     case 'no_budget':

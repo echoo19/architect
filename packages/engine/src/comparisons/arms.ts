@@ -10,6 +10,7 @@ import {
   type ExperimentModels,
   type Harness,
   type Job,
+  type MentorPresetKey,
   type Method,
   type ModelMentor,
   type StudentEndpoint,
@@ -53,7 +54,11 @@ export function fieldModels(job: Job): ComparisonModels {
   const mentorPreset =
     mentor.kind === 'model'
       ? MENTOR_PRESETS.find(
-          (preset) => preset.model === mentor.model && preset.baseUrl === mentor.baseUrl,
+          // A teacher pinned to providers is named whole, so the pin goes with it.
+          (preset) =>
+            preset.model === mentor.model &&
+            preset.baseUrl === mentor.baseUrl &&
+            mentor.providers === undefined,
         )
       : undefined;
   const chosen: ComparisonModels['mentor'] =
@@ -78,13 +83,28 @@ export function fieldModels(job: Job): ComparisonModels {
 }
 
 /**
+ * The models the comparisons script runs on a job: the job's own teacher, as its field names it
+ * (Spark when a coding agent teaches), or the mentor preset `--mentor` names instead, with the
+ * default hosted student and its routing. A job that teaches with Spark compares as it always has.
+ */
+export function jobModels(job: Job, mentor?: MentorPresetKey): ComparisonModels {
+  return { ...DEFAULT_MODELS, mentor: mentor ?? fieldModels(job).mentor };
+}
+
+/**
  * How a plan's settings name the models, which a resume must ask for again: a preset by its key,
- * any other model as `model at address`.
+ * any other model as `model at address`, and a teacher pinned to providers `via` them. The hosted
+ * student's providers are a setting of their own.
  */
 export function modelKeys(models: ComparisonModels): { mentor: string; student: string } {
   const named = (model: string | { model: string; baseUrl: string }) =>
     typeof model === 'string' ? model : `${model.model} at ${model.baseUrl}`;
-  return { mentor: named(models.mentor), student: named(models.student) };
+  const { mentor } = models;
+  const pin =
+    typeof mentor === 'string' || mentor.providers === undefined
+      ? ''
+      : ` via ${mentor.providers.join(', ')}`;
+  return { mentor: `${named(mentor)}${pin}`, student: named(models.student) };
 }
 
 /** The mentor a comparison's models name, as its job's settings. */

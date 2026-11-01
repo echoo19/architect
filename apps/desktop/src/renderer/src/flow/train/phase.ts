@@ -1,4 +1,5 @@
 import type { Run } from '@architect/shared';
+import { WORDS, type Words } from '@architect/ui';
 import { neverStarted } from './run-state';
 
 /** The three steps of a round, shown in the panel's phase strip. */
@@ -68,6 +69,7 @@ export function phaseView(
   names: ModelNames,
   drafting = false,
   improving = false,
+  w: Words = WORDS.personal,
 ): PhaseView {
   const improvement = improving ? improvementView(run) : null;
   if (improvement) return improvement;
@@ -94,7 +96,7 @@ export function phaseView(
         stage: null,
         motion: 'still',
         frozen: true,
-        text: `Training is done, and ${student} took the final test`,
+        text: `Training is done, and ${student} took the ${w.finalTest}`,
       };
     case 'stopped':
       return {
@@ -114,28 +116,33 @@ export function phaseView(
         stage: 'testing',
         motion: 'testing',
         frozen: false,
-        text: `Final test, ${mentor} disconnected`,
+        text: `${w.FinalTest}, ${mentor} disconnected`,
       };
     case 'running':
       return {
         stage: stageOf(run),
         motion: motionOf(run),
         frozen: false,
-        text: runningText(run, names, drafting),
+        text: runningText(run, names, drafting, w),
       };
   }
 }
 
-function runningText(run: Run, { mentor, student }: ModelNames, drafting: boolean): string {
+function runningText(
+  run: Run,
+  { mentor, student }: ModelNames,
+  drafting: boolean,
+  w: Words,
+): string {
   if (drafting && run.phase === 'diagnosing') {
-    return `${mentor} is writing a first full draft of ${student}'s instructions`;
+    return `${mentor} is writing a first full draft of ${student}'s ${w.lab ? 'harness' : 'instructions'}`;
   }
-  if (drafting && run.phase === 'evaluating') return 'Scoring the first draft on the check tasks';
+  if (drafting && run.phase === 'evaluating') return `Scoring the first draft on the ${w.checks}`;
   switch (run.phase) {
     case 'preparing':
       return `Getting ${student} ready`;
     case 'baseline':
-      return `Scoring ${student} on the check tasks before any teaching`;
+      return `Scoring ${student} on the ${w.checks} before any teaching`;
     case 'attempting':
       return `${student} is working through practice tasks`;
     case 'diagnosing':
@@ -143,13 +150,15 @@ function runningText(run: Run, { mentor, student }: ModelNames, drafting: boolea
     case 'teaching':
       return `${mentor} is working through corrections, each checked before it counts`;
     case 'training':
-      return `An adapter is training on the checked corrections`;
+      return w.lab
+        ? 'Fine-tuning a LoRA adapter on the checked corrections'
+        : 'An adapter is training on the checked corrections';
     case 'clarifying':
       return `${mentor} has a question for you`;
     case 'evaluating':
-      return 'Scoring the change on the check tasks';
+      return `Scoring the change on the ${w.checks}`;
     case 'testing':
-      return `Final test, ${mentor} disconnected`;
+      return `${w.FinalTest}, ${mentor} disconnected`;
     case 'done':
       return 'Wrapping up';
   }

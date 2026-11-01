@@ -68,7 +68,10 @@ export function validateJob(job: Job, taskCount: number | null): JobIssues {
   if (!wholeNumber(evaluation.minDevGain) || evaluation.minDevGain < 1) {
     add('evaluation.minDevGain', 'Use a whole number, at least 1.');
   } else if (evaluation.minDevGain > splits.dev) {
-    add('evaluation.minDevGain', `It can't be more than the ${splits.dev} check tasks.`);
+    add(
+      'evaluation.minDevGain',
+      `It can't be more than the ${splits.dev} tasks each change is scored on.`,
+    );
   }
   if (!wholeNumber(evaluation.maxTypeRegression) || evaluation.maxTypeRegression < 0) {
     add('evaluation.maxTypeRegression', 'Use a whole number, 0 or more.');

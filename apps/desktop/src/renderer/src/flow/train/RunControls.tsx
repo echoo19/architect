@@ -6,6 +6,7 @@ import { architect } from '../../api/client';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { useAgentSettingsUi } from '../../workspace/settings/agentSettingsUi';
+import { useWords } from '../../shell/edition';
 import { modelNames } from '../names';
 import { setupOf } from './draft';
 import { hasKeptChange, type LiveRun } from './run-state';
@@ -128,6 +129,7 @@ export function StopDialog({
 }) {
   const [stopping, setStopping] = useState(false);
   const { mentor, student } = modelNames(live.job);
+  const w = useWords();
   const kept = hasKeptChange(live.rounds);
   const test = live.job.splits.test;
 
@@ -138,12 +140,12 @@ export function StopDialog({
     onClose();
   };
 
-  const best = setupOf(live, live.run.currentVersion);
+  const best = setupOf(live, live.run.currentVersion, w);
   const copy = kept
     ? {
         title: 'Stop training?',
-        description: `Training ends after the step in progress. ${live.job.name} keeps its best version so far (${best}), and ${student} takes the ${test}-task final test without ${mentor}.`,
-        confirm: 'Stop and run the final test',
+        description: `Training ends after the step in progress. ${live.job.name} keeps its best version so far (${best}), and ${student} takes the ${test}-task ${w.finalTest} without ${mentor}.`,
+        confirm: `Stop and run the ${w.finalTest}`,
       }
     : {
         title: 'Stop training?',

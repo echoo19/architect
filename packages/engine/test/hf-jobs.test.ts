@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -166,6 +166,9 @@ const jobPosts = () =>
 describe('Hugging Face Jobs', () => {
   it('starts the job by fetching its inputs at their commit, then running the recipe', () => {
     const script = bootstrapScript(loadRecipe(TRAINER));
+    const lines = script.split('\n');
+    // The image's Python is the system's, marked externally managed: pip installs only when told.
+    expect(lines.indexOf('export PIP_BREAK_SYSTEM_PACKAGES=1')).toBe(1);
     expect(script).toContain('pip install --no-cache-dir --quiet huggingface_hub==1.33.0');
     expect(script).toContain('revision=os.environ["ARCHITECT_INPUT_REVISION"]');
     expect(script.split('\n').at(-1)).toBe(
@@ -296,6 +299,81 @@ describe('Hugging Face Jobs', () => {
     expect((await worker.poll(record.id)).state).toBe('cancelled');
   });
 
+  it('makes one job when two processes start the same one at once, and holds two to one cap', async () => {
+    // Each worker has its own store object and queues, as two processes on one data folder do.
+    const first = setUp({ store: new FileTrainingStore(dataDir) }).worker;
+    const second = setUp({ store: new FileTrainingStore(dataDir) }).worker;
+    const dir = datasetDir('a');
+    const [a, b] = await Promise.all([first.submit(request(dir)), second.submit(request(dir))]);
+    expect(b.id).toBe(a.id);
+    expect(jobPosts()).toHaveLength(1);
+    expect(new FileTrainingStore(dataDir).list()).toHaveLength(1);
+
+    // $1.50 pays for 50 minutes on an L40S: one job, never two.
+    const capped = (name: string, order: string) => ({
+      ...request(datasetDir(name, order), 1.5),
+      scope: 'job_capped',
+    });
+    const settled = await Promise.allSettled([
+      first.submit(capped('b', '1183')),
+      second.submit(capped('c', '1184')),
+    ]);
+    expect(settled.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const refused = settled.find((result) => result.status === 'rejected');
+    expect((refused as PromiseRejectedResult).reason).toBeInstanceOf(GuardError);
+    expect(jobPosts()).toHaveLength(2);
+    expect(first.usage('job_capped', 1.5).reservedUsd).toBeLessThanOrEqual(1.5);
+  });
+
+  it('runs on the larger GPU when asked, priced and capped at its own rate', async () => {
+    const { worker } = setUp();
+    const record = await worker.submit({
+      ...request(datasetDir('a'), 5),
+      flavor: 'a100-large',
+      maxSeconds: 120 * 60,
+    });
+    expect(record.compute).toMatchObject({
+      flavor: 'a100-large',
+      pricePerHourUsd: 2.5,
+      authorizedSeconds: 120 * 60,
+      authorizedUsd: 5,
+    });
+    expect(JSON.parse(jobPosts()[0]?.body ?? '{}')).toMatchObject({ flavor: 'a100-large' });
+    // Hardware with no known price can't be held to the cap.
+    await expect(
+      worker.submit({ ...request(datasetDir('b', '1183')), flavor: 't4-small' }),
+    ).rejects.toThrow("The price of t4-small on Hugging Face Jobs isn't known");
+    expect(jobPosts()).toHaveLength(1);
+  });
+
+  it('refuses hardware with less GPU memory than the recipe asks for', async () => {
+    const trainer = join(dataDir, 'trainer');
+    cpSync(TRAINER, trainer, { recursive: true });
+    const recipe = JSON.parse(readFileSync(join(trainer, 'recipe.json'), 'utf8')) as {
+      hardware: { min_gpu_memory_gb: number };
+    };
+    recipe.hardware.min_gpu_memory_gb = 64;
+    writeFileSync(join(trainer, 'recipe.json'), JSON.stringify(recipe));
+    const token = async () => FAKE_HUB_TOKEN;
+    const worker = new TrainingWorker({
+      store: new FileTrainingStore(dataDir),
+      backends: {
+        'hf-jobs': new HfJobsBackend({
+          hub: new HubClient({ endpoint: hub.url, token }),
+          recipe: loadRecipe(trainer),
+          token,
+        }),
+      },
+      trainerDir: trainer,
+      watch: false,
+    });
+    await expect(worker.submit(request(datasetDir('a')))).rejects.toThrow(
+      'one NVIDIA L40S (48 GB) has less GPU memory than the recipe needs (64 GB)',
+    );
+    const larger = await worker.submit({ ...request(datasetDir('a')), flavor: 'a100-large' });
+    expect(larger.compute.flavor).toBe('a100-large');
+  });
+
   it('finds the job after a restart that cut off its submission, and never sends it twice', async () => {
     const store = new FileTrainingStore(dataDir);
     let puts = 0;
@@ -303,6 +381,7 @@ describe('Hugging Face Jobs', () => {
       list: () => store.list(),
       get: (id) => store.get(id),
       jobDir: (id) => store.jobDir(id),
+      exclusive: (work) => store.exclusive(work),
       put: (record) => {
         puts += 1;
         if (puts === 2) throw new Error('The app stopped.');

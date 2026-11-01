@@ -43,10 +43,10 @@ const CARRIED = 'instructions, helpers, retrieval and verified lessons';
 
 /** What it starts from: the version named, the one in use, or the field's starting setup. */
 function startsFrom(from: CarriedVersion | undefined, trained: boolean): string {
-  if (from) return `Starts from ${from.name}'s ${CARRIED}, and the field's counterexamples.`;
+  if (from) return `Starts from ${from.name}'s ${CARRIED}, and the field's regression suite.`;
   return trained
-    ? `Starts from the ${CARRIED} of the version in use, and the field's counterexamples.`
-    : "Starts from the field's starting setup, since no version of it has been trained yet.";
+    ? `Starts from the ${CARRIED} of the version in use, and the field's regression suite.`
+    : "Starts from the field's base harness, since no version of it has been trained yet.";
 }
 
 /**
@@ -119,7 +119,7 @@ export function MoveToModelDialog({
             </Line>
             <Line icon={<Layers aria-hidden strokeWidth={1.8} />}>{startsFrom(from, trained)}</Line>
             <Line icon={<ListChecks aria-hidden strokeWidth={1.8} />}>
-              Keeps the same practice tasks, check tasks, checker and study.
+              Keeps the same practice tasks, held-out checks, checker and study.
             </Line>
             <Line icon={<Lock aria-hidden strokeWidth={1.8} />}>
               {sealed.length === 0
@@ -127,7 +127,7 @@ export function MoveToModelDialog({
                 : `The final test and ${listed(sealed)} stay never seen, sealed exactly as they are.`}
             </Line>
             <Line icon={<ArrowRightLeft aria-hidden strokeWidth={1.8} />}>
-              The agent in use keeps answering on {current} until you switch it.
+              The specialist in use keeps answering on {current} until you switch it.
             </Line>
           </ul>
         </div>

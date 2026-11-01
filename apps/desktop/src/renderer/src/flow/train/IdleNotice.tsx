@@ -7,6 +7,7 @@ import { useUi } from '../../state/ui';
 import { askForAdvanced } from '../define/advanced-request';
 import { tokenState } from '../define/teacher-menu';
 import { modelNames } from '../names';
+import { useWords } from '../../shell/edition';
 import { idleView, type IdleView } from './idle';
 import type { LiveRun } from './run-state';
 
@@ -25,7 +26,7 @@ export function IdleNotice({ live }: { live: LiveRun }) {
   useEffect(() => reload(), [reload]);
   const [asked, setAsked] = useState(false);
   const state = tokenState(token);
-  const view = idleView(live, { token: state, keyAdded: asked && state === 'found' });
+  const view = idleView(live, { token: state, keyAdded: asked && state === 'found' }, useWords());
   const { run } = live;
   return (
     <IdleNoticeView

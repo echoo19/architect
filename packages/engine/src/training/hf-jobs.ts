@@ -17,11 +17,13 @@ import type { LoadedRecipe } from './recipe';
 
 /**
  * Hardware Architect trains on, with its price per hour as the Hub's Jobs hardware table listed it
- * on Oct 28 (billed by the minute). A flavor that isn't listed has no known price, so no job runs
- * on it.
+ * (billed by the minute): the L40S on Oct 28, the A100 on Nov 1. A flavor that isn't listed has no
+ * known price, so no job runs on it. The recipe's own is the L40S; the A100 holds examples longer
+ * than one L40S can train on (decision 102).
  */
 export const HF_JOB_FLAVORS: readonly HardwareFlavor[] = [
   { id: 'l40sx1', label: 'one NVIDIA L40S (48 GB)', pricePerHourUsd: 1.8, gpuMemoryGb: 48 },
+  { id: 'a100-large', label: 'one NVIDIA A100 (80 GB)', pricePerHourUsd: 2.5, gpuMemoryGb: 80 },
 ];
 
 /** The environment variable that tags a job with Architect's id for it. */
@@ -46,11 +48,17 @@ const STAGES: Record<string, BackendState> = {
   DELETED: 'failed',
 };
 
-/** What the job runs first: fetch its inputs at their commit, then hand over to the recipe. */
+/**
+ * What the job runs first: fetch its inputs at their commit, then hand over to the recipe. The
+ * recipe's image runs Ubuntu's own Python, marked as managed by the system (PEP 668), with torch
+ * installed into it; pip refuses to install beside it unless told to, and the job is its only
+ * user, so the script tells it to (checked on the image, Nov 1).
+ */
 export function bootstrapScript(recipe: LoadedRecipe): string {
   const { bootstrap_packages: packages, entry } = recipe.recipe;
   return [
     'set -euo pipefail',
+    'export PIP_BREAK_SYSTEM_PACKAGES=1',
     `python -m pip install --no-cache-dir --quiet ${packages.join(' ')}`,
     "python - <<'PY'",
     'import os',

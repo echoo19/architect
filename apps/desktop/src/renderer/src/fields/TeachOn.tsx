@@ -76,12 +76,12 @@ export function TeachOnDialog({
           </Line>
           <Line icon={<BookOpen aria-hidden strokeWidth={1.8} />}>
             {org}&rsquo;s files become material {teacher} may read, and its tasks become practice
-            and check tasks.
+            tasks and held-out checks.
           </Line>
           <Line icon={<Lock aria-hidden strokeWidth={1.8} />}>
             {others.length === 0
               ? 'No never-seen organization is left in the new version. Seal a fresh cohort or add one to keep testing on work it never saw.'
-              : `${listed(others.map((item) => item.name))} ${others.length === 1 ? 'stays' : 'stay'} never seen, sealed again for its final test.${real.length === 0 ? ' None of them is real: seal a fresh cohort or add a real one.' : ''}`}
+              : `${listed(others.map((item) => item.name))} ${others.length === 1 ? 'stays' : 'stay'} never seen, sealed again for the final test.${real.length === 0 ? ' None of them is real: seal a fresh cohort or add a real one.' : ''}`}
           </Line>
           <Line icon={<History aria-hidden strokeWidth={1.8} />}>
             What was measured on {org} stays as it was, marked measured before it was taught on.

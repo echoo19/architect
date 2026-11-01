@@ -124,8 +124,8 @@ function PlanLines({ certification }: { certification: Certification }) {
         </Line>
       )}
       <Line icon={<Repeat aria-hidden strokeWidth={1.8} />}>
-        {plan.attempts} tries, {request.k} at each task,{' '}
-        {plan.target === 'local' ? 'on this computer' : `on ${shortModelName(plan.student)}`}
+        {plan.attempts} attempts, {request.k} per task,{' '}
+        {plan.target === 'local' ? 'on-premise' : `on ${shortModelName(plan.student)}`}
       </Line>
       <Line icon={<Clock aria-hidden strokeWidth={1.8} />}>
         {formatAbout(plan.seconds)} · {plan.usd === 0 ? 'Free' : aboutUsd(plan.usd)}
@@ -386,7 +386,7 @@ function SetUp({
               max={2000}
             />
             <NumberRow
-              label="Tries per task"
+              label="Attempts per task"
               value={settings.k}
               onChange={(k) => set({ k })}
               integer
@@ -394,7 +394,7 @@ function SetUp({
               max={9}
             />
             <NumberRow
-              label="Wrong at most"
+              label="Risk target"
               value={settings.wrong}
               onChange={(wrong) => set({ wrong })}
               unit="%"

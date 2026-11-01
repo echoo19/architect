@@ -162,7 +162,7 @@ const computeFor = (model?: string) =>
 
 test("opened from a field, plans its student's model at once and offers its earlier export", async () => {
   await goTo(page, computeFor());
-  const card = region('Training plan');
+  const card = region('Fine-tuning plan');
   await expect(card.getByLabel('Model')).toHaveValue(REPO);
   await expect(card).toContainText(`For ${FIELD_JOB.name}, from its student muse-glimmer:30b`);
   await expect(region('Memory on each GPU').getByText('Estimate')).toBeVisible();
@@ -172,7 +172,7 @@ test("opened from a field, plans its student's model at once and offers its earl
   expect(files.map((request) => request.path)).toEqual([`/${REPO}/resolve/${commit}/config.json`]);
 
   const clusters = region('Clusters');
-  await expect(clusters.getByText('Bundle only')).toBeVisible();
+  await expect(clusters.getByText('Launch bundle')).toHaveCount(0);
   for (const command of [
     'sbatch submit.sbatch',
     'kubectl apply -f pytorchjob.yaml',
@@ -183,18 +183,18 @@ test("opened from a field, plans its student's model at once and offers its earl
   await capture('compute-field-dark.png', card);
 
   // The export from before the restart is offered, and waits to be chosen again.
-  const bundle = region('Bundle');
+  const bundle = region('Cluster launch bundle');
   await expect(bundle).toContainText(`Field export of ${FIELD_JOB.name}`);
   await expect(bundle).toContainText(/…[\\/]exports[\\/]academy-desk/);
   // The button is held, and says why when asked, not in a line beside it.
-  expect(await heldBy(page, bundle.getByRole('button', { name: 'Write bundle' }))).toBe(
+  expect(await heldBy(page, bundle.getByRole('button', { name: 'Write launch bundle' }))).toBe(
     'Choose the field export again.',
   );
   await capture('compute-field-export-dark.png', bundle);
 });
 
 test('writes a SkyPilot bundle from the export once it is chosen again, and shows the command', async () => {
-  const bundle = region('Bundle');
+  const bundle = region('Cluster launch bundle');
   await picks(exported);
   await bundle.getByRole('button', { name: 'Choose again' }).click();
   // The dialog opened at the folder recorded before the restart.
@@ -205,12 +205,12 @@ test('writes a SkyPilot bundle from the export once it is chosen again, and show
   await picks(out);
   await bundle.getByRole('button', { name: 'Choose', exact: true }).nth(1).click();
   await bundle.getByRole('radio', { name: 'SkyPilot' }).click();
-  await bundle.getByRole('button', { name: 'Write bundle' }).click();
+  await bundle.getByRole('button', { name: 'Write launch bundle' }).click();
 
   const submit = bundle.getByRole('region', { name: 'Submit command' });
   await expect(submit).toContainText('sky launch -c architect-train sky.yaml');
-  expect(await infoTipText(page, bundle, 'the bundle')).toContain(
-    'Architect writes this bundle and never submits it.',
+  expect(await infoTipText(page, bundle, 'the cluster launch bundle')).toContain(
+    'Architect writes the bundle and your own scheduler submits it.',
   );
   const [written] = await readdir(out);
   if (written === undefined) throw new Error('No bundle was written.');
@@ -235,7 +235,7 @@ test('writes a SkyPilot bundle from the export once it is chosen again, and show
 
 test("names the field and leaves the model empty when it can't place the student", async () => {
   await goTo(page, computeFor('acme-tutor:7b'));
-  const card = region('Training plan');
+  const card = region('Fine-tuning plan');
   await expect(card.getByLabel('Model')).toHaveValue('');
   await expect(card).toContainText(
     `For ${FIELD_JOB.name}. Its student, acme-tutor:7b, has no Hugging Face repository Architect knows`,
@@ -251,7 +251,7 @@ test("the Student tab plans the field's cluster training in one step", async () 
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   const inspector = page.getByRole('complementary', { name: 'Advanced settings' });
   await inspector.getByRole('tab', { name: 'Glimmer' }).click();
-  await inspector.getByRole('button', { name: 'Plan cluster training' }).click();
+  await inspector.getByRole('button', { name: 'Plan cluster fine-tuning' }).click();
   await expect(page).toHaveURL(new RegExp(`#/compute/fields/${FLOW.jobId}$`));
-  await expect(region('Training plan').getByLabel('Model')).toHaveValue(REPO);
+  await expect(region('Fine-tuning plan').getByLabel('Model')).toHaveValue(REPO);
 });
