@@ -32,11 +32,11 @@ From the event page and the participants' event guide:
 ## Submission checklist
 
 - [x] Repository public, README complete, licence present
-- [ ] CI green on the final commit
-- [x] Installers attached to a GitHub release (0.4.0, Oct 30, the first with a signed and notarized Mac app; after 0.3.0 to 0.3.5 on Oct 29)
+- [ ] CI green on the final commit (green on 0.8.0's, Nov 1; check again on the last one)
+- [x] Installers attached to a GitHub release (0.8.0, Nov 1: Windows, Mac on Apple silicon and Intel; the Mac app signed and notarized, the Windows installer not signed)
 - [x] Sample job and one shipped graduate in the repo
 - [x] README results filled from real runs
-- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 50 s, is rendered (`renders/architect-walkthrough.mp4` in the film folder outside the repo, see PROGRESS) and plays on the site's home page; it still needs uploading where the platform can link to it
+- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 41 s, is `renders/lab-walkthrough-final-3.mp4` in the film folder outside the repo (its record is that folder's `BRIEF.md`) and plays on the site's home page; it still needs uploading where the platform can link to it (the owner's account)
 - [ ] Submission made on the Cerebral Valley platform by Wed Nov 4, 9:00 PM ET, with the problem statement, the track (indie), the repository and video links, and everyone who contributed listed
 - [ ] Optional: the demo posted on X, its link added on the platform
 
