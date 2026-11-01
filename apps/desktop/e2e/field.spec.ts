@@ -173,13 +173,15 @@ test('shows each skill at each organization, trained-with, never-seen and real a
   await expect(page.getByRole('table', { name: 'Results by task type' })).toBeVisible();
 
   // The headline's figures at the top, the grid whole below them.
-  await page.getByText('on the final test, organizations it was taught on').evaluate((label) => {
-    const figures = label.closest('.border-y') ?? label;
-    let box = figures.parentElement;
-    while (box && !/auto|scroll/.test(getComputedStyle(box).overflowY)) box = box.parentElement;
-    if (!box) throw new Error('The report does not scroll.');
-    box.scrollTop += figures.getBoundingClientRect().top - box.getBoundingClientRect().top - 16;
-  });
+  await page
+    .getByText('on the sealed final test, organizations it was taught on')
+    .evaluate((label) => {
+      const figures = label.closest('.border-y') ?? label;
+      let box = figures.parentElement;
+      while (box && !/auto|scroll/.test(getComputedStyle(box).overflowY)) box = box.parentElement;
+      if (!box) throw new Error('The report does not scroll.');
+      box.scrollTop += figures.getBoundingClientRect().top - box.getBoundingClientRect().top - 16;
+    });
   await capture('report-field-dark.png');
 });
 

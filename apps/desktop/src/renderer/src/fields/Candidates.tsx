@@ -40,7 +40,7 @@ export function Candidates({ field }: { field: FieldSummary }) {
         rowKey={(candidate) => candidate.run.id}
         onRowClick={open}
         initialSort={{ key: 'tested', direction: 'descending' }}
-        empty="No version has taken its final test yet"
+        empty="No version has taken its sealed final test yet"
         columns={[
           {
             key: 'tested',

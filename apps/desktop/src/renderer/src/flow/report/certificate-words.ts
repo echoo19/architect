@@ -33,6 +33,15 @@ export function certificateSentence(certificate: Issued, name: string): string {
   return `When ${name} answers, it is wrong on at most ${boundPercent(bound)}% of requests like these, with ${confidence(certificate.delta)}. ${rest}`;
 }
 
+/**
+ * The certificate as the Lab reads it, the figure first: "8% risk bound on Academy desk's answers,
+ * at 95% confidence and 78% coverage."
+ */
+export function riskCertificateSentence(certificate: Issued, name: string): string {
+  const { bound, coverage } = certificate.threshold;
+  return `${boundPercent(bound)}% risk bound on ${name}'s answers, at ${confidence(certificate.delta)} and ${share(coverage)}% coverage.`;
+}
+
 /** How it was measured, in one line: what the sentence rests on. */
 export function certificateBasis(certificate: Certificate): string {
   const tasks = `${certificate.n} calibration ${certificate.n === 1 ? 'task' : 'tasks'}`;
@@ -68,10 +77,10 @@ export function noCertificateSentence(
  * certification after the fact, decision 079), or one it never saw, by name, said to be measured
  * before it was taught on once a later version of the field teaches on it (decision 089).
  */
-export function checkPlace(check: CertificateCheck): string {
+export function checkPlace(check: CertificateCheck, FinalTest = 'Final test'): string {
   if (check.seen) {
     return check.orgName === undefined
-      ? 'Final test, organizations it was taught on'
+      ? `${FinalTest}, organizations it was taught on`
       : `New tasks at ${check.orgName}`;
   }
   const place = check.orgName ?? 'An organization it never saw';
@@ -93,7 +102,7 @@ export function certificateFigure(certificate: Certificate | undefined): string 
 
 /** A certificate's figure explained, for a tooltip or a screen reader. */
 export function certificateHint(certificate: Certificate): string {
-  if (!certificate.issued) return 'Not certified';
+  if (!certificate.issued) return 'No risk certificate';
   const { bound, coverage } = certificate.threshold;
-  return `Wrong on at most ${boundPercent(bound)}% of the requests it answers, with ${confidence(certificate.delta)}; it answers ${share(coverage)}%`;
+  return `Risk certificate: bound ${boundPercent(bound)}% at ${confidence(certificate.delta)}, coverage ${share(coverage)}%`;
 }

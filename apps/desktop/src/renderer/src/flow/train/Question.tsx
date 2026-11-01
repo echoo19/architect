@@ -4,6 +4,7 @@ import { Button, Checkbox, Collapse, Skeleton, Textarea } from '@architect/ui';
 import { architect } from '../../api/client';
 import { ProblemState } from '../../components/ProblemState';
 import { attempt } from '../../lib/notify';
+import { useWords } from '../../shell/edition';
 import type { ModelNames } from './phase';
 import type { QuestionView } from './questions';
 
@@ -67,6 +68,7 @@ function Asking({
   intervention: Intervention;
   names: ModelNames;
 }) {
+  const w = useWords();
   const [text, setText] = useState('');
   const [changes, setChanges] = useState(false);
   const [sending, setSending] = useState(false);
@@ -129,7 +131,7 @@ function Asking({
         </div>
         <Collapse open={changes}>
           <p className="m-0 text-small text-pretty">
-            This run stops here. Its final test belongs to the job as it was, so you would train
+            This run stops here. Its {w.finalTest} belongs to the job as it was, so you would train
             again on the changed job.
           </p>
         </Collapse>

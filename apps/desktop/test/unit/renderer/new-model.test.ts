@@ -145,7 +145,7 @@ describe("the field's timeline", () => {
       stage: 'moved',
       word: 'Moved to Qwen3 8B',
       sentence:
-        'Made as version 2 from Academy desk, carried from Glimmer to Qwen3 8B with its harness, lessons and tasks',
+        'Made as version 2 from Academy desk, carried from Glimmer to Qwen3 8B with its harness, lessons, regression suite and tasks',
       link: { place: 'Field', to: { path: `/fields/${JOB.id}` } },
     });
 

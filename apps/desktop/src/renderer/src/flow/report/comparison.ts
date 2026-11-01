@@ -12,6 +12,14 @@ const METHOD_NAMES: Record<Method, string> = {
   bare: 'No setup',
 };
 
+/** The same methods as the Lab names them. */
+export const LAB_METHOD_NAMES: Record<Method, string> = {
+  architect: 'Engineered harness',
+  one_shot: 'One-shot harness',
+  self_reflection: 'Self-revised harness',
+  bare: 'Base harness',
+};
+
 export interface ComparisonRow {
   runId: string;
   method: Method;
@@ -68,7 +76,23 @@ export function comparisonRows(reports: readonly ReportCard[], runId: string): C
 }
 
 /** What each way of building the agent did, in one line, with the job's model names. */
-export function methodExplanation(method: Method, { mentor, student }: ModelNames): string {
+export function methodExplanation(
+  method: Method,
+  { mentor, student }: ModelNames,
+  lab = false,
+): string {
+  if (lab) {
+    switch (method) {
+      case 'architect':
+        return `${mentor} engineered ${student}'s harness round by round and kept what measured better`;
+      case 'one_shot':
+        return `${mentor} wrote the harness once, without watching`;
+      case 'self_reflection':
+        return `${student} revised its own harness, with no help from ${mentor}`;
+      case 'bare':
+        return `${student} with no instructions or skills`;
+    }
+  }
   switch (method) {
     case 'architect':
       return `${mentor} taught ${student} and kept what helped`;

@@ -116,14 +116,14 @@ function gpusFor(method: TrainMethod, seqLen = 4096): number {
 
 test('shows each target with what it can do, the clusters as bundles only', async () => {
   await goTo(page, '/compute');
-  const computer = region('This computer');
+  const computer = region('On-premise');
   await expect(computer).toContainText('NVIDIA GeForce RTX 4070 · 12 GB');
   await expect(computer).toContainText('Running · 0.12.6');
   await expect(computer).toContainText('Ready · build 10472');
   await expect(region('Hugging Face Jobs')).toContainText('Ready');
   await expect(region('Hugging Face Jobs')).toContainText('HF_TOKEN');
   const clusters = region('Clusters');
-  await expect(clusters.getByText('Bundle only')).toBeVisible();
+  await expect(clusters.getByText('Launch bundle')).toBeVisible();
   for (const command of [
     'sbatch submit.sbatch',
     'kubectl apply -f pytorchjob.yaml',
@@ -132,13 +132,13 @@ test('shows each target with what it can do, the clusters as bundles only', asyn
     await expect(clusters).toContainText(command);
   }
   // No model is planned until the person enters one.
-  await expect(region('Training plan').getByLabel('Model')).toHaveValue('');
+  await expect(region('Fine-tuning plan').getByLabel('Model')).toHaveValue('');
   await expect(region('Memory on each GPU')).toHaveCount(0);
   await capture('compute-dark.png');
 });
 
 test('plans a mixture of experts from its config.json on the Hub, every term with its arithmetic', async () => {
-  const card = region('Training plan');
+  const card = region('Fine-tuning plan');
   await card.getByLabel('Model').fill(REPO);
   await card.getByRole('button', { name: 'Read config' }).click();
 
@@ -175,7 +175,7 @@ test('plans a mixture of experts from its config.json on the Hub, every term wit
   // QLoRA, and a longer sequence in the inspector, are sized again at once.
   await card.getByRole('radio', { name: 'QLoRA' }).click();
   await expect(terms).toContainText('NF4 with double quantization');
-  await settings().getByRole('tab', { name: 'Training' }).click();
+  await settings().getByRole('tab', { name: 'Fine-tuning' }).click();
   await settings().getByLabel('Tokens per sequence').fill('8192');
   await expect(terms).toContainText('b·s·h·2·L = 1·8192·4096·2·94');
   await expect(
@@ -199,14 +199,16 @@ test('plans a mixture of experts from its config.json on the Hub, every term wit
 test("says plainly why a config can't be sized", async () => {
   const mamba = join(folders, 'mamba-config.json');
   await writeFile(mamba, JSON.stringify({ ...MOE, model_type: 'mamba' }));
-  const card = region('Training plan');
+  const card = region('Fine-tuning plan');
   await card.getByRole('radio', { name: 'config.json' }).click();
   await picks(mamba);
   await card.getByRole('button', { name: 'Choose config.json' }).click();
   const refusal = region('Memory on each GPU');
   await expect(refusal.getByText("Can't size this model")).toBeVisible();
   await expect(refusal).toContainText("A mamba model isn't a decoder made of attention");
-  await expect(region('Bundle').getByRole('button', { name: 'Write bundle' })).toBeDisabled();
+  await expect(
+    region('Cluster launch bundle').getByRole('button', { name: 'Write launch bundle' }),
+  ).toBeDisabled();
 
   await card.getByRole('radio', { name: 'Hugging Face' }).click();
   await card.getByRole('button', { name: 'Read config' }).click();
@@ -246,8 +248,8 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
   const out = join(folders, 'Architect', 'bundles');
   await mkdir(out, { recursive: true });
 
-  const bundle = region('Bundle');
-  const write = bundle.getByRole('button', { name: 'Write bundle' });
+  const bundle = region('Cluster launch bundle');
+  const write = bundle.getByRole('button', { name: 'Write launch bundle' });
   expect(await heldBy(page, write)).toBe('Choose a field export.');
   await picks(exported);
   await bundle.getByRole('button', { name: 'Choose' }).first().click();
@@ -257,8 +259,8 @@ test('writes Slurm and Kubernetes bundles from a field export and shows the comm
 
   const submit = bundle.getByRole('region', { name: 'Submit command' });
   await expect(submit).toContainText('sbatch submit.sbatch');
-  expect(await infoTipText(page, bundle, 'the bundle')).toContain(
-    'Architect writes this bundle and never submits it.',
+  expect(await infoTipText(page, bundle, 'the cluster launch bundle')).toContain(
+    'Architect writes the bundle and your own scheduler submits it.',
   );
   await expect(bundle).toContainText(/…[\\/]exports[\\/]academy-desk/);
   await expect(bundle).not.toContainText(folders);

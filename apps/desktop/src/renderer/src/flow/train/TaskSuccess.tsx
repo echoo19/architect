@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { cn, EvidenceMark, NumberTicker, Tooltip } from '@architect/ui';
+import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
 import { percent } from '../format';
 import {
@@ -20,6 +21,7 @@ import { hasEnded, type LiveRun } from './run-state';
  */
 export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames }) {
   const { run, job, rounds } = live;
+  const w = useWords();
   const score = run.devCurrent ?? run.devBaseline;
   // A change measured twice is kept on both measurements added up, so the count can span two.
   const runs = score && job.splits.dev > 0 ? Math.round(score.total / job.splits.dev) : 1;
@@ -36,7 +38,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
   const total = runs > 1 ? job.splits.dev : (score?.total ?? 0);
   return (
     <section
-      aria-label="Score on the check tasks"
+      aria-label={`Score on the ${w.checks}`}
       className="grid grid-cols-1 items-center gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_700px]"
     >
       <div className="flex flex-col gap-4">
@@ -60,7 +62,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
           >
             <span tabIndex={0} className="cursor-help rounded-mark">
               <EvidenceMark kind="check" className="text-ui">
-                check tasks
+                {w.checks}
               </EvidenceMark>
             </span>
           </Tooltip>
@@ -86,6 +88,7 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
  * job of one organization.
  */
 function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
+  const w = useWords();
   const { run, job } = live;
   const perRun = (value: number) => (runs > 1 ? Math.round((value / runs) * 10) / 10 : value);
   const rows = (job.organizations ?? []).flatMap((org) => {
@@ -94,7 +97,7 @@ function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
   });
   if (rows.length === 0) return null;
   return (
-    <ul aria-label="Check tasks by organization" className="m-0 flex list-none flex-col p-0">
+    <ul aria-label={`${w.Checks} by organization`} className="m-0 flex list-none flex-col p-0">
       {rows.map(({ org, score }) => (
         <li
           key={org.id}
@@ -121,6 +124,7 @@ function CurveChart({
   /** The run is over, so a curve with no score will never get one. */
   ended: boolean;
 }) {
+  const w = useWords();
   const { ticks, valueTicks, line, branches, head, pending, targetY } = geometry;
   const points = line.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
   const target = Math.round(input.target * 100);
@@ -129,7 +133,7 @@ function CurveChart({
       viewBox={`0 0 ${CURVE_BOX.width} ${CURVE_BOX.height}`}
       width="100%"
       role="img"
-      aria-label={describeCurve(input)}
+      aria-label={describeCurve(input, w.checks)}
       className="block overflow-visible"
     >
       {valueTicks.map((tick) => (

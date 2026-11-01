@@ -18,7 +18,7 @@ import {
   SpendCard,
 } from '../lab/cards';
 import { finishedRuns, runningExperiments, runningRuns } from '../lab/items';
-import { mentorName, studentName } from '../lib/names';
+import { mentorName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 
@@ -126,19 +126,14 @@ function LabSkeleton() {
 }
 
 /**
- * A fresh install: nothing made, nothing running. One line says what a field is and who the two
- * models are; each way in starts the flow.
+ * A fresh install: nothing made, nothing running. One short line says what to do next and who
+ * does the engineering; each way in starts the flow.
  */
 function NothingYet() {
   const settings = useSettings();
-  const pitch =
-    settings.status === 'success'
-      ? `A field is one kind of work that many organizations do, like tutoring at academies. ${mentorName(
-          settings.data.defaultMentor,
-        )}, a large model, teaches ${studentName(
-          settings.data.defaultStudent,
-        )}, the small model on this computer, to do it, then tests it on organizations it never saw.`
-      : 'A field is one kind of work that many organizations do. Architect teaches an agent to do it, then tests it on organizations it never saw.';
+  const mentor =
+    settings.status === 'success' ? mentorName(settings.data.defaultMentor) : 'Architect';
+  const pitch = `Describe a field, and ${mentor} engineers a specialist for it.`;
   return (
     <EmptyState
       icon={<LayoutGrid aria-hidden />}

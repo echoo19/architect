@@ -1,5 +1,5 @@
 import type { Certificate as CertificateRecord } from '@architect/shared';
-import { Disclosure, RiskCoveragePlot } from '@architect/ui';
+import { defineTerm, Disclosure, InfoTip, RiskCoveragePlot } from '@architect/ui';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { Section } from '../ledger';
 import {
@@ -8,7 +8,9 @@ import {
   checkCounts,
   checkPlace,
   noCertificateSentence,
+  riskCertificateSentence,
 } from './certificate-words';
+import { useEdition } from '../../shell/edition';
 
 /**
  * Certified answers (decision 077): the one sentence a buyer can read, what it rests on and
@@ -22,6 +24,7 @@ export function Certificate({
   certificate: CertificateRecord;
   name: string;
 }) {
+  const lab = useEdition() === 'lab';
   const points = certificate.curve.map((point) => ({
     coverage: point.coverage,
     bound: point.bound,
@@ -31,12 +34,18 @@ export function Certificate({
     ? certificate.curve.findIndex((point) => point.votes === certificate.threshold.votes)
     : -1;
   return (
-    <Section title="Certified answers" id="certificate">
+    <Section
+      title={lab ? 'Risk certificate' : 'Certified answers'}
+      id="certificate"
+      actions={lab && <InfoTip about="risk certificates">{defineTerm('riskCertificate')}</InfoTip>}
+    >
       <div className="flex flex-col gap-6 border-t border-line pt-5">
         <div className="flex max-w-[660px] flex-col gap-2">
           <p className="m-0 text-body text-pretty">
             {certificate.issued
-              ? certificateSentence(certificate, name)
+              ? lab
+                ? riskCertificateSentence(certificate, name)
+                : certificateSentence(certificate, name)
               : noCertificateSentence(certificate)}
           </p>
           {/* What the bound rests on and what it assumes, a click away from the sentence. */}
@@ -71,7 +80,9 @@ export function Certificate({
                 ) : (
                   <CircleX size={16} strokeWidth={1.8} className="text-danger" aria-hidden />
                 )}
-                <span className="truncate">{checkPlace(check)}</span>
+                <span className="truncate">
+                  {checkPlace(check, lab ? 'Sealed final test' : 'Final test')}
+                </span>
                 <span className="hidden text-small tabular-nums sm:block">
                   {checkCounts(check)}
                 </span>

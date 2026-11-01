@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   ChoiceTiles,
+  defineTerm,
   ErrorState,
   Field,
   Input,
@@ -48,13 +49,18 @@ const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
 const TABS: readonly InspectorTab<Tab>[] = [
   { value: 'hardware', label: 'Hardware', icon: <Cpu {...tabIcon} /> },
-  { value: 'training', label: 'Training', icon: <SlidersHorizontal {...tabIcon} /> },
+  { value: 'training', label: 'Fine-tuning', icon: <SlidersHorizontal {...tabIcon} /> },
 ];
 
 const METHODS = [
-  { value: 'lora', label: 'LoRA', icon: <Layers2 aria-hidden /> },
-  { value: 'qlora', label: 'QLoRA', icon: <Binary aria-hidden /> },
-  { value: 'full', label: 'Full', icon: <Boxes aria-hidden /> },
+  { value: 'lora', label: 'LoRA', icon: <Layers2 aria-hidden />, tip: defineTerm('loraAdapter') },
+  { value: 'qlora', label: 'QLoRA', icon: <Binary aria-hidden />, tip: defineTerm('qlora') },
+  {
+    value: 'full',
+    label: 'Full fine-tune',
+    icon: <Boxes aria-hidden />,
+    tip: defineTerm('fullFineTune'),
+  },
 ] as const;
 
 /**
@@ -274,7 +280,7 @@ function PlanCard({
 
   return (
     <Card
-      title="Training plan"
+      title="Fine-tuning plan"
       action={
         <Segmented
           aria-label="Where the config comes from"

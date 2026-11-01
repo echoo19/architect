@@ -63,7 +63,7 @@ test('a fresh install chooses its edition first on the welcome screen', async ()
   const lab = choice.getByRole('radio', { name: /Architect Lab/ });
   await expect(personal).toHaveAttribute('aria-checked', 'true');
   await expect(personal).toContainText('Teach an agent one job');
-  await expect(lab).toContainText('Fields, experiments, models and compute');
+  await expect(lab).toContainText('R&D for an entire field');
   await capture('welcome-editions-dark.png');
 
   await lab.click();

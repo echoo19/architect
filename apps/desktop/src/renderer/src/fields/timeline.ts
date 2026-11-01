@@ -118,7 +118,7 @@ function taughtHead(run: Run): string {
     case 'paused':
       return `Training paused after ${rounds}`;
     case 'testing':
-      return `Trained ${rounds}, taking its final test`;
+      return `Trained ${rounds}, taking its sealed final test`;
     case 'stopped':
       return `Training stopped after ${rounds}`;
     case 'failed':
@@ -144,8 +144,9 @@ const NO_CERTIFICATE: Record<Extract<Certificate, { issued: false }>['reason'], 
 
 /** One certificate in a sentence, with whether it held where the version was never taught. */
 function certificateSentence(name: string, certificate: Certificate): string {
-  if (!certificate.issued) return `${name} wasn't certified: ${NO_CERTIFICATE[certificate.reason]}`;
-  const claim = `${name} was certified: wrong on at most ${boundPercent(certificate.threshold.bound)}% of the answers it gives`;
+  if (!certificate.issued)
+    return `${name} got no risk certificate: ${NO_CERTIFICATE[certificate.reason]}`;
+  const claim = `${name} was issued a risk certificate: risk bound ${boundPercent(certificate.threshold.bound)}% on the answers it gives`;
   const unseen = certificate.checks.filter((check) => !check.seen);
   if (unseen.length === 0) return claim;
   const held = unseen.filter((check) => check.held).length;
@@ -182,7 +183,7 @@ export function fieldTimeline(
       stage: 'moved',
       word: `Moved to ${versionOf.model.to}`,
       at: field.job.createdAt,
-      sentence: `Made as version ${versionOf.version} from ${versionOf.name}, carried from ${versionOf.model.from} to ${versionOf.model.to} with its harness, lessons and tasks`,
+      sentence: `Made as version ${versionOf.version} from ${versionOf.name}, carried from ${versionOf.model.from} to ${versionOf.model.to} with its harness, lessons, regression suite and tasks`,
       link: { place: 'Field', to: { path: paths.field(versionOf.jobId) } },
     });
   } else if (versionOf?.org) {
@@ -240,7 +241,7 @@ export function fieldTimeline(
     const parts = [
       taughtHead(run),
       ...(kept === null ? [] : [`kept ${plural(kept, 'change')}`]),
-      ...(found === 0 ? [] : [`found ${plural(found, 'counterexample')}`]),
+      ...(found === 0 ? [] : [`added ${plural(found, 'counterexample')} to the regression suite`]),
     ];
     entries.push({
       key: `taught:${run.id}`,
@@ -255,7 +256,7 @@ export function fieldTimeline(
       key: `tested:${run.id}`,
       stage: 'tested',
       at: report.createdAt,
-      sentence: `${nameOf(run.id)} took its final test: ${scoresPhrase(candidate.scores)}`,
+      sentence: `${nameOf(run.id)} took its sealed final test: ${scoresPhrase(candidate.scores)}`,
       link: results(run.id),
     });
     if (report.certificate) {
@@ -286,7 +287,7 @@ export function fieldTimeline(
       key: `qualified:${item.id}`,
       stage: 'tested',
       at: item.endedAt ?? item.startedAt,
-      sentence: `${item.model}, trained elsewhere, took the final test with harness v${item.harnessVersion}: ${scoresPhrase(reportScores(item.card))}`,
+      sentence: `${item.model}, fine-tuned elsewhere, took the sealed final test with harness v${item.harnessVersion}: ${scoresPhrase(reportScores(item.card))}`,
       link: { place: 'Compute', to: { path: paths.compute({ jobId }) } },
     });
   }
@@ -324,7 +325,7 @@ export function fieldTimeline(
       key: 'exported',
       stage: 'exported',
       at: records.exported.at,
-      sentence: `Exported the field's training examples to ${shortPath(records.exported.dir)}`,
+      sentence: `Exported the field's fine-tuning data to ${shortPath(records.exported.dir)}`,
       link: { place: 'Compute', to: { path: paths.compute({ jobId }) } },
     });
   }
@@ -356,7 +357,7 @@ function nextStep(
   if (!best) {
     if (field.runs.some((run) => ACTIVE.has(run.status))) return null;
     return {
-      sentence: 'Train a version through its final test',
+      sentence: 'Train a version through its sealed final test',
       link: { ...define, place: 'Edit field' },
     };
   }
@@ -374,7 +375,7 @@ function nextStep(
   if (!certified) {
     const version = records.versions.find((item) => item.runId === best.run.id);
     return {
-      sentence: 'Certify the best version',
+      sentence: 'Issue a risk certificate for the best version',
       link: version
         ? { place: 'Models', to: { path: paths.models(version.key) } }
         : { place: 'Results', to: { path: paths.report(best.run.id) } },
@@ -382,7 +383,7 @@ function nextStep(
   }
   if (records.experiments.length === 0) {
     return {
-      sentence: 'Compare ways of teaching it in an experiment',
+      sentence: 'Compare harnesses in a preregistered experiment',
       link: { place: 'Experiments', to: { path: paths.newExperiment(jobId) } },
     };
   }

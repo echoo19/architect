@@ -5,6 +5,7 @@ import { Check, CircleX } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { useQuery } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
+import { useWords } from '../../shell/edition';
 import { formatAnswerTime, taskTitle } from '../format';
 import type { ModelNames } from './phase';
 import type { StepNote } from './lesson-steps';
@@ -21,8 +22,9 @@ const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
 
 /** "Practice task, round 4" or "Check task, round 3 · Spark sees only the score", with its mark. */
 function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: string }) {
+  const w = useWords();
   const check = attempt.split === 'dev';
-  const kind = check ? 'Check task' : 'Practice task';
+  const kind = check ? w.CheckTask : 'Practice task';
   return (
     <>
       <EvidenceMark kind={check ? 'check' : 'practice'} className="align-[-2px]">

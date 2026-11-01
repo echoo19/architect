@@ -80,7 +80,7 @@ test("browses a field's practice and check tasks, with the sealed splits counted
     page.getByRole('radio', { name: `Practice ${ACADEMY_DESK_TASKS.train.length}` }),
   ).toBeVisible();
   // The final test and the calibration tasks are counts behind a lock, never rows.
-  await expect(page.getByText('Final test 72 tasks')).toBeVisible();
+  await expect(page.getByText('Sealed final test 72 tasks')).toBeVisible();
   await expect(page.getByText('Calibration 12 tasks')).toBeVisible();
   await capture('field-tasks-dark.png');
 
@@ -91,12 +91,12 @@ test("browses a field's practice and check tasks, with the sealed splits counted
   await page.getByRole('option', { name: 'Lakeview Academy' }).click();
   await expect(practice.getByRole('row')).toHaveCount(3);
 
-  await page.getByRole('radio', { name: /^Check/ }).click();
-  const check = page.getByRole('table', { name: 'Check tasks' });
+  await page.getByRole('radio', { name: /^Held-out/ }).click();
+  const check = page.getByRole('table', { name: 'Held-out tasks' });
   await expect(check.getByRole('row')).toHaveCount(2);
   await check.getByRole('row').nth(1).click();
   const panel = page.getByRole('dialog');
-  await expect(panel).toContainText('First hint · Lakeview Academy · Check task');
+  await expect(panel).toContainText('First hint · Lakeview Academy · Held-out task');
   await expect(panel.getByRole('region', { name: 'Request' })).toContainText(
     "Which first hint does Lakeview Academy's catalog give for that error?",
   );

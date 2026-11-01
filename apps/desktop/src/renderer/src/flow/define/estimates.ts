@@ -1,3 +1,4 @@
+import { WORDS, type Words } from '@architect/ui';
 import { formatDuration, formatUsd } from '../../lib/format';
 import { mentorIsLocal } from '../../lib/names';
 import {
@@ -215,6 +216,8 @@ export interface EstimateNotesInput {
   remote: TimeEstimate | null;
   /** Whether the three simpler versions are offered, which the notes then explain. */
   baselines: boolean;
+  /** The words of this edition; the personal edition's when left out. */
+  words?: Words;
 }
 
 /**
@@ -223,7 +226,7 @@ export interface EstimateNotesInput {
  * hard cap.
  */
 export function estimateNotes(job: Job, input: EstimateNotesInput): string[] {
-  const { names, device, local, remote, baselines } = input;
+  const { names, device, local, remote, baselines, words = WORDS.personal } = input;
   const { maxRounds, maxWallMinutes } = job.budget;
   const { mentor, student } = names;
   return [
@@ -234,7 +237,7 @@ export function estimateNotes(job: Job, input: EstimateNotesInput): string[] {
     `${mentor} ${teacherWorks(job, device.inSentence)} and sees the practice attempts and the file samples it needs.`,
     ...(baselines
       ? [
-          `The three simpler versions are ${student} on its own, a setup ${mentor} writes in one go, and ${student} revising its own. They run after this agent.`,
+          `The three simpler versions are ${student} on its own, a ${words.setup} ${mentor} writes in one go, and ${student} revising its own. They run after this agent.`,
         ]
       : []),
     `Only ${mentor}'s bill has a hard cap.`,
@@ -295,7 +298,11 @@ export interface CapShortfall {
  * this), and retraining the student turned on with no compute to spend on it. Empty when the
  * caps hold the plan.
  */
-export function capShortfalls(job: Job, names: ModelNames): CapShortfall[] {
+export function capShortfalls(
+  job: Job,
+  names: ModelNames,
+  w: Words = WORDS.personal,
+): CapShortfall[] {
   const shortfalls: CapShortfall[] = [];
   const place = job.student.trainOn;
   const estimate = estimateTime(job, place);
@@ -315,8 +322,8 @@ export function capShortfalls(job: Job, names: ModelNames): CapShortfall[] {
   if (allowedInterventions(job).includes('weights') && (job.budget.maxComputeUsd ?? 0) <= 0) {
     shortfalls.push({
       what: 'compute',
-      short: `Retraining ${names.student} has a $0 cap`,
-      line: `Retraining ${names.student} is on, but its compute cap is $0, so it won't run. Set a cap below, or turn it off in Teaching.`,
+      short: `${w.retraining(names.student)} has a $0 cap`,
+      line: `${w.retraining(names.student)} is on, but its compute cap is $0, so it won't run. Set a cap below, or turn it off in Teaching.`,
     });
   }
   return shortfalls;

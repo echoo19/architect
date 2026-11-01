@@ -12,6 +12,7 @@ import {
 import { ChevronRight, RotateCw } from 'lucide-react';
 import { formatUsd } from '../../lib/format';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../../lib/platform';
+import { useWords } from '../../shell/edition';
 import { modelNames } from '../names';
 import {
   aboutUsd,
@@ -211,6 +212,7 @@ interface PlanLine {
  */
 export function TrainingRows(props: PlanFacts) {
   const { job, testPlace, baselines } = props;
+  const w = useWords();
   const facts = factsOf(props);
   const { names, device, local, remote, chosen, fits, pricing, comparing, hostedReady } = facts;
   const { mentor } = names;
@@ -237,7 +239,7 @@ export function TrainingRows(props: PlanFacts) {
         : shortSpan(chosen.trainingSeconds),
     },
     {
-      label: 'Final test',
+      label: w.FinalTest,
       detail: `${job.splits.test} new tasks ${testPlace === 'hosted' ? 'online' : `on ${device}`}`,
       value: shortDuration(testSeconds(job, testPlace)),
     },
@@ -257,7 +259,7 @@ export function TrainingRows(props: PlanFacts) {
       : [{ label: 'Online practice', value: formatAboutUsd(shares.hostedUsd) }]),
     ...(shares.testUsd === null
       ? []
-      : [{ label: 'Online final test', value: formatAboutUsd(shares.testUsd) }]),
+      : [{ label: `Online ${w.finalTest}`, value: formatAboutUsd(shares.testUsd) }]),
     ...(shares.mentorUsd === null
       ? []
       : [{ label: `${mentor} teaching`, value: formatAboutUsd(shares.mentorUsd) }]),
@@ -274,6 +276,7 @@ export function TrainingRows(props: PlanFacts) {
     local,
     remote: hostedReady ? remote : null,
     baselines: baselines !== undefined,
+    words: w,
   });
 
   return (

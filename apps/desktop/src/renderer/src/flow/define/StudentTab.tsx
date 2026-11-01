@@ -153,7 +153,7 @@ export function StudentTab({ editor, change }: InspectorTabProps) {
           onClick={() => navigate(paths.compute({ jobId: job.id }))}
         >
           <Cpu size={14} strokeWidth={1.8} aria-hidden />
-          Plan cluster training
+          Plan cluster fine-tuning
         </Button>
       )}
     </div>

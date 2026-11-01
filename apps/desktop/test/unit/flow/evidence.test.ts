@@ -244,7 +244,7 @@ describe('evidence words', () => {
     const experiment = {
       measurements: ['H1/A1', 'candidate', 'H0/A0', 'incumbent'].map(measurement),
     } as Experiment;
-    expect(orderedMeasurements(experiment).map(measurementLabel)).toEqual([
+    expect(orderedMeasurements(experiment).map((item) => measurementLabel(item))).toEqual([
       'Before',
       'After',
       'Untouched',

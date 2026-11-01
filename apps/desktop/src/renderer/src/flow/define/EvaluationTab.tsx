@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { CertifySettings, Job } from '@architect/shared';
-import { Disclosure, Input, Segmented, ToggleRow } from '@architect/ui';
+import { defineTerm, Disclosure, Input, Segmented, ToggleRow } from '@architect/ui';
 import { Lock } from 'lucide-react';
-import { useEdition } from '../../shell/edition';
+import { useEdition, useWords } from '../../shell/edition';
 import { modelNames } from '../names';
 import { calibrationTasks, finalTestAttempts, formatAbout, testSeconds } from './estimates';
 import { Group, InspectorRow, Issue, NumberField, PathField } from './fields';
@@ -210,6 +210,9 @@ function Sets({ editor, change, taskCount }: InspectorTabProps & { taskCount: nu
   const { job, issues } = editor;
   const { mentor } = modelNames(job);
   const { train, dev, test, calibration, seed } = job.splits;
+  const lab = useEdition() === 'lab';
+  const check = lab ? 'Held-out checks' : 'Check';
+  const finalTest = lab ? 'Sealed final test' : 'Final test';
   const splits = (patch: Partial<Job['splits']>) =>
     change(
       'Task sets',
@@ -222,10 +225,10 @@ function Sets({ editor, change, taskCount }: InspectorTabProps & { taskCount: nu
         <InspectorRow label="Practice">
           <span className="text-ui tabular-nums">{tasksText(train)}</span>
         </InspectorRow>
-        <InspectorRow label={`Check, ${mentor} sees only the score`}>
+        <InspectorRow label={`${check}, ${mentor} sees only the score`}>
           <span className="text-ui tabular-nums">{tasksText(dev)}</span>
         </InspectorRow>
-        <InspectorRow label="Final test, opened once">
+        <InspectorRow label={`${finalTest}, opened once`}>
           <span className="text-ui tabular-nums">{tasksText(test)}</span>
         </InspectorRow>
         {calibration > 0 && (
@@ -252,14 +255,14 @@ function Sets({ editor, change, taskCount }: InspectorTabProps & { taskCount: nu
         onChange={(value) => splits({ train: value })}
       />
       <NumberField
-        label="Check"
+        label={check}
         unit="tasks"
         value={dev}
         issue={issues['splits.dev']}
         onChange={(value) => splits({ dev: value })}
       />
       <NumberField
-        label="Final test"
+        label={finalTest}
         unit="tasks"
         value={test}
         issue={issues['splits.test']}
@@ -283,9 +286,9 @@ const CERTIFY_DEFAULTS: CertifySettings = { k: 5, epsilon: 0.1, delta: 0.05 };
  * What the certificate costs: every final-test and calibration task tried k times, said as the
  * tries and the time on this computer, before any run.
  */
-function certifyCost(job: Job): string {
+function certifyCost(job: Job, finalTest: string): string {
   const tries = finalTestAttempts(job);
-  return `The final test makes ${tries} tries instead of ${job.splits.test}, about ${formatAbout(testSeconds(job, 'local')).toLowerCase()} on this computer.`;
+  return `The ${finalTest} makes ${tries} tries instead of ${job.splits.test}, about ${formatAbout(testSeconds(job, 'local')).toLowerCase()} on this computer.`;
 }
 
 /**
@@ -300,6 +303,7 @@ function Certification({
 }: InspectorTabProps & { taskCount: number | null }) {
   const { job, issues } = editor;
   const certify = job.evaluation.certify;
+  const lab = useEdition() === 'lab';
   const split = tasksSplit(taskCount);
   const set = (what: string, patch: Partial<CertifySettings>) =>
     change(
@@ -314,9 +318,12 @@ function Certification({
       TYPING_PAUSE_MS,
     );
   return (
-    <Group title="Certified answers">
+    <Group
+      title={lab ? 'Risk certificate' : 'Certified answers'}
+      info={lab ? defineTerm('riskCertificate') : undefined}
+    >
       <ToggleRow
-        label="Answer only when sure"
+        label={lab ? 'Issue a risk certificate' : 'Answer only when sure'}
         type="Calibrated"
         checked={certify !== undefined}
         disabled={split}
@@ -338,13 +345,13 @@ function Certification({
       {certify && (
         <>
           <NumberField
-            label="Tries per request"
+            label={lab ? 'Attempts per request' : 'Tries per request'}
             value={certify.k}
             issue={issues['evaluation.certify.k']}
             onChange={(k) => set('Tries per request', { k })}
           />
           <NumberField
-            label="Wrong at most"
+            label={lab ? 'Risk target' : 'Wrong at most'}
             unit="%"
             value={Math.round(certify.epsilon * 100)}
             issue={issues['evaluation.certify.epsilon']}
@@ -372,7 +379,9 @@ function Certification({
               onChange={(calibration) => set('Calibration', { calibration })}
             />
           )}
-          <p className="m-0 pt-1 text-small text-pretty">{certifyCost(job)}</p>
+          <p className="m-0 pt-1 text-small text-pretty">
+            {certifyCost(job, lab ? 'sealed final test' : 'final test')}
+          </p>
         </>
       )}
     </Group>
@@ -385,6 +394,7 @@ function Certification({
  */
 function Organizations({ job }: { job: Job }) {
   const orgs = job.organizations;
+  const { finalTest } = useWords();
   if (orgs === undefined) return null;
   const { mentor } = modelNames(job);
   const practiced = orgs.filter((org) => org.role === 'train');
@@ -399,7 +409,7 @@ function Organizations({ job }: { job: Job }) {
       ))}
       <InspectorRow
         label={sealed === 0 ? 'Any it has never seen' : `${sealed} it has never seen`}
-        note={`Kept with the final test: ${mentor} never sees them.`}
+        note={`Kept with the ${finalTest}: ${mentor} never sees them.`}
       >
         <span className="flex items-center gap-1.5 text-ui">
           <Lock size={14} strokeWidth={1.8} aria-hidden />

@@ -5,6 +5,7 @@ import type {
   ReportCard,
   Score,
 } from '@architect/shared';
+import { defineTerm } from '@architect/ui';
 import { orgScores } from '../lab/items';
 import { percentOf } from '../lib/format';
 import { quantizationLabel, shortModelName } from '../lib/names';
@@ -108,8 +109,7 @@ export function matchesSearch(row: ModelRow, search: string): boolean {
 }
 
 /** What the check tasks are, where a header or a label names them. */
-export const CHECK_HINT =
-  'Tasks scored at the end of teaching. Spark sees only the score, never the tasks.';
+export const CHECK_HINT = defineTerm('heldOutChecks');
 
 export interface RowScores {
   /** The final test at the organizations it trained on (the job's own, for a one-organization job). */

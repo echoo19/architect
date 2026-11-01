@@ -8,6 +8,7 @@ import {
   CardRow,
   ChoiceTiles,
   ErrorState,
+  InfoTip,
   Input,
   Inspector,
   RowIcon,
@@ -46,6 +47,7 @@ import { ARM_ICONS, ArmTile } from './icons';
 import {
   armDescriptions,
   armNames,
+  shortArmNames,
   ARMS,
   DEFAULT_NAMES,
   experimentNames,
@@ -241,10 +243,15 @@ export function ExperimentDesign({
           onFolder={() => void chooseFolder()}
           onName={(name) => input && change({ ...input, name })}
         />
-        <Card title="Arms">
-          <p className="m-0 mb-4 text-small">
-            Arms are the setups compared, each taught and tested on the same tasks and seeds.
-          </p>
+        <Card
+          title="Arms"
+          action={
+            <InfoTip about="arms">
+              Each arm is a harness or a LoRA adapter, engineered and tested on the same tasks and
+              seeds.
+            </InfoTip>
+          }
+        >
           <ChoiceTiles<ArmId>
             multiple
             aria-label="Arms"
@@ -263,12 +270,12 @@ export function ExperimentDesign({
           <div className="mt-4 flex items-center gap-4">
             <p className="m-0 flex min-w-0 flex-1 items-center gap-2 text-small">
               <Lock size={13} aria-hidden />
-              Adapters train and test on this computer&apos;s GPU, which experiments never use.
+              LoRA arms need this computer&apos;s GPU, which experiments never use.
             </p>
             {fieldId !== undefined && (
               <Button size="sm" onClick={() => navigate(paths.compute({ jobId: fieldId }))}>
                 <Cpu size={14} strokeWidth={1.8} aria-hidden />
-                Plan cluster training
+                Plan cluster fine-tuning
               </Button>
             )}
           </div>
@@ -470,7 +477,7 @@ function FieldCard({
               ? "Your fields couldn't be read"
               : jobs.data && fields.length === 0
                 ? 'No field has tasks yet'
-                : 'Its tasks, its organizations and its final test'
+                : 'Its tasks, its organizations and its sealed final test'
           }
           end={
             <div className="flex items-center gap-2">
@@ -704,7 +711,7 @@ function Settings({
     return shown.map((arm) => (
       <NumberRow
         key={`${kind}-${arm}`}
-        label={armNames(names)[arm]}
+        label={shortArmNames(names)[arm]}
         value={input.arms.find((item) => item.arm === arm)?.[kind]}
         optional
         placeholder="Default"
@@ -753,7 +760,7 @@ function Settings({
       );
     case 'evaluation':
       return (
-        <Section title="Final test">
+        <Section title="Sealed final test">
           <div className="flex min-h-11 items-center gap-3 text-ui">
             <span className="min-w-0 flex-1 font-medium">Splits seed</span>
             <span className="flex items-center gap-2 tabular-nums">

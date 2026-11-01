@@ -20,6 +20,7 @@ import {
   ErrorState,
   Skeleton,
   Spinner,
+  type Words,
 } from '@architect/ui';
 import { FilePen } from 'lucide-react';
 import { api, flowApi } from '../../api/client';
@@ -30,7 +31,7 @@ import { modelNames, typeLabel } from '../names';
 import { decisionSentence, harmSentence, refusalSentence } from './decision';
 import { FilePatch } from '../../components/FilePatch';
 import { HarnessFiles } from '../../components/HarnessFiles';
-import { useEdition } from '../../shell/edition';
+import { useEdition, useWords } from '../../shell/edition';
 import { changeSummary } from './diff';
 import { checkMeasurements, DISPOSITIONS, INTERVENTIONS, sentence } from './evidence-words';
 import {
@@ -47,16 +48,19 @@ import type { ModelNames } from './phase';
 import { RoundCounterexamples } from './Counterexamples';
 import { answerEffect } from './questions';
 
-const STATUS_TEXT: Record<Round['status'], string> = {
-  attempting: 'Working through practice tasks',
-  diagnosing: 'Waiting for the diagnosis',
-  teaching: 'Checking corrections of the failures',
-  training: 'Training weights on the corrections',
-  clarifying: 'Waiting for your answer',
-  evaluating: 'Scoring the change on the check tasks',
-  decided: 'Decided',
-  failed: 'Failed',
-};
+function statusText(status: Round['status'], w: Words): string {
+  const words: Record<Round['status'], string> = {
+    attempting: 'Working through practice tasks',
+    diagnosing: 'Waiting for the diagnosis',
+    teaching: 'Checking corrections of the failures',
+    training: `${w.TrainingWeights} on the corrections`,
+    clarifying: 'Waiting for your answer',
+    evaluating: `Scoring the change on the ${w.checks}`,
+    decided: 'Decided',
+    failed: 'Failed',
+  };
+  return words[status];
+}
 
 /** A round's records from mentoring, as the drawer reads them. */
 export interface RoundEvidence {
@@ -106,6 +110,7 @@ export function RoundDrawerContent({
   onOpenFinding: (finding: Finding) => void;
   onBack?: (() => void) | undefined;
 }) {
+  const w = useWords();
   const title = `Round ${round.index}${round.title ? `: ${round.title}` : ''}`;
   const records = evidence.status === 'success' ? evidence.data : null;
   const experiment = records?.experiment;
@@ -143,7 +148,7 @@ export function RoundDrawerContent({
         )}
 
         {question === undefined && (
-          <DrawerSection title="Gain on check tasks">
+          <DrawerSection title={`Gain on ${w.checks}`}>
             <dl className="m-0 grid grid-flow-col auto-cols-fr divide-x divide-line">
               <Effect label={`${names.mentor} expected`}>
                 {predicted ? formatRange(predicted.devDeltaMin, predicted.devDeltaMax) : '–'}
@@ -198,7 +203,7 @@ export function RoundDrawerContent({
           <ProblemState
             layout="inline"
             error={evidence.error}
-            title="Couldn't load this round's findings, examples, check tasks and costs"
+            title={`Couldn't load this round's findings, examples, ${w.checks} and costs`}
             onRetry={evidence.reload}
           />
         )}
@@ -276,13 +281,14 @@ function ByTaskType({ lineage, job, twice }: { lineage: LineageEntry; job: Job; 
 
 /** A first draft is kept as the starting point, without a keep check (decision 026). */
 function DraftDecision({ round, names }: { round: Round; names: ModelNames }) {
+  const w = useWords();
   if (!round.decision) {
     return (
       <div className="flex items-center gap-3 rounded-control bg-field px-4 py-3.5 shadow-edge">
         {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
         <span className="font-display text-h2 font-semibold">
           {round.status === 'evaluating'
-            ? 'Scoring the first draft on the check tasks'
+            ? `Scoring the first draft on the ${w.checks}`
             : 'Writing the first draft'}
         </span>
       </div>
@@ -317,6 +323,7 @@ function QuestionDecision({
   names: ModelNames;
   runEnded: boolean;
 }) {
+  const w = useWords();
   const { icon: Icon } = INTERVENTIONS.clarification;
   const { answer } = question;
   const waiting = round.status === 'clarifying' && !runEnded;
@@ -328,7 +335,7 @@ function QuestionDecision({
       </span>
       {answer ? (
         <p className="m-0 text-body text-fg text-pretty">
-          You answered: {answer.text} {answerEffect(question, names)}
+          You answered: {answer.text} {answerEffect(question, names, w)}
         </p>
       ) : (
         <p className="m-0 text-body text-fg text-pretty">
@@ -353,8 +360,9 @@ function dispositionReason(
   round: Round,
   lineage: LineageEntry | undefined,
   job: Job,
+  w: Words,
 ): string | null {
-  const scores = decisionSentence(round, lineage, job);
+  const scores = decisionSentence(round, lineage, job, w);
   if (!experiment) return scores;
   switch (experiment.disposition) {
     case 'kept':
@@ -362,19 +370,21 @@ function dispositionReason(
       return scores ?? sentence(experiment.reason);
     case 'rejected': {
       const failed = experiment.gates.find((gate) => !gate.passed);
-      if (!failed) return harmSentence(experiment, job) ?? sentence(experiment.reason);
+      if (!failed) return harmSentence(experiment, job, w) ?? sentence(experiment.reason);
       const gate = sentence(failed.detail);
       return scores ? `${scores} But ${gate.charAt(0).toLowerCase()}${gate.slice(1)}` : gate;
     }
     // Neither kind was measured: an invalid change was never made, a stopped one never taken.
     case 'invalid': {
       // A kind of change the person turned off is theirs to be told of, whatever else refused it.
-      const theirs = refusalSentence(intervention, job);
+      const theirs = refusalSentence(intervention, job, w);
       if (theirs !== null) return theirs;
       // Retraining the model is the one change a run can ask for that this computer can't make.
       const { mentor, student } = modelNames(job);
       return experiment.kind === 'weights'
-        ? `${mentor} wanted to retrain ${student}'s model, which this computer can't do. Nothing changed.`
+        ? w.lab
+          ? `${mentor} wanted to fine-tune a LoRA adapter for ${student}, which this computer can't do. Nothing changed.`
+          : `${mentor} wanted to retrain ${student}'s model, which this computer can't do. Nothing changed.`
         : `${sentence(experiment.reason)} Nothing changed.`;
     }
     case 'stopped':
@@ -395,13 +405,14 @@ function Decision({
   experiment: Experiment | undefined;
   intervention: Intervention | undefined;
 }) {
+  const w = useWords();
   const disposition = experiment?.disposition ?? round.decision;
-  const reason = dispositionReason(experiment, intervention, round, lineage, job);
+  const reason = dispositionReason(experiment, intervention, round, lineage, job, w);
   if (!disposition || !reason) {
     return (
       <div className="flex items-center gap-3 rounded-control bg-field px-4 py-3.5 shadow-edge">
         {round.status !== 'failed' && <Spinner tone="mentor" size={16} />}
-        <span className="font-display text-h2 font-semibold">{STATUS_TEXT[round.status]}</span>
+        <span className="font-display text-h2 font-semibold">{statusText(round.status, w)}</span>
       </div>
     );
   }

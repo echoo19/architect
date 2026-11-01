@@ -15,10 +15,11 @@ export function typeLabel(job: Job, type: string): string {
 /**
  * What a person calls a kind of change on a screen: the engine's name for it, except where that
  * leaves out whose model it is or reads as half a sentence. The engine's own sentences keep the
- * shared names, which sit in lists.
+ * shared names, which sit in lists. The Lab names weight changes as what they are.
  */
-export function kindLabel(type: InterventionType, student: string): string {
+export function kindLabel(type: InterventionType, student: string, lab = false): string {
   if (type === 'retrieval') return 'What it reads, and when';
-  if (type === 'weights') return `Retrain ${student} itself`;
+  if (type === 'weights')
+    return lab ? `Fine-tune a LoRA adapter for ${student}` : `Retrain ${student} itself`;
   return INTERVENTION_LABELS[type];
 }

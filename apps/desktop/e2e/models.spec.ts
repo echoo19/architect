@@ -60,7 +60,7 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(row(/Academy desk Mini/)).toBeVisible();
   // Four agents, nine versions, under a header of two rows.
   await expect(table().getByRole('row')).toHaveCount(11);
-  await expect(table().getByRole('columnheader', { name: 'Final test' })).toBeVisible();
+  await expect(table().getByRole('columnheader', { name: 'Sealed final test' })).toBeVisible();
 
   // Academy desk's active version: seen, unseen and real apart, and its check tasks on their own.
   const academyDesk = row(/^Academy desk\s+version 2/);
@@ -80,7 +80,7 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(imported).toContainText('Candidate');
   await expect(imported).not.toContainText('0%');
   await expect(imported.getByText('None').first()).toBeAttached();
-  await expect(row(/Service desk\s+version 2/)).toContainText('Adapter');
+  await expect(row(/Service desk\s+version 2/)).toContainText('LoRA');
   await capture('models-dark.png');
   await academyDesk.getByText('Harness', { exact: true }).hover();
   await expect(page.getByRole('tooltip')).toContainText('harness 61b8a9d');
@@ -118,8 +118,8 @@ test('lists the candidates waiting to be accepted, each labeled, and compares on
   await expect(candidates.getByText('Service desk v3', { exact: true })).toBeVisible();
   await expect(candidates).toContainText('Improvement of v2');
   await expect(candidates).toContainText('Imported');
-  await expect(candidates).toContainText('Final test 85%');
-  await expect(candidates).toContainText('No final test');
+  await expect(candidates).toContainText('Sealed final test 85%');
+  await expect(candidates).toContainText('No sealed final test');
   await expect(candidates.getByRole('button', { name: /^Compare / })).toHaveCount(2);
   await capture('models-candidates-dark.png');
 
@@ -137,10 +137,10 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await openModels();
   await row(/^Academy desk\s+version 2/).click();
   await expect(panel().getByRole('heading', { name: /Academy desk/ })).toBeVisible();
-  const finalTest = panel().getByRole('region', { name: 'Final test' });
+  const finalTest = panel().getByRole('region', { name: 'Sealed final test' });
   await expect(finalTest).toContainText('Taught on');
   await expect(finalTest).toContainText('67/72');
-  await expect(panel()).toContainText('Check tasks');
+  await expect(panel()).toContainText('Held-out checks');
   await expect(panel()).toContainText('71/80');
   await expect(panel().getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   await expect(panel().getByRole('button', { name: 'Export evidence' })).toBeVisible();
@@ -211,8 +211,12 @@ test('compares two versions skill by organization, with the harness diff between
   ).toBeVisible();
   // The check tasks stand apart from the final test, with each version's own result.
   const versions = page.getByRole('table', { name: 'Versions' });
-  await expect(versions.getByRole('row', { name: /Check tasks/ })).toContainText('80% · 64 of 80');
-  await expect(versions.getByRole('row', { name: /Check tasks/ })).toContainText('89% · 71 of 80');
+  await expect(versions.getByRole('row', { name: /Held-out checks/ })).toContainText(
+    '80% · 64 of 80',
+  );
+  await expect(versions.getByRole('row', { name: /Held-out checks/ })).toContainText(
+    '89% · 71 of 80',
+  );
   const harness = page.getByRole('region', { name: 'Harness' });
   await expect(harness).toContainText('Changed its instructions and 1 skill.');
   await expect(
@@ -229,7 +233,7 @@ test('compares two versions skill by organization, with the harness diff between
   await row(/Service desk\s+version 4/).click();
   await panel().getByRole('button', { name: 'Compare' }).click();
   await page.getByRole('menuitem', { name: 'Service desk v2' }).click();
-  await expect(page.getByRole('region', { name: 'Final test' })).toContainText(
+  await expect(page.getByRole('region', { name: 'Sealed final test' })).toContainText(
     'One of them took no final test.',
   );
 });

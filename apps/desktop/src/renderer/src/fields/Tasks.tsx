@@ -25,7 +25,7 @@ import { count, plural } from './parts';
  * calibration tasks are sealed, so they show as counts and nothing else.
  */
 
-const SPLIT_WORDS: Record<BrowsableSplit, string> = { train: 'Practice', dev: 'Check' };
+const SPLIT_WORDS: Record<BrowsableSplit, string> = { train: 'Practice', dev: 'Held-out' };
 
 const EXPECTED_WORDS: Record<Expected['kind'], string> = {
   answer: 'Answer',
@@ -116,7 +116,7 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
           />
         )}
         <div className="ml-auto flex items-center gap-5 text-ui">
-          <Sealed label="Final test" count={listings.test.count} />
+          <Sealed label="Sealed final test" count={listings.test.count} />
           {listings.calibration.count > 0 && (
             <Sealed label="Calibration" count={listings.calibration.count} />
           )}
@@ -196,7 +196,7 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
 /** A sealed split by its count, with a lock: nothing else of it leaves the vault. */
 function Sealed({ label, count: tasks }: { label: string; count: number }) {
   return (
-    <Tooltip content="Kept for the final test: only the count is shown" side="bottom">
+    <Tooltip content="Kept for the sealed final test: only the count is shown" side="bottom">
       <span tabIndex={0} className="inline-flex items-center gap-1.5 tabular-nums">
         <Lock size={14} strokeWidth={1.8} aria-hidden />
         {label} {plural(tasks, 'task')}

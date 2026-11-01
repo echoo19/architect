@@ -68,11 +68,11 @@ export function Targets() {
   return (
     <CardGrid className="items-stretch 2xl:grid-cols-2">
       <Card
-        title="This computer"
+        title="On-premise"
         icon={<Laptop aria-hidden />}
         action={
-          <InfoTip about="this computer">
-            Runs Glimmer and serves its adapters. Trains nothing here.
+          <InfoTip about="on-premise">
+            Runs Glimmer and serves its LoRA adapters on this computer. Fine-tunes nothing here.
           </InfoTip>
         }
       >
@@ -104,7 +104,7 @@ export function Targets() {
         action={
           <span className="flex items-center gap-1">
             <InfoTip about="Hugging Face Jobs">
-              Trains a LoRA adapter for Glimmer on one rented GPU, within its compute cap.
+              Fine-tunes a LoRA adapter for Glimmer on one rented GPU, within its compute cap.
             </InfoTip>
             {token.data !== undefined && <Badge>{hasToken ? 'Ready' : 'Needs a token'}</Badge>}
           </span>
@@ -125,7 +125,7 @@ export function Targets() {
       <Card
         title="Clusters"
         icon={<Network aria-hidden />}
-        action={<Badge>Bundle only</Badge>}
+        action={<Badge>Launch bundle</Badge>}
         wide
         flush
       >

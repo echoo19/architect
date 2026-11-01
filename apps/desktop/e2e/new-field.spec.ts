@@ -69,7 +69,9 @@ const role = (name: string) =>
 test('New field opens Describe ready for each organization’s folder', async () => {
   await goTo(page, '/fields');
   await page.getByRole('button', { name: 'New field' }).click();
-  await expect(page.getByRole('heading', { name: 'What should your agent do?' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'What should your specialist do?' }),
+  ).toBeVisible();
   await expect(organizations()).toBeVisible();
   // The files come from the folders, so there is no paperclip, and no other way in to choose.
   await expect(page.getByRole('button', { name: 'Attach files' })).toHaveCount(0);
