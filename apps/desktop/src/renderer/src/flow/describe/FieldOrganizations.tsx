@@ -89,8 +89,12 @@ export function FieldOrganizations({
   /** What keeps the field from being described, once it is worth saying. */
   problem: string | null;
 }) {
-  // Why the last folder chosen wasn't added.
+  // Why the last folder chosen wasn't added, until the rows change.
   const [refused, setRefused] = useState<string | null>(null);
+  const update = (next: DraftOrganization[]) => {
+    setRefused(null);
+    onChange(next);
+  };
   const add = async () => {
     const picked = await attempt("Couldn't open the folder picker", () =>
       flowApi.pickFiles({ title: "Choose an organization's folder", directory: true }),
@@ -109,17 +113,16 @@ export function FieldOrganizations({
       setRefused(unreadable);
       return;
     }
-    setRefused(null);
     // The first is taught on; after that, never seen until the person says otherwise, which the
     // row says under its name.
     const role: Role = organizations.length === 0 ? 'train' : 'transfer';
-    onChange([...organizations, { name: nameOf(folder), folder, role }]);
+    update([...organizations, { name: nameOf(folder), folder, role }]);
   };
   // A name to fix is said on its row, so it isn't said again under the rows.
   const rowsSay = organizations.some((_, index) => nameProblem(organizations, index) !== null);
   const notes = [refused, rowsSay ? null : problem].filter((note): note is string => note !== null);
   const change = (index: number, patch: Partial<DraftOrganization>) =>
-    onChange(organizations.map((org, at) => (at === index ? { ...org, ...patch } : org)));
+    update(organizations.map((org, at) => (at === index ? { ...org, ...patch } : org)));
 
   return (
     <Card
@@ -186,7 +189,7 @@ export function FieldOrganizations({
                   <IconButton
                     label={`Remove ${org.name || 'this organization'}`}
                     size="sm"
-                    onClick={() => onChange(organizations.filter((_, at) => at !== index))}
+                    onClick={() => update(organizations.filter((_, at) => at !== index))}
                   >
                     <X size={15} strokeWidth={1.7} aria-hidden />
                   </IconButton>

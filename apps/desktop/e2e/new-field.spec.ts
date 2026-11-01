@@ -94,7 +94,11 @@ test('describes the job once, then adds each folder, named, taught on or never s
   // A folder's name is the first name of its organization, and can be changed.
   await expect(names.nth(0)).toHaveValue('Acme outfitters');
   await expect(names.nth(2)).toHaveValue('Cedar goods');
+  // A folder added twice is refused under the rows until the rows change.
+  await add.click();
+  await expect(organizations()).toContainText('cedar goods is already added, as Cedar goods.');
   await names.nth(0).fill('Acme Outfitters');
+  await expect(organizations()).not.toContainText('is already added');
   // Two organizations can't share a name, which the row says as it is typed.
   await names.nth(2).fill('acme outfitters');
   await expect(organizations()).toContainText('Another organization has this name');
