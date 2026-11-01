@@ -203,8 +203,9 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   Every column header and status word whose meaning isn't plain carries its hint, and a header
   that heads counts in one group and scores in another says which it is. The risk certificate
   leads with its plain sentence, as the personal edition's does, then names its three figures.
-- **Disabled controls** say why in their tooltip, on the span around them (a disabled control
-  takes no pointer). A step that goes ahead despite a failed check says so beside its button
+- **Disabled controls** say why. A form's or a page's primary action says it in a short line
+  beside it ("Choose a teammate"), which also describes the button; smaller controls say it in
+  their tooltip, on the span around them (a disabled control takes no pointer). A step that goes ahead despite a failed check says so beside its button
   ("Not held at Real academy"), and the button stays usable.
 - **Sidebar.** Rows are `NavItem`s: 40px, a 16px icon, the label, and a status word or spinner at
   the right. The current page's row takes the selected fill, which slides between the places. An
