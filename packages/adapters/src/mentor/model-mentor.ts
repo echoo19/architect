@@ -21,7 +21,7 @@ import { describeMissingModel, probeModel } from '../openai/models';
 import { openUnstreamed } from '../openai/unstreamed';
 import { readChatCompletionStream, type FinishReason } from '../openai/stream';
 import { emptyReply, jsonInstructions, repairMessages, unusableJson } from './prompts';
-import { chatTraits, type ModelMentorConfig } from './providers';
+import { chatTraits, providerRouting, type ModelMentorConfig } from './providers';
 
 const CHAT_PATH = '/chat/completions';
 
@@ -121,18 +121,8 @@ export function createModelMentor(config: ModelMentorConfig, deps: MentorDeps = 
       };
     }
     if (traits.sendsCacheKey) body['prompt_cache_key'] = sessionKey;
-    if (traits.capsPrice && (pricing || config.providers !== undefined)) {
-      body['provider'] = {
-        // Pinned to one provider's serving of the model, with no fallback, as the student is.
-        ...(config.providers === undefined
-          ? {}
-          : { order: [...config.providers], allow_fallbacks: false }),
-        // Never routed to a provider that charges more than the price the budget is kept with.
-        ...(pricing
-          ? { max_price: { prompt: pricing.inputPerM, completion: pricing.outputPerM } }
-          : {}),
-      };
-    }
+    const routing = providerRouting(traits, config, pricing);
+    if (routing !== undefined) body['provider'] = routing;
     return body;
   }
 

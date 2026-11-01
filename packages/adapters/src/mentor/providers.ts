@@ -3,6 +3,7 @@ import {
   openAiTakesReasoningEffort,
   PROVIDERS,
   type MentorConfig,
+  type TokenPricing,
 } from '@architect/shared';
 import type { SystemRole } from '../openai/messages';
 
@@ -73,6 +74,31 @@ const OPENROUTER_ATTRIBUTION = {
 
 function hostOf(baseUrl: string): string {
   return new URL(baseUrl).host;
+}
+
+/**
+ * Where a router may send a mentor's call, as its `provider` field, or nothing to say: the
+ * providers its settings pin, in order and with no fallback, and the price its cap is kept with.
+ * Every call of the mentor's model carries it, as the mentor and as the agent.
+ */
+export function providerRouting(
+  traits: ChatTraits,
+  config: ModelMentorConfig,
+  pricing: TokenPricing | undefined,
+): Record<string, unknown> | undefined {
+  if (!traits.capsPrice || (pricing === undefined && config.providers === undefined)) {
+    return undefined;
+  }
+  return {
+    // Pinned to one provider's serving of the model, with no fallback, as the student is.
+    ...(config.providers === undefined
+      ? {}
+      : { order: [...config.providers], allow_fallbacks: false }),
+    // Never routed to a provider that charges more than the price the budget is kept with.
+    ...(pricing === undefined
+      ? {}
+      : { max_price: { prompt: pricing.inputPerM, completion: pricing.outputPerM } }),
+  };
 }
 
 /** The traits of a mentor behind an OpenAI-compatible Chat Completions endpoint. */
