@@ -1,8 +1,7 @@
 import type { GraduateSummary } from '@architect/shared';
 import { AgentAvatar, Heading, Reveal } from '@architect/ui';
 import { Flag } from 'lucide-react';
-import { useVersionReport } from '../api/graduates';
-import { useJob } from '../api/hooks';
+import { useVersionReport, useVersions } from '../api/graduates';
 import { certificateSentence } from '../flow/report/certificate-words';
 import { namesInSentence, suggestionsFor } from './labels';
 
@@ -24,11 +23,14 @@ export interface EmptyChatProps {
  * agent asking another (decision 100), so a certified lead says so instead.
  */
 export function EmptyChat({ agent, team, toTeach = false, onPick }: EmptyChatProps) {
-  const job = useJob(agent.manifest.jobId);
+  const versions = useVersions(agent.id);
   const certificate = useVersionReport(agent).data?.certificate;
-  // Wait for the job, so the suggestions don't change under the pointer when it arrives.
+  // The task types its version promises, which an agent from another computer brings with it.
+  // Wait for them, so the suggestions don't change under the pointer when they arrive.
+  const taskTypes = versions.data?.find((version) => version.active)?.manifest.contract.capabilities
+    .taskTypes;
   const suggestions =
-    job.status === 'loading' ? [] : suggestionsFor(agent.manifest, job.data?.taskTypes);
+    versions.data || versions.status === 'error' ? suggestionsFor(agent.manifest, taskTypes) : [];
   const certified = certificate?.issued === true;
   return (
     <Reveal className="flex min-h-[52vh] flex-col items-center justify-center gap-6">
