@@ -514,7 +514,7 @@ export function ReportView({
               },
               {
                 label: 'Answer time',
-                value: `Typically ${formatAnswerTime(test.latencyMs.p50)}, 95% within ${formatAnswerTime(test.latencyMs.p95)}`,
+                value: `Typically ${formatAnswerTime(test.latencyMs.p50)} a task in the ${w.finalTest}, 95% within ${formatAnswerTime(test.latencyMs.p95)}`,
               },
               { label: 'Training', value: trainingNote(report, job) },
               ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(', ') }] : []),
