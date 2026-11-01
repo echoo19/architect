@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
+  FolderModelsError,
   probeLocal,
   reportOnly,
   runComparison,
@@ -311,6 +312,22 @@ describe('before anything resumes (decision 051)', () => {
     // The request it was confirmed with goes on from there.
     expect((await runComparison(request, world.env)).outcome).toBe('finished');
     expect(paidFor(world).attempts).toBeGreaterThan(before.attempts);
+  }, 300_000);
+
+  it('refuses another teacher in a folder planned with one, before anything is paid', async () => {
+    const { world, request } = setUp();
+    expect((await runComparison({ ...request, planOnly: true }, world.env)).outcome).toBe(
+      'planned',
+    );
+    const before = paidFor(world);
+    // The plan isn't confirmed yet, but the base job was imported with Spark and would keep it.
+    const other = { ...request, models: { ...DEFAULT_MODELS, mentor: 'anthropic-opus' as const } };
+    await expect(runComparison(other, world.env)).rejects.toThrow(FolderModelsError);
+    await expect(runComparison(other, world.env)).rejects.toThrow(
+      "This folder's jobs were made for other models (mentor)",
+    );
+    expect(paidFor(world)).toEqual(before);
+    expect(new ComparisonFiles(world.out).readPlan()?.settings.mentor).toBe(DEFAULT_MODELS.mentor);
   }, 300_000);
 
   it('refuses a run whose tasks, data, checker or regression job changed, before spending', async () => {

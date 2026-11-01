@@ -31,6 +31,7 @@ export {
 export { ComparisonFiles, reportBeside } from './records';
 export { armRun, buildReport, roundsOf } from './report';
 export {
+  FolderModelsError,
   probeLocal,
   readJob,
   reportOnly,
