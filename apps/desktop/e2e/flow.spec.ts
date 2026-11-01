@@ -217,7 +217,7 @@ test('walks from a description to a graduate', async () => {
       .first()
       .evaluate((title) => getComputedStyle(title).color);
   expect(await titleColor(local)).toBe(await titleColor(hosted));
-  expect(await startHeldBy(page)).toBe(wont);
+  expect(await startHeldBy(page)).toBe('Make room for a round of teaching first');
   await expect(page.getByText(wont, { exact: true })).toHaveCount(1);
   await capture(page, 'flow-define-slow-dark');
   // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h

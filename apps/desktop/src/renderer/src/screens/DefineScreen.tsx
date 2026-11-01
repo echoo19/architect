@@ -23,7 +23,7 @@ import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { takeAdvanced } from '../flow/define/advanced-request';
 import { DefineInspector } from '../flow/define/DefineInspector';
-import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
+import { trainsTooSlow } from '../flow/define/estimates';
 import { ExportJobFile } from '../flow/define/ExportJobFile';
 import { hostedAvailability } from '../flow/define/hosted';
 import { INSPECTOR_NAME, tabWithIssue, type DefineTab } from '../flow/define/inspector-tabs';
@@ -38,7 +38,6 @@ import { useJobEditor } from '../flow/define/use-job-editor';
 import { usePreflight } from '../flow/define/use-preflight';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { attempt } from '../lib/notify';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { useEdition } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
@@ -264,11 +263,8 @@ function DefineEditor({ initial }: { initial: Job }) {
                 (preflight.needs.length > 0
                   ? preflight.summary
                   : wontTeach
-                    ? wontTeachTitle(
-                        estimable,
-                        estimable.student.trainOn,
-                        deviceInSentence(currentPlatform()),
-                      )
+                    ? // The callout above says what doesn't fit; this points to it.
+                      'Make room for a round of teaching first'
                     : null)
               }
               onStart={() => void start()}
