@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { BrowsableSplit, Expected, Job, Task, TaskListing } from '@architect/shared';
 import {
   DataTable,
+  defineTerm,
   DetailList,
   Drawer,
   DrawerContent,
@@ -10,6 +11,7 @@ import {
   Select,
   Skeleton,
   Tooltip,
+  type LabTerm,
 } from '@architect/ui';
 import { Lock } from 'lucide-react';
 import { api } from '../api/client';
@@ -17,6 +19,7 @@ import { useQuery } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { taskTitle } from '../flow/format';
 import { typeLabel } from '../flow/names';
+import { mentorName } from '../lib/names';
 import { count, plural } from './parts';
 
 /*
@@ -26,6 +29,11 @@ import { count, plural } from './parts';
  */
 
 const SPLIT_WORDS: Record<BrowsableSplit, string> = { train: 'Practice', dev: 'Held-out' };
+
+const SPLIT_TERMS: Record<BrowsableSplit, LabTerm> = {
+  train: 'practiceTasks',
+  dev: 'heldOutChecks',
+};
 
 const EXPECTED_WORDS: Record<Expected['kind'], string> = {
   answer: 'Answer',
@@ -77,6 +85,7 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
   const [open, setOpen] = useState<Task | null>(null);
   const [shown, setShown] = useState(false);
   const orgs = (job.organizations ?? []).filter((item) => item.role === 'train');
+  const mentor = mentorName(job.mentor);
   const orgName = (id: string | undefined) =>
     id === undefined ? undefined : (orgs.find((item) => item.id === id)?.name ?? id);
   const rows = tasksOf(listings[split]).filter(
@@ -93,6 +102,7 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
           options={(['train', 'dev'] as const).map((value) => ({
             value,
             label: `${SPLIT_WORDS[value]} ${count(listings[value].count)}`,
+            hint: defineTerm(SPLIT_TERMS[value], mentor),
           }))}
         />
         <Select
@@ -116,9 +126,17 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
           />
         )}
         <div className="ml-auto flex items-center gap-5 text-ui">
-          <Sealed label="Sealed final test" count={listings.test.count} />
+          <Sealed
+            label="Sealed final test"
+            hint={defineTerm('sealedFinalTest')}
+            count={listings.test.count}
+          />
           {listings.calibration.count > 0 && (
-            <Sealed label="Calibration" count={listings.calibration.count} />
+            <Sealed
+              label="Calibration"
+              hint={defineTerm('calibrationTasks')}
+              count={listings.calibration.count}
+            />
           )}
         </div>
       </div>
@@ -194,9 +212,9 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
 }
 
 /** A sealed split by its count, with a lock: nothing else of it leaves the vault. */
-function Sealed({ label, count: tasks }: { label: string; count: number }) {
+function Sealed({ label, hint, count: tasks }: { label: string; hint: string; count: number }) {
   return (
-    <Tooltip content="Kept for the sealed final test: only the count is shown" side="bottom">
+    <Tooltip content={hint} side="bottom">
       <span tabIndex={0} className="inline-flex items-center gap-1.5 tabular-nums">
         <Lock size={14} strokeWidth={1.8} aria-hidden />
         {label} {plural(tasks, 'task')}

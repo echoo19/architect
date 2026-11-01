@@ -20,6 +20,7 @@ import {
   infoTipText,
   launchApp,
   settle,
+  tooltipText,
   updateSettings,
   type LaunchedApp,
 } from './app';
@@ -120,10 +121,16 @@ test('shows each target with what it can do, the clusters as bundles only', asyn
   await expect(computer).toContainText('NVIDIA GeForce RTX 4070 · 12 GB');
   await expect(computer).toContainText('Running · 0.12.6');
   await expect(computer).toContainText('Ready · build 10472');
-  await expect(region('Hugging Face Jobs')).toContainText('Ready');
-  await expect(region('Hugging Face Jobs')).toContainText('HF_TOKEN');
+  // The token is a status; where it comes from is a hover away, never a variable's name in place.
+  const hfJobs = region('Hugging Face Jobs');
+  await expect(hfJobs).toContainText('Ready');
+  await expect(hfJobs).not.toContainText('HF_TOKEN');
+  expect(await tooltipText(page, hfJobs.getByText('Ready', { exact: true }))).toBe(
+    'From the HF_TOKEN variable',
+  );
+  // The clusters say what each runs; writing their bundle is the Cluster launch bundle card's.
   const clusters = region('Clusters');
-  await expect(clusters.getByText('Launch bundle')).toBeVisible();
+  await expect(clusters.getByText('Launch bundle')).toHaveCount(0);
   for (const command of [
     'sbatch submit.sbatch',
     'kubectl apply -f pytorchjob.yaml',

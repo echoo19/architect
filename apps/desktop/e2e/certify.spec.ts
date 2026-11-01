@@ -77,8 +77,12 @@ async function openReport(report = CERTIFIED_REPORT): Promise<void> {
 test('states the certificate, its curve and whether it held where it was not calibrated', async () => {
   await openReport();
   const section = page.getByRole('region', { name: 'Risk certificate' });
+  // The plain sentence leads; the Lab names its three figures after it.
   await expect(section).toContainText(
-    "8% risk bound on Academy desk's answers, at 95% confidence and 78% coverage.",
+    'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
+  );
+  await expect(section.getByLabel('Risk certificate figures')).toHaveText(
+    'Risk bound8%Confidence95%Coverage78%',
   );
   // What it rests on and assumes is a click away, under the sentence.
   const measured = section.getByRole('button', { name: 'How this is measured' });
@@ -103,6 +107,10 @@ test('states the certificate, its curve and whether it held where it was not cal
   await expect(checks.getByRole('listitem').nth(2)).toContainText('Real academy');
   await expect(checks.getByRole('listitem').nth(2)).toContainText('Not held');
   await expect(checks.getByRole('listitem').nth(2)).toContainText('Answered 21 of 30, 3 wrong');
+  // Where it didn't hold is said beside Start using, which stays usable.
+  const start = page.getByRole('button', { name: 'Start using Academy desk' });
+  await expect(start).toBeEnabled();
+  await expect(start).toHaveAccessibleDescription('Not held at Real academy');
 
   await section.evaluate((element) => {
     let box = element.parentElement;

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ClusterTarget, HubTokenStatus } from '@architect/shared';
-import { Badge, Button, Card, CardGrid, CardRow, InfoTip, Skeleton } from '@architect/ui';
+import { Button, Card, CardGrid, CardRow, InfoTip, Skeleton, Tooltip } from '@architect/ui';
 import { Cloud, CloudCog, Container, Laptop, Network, Server } from 'lucide-react';
 import { useHubToken, useLlamaServer, useLocalRuntimes } from '../api/hooks';
 import { formatBytes } from '../lib/format';
@@ -8,9 +8,9 @@ import { useUi } from '../state/ui';
 
 const TOKEN_SOURCES: Record<NonNullable<HubTokenStatus['source']>, string> = {
   saved: 'Saved in Architect',
-  HF_TOKEN: 'HF_TOKEN',
-  HUGGING_FACE_HUB_TOKEN: 'HUGGING_FACE_HUB_TOKEN',
-  token_file: "Hugging Face's token file",
+  HF_TOKEN: 'From the HF_TOKEN variable',
+  HUGGING_FACE_HUB_TOKEN: 'From the HUGGING_FACE_HUB_TOKEN variable',
+  token_file: "From Hugging Face's token file",
 };
 
 /** One fact of a target: its name at the left, its value at the right. */
@@ -62,7 +62,6 @@ export function Targets() {
   const llama = useLlamaServer();
   const token = useHubToken();
   const openSettings = useUi((state) => state.openSettings);
-  const hasToken = token.data !== undefined && token.data.source !== null;
   const loading = <Skeleton className="h-4 w-20" />;
 
   return (
@@ -102,12 +101,9 @@ export function Targets() {
         title="Hugging Face Jobs"
         icon={<Cloud aria-hidden />}
         action={
-          <span className="flex items-center gap-1">
-            <InfoTip about="Hugging Face Jobs">
-              Fine-tunes a LoRA adapter for Glimmer on one rented GPU, within its compute cap.
-            </InfoTip>
-            {token.data !== undefined && <Badge>{hasToken ? 'Ready' : 'Needs a token'}</Badge>}
-          </span>
+          <InfoTip about="Hugging Face Jobs">
+            Fine-tunes a LoRA adapter for Glimmer on one rented GPU, within its compute cap.
+          </InfoTip>
         }
       >
         <Fact label="Token">
@@ -118,17 +114,16 @@ export function Targets() {
               Add token
             </Button>
           ) : (
-            TOKEN_SOURCES[token.data.source]
+            // Ready in a word; where the token comes from is a hover away.
+            <Tooltip content={TOKEN_SOURCES[token.data.source]} side="left">
+              <span tabIndex={0} className="rounded-mark">
+                Ready
+              </span>
+            </Tooltip>
           )}
         </Fact>
       </Card>
-      <Card
-        title="Clusters"
-        icon={<Network aria-hidden />}
-        action={<Badge>Launch bundle</Badge>}
-        wide
-        flush
-      >
+      <Card title="Clusters" icon={<Network aria-hidden />} wide flush>
         {CLUSTERS.map((cluster) => (
           <CardRow
             key={cluster.target}

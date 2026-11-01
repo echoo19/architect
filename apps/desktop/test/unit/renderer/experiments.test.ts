@@ -229,7 +229,8 @@ describe('experiment plans', () => {
     expect(armDescriptions(names).targeted).toBe(
       "Qwen3 235B engineers the harness round by round from Qwen's failures",
     );
-    expect(armNames(DEFAULT_NAMES).reference).toBe('Spark reference');
+    expect(armNames(DEFAULT_NAMES).reference).toBe('Spark on the base harness');
+    expect(armNames(DEFAULT_NAMES)['reference-targeted']).toBe('Spark on the engineered harness');
     // Taking an arm of the comparison out clears it, to be chosen again.
     expect(withArms(primary, ['bare', 'draft']).primaryComparison).toBeUndefined();
     expect(withArms(primary, ['bare', 'targeted']).primaryComparison).toEqual({

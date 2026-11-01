@@ -23,7 +23,9 @@ import {
   Ban,
   Clock,
   FlaskConical,
+  FlaskConicalOff,
   GraduationCap,
+  Library,
   Lock,
   Pause,
   Play,
@@ -35,6 +37,7 @@ import { fetchQuery } from '../api/query';
 import { formatCost } from '../flow/format';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
+import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ArmTile } from './icons';
@@ -493,10 +496,27 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
   return (
     <PlacePage
       title={input.name}
+      {...(input.jobId === undefined
+        ? {}
+        : {
+            crumb: {
+              label: experiment.job.name,
+              icon: <Library size={16} strokeWidth={1.8} aria-hidden />,
+              onClick: () => navigate(paths.field(experiment.job.id)),
+            },
+          })}
       status={
         <span className="flex items-center gap-2">
           <Badge>{STATUS_WORDS[status]}</Badge>
-          {report?.dryRun && <Badge>Simulation, no model called</Badge>}
+          {report?.dryRun && (
+            <Badge
+              tone="emphasis"
+              size="lg"
+              icon={<FlaskConicalOff size={14} strokeWidth={1.8} aria-hidden />}
+            >
+              Simulation, no model called
+            </Badge>
+          )}
         </span>
       }
       action={action}

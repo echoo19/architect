@@ -85,8 +85,10 @@ export function armNames({ mentor, student }: ModelNames): Record<ArmId, string>
     bare: `${student} alone`,
     draft: 'One-shot harness',
     targeted: `${mentor}-engineered harness`,
-    reference: `${mentor} reference`,
-    'reference-targeted': `${mentor}, engineered harness`,
+    // The references are the teacher answering the sealed final test itself, with the base
+    // harness or the one it engineered (decision 051); the teacher alone is a run of its own.
+    reference: `${mentor} on the base harness`,
+    'reference-targeted': `${mentor} on the engineered harness`,
     teacher: `${mentor} alone`,
     repeat: 'Decoding repeat',
     fixed: 'Fixed intervention',
@@ -100,11 +102,7 @@ export function armNames({ mentor, student }: ModelNames): Record<ArmId, string>
  * harness without the teacher's name, which a long model name would cut short.
  */
 export function shortArmNames(names: ModelNames): Record<ArmId, string> {
-  return {
-    ...armNames(names),
-    targeted: 'Engineered harness',
-    'reference-targeted': 'Reference, engineered',
-  };
+  return { ...armNames(names), targeted: 'Engineered harness' };
 }
 
 /** The arms under the defaults' names. */

@@ -172,7 +172,7 @@ test("opened from a field, plans its student's model at once and offers its earl
   expect(files.map((request) => request.path)).toEqual([`/${REPO}/resolve/${commit}/config.json`]);
 
   const clusters = region('Clusters');
-  await expect(clusters.getByText('Launch bundle')).toBeVisible();
+  await expect(clusters.getByText('Launch bundle')).toHaveCount(0);
   for (const command of [
     'sbatch submit.sbatch',
     'kubectl apply -f pytorchjob.yaml',

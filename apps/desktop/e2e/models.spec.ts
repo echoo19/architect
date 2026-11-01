@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, tooltipText, updateSettings, type LaunchedApp } from './app';
 import { installModelsFake, MODELS } from './fixtures-models';
 
 /*
@@ -74,6 +74,13 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(academyDesk).toContainText('90%');
   await expect(academyDesk).toContainText('89%');
   await expect(academyDesk).toContainText('Active');
+  // Each status word says what it means on hover or focus.
+  expect(await tooltipText(page, academyDesk.getByText('Active', { exact: true }))).toBe(
+    'The version its chats answer with.',
+  );
+  expect(await tooltipText(page, row(/^Academy desk\s+version 1/).getByText('Experimental'))).toBe(
+    'Its sealed final test fell short of the bar, or ran on a hosted copy.',
+  );
 
   // The service desk's imported version took no final test: its scores are absent, not zero.
   const imported = row(/Service desk\s+version 4/);

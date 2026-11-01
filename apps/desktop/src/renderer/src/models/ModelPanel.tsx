@@ -71,9 +71,9 @@ import {
   scoresOf,
   shortHash,
   statusOf,
-  STATUS_WORDS,
   type ModelRow,
 } from './registry';
+import { StatusWord } from './RegistryTable';
 
 type PanelTab = 'report' | 'lineage' | 'files';
 
@@ -190,7 +190,7 @@ function PanelHeader({
             <span className="sr-only">version {version.version}</span>
           </h2>
           <span className="truncate text-small">
-            {STATUS_WORDS[statusOf(version)]} · {fieldOf(version)}
+            <StatusWord status={statusOf(version)} /> · {fieldOf(version)}
           </span>
         </div>
         <OpenLinks row={row} />
@@ -593,7 +593,9 @@ function LineageTab({
           >
             <VersionTag version={parent.version.version} active={parent.version.active} />
             <span className="min-w-0 flex-1 truncate">Version {parent.version.version}</span>
-            <span className="text-small">{STATUS_WORDS[statusOf(parent.version)]}</span>
+            <span className="text-small">
+              <StatusWord status={statusOf(parent.version)} />
+            </span>
           </button>
         ) : version.origin ? (
           <p className="m-0 text-ui">

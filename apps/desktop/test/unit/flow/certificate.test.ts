@@ -13,7 +13,8 @@ import {
   checkCounts,
   checkPlace,
   noCertificateSentence,
-  riskCertificateSentence,
+  notHeldLine,
+  riskCertificateFigures,
 } from '../../../src/renderer/src/flow/report/certificate-words';
 import { makeJob } from './factories';
 
@@ -39,9 +40,27 @@ describe('a certificate in words (decision 077)', () => {
     expect(boundPercent(0.0701)).toBe(8);
     const all = { ...issued, threshold: { ...point, coverage: 1 } };
     expect(certificateSentence(all, 'Academy desk')).toContain('It answered every one.');
-    expect(riskCertificateSentence(issued, 'Academy desk')).toBe(
-      "8% risk bound on Academy desk's answers, at 95% confidence and 78% coverage.",
+    expect(riskCertificateFigures(issued)).toEqual([
+      { label: 'Risk bound', value: '8%' },
+      { label: 'Confidence', value: '95%' },
+      { label: 'Coverage', value: '78%' },
+    ]);
+  });
+
+  it('says where the bound did not hold, for the line beside Start using', () => {
+    const check = { seen: false, synthetic: false, tasks: 30, answered: 21, errors: 3 };
+    const taught = { ...check, seen: true, held: true };
+    const real = { ...check, held: false, org: 'real', orgName: 'Real academy' };
+    const harbor = { ...check, held: false, org: 'harbor', orgName: 'Harbor Learning' };
+    expect(notHeldLine({ ...issued, checks: [taught] })).toBeNull();
+    expect(notHeldLine({ ...issued, checks: [taught, real] })).toBe('Not held at Real academy');
+    expect(notHeldLine({ ...issued, checks: [harbor, real] })).toBe(
+      'Not held at Harbor Learning and at Real academy',
     );
+    expect(
+      notHeldLine({ ...issued, checks: [{ ...taught, held: false }] }, 'sealed final test'),
+    ).toBe('Not held on the sealed final test');
+    expect(notHeldLine(undefined)).toBeNull();
   });
 
   it('states n, k, the rule, ε and δ', () => {
