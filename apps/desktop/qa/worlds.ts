@@ -33,7 +33,14 @@ import {
 import { DETAILS, LAB, LAB_AGENTS, LAB_EXPERIMENTS } from '../e2e/fixtures-lab';
 import { installModelsFake } from '../e2e/fixtures-models';
 import { SWEEP_EXPERIMENT, sweepComparison } from '../e2e/fixtures-science-experiment';
-import { installTeamsFake, TEAM, TEAM_AGENTS, teamWorld } from '../e2e/fixtures-teams';
+import {
+  installTeamsFake,
+  TEAM,
+  TEAM_AGENTS,
+  TEAM_RECORDS,
+  teamWorld,
+} from '../e2e/fixtures-teams';
+import { installation } from '../e2e/fixtures-versions';
 import { STUDENT_MODEL } from '../e2e/fixtures-workspace';
 import {
   startFakeOllama,
@@ -395,7 +402,17 @@ async function lab(out: string): Promise<World> {
   // Later layers answer the channels they share with earlier ones.
   await installTeamsFake(app, teamWorld({ teams: [TEAM] }));
   await stubFields(app);
-  await installModelsFake(app);
+  await installModelsFake(app, TEAM_RECORDS);
+  // Every agent's install checks on this computer, the team's from their own folders.
+  await stubByKey(app, 'graduates:installation', {
+    ...Object.fromEntries(
+      LAB_AGENTS.map((agent) => [
+        agent.id,
+        installation(agent.id, { version: agent.activeVersion ?? 1 }),
+      ]),
+    ),
+    ...TEAM_RECORDS.installations,
+  });
   await stubByKey(app, 'reports:get', {
     ...FIELD_REPORTS,
     [FLOW.runId]: reports[FLOW.runId],

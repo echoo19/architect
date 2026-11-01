@@ -13,8 +13,8 @@ import type { EngineStore } from '../store/engine-store';
 
 /** Where the agent host finds graduates and keeps chats and their messages. */
 export interface WorkspaceStore {
-  /** Chats belong to graduates registered in Architect. */
-  hasGraduate(graduateId: string): boolean;
+  /** A graduate registered in Architect by its name, which errors use; null when there is none. */
+  graduateName(graduateId: string): string | null;
   /** The graduate's active version, checked on disk, with this computer's bindings and grants. */
   activeVersion(graduateId: string): Promise<ActiveVersion>;
   /** Which version is active and when the installation last changed; null when none is. */
@@ -46,7 +46,7 @@ export interface WorkspaceStore {
 export function workspaceStore(engine: EngineStore, dataDir: string): WorkspaceStore {
   const paths = new DataPaths(dataDir);
   return {
-    hasGraduate: (graduateId) => engine.graduates.get(graduateId) !== null,
+    graduateName: (graduateId) => engine.graduates.get(graduateId)?.name ?? null,
     activeVersion: (graduateId) => activeVersion(engine, paths, graduateId),
     activeStamp: (graduateId) => activeStamp(engine, graduateId),
     writeMode: (graduateId) => engine.installations.get(graduateId)?.grants.writes ?? null,

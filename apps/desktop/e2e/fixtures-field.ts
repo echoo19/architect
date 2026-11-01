@@ -144,7 +144,8 @@ export const FIELD_JOB: Job = {
   ...trainedJob,
   name: 'Academy desk',
   organizationNoun: 'academy',
-  summary: 'Helps a student right after a wrong answer, from the academy’s own curriculum.',
+  summary:
+    'Tells the academy’s staff what to do when a student misses a question, from the academy’s own curriculum.',
   does: [],
   doesNot: ['Changes a grade or a recorded score'],
   taskTypes: SKILLS.map((skill) => ({ id: skill.id, label: skill.label, description: '' })),

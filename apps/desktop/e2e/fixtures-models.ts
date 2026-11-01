@@ -297,13 +297,13 @@ const PATCH = {
   agents: [
     '@@ -4,6 +4,9 @@',
     ' Work from the academy’s own files: its topics, its question bank and its policy.',
-    ' Never quote a student’s record to another student.',
+    ' Share a student’s record only with the academy’s staff.',
     '-Write a short hint in your own words.',
     '+Choose the first hint from the topic’s approved catalog by its hint_id.',
     '+Never write a hint of your own.',
     '+When the policy says escalation is due, add a staff note.',
     ' ',
-    ' Keep the answer to what the student asked.',
+    ' Keep the answer to what the staff member asked.',
   ].join('\n'),
   skill: [
     '@@ -0,0 +1,7 @@',
@@ -377,8 +377,8 @@ export const MODEL_REPORTS: Readonly<Record<string, ReportCard>> = REPORTS;
 /**
  * The Lab's stand-in, then the registry's channels on top: every agent's versions, each
  * version's report card by agent and number, harness diffs, history, and promotion that moves
- * the active version. `more` adds versions after an agent's own, with their cards. Every call is
- * recorded in `globalThis.modelCalls`.
+ * the active version. `more` adds versions after an agent's own (or gives an agent the registry
+ * doesn't list its first), with their cards. Every call is recorded in `globalThis.modelCalls`.
  */
 export async function installModelsFake(
   app: ElectronApplication,
@@ -388,12 +388,10 @@ export async function installModelsFake(
   },
 ): Promise<void> {
   await stubLab(app);
-  const versions = Object.fromEntries(
-    Object.entries(MODEL_VERSIONS).map(([id, list]) => [
-      id,
-      [...list, ...more.versions.filter((version) => version.graduateId === id)],
-    ]),
+  const versions: Record<string, GraduateVersion[]> = Object.fromEntries(
+    Object.entries(MODEL_VERSIONS).map(([id, list]) => [id, [...list]]),
   );
+  for (const version of more.versions) (versions[version.graduateId] ??= []).push(version);
   const data = {
     agents: AGENTS,
     versions,
@@ -433,9 +431,11 @@ export async function installModelsFake(
     handle('graduates:versions', (id: string) => versions[id] ?? []);
     handle('graduates:history', (id: string) => data.history[id] ?? []);
     handle('graduates:settings', () => ({ writeMode: 'ask' }));
-    handle('graduates:report', (id: string, number: number) => {
-      const report = data.reports[`${id}:${number}`];
-      if (!report) throw new Error(`No locked test measured version ${number}.`);
+    // Without a number, the engine reads the active version's card.
+    handle('graduates:report', (id: string, number?: number) => {
+      const version = number ?? versions[id]?.find((item) => item.active)?.version;
+      const report = data.reports[`${id}:${version}`];
+      if (!report) throw new Error(`No locked test measured version ${version}.`);
       return report;
     });
     handle('graduates:harnessDiff', (from: { graduateId: string }, to: { graduateId: string }) =>

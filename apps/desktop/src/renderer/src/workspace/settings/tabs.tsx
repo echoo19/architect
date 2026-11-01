@@ -88,7 +88,8 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
           pending
         )}
       </SettingsRow>
-      <SettingsRow label="Setup">
+      {/* The agent's own version, as a chat's "Answered by version 2" names it. */}
+      <SettingsRow label="Answers with">
         <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
       <SettingsRow label="Final test" meta={evaluatedHere ? undefined : AUTHOR_RESULT_TITLE}>

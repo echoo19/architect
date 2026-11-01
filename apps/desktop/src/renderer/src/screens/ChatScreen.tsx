@@ -7,12 +7,16 @@ import type {
   WorkspaceMessage,
 } from '@architect/shared';
 import {
+  AgentAvatar,
   Badge,
   Button,
   Drawer,
   DrawerContent,
   EmptyState,
   IconButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Skeleton,
   Tooltip,
 } from '@architect/ui';
@@ -90,15 +94,13 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
 
 /**
  * A team chat's header side: each agent of the team on the records it works on, and a quiet icon
- * naming who is in the team at which version, which opens the team in Models.
+ * that opens what the team is: who leads and who it asks, at which version and for what, what a
+ * teammate sees, and a way to change the team in Models.
  */
 function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }) {
   const members = [agent, ...team.teammates];
-  const facts = [
-    ...members.map((member) => `${member.name}, ${activeVersionName(member).toLowerCase()}`),
-    'Not certified as a team',
-    `Runs on ${deviceInSentence(currentPlatform())}`,
-  ];
+  const roleOf = (graduateId: string) =>
+    team.team.members.find((member) => member.graduateId === graduateId)?.role;
   return (
     <div className="flex items-center gap-1">
       {members
@@ -107,15 +109,41 @@ function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }
           <BlockedBadge key={member.id} agent={member} named />
         ))}
       <TeamOrganizationMenu agents={members} />
-      <Tooltip content={facts.join(' · ')} side="bottom">
-        <IconButton
-          label={`About ${team.team.name}`}
-          size="sm"
-          onClick={() => navigate(paths.teams())}
-        >
-          <Info size={16} strokeWidth={1.8} aria-hidden />
-        </IconButton>
-      </Tooltip>
+      <Popover>
+        <PopoverTrigger asChild>
+          <IconButton label={`About ${team.team.name}`} size="sm">
+            <Info size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </PopoverTrigger>
+        <PopoverContent align="end" aria-label={team.team.name} className="w-80">
+          <p className="m-0 text-ui font-medium">{team.team.name}</p>
+          <p className="m-0 mt-1 text-small text-pretty">
+            {`${agent.name} answers, and asks its teammates for their part. A teammate sees only what it is asked, never this chat, and works on its own files with its own permissions.`}
+          </p>
+          <ul className="m-0 mt-3 flex list-none flex-col gap-2.5 p-0">
+            {members.map((member) => {
+              const role = member.id === agent.id ? 'Leads' : roleOf(member.id);
+              return (
+                <li key={member.id} className="flex items-start gap-2.5">
+                  <AgentAvatar name={member.name} className="mt-0.5" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-ui">
+                      {`${member.name}, ${activeVersionName(member).toLowerCase()}`}
+                    </span>
+                    {role && <span className="text-small text-pretty">{role}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="m-0 mt-3 text-small">
+            {`Not certified as a team · Runs on ${deviceInSentence(currentPlatform())}`}
+          </p>
+          <Button size="xs" className="mt-3" onClick={() => navigate(paths.teams())}>
+            Edit team
+          </Button>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

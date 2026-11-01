@@ -931,7 +931,7 @@ describe('the host', () => {
       name: 'GuardError',
       guard: 'network',
     });
-    await expect(world.host.createChat(remote.id)).rejects.toThrow('Open the graduate');
+    await expect(world.host.createChat(remote.id)).rejects.toThrow("isn't ready to chat yet");
   });
 
   it('closes off replies that were still running when the host last stopped', async () => {
