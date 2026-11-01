@@ -591,7 +591,10 @@ function HeroNumber({
       </span>
       <span className="flex items-center gap-1 font-medium">
         {figure.label}
-        <InfoTip about={figure.label}>{defineTerm(figure.term, mentor)}</InfoTip>
+        {/* Below, so it never covers the figure it explains. */}
+        <InfoTip about={figure.label} side="bottom">
+          {defineTerm(figure.term, mentor)}
+        </InfoTip>
       </span>
       <span className="text-small tabular-nums">{figure.note}</span>
     </div>
