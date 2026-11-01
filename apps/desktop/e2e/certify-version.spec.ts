@@ -257,7 +257,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
     'Checked at Summit Tutoring (12 tasks), Brookfield Academy (24 tasks)',
   );
   await expect(plan).toContainText('480 attempts, 5 per task');
-  await expect(plan).toContainText('Free');
+  await expect(plan).toContainText(', free');
   const asked = await launched.app.evaluate(() =>
     (globalThis as typeof globalThis & { certifyCalls?: unknown[] }).certifyCalls?.at(-1),
   );
