@@ -19,8 +19,8 @@ export const HERO = {
   title: 'The training system for your own AI.',
   /** Two sentences, each on its own line where there is room. */
   line: [
-    'A frontier model trains a small one on your work, through harness engineering and LoRA fine-tuning, proven on tests sealed from both.',
-    'It runs on your own machine, offline, with a statistical bound on how often it is wrong.',
+    'A frontier model trains a specialist on your work, through harness engineering and LoRA fine-tuning, proven on tests sealed from both.',
+    'It runs on-premise and offline, with a statistical bound on how often it is wrong.',
   ],
 } as const;
 
