@@ -312,7 +312,8 @@ test('changes what the agent may write and opens its settings', async () => {
   await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
     'Glimmer, 4-bit',
   );
-  await expect(dialog.getByText('4-bit, 17 GB on disk, muse-glimmer:30b')).toBeVisible();
+  // The picker names the build, so the line under it doesn't name it a second time.
+  await expect(dialog.getByText('17 GB on disk, muse-glimmer:30b')).toBeVisible();
   // This computer's checks sit apart from the author's final test.
   await expect(dialog.getByText('Works on this computer', { exact: true })).toBeVisible();
   await expect(dialog.getByText(/^\d+ install checks passed/)).toBeVisible();

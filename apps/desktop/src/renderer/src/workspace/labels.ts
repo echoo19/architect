@@ -193,7 +193,7 @@ export function namesInSentence(names: readonly string[]): string {
 
 /**
  * Up to three things to ask, from the task types the agent passed its test on: each type's
- * description from the job when it has one, since it reads as a request, else its label.
+ * description from its contract when it has one, since it reads as a request, else its label.
  */
 export function suggestionsFor(
   manifest: GraduateManifest,

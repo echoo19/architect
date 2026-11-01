@@ -456,9 +456,10 @@ test("offers the test on this computer in the agent's own Results", async () => 
   // The agent's run is here, so its records can take the test again.
   const dialog = await openAgentSettings(withRetests());
   // Its Final test row says where the test ran.
-  await expect(dialog.getByText('Passed on the online copy: 90% (54 of 60)')).toBeVisible();
+  await expect(dialog.getByText('Passed: 90% (54 of 60)')).toBeVisible();
+  await expect(dialog.getByText('On a hosted copy of the model')).toBeVisible();
   await dialog.getByRole('tab', { name: 'Results' }).click();
-  await expect(dialog.getByText('Typical answer, on the online copy')).toBeVisible();
+  await expect(dialog.getByText('Typical answer, on a hosted copy of the model')).toBeVisible();
   const offer = dialog.getByRole('region', { name: 'Test on this computer' });
   await expect(offer).toContainText('uses the graphics card');
   await expect(offer.getByRole('button', { name: 'Test on this computer' })).toBeVisible();

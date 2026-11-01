@@ -7,7 +7,7 @@ import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
-import { needsLlama, stepsNeedingAttention } from '../install/labels';
+import { needsLlama } from '../install/labels';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
@@ -16,7 +16,13 @@ import { createChat, forgetAgent } from '../workspace/store';
 import { CheckStep, Refused, WaitsForLlama } from './CheckStep';
 import { HubImportFlow } from './HubImport';
 import { InstallStep } from './InstallStep';
-import { FoldersStep, foldersNotSetUp, NotSetUp, PermissionsStep } from './SetupSteps';
+import {
+  FoldersStep,
+  foldersNotSetUp,
+  NotSetUp,
+  PermissionsStep,
+  stepsLeftUndone,
+} from './SetupSteps';
 import { chooseFromHub, chooseImport, useImportSession } from './session';
 
 type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
@@ -140,6 +146,9 @@ function ImportFlow({
     if (chat) navigate(paths.chat(result.graduate.id, chat.id));
   };
 
+  const bind = (resource: string, folder: string) =>
+    setBindings((current) => ({ ...current, [resource]: folder }));
+
   const remove = async () => {
     if (!result) return;
     setLeaving('remove');
@@ -247,15 +256,7 @@ function ImportFlow({
       </Footer>
     );
   } else if (stage === 'Folders') {
-    body = (
-      <FoldersStep
-        manifest={preview.manifest}
-        bindings={bindings}
-        onBind={(resource, folder) =>
-          setBindings((current) => ({ ...current, [resource]: folder }))
-        }
-      />
-    );
+    body = <FoldersStep manifest={preview.manifest} bindings={bindings} onBind={bind} />;
     footer = (
       <Footer>
         <Button size="lg" onClick={() => setStage(back('Folders'))}>
@@ -276,6 +277,7 @@ function ImportFlow({
         bindings={bindings}
         grants={grants}
         writes={writes}
+        onBind={bind}
         onGrant={(resource, grant) => setGrants((current) => ({ ...current, [resource]: grant }))}
         onWrites={setWrites}
       />
@@ -355,7 +357,7 @@ function ImportFlow({
       step={stage}
       steps={steps}
       footer={footer}
-      attention={stage === 'Install' ? stepsNeedingAttention(result?.installation) : []}
+      attention={ok ? stepsLeftUndone(ok.manifest, bindings, grants, result?.installation) : []}
     >
       <div className="mx-auto box-content flex max-w-[680px] flex-col gap-10 px-8 pb-12 pt-14">
         {body}

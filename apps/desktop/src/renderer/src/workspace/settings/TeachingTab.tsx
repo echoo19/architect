@@ -171,7 +171,7 @@ function VersionRow({
 function Score({ score }: { score: { pass: number; total: number } }) {
   return (
     <>
-      <span className="font-mono">{formatPercent(score)}</span>
+      <span className="tabular-nums">{formatPercent(score)}</span>
       <span className="text-small">
         {' '}
         ({score.pass} of {score.total})

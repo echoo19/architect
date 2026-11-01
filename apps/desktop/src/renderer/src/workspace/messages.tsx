@@ -145,7 +145,9 @@ export const AgentMessage = memo(function AgentMessage({
         {!working && (message.text || message.status === 'done') && (
           <div className="-ml-2 -mt-2 flex">
             {message.text && <CopyButton text={message.text} />}
-            {message.status === 'done' && <FlagButton onFlag={() => onFlag(message)} />}
+            {message.status === 'done' && (
+              <FlagButton graduateId={agent.id} onFlag={() => onFlag(message)} />
+            )}
           </div>
         )}
       </article>

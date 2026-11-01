@@ -2,7 +2,15 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import {
+  goTo,
+  infoTipText,
+  launchApp,
+  settle,
+  tooltipText,
+  updateSettings,
+  type LaunchedApp,
+} from './app';
 import { ENGINE_RESTARTING, stubEngineFailure } from './fixtures';
 import {
   finishImprovement,
@@ -291,9 +299,10 @@ test('shows what is being taught above the versions, and the flagged answers to 
   await page.keyboard.press('Escape');
   await expect(lessons).toContainText('3 flagged answers');
 
-  // Teaching it something new starts a chat to show it.
+  // Teaching it something new opens a chat to show it: its empty one, rather than another.
   await lessons.getByRole('button', { name: 'New chat' }).click();
-  await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_teach_1$/);
+  await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_new$/);
+  expect(await callsTo(launched.app, 'workspace:createChat')).toEqual([]);
   await expect(dialog).toBeHidden();
   // The new chat says how to teach from it.
   await expect(
@@ -328,15 +337,14 @@ test("shows a Teaching tab with nothing flagged yet, and one that couldn't load"
 
 test("says why an agent from another computer can't be taught here", async () => {
   await open(chatPath(IMPORTED_AGENT.id, IMPORTED_CHAT.id), FILLED);
-  const sheet = await flagReply();
-  await expect(sheet.getByText("Returns desk can't be taught here")).toBeVisible();
-  await expect(sheet).toContainText(
+  // The flag is held, and says why, rather than opening a sheet that can only say no.
+  const flag = page.getByRole('button', { name: 'Flag for teaching' }).last();
+  await expect(flag).toBeDisabled();
+  expect(await tooltipText(page, flag.locator('..'))).toBe(
     'Returns desk was made on another computer. It can be taught there, where its practice and check tasks are.',
   );
-  await expect(sheet.getByRole('button', { name: /Share/ })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Teach this' })).toHaveCount(0);
   await capture('teach-imported-dark.png');
-  await sheet.getByRole('button', { name: 'Close' }).last().click();
-  await expect(sheet).toBeHidden();
 
   const dialog = await openTeaching('Returns desk');
   const lessons = dialog.getByRole('region', { name: 'Lessons' });

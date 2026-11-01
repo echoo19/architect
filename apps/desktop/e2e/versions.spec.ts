@@ -492,12 +492,17 @@ test('installs without a folder as needing attention, and fixes it from the resu
     0,
   );
   await expect(page.getByText('No folder chosen').first()).toBeVisible();
+  // It can still be chosen here, beside the access it would get; the Folders pill isn't ticked.
+  await expect(page.getByRole('button', { name: 'Choose' }).first()).toBeVisible();
+  await expect(page.getByText('Folders, needs attention')).toBeVisible();
   await page.getByRole('button', { name: 'Install', exact: true }).click();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
   ).toBeVisible();
   // The step that left it undone is marked, and the result leads with the one thing to do.
   await expect(page.getByText('Folders, needs attention')).toBeVisible();
+  // No folder means no access was given to one either.
+  await expect(page.getByText('Permissions, needs attention')).toBeVisible();
   await expect(page.getByText("Its records folder isn't chosen yet.")).toBeVisible();
   await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();

@@ -216,7 +216,6 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               icon={<StatusMark state={item.included ? 'ok' : 'off'} />}
               label={itemLabel(item)}
               meta={item.files.join(', ')}
-              metaFont="code"
             >
               <div className="flex items-center gap-4">
                 <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
@@ -315,7 +314,6 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               }
               label={label}
               meta={`${partFile(review, part.part)}, ${formatBytes(part.bytes)}`}
-              metaFont="code"
             >
               <Button
                 size="xs"
