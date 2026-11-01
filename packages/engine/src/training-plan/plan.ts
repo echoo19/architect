@@ -70,13 +70,15 @@ export function planTraining(config: ModelConfig, input: TrainingPlanInput): Tra
   // Resident weights: every parameter, every expert.
   const everyExpert = size.experts > 0 ? `, all ${size.experts} experts in every expert layer` : '';
   if (method === 'qlora') {
+    // PEFT's prepare_model_for_kbit_training casts every weight it didn't quantize to fp32
+    // (decision 104: the first real job's memory showed it).
     const other = size.totalParams - size.linearParams;
-    const bytes = size.linearParams * NF4_BYTES + other * p;
+    const bytes = size.linearParams * NF4_BYTES + other * 4;
     terms.push({
       key: 'weights',
       label: `Resident weights${everyExpert}, frozen in 4 bits`,
       bytes,
-      arithmetic: `${params(size.linearParams)} linear parameters × ${NF4_BYTES.toFixed(4)} bytes (NF4 with double quantization) + ${params(other)} embeddings and norms × ${p} bytes (${precision}) = ${gb(bytes)}`,
+      arithmetic: `${params(size.linearParams)} linear parameters × ${NF4_BYTES.toFixed(4)} bytes (NF4 with double quantization) + ${params(other)} embeddings and norms × 4 bytes (fp32, as preparing for k-bit training leaves them) = ${gb(bytes)}`,
       sharded: true,
     });
     assumptions.push(
@@ -143,19 +145,20 @@ export function planTraining(config: ModelConfig, input: TrainingPlanInput): Tra
   const h = size.hiddenSize;
   const checkpoints = b * s * h * p * size.layers;
   const layer = b * s * (8 * h + 3 * size.activeMlpWidth) * p;
-  const logits = b * s * size.vocabSize * (p + 4);
+  // The logits in the compute precision, the loss's fp32 copy of them, and its fp32 log-softmax.
+  const logits = b * s * size.vocabSize * (p + 8);
   const activations = checkpoints + layer + logits;
   terms.push({
     key: 'activations',
     label: 'Activations for one micro-batch (approximate)',
     bytes: activations,
-    arithmetic: `checkpoints b·s·h·${p}·L = ${b}·${s}·${h}·${p}·${size.layers} = ${gb(checkpoints)}; one layer recomputed ≈ b·s·(8h + 3·${size.activeMlpWidth} active MLP width)·${p} = ${gb(layer)}; logits b·s·vocab·(${p} + 4 for the fp32 loss) = ${gb(logits)}; total ${gb(activations)}`,
+    arithmetic: `checkpoints b·s·h·${p}·L = ${b}·${s}·${h}·${p}·${size.layers} = ${gb(checkpoints)}; one layer recomputed ≈ b·s·(8h + 3·${size.activeMlpWidth} active MLP width)·${p} = ${gb(layer)}; logits b·s·vocab·(${p} + 4 + 4 for the loss's fp32 copy and log-softmax) = ${gb(logits)}; total ${gb(activations)}`,
     sharded: false,
   });
 
   // FSDP gathers each wrapped unit whole before using it, and prefetches the next one.
   const unitBytesPerParam =
-    method === 'qlora' && size.largestUnit.name !== 'the embedding table' ? NF4_BYTES : p;
+    method === 'qlora' ? (size.largestUnit.name === 'the embedding table' ? 4 : NF4_BYTES) : p;
   const unit = size.largestUnit.params * unitBytesPerParam;
   const copies = method === 'full' ? 3 : 2;
   const peak = unit * copies;
