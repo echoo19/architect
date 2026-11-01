@@ -2,10 +2,16 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-10-31 (Sat, late night), `site/sleek`: the film approved, the site calmed
+
+- *Done:* the owner approved final 2 ("sure") and asked for the site to be "more simple/premium/sleek ... rather than feeling all cluttered". `film/cohesive` merged into `field/main`; `site/public/architect-film.mp4` is the crf 23 web copy of `lab-walkthrough-final-2.mp4` (2:38, 23 MB). Home: the two lines under the claim are shorter and name no models; the film's cover is a still of the Lab from the film (`site/public/architect-film-cover.webp`, also the video's poster) instead of a black title card; Why has a three-sentence reason and the three requests side by side, quote over attribution, aligned by a subgrid; the footer note names shops, labs and academies. Results (`ResultsPage.tsx`, built by an agent in a worktree): plain model names in prose and tables, a four-sentence abstract, a one-line headline strip, every table behind a closed `<details>` per section, the returns desk study folded into one section (old Figures 5 to 8 become columns in Tables 6 to 9), sections renumbered 1 to 5 with all 13 limitations kept. 23,875 px tall at 1440 before, 12,079 after. `docs/HACKATHON.md`: the science set is built and specialists can work as a team.
+- *Verified:* site typecheck and tests, `pnpm check`; captures at 1440 and 390 for all three pages looked at whole (`site/screenshots` recaptured).
+- *Next:* PR `field/main` to `main` so the site deploys. The version bump and new installers (teams, declutter) wait for the owner's OK.
+
 ## 2026-10-31 (Sat), `film/cohesive` (from `field/main` 5b64dc1c): the Lab film retimed to one take of its narration
 
 - *Done:* the Lab walkthrough film (`site/film/lab`) now follows its narration, recorded as one take (`architect-runs/film/launch/audio/final2`). `cues.ts`, written from the take's word times, pairs moments of the walkthrough and of the team scene with when they are played, and `smoothMap` (`time.ts`) moves between them without a jump in speed; it replaces the old stretch table. Each scene starts as its narration does, and each beat lands on the word that names it. The why scene shows only our two lines, the YC line and the three requests, with no cuts to the app, and goes back to the Lab's window as it left it. The terminal (`architect serve`) and the Assets page left the film with their lines; the team scene leaves the chat as the write is saved. The film is 2:37.8: `architect-runs/film/launch/renders/lab-walkthrough-final-2.mp4`, with its voice and score; `SCRIPT-lab.md` and `BRIEF.md` there have the script, the timing and the sound.
-- *Next:* the owner's review of final 2. Not merged or pushed. Open: the score has no pull-back under Offline or lift for the team (neither generation followed those sections of its plan).
+- *Next:* approved and merged (see the entry above). Open: the score has no pull-back under Offline or lift for the team (neither generation followed those sections of its plan).
 
 ## 2026-10-31 (Sat, night): the declutter merged across the app, the site and the film
 
