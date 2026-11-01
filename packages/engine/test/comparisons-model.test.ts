@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { JobSchema, MENTOR_PRESETS, type Job } from '@architect/shared';
+import { JobSchema, keyMayGoTo, MENTOR_PRESETS, type Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   comparisonJob,
@@ -17,6 +17,7 @@ import {
   project,
   SparkCapError,
   sparkCapsWith,
+  studentAt,
   wilson,
   type ComparisonConfig,
 } from '../src/comparisons';
@@ -197,6 +198,38 @@ function config(changes: Partial<ComparisonConfig>): ComparisonConfig {
 
 const source = JobSchema.parse(JSON.parse(readFileSync(join(RETURNS_DESK, 'job.json'), 'utf8')));
 
+describe('a hosted student no preset names', () => {
+  const endpoint = studentAt('https://glimmer.example.cloud/v1', 'muse-glimmer-lora', true);
+
+  it("is priced at the default hosted copy's rates, so its tokens are held to the cap", () => {
+    expect(endpoint).toMatchObject({
+      runtime: 'openai_compatible',
+      baseUrl: 'https://glimmer.example.cloud/v1',
+      model: 'muse-glimmer-lora',
+      // Its key goes to that host alone.
+      secretRef: 'custom:glimmer.example.cloud',
+      pricing: { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 },
+    });
+  });
+
+  it('sends its key to that host and no other', () => {
+    const ref = endpoint.secretRef ?? '';
+    expect(keyMayGoTo(ref, endpoint.baseUrl)).toBe(true);
+    expect(keyMayGoTo(ref, 'https://openrouter.ai/api/v1')).toBe(false);
+    expect(studentAt(endpoint.baseUrl, endpoint.model, false).secretRef).toBeUndefined();
+  });
+
+  it("is every arm's hosted student, with no provider pin", () => {
+    const job = comparisonJob(source, config({}), {
+      ...DEFAULT_MODELS,
+      student: endpoint,
+      providers: undefined,
+    });
+    expect(job.student.hosted).toMatchObject({ baseUrl: endpoint.baseUrl, model: endpoint.model });
+    expect(job.student.hosted?.providers).toBeUndefined();
+  });
+});
+
 describe('the projection', () => {
   const planned = (changes: Partial<ComparisonConfig>) => {
     const settings = config(changes);
@@ -207,6 +240,11 @@ describe('the projection', () => {
       modelInputs(job, settings, calibration(), { attempts: [], reading: null }),
     );
   };
+
+  it('asks no Spark of a draft adopted whole', () => {
+    const draft = planned({ draftHarness: '/frozen' }).arms.find((arm) => arm.arm === 'draft');
+    expect(draft).toMatchObject({ sparkCalls: 0, sparkUsd: 0, hostedAttempts: 150 });
+  });
 
   it('counts each arm at the most its caps allow', () => {
     const arms = Object.fromEntries(planned({}).arms.map((arm) => [arm.arm, arm]));

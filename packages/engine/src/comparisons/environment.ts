@@ -109,6 +109,11 @@ export interface RealEnvironmentOptions {
   log(line: string): void;
   /** Where keys come from: the app's saved keys; the environment's variables when absent. */
   getSecret?(ref: string): Promise<string | undefined>;
+  /**
+   * More keys from the environment, by the ref they go under: the variable that holds the key of
+   * a student at an address the person gave, bound to that address (decision 105).
+   */
+  keyEnv?: Readonly<Record<string, string>>;
   /** The Hugging Face token for training compute; Hugging Face's own lookup when absent. */
   huggingFaceToken?: () => Promise<string | undefined>;
   /** The closed network's hosts (decision 098), which the arms' teachers and students are held to. */
@@ -251,7 +256,7 @@ export function realEnvironment(options: RealEnvironmentOptions): {
       getSecret:
         options.getSecret ??
         (async (ref) => {
-          const name = SECRET_ENV[ref];
+          const name = options.keyEnv?.[ref] ?? SECRET_ENV[ref];
           return name === undefined ? undefined : process.env[name] || undefined;
         }),
       trainerDir: options.trainerDir,

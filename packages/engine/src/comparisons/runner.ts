@@ -10,6 +10,7 @@ import {
   studentPricing,
   type ArmId,
   type StudyRecord,
+  type StudyState,
   type BackendId,
   type ComparisonReport,
   type FundingPause,
@@ -107,6 +108,11 @@ export interface ComparisonRequest {
    * folder's `study.json`, which confirms that brief for every arm (decision 069).
    */
   studyToken?: string;
+  /**
+   * For a job with organizations: a brief the person confirmed in an earlier comparison of the
+   * same organizations' files, shared with every arm in place of a new study (decision 105).
+   */
+  study?: StudyRecord;
   /**
    * Raises the confirmed plan's student cap to this, before any locked test is released: the
    * person's answer to a comparison paused for money, recorded as an amendment (decision 081).
@@ -571,7 +577,8 @@ export async function runComparison(
         (request.regressionJobDir === undefined || regressionDone
           ? 0
           : REGRESSION_PER_TYPE * source.taskTypes.length * model.studentUsd.value);
-      const projection = project(base, config, model, committed, study.record?.cost.usd ?? 0);
+      const studyUsd = madeHere(study.record, request)?.cost.usd ?? 0;
+      const projection = project(base, config, model, committed, studyUsd);
       const fits = !needsConfirmation(projection);
       plan = {
         format: PLAN_FORMAT,
@@ -811,7 +818,9 @@ interface Study {
  * reads the train organizations' files and writes its brief, which the person reads in the
  * output folder's `study.json` and confirms by passing its token. A study already made is kept,
  * so a later command makes no call; one the material changed since is made again. Every arm
- * starts from the same confirmed brief. A job without organizations has nothing to study.
+ * starts from the same confirmed brief. A job without organizations has nothing to study. A
+ * brief the person confirmed in an earlier comparison, when the request gives one, is kept in
+ * place of a study.
  */
 async function studyOnce(
   request: ComparisonRequest,
@@ -823,7 +832,9 @@ async function studyOnce(
 ): Promise<Study> {
   if (!isStudied(base)) return { record: null, confirmed: true };
   let state = await engine.jobs.studyState(base.id);
-  if (state === null || state.state === 'unstudied' || state.state === 'changed') {
+  if (request.study !== undefined && state?.state !== 'confirmed') {
+    state = await reuseStudy(engine, base, request.study);
+  } else if (state === null || state.state === 'unstudied' || state.state === 'changed') {
     env.log("Study: Spark reads the train organizations' files and writes its brief.");
     state = await new JobStudy({
       jobs: engine.jobs,
@@ -847,6 +858,31 @@ async function studyOnce(
     );
   }
   return { record, confirmed };
+}
+
+/** The study, unless it is the brief the request reused, which an earlier comparison paid for. */
+function madeHere(record: StudyRecord | null, request: ComparisonRequest): StudyRecord | null {
+  return record !== null && record.createdAt === request.study?.createdAt ? null : record;
+}
+
+/**
+ * A brief the person confirmed in an earlier comparison, kept as this one's with no call to Spark
+ * (decision 105): refused unless it is confirmed and these are the organizations' files it read.
+ */
+async function reuseStudy(
+  engine: ComparisonEngine,
+  base: Job,
+  record: StudyRecord,
+): Promise<StudyState> {
+  await engine.jobs.writeStudy(base.id, record);
+  const state = await engine.jobs.studyState(base.id);
+  if (state === null || state.state !== 'confirmed') {
+    throw new Error(
+      state?.problem ??
+        "The brief given isn't one the person confirmed, so it isn't shared with any arm.",
+    );
+  }
+  return state;
 }
 
 /**
@@ -1572,7 +1608,7 @@ async function composeReport(
     deps: env.deps,
     config: withLockedTests(request, field).config,
     field,
-    study: isStudied(base) ? await engine.jobs.studyRecord(base.id) : null,
+    study: isStudied(base) ? madeHere(await engine.jobs.studyRecord(base.id), request) : null,
     // The plan as stored: decisions made since it was confirmed are in the file.
     plan,
     base,
