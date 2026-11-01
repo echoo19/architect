@@ -26,3 +26,5 @@ Sweep desk, which reads ML research groups' training runs, has its first report:
 An earlier comparison, on the service desk sample job with the first version of Glimmer's tools, is described in the README's Results section and in [docs/PROGRESS.md](../PROGRESS.md).
 
 `screens/` holds captures of comparison 2's taught agent in the app, made by opening that run's own records in Architect: its training, its first round and its results page.
+
+A second fine-tune, [qlora-2.md](qlora-2.md), ran on Sweep desk's export after its generator fix: 6 checker-passed practice attempts, one A100, 5.1 minutes, $0.21, clean the first time. With so few examples the adapter took one update during warmup, so it shows the path on an AI lab's data rather than anything taught.
