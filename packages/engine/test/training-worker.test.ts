@@ -182,6 +182,7 @@ describe('the stand-in backend', () => {
       list: () => store.list(),
       get: (id) => store.get(id),
       jobDir: (id) => store.jobDir(id),
+      exclusive: (work) => store.exclusive(work),
       put: (record: TrainingJobRecord) => {
         puts += 1;
         // The app dies right after the backend took the job, before the record says so.
