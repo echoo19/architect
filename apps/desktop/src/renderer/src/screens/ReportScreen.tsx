@@ -90,9 +90,11 @@ export function ReportScreen({ runId }: { runId: string }) {
  * the results give from them and the final test together. The footer and the page read the same
  * cached queries, so they never disagree.
  */
-function useReportAgent(report: ReportCard) {
+function useReportAgent(card: ReportCard) {
   const graduates = useGraduates();
-  const graduate = graduates.data?.find((item) => item.manifest.runId === report.runId);
+  const graduate = graduates.data?.find((item) => item.manifest.runId === card.runId);
+  // The card carries the job's name; the agent may go by another, beside one named the same.
+  const report = graduate ? { ...card, name: graduate.name } : card;
   // Install checks belong to the agent on this computer, once the run has made one.
   const installation = useQuery(graduateKeys.installation(graduate?.id ?? 'none'), () =>
     graduate ? graduatesApi.installation(graduate.id) : Promise.resolve(null),
@@ -110,7 +112,7 @@ function useReportAgent(report: ReportCard) {
     here,
     finalTest,
   );
-  return { graduate, installation: installation.data ?? null, verdict };
+  return { report, graduate, installation: installation.data ?? null, verdict };
 }
 
 /**
@@ -118,7 +120,7 @@ function useReportAgent(report: ReportCard) {
  * which is in its settings.
  */
 function ReportFooter({
-  report,
+  report: card,
   accepting,
   onAccept,
 }: {
@@ -126,7 +128,7 @@ function ReportFooter({
   accepting: boolean;
   onAccept: () => void;
 }) {
-  const { graduate, verdict } = useReportAgent(report);
+  const { report, graduate, verdict } = useReportAgent(card);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const edition = useEdition();
   const { finalTest } = useWords();
@@ -202,7 +204,8 @@ function LabLinks({ report }: { report: ReportCard }) {
   );
 }
 
-function LoadedReport({ report }: { report: ReportCard }) {
+function LoadedReport({ report: card }: { report: ReportCard }) {
+  const { report, graduate, installation, verdict } = useReportAgent(card);
   const job = useJob(report.jobId);
   const settings = useSettings();
   const run = useRunDetail(report.runId);
@@ -212,7 +215,6 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const evidence = useReportEvidence(report);
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
-  const { graduate, installation, verdict } = useReportAgent(report);
   const lab = useEdition() === 'lab';
   const shownJob = job.status === 'success' ? job.data : null;
   const shownRun = run.data?.run ?? null;
