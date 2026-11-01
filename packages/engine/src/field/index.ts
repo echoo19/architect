@@ -7,11 +7,14 @@ export {
   exportField,
   exportFieldFromData,
   fieldSource,
+  storedFieldSource,
   SFT_USES,
   type ExportFromDataOptions,
   type FieldSource,
   type SealedView,
 } from './export';
+export { attemptEpisodes, loadPassedAttempts, type PassedAttempt } from './attempts';
+export { fieldDataset, FieldDatasetError } from './dataset';
 export { openRewardScorer, type RewardScorer, type RewardScorerOptions } from './reward';
 export { SCORE_CLIENT_PY } from './score-client';
 export { fieldView } from './view';

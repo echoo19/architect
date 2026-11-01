@@ -2,6 +2,19 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, night), `train/hf-jobs-from-export` (from `field/main` a385c043): a field's passing attempts train on Hugging Face Jobs
+
+- *Done:* decision 101. The first real QLoRA job (run folder `architect-runs/qlora-1`) couldn't go through the product: the Inventory desk's export had no demonstrations (no lessons; 22 train attempts its checker passed), and only a run's weights round, which then needs this computer's GPU, sent a job to Hugging Face Jobs. Now a field export takes the student's passing train attempts as `passed_attempt` demonstrations, each checked against the harness and files it ran with; `architect train start <job> --max-usd <n>`, `train status <job> [--wait]` and `train cancel` send a field's demonstrations to Hugging Face Jobs through the existing worker and backend; the trainer logs each step's loss to `train.log`.
+- *Review (Codex Sol), fixed:* two commands starting at once could both send a job and pass the cap (each had its own queue): a new job is now reserved under a SQLite lock that holds across processes. `train start` took an export folder and trusted its own manifest, verdicts and uses: it now takes a job and runs the exporter itself. A row whose trace was of another task wasn't caught: it is now left out.
+- *Verified:* `field-attempts.test.ts` (the Academy desk with a scripted student: targets, what is left out and why, a trace of another task, train only, the exporter's own dataset), `training-lock.test.ts` (a child process holds the lock and the parent waits; a holder that dies lets go), the racing test in `hf-jobs.test.ts` and `apps/cli/test/train-jobs.test.ts` (the fake Hub: two starts at once make one job, the cap, the private repository, the adapter downloaded and checked, a folder made by hand refused, no token, data kept here). Each new test failed before its fix. A read-only preview on the Inventory desk's data: all 22 attempts pass the checks and are left out only by the job's data-sharing setting.
+- *Next:* merge, re-pin, allow remote training for the Inventory desk's job, then run qlora-1.
+
+## 2026-11-01 (Sun, early morning), `runs/assay-1`: the first Assay desk run
+
+- *Done:* the first measured run on a science field, `architect-runs/assay-1` on `runtree-080` (`v0.8.0`), registered before it ran, with two in-memory patches (study output limit 16,000; the taught arm's Spark cap $0.55). Caps raised to $15 student and $3 Spark before any result; the first run was stopped with no locked test released and restarted in a new folder. Final test (84: 36 seen, 48 Corvid Hill): bare 14, one-shot draft 18, taught 14. Primary, taught minus bare on Corvid Hill: 0.0 points (-15.6 to +15.6), no gain shown. Spend: student $3.75 at most, Spark $0.64 recorded. Report: `docs/comparisons/assay-desk-1.md`.
+- *Open:* the taught arm's round 1 stopped on its Spark cap (the draft's spend comes off it first), so no refinement was measured; the same harness run twice moved by 12 of 84 tasks. The taught graduate `grd_mvxf15ff9903be0d43` is kept in `architect-runs/assay-1/agent-data` for the Inventory desk team run.
+- *Next:* fix the two patched limits in the product; a second Assay desk run with a taught-arm Spark cap that leaves room for its rounds, and more than one seed.
+
 ## 2026-11-01 (Sun, late night): film final 3 live, 0.8.0 released
 
 - *Done:* the owner approved final 3 ("looks good"). PR #5 (`field/main` to `main`) passed Linux CI and was merged; the site serves the 2:41 film and the reworded results page. Then 0.8.0 (`chore(release): 0.8.0`: app, CLI, `docs/CLI.md`), tagged `v0.8.0` with release notes (agent teams, `architect run --team`, Inventory desk, the quieter app); the release workflow builds the installers. The site's download version moves to 0.8.0 only once they are attached, so its buttons never point at a missing file.

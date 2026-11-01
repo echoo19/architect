@@ -296,6 +296,32 @@ describe('Hugging Face Jobs', () => {
     expect((await worker.poll(record.id)).state).toBe('cancelled');
   });
 
+  it('makes one job when two processes start the same one at once, and holds two to one cap', async () => {
+    // Each worker has its own store object and queues, as two processes on one data folder do.
+    const first = setUp({ store: new FileTrainingStore(dataDir) }).worker;
+    const second = setUp({ store: new FileTrainingStore(dataDir) }).worker;
+    const dir = datasetDir('a');
+    const [a, b] = await Promise.all([first.submit(request(dir)), second.submit(request(dir))]);
+    expect(b.id).toBe(a.id);
+    expect(jobPosts()).toHaveLength(1);
+    expect(new FileTrainingStore(dataDir).list()).toHaveLength(1);
+
+    // $1.50 pays for 50 minutes on an L40S: one job, never two.
+    const capped = (name: string, order: string) => ({
+      ...request(datasetDir(name, order), 1.5),
+      scope: 'job_capped',
+    });
+    const settled = await Promise.allSettled([
+      first.submit(capped('b', '1183')),
+      second.submit(capped('c', '1184')),
+    ]);
+    expect(settled.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const refused = settled.find((result) => result.status === 'rejected');
+    expect((refused as PromiseRejectedResult).reason).toBeInstanceOf(GuardError);
+    expect(jobPosts()).toHaveLength(2);
+    expect(first.usage('job_capped', 1.5).reservedUsd).toBeLessThanOrEqual(1.5);
+  });
+
   it('finds the job after a restart that cut off its submission, and never sends it twice', async () => {
     const store = new FileTrainingStore(dataDir);
     let puts = 0;
@@ -303,6 +329,7 @@ describe('Hugging Face Jobs', () => {
       list: () => store.list(),
       get: (id) => store.get(id),
       jobDir: (id) => store.jobDir(id),
+      exclusive: (work) => store.exclusive(work),
       put: (record) => {
         puts += 1;
         if (puts === 2) throw new Error('The app stopped.');
