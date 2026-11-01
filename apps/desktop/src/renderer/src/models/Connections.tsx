@@ -13,7 +13,7 @@ function statusOf(connection: Connection): string {
   return `Running · ${count} ${count === 1 ? 'model' : 'models'}`;
 }
 
-const ROLES = 'Can be';
+const ROLES = 'Can run';
 
 function roleColumn(
   key: keyof ConnectionRoles,
@@ -59,12 +59,12 @@ const COLUMNS: readonly DataColumn<Connection>[] = [
   roleColumn('teach', 'Teacher', 'It can serve the teacher of a field'),
   roleColumn(
     'practice',
-    'Practice',
+    'Practice copy',
     'The student can practice on it while it is taught: here, or a hosted or cluster copy',
   ),
   roleColumn(
     'agent',
-    'Agent',
+    'Specialists',
     'A finished specialist can run on it. Specialists run only on-premise',
   ),
 ];
