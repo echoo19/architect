@@ -37,7 +37,7 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, forgetAgent } from '../workspace/store';
 import { CheckStep, WaitsForLlama } from './CheckStep';
 import { InstallStep } from './InstallStep';
-import { FoldersStep, PermissionsStep } from './SetupSteps';
+import { FoldersStep, foldersNotSetUp, NotSetUp, PermissionsStep } from './SetupSteps';
 
 type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
 
@@ -77,7 +77,10 @@ function asPreview({ result, version }: Downloaded): Extract<ImportPreview, { ok
           version: result.version,
           parent: version.parent ?? result.version - 1,
         }
-      : { kind: 'new' };
+      : {
+          kind: 'new',
+          ...(graduate.name === manifest.identity.name ? {} : { name: graduate.name }),
+        };
   return {
     ok: true,
     manifest,
@@ -127,7 +130,7 @@ export function HubImportFlow() {
   const next = (from: Stage): Stage => steps[steps.indexOf(from) + 1] ?? 'Install';
   const back = (from: Stage): Stage => steps[steps.indexOf(from) - 1] ?? 'Package';
   const graduateId = downloaded?.result.graduate.id ?? null;
-  const name = downloaded ? downloaded.version.manifest.identity.name : 'Install from Hugging Face';
+  const name = downloaded ? downloaded.result.graduate.name : 'Install from Hugging Face';
   const home = () => navigate(paths.home());
 
   const download = async () => {
@@ -342,9 +345,12 @@ export function HubImportFlow() {
         <Button size="lg" onClick={() => setStage(back('Folders'))}>
           Back
         </Button>
-        <Button variant="primary" size="lg" onClick={() => setStage(next('Folders'))}>
-          Continue
-        </Button>
+        <div className="flex items-center gap-4">
+          <NotSetUp resources={foldersNotSetUp(preview.manifest, bindings)} />
+          <Button variant="primary" size="lg" onClick={() => setStage(next('Folders'))}>
+            Continue
+          </Button>
+        </div>
       </Footer>
     );
   } else if (stage === 'Permissions') {
@@ -363,9 +369,12 @@ export function HubImportFlow() {
         <Button size="lg" onClick={() => setStage(back('Permissions'))}>
           Back
         </Button>
-        <Button variant="primary" size="lg" onClick={() => void install()}>
-          Install
-        </Button>
+        <div className="flex items-center gap-4">
+          <NotSetUp resources={foldersNotSetUp(preview.manifest, bindings, grants)} />
+          <Button variant="primary" size="lg" onClick={() => void install()}>
+            Install
+          </Button>
+        </div>
       </Footer>
     );
   } else {
@@ -389,9 +398,12 @@ export function HubImportFlow() {
     if (result) {
       footer = (
         <Footer>
-          <Button size="lg" onClick={home}>
-            {result.installation.status === 'ready' || asVersion ? 'Done' : 'Not now'}
-          </Button>
+          {/* A new agent that is ready is opened by its chat; home would open another agent's. */}
+          {(asVersion || result.installation.status !== 'ready') && (
+            <Button size="lg" onClick={home}>
+              {asVersion ? 'Done' : 'Not now'}
+            </Button>
+          )}
           {asVersion ? (
             <Button
               variant="primary"
@@ -409,6 +421,7 @@ export function HubImportFlow() {
               size="lg"
               loading={leaving === 'chat'}
               onClick={() => void startChat()}
+              className="ml-auto"
             >
               {leaving !== 'chat' && <MessageSquarePlus size={16} strokeWidth={1.7} aria-hidden />}
               Start a chat
