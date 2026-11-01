@@ -34,8 +34,8 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
   };
   const geometry = curveGeometry(input);
   const ended = hasEnded(run);
-  const pass = score ? (runs > 1 ? Math.round((score.pass / runs) * 10) / 10 : score.pass) : null;
-  const total = runs > 1 ? job.splits.dev : (score?.total ?? 0);
+  // Two runs are counted as they were run, "62 of 80, 2 runs", never as an average of one.
+  const repeated = runs > 1 ? `, ${runs} runs` : '';
   return (
     <section
       aria-label={`Score on the ${w.checks}`}
@@ -66,16 +66,16 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
               </EvidenceMark>
             </span>
           </Tooltip>
-          {pass !== null && (
+          {score && (
             <span className="text-ui tabular-nums">
-              <Counted said={`${pass} of ${total}`}>
-                {Number.isInteger(pass) ? <NumberTicker value={pass} /> : pass} of{' '}
-                <NumberTicker value={total} />
+              <Counted said={`${score.pass} of ${score.total}${repeated}`}>
+                <NumberTicker value={score.pass} /> of <NumberTicker value={score.total} />
+                {repeated}
               </Counted>
             </span>
           )}
         </div>
-        <ByOrganization live={live} runs={runs} />
+        <ByOrganization live={live} />
       </div>
       <CurveChart input={input} geometry={geometry} ended={ended} />
     </section>
@@ -84,13 +84,12 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
 
 /**
  * The check score at each organization a field is taught on (decision 085), so it shows where
- * the number comes from, counted per run of the check tasks as the score above is. Nothing for a
- * job of one organization.
+ * the number comes from, counted over every run of the check tasks as the score above is.
+ * Nothing for a job of one organization.
  */
-function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
+function ByOrganization({ live }: { live: LiveRun }) {
   const w = useWords();
   const { run, job } = live;
-  const perRun = (value: number) => (runs > 1 ? Math.round((value / runs) * 10) / 10 : value);
   const rows = (job.organizations ?? []).flatMap((org) => {
     const score = run.devByOrg?.find((entry) => entry.org === org.id);
     return score === undefined || score.total === 0 ? [] : [{ org, score }];
@@ -101,12 +100,12 @@ function ByOrganization({ live, runs }: { live: LiveRun; runs: number }) {
       {rows.map(({ org, score }) => (
         <li
           key={org.id}
-          aria-label={`${org.name}: ${perRun(score.pass)} of ${perRun(score.total)}`}
+          aria-label={`${org.name}: ${score.pass} of ${score.total}`}
           className="flex max-w-80 items-baseline justify-between gap-6 border-t border-line py-1.5 text-ui first:border-t-0"
         >
           <span className="truncate">{org.name}</span>
           <span className="tabular-nums">
-            {percent(score)}% ({perRun(score.pass)} of {perRun(score.total)})
+            {percent(score)}% ({score.pass} of {score.total})
           </span>
         </li>
       ))}

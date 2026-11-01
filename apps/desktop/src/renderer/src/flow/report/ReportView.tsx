@@ -130,18 +130,39 @@ function beforeTraining(
   return `${change} ${before}% before training`;
 }
 
+/** The organizations of one group in the grid, or none. */
+function groupColumns(grid: OrgGrid | null, group: OrgGroup): OrgColumn[] {
+  return grid?.groups.filter((item) => item.group === group).flatMap((item) => item.columns) ?? [];
+}
+
 /**
  * What the final test covered, said once: its new tasks, and for a job with organizations, how
- * many came from the ones it was taught on and how many from the ones it had never seen.
+ * many came from the ones it was taught on, from the generated ones it never saw, and from the
+ * real ones, which are kept out of teaching too but counted on their own.
  */
 function testedOn(report: ReportCard, grid: OrgGrid | null): string {
-  const unseen = grid?.groups.filter((group) => group.group !== 'seen').flatMap((g) => g.columns);
-  if (!unseen || unseen.length === 0) {
-    return `Tested on ${report.test.score.total} tasks it had never seen`;
+  const total = report.test.score.total;
+  const tasks = (list: readonly OrgColumn[]) =>
+    list.reduce((sum, column) => sum + column.score.total, 0);
+  const unseen = groupColumns(grid, 'unseen');
+  const real = groupColumns(grid, 'real');
+  const added = groupColumns(grid, 'added');
+  if (unseen.length + real.length + added.length === 0) {
+    return `Tested on ${total} tasks it had never seen`;
   }
-  const tasks = unseen.reduce((sum, column) => sum + column.score.total, 0);
-  const places = unseen.length === 1 ? 'an organization' : `${unseen.length} organizations`;
-  return `Tested on ${report.test.score.total} new tasks and ${tasks} from ${places} it had never seen`;
+  const count = (list: readonly OrgColumn[], one: string, many: string) =>
+    list.length === 1 ? one : `${list.length} ${many}`;
+  const parts = [
+    `${total} new tasks from the organizations it was taught on`,
+    unseen.length > 0 &&
+      `${tasks(unseen)} from ${count(unseen, 'an organization', 'organizations')} it never saw`,
+    real.length > 0 &&
+      `${tasks(real)} from ${count(real, real[0]?.name ?? 'a real organization', 'real organizations')}`,
+    added.length > 0 &&
+      `${tasks(added)} from ${count(added, 'an organization', 'organizations')} added later`,
+  ].filter((part): part is string => part !== false);
+  const last = parts.pop();
+  return `Tested on ${parts.join(', ')} and ${last}`;
 }
 
 /**
@@ -152,9 +173,7 @@ function testedOn(report: ReportCard, grid: OrgGrid | null): string {
  */
 function neverSeenScore(
   grid: OrgGrid | null,
-): { score: Score; label: string; real: string | null } | null {
-  const columns = (group: OrgGroup) =>
-    grid?.groups.filter((item) => item.group === group).flatMap((item) => item.columns) ?? [];
+): { score: Score; label: string; term: LabTerm; real: string | null } | null {
   const sum = (list: readonly OrgColumn[]): Score =>
     list.reduce(
       (total, column) => ({
@@ -163,19 +182,20 @@ function neverSeenScore(
       }),
       { pass: 0, total: 0 },
     );
-  const unseen = columns('unseen');
-  const real = columns('real');
+  const unseen = groupColumns(grid, 'unseen');
+  const real = groupColumns(grid, 'real');
   const realName = real.length === 1 ? (real[0]?.name ?? 'the real organization') : 'the real ones';
   if (unseen.length > 0 && sum(unseen).total > 0) {
     const realScore = sum(real);
     return {
       score: sum(unseen),
-      label: 'at never-seen organizations',
+      label: unseen.length === 1 ? 'at the never-seen organization' : 'at never-seen organizations',
+      term: 'neverSeen',
       real: realScore.total > 0 ? `${formatRate(realScore)} at ${realName}` : null,
     };
   }
   if (real.length > 0 && sum(real).total > 0) {
-    return { score: sum(real), label: `at ${realName}, real and never seen`, real: null };
+    return { score: sum(real), label: `at ${realName}`, term: 'realOrganization', real: null };
   }
   return null;
 }
@@ -314,7 +334,9 @@ export function ReportView({
               <Stat
                 size="xl"
                 value={formatRate(neverSeen.score)}
-                label={<Termed term="neverSeen" mentor={names.mentor} text={neverSeen.label} />}
+                label={
+                  <Termed term={neverSeen.term} mentor={names.mentor} text={neverSeen.label} />
+                }
                 note={
                   <Lines
                     lines={[`${neverSeen.score.pass} of ${neverSeen.score.total}`, neverSeen.real]}
@@ -492,7 +514,7 @@ export function ReportView({
               },
               {
                 label: 'Answer time',
-                value: `Typically ${formatAnswerTime(test.latencyMs.p50)}, 95% within ${formatAnswerTime(test.latencyMs.p95)}`,
+                value: `Typically ${formatAnswerTime(test.latencyMs.p50)} a task in the ${w.finalTest}, 95% within ${formatAnswerTime(test.latencyMs.p95)}`,
               },
               { label: 'Training', value: trainingNote(report, job) },
               ...(bill.parts.length > 0 ? [{ label: 'Cost', value: bill.parts.join(', ') }] : []),

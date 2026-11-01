@@ -24,25 +24,30 @@ function confidence(delta: number): string {
 
 /**
  * The certificate's one sentence: "When Academy desk answers, it is wrong on at most 8% of requests like
- * these, with 95% confidence. It handed 22% to a person."
+ * these, with 95% confidence. It handed 22% of its calibration tasks to a person." The share handed
+ * on is the coverage's other side, measured where the bound was, so it says where.
  */
 export function certificateSentence(certificate: Issued, name: string): string {
   const { bound, coverage } = certificate.threshold;
   const handed = share(1 - coverage);
-  const rest = handed === 0 ? 'It answered every one.' : `It handed ${handed}% to a person.`;
+  const rest =
+    handed === 0
+      ? 'It answered every calibration task.'
+      : `It handed ${handed}% of its calibration tasks to a person.`;
   return `When ${name} answers, it is wrong on at most ${boundPercent(bound)}% of requests like these, with ${confidence(certificate.delta)}. ${rest}`;
 }
 
 /**
  * The certificate's three figures as the Lab names them, under its plain sentence: the risk
- * bound, its confidence and its coverage.
+ * bound, its confidence and its coverage, which is the share of calibration tasks it answered and
+ * not a score at any organization, so its label says so.
  */
 export function riskCertificateFigures(certificate: Issued): { label: string; value: string }[] {
   const { bound, coverage } = certificate.threshold;
   return [
     { label: 'Risk bound', value: `${boundPercent(bound)}%` },
     { label: 'Confidence', value: `${share(1 - certificate.delta)}%` },
-    { label: 'Coverage', value: `${share(coverage)}%` },
+    { label: 'Coverage on calibration tasks', value: `${share(coverage)}%` },
   ];
 }
 
@@ -52,6 +57,18 @@ export function riskCertificateFigures(certificate: Issued): { label: string; va
  * held everywhere it was checked, or when there is no certificate.
  */
 export function notHeldLine(
+  certificate: Certificate | undefined,
+  finalTest = 'final test',
+): string | null {
+  const places = notHeldPlaces(certificate, finalTest);
+  return places === null ? null : `Not held ${places}`;
+}
+
+/**
+ * The places the bound didn't hold, as a sentence ends with them: "at Real academy", "on the
+ * final test". Null when it held everywhere it was checked, or when there is no certificate.
+ */
+export function notHeldPlaces(
   certificate: Certificate | undefined,
   finalTest = 'final test',
 ): string | null {
@@ -68,8 +85,7 @@ export function notHeldLine(
     });
   const last = places.at(-1);
   if (last === undefined) return null;
-  const listed = places.length === 1 ? last : `${places.slice(0, -1).join(', ')} and ${last}`;
-  return `Not held ${listed}`;
+  return places.length === 1 ? last : `${places.slice(0, -1).join(', ')} and ${last}`;
 }
 
 /** How it was measured, in one line: what the sentence rests on. */
@@ -130,9 +146,14 @@ export function certificateFigure(certificate: Certificate | undefined): string 
   return `≤ ${boundPercent(certificate.threshold.bound)}%`;
 }
 
-/** A certificate's figure explained, for a tooltip or a screen reader. */
+/**
+ * A certificate's figure explained, for a tooltip or a screen reader, with where its bound didn't
+ * hold, so the figure is never read as holding everywhere.
+ */
 export function certificateHint(certificate: Certificate): string {
   if (!certificate.issued) return 'No risk certificate';
   const { bound, coverage } = certificate.threshold;
-  return `Risk certificate: bound ${boundPercent(bound)}% at ${confidence(certificate.delta)}, coverage ${share(coverage)}%`;
+  const hint = `Risk certificate: bound ${boundPercent(bound)}% at ${confidence(certificate.delta)}, coverage ${share(coverage)}% on calibration tasks`;
+  const notHeld = notHeldPlaces(certificate, 'sealed final test');
+  return notHeld === null ? hint : `${hint}; not held ${notHeld}`;
 }

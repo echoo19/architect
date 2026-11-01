@@ -329,7 +329,7 @@ function SpendTable({
       rows={arms}
       rowKey={(arm) => arm.arm}
       columns={[
-        { key: 'arm', header: 'Arm', cell: (arm) => named[arm.arm] },
+        { key: 'arm', header: 'Arm', hint: defineTerm('arm'), cell: (arm) => named[arm.arm] },
         {
           key: 'spark',
           header: names.mentor,
@@ -407,7 +407,7 @@ function RunsTable({
       rowKey={(arm) => arm.arm}
       onRowClick={(arm) => onOpen(arm.arm)}
       columns={[
-        { key: 'arm', header: 'Arm', cell: (arm) => named[arm.arm] },
+        { key: 'arm', header: 'Arm', hint: defineTerm('arm'), cell: (arm) => named[arm.arm] },
         {
           key: 'rounds',
           header: 'Rounds',
@@ -485,6 +485,7 @@ function ArmRun({ arm, named }: { arm: ArmReport; named: ArmNames }) {
         </DrawerSection>
         <DrawerSection title="Held-out checks">
           <DetailList
+            valueFont="text"
             items={[
               { label: 'At the start', value: scoreText(arm.dev.baseline) ?? '–' },
               ...(arm.dev.kept

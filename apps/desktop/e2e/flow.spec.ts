@@ -245,7 +245,9 @@ test('walks from a description to a graduate', async () => {
   await expect(time).toContainText('No round fits the 4-hour limit');
   await expect(time).toContainText('60 new tasks on this computer');
   await expect(cost).not.toContainText('Online practice');
-  await expect(cost).toContainText(/Spark teaching\s*\$0\.70/);
+  await expect(cost).toContainText(
+    /Spark teaching\s*All 12 rounds, as none fits the limit yet\s*\$0\.70/,
+  );
   // The choices the run below starts with, so every later screen agrees with this one. Its
   // second button trains online instead, and with that the callout is gone.
   await callout.getByRole('button', { name: 'Train online instead' }).click();
@@ -258,7 +260,7 @@ test('walks from a description to a graduate', async () => {
   await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
   await expect(estimate).toContainText('6.5 h');
   await expect(cost).toContainText(/Online practice\s*\$3/);
-  await expect(cost).toContainText(/Spark teaching\s*\$0\.60/);
+  await expect(cost).toContainText(/Spark teaching\s*10 rounds\s*\$0\.60/);
   // The total is the figures under it added up.
   await expect(estimate.getByRole('img', { name: '$3.60' })).toBeVisible();
   // The footer holds its buttons and nothing else.
@@ -326,7 +328,7 @@ test('walks from a description to a graduate', async () => {
   const success = page.getByRole('region', { name: 'Score on the check tasks' });
   const rounds = page.getByRole('region', { name: 'Rounds' });
   await expect(success).toContainText('78%');
-  await expect(success).toContainText('31 of 40');
+  await expect(success).toContainText('62 of 80, 2 runs');
   await expect(page.getByRole('list', { name: 'Each round' })).toHaveText('PracticeDiagnoseScore');
   await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
   await expect(rounds).toContainText('65% → 63%');
@@ -777,7 +779,7 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   await expect(time).toContainText(/Comparison\s*Three simpler versions\s*11\.5 h/);
   await expect(estimate).toContainText('18 h');
   await expect(cost).toContainText(/Online practice\s*\$6/);
-  await expect(cost).toContainText(/Spark teaching\s*\$0\.65/);
+  await expect(cost).toContainText(/Spark teaching\s*10 rounds\s*\$0\.65/);
   await expect(estimate.getByRole('img', { name: '$6.65' })).toBeVisible();
 
   // The baselines reuse the agent's seed, so the four runs compare like for like.

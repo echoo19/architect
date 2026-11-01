@@ -625,6 +625,17 @@ export function mentorRounds(job: Job, estimate: TimeEstimate): number {
   return estimate.rounds.most > 0 ? Math.min(estimate.rounds.most, maxRounds) : maxRounds;
 }
 
+/**
+ * The rounds the mentor's figure counts, beside it: those that fit, or all of them while none fits
+ * the time limit, so a longer limit that fits fewer than all lowers the figure for a reason the
+ * page says.
+ */
+export function mentorRoundsLine(job: Job, estimate: TimeEstimate): string {
+  const rounds = mentorRounds(job, estimate);
+  const counted = `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`;
+  return estimate.rounds.most > 0 ? counted : `All ${counted}, as none fits the limit yet`;
+}
+
 /** What the mentor is expected to cost over those rounds, or null if its price is unknown. */
 export function expectedMentorUsd(job: Job, estimate: TimeEstimate): number | null {
   const usual = estimateMentorUsd(job);

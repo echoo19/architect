@@ -10,7 +10,8 @@ export interface Problem {
 
 /*
  * The failures that carry a code, in the words a screen leads with. The precise message stays
- * available to whoever opens Details.
+ * available to whoever opens Details, except where the cause is final: "This job is gone." says
+ * all there is, and the message behind it only names the record by its id.
  */
 const PROBLEMS: Record<ErrorCode, Problem> = {
   run_not_found: { cause: 'This run is gone.' },

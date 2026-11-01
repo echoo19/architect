@@ -7,6 +7,7 @@ import {
   Card,
   CardRow,
   ChoiceTiles,
+  defineTerm,
   ErrorState,
   InfoTip,
   Input,
@@ -281,15 +282,7 @@ export function ExperimentDesign({
           onFolder={() => void chooseFolder()}
           onName={(name) => input && change({ ...input, name })}
         />
-        <Card
-          title="Arms"
-          action={
-            <InfoTip about="arms">
-              Each arm is a harness or a LoRA adapter, engineered and tested on the same tasks and
-              seeds.
-            </InfoTip>
-          }
-        >
+        <Card title="Arms" action={<InfoTip about="arms">{defineTerm('arm')}</InfoTip>}>
           <ChoiceTiles<ArmId>
             multiple
             aria-label="Arms"

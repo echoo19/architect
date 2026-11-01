@@ -55,11 +55,11 @@ export function defineTerm(term: LabTerm, mentor = 'the teacher model'): string 
     case 'taughtOn':
       return `Organizations ${mentor} taught the specialist on, scored on sealed tasks it never practiced.`;
     case 'neverSeen':
-      return 'Generated organizations kept out of teaching, met first in the sealed final test.';
+      return 'Generated organizations kept out of teaching until the sealed final test; a real one counts apart.';
     case 'realOrganization':
-      return 'A real organization, anonymized and kept out of teaching like the never-seen ones.';
+      return 'A real organization, anonymized, kept out of teaching like the never-seen ones but counted apart.';
     case 'arm':
-      return 'One way of teaching under comparison, such as a harness or a LoRA adapter.';
+      return 'One way of teaching, a harness or a LoRA adapter, compared on the sealed final test.';
     case 'regressionSuite':
       return 'Failures cut down to a few rows, which later changes to the same helper must pass.';
     case 'fineTuningPlan':

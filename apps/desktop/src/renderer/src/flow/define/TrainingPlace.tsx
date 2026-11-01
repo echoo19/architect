@@ -23,6 +23,7 @@ import {
   estimateNotes,
   estimateTime,
   fittingRounds,
+  mentorRoundsLine,
   formatAboutUsd,
   limitText,
   finalTestAfter,
@@ -264,7 +265,13 @@ export function TrainingRows(props: PlanFacts) {
       : [{ label: `Online ${w.finalTest}`, value: formatAboutUsd(shares.testUsd) }]),
     ...(shares.mentorUsd === null
       ? []
-      : [{ label: `${mentor} teaching`, value: formatAboutUsd(shares.mentorUsd) }]),
+      : [
+          {
+            label: `${mentor} teaching`,
+            detail: mentorRoundsLine(job, chosen),
+            value: formatAboutUsd(shares.mentorUsd),
+          },
+        ]),
   ];
   const cost = billLines(bills.total);
   const costTotal = shownTotalUsd(bills.total);

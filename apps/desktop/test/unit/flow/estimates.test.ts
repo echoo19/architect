@@ -20,6 +20,7 @@ import {
   minutesForOneRound,
   mentorPriceOf,
   mentorRounds,
+  mentorRoundsLine,
   mentorUsdFor,
   placePhrase,
   planBills,
@@ -385,6 +386,11 @@ describe('the plan in all', () => {
       6,
     );
     expect(expectedMentorUsd(codingAgent, estimateTime(codingAgent, 'local'))).toBeNull();
+    // The figure says which rounds it counts, so a longer limit that lowers it says why.
+    expect(mentorRoundsLine(hosted, estimateTime(hosted, 'hosted'))).toBe('7 rounds');
+    expect(mentorRoundsLine(local, estimateTime(local, 'local'))).toBe(
+      'All 12 rounds, as none fits the limit yet',
+    );
   });
 
   it('adds training and the final test, and the comparison when asked for', () => {
