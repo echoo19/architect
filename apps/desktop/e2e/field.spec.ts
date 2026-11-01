@@ -126,18 +126,22 @@ test('shows each skill at each organization, trained-with, never-seen and real a
   });
   await reloadAt(`/runs/${SAMPLE.runId}/report`);
 
-  // The headline is the academies it was taught on; the ones it never saw are counted apart.
+  // The headline is the academies it was taught on; the one it never saw and the real one are
+  // counted apart.
   await expect(
-    page.getByText('Tested on 72 new tasks and 66 from 2 organizations it had never seen', {
-      exact: false,
-    }),
+    page.getByText(
+      'Tested on 72 new tasks from the organizations it was taught on, 36 from an organization it never saw and 30 from Real academy',
+      { exact: false },
+    ),
   ).toBeVisible();
   await expect(page.getByText('67 of 72', { exact: true }).first()).toBeVisible();
 
   const grid = page.getByRole('table', { name: 'Final test by organization' });
   await expect(grid).toBeVisible();
-  const groups = grid.getByRole('columnheader').filter({ hasText: /^(Taught on|Never seen.*)$/ });
-  await expect(groups).toHaveText(['Taught on', 'Never seen', 'Never seen, real']);
+  const groups = grid
+    .getByRole('columnheader')
+    .filter({ hasText: /^(Taught on|Never seen|Real)$/ });
+  await expect(groups).toHaveText(['Taught on', 'Never seen', 'Real']);
   for (const name of [
     'Northside Prep',
     'Lakeview Academy',
@@ -173,7 +177,7 @@ test('shows each skill at each organization, trained-with, never-seen and real a
   await expect(page.getByRole('table', { name: 'Results by task type' })).toBeVisible();
 
   // The headline's figures at the top, the grid whole below them.
-  await page.getByText('at never-seen organizations').evaluate((label) => {
+  await page.getByText('at the never-seen organization').evaluate((label) => {
     const figures = label.closest('.border-y') ?? label;
     let box = figures.parentElement;
     while (box && !/auto|scroll/.test(getComputedStyle(box).overflowY)) box = box.parentElement;

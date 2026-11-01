@@ -1,15 +1,16 @@
 import type { OrgTypeResult, Score } from '@architect/shared';
 
 /**
- * Where an organization stands to the agent: trained with, never seen, never seen and real, or
- * never seen and added to the field after the run (decision 085).
+ * Where an organization stands to the agent: trained with, never seen, real (kept out of teaching
+ * like the never-seen ones, and counted on its own), or added to the field after the run
+ * (decision 085).
  */
 export type OrgGroup = 'seen' | 'unseen' | 'real' | 'added';
 
 export const ORG_GROUPS: { group: OrgGroup; label: string }[] = [
   { group: 'seen', label: 'Taught on' },
   { group: 'unseen', label: 'Never seen' },
-  { group: 'real', label: 'Never seen, real' },
+  { group: 'real', label: 'Real' },
   { group: 'added', label: 'Added later' },
 ];
 

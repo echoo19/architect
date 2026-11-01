@@ -59,7 +59,7 @@ describe('organizationGrid', () => {
     expect(grid?.groups.map((group) => [group.label, group.columns.map((c) => c.org)])).toEqual([
       ['Taught on', ['north']],
       ['Never seen', ['east']],
-      ['Never seen, real', ['real']],
+      ['Real', ['real']],
     ]);
     expect(grid?.groups.map((group) => group.columns[0]?.score)).toEqual([
       { pass: 5, total: 5 },
