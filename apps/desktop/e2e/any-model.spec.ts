@@ -123,7 +123,7 @@ test("names the field's own models on every line of an experiment's design", asy
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });
   await expect(arms.getByRole('button', { name: /Qwen3 32B alone/ })).toBeVisible();
-  await expect(arms.getByRole('button', { name: /Qwen3 235B reference/ })).toBeVisible();
+  await expect(arms.getByRole('button', { name: /Qwen3 235B on the base harness/ })).toBeVisible();
   const estimate = page.getByRole('region', { name: 'Estimate' });
   await expect(estimate.getByRole('meter', { name: 'Qwen3 235B' })).toBeVisible();
   await expect(estimate.getByRole('meter', { name: 'Qwen3 32B' })).toBeVisible();

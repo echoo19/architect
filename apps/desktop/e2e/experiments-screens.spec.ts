@@ -307,19 +307,15 @@ test('reads the released results like a short paper', async () => {
   const crumb = page.getByRole('navigation', { name: 'Breadcrumb' });
   await expect(crumb.getByRole('button', { name: 'Returns desk' })).toBeVisible();
   await expect(page.getByText('Simulation, no model called', { exact: true })).toBeVisible();
-  // The summary answers the preregistered comparison first, then the whole test's lead pair.
-  const verdict =
-    /[+−]?\d+ points?,? .*95% interval .*[+−]?\d+ to [+−]?\d+, so (a gain|a loss|no gain) is shown\./;
-  await expect(
-    page.getByText(
-      /The preregistered comparison, Spark-engineered harness minus Glimmer alone, on the organizations it has never seen, is/,
-    ),
-  ).toContainText(verdict);
   await expect(page.getByText(/Task by task, the difference is \+23 points/)).toBeVisible();
-  // The hypothesis leads, with the paired difference on the part of the test it named.
+  // The hypothesis leads, with what was measured on the part of the test it named. This report
+  // pairs only the whole test, so the part gives each arm's pass rate there (unit tests cover a
+  // report that pairs each part, with its interval and verdict).
   const hypothesis = page.getByRole('region', { name: 'Hypothesis' });
   expect(await above(hypothesis, page.getByRole('figure').first())).toBe(true);
-  await expect(hypothesis).toContainText(verdict);
+  await expect(hypothesis).toContainText(
+    /Spark-engineered harness \d+% · \d+ of \d+, Glimmer alone/,
+  );
   const plot = page.getByRole('figure', { name: /Final-test pass rate, Hosted/ });
   await expect(plot.getByRole('group', { name: 'Organizations it was taught on' })).toBeVisible();
   await expect(plot.getByRole('group', { name: 'Ridgeline Gear, never seen' })).toBeVisible();
