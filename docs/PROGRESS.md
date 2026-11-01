@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, morning), `runs/team-1`: the first agent-team run
+
+- *Done:* `architect-runs/team-1` on `runtree-3b29a8e4` (field/main `3b29a8e4`), no patches, planned before it ran. Inventory desk (inventory-1's taught agent) leads and Assay desk (assay-2's) is its teammate, exported and installed into one fresh data folder, team made with `teams.create`, each member bound to its own job's files per lab. Four plate-only requests built from each lab's first `allocate` task (Saltmarsh's and Corvid Hill's read through the vault's locked-test open), 5 attempts per arm, graded by the job's `allocation` validator. Team 0/20, Inventory desk alone 0/20, Corvid Hill 0/5 both. The lead asked its teammate in 2 of 20 team replies; neither ask brought back the plate's list (one teammate ran out of steps, one answered without reading the plate). Hosted Glimmer through a loopback relay in the run folder; spend $0.47 of a $4 cap. Report: `docs/comparisons/team-1.md`.
+- *Open:* no lead is taught to delegate, and here it didn't: it searched its own files for a plate they never name. 16 of 40 replies wrote a tool call as text and stopped (18% of inventory-1's runner traces did too). Decision 100's phase 2, team tasks to measure and teach delegation on, comes before another team measurement. Assay desk's plate tool still overflows on large plates.
+
 ## 2026-11-01 (Sun, morning), `runs/assay-2`: the second Assay desk run
 
 - *Done:* `architect-runs/assay-2` on `runtree-a385c043` (field/main `a385c043`), no patches, registered before it ran: bare, draft, targeted (2 rounds, `--spark-cap targeted=1.6`) and the seed-102 repeat, $15 student and $3 Spark caps. Spark's draft failed validation (bad example files), so the taught arm drafted for itself in round 1 (kept, dev 5/36 to 12/36); round 2 was refused at its counterexample check (Z′ wrong). Primary, taught minus bare on Corvid Hill: +18.8 points (+2.2 to +34.3) under seed 101 and +16.7 (+3.8 to +29.3) under seed 102, a gain both times; all 84: 25 and 26 against 10 and 12. Spend: student $6.67, Spark $0.54. Report: `docs/comparisons/assay-desk-2.md`.
