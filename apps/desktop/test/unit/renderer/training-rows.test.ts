@@ -1,6 +1,7 @@
 import type { JobRun, JobSummary } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  jobToPickUp,
   TRAINING_ROW_WORDS,
   trainingRows,
   type TrainingRowKind,
@@ -92,5 +93,30 @@ describe('the runs listed beside the agents', () => {
     const words = Object.values(TRAINING_ROW_WORDS);
     expect(new Set(words).size).toBe(words.length);
     expect(TRAINING_ROW_WORDS.results).toBe('Results ready');
+  });
+});
+
+describe('the job home offers before there is an agent', () => {
+  const at = (summary: JobSummary, createdAt: string): JobSummary => ({ ...summary, createdAt });
+
+  it('offers the newest drafted job at its Define page, or the newest run at its row', () => {
+    const drafted = at(job(null, 'Shop desk'), '2026-11-01T10:00:00.000Z');
+    const training = at(
+      job({ id: 'run_t', status: 'running' }, 'Older'),
+      '2026-10-30T10:00:00.000Z',
+    );
+    expect(jobToPickUp([training, drafted])).toMatchObject({
+      job: { name: 'Shop desk' },
+      kind: 'drafted',
+      path: '/jobs/job_Shop%20desk/define',
+    });
+    expect(jobToPickUp([training])).toMatchObject({ kind: 'training', path: '/runs/run_t/train' });
+  });
+
+  it('offers nothing when every job made its agent', () => {
+    expect(jobToPickUp([])).toBeNull();
+    expect(
+      jobToPickUp([job({ status: 'finished', phase: 'done', accepted: true }, 'Done')]),
+    ).toBeNull();
   });
 });
