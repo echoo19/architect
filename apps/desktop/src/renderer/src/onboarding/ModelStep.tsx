@@ -144,6 +144,18 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
             </RadioCard>
           ))}
         </RadioCardGroup>
+        {/* A larger build already here stays chosen, so say what the recommended one offers. */}
+        {build &&
+          gpu &&
+          build.key !== recommended.key &&
+          !fitsOnGpu(build.gpuBytes, gpu) &&
+          downloaded(build.model) &&
+          !downloaded(recommended.model) && (
+            <p className="m-0 px-1 text-fg text-pretty">
+              {sizeWord(build, recommended)} is already on this computer. Recommended runs faster
+              here, after a {formatBytes(recommended.downloadBytes)} download.
+            </p>
+          )}
         {downloading && (
           <div className="flex flex-col gap-2.5 px-1">
             <Progress
