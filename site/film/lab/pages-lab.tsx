@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   ListChecks,
   Lock,
+  LockOpen,
   MessageCircleQuestion,
   Package,
   Boxes,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ACADEMY, ORGANIZATIONS, RIDGELINE_FILES } from './data';
+import { useLabels } from './labels';
 import { PlacePage } from './shell';
 import { count, mix, outQuart, rise, span, ui } from './time';
 
@@ -254,14 +256,28 @@ const fieldGrid = 'grid grid-cols-[1.6fr_repeat(6,1fr)_1.1fr] items-center gap-3
  * Fields: each field with its organizations and its best final test (apps/desktop fields/).
  * `selected` lights the academy's row, and `lab` the screening labs' desks.
  */
-export function Fields({ lt, selected, lab = 0 }: { lt: number; selected: number; lab?: number }) {
+export function Fields({
+  lt,
+  selected,
+  lab = 0,
+  scores,
+}: {
+  lt: number;
+  selected: number;
+  lab?: number;
+  /** Best final tests to show in place of a field's own, by the field's name. */
+  scores?: Readonly<Record<string, readonly [string, string, string]>>;
+}) {
+  const labels = useLabels();
   return (
     <PlacePage title="Fields" action={<Button size="sm">New field</Button>}>
       <section className="rounded-card surface-card">
         <div className={`${fieldGrid} pt-4 text-small font-medium`}>
           <span />
           <span className="col-span-3 border-b border-line pb-2 text-center">Organizations</span>
-          <span className="col-span-3 border-b border-line pb-2 text-center">Best final test</span>
+          <span className="col-span-3 border-b border-line pb-2 text-center">
+            {labels.bestFinalTest}
+          </span>
           <span />
         </div>
         <div className={`${fieldGrid} h-12 text-ui font-medium`}>
@@ -292,8 +308,12 @@ export function Fields({ lt, selected, lab = 0 }: { lt: number; selected: number
             <span className="relative text-right">{field.taught}</span>
             <span className="relative text-right">{field.unseen}</span>
             <span className="relative text-right">{field.real}</span>
-            {field.scores.map((score, column) => (
-              <span key={column} className="relative text-right">
+            {(scores?.[field.name] ?? field.scores).map((score, column) => (
+              <span
+                key={column}
+                data-frame={`${field.name}-${column}`}
+                className="relative text-right"
+              >
                 {score}
               </span>
             ))}
@@ -315,7 +335,7 @@ const FIELD_TABS = [
 ] as const;
 
 /** The field page's tab strip, with one tab open. */
-function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
+export function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
   return (
     <div className="-mt-2 flex h-10 w-fit items-center gap-1 rounded-full p-1 shadow-edge">
       {FIELD_TABS.map(({ label, Icon }) => (
@@ -354,7 +374,14 @@ function Chosen({ shown, children }: { shown: number; children: ReactNode }) {
  * A field's page on its Organizations tab: the academies it is taught on, and the two it never
  * sees, sealed until the final test, one of them real.
  */
-export function FieldPage({ lt }: { lt: number }) {
+export function FieldPage({
+  lt,
+  unlock = 0,
+}: {
+  lt: number;
+  /** How far the sealed academy's lock has opened, from 0 to 1, as its final test begins. */
+  unlock?: number;
+}) {
   // After the seals close, the sealed academy is chosen: what it holds stays out of view.
   const pick = ui(lt, 5.4, 0.3);
   return (
@@ -452,7 +479,22 @@ export function FieldPage({ lt }: { lt: number }) {
             <Card title="Harborview Prep" flush className="w-[320px]">
               <div className="flex flex-1 items-center justify-center border-t border-line">
                 <EmptyState
-                  icon={<Lock strokeWidth={1.8} aria-hidden />}
+                  icon={
+                    <span data-frame="vault" className="relative size-5">
+                      <Lock
+                        className="absolute inset-0"
+                        strokeWidth={1.8}
+                        style={{ opacity: 1 - unlock }}
+                        aria-hidden
+                      />
+                      <LockOpen
+                        className="absolute inset-0"
+                        strokeWidth={1.8}
+                        style={{ opacity: unlock }}
+                        aria-hidden
+                      />
+                    </span>
+                  }
                   title="Sealed until the final test"
                   description="Spark and Glimmer never see its files, its tasks or its scores."
                 />

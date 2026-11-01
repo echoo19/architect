@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { ACADEMY, ROUNDS } from './data';
+import { useLabels } from './labels';
 import { clamp, count, inOutCubic, mix, outQuart, rise, span, ui } from './time';
 
 /** The column the guided flow's screens are set in. */
@@ -304,6 +305,7 @@ function ScoreChart({ lt }: { lt: number }) {
  * the third kept, the second reverted (tutor-1.md). Scores are of the 36 check tasks.
  */
 export function TrainPage({ lt }: { lt: number }) {
+  const labels = useLabels();
   const score =
     lt < ROUND_AT[0] + 0.6
       ? 47
@@ -349,7 +351,7 @@ export function TrainPage({ lt }: { lt: number }) {
           </span>
           <span className="flex items-center gap-2 text-ui">
             <EyeOff size={15} strokeWidth={1.8} aria-hidden />
-            check tasks
+            {labels.checks}
             <span className="ml-2 tabular-nums">{passed} of 36</span>
           </span>
         </div>
@@ -428,11 +430,11 @@ export function TrainPage({ lt }: { lt: number }) {
                       </span>
                       <span />
                       <span>Expected</span>
-                      <span className="tabular-nums">+2 to +5 check tasks</span>
+                      <span className="tabular-nums">+2 to +5 {labels.checks}</span>
                       <span />
                       <span>Measured</span>
                       <span className="tabular-nums" style={{ opacity: settled }}>
-                        +11 check tasks
+                        +11 {labels.checks}
                       </span>
                     </div>
                   )}
