@@ -326,7 +326,7 @@ test('walks from a description to a graduate', async () => {
   const success = page.getByRole('region', { name: 'Score on the check tasks' });
   const rounds = page.getByRole('region', { name: 'Rounds' });
   await expect(success).toContainText('78%');
-  await expect(success).toContainText('31 of 40');
+  await expect(success).toContainText('62 of 80, 2 runs');
   await expect(page.getByRole('list', { name: 'Each round' })).toHaveText('PracticeDiagnoseScore');
   await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
   await expect(rounds).toContainText('65% → 63%');
