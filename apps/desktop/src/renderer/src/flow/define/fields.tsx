@@ -50,7 +50,7 @@ export function NumberField({ label, value, onChange, issue, unit }: NumberField
           setUnreadable(!readable);
           if (readable) onChange(parsed);
         }}
-        className="h-9 w-20 text-right tabular-nums"
+        className="h-9 w-24 text-right tabular-nums"
       />
       {unit && <span className="w-14 text-small">{unitFor(unit, value)}</span>}
     </InspectorRow>

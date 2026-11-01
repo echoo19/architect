@@ -226,7 +226,8 @@ function ScoreBar({
         className="min-w-16 flex-1"
         {...(spark ? { marker: spark.total === 0 ? 0 : rate(spark) / 100 } : {})}
       />
-      <span className="shrink-0 whitespace-nowrap text-small tabular-nums">
+      {/* Counts take the same room in every row, so the bars beside them end together. */}
+      <span className="min-w-[8ch] shrink-0 whitespace-nowrap text-right text-small tabular-nums">
         {score.pass} of {score.total}
         {spark && (
           <span className="text-mentor">
