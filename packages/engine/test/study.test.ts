@@ -43,7 +43,7 @@ function academyJob(): Job {
   return defaultJob({
     id: 'academy-desk',
     name: 'Academy desk',
-    description: 'Help a student right after a wrong answer, from the academy files.',
+    description: 'Tell academy staff what to do when a student misses a question, from the academy files.',
     taskTypes: [
       { id: 'diagnose', label: 'Diagnose' },
       { id: 'assign', label: 'Assign practice' },

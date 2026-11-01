@@ -297,13 +297,13 @@ const PATCH = {
   agents: [
     '@@ -4,6 +4,9 @@',
     ' Work from the academy’s own files: its topics, its question bank and its policy.',
-    ' Never quote a student’s record to another student.',
+    ' Share a student’s record only with the academy’s staff.',
     '-Write a short hint in your own words.',
     '+Choose the first hint from the topic’s approved catalog by its hint_id.',
     '+Never write a hint of your own.',
     '+When the policy says escalation is due, add a staff note.',
     ' ',
-    ' Keep the answer to what the student asked.',
+    ' Keep the answer to what the staff member asked.',
   ].join('\n'),
   skill: [
     '@@ -0,0 +1,7 @@',

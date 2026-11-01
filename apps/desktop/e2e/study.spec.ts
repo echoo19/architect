@@ -22,7 +22,7 @@ const academyDesk: Job = {
   ...job,
   id: 'academy-desk',
   name: 'Academy desk',
-  summary: 'Helps a student right after a wrong answer.',
+  summary: 'Tells the academy’s staff what to do when a student misses a question.',
   does: [
     "Names the topic and the right choice from the academy's own labels",
     'Gives an approved first hint',
