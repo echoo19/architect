@@ -1,10 +1,10 @@
-import { useRef, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, X } from 'lucide-react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { useFloatingMotion } from '../motion/floating';
-import { Dialog, DialogBackdrop, returnFocus, useDialogOpen } from './dialog';
+import { Dialog, DialogBackdrop, returnFocus, useDialogOpen, useDialogOpener } from './dialog';
 import { IconButton } from './icon-button';
 
 export const Drawer = Dialog;
@@ -39,8 +39,7 @@ export function DrawerContent({
 }: DrawerContentProps) {
   const open = useDialogOpen();
   const floating = useFloatingMotion({ origin: 'right center' });
-  // Drawers open from rows rather than a DialogTrigger, so remember where focus came from.
-  const opener = useRef<HTMLElement | null>(null);
+  const opener = useDialogOpener();
   return (
     <RadixDialog.Portal forceMount>
       <AnimatePresence>
@@ -51,13 +50,9 @@ export function DrawerContent({
             forceMount
             asChild
             aria-describedby={undefined}
-            onOpenAutoFocus={() => {
-              opener.current =
-                document.activeElement instanceof HTMLElement ? document.activeElement : null;
-            }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              returnFocus(opener.current);
+              returnFocus(opener);
             }}
           >
             <motion.div

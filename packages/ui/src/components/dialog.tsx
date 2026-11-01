@@ -17,31 +17,46 @@ import { springs } from '../motion/springs';
 
 const DialogOpen = createContext(false);
 
-/** Where on screen the dialog was opened from: the middle of the control that had focus. */
-type Origin = { x: number; y: number } | null;
-const DialogOrigin = createContext<Origin>(null);
+/**
+ * What a dialog was opened from: the control that had focus, and the middle of it on screen,
+ * which the dialog grows from.
+ */
+interface Opened {
+  opener: HTMLElement | null;
+  origin: { x: number; y: number } | null;
+}
+const DialogOpened = createContext<Opened>({ opener: null, origin: null });
 
-function originOf(element: Element | null): Origin {
-  if (!element || element === document.body) return null;
+function openedFrom(element: Element | null): Opened {
+  if (!(element instanceof HTMLElement) || element === document.body) {
+    return { opener: null, origin: null };
+  }
   const rect = element.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) return null;
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  const origin =
+    rect.width === 0 && rect.height === 0
+      ? null
+      : { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  return { opener: element, origin };
 }
 
 /**
- * The point a dialog grows from, noted as it opens: the control that opened it still has focus
- * then, since focus moves into the dialog only after it mounts. Without one, it grows from its
- * own middle.
+ * Noted as the dialog renders open, before anything inside it mounts and takes focus (such as a
+ * field with `autoFocus`), so it is the control that opened it: a trigger, a button or a row.
  */
-function useOpenedFrom(open: boolean): Origin {
-  const [state, setState] = useState<{ open: boolean; origin: Origin }>({ open, origin: null });
-  if (state.open !== open) {
-    setState({
-      open,
-      origin: open && typeof document !== 'undefined' ? originOf(document.activeElement) : null,
-    });
-  }
-  return state.origin;
+function useOpenedFrom(open: boolean): Opened {
+  const note = (now: boolean): Opened =>
+    now && typeof document !== 'undefined'
+      ? openedFrom(document.activeElement)
+      : { opener: null, origin: null };
+  // A dialog can mount already open, such as one keyed to start afresh each time it opens.
+  const [state, setState] = useState(() => ({ open, opened: note(open) }));
+  if (state.open !== open) setState({ open, opened: note(open) });
+  return state.opened;
+}
+
+/** The control the dialog or drawer around was opened from, to give focus back to. */
+export function useDialogOpener(): HTMLElement | null {
+  return useContext(DialogOpened).opener;
 }
 
 /**
@@ -71,14 +86,14 @@ export function Dialog({
   ...props
 }: ComponentProps<typeof RadixDialog.Root>) {
   const [isOpen, setOpen] = useOpenState({ open, defaultOpen, onOpenChange });
-  const origin = useOpenedFrom(isOpen);
+  const opened = useOpenedFrom(isOpen);
   return (
     <DialogOpen.Provider value={isOpen}>
-      <DialogOrigin.Provider value={origin}>
+      <DialogOpened.Provider value={opened}>
         <RadixDialog.Root {...props} open={isOpen} onOpenChange={setOpen}>
           {children}
         </RadixDialog.Root>
-      </DialogOrigin.Provider>
+      </DialogOpened.Provider>
     </DialogOpen.Provider>
   );
 }
@@ -126,11 +141,9 @@ export function DialogContent({
   className,
 }: DialogContentProps) {
   const open = useDialogOpen();
-  const origin = useContext(DialogOrigin);
+  const { opener, origin } = useContext(DialogOpened);
   const floating = useFloatingMotion();
   const content = useRef<HTMLDivElement>(null);
-  // Opened from a menu or a shortcut there may be no trigger to go back to; see `returnFocus`.
-  const opener = useRef<HTMLElement | null>(null);
   // Grows from the control that opened it: its scale is centred on that point, so the few
   // pixels it travels as it grows lead from there. Set before the first frame is drawn.
   useLayoutEffect(() => {
@@ -151,13 +164,11 @@ export function DialogContent({
             forceMount
             asChild
             {...(description ? {} : { 'aria-describedby': undefined })}
-            onOpenAutoFocus={() => {
-              opener.current =
-                document.activeElement instanceof HTMLElement ? document.activeElement : null;
-            }}
+            // Opened from a menu or a shortcut there may be no opener to go back to; see
+            // `returnFocus`.
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              returnFocus(opener.current);
+              returnFocus(opener);
             }}
           >
             <motion.div

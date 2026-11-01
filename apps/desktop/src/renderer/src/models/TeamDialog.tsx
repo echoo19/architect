@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { GraduateSummary, Team } from '@architect/shared';
 import {
   AgentAvatar,
@@ -45,21 +45,6 @@ export interface TeamDialogProps {
  * key each time it opens, so it starts from the team as saved.
  */
 export function TeamDialog({ open, onOpenChange, team, graduates }: TeamDialogProps) {
-  // Opened from a button or a team's row rather than a DialogTrigger, so it notes where focus
-  // was as it opens, before focus moves in, and puts it back there once it has closed and its
-  // focus trap is gone.
-  const opener = useRef<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    if (open) {
-      opener.current =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    }
-  }, [open]);
-  useEffect(() => {
-    if (open) return;
-    if (opener.current?.isConnected) opener.current.focus();
-    opener.current = null;
-  }, [open]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <TeamForm
