@@ -37,7 +37,10 @@ export function runsOnOf(baseUrl: string): RunsOn {
   return isLoopbackUrl(baseUrl) ? 'this_computer' : 'hosted';
 }
 
-/** The teacher as the job's agent: an OpenAI-compatible endpoint at its own price. */
+/**
+ * The teacher as the job's agent: an OpenAI-compatible endpoint at its own price, on the providers
+ * its settings pin, so its attempts run where its calls as the mentor do and cost what was reserved.
+ */
 function endpointOf(teacher: ModelTeacher, contextLength: number): StudentEndpoint {
   const pricing = mentorPricing(teacher);
   return {
@@ -47,6 +50,7 @@ function endpointOf(teacher: ModelTeacher, contextLength: number): StudentEndpoi
     ...(teacher.secretRef === undefined ? {} : { secretRef: teacher.secretRef }),
     contextLength,
     ...(pricing === undefined ? {} : { pricing }),
+    ...(teacher.providers === undefined ? {} : { providers: [...teacher.providers] }),
   };
 }
 
