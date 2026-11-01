@@ -76,7 +76,7 @@ export function reportVerdict(
         `It missed the job's target${where}: ${missed.join(', and ')}.`,
         ...(online && local !== null ? [`It scored ${testResult(report, finalTest)}.`] : []),
         ...(problem ? [problem.cause] : []),
-        'You can still use it.',
+        'Train it again with more rounds or time, or start using it and teach it from its answers.',
       ],
       usable: installation?.status !== 'needs_attention',
     };
