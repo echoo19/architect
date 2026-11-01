@@ -15,8 +15,8 @@ export function EditionStep({ edition, onChoose }: EditionStepProps) {
   return (
     <>
       <StepIntro title="Welcome to Architect">
-        A frontier model engineers a small open model&apos;s harness and fine-tunes it on your
-        work, judges it on tests sealed from both, and leaves it to run on-premise.
+        A frontier model engineers a small open model&apos;s harness and fine-tunes it on your work,
+        judges it on tests sealed from both, and leaves it to run on-premise.
       </StepIntro>
       <RadioCardGroup<Edition>
         aria-label="Edition"

@@ -10,4 +10,3 @@ export function openAgent(graduate: Pick<GraduateSummary, 'id' | 'name'>): void 
     navigate(chatPath(chat));
   });
 }
-

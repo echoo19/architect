@@ -270,7 +270,8 @@ export function MentorStep({
   return (
     <>
       <StepIntro title="Connect a teacher">
-        {mentorName(mentor)}, a frontier model, teaches new agents while they train; finished agents never use it.
+        {mentorName(mentor)}, a frontier model, teaches new agents while they train; finished agents
+        never use it.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         <Panel aria-label="Teacher connection" className="px-7 py-1 [&>*:first-child]:border-t-0">
