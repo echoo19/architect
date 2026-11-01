@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { ACADEMY, ROUNDS } from './data';
+import { useLabels } from './labels';
 import { clamp, count, inOutCubic, mix, outQuart, rise, span, ui } from './time';
 
 /** The column the guided flow's screens are set in. */
@@ -73,10 +74,10 @@ export function defineScroll(lt: number): number {
  * passage it came from, where the academies differ, and what is unclear (the field's first run's
  * brief, architect-runs/phil-1/brief.json). Ends with the confirmation.
  */
-export function DefinePage({ lt }: { lt: number }) {
+export function DefinePage({ lt, scroll }: { lt: number; scroll?: number }) {
   const confirmed = ui(lt, 13.9, 0.25);
   return (
-    <Column style={{ transform: `translateY(${-defineScroll(lt)}px)`, paddingTop: 44 }}>
+    <Column style={{ transform: `translateY(${-(scroll ?? defineScroll(lt))}px)`, paddingTop: 44 }}>
       <h1 className="m-0 font-display text-title font-semibold">{ACADEMY}</h1>
       <p className="mb-0 mt-3 text-body">
         Diagnoses a missed question, sets practice in the academy's records and flags students for
@@ -304,6 +305,7 @@ function ScoreChart({ lt }: { lt: number }) {
  * the third kept, the second reverted (tutor-1.md). Scores are of the 36 check tasks.
  */
 export function TrainPage({ lt }: { lt: number }) {
+  const labels = useLabels();
   const score =
     lt < ROUND_AT[0] + 0.6
       ? 47
@@ -349,7 +351,7 @@ export function TrainPage({ lt }: { lt: number }) {
           </span>
           <span className="flex items-center gap-2 text-ui">
             <EyeOff size={15} strokeWidth={1.8} aria-hidden />
-            check tasks
+            {labels.checks}
             <span className="ml-2 tabular-nums">{passed} of 36</span>
           </span>
         </div>
@@ -428,11 +430,11 @@ export function TrainPage({ lt }: { lt: number }) {
                       </span>
                       <span />
                       <span>Expected</span>
-                      <span className="tabular-nums">+2 to +5 check tasks</span>
+                      <span className="tabular-nums">+2 to +5 {labels.checks}</span>
                       <span />
                       <span>Measured</span>
                       <span className="tabular-nums" style={{ opacity: settled }}>
-                        +11 check tasks
+                        +11 {labels.checks}
                       </span>
                     </div>
                   )}
@@ -503,7 +505,17 @@ const tableGrid =
  * as the run's own figure: no count in between is ever on screen. Then the repair passes both
  * cases.
  */
-export function CounterexampleDrawer({ lt }: { lt: number }) {
+export function CounterexampleDrawer({
+  lt,
+  task,
+  rest = true,
+}: {
+  lt: number;
+  /** The task the case came from, under the title, as the app's drawer names it. */
+  task?: string;
+  /** The line for the rows of tests.csv not shown. */
+  rest?: boolean;
+}) {
   const shrink = outQuart(span(lt, 2.0, 2.6));
   const reduced = ui(lt, 3.1, 0.3);
   const questions = outQuart(span(lt, 4.6, 0.6));
@@ -513,7 +525,10 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-line px-6 pb-4 pt-5">
-        <span className="font-display text-h2 font-semibold">The question lookup</span>
+        <span className="flex flex-col gap-0.5">
+          <span className="font-display text-h2 font-semibold">The question lookup</span>
+          {task && <span className="font-mono text-small">{task}</span>}
+        </span>
         <X size={18} strokeWidth={1.8} aria-hidden />
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -579,11 +594,13 @@ export function CounterexampleDrawer({ lt }: { lt: number }) {
                 </div>
               );
             })}
-            <div className="overflow-hidden" style={{ height: 30 * (1 - shrink) }}>
-              <span className="font-mono text-small" style={{ opacity: 1 - shrink }}>
-                2,306 more rows
-              </span>
-            </div>
+            {rest && (
+              <div className="overflow-hidden" style={{ height: 30 * (1 - shrink) }}>
+                <span className="font-mono text-small" style={{ opacity: 1 - shrink }}>
+                  2,306 more rows
+                </span>
+              </div>
+            )}
           </div>
           <Grow p={questions} height={132}>
             <div className="flex flex-col">

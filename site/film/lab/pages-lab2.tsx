@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { ACADEMY, LOCKED } from './data';
+import { useLabels } from './labels';
 import { PlacePage } from './shell';
 import { clamp, inOutCubic, mix, outExpo, outQuart, rise, span, ui } from './time';
 
@@ -31,7 +32,21 @@ import { clamp, inOutCubic, mix, outExpo, outQuart, rise, span, ui } from './tim
  * badge), and each arm's pass rate with its 95% interval on each group, the measured difference
  * on each never-seen group's header (the academy field's first run, academy-desk-1.md).
  */
-export function ExperimentPage({ lt }: { lt: number }) {
+export function ExperimentPage({
+  lt,
+  arms = [4.7, 5.5, 6.3],
+  placed,
+}: {
+  lt: number;
+  /** When each group's arms land, in seconds from the page's start. */
+  arms?: readonly [number, number, number];
+  /**
+   * Rows, as `group-row` (`1-taught`), whose point appears at its value when it lands instead
+   * of travelling there: something else on screen has already brought it to its place.
+   */
+  placed?: readonly string[];
+}) {
+  const labels = useLabels();
   const groups: IntervalGroup[] = LOCKED.groups.map((group, g) => ({
     label: group.label,
     // A never-seen group's measured difference sits on its header once its arms have landed.
@@ -40,7 +55,7 @@ export function ExperimentPage({ lt }: { lt: number }) {
           end: (
             <span
               className="flex items-center gap-0.5"
-              style={{ opacity: ui(lt, 4.7 + g * 0.8 + 1.4, 0.4) }}
+              style={{ opacity: ui(lt, arms[g]! + 1.4, 0.4) }}
             >
               {group.difference.text}
               <InfoTip about={`${group.label}, the difference`}>{group.difference.tip}</InfoTip>
@@ -49,13 +64,18 @@ export function ExperimentPage({ lt }: { lt: number }) {
         }
       : {}),
     rows: group.rows.map((row, r) => {
-      const at = 4.7 + g * 0.8 + r * 0.14;
+      const at = arms[g]! + r * 0.14;
       const dot = outExpo(span(lt, at, 1.0));
       const open = outQuart(span(lt, at + 0.5, 0.8));
       return {
         id: row.id,
-        label: row.label,
-        estimate: dot > 0 ? mix(0, row.estimate, dot) : null,
+        label: labels.arms[row.id],
+        estimate:
+          dot > 0
+            ? placed?.includes(`${g}-${row.id}`)
+              ? row.estimate
+              : mix(0, row.estimate, dot)
+            : null,
         low: mix(row.estimate, row.low, open) * dot,
         high: mix(row.estimate, row.high, open) * dot,
         tone: row.id === 'taught' ? 'student' : 'fg',
@@ -177,20 +197,64 @@ function Giving({ open, end, children }: { open: number; end?: boolean; children
   );
 }
 
+/** What the version panel's certified answers show: its sentence, its plot and its checks. */
+export interface Certificate {
+  /** Wrong at most, and handed off, as shares, and who it hands to. */
+  wrong: number;
+  handed: number;
+  handedTo: string;
+  /** How the threshold was chosen and measured, in the panel's disclosure. */
+  basis: string;
+  points: readonly { coverage: number; bound: number; risk: number }[];
+  /** The certified point, by its index in `points`. */
+  chosen: number;
+  checks: readonly { name: string; detail: string; held: boolean }[];
+  /** Marked as an example on screen, never as measured, until a run issues one. */
+  example: boolean;
+}
+
 /** The certificate's form, from the report's stand-in data. Shown as an example, never as measured. */
-const RISK = [
-  { coverage: 0.58, bound: 0.068, risk: 0 },
-  { coverage: 0.79, bound: 0.08, risk: 0.018 },
-  { coverage: 0.87, bound: 0.14, risk: 0.04 },
-  { coverage: 0.95, bound: 0.17, risk: 0.07 },
-  { coverage: 1, bound: 0.21, risk: 0.085 },
-] as const;
+export const EXAMPLE_CERTIFICATE: Certificate = {
+  wrong: 0.08,
+  handed: 0.22,
+  handedTo: 'staff',
+  basis: '5 attempts at each calibration task; it answers when 4 of 5 agree.',
+  chosen: 1,
+  points: [
+    { coverage: 0.58, bound: 0.068, risk: 0 },
+    { coverage: 0.79, bound: 0.08, risk: 0.018 },
+    { coverage: 0.87, bound: 0.14, risk: 0.04 },
+    { coverage: 0.95, bound: 0.17, risk: 0.07 },
+    { coverage: 1, bound: 0.21, risk: 0.085 },
+  ],
+  checks: [
+    { name: 'Final test, academies taught on', detail: 'Answered 55 of 72, 2 wrong', held: true },
+    { name: 'Harborview Prep, never seen', detail: 'Answered 26 of 36, 1 wrong', held: true },
+    { name: 'Real academy, never seen', detail: 'Answered 21 of 30, 3 wrong', held: false },
+  ],
+  example: true,
+};
 
 /**
  * Models: every version with its scores seen, unseen and real. Choosing one opens its panel, here
  * on its certified answers, and the table moves aside for it.
  */
-export function ModelsPage({ lt, panelAt }: { lt: number; panelAt: number }) {
+export function ModelsPage({
+  lt,
+  panelAt,
+  certificate = EXAMPLE_CERTIFICATE,
+  row: chosen = 1,
+  basisOpen = false,
+}: {
+  lt: number;
+  panelAt: number;
+  certificate?: Certificate;
+  /** The registry row whose panel opens: the version the certificate was issued on. */
+  row?: number;
+  /** The certificate's basis shown open, so its scope is on screen. */
+  basisOpen?: boolean;
+}) {
+  const labels = useLabels();
   const panel = outExpo(span(lt, panelAt, 0.7));
   const pt = lt - panelAt;
   const selected = ui(lt, panelAt - 0.15, 0.2);
@@ -223,11 +287,11 @@ export function ModelsPage({ lt, panelAt }: { lt: number; panelAt: number }) {
           {MODELS.map((model, index) => (
             <div
               key={`${model.name}-${model.base}`}
-              data-click={index === 1 ? 'academy-model' : undefined}
+              data-click={index === chosen ? 'academy-model' : undefined}
               className={`${row} relative h-[60px] border-t border-line text-ui tabular-nums`}
               style={{ ...rise(lt, 0.35 + index * 0.07, 6), gridTemplateColumns: columns }}
             >
-              {index === 1 && (
+              {index === chosen && (
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-selected"
@@ -259,22 +323,23 @@ export function ModelsPage({ lt, panelAt }: { lt: number; panelAt: number }) {
           <AgentAvatar name={ACADEMY} size="md" />
           <span className="flex flex-1 flex-col">
             <span className="font-display text-h2 font-semibold">{ACADEMY} v1</span>
-            <span className="text-small">Glimmer · 2-bit</span>
+            <span className="text-small">{MODELS[chosen]?.base}</span>
           </span>
           <X size={18} strokeWidth={1.8} aria-hidden />
         </div>
         <div className="flex flex-col gap-3 px-6 pt-4">
           <span className="flex items-center gap-3" style={rise(pt, 0.4, 6)}>
-            <span className="font-display text-h2 font-semibold">Certified answers</span>
-            <Badge tone="emphasis">Example</Badge>
+            <span className="font-display text-h2 font-semibold">{labels.certificate}</span>
+            {certificate.example && <Badge tone="emphasis">Example</Badge>}
           </span>
           <p className="m-0 text-body" style={rise(pt, 0.7, 6)}>
-            When {ACADEMY} answers, it is wrong on at most 8% of requests like these, with 95%
-            confidence. It handed 22% to staff.
+            When {ACADEMY} answers, it is wrong on at most {Math.round(certificate.wrong * 100)}% of
+            requests like these, with 95% confidence. It handed{' '}
+            {Math.round(certificate.handed * 100)}% to {certificate.handedTo}.
           </p>
           <div style={rise(pt, 1.0, 6)}>
-            <Disclosure label="How this is measured">
-              5 attempts at each calibration task; it answers when 4 of 5 agree.
+            <Disclosure label="How this is measured" defaultOpen={basisOpen}>
+              {certificate.basis}
             </Disclosure>
           </div>
           <div
@@ -287,29 +352,13 @@ export function ModelsPage({ lt, panelAt }: { lt: number; panelAt: number }) {
           >
             <RiskCoveragePlot
               aria-label="Wrong at most, by share answered"
-              points={RISK}
-              chosen={1}
+              points={certificate.points}
+              chosen={certificate.chosen}
               target={0.1}
             />
           </div>
           <div className="flex flex-col">
-            {[
-              {
-                name: 'Final test, academies taught on',
-                detail: 'Answered 55 of 72, 2 wrong',
-                held: true,
-              },
-              {
-                name: 'Harborview Prep, never seen',
-                detail: 'Answered 26 of 36, 1 wrong',
-                held: true,
-              },
-              {
-                name: 'Real academy, never seen',
-                detail: 'Answered 21 of 30, 3 wrong',
-                held: false,
-              },
-            ].map((check, index) => (
+            {certificate.checks.map((check, index) => (
               <div
                 key={check.name}
                 className="flex items-center gap-3 border-t border-line py-2 text-ui"
