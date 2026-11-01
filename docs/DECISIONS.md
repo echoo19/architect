@@ -1319,3 +1319,12 @@ Tests: shared `teams.test.ts`; engine `teams.test.ts` (making, changing and remo
 - *A trace must be its row's.* An attempt whose trace file is of another task than the row the checker graded is left out.
 - *The loss curve is data.* The trainer writes each logged step's loss and learning rate to `train.log`, which the job's manifest already hashes and the worker downloads.
 **Consequences.** A field taught on its harness alone has demonstrations to train on, and its adapter can be trained without this computer's GPU. Training on the student's own successes is self-distillation: it can make the student more consistent at what it already does on its own, not teach it what it fails at; lessons remain the way to teach a failure. Every check runs on fakes (the Academy desk's job with a scripted student, the fake Hub); the first real job will be the first evidence.
+
+## 102. A training job may run on an A100 when its examples are too long for one L40S
+
+**Context.** The recipe trains on one L40S (decision 035), and Hugging Face Jobs' price for it was the only one Architect knew. Sweep desk's demonstrations are as long as 10,108 tokens, since its attempts read whole training-run logs. For that length, `architect train plan` puts QLoRA on Glimmer at 43.0 GB on one GPU without FSDP's gathering term, against 43.2 GB usable on an L40S, before the vision tower, which it doesn't count. On one A100 80 GB it is 48.4 GB of 72 GB usable.
+**Decision.**
+- *A second priced flavor.* `a100-large`, one NVIDIA A100 with 80 GB, at $2.50 an hour, billed by the minute, as the Hub's Jobs hardware table listed it on Nov 1. A flavor that isn't listed still has no known price and is refused.
+- *Chosen per job.* `TrainingRequest.flavor` (`architect train start --flavor a100-large`) runs a job on other priced hardware than the recipe's own. It must have at least the recipe's `min_gpu_memory_gb`. The cap is kept at that flavor's price, and the job's key already includes its flavor. The recipe, its pins and its hash are unchanged, and `l40sx1` stays the default.
+**Consequences.** A field with long examples can be trained without cutting them, at 39% more an hour. Choosing the flavor is left to the person, guided by the planner; nothing picks it automatically yet. The A100 is tested against the fake Hub only, until a real job runs on it.
+

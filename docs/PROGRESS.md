@@ -2,6 +2,12 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, night), `train/flavor` (from `field/main` 71ac222e): an A100 for long examples
+
+- *Done:* decision 102. Hugging Face Jobs' `a100-large` (80 GB, $2.50 an hour, the Hub's hardware table today) is a second priced flavor. `architect train start --flavor a100-large` runs a job on it. The recipe's `min_gpu_memory_gb` must be met, and the cap is kept at that flavor's price. Needed for qlora-1 on Sweep desk, whose 10,108-token demonstrations are just past what the planner fits on one L40S.
+- *Verified:* `hf-jobs.test.ts` (the A100 job is priced and capped at $2.50 an hour and sent with its flavor; an unpriced flavor is refused; hardware under the recipe's memory is refused) and `apps/cli/test/train-jobs.test.ts` (`--flavor a100-large`, and an unknown flavor refused). Each failed before the change.
+- *Next:* merge, re-pin, run qlora-1 on Sweep desk.
+
 ## 2026-11-01 (Sun, night), `train/hf-jobs-from-export` (from `field/main` a385c043): a field's passing attempts train on Hugging Face Jobs
 
 - *Done:* decision 101. The first real QLoRA job (run folder `architect-runs/qlora-1`) couldn't go through the product: the Inventory desk's export had no demonstrations (no lessons; 22 train attempts its checker passed), and only a run's weights round, which then needs this computer's GPU, sent a job to Hugging Face Jobs. Now a field export takes the student's passing train attempts as `passed_attempt` demonstrations, each checked against the harness and files it ran with; `architect train start <job> --max-usd <n>`, `train status <job> [--wait]` and `train cancel` send a field's demonstrations to Hugging Face Jobs through the existing worker and backend; the trainer logs each step's loss to `train.log`.
