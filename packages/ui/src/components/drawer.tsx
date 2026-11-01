@@ -4,7 +4,7 @@ import { ArrowLeft, X } from 'lucide-react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { cn } from '../lib/cn';
 import { useFloatingMotion } from '../motion/floating';
-import { Dialog, DialogBackdrop, useDialogOpen } from './dialog';
+import { Dialog, DialogBackdrop, returnFocus, useDialogOpen } from './dialog';
 import { IconButton } from './icon-button';
 
 export const Drawer = Dialog;
@@ -57,7 +57,7 @@ export function DrawerContent({
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              opener.current?.focus();
+              returnFocus(opener.current);
             }}
           >
             <motion.div
