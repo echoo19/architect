@@ -44,6 +44,12 @@ export const WHY = {
     "Most teams rent their AI, and every request sends their data to someone else's model. With Architect, a large model teaches a small one the work and leaves. What's left is the team's own.",
   /** One line under the title: when the build began, against when the requests came out. */
   started: 'Started Oct 27, 2026, before these requests came out.',
+  /** Where the requests come from, shown above them with its mark. */
+  source: {
+    title: 'Y Combinator Requests for Startups',
+    season: 'Winter 2027',
+    href: 'https://www.ycombinator.com/rfs',
+  },
   requests: [
     {
       title: 'Own Your Intelligence',

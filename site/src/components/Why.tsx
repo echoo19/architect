@@ -15,10 +15,26 @@ function Unbroken({ text }: { text: string }) {
   );
 }
 
+/** Y Combinator's mark: a white Y on its orange square. */
+function YcMark() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden className="shrink-0">
+      <rect width="32" height="32" fill="#F26625" />
+      <path
+        d="M9.5 8 16 18.5 22.5 8M16 18.5V25"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="3.2"
+        strokeLinecap="square"
+      />
+    </svg>
+  );
+}
+
 /**
  * Why we made Architect: the title and when the build began, our reason beside them, then the
- * three requests that later asked for the same thing, side by side: each quote, then who asked
- * and our answer, on one line across the three.
+ * requests that later asked for the same thing, under the list they came from, side by side:
+ * each quote, then who asked and our answer, on one line across the three.
  */
 export function Why() {
   return (
@@ -32,7 +48,20 @@ export function Why() {
         </div>
         <p className="t-lead max-w-[36rem]">{WHY.reason}</p>
       </Reveal>
-      <ol className="m-0 mt-16 grid list-none gap-12 p-0 lg:mt-24 lg:grid-cols-3 lg:gap-12">
+      <Reveal className="mt-16 lg:mt-24">
+        <a
+          className="link-quiet inline-flex items-center gap-3"
+          href={WHY.source.href}
+          aria-label={`${WHY.source.title}, ${WHY.source.season}`}
+        >
+          <YcMark />
+          <span className="flex flex-col">
+            <span className="t-body font-semibold">{WHY.source.title}</span>
+            <span className="t-small">{WHY.source.season}</span>
+          </span>
+        </a>
+      </Reveal>
+      <ol className="m-0 mt-10 grid list-none gap-12 p-0 lg:mt-12 lg:grid-cols-3 lg:gap-12">
         {WHY.requests.map((request) => (
           <li key={request.href} className="grid lg:row-span-2 lg:grid-rows-subgrid">
             <Reveal className="grid gap-8 border-t border-line pt-8 lg:row-span-2 lg:grid-rows-subgrid">

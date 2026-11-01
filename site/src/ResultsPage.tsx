@@ -948,11 +948,11 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
 
 /** The headline figures under the abstract: a figure, then what it counts. */
 const HEADLINE: readonly { figure: string; text: string }[] = [
-  { figure: '24 to 43', text: 'of 48 · Harborview Prep, an academy never seen' },
-  { figure: '4 to 27', text: 'of 32 · Corvid Hill Discovery, a lab never seen' },
+  { figure: '24 to 43', text: 'of 48 at Harborview Prep, an academy never seen' },
+  { figure: '4 to 27', text: 'of 32 at Corvid Hill Discovery, a lab never seen' },
   {
     figure: `${CERT2.stated}% at most`,
-    text: `wrong when it answers, at ${CERT2.confidence}% confidence · the first risk certificate`,
+    text: `wrong when it answers, at ${CERT2.confidence}% confidence, on the first risk certificate`,
   },
 ];
 
@@ -997,7 +997,7 @@ export function ResultsPage() {
           <h1 id="results-title" className="t-title">
             What teaching changed
           </h1>
-          <p className="m-0 mt-4">Jake Kang · November 2026</p>
+          <p className="m-0 mt-4">Jake Kang, November 2026</p>
           <h2 className="t-h2 mt-16">Abstract</h2>
           <p className="t-read mt-4">
             Architect is an R&amp;D platform that turns an organization&apos;s own material into a

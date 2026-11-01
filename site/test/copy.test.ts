@@ -49,8 +49,8 @@ describe('the site', () => {
   });
 
   it('refers to no address but the repository and the requests it quotes, and fetches from nobody', () => {
-    // The quoted requests are citation links (decision 092): nothing loads from them until clicked.
-    const allowed = ['https://github.com/echoo19/architect', 'https://www.ycombinator.com/rfs#'];
+    // The quoted requests and their list are citation links (decision 092): nothing loads from them until clicked.
+    const allowed = ['https://github.com/echoo19/architect', 'https://www.ycombinator.com/rfs'];
     const addresses = FILES.flatMap(({ path, text }) =>
       [...text.matchAll(/https?:\/\/[^\s'"`)<>]+/g)].map((match) => ({ path, url: match[0] })),
     );
