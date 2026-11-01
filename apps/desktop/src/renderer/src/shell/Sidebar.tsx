@@ -141,19 +141,6 @@ export function Sidebar({ route }: { route: Route }) {
             <>
               <AgentList graduates={graduates.data} route={route} />
               {edition === 'lab' && <TeamList route={route} />}
-              {jobs.data ? (
-                <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
-              ) : (
-                jobs.status === 'error' && (
-                  <ProblemState
-                    layout="inline"
-                    error={jobs.error}
-                    title="Couldn't load training"
-                    onRetry={jobs.reload}
-                    className="px-2.5"
-                  />
-                )
-              )}
             </>
           ) : graduates.status === 'error' ? (
             <ProblemState
@@ -170,6 +157,28 @@ export function Sidebar({ route }: { route: Route }) {
             <AgentListSkeleton />
           )}
         </div>
+
+        {/*
+          The runs keep their own place under the agents, so one that ends while the person is
+          elsewhere stays in view however many agents and teams there are.
+        */}
+        {graduates.data && (
+          <div className="-m-1 flex max-h-[25vh] shrink-0 flex-col overflow-y-auto p-1 scroll-quiet">
+            {jobs.data ? (
+              <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
+            ) : (
+              jobs.status === 'error' && (
+                <ProblemState
+                  layout="inline"
+                  error={jobs.error}
+                  title="Couldn't load training"
+                  onRetry={jobs.reload}
+                  className="px-2.5"
+                />
+              )
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="flex-1" />
