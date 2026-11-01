@@ -107,6 +107,7 @@ describe('a proposed lesson', () => {
       text: 'It matches a question from the final test, which Spark must never see. Flag a different answer.',
       details: leak.message,
       retry: false,
+      again: false,
     });
     const cost = new CodedError(
       'guard_budget',
@@ -117,12 +118,14 @@ describe('a proposed lesson', () => {
       text: 'Reading it would cost more than the $0.25 limit. Shorten your note, or flag a shorter answer.',
       details: cost.message,
       retry: true,
+      again: false,
     });
     // Any other failure keeps its own message, and the note to send again.
     expect(proposeFailure(new Error('Spark is busy.'), 'Spark', 0.25)).toEqual({
       title: "Spark couldn't propose a lesson",
       text: 'Spark is busy.',
       retry: true,
+      again: true,
     });
   });
 });

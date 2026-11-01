@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { extname, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import {
   slugify,
   type DraftOrganization,
@@ -53,6 +53,39 @@ function namesOf(attached: Attached): string[] {
   return attached.files.map((file) => file.name).sort();
 }
 
+/** The files in a folder that drafting reads, or an error that says, of `whose`, why none can be. */
+async function filesIn(folder: string, whose: string): Promise<string[]> {
+  const listed = await readdir(folder, { withFileTypes: true }).catch(() => null);
+  if (listed === null) {
+    throw new Error(`${whose} can't be opened. Check that it is still where you left it.`);
+  }
+  const files = listed
+    .filter((item) => item.isFile() && READ.has(extname(item.name).toLowerCase()))
+    .map((item) => join(folder, item.name));
+  if (files.length === 0) throw new Error(`${whose} holds no CSV, text or Markdown files.`);
+  return files;
+}
+
+/**
+ * What keeps each chosen file or folder from being read, or null where it reads: a file as an
+ * attachment is, a folder as an organization's is. Each is said as soon as it is chosen, instead
+ * of one at a time once the job is described. What only the files together can break, such as
+ * two tasks files or organizations with different files, is left to drafting.
+ */
+export async function pickedProblems(paths: readonly string[]): Promise<(string | null)[]> {
+  return Promise.all(
+    paths.map(async (path) => {
+      try {
+        const folder = (await stat(path).catch(() => null))?.isDirectory() === true;
+        await readAttachments(folder ? await filesIn(path, basename(path)) : [path]);
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    }),
+  );
+}
+
 /**
  * Reads each organization's folder: its CSV, text and Markdown files, as attachments are read. The
  * organizations must have one taught on, distinct names, and the same files, with the same columns
@@ -70,21 +103,9 @@ export async function readField(organizations: readonly DraftOrganization[]): Pr
     if (ids.has(id))
       throw new Error(`Two organizations are called ${name}. Give each its own name.`);
     ids.add(id);
-    const listed = await readdir(entry.folder, { withFileTypes: true }).catch(() => null);
-    if (listed === null) {
-      throw new Error(
-        `${name}'s folder can't be opened. Check that it is still where you left it.`,
-      );
-    }
-    const files = listed
-      .filter((item) => item.isFile() && READ.has(extname(item.name).toLowerCase()))
-      .map((item) => join(entry.folder, item.name));
-    if (files.length === 0) {
-      throw new Error(`${name}'s folder holds no CSV, text or Markdown files.`);
-    }
     read.push({
       org: { id, name, synthetic: false, role: entry.role },
-      attached: await readAttachments(files),
+      attached: await readAttachments(await filesIn(entry.folder, `${name}'s folder`)),
     });
   }
   const [first] = read.filter((item) => item.org.role === 'train');

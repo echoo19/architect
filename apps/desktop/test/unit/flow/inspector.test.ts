@@ -95,6 +95,7 @@ describe("the teacher's spending cap", () => {
     const job = makeJob();
     const editor: JobEditor = {
       job,
+      estimable: job,
       issues: {},
       saveStatus: 'saved',
       change: () => undefined,

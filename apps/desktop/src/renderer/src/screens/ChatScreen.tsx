@@ -31,7 +31,7 @@ import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { ChatComposer } from '../workspace/ChatComposer';
-import { draftFor, keepDraft } from '../workspace/drafts';
+import { draftFor, isToTeach, keepDraft } from '../workspace/drafts';
 import { EmptyChat } from '../workspace/EmptyChat';
 import { AgentMessage, Thinking, UserMessage } from '../workspace/messages';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
@@ -409,6 +409,12 @@ function Chat({
   };
 
   const awaitingReply = chat?.running === true && list?.at(-1)?.role === 'user';
+  // The reply waits on the person's answer to a write it wants to make.
+  const last = list?.at(-1);
+  const approving =
+    chat?.running === true &&
+    last?.role === 'agent' &&
+    last.blocks.some((block) => block.kind === 'approval' && block.status === 'pending');
   const stepsStartOpen = settings.data?.steps === 'expanded';
 
   let body: ReactNode;
@@ -430,6 +436,7 @@ function Chat({
       <EmptyChat
         agent={agent}
         {...(team ? { team: { name: team.team.name, teammates: team.teammates } } : {})}
+        toTeach={isToTeach(chatId)}
         onPick={pick}
       />
     );
@@ -482,6 +489,7 @@ function Chat({
               void attempt(`Couldn't stop ${agent.name}`, () => architect().workspace.stop(chatId))
             }
             running={chat?.running ?? false}
+            approving={approving}
             disabled={list === undefined}
             pinned={pinned}
             onJumpToLatest={pinToBottom}

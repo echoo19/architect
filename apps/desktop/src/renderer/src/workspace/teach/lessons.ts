@@ -182,13 +182,16 @@ export interface ProposeFailure {
   /** The engine's own message, for whoever opens Details. */
   details?: string;
   retry: boolean;
+  /** Whether the same notes may go through if shared again unchanged, so Try again is offered. */
+  again: boolean;
 }
 
 /**
  * Why a lesson couldn't be proposed, in the app's words, from the guard that refused it. The
  * leak check refuses the same exchange however it is described, so it reads as a refusal and
  * isn't offered again; a cost over the cap says what to shorten; any other reason reads as it
- * is, with the note kept to send again. The engine's own message always goes with it.
+ * is, with the note kept and a way to share it again as it is. The engine's own message always
+ * goes with it.
  */
 export function proposeFailure(error: Error, mentor: string, capUsd: number): ProposeFailure {
   const code = error instanceof CodedError ? error.code : undefined;
@@ -198,6 +201,7 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
       text: `It matches a question from the final test, which ${mentor} must never see. Flag a different answer.`,
       details: error.message,
       retry: false,
+      again: false,
     };
   }
   if (code === 'guard_budget') {
@@ -206,7 +210,13 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
       text: `Reading it would cost more than the ${formatUsd(capUsd)} limit. Shorten your note, or flag a shorter answer.`,
       details: error.message,
       retry: true,
+      again: false,
     };
   }
-  return { title: `${mentor} couldn't propose a lesson`, text: error.message, retry: true };
+  return {
+    title: `${mentor} couldn't propose a lesson`,
+    text: error.message,
+    retry: true,
+    again: true,
+  };
 }

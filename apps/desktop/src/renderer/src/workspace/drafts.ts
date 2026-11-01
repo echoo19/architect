@@ -9,3 +9,14 @@ export function keepDraft(chatId: string, text: string): void {
   if (text) drafts.set(chatId, text);
   else drafts.delete(chatId);
 }
+
+/** Chats started to teach their agent something new, which say how while they are empty. */
+const teaching = new Set<string>();
+
+export function startedToTeach(chatId: string): void {
+  teaching.add(chatId);
+}
+
+export function isToTeach(chatId: string): boolean {
+  return teaching.has(chatId);
+}

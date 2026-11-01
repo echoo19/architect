@@ -266,11 +266,8 @@ export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
   return minutes <= MOST_MINUTES ? minutes : null;
 }
 
-/**
- * Training with every round at its longest, as if there were no time limit: what the limit is
- * measured against, so a meter can show when the limit cuts training short.
- */
-export function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
+/** Training with every round at its longest, as if there were no time limit. */
+function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
   return estimate.startSeconds + job.budget.maxRounds * estimate.roundSeconds.most;
 }
 

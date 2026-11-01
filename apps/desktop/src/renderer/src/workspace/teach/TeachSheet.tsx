@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import type {
   Consultation,
   Correction,
@@ -56,6 +56,20 @@ export interface TeachSheetProps {
   onClose: () => void;
 }
 
+/** What was typed about an answer and not yet shared. */
+interface Unsent {
+  wrong: string;
+  wanted: string;
+  files: string[];
+  rows: string;
+}
+
+/**
+ * Notes not yet shared, by the answer they are about, kept while the app runs: closing the sheet
+ * puts them away, and flagging the same answer again brings them back.
+ */
+const unsent = new Map<string, Unsent>();
+
 type Stage =
   | { kind: 'write' }
   | { kind: 'sending' }
@@ -79,10 +93,19 @@ export function TeachSheet({
   const overview = useTeachingOverview(agent.id);
   useFreshTeaching(agent.id);
   const [stage, setStage] = useState<Stage>({ kind: 'write' });
-  const [wrong, setWrong] = useState('');
-  const [wanted, setWanted] = useState('');
-  const [files, setFiles] = useState<string[]>([]);
-  const [rows, setRows] = useState('');
+  const draftKey = `${reply.id}:${consultation?.consultation.stepId ?? ''}`;
+  const kept = unsent.get(draftKey);
+  const [wrong, setWrong] = useState(kept?.wrong ?? '');
+  const [wanted, setWanted] = useState(kept?.wanted ?? '');
+  const [files, setFiles] = useState<string[]>(kept?.files ?? []);
+  const [rows, setRows] = useState(kept?.rows ?? '');
+  useEffect(() => {
+    if (wrong.trim() === '' && wanted.trim() === '' && files.length === 0 && rows.trim() === '') {
+      unsent.delete(draftKey);
+    } else {
+      unsent.set(draftKey, { wrong, wanted, files, rows });
+    }
+  }, [draftKey, wrong, wanted, files, rows]);
   const [error, setError] = useState<ProposeFailure | null>(null);
   const versions = useVersions(agent.id);
   const corrections = useCorrections(agent.id);
@@ -121,6 +144,7 @@ export function TeachSheet({
         consent: true,
       });
       void refreshTeaching(agent.id);
+      unsent.delete(draftKey);
       setStage({ kind: 'proposed', correction });
     } catch (failure) {
       setError(proposeFailure(toError(failure), mentor, ready.correctionCapUsd));
@@ -220,6 +244,7 @@ export function TeachSheet({
         jobFiles={jobFiles}
         disabled={sending}
         error={error}
+        onRetry={() => void send()}
         onWrong={setWrong}
         onWanted={setWanted}
         onFiles={setFiles}
@@ -286,6 +311,8 @@ interface CorrectionFormProps {
   jobFiles: string[];
   disabled: boolean;
   error: ProposeFailure | null;
+  /** Shares the same notes again, for a failure that may not happen twice. */
+  onRetry: () => void;
   onWrong: (text: string) => void;
   onWanted: (text: string) => void;
   onFiles: (files: string[]) => void;
@@ -302,6 +329,7 @@ function CorrectionForm({
   jobFiles,
   disabled,
   error,
+  onRetry,
   onWrong,
   onWanted,
   onFiles,
@@ -373,6 +401,7 @@ function CorrectionForm({
           title={error.title}
           message={error.text}
           {...(error.details === undefined ? {} : { details: error.details })}
+          {...(error.again && !disabled ? { onRetry } : {})}
         />
       )}
     </div>

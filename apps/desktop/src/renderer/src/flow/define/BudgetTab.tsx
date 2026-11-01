@@ -8,7 +8,6 @@ import {
   capShortfalls,
   capText,
   estimateTime,
-  fullTrainingSeconds,
   planBills,
   hoursFigure,
   roughUsd,
@@ -30,18 +29,20 @@ const usd = (amount: number) => formatUsd(roughUsd(amount));
  * What the run is expected to spend against each cap, and the caps: the teacher's dollars, the
  * dollars of compute for retraining the student, and the time. The agent's online copy has no cap
  * of its own, so its expected bill stands alone, with no meter. Every cap is a hard stop, so a
- * cap the plan doesn't fit in is said under the meters, with the fix. Where the time limit cuts
- * training short, the time meter measures training with every round, so it shows past its cap.
+ * cap the plan doesn't fit in is said under the meters, with the fix. The time meter shows the
+ * training the page's estimate counts, so the two agree; where the limit cuts training short, it
+ * is full, and the line under it says how many rounds fit.
  */
 export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
-  const { job, issues } = editor;
+  const { job, estimable, issues } = editor;
   const { mentor, student } = modelNames(job);
-  const estimate = estimateTime(job, job.student.trainOn);
+  // The figures come from the caps as last set without an issue, as the page's estimate does.
+  const estimate = estimateTime(estimable, estimable.student.trainOn);
   const pricing = job.student.hosted ? (studentPricing(job.student.hosted) ?? null) : null;
-  const bills = planBills(job, estimate, pricing, false, testPlace).total;
+  const bills = planBills(estimable, estimate, pricing, false, testPlace).total;
   const online = sumKnown([bills.hostedUsd, bills.testUsd]);
   const w = useWords();
-  const shortfalls = capShortfalls(job, { mentor, student }, w);
+  const shortfalls = capShortfalls(estimable, { mentor, student }, w);
   const budget = (what: string, patch: Partial<Job['budget']>) =>
     change(
       what,
@@ -58,7 +59,7 @@ export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
             <CapMeter
               label={mentor}
               used={roughUsd(bills.mentorUsd)}
-              cap={job.budget.maxMentorUsd}
+              cap={estimable.budget.maxMentorUsd}
               format={formatUsd}
               tone="mentor"
             />
@@ -71,12 +72,8 @@ export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
           />
           <CapMeter
             label="Training time"
-            used={
-              shortfalls.some((shortfall) => shortfall.what === 'time')
-                ? fullTrainingSeconds(job, estimate) / 60
-                : estimate.trainingSeconds.most / 60
-            }
-            cap={job.budget.maxWallMinutes}
+            used={estimate.trainingSeconds.most / 60}
+            cap={estimable.budget.maxWallMinutes}
             format={(minutes) => `${hoursFigure(minutes)} h`}
           />
           {shortfalls.map((shortfall) => (

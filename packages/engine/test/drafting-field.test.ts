@@ -2,6 +2,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { join } from 'node:path';
 import type { DraftOrganization, MentorCompletionRequest, Task } from '@architect/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { pickedProblems } from '../src/drafting/field';
 import { releaseMentor } from '../src/vault/gate';
 import {
   draft,
@@ -183,5 +184,28 @@ describe('a field drafted from several organizations', () => {
       "Every organization needs the same files. Cedar Goods's folder also has extra.csv",
     );
     expect(world.mentor.requests).toHaveLength(0);
+  });
+});
+
+describe('files and folders checked as they are chosen', () => {
+  it('says what is wrong with each one, and nothing of one that reads', async () => {
+    const good = folder('acme', 'acme');
+    const empty = join(world.root, 'orgs-picked', 'empty');
+    mkdirSync(empty, { recursive: true });
+    const loose = join(world.root, 'loose');
+    mkdirSync(loose, { recursive: true });
+    writeFileSync(join(loose, 'empty.csv'), '');
+    writeFileSync(join(loose, 'scan.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]));
+    const problems = await pickedProblems([
+      good,
+      join(good, 'orders.csv'),
+      empty,
+      join(loose, 'empty.csv'),
+      join(loose, 'scan.png'),
+    ]);
+    expect(problems.slice(0, 2)).toEqual([null, null]);
+    expect(problems[2]).toBe('empty holds no CSV, text or Markdown files.');
+    expect(problems[3]).toMatch(/^empty\.csv /);
+    expect(problems[4]).toMatch(/^scan\.png isn't a file Architect can read yet/);
   });
 });

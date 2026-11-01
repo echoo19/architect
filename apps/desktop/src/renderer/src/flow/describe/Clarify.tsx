@@ -252,7 +252,8 @@ function MentorMessage({
       )}
       {showMessage && <p className="m-0 whitespace-pre-wrap text-pretty">{message}</p>}
       {entry.options.length > 0 && (
-        <div role="group" aria-label="Answers" className="flex flex-wrap gap-2">
+        // The chip clicked becomes a mark in place, so a double click must not select its words.
+        <div role="group" aria-label="Answers" className="flex select-none flex-wrap gap-2">
           {entry.options.map((option) =>
             current ? (
               <Button

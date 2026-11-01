@@ -1,5 +1,6 @@
 import type { GraduateSummary } from '@architect/shared';
 import { AgentAvatar, Heading, Reveal } from '@architect/ui';
+import { Flag } from 'lucide-react';
 import { useVersionReport } from '../api/graduates';
 import { useJob } from '../api/hooks';
 import { certificateSentence } from '../flow/report/certificate-words';
@@ -10,6 +11,8 @@ export interface EmptyChatProps {
   agent: GraduateSummary;
   /** In a team chat, the team's name and the teammates its lead may ask. */
   team?: { name: string; teammates: readonly GraduateSummary[] };
+  /** The chat was started from Lessons to teach the agent something new, which it says how to. */
+  toTeach?: boolean;
   /** Puts a suggestion in the composer for the reader to finish and send. */
   onPick: (text: string) => void;
 }
@@ -20,7 +23,7 @@ export interface EmptyChatProps {
  * its agents and who answers; its answers are never certified, since no certificate covers an
  * agent asking another (decision 100), so a certified lead says so instead.
  */
-export function EmptyChat({ agent, team, onPick }: EmptyChatProps) {
+export function EmptyChat({ agent, team, toTeach = false, onPick }: EmptyChatProps) {
   const job = useJob(agent.manifest.jobId);
   const certificate = useVersionReport(agent).data?.certificate;
   // Wait for the job, so the suggestions don't change under the pointer when it arrives.
@@ -47,6 +50,12 @@ export function EmptyChat({ agent, team, onPick }: EmptyChatProps) {
             {agent.name} answers, and asks{' '}
             {namesInSentence(team.teammates.map((teammate) => teammate.name))} for their part.
             {certified && ` ${agent.name}'s certificate doesn't cover the team's answers.`}
+          </p>
+        )}
+        {toTeach && (
+          <p className="m-0 flex max-w-[520px] items-center gap-2 text-center text-ui text-pretty">
+            <Flag size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
+            Ask what it should learn, then flag its answer and say what it should have done.
           </p>
         )}
         {!team && certified && (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
   DEFAULT_STUDENT,
   GLIMMER_BUILDS,
@@ -38,6 +38,11 @@ export interface SetupProps {
  */
 export function Setup({ settings, update }: SetupProps) {
   const [step, setStep] = useState<SetupStep>('Edition');
+  // The second click of a double click lands on the next step's button, where the first one was,
+  // so only a single click moves between steps.
+  const go = (next: SetupStep) => (event: MouseEvent) => {
+    if (event.detail <= 1) setStep(next);
+  };
   const [connection, setConnection] = useState<ConnectionTest | null>(null);
   const [route, setRoute] = useState<MentorRoute>(() => routeOf(settings.defaultMentor));
   const [finishing, setFinishing] = useState(false);
@@ -102,7 +107,7 @@ export function Setup({ settings, update }: SetupProps) {
         footer={
           <>
             {spacer}
-            <Button variant="primary" onClick={() => setStep('Model')}>
+            <Button variant="primary" onClick={go('Model')}>
               Continue
             </Button>
           </>
@@ -124,15 +129,15 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Edition')}>Back</Button>
+            <Button onClick={go('Edition')}>Back</Button>
             {spacer}
             {modelReady || downloading ? (
-              <Button variant="primary" onClick={() => setStep('Teacher')}>
+              <Button variant="primary" onClick={go('Teacher')}>
                 Continue
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => setStep('Teacher')}>
+                <Button variant="ghost" onClick={go('Teacher')}>
                   Download later
                 </Button>
                 <Button
@@ -173,10 +178,10 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Model')}>Back</Button>
+            <Button onClick={go('Model')}>Back</Button>
             {spacer}
             {mentorUsable ? (
-              <Button variant="primary" onClick={() => setStep('Faster training')}>
+              <Button variant="primary" onClick={go('Faster training')}>
                 Continue
               </Button>
             ) : (
@@ -184,7 +189,7 @@ export function Setup({ settings, update }: SetupProps) {
                 content="You can connect one later in Settings; until then, no new agent can train."
                 side="top"
               >
-                <Button onClick={() => setStep('Faster training')}>Skip for now</Button>
+                <Button onClick={go('Faster training')}>Skip for now</Button>
               </Tooltip>
             )}
           </>
@@ -211,14 +216,14 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Teacher')}>Back</Button>
+            <Button onClick={go('Teacher')}>Back</Button>
             {spacer}
             {hostedConnected ? (
-              <Button variant="primary" onClick={() => setStep('Done')}>
+              <Button variant="primary" onClick={go('Done')}>
                 Continue
               </Button>
             ) : (
-              <Button onClick={() => setStep('Done')}>Skip</Button>
+              <Button onClick={go('Done')}>Skip</Button>
             )}
           </>
         }
@@ -233,7 +238,7 @@ export function Setup({ settings, update }: SetupProps) {
       step={step}
       footer={
         <>
-          <Button onClick={() => setStep('Faster training')}>Back</Button>
+          <Button onClick={go('Faster training')}>Back</Button>
           {spacer}
           <Button variant="primary" loading={finishing} onClick={() => void finish()}>
             Get started

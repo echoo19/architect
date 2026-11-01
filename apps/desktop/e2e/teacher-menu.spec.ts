@@ -249,9 +249,9 @@ test('the last switch that changes the agent stays on, and Start training says w
   await expect(needs).toContainText(
     'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
-  // The button that is held says the same when asked.
+  // The button that is held says the same beside it, and the page says it once.
   expect(await startHeldBy(page)).toBe("Spark can't change anything yet");
-  await expect(page.getByText("Spark can't change anything yet")).toHaveCount(1);
+  await expect(page.getByRole('main').getByText("Spark can't change anything yet")).toHaveCount(1);
   // Nowhere does it say that nothing is permitted: the switch for the weights is on, and held.
   await expect(page.getByText('has nothing it may change')).toHaveCount(0);
 });

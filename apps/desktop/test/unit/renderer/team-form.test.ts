@@ -71,6 +71,10 @@ describe('the team form', () => {
       'Two agents are named Assay desk; rename one first',
     );
     expect(teamProblem('Lab', LEAD.id, mate, graduates)).toBeNull();
+    expect(teamProblem(' lab ', LEAD.id, mate, graduates, ['Lab', 'Field'])).toBe(
+      'Another team is named lab',
+    );
+    expect(teamProblem('Lab', LEAD.id, mate, graduates, ['Field'])).toBeNull();
   });
 
   it("finds a saved team's lead and teammates", () => {

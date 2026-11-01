@@ -549,6 +549,11 @@ export interface ArchitectApi {
      * Architect's own data folder.
      */
     show(path: string): Promise<void>;
+    /**
+     * What keeps each chosen file or folder from being read, in order, or null where it reads: a
+     * file as a job's attachment, a folder as an organization's. Only paths chosen in a dialog.
+     */
+    check(paths: string[]): Promise<(string | null)[]>;
   };
   jobs: {
     list(): Promise<JobSummary[]>;
