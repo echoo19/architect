@@ -34,7 +34,9 @@ function studentLine(
   if (failure) return failureLine(failure);
   const attempts = roundAttempts(live, round.index);
   if (attempts.length > 0 && attempts.every((attempt) => attempt.check.pass)) {
-    return `Got all ${attempts.length} practice ${attempts.length === 1 ? 'task' : 'tasks'} right so far this round.`;
+    return attempts.length === 1
+      ? 'Got its first practice task right this round.'
+      : `Got all ${attempts.length} practice tasks right so far this round.`;
   }
   return `Working through ${job.evaluation.trainBatch} practice tasks.`;
 }
