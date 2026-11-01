@@ -38,7 +38,7 @@ export function sessionStore(app: WorkspaceStore, options: SessionStoreOptions):
     return options.proposeOnly && mode === 'allow' ? 'ask' : mode;
   };
   const shared = {
-    hasGraduate: (graduateId: string) => app.hasGraduate(graduateId),
+    graduateName: (graduateId: string) => app.graduateName(graduateId),
     activeVersion: (graduateId: string) => app.activeVersion(graduateId),
     activeStamp: (graduateId: string) => app.activeStamp(graduateId),
     team: (teamId: string) => app.team(teamId),

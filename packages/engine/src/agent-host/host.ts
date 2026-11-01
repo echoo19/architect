@@ -150,7 +150,12 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
 
   function graduateOf(graduateId: string): GraduateSession {
     const graduate = graduates.get(graduateId);
-    if (!graduate) throw new Error(`Open the graduate "${graduateId}" before chatting with it.`);
+    if (!graduate) {
+      const name = store.graduateName(graduateId) ?? 'This agent';
+      throw new Error(
+        `${name} isn't ready to chat yet. Try again in a moment, or check in its settings that it works on this computer.`,
+      );
+    }
     return graduate;
   }
 
@@ -373,11 +378,8 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
   return {
     async openGraduate(graduateId, cpuThreads) {
       assertOpen();
-      if (!store.hasGraduate(graduateId)) {
-        throw new CodedError(
-          'agent_not_found',
-          `There is no graduate "${graduateId}" in Architect.`,
-        );
+      if (store.graduateName(graduateId) === null) {
+        throw new CodedError('agent_not_found', 'That agent is no longer in Architect.');
       }
       threads.set(graduateId, cpuThreads);
       // A graduate that is answering is opened again before its next reply, never during one.
