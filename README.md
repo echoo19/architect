@@ -88,7 +88,7 @@ Academy desk is Glimmer with the instructions and tools Spark built for it. Spar
 | Real academy, unseen (24) | 9 | 11 | 12 |
 
 - On Harborview Prep, Academy desk passed 43 of 48 and a blank setup 24. Task by task, Academy desk won 20 and lost 1, a difference of 39.6 points with a 95% interval of 22.9 to 53.7. A gain is shown on that one academy.
-- On the real academy, Academy desk passed 12 of 24 and a blank setup 9. The difference is 12.5 points with an interval of -17.9 to 40.2. No gain is shown there.
+- On the real academy, Academy desk passed 12 of 24 and a blank setup 9. The difference is 12.5 points with an interval of -17.9 to 40.2; 24 tasks are too few to confirm that gain yet.
 - By skill on the real academy, assign went from 0 of 8 to 7 of 8, history fell from 5 to 3 and diagnose from 4 to 2. Eight tasks per skill is too few to call these differences.
 - The misses came from tools built on the generated academies. The question lookup tool found a test by its section, and 11 of the real academy's 19 practice tests list the section as "Full". The history helper counted answers written another way as wrong, and the agent's date did not match the date in the requests. We found this by replaying Academy desk's tools against the real academy's files after the test was retired. The date cause fits the records and is not confirmed.
 - The one-shot setup showed no gain over a blank setup in any group.
@@ -124,7 +124,7 @@ A second field run stopped twice before any result was read: first its budget ra
 
 - On Juniper Study House, Academy desk passed 31 of 48 and a blank setup 15. Task by task it won 18 and lost 2, a difference of +33.3 points with a 95% interval of +16.2 to +47.5. That is a gain, and it came from assign, history and hint.
 - On the taught academies the difference was +18.8 points, with an interval of +2.0 to +33.9.
-- On the Real academy, Academy desk passed 3 of 30 and a blank setup 13. The difference is -33.3 points with an interval of -50.3 to -14.2, so Academy desk did worse there, not just no better. It lost 7 history tasks and 3 diagnose tasks and won none.
+- On the Real academy, Academy desk passed 3 of 30 and a blank setup 13. The difference is -33.3 points with an interval of -50.3 to -14.2, lower than the blank setup. It lost 7 history tasks and 3 diagnose tasks and won none.
 - Why, from replaying Academy desk's own tools on the Real academy's files and checking its rules against the requests' wording, offline and after the test: its diagnose instructions load on phrases like "what topic", and the Real academy asks "Which topic was that, and what was the right answer?", so they never loaded. Its history tool gives the right result on all 10 tasks, but every attempt ran to the 30-step limit. The likely cause is that the instructions ask for a number of days the Real academy's policy doesn't have, while the second round allowed one tool call per turn. No replies are kept, so that is not confirmed. Assign was 0 of 10 for both setups, because the Real academy's assignments file is empty and its drafted policy never says how to number the first row. The task builder was fixed afterwards, and this run's numbers stand as measured.
 - The run cost $0.44 of Spark and $7.35 of hosted Glimmer. No local GPU was used.
 

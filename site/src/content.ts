@@ -29,8 +29,8 @@ export const FILM = {
   src: './architect-film.mp4',
   /** A still of the Lab from the film, shown until it plays. */
   cover: './architect-film-cover.webp',
-  label: 'A walkthrough of Architect, with narration: 2 minutes 38 seconds.',
-  play: 'Play the walkthrough, 2 minutes 38 seconds, with sound',
+  label: 'A walkthrough of Architect, with narration: 2 minutes 41 seconds.',
+  play: 'Play the walkthrough, 2 minutes 41 seconds, with sound',
 } as const;
 
 /**

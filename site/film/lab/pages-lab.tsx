@@ -185,11 +185,15 @@ interface FieldRow {
   real: string;
   scores: readonly [string, string, string];
   when: string;
+  /** A screening lab's desk, which the team scene turns to. */
+  lab?: boolean;
 }
 
 /**
  * Every field and its best final test. The academy's are its first run's (44, 43 and 12 of 48,
- * 48 and 24); the returns desk's is 58 of 60; the pricing desk's 40 of 40.
+ * 48 and 24); the returns desk's is 58 of 60; the pricing desk's 40 of 40. The screening labs'
+ * two desks (examples/assay-desk, examples/inventory-desk) are taught on three labs with a fourth
+ * sealed, and have no final test yet.
  */
 const FIELDS: readonly FieldRow[] = [
   {
@@ -224,12 +228,33 @@ const FIELDS: readonly FieldRow[] = [
     scores: ['-', '-', '-'],
     when: 'Oct 27',
   },
+  {
+    name: 'Assay desk',
+    taught: '3',
+    unseen: '1',
+    real: '-',
+    scores: ['-', '-', '-'],
+    when: 'Oct 31',
+    lab: true,
+  },
+  {
+    name: 'Inventory desk',
+    taught: '3',
+    unseen: '1',
+    real: '-',
+    scores: ['-', '-', '-'],
+    when: 'Oct 31',
+    lab: true,
+  },
 ];
 
 const fieldGrid = 'grid grid-cols-[1.6fr_repeat(6,1fr)_1.1fr] items-center gap-3 px-6';
 
-/** Fields: each field with its organizations and its best final test (apps/desktop fields/). */
-export function Fields({ lt, selected }: { lt: number; selected: number }) {
+/**
+ * Fields: each field with its organizations and its best final test (apps/desktop fields/).
+ * `selected` lights the academy's row, and `lab` the screening labs' desks.
+ */
+export function Fields({ lt, selected, lab = 0 }: { lt: number; selected: number; lab?: number }) {
   return (
     <PlacePage title="Fields" action={<Button size="sm">New field</Button>}>
       <section className="rounded-card surface-card">
@@ -256,11 +281,11 @@ export function Fields({ lt, selected }: { lt: number; selected: number }) {
             className={`${fieldGrid} relative h-14 border-t border-line text-ui tabular-nums`}
             style={rise(lt, 0.35 + index * 0.08, 6)}
           >
-            {index === 0 && (
+            {(index === 0 || field.lab) && (
               <span
                 aria-hidden
                 className="absolute inset-0 bg-hover"
-                style={{ opacity: selected }}
+                style={{ opacity: field.lab ? lab : selected }}
               />
             )}
             <span className="relative font-medium">{field.name}</span>
