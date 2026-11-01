@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { Fragment, useEffect, type ReactNode } from 'react';
 import {
   orgCounts,
   RunEventSchema,
@@ -7,13 +7,13 @@ import {
   type JobSummary,
   type ReportCard,
   type Score,
+  type Team,
 } from '@architect/shared';
 import {
   AgentAvatar,
   CapMeter,
   Card,
   CardRow,
-  cn,
   IconButton,
   Meter,
   NumberTicker,
@@ -34,6 +34,7 @@ import {
   Plus,
   ShieldCheck,
   ArrowBigUpDash,
+  Users,
 } from 'lucide-react';
 import { api, architect } from '../api/client';
 import { queryKeys, useJob, useReport, useRunDetail } from '../api/hooks';
@@ -41,6 +42,7 @@ import { fetchQuery, useQuery } from '../api/query';
 import { useCorrections, useImprovements } from '../api/teaching';
 import { ProblemState } from '../components/ProblemState';
 import { minutesText, STATUS_WORDS as EXPERIMENT_WORDS } from '../experiments/model';
+import { membersOf } from '../models/team-form';
 import { newField } from '../fields/new-field';
 import { orgCountText } from '../fields/parts';
 import { Counted } from '../flow/counted';
@@ -50,14 +52,17 @@ import { formatPercent, percentOf } from '../lib/format';
 import { activeVersionName, agentModelName, mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
-import { useAgentChats } from '../workspace/store';
-import { openAgent } from './open-agent';
+import { namesInSentence } from '../workspace/labels';
+import { useAgentChats, useTeamChats } from '../workspace/store';
+import { openAgent, openTeam } from './open-agent';
+import { EmptyRow } from '../fields/parts';
 import {
   approvalNeeds,
   experimentNeeds,
   jobNeeds,
   orgScores,
   runWord,
+  teamApprovalNeeds,
   teachingNeeds,
   type Need,
   type NeedKind,
@@ -76,11 +81,6 @@ const NEED_ICONS: Record<NeedKind, ReactNode> = {
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
 
-/** A calm line in an empty card: what is not there, in a few words. */
-function Quiet({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn('m-0 px-6 pb-6 pt-1 text-ui', className)}>{children}</p>;
-}
-
 function NeedRow({ need }: { need: Need }) {
   const showSettings = useAgentSettingsUi((state) => state.show);
   const icon = NEED_ICONS[need.kind];
@@ -91,7 +91,12 @@ function NeedRow({ need }: { need: Need }) {
         icon={<RowIcon>{icon}</RowIcon>}
         title={need.title}
         detail={need.detail}
-        end={chevron}
+        end={
+          <>
+            {need.end}
+            {chevron}
+          </>
+        }
         onClick={() =>
           'path' in target ? navigate(target.path) : showSettings(target.teaching, 'teaching')
         }
@@ -100,19 +105,19 @@ function NeedRow({ need }: { need: Need }) {
   );
 }
 
-/** The kinds of what waits, in the order the card groups them. */
-const NEED_GROUPS: readonly { label: string; kinds: readonly NeedKind[] }[] = [
-  { label: 'Questions', kinds: ['question'] },
-  { label: 'Results', kinds: ['results', 'failed'] },
-  { label: 'Approvals', kinds: ['approval'] },
-  { label: 'Lessons', kinds: ['lessons'] },
-  { label: 'Versions', kinds: ['promote'] },
-  { label: 'Experiments', kinds: ['experiment'] },
+/** The kinds of what waits, in the order the card lists them; each row's icon names its kind. */
+const NEED_ORDER: readonly (readonly NeedKind[])[] = [
+  ['question'],
+  ['results', 'failed'],
+  ['approval'],
+  ['lessons'],
+  ['promote'],
+  ['experiment'],
 ];
 
 /**
- * One agent's approvals, lessons and versions of the given kinds; each read on its own. Only one
- * group shows a failed read, so a problem isn't repeated in every group.
+ * One agent's approvals, lessons and versions of the given kinds; each read on its own. Only the
+ * last kinds show a failed read, so a problem isn't repeated for every kind.
  */
 function AgentNeeds({
   graduate,
@@ -162,31 +167,52 @@ function AgentNeeds({
   );
 }
 
-/** Everything that waits for the person, grouped by kind: the focal card, with Running beside it. */
+/** A team's chats that wait for an approval, read on their own like an agent's. */
+function TeamNeeds({ team, kinds }: { team: Team; kinds: readonly NeedKind[] }) {
+  const chats = useTeamChats(team.id);
+  if (!kinds.includes('approval')) return null;
+  return (
+    <>
+      {teamApprovalNeeds(team, chats.entry.data ?? []).map((need) => (
+        <NeedRow key={need.key} need={need} />
+      ))}
+      {chats.entry.status === 'error' && (
+        <li className="border-t border-line px-6 py-3">
+          <ProblemState
+            layout="inline"
+            error={chats.entry.error}
+            title={`Couldn't read what ${team.name} has waiting`}
+            onRetry={chats.reload}
+          />
+        </li>
+      )}
+      {chats.entry.status === 'loading' && <li aria-busy="true" className="sr-only" />}
+    </>
+  );
+}
+
+/** Everything that waits for the person, in order of kind: the focal card, with Running beside it. */
 export function NeedsYouCard({
   jobs,
   graduates,
+  teams,
   experiments,
 }: {
   jobs: readonly JobSummary[];
   graduates: readonly GraduateSummary[];
+  teams: readonly Team[];
   experiments: readonly ExperimentRecord[];
 }) {
   const fromJobs = [...jobNeeds(jobs), ...experimentNeeds(experiments)];
   return (
     <Card title="Needs you" flush>
-      {/* Each agent's rows come from reads of their own; a group shows once it holds a row. */}
+      {/* Each agent's rows come from reads of their own, in one list ordered by kind. */}
       <div className="group">
-        {NEED_GROUPS.map((group, index) => (
-          <section
-            key={group.label}
-            aria-label={group.label}
-            className="hidden has-[li:not([aria-busy])]:block"
-          >
-            <h3 className="m-0 px-6 pb-2 pt-6 font-sans text-small font-medium">{group.label}</h3>
-            <ul className="m-0 flex list-none flex-col p-0">
+        <ul className="m-0 flex list-none flex-col p-0">
+          {NEED_ORDER.map((kinds, index) => (
+            <Fragment key={kinds.join()}>
               {fromJobs
-                .filter((need) => group.kinds.includes(need.kind))
+                .filter((need) => kinds.includes(need.kind))
                 .map((need) => (
                   <NeedRow key={need.key} need={need} />
                 ))}
@@ -194,17 +220,25 @@ export function NeedsYouCard({
                 <AgentNeeds
                   key={graduate.id}
                   graduate={graduate}
-                  kinds={group.kinds}
-                  problems={index === NEED_GROUPS.length - 1}
+                  kinds={kinds}
+                  problems={index === NEED_ORDER.length - 1}
                 />
               ))}
-            </ul>
-          </section>
-        ))}
-        <Quiet className="flex items-center gap-2.5 group-has-[li:not([aria-busy])]:hidden">
-          <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />
-          Nothing waits for you
-        </Quiet>
+              {teams.map((team) => (
+                <TeamNeeds key={team.id} team={team} kinds={kinds} />
+              ))}
+            </Fragment>
+          ))}
+        </ul>
+        <CardRow
+          icon={
+            <RowIcon>
+              <CircleCheck strokeWidth={1.8} className="text-student" aria-hidden />
+            </RowIcon>
+          }
+          title="Nothing waits for you"
+          className="group-has-[li:not([aria-busy])]:hidden"
+        />
       </div>
     </Card>
   );
@@ -332,7 +366,7 @@ export function RunningCard({
   return (
     <Card title="Running" flush>
       {rows.length === 0 && experiments.length === 0 ? (
-        <Quiet>Nothing is running</Quiet>
+        <EmptyRow title="Nothing is running" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((row) => (
@@ -385,7 +419,7 @@ export function ExperimentsCard({
       ) : !experiments ? (
         <Skeleton aria-busy="true" className="mx-6 mb-5 h-10" />
       ) : experiments.length === 0 ? (
-        <Quiet>No experiments yet</Quiet>
+        <EmptyRow title="No experiments yet" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {experiments.slice(0, 4).map((experiment) => (
@@ -497,7 +531,7 @@ export function FinishedCard({ rows }: { rows: readonly RunRow[] }) {
   return (
     <Card title="Recently finished" flush>
       {rows.length === 0 ? (
-        <Quiet>No finished runs yet</Quiet>
+        <EmptyRow title="No finished runs yet" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((row) => (
@@ -642,7 +676,7 @@ export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
             <FieldRow key={job.id} jobId={job.id} />
           ))}
         </ul>
-        <Quiet className="group-has-[li:not([aria-busy])]:hidden">No fields yet</Quiet>
+        <EmptyRow title="No fields yet" className="group-has-[li:not([aria-busy])]:hidden" />
       </div>
     </Card>
   );
@@ -653,11 +687,17 @@ const STATUS_WORDS: Partial<Record<GraduateSummary['status'], string>> = {
   blocked: 'Blocked',
 };
 
-export function AgentsCard({ graduates }: { graduates: readonly GraduateSummary[] }) {
+export function AgentsCard({
+  graduates,
+  teams,
+}: {
+  graduates: readonly GraduateSummary[];
+  teams: readonly Team[];
+}) {
   return (
     <Card title="Agents" flush>
       {graduates.length === 0 ? (
-        <Quiet>No agents yet</Quiet>
+        <EmptyRow title="No agents yet" />
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {graduates.map((graduate) => {
@@ -683,8 +723,33 @@ export function AgentsCard({ graduates }: { graduates: readonly GraduateSummary[
               </li>
             );
           })}
+          {teams.map((team) => (
+            <li key={team.id}>
+              <TeamRow team={team} graduates={graduates} />
+            </li>
+          ))}
         </ul>
       )}
     </Card>
+  );
+}
+
+/** A team among the agents: its name and whom its lead asks; it opens at its last chat. */
+function TeamRow({ team, graduates }: { team: Team; graduates: readonly GraduateSummary[] }) {
+  const { lead, teammates } = membersOf(team, graduates);
+  const asked = namesInSentence(teammates.map((teammate) => teammate.name));
+  return (
+    <CardRow
+      icon={
+        <RowIcon>
+          <Users strokeWidth={1.8} aria-hidden />
+        </RowIcon>
+      }
+      title={team.name}
+      detail={lead ? `${lead.name} asks ${asked}` : asked}
+      end={chevron}
+      label={`Open ${team.name}`}
+      onClick={() => openTeam(team)}
+    />
   );
 }

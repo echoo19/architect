@@ -65,9 +65,7 @@ describe('validateJob', () => {
     expect(issues['requirements.passRate']).toBe('Pick a target between 1% and 100%.');
     expect(issues['budget.maxRounds']).toBe('Use a whole number of rounds from 1 to 100.');
     expect(issues['budget.maxMentorUsd']).toBe('Use an amount from $0 to $1,000.');
-    expect(issues['budget.maxWallMinutes']).toBe(
-      'Use whole minutes, from 1 up to a week (10,080).',
-    );
+    expect(issues['budget.maxWallMinutes']).toBe('Use from a minute up to a week (168 hours).');
   });
 
   it('needs the paths and choices that a kind of checker or harness depends on', () => {

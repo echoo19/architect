@@ -7,7 +7,7 @@ import {
   type PullProgress,
 } from '@architect/shared';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, LOCAL_WITH_GLIMMER, OLLAMA_READY } from './fixtures';
 
 /*
@@ -240,7 +240,7 @@ test('lists every connection and picks the mentor from any of them', async () =>
   // A preset from a provider with no key yet asks for its key.
   await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   await page.getByRole('option', { name: /Claude Haiku/ }).click();
-  await expect(page.getByLabel('Anthropic API key')).toBeVisible();
+  await expect(page.getByLabel('Anthropic API key', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 });
 
@@ -260,9 +260,9 @@ test('picks the model for new agents on this computer, with whether it fits the 
   await page.getByRole('button', { name: 'Model for new agents' }).click();
   await page.getByRole('option', { name: /Muse Glimmer · 4-bit/ }).click();
   await expect(page.getByText('Not downloaded yet')).toBeVisible();
-  await expect(
-    page.getByText(`Runs entirely on the ${GPU_12GB.name}, several times faster`),
-  ).toBeVisible();
+  expect(await infoTipText(page, page, /.* fits your GPU$/)).toBe(
+    `Runs entirely on the ${GPU_12GB.name}, several times faster.`,
+  );
   await page.getByRole('button', { name: 'Use it' }).click();
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
   await page.keyboard.press('Escape');
@@ -299,12 +299,12 @@ test('adds a key its provider accepts, and says why when one is refused', async 
   await openModelsTab();
   await page.getByRole('button', { name: 'Add provider or endpoint' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add a provider or endpoint' });
-  await dialog.getByLabel('API key').fill('refused-key');
+  await dialog.getByLabel('API key', { exact: true }).fill('refused-key');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog.getByRole('alert')).toHaveText(
     'OpenAI refused that key. Check it and try again.',
   );
-  await dialog.getByLabel('API key').fill('a-key-that-works');
+  await dialog.getByLabel('API key', { exact: true }).fill('a-key-that-works');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog).toBeHidden();
   const connections = page.getByRole('region', { name: 'Connections' });
@@ -336,7 +336,7 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   // Spark with a Meta key comes first; the other ways wait behind one line.
-  await expect(page.getByLabel('Meta API key')).toBeVisible();
+  await expect(page.getByLabel('Meta API key', { exact: true })).toBeVisible();
   await expect(page.getByRole('radio')).toHaveCount(0);
   await page.getByRole('button', { name: 'Other ways to connect a teacher' }).click();
   for (const name of [/^Spark/, /OpenRouter/, /Another service/, /On this computer/]) {
@@ -345,8 +345,11 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   // Nothing to continue with yet: skipping says what that costs.
   const next = page.getByRole('button', { name: 'Continue' });
   await expect(next).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
-  await expect(page.getByText('You can connect one later in Settings.')).toBeVisible();
+  const skip = page.getByRole('button', { name: 'Skip for now' });
+  await expect(skip).toBeVisible();
+  await skip.hover();
+  await expect(page.getByRole('tooltip')).toContainText('You can connect one later in Settings');
+  await page.mouse.move(0, 0);
 
   await page.getByRole('radio', { name: /On this computer/ }).click();
   await page.getByRole('button', { name: 'Teacher', exact: true }).click();

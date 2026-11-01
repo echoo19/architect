@@ -3,6 +3,7 @@ import { Button, EmptyState, Skeleton, Stagger } from '@architect/ui';
 import { LayoutGrid } from 'lucide-react';
 import { useExperiments } from '../api/experiments';
 import { useGraduates, useJobs, useSettings } from '../api/hooks';
+import { useTeams } from '../api/teams';
 import { ProblemState } from '../components/ProblemState';
 import { newField } from '../fields/new-field';
 import { SampleJobButton, ScienceLabButton } from '../flow/describe/SampleJobButton';
@@ -86,10 +87,12 @@ function LabBoard({
   // The Lab still shows the rest when experiments can't be read; their card says why.
   const experiments = useExperiments();
   const records = experiments.data ?? [];
+  // A team that can't be read is said so in the sidebar; the Lab shows the rest without it.
+  const teams = useTeams().data ?? [];
   return (
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Stagger className={COLUMN}>
-        <NeedsYouCard jobs={jobs} graduates={graduates} experiments={records} />
+        <NeedsYouCard jobs={jobs} graduates={graduates} teams={teams} experiments={records} />
         <FinishedCard rows={finished} />
         <FieldsCard jobs={jobs} />
       </Stagger>
@@ -101,7 +104,7 @@ function LabBoard({
           onRetry={experiments.reload}
         />
         <SpendCard rows={[...running, ...finished].slice(0, 3)} />
-        <AgentsCard graduates={graduates} />
+        <AgentsCard graduates={graduates} teams={teams} />
       </Stagger>
     </div>
   );

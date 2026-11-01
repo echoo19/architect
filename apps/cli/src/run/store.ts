@@ -29,6 +29,10 @@ export function sessionStore(app: WorkspaceStore, options: SessionStoreOptions):
   const mine = new Set<string>();
   const chats = new Map<string, WorkspaceChat>();
   const messages = new Map<string, WorkspaceMessage[]>();
+  const newestFirst = (which: (chat: WorkspaceChat) => boolean) =>
+    [...chats.values()]
+      .filter(which)
+      .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0));
   const writeMode = (graduateId: string): PermissionMode | null => {
     const mode = app.writeMode(graduateId);
     return options.proposeOnly && mode === 'allow' ? 'ask' : mode;
@@ -37,6 +41,7 @@ export function sessionStore(app: WorkspaceStore, options: SessionStoreOptions):
     hasGraduate: (graduateId: string) => app.hasGraduate(graduateId),
     activeVersion: (graduateId: string) => app.activeVersion(graduateId),
     activeStamp: (graduateId: string) => app.activeStamp(graduateId),
+    team: (teamId: string) => app.team(teamId),
     writeMode,
     saveWriteMode(graduateId: string, mode: PermissionMode) {
       if (options.proposeOnly) {
@@ -54,6 +59,8 @@ export function sessionStore(app: WorkspaceStore, options: SessionStoreOptions):
       },
       getChat: (chatId) => (mine.has(chatId) ? app.getChat(chatId) : null),
       listChats: (graduateId) => app.listChats(graduateId).filter((chat) => mine.has(chat.id)),
+      listTeamChats: (teamId) => app.listTeamChats(teamId).filter((chat) => mine.has(chat.id)),
+      listLed: (graduateId) => app.listLed(graduateId).filter((chat) => mine.has(chat.id)),
       appendMessage: (message) => app.appendMessage(message),
       updateMessage: (message) => app.updateMessage(message),
       listMessages: (chatId) => (mine.has(chatId) ? app.listMessages(chatId) : []),
@@ -70,9 +77,10 @@ export function sessionStore(app: WorkspaceStore, options: SessionStoreOptions):
     },
     getChat: (chatId) => chats.get(chatId) ?? null,
     listChats: (graduateId) =>
-      [...chats.values()]
-        .filter((chat) => chat.graduateId === graduateId)
-        .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0)),
+      newestFirst((chat) => chat.graduateId === graduateId && chat.teamId === undefined),
+    listTeamChats: (teamId) => newestFirst((chat) => chat.teamId === teamId),
+    listLed: (graduateId) =>
+      newestFirst((chat) => chat.graduateId === graduateId && chat.teamId !== undefined),
     appendMessage: (message) => {
       messages.set(message.chatId, [...(messages.get(message.chatId) ?? []), message]);
     },

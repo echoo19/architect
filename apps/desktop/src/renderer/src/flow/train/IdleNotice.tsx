@@ -72,10 +72,9 @@ export function IdleNoticeView({
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <span className="font-medium">{view.title}</span>
-          <span className="max-w-[760px] text-fg text-pretty">{view.body}</span>
-          {view.next !== null && (
-            <span className="max-w-[760px] text-fg text-pretty">{view.next}</span>
-          )}
+          <span className="max-w-[760px] text-fg text-pretty">
+            {view.next === null ? view.body : `${view.body} ${view.next}`}
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" onClick={onOpenTeacher}>

@@ -102,7 +102,8 @@ export function reportVerdict(
   return {
     state: 'ready',
     title: `${name} is ready`,
-    because: online ? [`It passed on this computer too: ${testResult(local)}.`] : [],
+    // The local test's own card says how it went, so the verdict doesn't say it again.
+    because: [],
     usable: true,
   };
 }

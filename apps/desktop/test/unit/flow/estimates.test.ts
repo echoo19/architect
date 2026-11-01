@@ -6,6 +6,7 @@ import {
   allowingLine,
   capShortfalls,
   capText,
+  hoursFigure,
   comparisonCost,
   comparisonSeconds,
   estimateMentorUsd,
@@ -131,6 +132,10 @@ describe('what the time cap allows', () => {
     expect(capText(180)).toBe('3 hours');
     expect(capText(60)).toBe('1 hour');
     expect(capText(90)).toBe('90 minutes');
+    // The Budget tab's figures are all hours, to a tenth under a hundred.
+    expect(hoursFigure(5760)).toBe('96');
+    expect(hoursFigure(1350)).toBe('22.5');
+    expect(hoursFigure(45)).toBe('0.8');
     expect(capText(150)).toBe('2.5 hours');
     expect(capText(1)).toBe('1 minute');
   });

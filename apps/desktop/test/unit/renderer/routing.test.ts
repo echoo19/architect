@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePath, pathFromHash, paths } from '../../../src/renderer/src/lib/router';
+import { chatPath, parsePath, pathFromHash, paths } from '../../../src/renderer/src/lib/router';
 import { matchShortcut } from '../../../src/renderer/src/lib/shortcuts';
 
 describe('parsePath', () => {
@@ -12,6 +12,11 @@ describe('parsePath', () => {
     expect(parsePath('/agents/grd_1/chats/cht_2')).toEqual({
       name: 'chat',
       graduateId: 'grd_1',
+      chatId: 'cht_2',
+    });
+    expect(parsePath('/teams/team_lab/chats/cht_2')).toEqual({
+      name: 'team-chat',
+      teamId: 'team_lab',
       chatId: 'cht_2',
     });
     expect(parsePath('/jobs/job_1/define')).toEqual({ name: 'define', jobId: 'job_1' });
@@ -41,6 +46,7 @@ describe('parsePath', () => {
     });
     expect(parsePath(paths.models())).toEqual({ name: 'models' });
     expect(parsePath(paths.models('grd_1:2'))).toEqual({ name: 'models', open: 'grd_1:2' });
+    expect(parsePath(paths.teams())).toEqual({ name: 'models', tab: 'teams' });
     expect(parsePath(paths.compute())).toEqual({ name: 'compute' });
     expect(parsePath(paths.compute({ jobId: 'job_1' }))).toEqual({
       name: 'compute',
@@ -120,5 +126,14 @@ describe('matchShortcut', () => {
     expect(matchShortcut(press('k', { ctrlKey: true, altKey: true }), false)).toBeNull();
     expect(matchShortcut(press('j', { ctrlKey: true }), false)).toBeNull();
     expect(matchShortcut(press('k', {}), false)).toBeNull();
+  });
+});
+
+describe('chatPath', () => {
+  it("opens a team's chat under the team and any other under its agent", () => {
+    expect(chatPath({ id: 'cht_1', graduateId: 'grd_1' })).toBe('/agents/grd_1/chats/cht_1');
+    expect(chatPath({ id: 'cht_2', graduateId: 'grd_1', teamId: 'team_lab' })).toBe(
+      '/teams/team_lab/chats/cht_2',
+    );
   });
 });

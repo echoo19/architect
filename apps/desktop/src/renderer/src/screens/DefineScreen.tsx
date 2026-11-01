@@ -23,11 +23,10 @@ import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { takeAdvanced } from '../flow/define/advanced-request';
 import { DefineInspector } from '../flow/define/DefineInspector';
-import { capShortfalls, capText, trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
+import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
 import { ExportJobFile } from '../flow/define/ExportJobFile';
 import { hostedAvailability } from '../flow/define/hosted';
 import { INSPECTOR_NAME, tabWithIssue, type DefineTab } from '../flow/define/inspector-tabs';
-import { modelNames } from '../flow/names';
 import { Capabilities, FilePermissions, JobHeader, ReadyWhen } from '../flow/define/JobOverview';
 import { RuleReview } from '../flow/define/RuleReview';
 import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
@@ -147,7 +146,6 @@ function DefineEditor({ initial }: { initial: Job }) {
   const wontTeach = trainsTooSlow(job);
   // A time limit that stops training early is said beside Start training, with its fix.
   // Retraining with no compute is said in Budget only: jobs allow it by default and skip it.
-  const shortfall = capShortfalls(job, modelNames(job)).find((cap) => cap.what === 'time');
 
   // With no online copy there is nothing for the final test to run on.
   const hasCopy = job.student.hosted !== undefined;
@@ -244,52 +242,20 @@ function DefineEditor({ initial }: { initial: Job }) {
             <ExportJobFile editor={editor} />
           </div>
           <div className="flex items-center gap-2">
-            {(() => {
-              const said =
+            <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
+            <StartButton
+              starting={starting}
+              disabled={preflight.blocked || wait !== null || wontTeach}
+              why={
                 waitLine(wait) ??
                 (preflight.needs.length > 0
                   ? preflight.summary
                   : wontTeach
                     ? wontTeachTitle(job, job.student.trainOn, deviceInSentence(currentPlatform()))
-                    : null);
-              if (said !== null || !shortfall) {
-                return (
-                  <span className="mr-2 text-small">
-                    {said ?? 'Keep Architect open while it trains'}
-                  </span>
-                );
+                    : null)
               }
-              const allow = shortfall.allowMinutes;
-              return (
-                <>
-                  <span className="text-small">{shortfall.short}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mr-1"
-                    onClick={() =>
-                      allow === undefined
-                        ? openAdvanced('budget')
-                        : editor.change((current) => ({
-                            ...current,
-                            budget: { ...current.budget, maxWallMinutes: allow },
-                          }))
-                    }
-                  >
-                    {allow === undefined ? 'Open Budget' : `Allow ${capText(allow)}`}
-                  </Button>
-                </>
-              );
-            })()}
-            <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
-            <Button
-              variant="primary"
-              loading={starting}
-              disabled={preflight.blocked || wait !== null || wontTeach}
-              onClick={() => void start()}
-            >
-              Start training
-            </Button>
+              onStart={() => void start()}
+            />
           </div>
         </div>
       }
@@ -373,5 +339,36 @@ function DefineEditor({ initial }: { initial: Job }) {
         />
       )}
     </FlowShell>
+  );
+}
+
+/**
+ * Start training. While something on the page holds it back (a rule to confirm, a need above,
+ * a limit no round fits in), it is disabled, and its tooltip says what; the page says how to fix it.
+ */
+function StartButton({
+  starting,
+  disabled,
+  why,
+  onStart,
+}: {
+  starting: boolean;
+  disabled: boolean;
+  why: string | null;
+  onStart: () => void;
+}) {
+  const button = (
+    <Button variant="primary" loading={starting} disabled={disabled} onClick={onStart}>
+      Start training
+    </Button>
+  );
+  if (!disabled || why === null) return button;
+  // A disabled button takes no pointer, so the tooltip hangs on the span around it.
+  return (
+    <Tooltip content={why}>
+      <span tabIndex={0} className="rounded-control">
+        {button}
+      </span>
+    </Tooltip>
   );
 }

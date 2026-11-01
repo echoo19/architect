@@ -27,9 +27,13 @@ export function writableOf(out: Output): Writable {
 const row = (cells: readonly CellValue[]): string =>
   cells.map((cell) => (cell === null ? '' : String(cell))).join(', ');
 
-/** The change a write wants to make, as the app's approval card shows it, in text. */
-export function describeChange(block: ApprovalBlock): string[] {
-  const lines = [`${block.summary}:`];
+/**
+ * The change a write wants to make, as the app's approval card shows it, in text. In a team chat
+ * it starts with the agent whose write it is: a teammate's, or else the lead's (`lead`).
+ */
+export function describeChange(block: ApprovalBlock, lead?: string): string[] {
+  const who = block.agent?.name ?? lead;
+  const lines = [who === undefined ? `${block.summary}:` : `${who}: ${block.summary}:`];
   if (block.diff) {
     const { added, removed, changed } = block.diff;
     lines.push(
@@ -63,6 +67,14 @@ export function answerOf(text: string): ApprovalAnswer {
 }
 
 export const APPROVAL_QUESTION = 'Allow this change? [y]es, [n]o, [a]lways for this agent: ';
+
+/** The question about a change: `always` is for the agent whose write it is, named in a team. */
+export function approvalQuestion(block: ApprovalBlock, lead?: string): string {
+  const who = block.agent?.name ?? lead;
+  return who === undefined
+    ? APPROVAL_QUESTION
+    : `Allow this change? [y]es, [n]o, [a]lways for ${who}: `;
+}
 
 /**
  * Asks on the terminal about each write that needs approval, one line per answer: yes, no, or

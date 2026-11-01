@@ -58,7 +58,16 @@ export function NumberField({ label, value, onChange, issue, unit }: NumberField
 }
 
 /** Units said in the plural that read in the singular beside a 1: "1 task", "1 time". */
-const COUNTED = new Set(['rounds', 'tasks', 'times', 'minutes', 'seconds', 'tokens', 'dollars']);
+const COUNTED = new Set([
+  'rounds',
+  'tasks',
+  'times',
+  'hours',
+  'minutes',
+  'seconds',
+  'tokens',
+  'dollars',
+]);
 
 /** A unit as it reads beside its value. */
 export function unitFor(unit: string, value: number): string {

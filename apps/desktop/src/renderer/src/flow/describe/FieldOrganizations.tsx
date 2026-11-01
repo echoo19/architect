@@ -2,7 +2,7 @@ import type { DraftOrganization } from '@architect/shared';
 import { Button, Card, CardRow, IconButton, Input, RowIcon, Segmented } from '@architect/ui';
 import { Building2, FolderPlus, Lock, X } from 'lucide-react';
 import { flowApi } from '../../api/client';
-import { Quiet } from '../../fields/parts';
+import { EmptyRow } from '../../fields/parts';
 import { attempt } from '../../lib/notify';
 import { fileName } from '../format';
 
@@ -72,7 +72,7 @@ export function FieldOrganizations({
       }
     >
       {organizations.length === 0 ? (
-        <Quiet>Add a folder for each organization, with the same files in each.</Quiet>
+        <EmptyRow title="Add a folder for each organization, with the same files in each" />
       ) : (
         organizations.map((org, index) => (
           <CardRow

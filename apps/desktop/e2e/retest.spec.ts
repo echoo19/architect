@@ -281,11 +281,10 @@ test('marks an agent tested online, tests it on this computer, and is ready once
   await expect(offer).toContainText('92% · 55 of 60. Typical answer time 1 min 34 s');
   await expect(offer).toContainText('Online it got 90% · 54 of 60.');
   await expect(page.getByRole('heading', { name: 'Service desk is ready' })).toBeVisible();
-  await expect(page.getByText('It passed on this computer too: 55 of 60')).toBeVisible();
+  // The test here is said once, on its own card: not again under the title or in the verdict.
+  await expect(page.getByText('It passed on this computer too')).toHaveCount(0);
   await expect(
-    page.getByText(
-      'on an online copy of Glimmer, and again on this computer, with Spark disconnected.',
-    ),
+    page.getByText('on an online copy of Glimmer, with Spark disconnected.', { exact: false }),
   ).toBeVisible();
   await capture('report-online-done-dark.png');
 });

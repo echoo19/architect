@@ -529,4 +529,21 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     `,
   },
+  {
+    version: 24,
+    name: 'teams',
+    sql: `
+      -- A saved list of agents that answer together, its lead first (decision 100). A team's
+      -- chats are its lead's, and go with the team.
+      CREATE TABLE teams (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      ALTER TABLE chats ADD COLUMN team_id TEXT REFERENCES teams(id) ON DELETE CASCADE;
+      CREATE INDEX chats_by_team ON chats (team_id, updated_at);
+    `,
+  },
 ];

@@ -4,7 +4,6 @@ import {
   type Intervention,
   type Job,
   type LineageEntry,
-  type Prediction,
   type Round,
   type Score,
 } from '@architect/shared';
@@ -221,14 +220,4 @@ export function outcomeNote(experiment: Experiment, job: Job): string | null {
       return null;
     }
   }
-}
-
-/**
- * How a measured change compares with the mentor's predicted range, in a few words. The
- * prediction is for one measurement, so a change measured twice is compared on its first.
- */
-export function predictionCheck(predicted: Prediction, measured: number): string {
-  if (measured < predicted.devDeltaMin) return 'Measured below this range';
-  if (measured > predicted.devDeltaMax) return 'Measured above this range';
-  return 'Measured within this range';
 }

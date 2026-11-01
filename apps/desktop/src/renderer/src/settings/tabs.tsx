@@ -30,7 +30,7 @@ export function GeneralTab({ settings, update }: TabProps) {
     <>
       <SettingsRow
         label="Edition"
-        meta="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and their training stay in both."
+        info="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and their training stay in both."
       >
         <Segmented
           aria-label="Edition"
@@ -41,7 +41,7 @@ export function GeneralTab({ settings, update }: TabProps) {
       </SettingsRow>
       <SettingsRow
         label="Tool steps"
-        meta="Whether the tools and skills a reply used start open or folded in a chat"
+        info="Whether the tools and skills a reply used start open or folded in a chat."
       >
         <Segmented
           aria-label="Tool steps"
@@ -61,7 +61,7 @@ export function TrainingTab({ settings, update }: TabProps) {
       {mentor.kind === 'model' && (
         <SettingsRow
           label={`How hard ${mentorName(mentor)} thinks`}
-          meta="More thinking can find subtler fixes but costs more per round"
+          info="More thinking can find subtler fixes but costs more per round."
         >
           <Segmented
             aria-label={`How hard ${mentorName(mentor)} thinks`}
@@ -75,7 +75,7 @@ export function TrainingTab({ settings, update }: TabProps) {
       )}
       <SettingsRow
         label="Comparison mode"
-        meta="Also trains three simpler versions of each agent, so its report can compare them"
+        info="Also trains three simpler versions of each agent, so its report can compare them."
       >
         <Switch
           aria-label="Comparison mode"
@@ -85,7 +85,7 @@ export function TrainingTab({ settings, update }: TabProps) {
       </SettingsRow>
       <SettingsRow
         label="Quiet local models"
-        meta="Fewer CPU cores and short rests: slower, but quieter"
+        info="Fewer CPU cores and short rests: slower, but quieter."
       >
         <Switch
           aria-label="Quiet local models"
@@ -102,18 +102,18 @@ export function PrivacyTab({ settings, update }: TabProps) {
   const teacher = mentorName(settings.defaultMentor);
   return (
     <>
-      <SettingsRow label="Agents" meta={`An agent only talks to the model on ${device}`}>
+      <SettingsRow label="Agents" info={`An agent only talks to the model on ${device}.`}>
         <SettingsValue>Never online</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label={teacher}
-        meta="Sees practice attempts and samples of your files while it trains, never the final test"
+        info="Sees practice attempts and samples of your files while it trains, never the final test."
       >
         <SettingsValue>During training</SettingsValue>
       </SettingsRow>
       <SettingsRow
         label="Your chats"
-        meta={`${teacher} never sees them. The one exception is Teach this: after you confirm, it sends the one exchange you flag, with its steps and your notes.`}
+        info={`${teacher} never sees them. The one exception is Teach this: after you confirm, it sends the one exchange you flag, with its steps and your notes.`}
       >
         <SettingsValue>Only what you share</SettingsValue>
       </SettingsRow>

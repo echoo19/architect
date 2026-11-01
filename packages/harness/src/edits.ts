@@ -1,4 +1,4 @@
-import type { FileEdit, Harness } from '@architect/shared';
+import { isReservedToolName, type FileEdit, type Harness } from '@architect/shared';
 import { HarnessValidationError } from './errors';
 import { hashFiles } from './hash';
 import { INSTRUCTIONS_PATH, normalizeEditPath } from './paths';
@@ -36,5 +36,22 @@ export function applyEdits(harness: Harness, edits: readonly FileEdit[]): Harnes
   const result = validateHarnessFiles(files, harness.meta);
   if (!result.ok) throw new HarnessValidationError(result.errors);
   const edited = result.harness;
+  const reserved = newReservedHelpers(edited, harness);
+  if (reserved.length > 0) throw new HarnessValidationError(reserved);
   return { ...edited, meta: { ...edited.meta, hash: hashFiles(harnessToFiles(edited)) } };
+}
+
+/**
+ * The helpers a harness newly names after a reserved tool that isn't built in: `ask_teammate`,
+ * which a team's lead asks its teammates with (decision 100). One a harness already had stays,
+ * so an agent made before the name was reserved still opens and runs as it did.
+ */
+export function newReservedHelpers(harness: Harness, before: Harness | null): string[] {
+  return harness.tools
+    .filter((tool) => isReservedToolName(tool.name))
+    .filter((tool) => !before?.tools.some((kept) => kept.name === tool.name))
+    .map(
+      (tool) =>
+        `tools/${tool.name}.json: "${tool.name}" is the tool a team's lead asks its teammates with. Pick a different name.`,
+    );
 }

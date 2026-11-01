@@ -1,9 +1,14 @@
 import { memo } from 'react';
-import type { AgentBlock, GraduateSummary, WorkspaceMessage } from '@architect/shared';
+import type {
+  AgentBlock,
+  Consultation,
+  GraduateSummary,
+  WorkspaceMessage,
+} from '@architect/shared';
 import { ErrorState, Reveal, Spinner } from '@architect/ui';
-import { CirclePause } from 'lucide-react';
 import { CopyButton } from '../components/CopyButton';
 import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
+import { writerOf } from './changes';
 import { Markdown } from './markdown/Markdown';
 import type { PanelContent } from './SidePanel';
 import { Steps } from './Steps';
@@ -37,20 +42,27 @@ function blockKey(block: AgentBlock, index: number): string {
 
 export interface AgentMessageProps {
   message: WorkspaceMessage;
+  /** The agent that answers: in a team chat, the team's lead. */
   agent: GraduateSummary;
+  /** In a team chat, the lead's teammates, whose writes and answers the reply can hold. */
+  teammates?: readonly GraduateSummary[];
   /** Whether finished steps start open, from the "Tool steps" setting. */
   stepsStartOpen: boolean;
   onOpenPanel: (content: PanelContent) => void;
   /** Opens Teach this for a settled reply. */
   onFlag: (message: WorkspaceMessage) => void;
+  /** In a team chat, opens Teach this for a teammate's answer in a settled reply. */
+  onFlagConsultation?: (message: WorkspaceMessage, consultation: Consultation) => void;
 }
 
 export const AgentMessage = memo(function AgentMessage({
   message,
   agent,
+  teammates,
   stepsStartOpen,
   onOpenPanel,
   onFlag,
+  onFlagConsultation,
 }: AgentMessageProps) {
   const working = message.status === 'streaming';
   const answerable = working || message.status === 'done';
@@ -60,9 +72,8 @@ export const AgentMessage = memo(function AgentMessage({
   const waiting = answerable
     ? message.blocks.filter((block) => block.kind === 'approval' && block.status === 'pending')
     : [];
+  // The approval cards' own buttons say that the reply waits, so nothing else here repeats it.
   const pending = waiting.length;
-  // A change that couldn't be saved waits for "Try again" rather than for an approval.
-  const retrying = waiting.some((block) => block.kind === 'approval' && block.error !== undefined);
 
   return (
     <Reveal>
@@ -73,6 +84,9 @@ export const AgentMessage = memo(function AgentMessage({
             startOpen={stepsStartOpen}
             waiting={pending > 0}
             onOpenPanel={onOpenPanel}
+            {...(onFlagConsultation
+              ? { onFlagConsultation: (consultation) => onFlagConsultation(message, consultation) }
+              : {})}
           />
         )}
         {working && empty && <Thinking />}
@@ -87,7 +101,8 @@ export const AgentMessage = memo(function AgentMessage({
                 <ApprovalCard
                   key={key}
                   block={block}
-                  agent={agent}
+                  agent={writerOf(block, agent)}
+                  named={teammates !== undefined}
                   answerable={answerable}
                   onOpenPanel={onOpenPanel}
                 />
@@ -98,12 +113,6 @@ export const AgentMessage = memo(function AgentMessage({
               return <NoteBlock key={key} text={block.text} />;
           }
         })}
-        {pending > 0 && (
-          <p role="status" className="m-0 flex items-center gap-2 text-ui text-fg">
-            <CirclePause size={15} strokeWidth={1.8} aria-hidden className="shrink-0" />
-            {retrying ? 'Waiting for you' : 'Waiting for your approval'}
-          </p>
-        )}
         {stoppedQuietly && <NoteBlock text="Stopped" />}
         {message.status === 'error' && (
           <ErrorState

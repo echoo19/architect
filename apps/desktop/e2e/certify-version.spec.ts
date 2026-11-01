@@ -281,6 +281,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
     'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence.',
     { timeout: 15_000 },
   );
+  await certificate.getByRole('button', { name: 'How this is measured' }).click();
   await expect(certificate).toContainText('Measured on 60 calibration tasks it had never seen');
   const where = certificate.getByRole('list', { name: 'Where the bound was checked' });
   await expect(where.getByRole('listitem').nth(0)).toContainText('New tasks at Summit Tutoring');

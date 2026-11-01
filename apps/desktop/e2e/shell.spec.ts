@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { NOTHING_LOCAL, stubEngine, stubEngineFailure } from './fixtures';
 
 test.describe.configure({ mode: 'serial' });
@@ -54,6 +54,7 @@ test('opens a hidden, sandboxed window', async () => {
       'secrets',
       'settings',
       'teach',
+      'teams',
       'workspace',
     ],
   });
@@ -184,16 +185,12 @@ test('opens the palette and settings from the keyboard', async () => {
   await expect(settings.getByText(/^Architect \d/)).toBeVisible();
   // Privacy says what the teacher sees, and the one exchange of a chat that can reach it.
   await page.getByRole('tab', { name: 'Privacy' }).click();
-  await expect(
-    settings.getByText(
-      'Sees practice attempts and samples of your files while it trains, never the final test',
-    ),
-  ).toBeVisible();
-  await expect(
-    settings.getByText(
-      'Spark never sees them. The one exception is Teach this: after you confirm, it sends the one exchange you flag, with its steps and your notes.',
-    ),
-  ).toBeVisible();
+  expect(await infoTipText(page, settings, 'Spark')).toBe(
+    'Sees practice attempts and samples of your files while it trains, never the final test.',
+  );
+  expect(await infoTipText(page, settings, 'Your chats')).toBe(
+    'Spark never sees them. The one exception is Teach this: after you confirm, it sends the one exchange you flag, with its steps and your notes.',
+  );
   await expect(settings.getByText('Only what you share')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(settings).toBeHidden();

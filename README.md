@@ -69,6 +69,12 @@ Architect is one app in two editions. You choose one on the first screen and can
 
 <img alt="Architect's first screen, where you choose between Architect, which teaches an agent one job, and Architect Lab, with fields, experiments, models and compute" src="docs/screenshots/welcome-editions-dark.png">
 
+## Teams
+
+In Architect Lab, specialists can work as a team. You pick a lead and up to three teammates. When a request needs another desk's work, the lead asks that teammate. The teammate works in its own folder on what it was asked, and only its answer comes back. Each agent still asks before it changes a file, and the question names the agent that wants to. In the science set, Inventory desk asks Assay desk which compounds on a plate need a re-test, then reserves stock for exactly those. A team isn't certified as a team, and nothing teaches a lead yet when to ask.
+
+<img alt="A team chat on stand-in data: Inventory desk asked Assay desk about plate FW-0418, and the step opens to Assay desk's own work and its answer" src="docs/screenshots/team-consultation-dark.png">
+
 ## Results
 
 ### Academy desk, tested across academies

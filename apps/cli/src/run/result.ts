@@ -39,13 +39,15 @@ export function outcomeOf(reply: Reply): Outcome {
   }
   if (message.failure?.kind === 'approval_required') {
     const { approval } = message.failure;
+    // In a team reply the write may be a teammate's (decision 100): it says whose.
+    const whose = approval.agent === undefined ? '' : `${approval.agent.name}: `;
     return {
       outcome: 'not_permitted',
       failure: {
         outcome: 'not_permitted',
         code: 'approval_required',
-        message: `${approval.summary} needs approval, and nobody could give it, so nothing was written.`,
-        hint: 'Run it in a terminal without --non-interactive to answer, or allow writes for this agent in the app.',
+        message: `${whose}${approval.summary} needs approval, and nobody could give it, so nothing was written.`,
+        hint: `Run it in a terminal without --non-interactive to answer, or allow writes for ${approval.agent?.name ?? 'this agent'} in the app.`,
       },
     };
   }

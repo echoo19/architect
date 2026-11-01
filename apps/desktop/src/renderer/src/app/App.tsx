@@ -4,7 +4,7 @@ import { useSettings } from '../api/hooks';
 import { useEngineUpdates } from '../api/updates';
 import { ImportScreen } from '../import/ImportScreen';
 import { navigate, paths, useRoute, type Route } from '../lib/router';
-import { ChatScreen } from '../screens/ChatScreen';
+import { ChatScreen, TeamChatScreen } from '../screens/ChatScreen';
 import { ComputeScreen } from '../screens/ComputeScreen';
 import { DefineScreen } from '../screens/DefineScreen';
 import { DescribeScreen } from '../screens/DescribeScreen';
@@ -24,7 +24,7 @@ import { TrainScreen } from '../screens/TrainScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { SettingsModal } from '../settings/SettingsModal';
 import { CommandMenu } from '../shell/CommandMenu';
-import { EDITIONS, isLabOnly, useEdition } from '../shell/edition';
+import { EDITIONS, isLabOnly, readsTeams, useEdition } from '../shell/edition';
 import { WorkspaceShell } from '../shell/WorkspaceShell';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -33,6 +33,7 @@ function Screen({ route }: { route: Route }) {
   const edition = useEdition();
   // The personal edition has none of the Lab's places; it is sent home (useEditionShell).
   if (edition === 'personal' && isLabOnly(route)) return null;
+  if (readsTeams(route) && edition !== 'lab') return null;
   switch (route.name) {
     case 'home':
       return (
@@ -78,7 +79,7 @@ function Screen({ route }: { route: Route }) {
     case 'models':
       return (
         <WorkspaceShell route={route}>
-          <ModelsScreen open={route.open} />
+          <ModelsScreen open={route.open} tab={route.tab} />
         </WorkspaceShell>
       );
     case 'compute':
@@ -95,6 +96,12 @@ function Screen({ route }: { route: Route }) {
       return (
         <WorkspaceShell route={route}>
           <ChatScreen key={route.chatId} graduateId={route.graduateId} chatId={route.chatId} />
+        </WorkspaceShell>
+      );
+    case 'team-chat':
+      return (
+        <WorkspaceShell route={route}>
+          <TeamChatScreen key={route.chatId} teamId={route.teamId} chatId={route.chatId} />
         </WorkspaceShell>
       );
     case 'welcome':

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { WorkspaceChat, WorkspaceMessage } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { ENGINE_RESTARTING, stubEngineFailure } from './fixtures';
 import {
   AGENT_WITH_VERSIONS,
@@ -189,10 +189,11 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   await expect(row(2)).toContainText('In use');
   await expect(row(2)).toContainText('95%');
   await expect(row(2)).toContainText('57 of 60');
-  await expect(row(3)).toContainText('New, not in use yet');
-  await expect(row(3)).toContainText('Below its 90% target · from version 2');
-  await expect(row(4)).toContainText('No final test yet · from version 2, imported');
-  await expect(row(1)).toContainText('Earlier version');
+  // Each row is named by its number; a version with a move says what it is by its button.
+  await expect(row(3)).not.toContainText('New, not in use yet');
+  await expect(row(3)).toContainText('Below its 90% target · Oct');
+  await expect(row(4)).toContainText('No test');
+  await expect(row(4)).toContainText('From version 2, imported');
   await expect(row(1)).toContainText('55 of 60');
   await expect(dialog.getByRole('region', { name: 'Versions' })).toContainText('Final test');
   await expect(row(1).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
@@ -219,7 +220,7 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   await promote.getByRole('button', { name: 'Use version 3' }).click();
   await expect(promote).toBeHidden();
   await expect(row(3)).toContainText('In use');
-  await expect(row(2)).toContainText('Earlier version');
+  await expect(row(2).getByRole('button', { name: 'Go back to this version' })).toBeVisible();
   expect(await callsTo(app, 'graduates:acceptVersion')).toEqual([[AGENT.id, 3]]);
   expect(await callsTo(app, 'graduates:promote')).toEqual([[AGENT.id, 3]]);
 
@@ -397,9 +398,10 @@ test('imports a package with trained weights once llama.cpp is set up', async ()
   await startImport([PACKAGES.weights, FOLDERS.records]);
 
   await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
-  await expect(
-    page.getByText('A free program that runs its trained weights. One more download.'),
-  ).toBeVisible();
+  await expect(page.getByText('One more download', { exact: true })).toBeVisible();
+  expect(await infoTipText(page, page, 'llama.cpp')).toBe(
+    'A free program that runs its trained weights.',
+  );
   await expect(page.getByText('The exact copy its trained weights need')).toBeVisible();
   // Trained weights run on llama.cpp, so the way on waits until it is set up, and says so.
   await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
@@ -572,11 +574,10 @@ test("shows an allowed change that couldn't be saved, and tries again", async ()
     "couldn't be saved, so nothing was written: invoices.csv is open in another program.",
   );
   await expect(card).not.toContainText('Allowed');
-  await expect(page.getByRole('status').filter({ hasText: 'Waiting for you' })).toBeVisible();
   await page.getByRole('button', { name: '3 steps so far' }).click();
   const steps = page.getByRole('list', { name: 'Steps' });
   await expect(steps).toContainText('5 rows');
-  await expect(steps).toContainText('Answered by version 2');
+  await expect(page.getByText('Answered by version 2')).toBeAttached();
   await capture('workspace-unsaved-dark.png');
 
   await card.getByRole('button', { name: 'Try again' }).click();

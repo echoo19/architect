@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import {
   AGENT,
   CHATS,
@@ -103,7 +103,7 @@ test('walks through first-run setup while the model downloads', async () => {
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Connect a teacher' })).toBeVisible();
   // Spark with a Meta key is the way shown; the others wait behind one line.
-  await expect(page.getByLabel('Meta API key')).toBeVisible();
+  await expect(page.getByLabel('Meta API key', { exact: true })).toBeVisible();
   await expect(page.getByRole('radio', { name: /OpenRouter/ })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
@@ -113,7 +113,7 @@ test('walks through first-run setup while the model downloads', async () => {
   await expect(ways.getByRole('radio')).toHaveCount(4);
   await expect(ways.getByRole('radio', { name: /^Spark/ })).toHaveAttribute('aria-checked', 'true');
   await capture('welcome-mentor-ways-dark.png');
-  const key = page.getByLabel('Meta API key');
+  const key = page.getByLabel('Meta API key', { exact: true });
   await key.fill('not-a-real-key');
   await page.getByRole('button', { name: 'Test connection' }).click();
   await expect(page.getByText('Connected · 640 ms')).toBeVisible();
@@ -262,10 +262,14 @@ test('asks before writing, and records an allow and a deny', async () => {
   const lines = note.getByRole('table', { name: 'Lines this change writes' });
   await expect(lines.getByRole('row')).toHaveCount(6);
   await expect(lines).toContainText('Call ahead: the side gate is locked.');
-  await expect(invoices.getByRole('button', { name: 'Allow saving from now on' })).toBeVisible();
-  const waiting = page.getByRole('status').filter({ hasText: 'Waiting for your approval' });
-  await expect(waiting).toBeVisible();
+  // Allowing every write from now on is in Allow once's menu, not a button of its own.
+  await expect(invoices.getByRole('button', { name: 'Allow saving from now on' })).toHaveCount(0);
   await capture('workspace-approval-dark.png');
+  const more = invoices.getByRole('button', { name: 'More ways to allow' });
+  await more.click();
+  await expect(page.getByRole('menuitem', { name: /Allow saving from now on/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await more.blur();
 
   await invoices.getByRole('button', { name: 'Allow once' }).click();
   await expect(invoices).toContainText('Allowed');
@@ -274,7 +278,6 @@ test('asks before writing, and records an allow and a deny', async () => {
   await note.getByRole('button', { name: 'Allow once' }).click();
   await expect(note).toContainText('Allowed');
   await expect(page.getByRole('button', { name: 'Allow once' })).toHaveCount(0);
-  await expect(waiting).toBeHidden();
   expect(await callsTo(app, 'workspace:decide')).toEqual([
     ['chg_invoices', 'approve'],
     ['chg_booking', 'deny'],
@@ -327,7 +330,9 @@ test('changes what the agent may write and opens its settings', async () => {
     'aria-checked',
     'true',
   );
-  await expect(dialog.getByText('Shows each change and waits for your OK')).toBeVisible();
+  expect(await infoTipText(page, dialog, 'Saving files')).toBe(
+    'Shows each change and waits for your OK',
+  );
   await expect(dialog.getByText('Never, by design')).toBeVisible();
   await expect(dialog.getByText('invoices.csv, bookings.csv')).toBeVisible();
   // Each folder it works in, with the one this computer bound and a way to choose another.
@@ -342,7 +347,7 @@ test('changes what the agent may write and opens its settings', async () => {
 
   await dialog.getByRole('tab', { name: 'Permissions' }).click();
   await dialog.getByRole('radio', { name: 'Never' }).click();
-  await expect(dialog.getByText("Can't change your files")).toBeVisible();
+  expect(await infoTipText(page, dialog, 'Saving files')).toBe("Can't change your files");
   await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toBeHidden();
   await page.getByRole('button', { name: 'Saving files: Never' }).click();

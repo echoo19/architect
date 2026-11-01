@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { OLLAMA_BASE_URL, type Installation, type Publication } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { stubEngine, stubEngineFailure } from './fixtures';
 import {
   EARLIER_PUBLICATION,
@@ -138,9 +138,9 @@ test('publishes to Hugging Face: the review, its progress, the link and its comm
   await expect(files).toContainText('README.md');
   await expect(files).toContainText('Model card');
   await expect(dialog.getByText('Uses HF_TOKEN from this computer')).toBeVisible();
-  await expect(
-    dialog.getByText('Only accounts you allow on Hugging Face can see it'),
-  ).toBeVisible();
+  expect(await infoTipText(page, dialog, 'Visibility')).toBe(
+    'Only accounts you allow on Hugging Face can see it',
+  );
   await expect(dialog.getByRole('list', { name: 'Publications' })).toContainText(
     `Version 1 · commit ${HUB.earlierCommit.slice(0, 7)}`,
   );

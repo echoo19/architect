@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import type { GraduateSummary, GraduateVersion, Installation } from '@architect/shared';
+import {
+  CodedError,
+  type GraduateSummary,
+  type GraduateVersion,
+  type Installation,
+} from '@architect/shared';
 import {
   Badge,
   Button,
@@ -128,6 +133,8 @@ function InstallRow({
         baseBytes: active?.manifest.model.base.sizeBytes,
       })
     : null;
+  // Ready, the row says where and when it was checked; otherwise why it can't run, which the
+  // badge beside it doesn't say.
   const meta =
     status === 'ready' && machine && checked?.checkedAt
       ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
@@ -188,12 +195,21 @@ function DeleteAgentDialog({
 }) {
   const closeSettings = useAgentSettingsUi((state) => state.close);
   const [deleting, setDeleting] = useState(false);
+  // An agent in a team stays until it is taken out of the team (decision 100): the dialog says
+  // which team, and opens Teams.
+  const [inTeam, setInTeam] = useState<string | null>(null);
 
   const remove = async () => {
     setDeleting(true);
     const removed = await attempt(`Couldn't delete ${agent.name}`, async () => {
-      await architect().graduates.remove(agent.id);
-      return true;
+      try {
+        await architect().graduates.remove(agent.id);
+        return true;
+      } catch (error) {
+        if (!(error instanceof CodedError && error.code === 'agent_in_team')) throw error;
+        setInTeam(error.message);
+        return false;
+      }
     });
     setDeleting(false);
     if (!removed) return;
@@ -209,19 +225,40 @@ function DeleteAgentDialog({
     toast({ title: `Deleted ${agent.name}` });
   };
 
+  const openTeams = () => {
+    onOpenChange(false);
+    closeSettings();
+    navigate(paths.teams());
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setInTeam(null);
+        onOpenChange(next);
+      }}
+    >
       <DialogContent
-        title={`Delete ${agent.name}?`}
-        description="Its chats are deleted too, and this can't be undone. Export it first if you might want it back."
+        title={inTeam === null ? `Delete ${agent.name}?` : `${agent.name} is in a team`}
+        description={
+          inTeam ??
+          "Its chats are deleted too, and this can't be undone. Export it first if you might want it back."
+        }
       >
         <DialogFooter>
           <DialogClose asChild>
             <Button size="md">Cancel</Button>
           </DialogClose>
-          <Button variant="danger" size="md" loading={deleting} onClick={() => void remove()}>
-            Delete agent
-          </Button>
+          {inTeam === null ? (
+            <Button variant="danger" size="md" loading={deleting} onClick={() => void remove()}>
+              Delete agent
+            </Button>
+          ) : (
+            <Button variant="primary" size="md" onClick={openTeams}>
+              Open Teams
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -301,7 +338,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       {active && <FolderRows agent={agent} active={active} />}
       <SettingsRow
         label={WRITE_SETTING}
-        meta={
+        info={
           settings.status === 'success' ? WRITE_MODE_MEANINGS[settings.data.writeMode] : undefined
         }
         error={errorOf(settings)}
@@ -337,7 +374,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       </SettingsRow>
       <SettingsRow
         label="Files it can change"
-        meta={savingNever ? `${WRITE_SETTING} is set to Never, so it changes none now.` : undefined}
+        info={savingNever ? `${WRITE_SETTING} is set to Never, so it changes none now.` : undefined}
         error={errorOf(versions)}
       >
         {contract ? (

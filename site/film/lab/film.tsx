@@ -3,7 +3,7 @@ import { ACADEMY, SPECIALISTS } from './data';
 import { CounterexampleDrawer, DefinePage, TrainPage } from './pages-flow';
 import { FieldPage, Fields, LabHome } from './pages-lab';
 import { ComputePage, ExperimentPage, ModelsPage } from './pages-lab2';
-import { GalleryCard, Terminal, WelcomePage, WorkspacePage } from './pages-more';
+import { GalleryCard, WelcomePage, WorkspacePage } from './pages-more';
 import {
   AgentRow,
   CHAT_AGENT,
@@ -24,65 +24,11 @@ import { LogoMark } from '@architect/ui';
  * film's time alone.
  */
 
+/** The walkthrough's length on its own clock, in seconds; cues.ts says when each moment is played. */
 export const DURATION = 163;
 
 /** When the lockup comes in over the wall at the end. */
 const LOCKUP = 156.6;
-
-/**
- * The cut is authored on one clock and played on another: each stretch of the authored time
- * below is played over a new length, so a beat can be given room for its narration without
- * moving every cue inside it. Everything in a stretch keeps moving, only slower or faster.
- */
-const STRETCHES: readonly (readonly [number, number, number])[] = [
-  [6.1, 10.0, 1.7],
-  [15.4, 22.0, 4.8],
-  [24.6, 43.5, 15.6],
-  [45.0, 56.2, 9.8],
-  [59.6, 72.4, 13.6],
-  [72.4, 83.3, 11.6],
-  [84.6, 100.4, 15.2],
-  [100.4, 114.0, 14.4],
-  [114.0, 124.6, 10.0],
-  [124.6, 143.2, 18.0],
-  [143.2, 150.4, 7.0],
-  [150.4, LOCKUP, 5.2],
-  [LOCKUP, DURATION, 4.9],
-];
-
-/** The walkthrough's length as played, in seconds. */
-export const WALKTHROUGH = STRETCHES.reduce(
-  (total, [from, to, length]) => total + length - (to - from),
-  DURATION,
-);
-
-/** The authored time for a moment of the walkthrough as played. */
-export function filmTime(played: number): number {
-  let authored = 0;
-  let clock = 0;
-  for (const [from, to, length] of STRETCHES) {
-    if (played < clock + (from - authored)) return authored + (played - clock);
-    clock += from - authored;
-    if (played < clock + length) return from + ((played - clock) / length) * (to - from);
-    clock += length;
-    authored = to;
-  }
-  return Math.min(DURATION, authored + (played - clock));
-}
-
-/** When an authored moment of the walkthrough is played, in seconds. */
-export function playedTime(authored: number): number {
-  let clock = 0;
-  let last = 0;
-  for (const [from, to, length] of STRETCHES) {
-    if (authored < from) return clock + (authored - last);
-    clock += from - last;
-    if (authored < to) return clock + ((authored - from) / (to - from)) * length;
-    clock += length;
-    last = to;
-  }
-  return clock + (authored - last);
-}
 
 const FRAME = { width: 1920, height: 1080 } as const;
 
@@ -124,20 +70,18 @@ const PAGES: readonly PageSpan[] = [
 ];
 
 /** Moments inside pages, in film seconds. */
-const MOMENT = {
+export const MOMENT = {
   handoff: 10.8,
   drawerIn: 72.4,
   drawerOut: 83.3,
   panel: 102.5,
   allow: 134.6,
-  terminalIn: 136.6,
-  terminalOut: 142.6,
   choose: 147.5,
   wall: 150.4,
   lockup: LOCKUP,
 } as const;
 
-const pageAt = (id: PageId) => PAGES.find((page) => page.id === id)?.at ?? 0;
+export const pageAt = (id: PageId) => PAGES.find((page) => page.id === id)?.at ?? 0;
 
 /** Rects of named parts of the window, measured once at build, in window pixels. */
 export type Measured = ReadonlyMap<string, { x: number; y: number; w: number; h: number }>;
@@ -228,8 +172,6 @@ export function camera(measured: Measured, t: number): Framing {
   return current;
 }
 
-const TERMINAL = { x: 430, y: 318, w: 690, h: 290 } as const;
-
 interface Click {
   at: number;
   /** A part's name, measured, or a point in the window. */
@@ -279,6 +221,21 @@ function Cursor({ measured, t }: { measured: Measured; t: number }) {
     outQuart(span(t, click.at - 1.1, 0.25)),
     1 - outQuart(span(t, click.at + 0.4, 0.3)),
   );
+  return <Pointer x={x} y={y} shown={shown} press={press} />;
+}
+
+/** The pointer, at a point of the window, pressed by `press` from 0 to 1. */
+export function Pointer({
+  x,
+  y,
+  shown,
+  press,
+}: {
+  x: number;
+  y: number;
+  shown: number;
+  press: number;
+}) {
   return (
     <svg
       width={22}
@@ -378,6 +335,12 @@ function renderPage(id: PageId, lt: number): ReactNode {
 
 const FINAL = 999;
 
+/**
+ * Pages that come in only once the page before has gone, in seconds: the experiment's title sits
+ * where Train's 97% was, so Train leaves in 0.1 s and the title rises after it.
+ */
+const CLEARS: Partial<Record<PageId, number>> = { experiment: 0.1 };
+
 /** One window of the app. `still` draws a page in its finished state, as the wall at the end does. */
 export function AppWindow({
   t,
@@ -447,8 +410,9 @@ export function AppWindow({
           );
         }
         if (t < page.at - 0.01 || (next && t > next.at + 0.3)) return null;
-        const enter = outQuart(span(t, page.at, 0.5));
-        const leave = next ? outQuart(span(t, next.at, 0.3)) : 0;
+        // A page whose title lands where the last page's figure was waits for it to go first.
+        const enter = outQuart(span(t, page.at + (CLEARS[page.id] ?? 0), 0.5));
+        const leave = next ? outQuart(span(t, next.at, CLEARS[next.id] ?? 0.3)) : 0;
         return (
           <div
             key={page.id}
@@ -485,7 +449,6 @@ export function AppWindow({
       />
       {!still && !measuring && <Drawer t={t} />}
       {(still === 'train' || measuring) && <Drawer t={MOMENT.drawerIn + 20} hold />}
-      {!still && !measuring && <TerminalLayer t={t} />}
     </div>
   );
 }
@@ -505,28 +468,6 @@ function Drawer({ t, hold }: { t: number; hold?: boolean }) {
       }}
     >
       <CounterexampleDrawer lt={t - MOMENT.drawerIn} />
-    </div>
-  );
-}
-
-function TerminalLayer({ t }: { t: number }) {
-  const open = outExpo(span(t, MOMENT.terminalIn, 0.8));
-  const close = outQuart(span(t, MOMENT.terminalOut, 0.45));
-  if (open <= 0 || close >= 1) return null;
-  return (
-    <div
-      className="absolute"
-      style={{
-        left: TERMINAL.x,
-        top: TERMINAL.y,
-        width: TERMINAL.w,
-        height: TERMINAL.h,
-        transform: `translateY(${(1 - open) * 90 + close * 60}px)`,
-        opacity: clamp(open * 2) * (1 - close),
-        zIndex: 30,
-      }}
-    >
-      <Terminal lt={t - MOMENT.terminalIn} />
     </div>
   );
 }

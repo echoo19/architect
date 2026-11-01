@@ -83,8 +83,7 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
   return (
     <>
       <StepIntro title="Your agent's model">
-        Architect trains an agent for any job you describe. {names.mentor}, a large AI, teaches{' '}
-        {names.student}, a small one that runs on {device}, so your agent works offline.
+        {names.student} runs your agents on {device}, so they work offline.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         {local.status === 'error' && !local.data && (
@@ -98,7 +97,8 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
           <Panel aria-label="Ollama" className="px-7 py-1 [&>*:first-child]:border-t-0">
             <SettingsRow
               label="Ollama isn't running"
-              meta={`${names.student} runs through Ollama, a free app. Install it and open it, then check again.`}
+              meta="Install and open it, then check again"
+              info={`${names.student} runs through Ollama, a free app.`}
             >
               <span className="flex items-center gap-2">
                 <Button

@@ -33,9 +33,8 @@ export function HostedStep({ student, connected }: HostedStepProps) {
   return (
     <>
       <StepIntro title="Faster training">
-        Optional: {student} can practice on an online copy of itself about ten times faster
-        {price === null ? '' : `, for ${price.toLowerCase()} an agent`}. The finished agent still
-        runs only on {device}.
+        Optional: {student} practices online about ten times faster
+        {price === null ? '' : `, for ${price.toLowerCase()} an agent`}.
       </StepIntro>
       <Panel
         aria-label={`${host} connection`}
@@ -44,7 +43,7 @@ export function HostedStep({ student, connected }: HostedStepProps) {
         <SettingsRow
           icon={<ProviderMark name={host} />}
           label={host}
-          meta="Runs the online copy and bills your account"
+          info={`Runs the online copy and bills your account; finished agents still run only on ${device}.`}
           error={signIn.state.phase === 'failed' ? signIn.state.message : undefined}
         >
           {connected ? (

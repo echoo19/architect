@@ -51,15 +51,26 @@ export function userMessage(chatId: string, text: string, at: string): Workspace
   return { ...message(chatId, 'user', at), text, status: 'done' };
 }
 
-/** A reply records the graduate version that wrote it. */
-export function agentMessage(chatId: string, version: number, at: string): WorkspaceMessage {
-  return { ...message(chatId, 'agent', at), status: 'streaming', graduateVersion: version };
+/** A reply records the graduate version that wrote it, and whether a team answered it. */
+export function agentMessage(
+  chatId: string,
+  version: number,
+  at: string,
+  team = false,
+): WorkspaceMessage {
+  return {
+    ...message(chatId, 'agent', at),
+    status: 'streaming',
+    graduateVersion: version,
+    ...(team ? { team: true as const } : {}),
+  };
 }
 
 /**
- * A reply in its final state: nothing left running and no write left waiting for a decision. A
- * change still waiting is denied, or failed when it was allowed and couldn't be saved. A wait for
- * the GPU leaves no step behind.
+ * A reply in its final state: nothing left running, a teammate's steps inside a consultation
+ * included, and no write left waiting for a decision. A change still waiting is denied, or failed
+ * when it was allowed and couldn't be saved. A wait for the GPU leaves no step behind. A
+ * consultation that hadn't settled was stopped.
  */
 export function settleMessage(reply: WorkspaceMessage, outcome: ReplyOutcome): WorkspaceMessage {
   return {
@@ -68,17 +79,42 @@ export function settleMessage(reply: WorkspaceMessage, outcome: ReplyOutcome): W
     text: reply.text.trim(),
     steps: reply.steps
       .filter((step) => step.kind !== 'wait')
-      .map((step): AgentStep =>
-        step.status === 'running'
-          ? { ...step, status: 'done', meta: step.meta ?? 'stopped' }
-          : step,
-      ),
+      .map((step): AgentStep => {
+        const { view } = step;
+        const settled =
+          view?.kind === 'consult'
+            ? {
+                ...step,
+                view: {
+                  ...view,
+                  steps: view.steps.filter((each) => each.kind !== 'wait').map(settledStep),
+                  outcome: view.outcome ?? 'stopped',
+                },
+              }
+            : step;
+        return settledStep(settled);
+      }),
     blocks: reply.blocks.map((block): AgentBlock =>
       block.kind === 'approval' && block.status === 'pending'
         ? { ...block, status: block.error === undefined ? 'denied' : 'failed' }
         : block,
     ),
+    ...(reply.consultations === undefined
+      ? {}
+      : {
+          consultations: reply.consultations.map((consultation) =>
+            consultation.outcome === undefined
+              ? { ...consultation, outcome: 'stopped' as const }
+              : consultation,
+          ),
+        }),
   };
+}
+
+function settledStep<T extends { status: AgentStep['status']; meta?: string }>(step: T): T {
+  return step.status === 'running'
+    ? { ...step, status: 'done', meta: step.meta ?? 'stopped' }
+    : step;
 }
 
 function message(

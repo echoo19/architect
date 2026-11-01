@@ -463,6 +463,8 @@ export interface EngineHostDeps extends LoopDeps {
   sweepDeskJobFile?: string;
   /** The Assay desk's job, a science lab sample, with its labs at `orgs/<id>/data/` beside it. */
   assayJobFile?: string;
+  /** The Inventory desk's job, a science lab sample, with the labs' stores at `orgs/<id>/data/` beside it. */
+  inventoryJobFile?: string;
   /** Absent where the app ships no ready-made agent, which is then never offered. */
   sampleAgent?: SampleAgentFiles;
 }

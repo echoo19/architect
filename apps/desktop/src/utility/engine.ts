@@ -80,6 +80,7 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       academyJobFile: message.academyJobFile,
       sweepDeskJobFile: message.sweepDeskJobFile,
       assayJobFile: message.assayJobFile,
+      inventoryJobFile: message.inventoryJobFile,
       sampleAgent: { packageFile: message.sampleAgentFile, dataDir: message.sampleAgentDataDir },
       trainerDir: message.trainerDir,
       getSecret,

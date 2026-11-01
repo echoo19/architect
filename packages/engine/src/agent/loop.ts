@@ -16,7 +16,7 @@ import type { AgentFiles } from '../files/agent-files';
 import type { Sandbox } from '../sandbox/types';
 import type { ApproveWrite } from '../tools/builtins';
 import { TOOL_RUNTIME } from '../tools/specs';
-import { createToolbox } from '../tools/toolbox';
+import { createToolbox, type ExtraTool } from '../tools/toolbox';
 import { askStudent, cutOffError, isCutOff, withSpent } from './ask';
 import { ContextWindow } from './context';
 import { elapsedMs } from './elapsed';
@@ -67,6 +67,8 @@ export interface RunAgentOptions {
   onRetract?: (chars: number) => void;
   /** Chat mode: asks the user before each change to a file. */
   approveWrite?: ApproveWrite;
+  /** Tools offered besides the built-in and harness ones: a team reply's `ask_teammate`. */
+  extraTools?: readonly ExtraTool[];
   signal?: AbortSignal;
 }
 
@@ -219,6 +221,7 @@ async function takeTurns(
     sandbox,
     today,
     approveWrite: options.approveWrite,
+    ...(options.extraTools === undefined ? {} : { extraTools: options.extraTools }),
   });
   const tools = [...toolbox.specs];
   // Every prompt stays inside the student's context, on every backend (decision 057).

@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { ENGINE_RESTARTING, stubEngineFailure } from './fixtures';
 import {
   finishImprovement,
@@ -124,7 +124,6 @@ test('flags an answer, sends nothing until agreed, and queues or discards its le
   });
 
   const sheet = await flagReply();
-  await expect(sheet).toContainText('Reply to "Who still owes us money from September?"');
   await expect(sheet).toContainText('Three customers, $2,915.00 in total.');
   await expect(
     sheet.getByText('Only this exchange, its steps and your notes go to Spark, for up to $0.25.'),
@@ -328,7 +327,11 @@ test("says why an agent from another computer can't be taught here", async () =>
   const dialog = await openTeaching('Returns desk');
   const lessons = dialog.getByRole('region', { name: 'Lessons' });
   await expect(lessons).toContainText("Can't be taught on this computer");
-  await expect(lessons.getByRole('button')).toHaveCount(0);
+  // Why is a click away; the info icon is the row's one control.
+  expect(await infoTipText(page, lessons, "Can't be taught on this computer")).toBe(
+    'Returns desk was made on another computer. It can be taught there, where its practice and check tasks are.',
+  );
+  await expect(lessons.getByRole('button', { name: /^(?!About )/ })).toHaveCount(0);
   await capture('agent-teaching-imported-dark.png');
   expect(await callsTo(launched.app, 'teach:propose')).toEqual([]);
 });
@@ -409,7 +412,7 @@ test('improves the agent into a new version while the active one keeps answering
   });
   await updateChat(app, CHATS.closeout.id, { running: false });
   await page.getByRole('button', { name: 'Worked for 41 s' }).click();
-  await expect(page.getByRole('list', { name: 'Steps' })).toContainText('Answered by version 2');
+  await expect(page.getByText('Answered by version 2')).toBeAttached();
 
   // Stop works at any point, and says what comes of it.
   await goTo(page, `/runs/${IMPROVE_RUN_ID}/train`);
@@ -449,9 +452,11 @@ test('improves the agent into a new version while the active one keeps answering
   const made = running.getByRole('region', { name: 'Lessons' });
   await expect(made).toContainText('Made version 3 · 93% → 98% on check tasks');
   const versions = running.getByRole('list', { name: 'Versions' });
-  await expect(versions.getByRole('listitem', { name: 'Version 3' })).toContainText(
-    'New, not in use yet',
-  );
+  await expect(
+    versions
+      .getByRole('listitem', { name: 'Version 3' })
+      .getByRole('button', { name: 'Use this version' }),
+  ).toBeVisible();
   await expect(versions.getByRole('listitem', { name: 'Version 2' })).toContainText('In use');
   await capture('agent-teaching-made-dark.png');
 

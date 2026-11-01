@@ -3,7 +3,15 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job } from '@architect/shared';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import {
+  goTo,
+  infoTipText,
+  launchApp,
+  settle,
+  startHeldBy,
+  updateSettings,
+  type LaunchedApp,
+} from './app';
 import { NOTHING_LOCAL, OLLAMA_READY, stubEngine, stubEngineFailure } from './fixtures';
 import {
   COPY_ANSWERS,
@@ -188,13 +196,10 @@ test('walks from a description to a graduate', async () => {
   await expect(local).toBeDisabled();
   await expect(local).toContainText('About 2.5 minutes a task');
   await expect(local).toContainText('Free');
-  // Training always sends the teacher what it reads to teach, and the story's teacher is
-  // Spark through Meta's API, so the note under the choice says what goes online instead of
-  // that nothing does.
-  await expect(page.getByText('Only what Spark reads to teach goes online.')).toBeVisible();
-  await expect(page.getByText(/Nothing leaves/)).toHaveCount(0);
+  // What goes online is said on each card when it is asked, never as a line under them.
+  await expect(page.getByText(/goes online|Nothing leaves/)).toHaveCount(0);
   // The place chosen can't fit a round, so one callout by the choice says so in plain words,
-  // Start training waits, and the footer says why. The card does not say it again right above.
+  // and Start training waits, saying why when asked. The card does not say it again above.
   await expect(local).not.toContainText('Too slow');
   const wont = 'Not even one round of teaching fits in 4 hours on this computer';
   const callout = page.getByRole('status').filter({ hasText: wont });
@@ -212,8 +217,8 @@ test('walks from a description to a graduate', async () => {
       .first()
       .evaluate((title) => getComputedStyle(title).color);
   expect(await titleColor(local)).toBe(await titleColor(hosted));
-  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-  await expect(page.getByText(wont, { exact: true })).toHaveCount(2);
+  expect(await startHeldBy(page)).toBe(wont);
+  await expect(page.getByText(wont, { exact: true })).toHaveCount(1);
   await capture(page, 'flow-define-slow-dark');
   // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h
   // 40 min of check tasks and a round of at most 7 h 10 min. Clicking it is in `allowMoreTime`.
@@ -247,14 +252,17 @@ test('walks from a description to a graduate', async () => {
   await expect(hosted).toBeChecked();
   await expect(callout).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
-  await expect(page.getByText('Tasks and files go online.')).toBeVisible();
+  await hosted.hover();
+  await expect(page.getByRole('tooltip')).toContainText('Tasks and files go online.');
+  await page.mouse.move(0, 0);
   await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
   await expect(estimate).toContainText('6.5 h');
   await expect(cost).toContainText(/Online practice\s*\$3/);
   await expect(cost).toContainText(/Spark teaching\s*\$0\.60/);
   // The total is the figures under it added up.
   await expect(estimate.getByRole('img', { name: '$3.60' })).toBeVisible();
-  await expect(page.getByText('Keep Architect open while it trains')).toBeVisible();
+  // The footer holds its buttons and nothing else.
+  await expect(page.getByText('Keep Architect open while it trains')).toHaveCount(0);
   // Comparison mode is off, so nothing on the screen offers or mentions a comparison.
   await expect(page.getByText(/comparison|simpler versions/i)).toHaveCount(0);
   await estimate.getByRole('button', { name: 'Breakdown' }).click();
@@ -270,8 +278,8 @@ test('walks from a description to a graduate', async () => {
   // The example tasks: where they came from, then each type with the rule behind it, its
   // tasks in each set and three examples with their expected answers.
   await advanced.getByRole('tab', { name: 'Evaluation' }).click();
-  await advanced.getByRole('button', { name: 'Example tasks' }).click();
-  await expect(advanced.getByText('From the tasks you attached.')).toBeVisible();
+  await advanced.getByRole('button', { name: 'Example tasks', exact: true }).click();
+  expect(await infoTipText(page, advanced, 'Example tasks')).toBe('From the tasks you attached.');
   await expect(advanced.getByText('170 tasks', { exact: true })).toBeVisible();
   await expect(
     advanced.getByText('60 practice, 40 check, 60 final test, 10 set aside', { exact: true }),
@@ -296,12 +304,11 @@ test('walks from a description to a graduate', async () => {
   // A field that can change is held to its limits, says so where it is typed, and isn't saved
   // until it is put right.
   await advanced.getByRole('tab', { name: 'Budget' }).click();
-  const minutes = advanced.getByRole('textbox', { name: 'Training time' });
-  await minutes.fill('0');
-  await expect(
-    advanced.getByText('Use whole minutes, from 1 up to a week (10,080).'),
-  ).toBeVisible();
-  await minutes.fill('240');
+  // The time limit is set in hours, the unit the whole tab uses.
+  const hours = advanced.getByRole('textbox', { name: 'Training time' });
+  await hours.fill('0');
+  await expect(advanced.getByText('Use from a minute up to a week (168 hours).')).toBeVisible();
+  await hours.fill('4');
   await expect(advanced.getByRole('alert')).toHaveCount(0);
   await expect(page.getByText('Time limit saved', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
@@ -400,14 +407,15 @@ test('walks from a description to a graduate', async () => {
     '6 more check tasks passed (26 → 32 of 40). Measured again to rule out luck: 10 more over ' +
       'both (52 → 62 of 80), and no task type got worse.',
   );
-  await expect(roundDrawer).toContainText('Measured within this range');
+  // Spark's range and the measured gain sit side by side, with nothing said between them.
+  await expect(roundDrawer).not.toContainText('Measured within this range');
   await expect(roundDrawer.getByText('Measured again', { exact: true })).toBeVisible();
-  // What changed says so in a sentence; its lines wait under Details.
+  // What changed says so in a sentence; its lines wait under Files.
   const changed = roundDrawer.getByRole('region', { name: 'What changed' });
   await expect(changed).toContainText('Its instructions and 1 skill.');
   await expect(changed.getByText('Work in integer cents from start to finish.')).toBeHidden();
   await capture(page, 'flow-round-dark');
-  await changed.getByRole('button', { name: 'Details' }).click();
+  await changed.getByRole('button', { name: 'Files' }).click();
   await expect(changed.getByText('Work in integer cents from start to finish.')).toBeVisible();
   await expect(roundDrawer).not.toContainText('@@');
   await page.keyboard.press('Escape');
@@ -715,13 +723,9 @@ test("keeps Start training off until the job's plan is known, and says so when i
   }, taskPlan);
   await goTo(page, `/jobs/${FLOW.jobId}/define`);
   await expect(page.getByRole('heading', { name: 'Service desk', level: 1 })).toBeVisible();
-  await expect(page.getByText('Checking the job', { exact: true })).toBeVisible();
-  await expect(start).toBeDisabled();
-  // Read, the footer says what is left to know: the time limit cuts training short.
-  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible({
-    timeout: 10_000,
-  });
-  await expect(start).toBeEnabled();
+  expect(await startHeldBy(page)).toBe('Checking the job');
+  // Read, nothing is left to wait for.
+  await expect(start).toBeEnabled({ timeout: 10_000 });
 
   // A plan that can't be read leaves it off, with the reason and a way to try again.
   await stubEngineFailure(app, { 'jobs:taskPlan': 'The engine did not answer.' });
@@ -730,15 +734,13 @@ test("keeps Start training off until the job's plan is known, and says so when i
   const alert = page.getByRole('alert').filter({ hasText: "Couldn't check whether this job" });
   await expect(alert).toContainText('The engine did not answer.');
   await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
-  await expect(page.getByText("Couldn't check the job", { exact: true })).toBeVisible();
-  await expect(start).toBeDisabled();
+  expect(await startHeldBy(page)).toBe("Couldn't check the job");
   await capture(page, 'flow-define-unreadable-dark');
 
   // Read at last, the job has no rule to wait for, and training may start.
   await stubEngine(app, { 'jobs:taskPlan': taskPlan });
   await alert.getByRole('button', { name: 'Try again' }).click();
   await expect(alert).toHaveCount(0);
-  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
   await expect(start).toBeEnabled();
 });
 
@@ -807,10 +809,9 @@ test('says what a run needs before it starts, with one action for each', async (
   await expect(needs).toContainText('Meta bills your account for it');
   await expect(needs).toContainText("Glimmer isn't on this computer yet");
   await expect(needs).toContainText('Practice and the final test run on it');
-  // A run that can't start says so on its button and in the footer, and starts nothing.
+  // A run that can't start says so on its button, and starts nothing.
   const start = page.getByRole('button', { name: 'Start training' });
-  await expect(start).toBeDisabled();
-  await expect(page.getByText('Spark needs a Meta key, and 1 more')).toBeVisible();
+  expect(await startHeldBy(page)).toBe('Spark needs a Meta key, and 1 more');
   await capture(page, 'flow-define-needs-dark');
 
   // The teacher's key is one dialog away, opened on the teacher's own provider.
@@ -821,7 +822,7 @@ test('says what a run needs before it starts, with one action for each', async (
     'connections:add': { secretRef: 'meta', models: 3 },
     'secrets:status': { meta: true, openrouter: false },
   });
-  await dialog.getByLabel('API key').fill('key-for-the-test');
+  await dialog.getByLabel('API key', { exact: true }).fill('key-for-the-test');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(dialog).toBeHidden();
   await expect(needs).not.toContainText('Spark needs a Meta key');
@@ -833,7 +834,6 @@ test('says what a run needs before it starts, with one action for each', async (
   await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
-  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
 });
 
 test('says when Ollama is not running, and looks again when asked', async () => {

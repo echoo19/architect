@@ -28,8 +28,7 @@ import {
 } from '../workspace/labels';
 
 /** What a folder is for: the files it should hold, or what the job keeps in it. */
-function folderMeta(resource: PackageResource, manifest: PackageManifest): string {
-  if (resource.files.length > 0) return resource.files.map((file) => file.name).join(', ');
+function folderInfo(resource: PackageResource, manifest: PackageManifest): string {
   if (resource.name === 'output') {
     return manifest.contract.outputs.folder?.description ?? 'Where it saves new files';
   }
@@ -74,8 +73,13 @@ export function FoldersStep({
               <SettingsRow
                 icon={<StatusMark state={state} />}
                 label={folderName(resource)}
-                meta={folderMeta(resource, manifest)}
-                metaFont={resource.files.length > 0 ? 'code' : 'text'}
+                meta={
+                  resource.files.length > 0
+                    ? resource.files.map((file) => file.name).join(', ')
+                    : undefined
+                }
+                metaFont="code"
+                info={folderInfo(resource, manifest)}
               >
                 <div className="flex items-center gap-3">
                   {folder !== undefined ? (
@@ -172,7 +176,7 @@ export function PermissionsStep({
           </SettingsRow>
         ))}
         {changes && (
-          <SettingsRow label={WRITE_SETTING} meta={WRITE_MODE_MEANINGS[writes]}>
+          <SettingsRow label={WRITE_SETTING} info={WRITE_MODE_MEANINGS[writes]}>
             <Segmented
               aria-label={WRITE_SETTING}
               options={WRITE_CHOICES}
@@ -183,7 +187,7 @@ export function PermissionsStep({
         )}
         <SettingsRow
           label="Internet access"
-          meta={`It only talks to the model on ${deviceInSentence(currentPlatform())}`}
+          info={`It only talks to the model on ${deviceInSentence(currentPlatform())}.`}
         >
           <SettingsValue>Never, by design</SettingsValue>
         </SettingsRow>

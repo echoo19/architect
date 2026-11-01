@@ -68,12 +68,48 @@ export function stepWords(step: AgentStep): { action: string; target: string } {
   if (step.kind === 'skill') {
     return { action: working ? 'Loading the skill' : 'Loaded the skill', target: step.detail };
   }
+  // A lead asking a teammate (decision 100): the teammate's name; what it asked shows inside.
+  if (step.kind === 'consult') {
+    return { action: `${working ? 'Asking' : 'Asked'} ${step.name}`, target: '' };
+  }
   const words = TOOL_WORDS[step.name];
   if (step.name === 'ls' && step.detail === ALL_FOLDERS && words) {
     return { action: `${working ? words[0] : words[1]} ${ALL_FOLDERS}`, target: '' };
   }
   if (words) return { action: working ? words[0] : words[1], target: step.detail };
   return { action: `${working ? 'Running' : 'Ran'} the tool ${step.name}`, target: step.detail };
+}
+
+export type ConsultOutcome = NonNullable<
+  Extract<NonNullable<AgentStep['view']>, { kind: 'consult' }>['outcome']
+>;
+
+/** How a teammate's turn ended, beside its name, when it ended without an answer. */
+const CONSULT_OUTCOME_WORDS: Record<Exclude<ConsultOutcome, 'answered'>, string> = {
+  refused: "Doesn't handle this",
+  no_answer: 'Gave no answer',
+  error: 'Stopped with an error',
+  stopped: 'Stopped',
+  out_of_steps: 'Ran out of steps',
+};
+
+/**
+ * What a finished consultation says beside "Asked Assay desk": the first line of its answer, or
+ * how it ended without one. Nothing while it runs.
+ */
+export function consultMeta(step: AgentStep): string | undefined {
+  if (step.status === 'running' || step.view?.kind !== 'consult') return undefined;
+  const outcome = step.view.outcome ?? (step.status === 'error' ? 'error' : 'answered');
+  return outcome === 'answered' ? step.meta : CONSULT_OUTCOME_WORDS[outcome];
+}
+
+/** What a teammate told the lead, in words: its text without the ANSWER line its task ends with. */
+export function answerText(text: string): string {
+  return text
+    .split('\n')
+    .filter((line) => !/^\s*ANSWER:/.test(line))
+    .join('\n')
+    .trim();
 }
 
 /** "1 step", "3 steps". */
@@ -147,6 +183,12 @@ export function listInSentence(labels: readonly string[], last = 'or'): string {
   const words = labels.map(inSentence);
   if (words.length <= 1) return words.join('');
   return `${words.slice(0, -1).join(', ')} ${last} ${words.at(-1)}`;
+}
+
+/** "Assay desk", "Assay desk and Sweep desk": names joined as a sentence lists them, as written. */
+export function namesInSentence(names: readonly string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
 /**

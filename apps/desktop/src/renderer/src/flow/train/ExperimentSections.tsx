@@ -13,6 +13,7 @@ import {
   Disclosure,
   DrawerSection,
   EvidenceMark,
+  InfoTip,
   Table,
   TableBody,
   TableCell,
@@ -109,27 +110,35 @@ export function Findings({
   );
 }
 
-/** The intervention Spark chose, by type with its icon, and its hypothesis in one sentence. */
-export function InterventionLine({ intervention }: { intervention: Intervention }) {
+/** The kind of change Spark chose, by its icon and name, with what that kind is behind an InfoTip. */
+export function InterventionKind({ intervention }: { intervention: Intervention }) {
   const { label, icon: Icon, meaning } = INTERVENTIONS[intervention.type];
   return (
-    <div className="flex items-start gap-3 rounded-control px-4 py-3 shadow-edge">
-      <Icon size={18} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0 text-mentor" />
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span>
-          <span className="font-medium">{label}</span>
-          <span className="text-fg">: {meaning}</span>
-        </span>
-        {intervention.hypothesis && (
-          <span className="text-fg text-pretty">{intervention.hypothesis}</span>
-        )}
-        {intervention.question && (
-          <span className="text-fg text-pretty">{intervention.question}</span>
-        )}
-        {intervention.answer && (
-          <span className="text-fg text-pretty">Your answer: {intervention.answer.text}</span>
-        )}
-      </div>
+    <span className="flex items-center gap-1.5 text-small">
+      <Icon size={16} strokeWidth={1.8} aria-hidden className="shrink-0 text-mentor" />
+      <span className="font-medium">{label}</span>
+      <InfoTip about={label} className="-my-1.5">
+        {sentence(meaning)}
+      </InfoTip>
+    </span>
+  );
+}
+
+/** What Spark expected the change to do, or the question it asked and the answer. */
+export function InterventionLine({ intervention }: { intervention: Intervention }) {
+  const lines = [
+    intervention.hypothesis,
+    intervention.question,
+    intervention.answer && `Your answer: ${intervention.answer.text}`,
+  ].filter((line): line is string => Boolean(line));
+  if (lines.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      {lines.map((line) => (
+        <p key={line} className="m-0 text-body text-fg text-pretty">
+          {line}
+        </p>
+      ))}
     </div>
   );
 }
@@ -210,14 +219,11 @@ export function RoundExamples({
   );
 }
 
-/** One cell of the check-task table: "6 of 9", with the failures under it. */
+/** One cell of the check-task table: "6 of 9". */
 function ScoreCell({ pass, total }: { pass: number; total: number }) {
   return (
-    <span className="flex flex-col items-end">
-      <span className="font-mono tabular-nums text-fg">
-        {pass} of {total}
-      </span>
-      {total > pass && <span className="text-small text-fg">{total - pass} failed</span>}
+    <span className="font-mono tabular-nums text-fg">
+      {pass} of {total}
     </span>
   );
 }

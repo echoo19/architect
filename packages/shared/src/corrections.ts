@@ -41,6 +41,11 @@ export const CorrectionRequestSchema = z
     /** Where the right answer can be checked, such as a file or a rule. */
     evidence: z.string().trim().min(1).max(4000).optional(),
     /**
+     * In a team chat, the consult step whose answer is flagged: the correction goes to the
+     * teammate that gave it. Absent for the reply itself.
+     */
+    step: z.string().min(1).optional(),
+    /**
      * The person agreed to send this one exchange, and what they wrote, to the mentor. Nothing
      * leaves this computer without it.
      */
@@ -88,6 +93,8 @@ export const CorrectionSchema = z.object({
   version: z.number().int().positive(),
   chatId: z.string().min(1),
   messageId: z.string().min(1),
+  /** The consult step of a teammate's answer in a team chat, when it was that answer. */
+  step: z.string().min(1).optional(),
   wrong: z.string().min(1),
   wanted: z.string().min(1).optional(),
   evidence: z.string().min(1).optional(),

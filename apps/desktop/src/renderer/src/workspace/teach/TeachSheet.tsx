@@ -1,5 +1,10 @@
 import { useId, useState, type ReactNode } from 'react';
-import type { Correction, GraduateSummary, WorkspaceMessage } from '@architect/shared';
+import type {
+  Consultation,
+  Correction,
+  GraduateSummary,
+  WorkspaceMessage,
+} from '@architect/shared';
 import {
   Button,
   DrawerContent,
@@ -32,17 +37,22 @@ import {
   evidenceText,
   lessonCount,
   proposeFailure,
-  shortRequest,
   type ProposeFailure,
 } from './lessons';
 import { ProposalActions, ProposalView } from './Proposal';
 
 export interface TeachSheetProps {
+  /** The agent the lesson is for: the one that answered, or the teammate whose answer it was. */
   agent: GraduateSummary;
-  /** The settled reply the person flagged. */
+  /** The settled reply the person flagged, or that holds the teammate's answer they flagged. */
   reply: WorkspaceMessage;
-  /** What the person asked, which the reply answered. */
-  request: string;
+  /** In a team chat, the teammate's answer flagged, and the lead that asked for it. */
+  consultation?: { consultation: Consultation; lead: GraduateSummary };
+  /**
+   * In a team chat, the other agents whose work the exchange holds. Each one's job must allow
+   * sharing flagged answers too, and the person's send gives that leave for all of them.
+   */
+  alsoSharing?: readonly GraduateSummary[];
   onClose: () => void;
 }
 
@@ -59,7 +69,13 @@ type Stage =
  * Improve or discards it. The version chats run on never changes here. Render it inside an open
  * Drawer.
  */
-export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) {
+export function TeachSheet({
+  agent,
+  reply,
+  consultation,
+  alsoSharing = [],
+  onClose,
+}: TeachSheetProps) {
   const overview = useTeachingOverview(agent.id);
   useFreshTeaching(agent.id);
   const [stage, setStage] = useState<Stage>({ kind: 'write' });
@@ -73,11 +89,13 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   const showSettings = useAgentSettingsUi((state) => state.show);
 
   const list = versions.data;
+  const answeredBy = consultation ? consultation.consultation.version : reply.graduateVersion;
   const wrote =
-    list?.find((version) => version.version === reply.graduateVersion) ??
+    list?.find((version) => version.version === answeredBy) ??
     list?.find((version) => version.active);
   const jobFiles = wrote?.manifest.contract.inputs.files.map((file) => file.name) ?? [];
-  const subtitle = `Reply to "${shortRequest(request)}"`;
+  // A teammate's answer inside a team reply is taught to that teammate, so the title names it.
+  const title = consultation ? `Teach ${agent.name}` : 'Teach this';
   const ready = overview.data;
   const mentor = shortModelName(ready?.mentor ?? 'Spark');
 
@@ -90,11 +108,16 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
       if (!ready.sharesCorrections) {
         setQueryData(teachKeys.overview(agent.id), await teachApi.shareCorrections(agent.id, true));
       }
+      for (const other of alsoSharing) {
+        if ((await teachApi.overview(other.id)).sharesCorrections) continue;
+        setQueryData(teachKeys.overview(other.id), await teachApi.shareCorrections(other.id, true));
+      }
       const evidence = evidenceText(files, rows);
       const correction = await teachApi.propose(reply.chatId, reply.id, {
         wrong: wrong.trim(),
         ...(wanted.trim() === '' ? {} : { wanted: wanted.trim() }),
         ...(evidence === undefined ? {} : { evidence }),
+        ...(consultation ? { step: consultation.consultation.stepId } : {}),
         consent: true,
       });
       void refreshTeaching(agent.id);
@@ -189,7 +212,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
     const sending = stage.kind === 'sending';
     body = (
       <CorrectionForm
-        reply={reply.text}
+        reply={consultation ? consultation.consultation.text : reply.text}
         wrong={wrong}
         wanted={wanted}
         files={files}
@@ -225,7 +248,7 @@ export function TeachSheet({ agent, reply, request, onClose }: TeachSheetProps) 
   }
 
   return (
-    <DrawerContent title="Teach this" subtitle={subtitle} footer={footer}>
+    <DrawerContent title={title} footer={footer}>
       {body}
     </DrawerContent>
   );
@@ -304,7 +327,7 @@ function CorrectionForm({
           onChange={(event) => onWrong(event.target.value)}
         />
       </Field>
-      <Field label="What it should have done" hint="Optional" htmlFor={`${id}-wanted`}>
+      <Field label="What it should have done" optional htmlFor={`${id}-wanted`}>
         <Textarea
           id={`${id}-wanted`}
           value={wanted}
@@ -315,7 +338,7 @@ function CorrectionForm({
           onChange={(event) => onWanted(event.target.value)}
         />
       </Field>
-      <Field label="What it should have used" hint="Optional" htmlFor={`${id}-rows`}>
+      <Field label="What it should have used" optional htmlFor={`${id}-rows`}>
         {jobFiles.length > 0 && (
           <div role="group" aria-label="Files it should have used" className="flex flex-wrap gap-2">
             {jobFiles.map((file) => (

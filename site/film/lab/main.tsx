@@ -1,8 +1,11 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { MotionProvider } from '@architect/ui';
-import { filmTime, LabFilm, playedTime, WALKTHROUGH, type Measured } from './film';
-import { WHY_FROM, WHY_LENGTH, WhyScene } from './why';
+import { MotionProvider, TooltipProvider } from '@architect/ui';
+import { RUNTIME, TEAM, TEAM_AT, TEAM_END, WALK, WHY_AT, WHY_END } from './cues';
+import { LabFilm, type Measured } from './film';
+import { smoothMap } from './time';
+import { WhyScene } from './why';
+import { TeamScene } from './team';
 import './lab.css';
 
 /**
@@ -19,29 +22,33 @@ declare global {
   }
 }
 
-/** The film's length as played: the walkthrough, and the why scene inside it. */
-const RUNTIME = WALKTHROUGH + WHY_LENGTH;
-/** When the why scene starts, in the film as played. */
-const WHY_AT = playedTime(WHY_FROM);
+/** The walkthrough's own time, and the team scene's, for a moment of the film as played. */
+const walkTime = smoothMap(WALK);
+const teamTime = smoothMap(TEAM);
 
 const host = document.getElementById('root');
 if (!host) throw new Error('The page has no #root element.');
 const root = createRoot(host);
 
-/** The frame for a moment of the film as played: the why scene, or the walkthrough around it. */
+/** The frame for a moment of the film as played: a scene of its own, or the walkthrough around them. */
 function scene(played: number, measured: Measured) {
-  if (played >= WHY_AT && played < WHY_AT + WHY_LENGTH) {
+  if (played >= WHY_AT && played < WHY_END) {
     return <WhyScene t={played - WHY_AT} measured={measured} />;
   }
-  const walked = played < WHY_AT ? played : played - WHY_LENGTH;
-  return <LabFilm t={filmTime(walked)} measured={measured} />;
+  if (played >= TEAM_AT && played < TEAM_END) {
+    return <TeamScene t={teamTime(played)} measured={measured} />;
+  }
+  return <LabFilm t={walkTime(played)} measured={measured} />;
 }
 
 function draw(played: number, measured: Measured, measuring = false) {
   flushSync(() => {
     root.render(
       <MotionProvider instant>
-        {measuring ? <LabFilm t={0} measured={measured} measuring /> : scene(played, measured)}
+        {/* The info tips' tooltips never open in the film, but each needs its provider. */}
+        <TooltipProvider>
+          {measuring ? <LabFilm t={0} measured={measured} measuring /> : scene(played, measured)}
+        </TooltipProvider>
       </MotionProvider>,
     );
   });

@@ -1,6 +1,7 @@
 import {
   CodedError,
   type PermissionMode,
+  type Team,
   type WorkspaceChat,
   type WorkspaceMessage,
 } from '@architect/shared';
@@ -23,8 +24,14 @@ export interface WorkspaceStore {
   saveWriteMode(graduateId: string, mode: PermissionMode): void;
   upsertChat(chat: WorkspaceChat): void;
   getChat(chatId: string): WorkspaceChat | null;
-  /** Most recently updated first. */
+  /** The graduate's own chats, not its teams', most recently updated first. */
   listChats(graduateId: string): WorkspaceChat[];
+  /** The team, or null when there is none by that id. */
+  team(teamId: string): Team | null;
+  /** A team's chats, most recently updated first. */
+  listTeamChats(teamId: string): WorkspaceChat[];
+  /** The chats of every team the graduate leads. */
+  listLed(graduateId: string): WorkspaceChat[];
   appendMessage(message: WorkspaceMessage): void;
   updateMessage(message: WorkspaceMessage): void;
   /** Oldest first. */
@@ -67,6 +74,9 @@ export function workspaceStore(engine: EngineStore, dataDir: string): WorkspaceS
     },
     getChat: (chatId) => engine.chats.get(chatId),
     listChats: (graduateId) => engine.chats.list(graduateId),
+    team: (teamId) => engine.teams.get(teamId),
+    listTeamChats: (teamId) => engine.chats.listTeam(teamId),
+    listLed: (graduateId) => engine.chats.listLed(graduateId),
     appendMessage: (message) => engine.messages.insert(message),
     updateMessage: (message) => engine.messages.update(message),
     listMessages: (chatId) => engine.messages.list(chatId),

@@ -6,7 +6,7 @@ import {
   type AppSettings,
   type ConnectionTest,
 } from '@architect/shared';
-import { Button } from '@architect/ui';
+import { Button, Tooltip } from '@architect/ui';
 import { Download } from 'lucide-react';
 import { api } from '../api/client';
 import { queryKeys, useLocalRuntimes, useSecretsStatus } from '../api/hooks';
@@ -180,13 +180,12 @@ export function Setup({ settings, update }: SetupProps) {
                 Continue
               </Button>
             ) : (
-              <>
-                <span className="max-w-[360px] text-right text-small text-fg text-pretty">
-                  You can connect one later in Settings. Until then, Architect can&apos;t train new
-                  agents.
-                </span>
+              <Tooltip
+                content="You can connect one later in Settings; until then, no new agent can train."
+                side="top"
+              >
                 <Button onClick={() => setStep('Faster training')}>Skip for now</Button>
-              </>
+              </Tooltip>
             )}
           </>
         }

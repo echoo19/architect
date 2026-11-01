@@ -197,6 +197,15 @@ describe('validateHarnessFiles', () => {
       }
     });
 
+    it('still reads a helper named like the tool a team’s lead asks with, made before teams', () => {
+      const result = validateHarnessFiles({
+        ...base(),
+        'tools/ask_teammate.json': manifest('ask_teammate'),
+        'tools/ask_teammate.js': code,
+      });
+      expect(result.ok && result.harness.tools.map((tool) => tool.name)).toContain('ask_teammate');
+    });
+
     it('wants function run( in the code', () => {
       expect(
         errorsFor({

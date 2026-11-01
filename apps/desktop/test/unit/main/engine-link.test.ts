@@ -87,6 +87,7 @@ describe('messages between main and the engine process', () => {
       academyJobFile: '/app/academy-job/job.json',
       sweepDeskJobFile: '/app/sweep-desk-job/job.json',
       assayJobFile: '/app/assay-job/job.json',
+      inventoryJobFile: '/app/inventory-job/job.json',
       sampleAgentFile: '/app/sample-agent/returns-desk.architect.zip',
       sampleAgentDataDir: '/app/sample-agent/data',
       trainerDir: '/app/trainer',

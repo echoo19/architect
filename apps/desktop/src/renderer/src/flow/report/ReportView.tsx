@@ -13,6 +13,7 @@ import {
   DetailList,
   Disclosure,
   Heading,
+  InfoTip,
   Stagger,
   StaggerItem,
   Stat,
@@ -75,8 +76,6 @@ interface ReportViewProps {
   bare: ReportCard | null;
   /** The comparisons runner's report this run is an arm of, when there is one. */
   comparisonReport: QueryState<ComparisonReport | null>;
-  /** The run's own final test on this computer, when its own ran online and it was taken since. */
-  here: ReportCard | null;
   /** The grid by organization as the Lab shows it, with what can be done there; else the plain grid. */
   organizations?: (grid: OrgGrid) => ReactNode;
   /** Every host the run contacted (decision 098), when it recorded any. */
@@ -137,7 +136,7 @@ function testedOn(report: ReportCard, grid: OrgGrid | null): string {
   }
   const tasks = unseen.reduce((sum, column) => sum + column.score.total, 0);
   const places = unseen.length === 1 ? 'an organization' : `${unseen.length} organizations`;
-  return `Tested on ${report.test.score.total} new tasks from the organizations it was taught on and ${tasks} from ${places} it had never seen`;
+  return `Tested on ${report.test.score.total} new tasks and ${tasks} from ${places} it had never seen`;
 }
 
 /** Whether training began with a first full draft rather than a setup (decision 026). */
@@ -205,7 +204,6 @@ export function ReportView({
   installation,
   bare,
   comparisonReport,
-  here,
   organizations,
   contacts,
 }: ReportViewProps) {
@@ -216,12 +214,8 @@ export function ReportView({
     student: shortModelName(report.student.label),
   };
   const device = deviceInSentence(currentPlatform());
-  const online = `on an online copy of ${names.student}`;
-  const where = test.ranOffline
-    ? `offline on ${device}`
-    : here
-      ? `${online}, and again on ${device}`
-      : online;
+  // Where the final test ran; a test taken again here has its own card below, so it isn't said.
+  const where = test.ranOffline ? `offline on ${device}` : `on an online copy of ${names.student}`;
   const bill = costParts(report, names.mentor, evidence.data?.progress.spent.computeUsd ?? 0);
   const before = beforeTraining(report, comparison, bare);
   const size = graduate?.manifest.student.sizeBytes;
@@ -236,7 +230,7 @@ export function ReportView({
           <Heading as="h1" size="display">
             {verdict.title}
           </Heading>
-          <p className="m-0 max-w-[660px] text-body text-pretty">
+          <p className="m-0 text-body text-pretty">
             {testedOn(report, grid)}, {where}, with {names.mentor} disconnected.
           </p>
           {verdict.because.length > 0 && (
@@ -307,13 +301,10 @@ export function ReportView({
         <StaggerItem>
           <Section title="What it won't do" id="wont-do">
             <ul className="m-0 list-none border-b border-line p-0">
-              {report.refusedTypes.map((type) => (
-                <Limit key={type.type} reason={type.reason}>
-                  {type.label}
+              {limits(job?.doesNot ?? [], report.refusedTypes).map((limit) => (
+                <Limit key={limit.text} reason={limit.reason}>
+                  {limit.text}
                 </Limit>
-              ))}
-              {job?.doesNot.map((limit) => (
-                <Limit key={limit}>{limit}</Limit>
               ))}
             </ul>
           </Section>
@@ -454,14 +445,35 @@ export function ReportView({
 }
 
 /** One thing the agent leaves to its person, and when the engine says why, why. */
-function Limit({ reason, children }: { reason?: string; children: ReactNode }) {
+/**
+ * What it won't do, as one list: the job's own limits, each refused task type folded into the
+ * limit that names it ("Refunds" into "Issues refunds or credits") with its reason, and any type
+ * no limit names as a row of its own.
+ */
+export function limits(
+  doesNot: readonly string[],
+  refused: ReportCard['refusedTypes'],
+): { text: string; reason?: string }[] {
+  const rows: { text: string; reason?: string }[] = doesNot.map((text) => ({ text }));
+  for (const type of refused) {
+    const stem = type.label.toLowerCase().replace(/s$/, '');
+    const row = rows.find(
+      (item) => item.reason === undefined && item.text.toLowerCase().includes(stem),
+    );
+    if (row) row.reason = type.reason;
+    else rows.unshift({ text: type.label, reason: type.reason });
+  }
+  return rows;
+}
+
+function Limit({ reason, children }: { reason?: string | undefined; children: string }) {
   return (
-    <li className="grid min-h-12 grid-cols-[16px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 border-t border-line py-3 sm:grid-cols-[16px_minmax(0,220px)_minmax(0,1fr)]">
+    <li className="flex min-h-12 items-center gap-4 border-t border-line py-2">
       <CircleMinus size={16} strokeWidth={1.8} className="shrink-0" aria-hidden />
-      <span className={reason === undefined ? 'sm:col-span-2' : undefined}>{children}</span>
-      {reason !== undefined && (
-        <span className="col-start-2 text-small text-pretty sm:col-start-3">{reason}</span>
-      )}
+      <span className="flex min-w-0 items-center gap-1">
+        {children}
+        {reason !== undefined && <InfoTip about={children}>{reason}</InfoTip>}
+      </span>
     </li>
   );
 }

@@ -155,16 +155,16 @@ describe('an agent whose final test ran on the online copy', () => {
     expect(reportVerdict(elsewhere, checked('ready'), CONTEXT, local)).toMatchObject({
       state: 'ready',
       title: 'Returns desk is ready',
-      because: ['It passed on this computer too: 27 of 30 on its final test.'],
+      because: [],
     });
   });
 
-  it('is ready once a test on this computer met the targets, and says both results', () => {
+  it('is ready once a test on this computer met the targets, which its own card says', () => {
     const verdict = reportVerdict(online(), checked('ready'), CONTEXT, here(52, true));
     expect(verdict).toEqual({
       state: 'ready',
       title: 'Returns desk is ready',
-      because: ['It passed on this computer too: 52 of 60 on its final test.'],
+      because: [],
       usable: true,
     });
   });

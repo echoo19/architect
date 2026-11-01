@@ -9,34 +9,36 @@
 
 export interface Specialist {
   name: string;
+  /** Its job, in one line. */
   does: string;
-  /** A measured result, or none. */
-  figure?: { value: string; of?: string; label: string };
+  /** A measured result; none for the sample job, which has no test and says so. */
+  figure?: { value: string; of: string; label: string };
 }
 
 /** The agents Architect made, as the opening shows them. */
 export const SPECIALISTS: readonly Specialist[] = [
   {
     name: 'Returns desk',
-    does: 'Refunds, exchanges and carrier pickups for an outdoor gear shop.',
+    does: 'Refunds and exchanges',
     // returns-desk-2.md: 58 of 60 on the final test, on a new returns desk.
-    figure: { value: '58', of: '60', label: 'on a final test it never saw' },
+    figure: { value: '58', of: '60', label: 'final test' },
   },
   {
+    // The sample job that ships with Architect, with no test: its card carries a Sample badge.
     name: 'Service desk',
-    does: 'Invoices, overdue balances and technician bookings for a home services company.',
+    does: 'Invoices and bookings',
   },
   {
     name: 'Academy desk',
-    does: 'Diagnoses missed questions, sets practice and flags students for staff.',
-    // tutor-1.md: 43 of 48 at Harborview Prep, which neither model saw.
-    figure: { value: '43', of: '48', label: 'at an academy it never saw' },
+    does: 'Missed questions',
+    // academy-desk-1.md: 43 of 48 at Harborview Prep, which neither model saw.
+    figure: { value: '43', of: '48', label: 'never seen' },
   },
   {
     name: 'Pricing desk',
-    does: "Repair quotes from a shop's price list and policy, drafted by Spark from its files.",
+    does: 'Repair quotes',
     // README: 40 of 40 on its final test (a single run, not a planned comparison).
-    figure: { value: '40', of: '40', label: 'on its final test' },
+    figure: { value: '40', of: '40', label: 'final test' },
   },
 ];
 
@@ -73,12 +75,13 @@ export const RIDGELINE_FILES: readonly (readonly [string, string])[] = [
 
 /**
  * The first run's locked test, passed out of tasks, with 95% Wilson intervals (tutor-1.md, "Per
- * arm and group").
+ * arm and group"). On each never-seen group, the paired difference of taught minus Glimmer alone,
+ * with its 95% interval (academy-desk-1.md, "Paired results").
  */
 export const LOCKED = {
   groups: [
     {
-      label: 'Academies it was taught on (48 tasks)',
+      label: 'Academies taught on · 48',
       rows: [
         { id: 'bare', label: 'Glimmer alone', estimate: 0.438, low: 0.307, high: 0.577 },
         { id: 'draft', label: 'One-shot setup', estimate: 0.458, low: 0.326, high: 0.597 },
@@ -86,7 +89,8 @@ export const LOCKED = {
       ],
     },
     {
-      label: 'Harborview Prep, never seen (48)',
+      label: 'Harborview Prep · never seen · 48',
+      difference: { text: '+39.6 points', tip: '95% interval +22.9 to +53.7: a gain.' },
       rows: [
         { id: 'bare', label: 'Glimmer alone', estimate: 0.5, low: 0.364, high: 0.636 },
         { id: 'draft', label: 'One-shot setup', estimate: 0.458, low: 0.326, high: 0.597 },
@@ -94,7 +98,11 @@ export const LOCKED = {
       ],
     },
     {
-      label: 'Real academy, never seen (24)',
+      label: 'Real academy · never seen · 24',
+      difference: {
+        text: '+12.5 points, no gain shown',
+        tip: '95% interval -17.9 to +40.2: it includes zero.',
+      },
       rows: [
         { id: 'bare', label: 'Glimmer alone', estimate: 0.375, low: 0.212, high: 0.573 },
         { id: 'draft', label: 'One-shot setup', estimate: 0.458, low: 0.279, high: 0.649 },
@@ -130,3 +138,39 @@ export const ROUNDS: readonly Round[] = [
   },
   { number: '03', title: 'A helper for the policy numbers', before: 67, after: 97, kept: true },
 ];
+
+/**
+ * The team demo at Fenwick Screening Core (examples/inventory-desk/README.md, "The team demo with
+ * the Assay desk"), as the team chat shows it (apps/desktop/e2e/fixtures-teams.ts and
+ * docs/screenshots/team-*.png). Inventory desk leads and asks Assay desk. The values are the
+ * examples' own: fenwick-plate_report-01 in examples/assay-desk, fenwick-reserve-01 in
+ * examples/inventory-desk, and Fenwick's retests.csv (5 rows) and reservations.csv (162 rows).
+ */
+export const TEAM = {
+  name: 'Screening logistics',
+  lead: 'Inventory desk',
+  teammate: 'Assay desk',
+  org: 'Fenwick Screening Core',
+  chat: "Reserve stock for FW-0418's re-tests",
+  request: "Reserve stock for FW-0418's re-tests.",
+  asked: 'Which compounds on plate FW-0418 need a re-test, and why? Queue them in retests.csv.',
+  code: "const plate = wells('FW-0418');",
+  output: ['0.7689', 'FWC-13399 INCONCLUSIVE', 'FWC-13444 BORDERLINE'],
+  answer:
+    'FW-0418 passes QC (Z′ 0.7689). 2 compounds need a re-test: FWC-13399 is inconclusive and FWC-13444 is borderline. I queued them as RT-0006 and RT-0007.',
+  reply: 'FW-0418 passed QC, and Assay desk queued its 2 re-tests.',
+  allocations: [
+    {
+      compound: 'FWC-13399',
+      text: "nothing usable (LOW-VOLUME). None of its 3 lots has 20 µL free, and Fenwick doesn't combine lots.",
+    },
+    {
+      compound: 'FWC-13444',
+      text: '20 µL from lot FL-04159 in rack VR-06:E08. It expires on 2026-12-07, the first of its usable lots, and the hold below is for it.',
+    },
+  ],
+  hold: {
+    columns: ['reservation_id', 'compound_id', 'lot', 'amount', 'reserved_on'],
+    row: ['HOLD-0163', 'FWC-13444', 'FL-04159', '20 µL', '2026-10-14'],
+  },
+} as const;

@@ -7,6 +7,7 @@ import {
   _electron as electron,
   expect,
   type ElectronApplication,
+  type Locator,
   type Page,
 } from '@playwright/test';
 import type { AppSettings } from '@architect/shared';
@@ -123,6 +124,61 @@ export async function allowMoreTime(page: Page): Promise<void> {
   const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
   await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
   await expect(callout).toHaveCount(0);
+}
+
+/**
+ * The sentence behind an InfoTip ("About {about}") inside `scope`: focusing the icon opens its
+ * tooltip, and the tooltip's text is returned closed again so it covers nothing after.
+ */
+export async function infoTipText(
+  page: Page,
+  scope: Locator | Page,
+  about: string | RegExp,
+): Promise<string> {
+  const tip = scope.getByRole(
+    'button',
+    typeof about === 'string'
+      ? { name: `About ${about}`, exact: true }
+      : { name: new RegExp(`^About ${about.source}`) },
+  );
+  return tooltipText(page, tip);
+}
+
+/**
+ * The tooltip of a focusable element, read while focus keeps it open and closed again after. It
+ * is scrolled into view first: a tooltip closes when its trigger's page scrolls.
+ */
+async function tooltipText(page: Page, trigger: Locator): Promise<string> {
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.focus();
+  // Read in the same moment it shows: a re-render or a scroll can close a tooltip again.
+  const shown = await page.waitForFunction(
+    () => document.querySelector('[role="tooltip"]')?.textContent ?? null,
+    undefined,
+    { polling: 50 },
+  );
+  const text = String(await shown.jsonValue());
+  await trigger.blur();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeHidden();
+  return text;
+}
+
+/**
+ * Why Start training is held, from the tooltip on what wraps the disabled button, or null when
+ * it isn't held. The footer holds only its buttons, so a held one says why in its tooltip.
+ */
+export function startHeldBy(page: Page): Promise<string | null> {
+  return heldBy(page, page.getByRole('button', { name: 'Start training' }));
+}
+
+/**
+ * Why a button is disabled, from the tooltip on what wraps it, or null when it is enabled. A
+ * disabled button says why in its tooltip, never in a sentence beside it.
+ */
+export async function heldBy(page: Page, button: Locator): Promise<string | null> {
+  if (await button.isEnabled()) return null;
+  return tooltipText(page, button.locator('xpath=..'));
 }
 
 /** Navigates by hash and waits until nothing on screen is still loading. */

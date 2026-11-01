@@ -9,8 +9,8 @@ import {
   estimateTime,
   fullTrainingSeconds,
   planBills,
+  hoursFigure,
   roughUsd,
-  shortDuration,
   sumKnown,
 } from './estimates';
 import { Group, NumberField } from './fields';
@@ -75,7 +75,7 @@ export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
                 : estimate.trainingSeconds.most / 60
             }
             cap={job.budget.maxWallMinutes}
-            format={(minutes) => shortDuration(minutes * 60)}
+            format={(minutes) => `${hoursFigure(minutes)} h`}
           />
           {shortfalls.map((shortfall) => (
             <div key={shortfall.what} role="note" className="flex gap-2.5 text-small text-pretty">
@@ -134,12 +134,13 @@ export function BudgetTab({ editor, change, testPlace }: BudgetTabProps) {
             )
           }
         />
+        {/* The limit is kept in minutes and set here in hours, the unit the whole tab uses. */}
         <NumberField
           label="Training time"
-          unit="minutes"
-          value={job.budget.maxWallMinutes}
+          unit="hours"
+          value={Math.round((job.budget.maxWallMinutes / 60) * 100) / 100}
           issue={issues['budget.maxWallMinutes']}
-          onChange={(maxWallMinutes) => budget('Time limit', { maxWallMinutes })}
+          onChange={(hours) => budget('Time limit', { maxWallMinutes: Math.round(hours * 60) })}
         />
       </Group>
     </div>

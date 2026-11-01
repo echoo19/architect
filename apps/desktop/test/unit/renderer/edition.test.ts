@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { parsePath } from '../../../src/renderer/src/lib/router';
-import { EDITIONS, isLabOnly, placesOf } from '../../../src/renderer/src/shell/edition';
+import { EDITIONS, isLabOnly, placesOf, readsTeams } from '../../../src/renderer/src/shell/edition';
 
 describe('editions', () => {
+  it('know which routes read teams, which wait until the edition is known to be the Lab', () => {
+    expect(readsTeams(parsePath('/teams/team_1/chats/cht_1'))).toBe(true);
+    expect(readsTeams(parsePath('/models/teams'))).toBe(true);
+    expect(readsTeams(parsePath('/models'))).toBe(false);
+    expect(readsTeams(parsePath('/agents/grd_1/chats/cht_1'))).toBe(false);
+  });
+
   it('name each one for the shell', () => {
     expect(EDITIONS.personal.name).toBe('Architect');
     expect(EDITIONS.lab.name).toBe('Architect Lab');
@@ -27,6 +34,8 @@ describe('editions', () => {
       '/experiments/new',
       '/experiments/exp_1',
       '/models',
+      '/models/teams',
+      '/teams/team_1/chats/cht_1',
       '/compute',
       '/compute/fields/job_1',
     ]) {

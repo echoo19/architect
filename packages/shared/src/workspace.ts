@@ -12,21 +12,13 @@ export const TableViewSchema = z.object({
 export type TableView = z.infer<typeof TableViewSchema>;
 
 /** How a step shows what it did: the rows a table read showed, or the code `run` ran and its output. */
-export const StepViewSchema = z.discriminatedUnion('kind', [
+const LeafStepViewSchema = z.discriminatedUnion('kind', [
   TableViewSchema.extend({ kind: z.literal('table') }),
   z.object({ kind: z.literal('code'), code: z.string(), output: z.string() }),
 ]);
-export type StepView = z.infer<typeof StepViewSchema>;
 
-export const AgentStepSchema = z.object({
+const StepFields = {
   id: z.string(),
-  /**
-   * `wait`: the reply waits its turn for the GPU while another of Architect's processes has it;
-   * `detail` says for whom, and the step goes once the reply has the GPU. `attempt`: one of a
-   * certified version's k attempts at the request (decision 077); `detail` is its answer and
-   * `meta` whether it agrees with the most common one.
-   */
-  kind: z.enum(['skill', 'tool', 'wait', 'attempt']),
   /** Tool or skill name, e.g. `read`. */
   name: z.string(),
   /** What it acted on, e.g. `data/invoices.csv`. */
@@ -35,9 +27,69 @@ export const AgentStepSchema = z.object({
   meta: z.string().optional(),
   status: z.enum(['running', 'done', 'error']),
   ms: z.number().int().nonnegative().optional(),
+};
+
+/**
+ * A step of a teammate's work inside a consultation: a plain step, which can't itself be a
+ * consultation, so a teammate never asks anyone in turn (decision 100).
+ */
+export const LeafStepSchema = z.object({
+  ...StepFields,
+  kind: z.enum(['skill', 'tool', 'wait', 'attempt']),
   /** What the step showed, for steps that have more than a summary. */
-  view: StepViewSchema.optional(),
+  view: LeafStepViewSchema.optional(),
 });
+export type LeafStep = z.infer<typeof LeafStepSchema>;
+
+/**
+ * How a consultation ended, as the lead was told: the teammate answered, refused the request,
+ * finished without an answer it could give, failed, was stopped, or ran out of steps.
+ */
+export const ConsultationOutcomeSchema = z.enum([
+  'answered',
+  'refused',
+  'no_answer',
+  'error',
+  'stopped',
+  'out_of_steps',
+]);
+export type ConsultationOutcome = z.infer<typeof ConsultationOutcomeSchema>;
+
+/**
+ * How a step shows what it did: the rows a table read showed, the code `run` ran and its output,
+ * or, for a consultation, the teammate that answered, its version, its own steps and, once it
+ * has settled, how it ended.
+ */
+export const StepViewSchema = z.discriminatedUnion('kind', [
+  ...LeafStepViewSchema.options,
+  z.object({
+    kind: z.literal('consult'),
+    graduateId: z.string(),
+    version: z.number().int().positive(),
+    steps: z.array(LeafStepSchema),
+    outcome: ConsultationOutcomeSchema.optional(),
+  }),
+]);
+export type StepView = z.infer<typeof StepViewSchema>;
+
+export const AgentStepSchema = z
+  .object({
+    ...StepFields,
+    /**
+     * `wait`: the reply waits its turn for the GPU while another of Architect's processes has it;
+     * `detail` says for whom, and the step goes once the reply has the GPU. `attempt`: one of a
+     * certified version's k attempts at the request (decision 077); `detail` is its answer and
+     * `meta` whether it agrees with the most common one. `consult`: the lead asked a teammate
+     * (decision 100); `name` is the teammate, `detail` the request and `meta` its answer.
+     */
+    kind: z.enum(['skill', 'tool', 'wait', 'attempt', 'consult']),
+    /** What the step showed, for steps that have more than a summary. */
+    view: StepViewSchema.optional(),
+  })
+  .refine(
+    (step) => (step.kind === 'consult') === (step.view?.kind === 'consult'),
+    "A consultation, and only a consultation, shows a teammate's work.",
+  );
 export type AgentStep = z.infer<typeof AgentStepSchema>;
 
 export const RowDiffSchema = z.object({
@@ -47,6 +99,10 @@ export const RowDiffSchema = z.object({
   changed: z.array(z.object({ before: z.array(CellValueSchema), after: z.array(CellValueSchema) })),
 });
 export type RowDiff = z.infer<typeof RowDiffSchema>;
+
+/** The teammate a write in a team reply is for, so the person knows whose files it changes. */
+export const TeammateRefSchema = z.object({ graduateId: z.string(), name: z.string() });
+export type TeammateRef = z.infer<typeof TeammateRefSchema>;
 
 export const AgentBlockSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -78,6 +134,8 @@ export const AgentBlockSchema = z.discriminatedUnion('kind', [
     status: z.enum(['pending', 'approved', 'denied', 'failed']),
     /** Why the allowed change couldn't be saved. */
     error: z.string().optional(),
+    /** In a team reply, the teammate whose write it is; absent for the agent that answers. */
+    agent: TeammateRefSchema.optional(),
   }),
   z.object({ kind: z.literal('refusal'), taskType: z.string(), reason: z.string() }),
   z.object({ kind: z.literal('note'), text: z.string() }),
@@ -96,6 +154,8 @@ export const ApprovalRequestSchema = z.object({
   diff: RowDiffSchema.optional(),
   /** For any other file: the change as a unified diff. */
   patch: z.string().optional(),
+  /** In a team reply, the teammate whose write it is. */
+  agent: TeammateRefSchema.optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
 
@@ -123,6 +183,25 @@ export const ReplyStepSchema = z.discriminatedUnion('kind', [
 ]);
 export type ReplyStep = z.infer<typeof ReplyStepSchema>;
 
+/**
+ * One time a lead asked a teammate (decision 100): the request as the lead wrote it, the
+ * teammate's whole work and what it answered, kept so Teach this can go to whoever did the work.
+ */
+export const ConsultationSchema = z.object({
+  /** The consult step that shows it in the reply. */
+  stepId: z.string(),
+  graduateId: z.string(),
+  /** The teammate's version that answered. */
+  version: z.number().int().positive(),
+  request: z.string(),
+  work: z.array(ReplyStepSchema),
+  /** What the lead got back. */
+  text: z.string(),
+  /** How it ended; absent while the teammate is still working. */
+  outcome: ConsultationOutcomeSchema.optional(),
+});
+export type Consultation = z.infer<typeof ConsultationSchema>;
+
 export const WorkspaceMessageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
@@ -149,6 +228,13 @@ export const WorkspaceMessageSchema = z.object({
   workedMs: z.number().int().nonnegative().optional(),
   /** The graduate version that answered. Absent on user messages and on replies from before versions. */
   graduateVersion: z.number().int().positive().optional(),
+  /** In a team chat, each time the reply asked a teammate, kept as each one goes. */
+  consultations: z.array(ConsultationSchema).optional(),
+  /**
+   * A team reply (decision 100): its lead answered once, with its teammates' help, and no
+   * certificate covers that, whatever the lead's or teammates' versions carry.
+   */
+  team: z.literal(true).optional(),
 });
 export type WorkspaceMessage = z.infer<typeof WorkspaceMessageSchema>;
 
@@ -163,6 +249,8 @@ export const WorkspaceChatSchema = z.object({
   waiting: z.boolean(),
   /** The graduate version that was active when the chat started. Each reply records its own. */
   graduateVersion: z.number().int().positive().optional(),
+  /** A team chat's team; `graduateId` is then its lead, who answers. */
+  teamId: z.string().optional(),
 });
 export type WorkspaceChat = z.infer<typeof WorkspaceChatSchema>;
 

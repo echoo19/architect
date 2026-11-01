@@ -183,8 +183,11 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
   const notes = inspector.getByRole('note');
   await expect(notes.first()).toContainText('time limit may stop training after');
   await expect(notes.nth(1)).toContainText("its compute cap is $0, so it won't run");
-  await expect(page.getByText(/^The 20-hour limit fits .* of 12 rounds$/)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Allow \d+ hours$/ }).first()).toBeVisible();
+  // The shortfall is said here, with its fix, and nowhere in the footer.
+  await expect(inspector.getByRole('button', { name: /^Allow \d+ hours$/ })).toBeVisible();
+  // Every time on the tab is in hours: what training would take, the limit, and the field.
+  await expect(inspector).toContainText(/Training time\s*[\d.]+ h of 20 h/);
+  await expect(inspector.getByRole('textbox', { name: 'Training time' })).toHaveValue('20');
   await capture(page, 'define-inspector-budget-dark');
 
   // Closed and opened again, it is on the tab it was left on.

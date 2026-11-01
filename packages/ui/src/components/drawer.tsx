@@ -12,7 +12,7 @@ export const Drawer = Dialog;
 export interface DrawerContentProps {
   /** Read out when the drawer opens; shown in the header, wrapped when long. */
   title: string;
-  /** A short line under the title, such as the task type and split. */
+  /** Ids and counts under the title, on one line, such as a run's id. Never a sentence. */
   subtitle?: ReactNode;
   /** Controls in the header, left of the close button. */
   actions?: ReactNode;
@@ -85,7 +85,7 @@ export function DrawerContent({
                   <RadixDialog.Title className="m-0 line-clamp-3 break-words font-display text-body font-semibold text-pretty">
                     {title}
                   </RadixDialog.Title>
-                  {subtitle && <span className="text-small text-pretty">{subtitle}</span>}
+                  {subtitle && <span className="truncate text-small tabular-nums">{subtitle}</span>}
                 </div>
                 {actions}
                 <RadixDialog.Close asChild>

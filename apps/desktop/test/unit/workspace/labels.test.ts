@@ -7,6 +7,9 @@ import {
   isFigureColumn,
   isTotalRow,
   listInSentence,
+  answerText,
+  consultMeta,
+  namesInSentence,
   previewRows,
   stepWords,
   suggestionsFor,
@@ -219,5 +222,61 @@ describe('workspace labels', () => {
       'Who owes us money?',
       'Book the next free slot',
     ]);
+  });
+});
+
+describe('consultation words', () => {
+  const consult = (
+    status: 'running' | 'done' | 'error',
+    outcome?: 'answered' | 'refused' | 'no_answer' | 'error' | 'stopped' | 'out_of_steps',
+  ) => ({
+    id: 'step-2',
+    kind: 'consult' as const,
+    name: 'Assay desk',
+    detail: 'Which compounds need a re-test this week, and why?',
+    meta: 'Three compounds from FW-0417.',
+    status,
+    view: {
+      kind: 'consult' as const,
+      graduateId: 'grd_assay',
+      version: 2,
+      steps: [],
+      ...(outcome === undefined ? {} : { outcome }),
+    },
+  });
+
+  it('asks and has asked the teammate by name', () => {
+    expect(stepWords(consult('running'))).toEqual({ action: 'Asking Assay desk', target: '' });
+    expect(stepWords(consult('done', 'answered'))).toEqual({
+      action: 'Asked Assay desk',
+      target: '',
+    });
+  });
+
+  it("says the answer's first line, or how the teammate ended without one", () => {
+    expect(consultMeta(consult('running'))).toBeUndefined();
+    expect(consultMeta(consult('done', 'answered'))).toBe('Three compounds from FW-0417.');
+    expect(consultMeta(consult('done', 'refused'))).toBe("Doesn't handle this");
+    expect(consultMeta(consult('done', 'no_answer'))).toBe('Gave no answer');
+    expect(consultMeta(consult('error', 'error'))).toBe('Stopped with an error');
+    expect(consultMeta(consult('done', 'stopped'))).toBe('Stopped');
+    expect(consultMeta(consult('done', 'out_of_steps'))).toBe('Ran out of steps');
+    // Saved before outcomes were kept: a failed step failed, any other answered.
+    expect(consultMeta(consult('error'))).toBe('Stopped with an error');
+    expect(consultMeta(consult('done'))).toBe('Three compounds from FW-0417.');
+  });
+
+  it("keeps a teammate's words and drops the ANSWER line its task ends with", () => {
+    expect(answerText('FW-0418 passes QC.\nBoth are queued.\nANSWER: {"retests": 2}')).toBe(
+      'FW-0418 passes QC.\nBoth are queued.',
+    );
+    expect(answerText('ANSWER: {"retests": 0}')).toBe('');
+  });
+
+  it('joins names as written', () => {
+    expect(namesInSentence(['Assay desk'])).toBe('Assay desk');
+    expect(namesInSentence(['Assay desk', 'Sweep desk', 'VAT desk'])).toBe(
+      'Assay desk, Sweep desk and VAT desk',
+    );
   });
 });

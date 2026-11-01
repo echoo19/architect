@@ -102,17 +102,14 @@ export function TraceDrawerContent({
   );
 }
 
-/** A task's request when its title says less than it: the whole of it, under Details. */
+/** A task's request when its title says less than it: the whole of it, folded away. */
 export function WholeRequest({ prompt }: { prompt: string }) {
   if (taskTitle(prompt) === prompt) return null;
   return (
-    <Disclosure label="Details" className="-mt-3">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-small text-fg">The whole request</span>
-        <p className="m-0 whitespace-pre-wrap break-words rounded-control bg-field px-3 py-2 text-small text-fg">
-          {prompt}
-        </p>
-      </div>
+    <Disclosure label="Whole request" className="-mt-3">
+      <p className="m-0 whitespace-pre-wrap break-words rounded-control bg-field px-3 py-2 text-small text-fg">
+        {prompt}
+      </p>
     </Disclosure>
   );
 }
@@ -206,7 +203,7 @@ export function VerdictBox({
         </div>
       </div>
       {rows.length > 0 && (
-        <Disclosure label="Details" className="pl-[26px]">
+        <Disclosure label="Answers" className="pl-[26px]">
           <DetailList items={rows} />
         </Disclosure>
       )}
