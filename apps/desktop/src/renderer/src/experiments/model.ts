@@ -464,23 +464,57 @@ export const VERDICT_WORDS: Record<Verdict, string> = {
   none: 'No gain shown',
 };
 
+/** The gain rule's verdict as the end of a sentence: "so a gain is shown." */
+export function verdictClause(difference: PassDifference): string {
+  const verdict = verdictOf(difference);
+  return verdict === 'gain'
+    ? 'so a gain is shown.'
+    : verdict === 'loss'
+      ? 'so a loss is shown.'
+      : 'so no gain is shown.';
+}
+
+/**
+ * The paired difference the primary comparison reads, where the student ran first: on the whole
+ * test or on the part of it the comparison names, the pairing turned round when the report kept
+ * it the other way. Null where no such pairing was kept.
+ */
+export function primaryDifference(
+  report: ComparisonReport,
+  primary: PrimaryComparison,
+): PassDifference | null {
+  const [figure] = figuresOf(report);
+  for (const pair of figure?.pairs ?? []) {
+    const turned = pair.a === primary.b && pair.b === primary.a;
+    if (!turned && (pair.a !== primary.a || pair.b !== primary.b)) continue;
+    const found =
+      primary.group === 'all'
+        ? pair.difference
+        : pair.byGroup?.find((item) => item.group === primary.group)?.difference;
+    if (found === undefined) continue;
+    return turned ? { rate: -found.rate, low: -found.high, high: -found.low } : found;
+  }
+  return null;
+}
+
 /**
  * What the released results say about the primary comparison, in a sentence, where the student
- * ran first: on the whole test, the paired difference with its interval and the gain rule; on a
- * part of it, each arm's pass rate there and the difference. Null where either arm has nothing.
+ * ran first: the paired difference with its 95% interval and the gain rule, as the headline gives
+ * its own. A report from before parts of the test were paired gives, for a part, each arm's pass
+ * rate there and the difference. Null where either arm has nothing.
  */
 export function primaryResult(
   report: ComparisonReport,
   primary: PrimaryComparison,
   arms = ARM_NAMES,
 ): string | null {
+  const difference = primaryDifference(report, primary);
+  if (difference !== null) {
+    const { rate, low, high } = difference;
+    return `${points(rate)} points, 95% interval ${points(low)} to ${points(high)}, ${verdictClause(difference)}`;
+  }
   const [figure] = figuresOf(report);
   if (figure === undefined) return null;
-  const pair = figure.pairs.find((item) => item.a === primary.a && item.b === primary.b);
-  if (primary.group === 'all' && pair !== undefined) {
-    const { rate, low, high } = pair.difference;
-    return `${points(rate)} points, 95% interval ${points(low)} to ${points(high)}: ${VERDICT_WORDS[verdictOf(pair.difference)].toLowerCase()}.`;
-  }
   const rowOf = (arm: ArmId) =>
     figure.rows.find((row) => row.arm === arm && row.configuration === null);
   const group = primaryGroup(primary.group);
