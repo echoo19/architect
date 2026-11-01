@@ -237,6 +237,11 @@ test("says why a lesson couldn't be proposed, keeps what was written, and refuse
   await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
   await expect(sheet.getByRole('button', { name: 'Share with Spark' })).toBeEnabled();
   await capture('teach-error-dark.png');
+  // Closed before it is shared, the note waits for the next time this answer is flagged.
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await flagReply();
+  await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
 
   await stubEngineFailure(launched.app, {
     'teach:propose': {
@@ -290,6 +295,12 @@ test('shows what is being taught above the versions, and the flagged answers to 
   await lessons.getByRole('button', { name: 'New chat' }).click();
   await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_teach_1$/);
   await expect(dialog).toBeHidden();
+  // The new chat says how to teach from it.
+  await expect(
+    page.getByText(
+      'Ask what it should learn, then flag its answer and say what it should have done.',
+    ),
+  ).toBeVisible();
 });
 
 test("shows a Teaching tab with nothing flagged yet, and one that couldn't load", async () => {
@@ -299,6 +310,9 @@ test("shows a Teaching tab with nothing flagged yet, and one that couldn't load"
   await expect(lessons).toContainText('None yet');
   await expect(lessons.getByRole('button', { name: 'Review' })).toHaveCount(0);
   await expect(lessons.getByRole('button', { name: 'Improve' })).toHaveCount(0);
+  await expect(lessons).toContainText(
+    'No lessons saved yet. Flag an answer in a chat to save one.',
+  );
   await capture('agent-teaching-empty-dark.png');
   await page.keyboard.press('Escape');
 
