@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, late night): film final 3 live, 0.8.0 released
+
+- *Done:* the owner approved final 3 ("looks good"). PR #5 (`field/main` to `main`) passed Linux CI and was merged; the site serves the 2:41 film and the reworded results page. Then 0.8.0 (`chore(release): 0.8.0`: app, CLI, `docs/CLI.md`), tagged `v0.8.0` with release notes (agent teams, `architect run --team`, Inventory desk, the quieter app); the release workflow builds the installers. The site's download version moves to 0.8.0 only once they are attached, so its buttons never point at a missing file.
+- *Open:* on this machine tonight `apps/cli` "exits 1 when the model runtime is not running" takes about 8 s (connecting to a closed local port is slow), past vitest's 5 s; it fails the same without the bump and passed in `pnpm check` an hour earlier. Linux CI is the judge.
+
 ## 2026-11-01 (Sun, night), `film/bridge`: the real academy as a figure, a turn to the screening lab
 
 - *Done:* owner: phrase the real academy's result "in a way that shows that it's stronger ... nothing that weakens the strength of the product", and make the switch from the academy to the science team clear. Film final 3 (`architect-runs/film/launch/renders/lab-walkthrough-final-3.mp4`, 2:41, record in its `BRIEF.md`): the line is now "And at the real academy, twelve of twenty-four, up from nine", the on-screen difference "+12.5 points"; the team scene opens with Fields, the academy's row lit on "Academies are one field", the light moving to Assay desk and Inventory desk (new rows of the film's Fields table) on "A screening lab is another", then the team. One new take, a score composed after it, an Offline pull-back made in the mix. The site plays its web copy. Results page: the headline strip leads with 99 of 120 instead of the second snapshot's 3 of 30; the abstract adds the local 103 of 120; the real academy's first result reads "too few tasks to confirm that gain yet", the second "lower than the blank setup", each followed by its causes; every figure and every limitation stays. The same wording in `README.md` and `docs/HACKATHON.md`.
