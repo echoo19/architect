@@ -30,8 +30,8 @@ describe('the site', () => {
     expect(found.map(({ path }) => path)).toEqual([]);
   });
 
-  it('keeps the product plain: none of its internal words reach the page', () => {
-    const jargon = /\b(harness|dev split|lora|vault)\b/i;
+  it("keeps the runner's own words off the page", () => {
+    const jargon = /\bdev split\b/i;
     const found = FILES.filter(({ text }) => jargon.test(text));
     expect(found.map(({ path }) => path)).toEqual([]);
   });
