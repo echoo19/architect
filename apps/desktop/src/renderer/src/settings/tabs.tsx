@@ -30,7 +30,7 @@ export function GeneralTab({ settings, update }: TabProps) {
     <>
       <SettingsRow
         label="Edition"
-        info="Architect teaches an agent one job. Architect Lab adds fields, experiments, models and compute. Your agents and their training stay in both."
+        info="Architect teaches an agent one job. Architect Lab is an R&D platform for specialist models: fields, experiments, LoRA fine-tuning plans and cluster launch bundles. Your agents and their training stay in both."
       >
         <Segmented
           aria-label="Edition"
@@ -103,7 +103,9 @@ export function PrivacyTab({ settings, update }: TabProps) {
   return (
     <>
       <SettingsRow label="Agents" info={`An agent only talks to the model on ${device}.`}>
-        <SettingsValue>Never online</SettingsValue>
+        <SettingsValue>
+          {settings.edition === 'lab' ? 'On-premise only' : 'Never online'}
+        </SettingsValue>
       </SettingsRow>
       <SettingsRow
         label={teacher}

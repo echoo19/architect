@@ -227,14 +227,14 @@ test('moves a field to another model from its page, carrying what it has', async
   );
   await expect(lines).toContainText('Academy desk stays as it is.');
   await expect(lines).toContainText(
-    "instructions, helpers, retrieval and verified lessons of the version in use, and the field's counterexamples",
+    "instructions, helpers, retrieval and verified lessons of the version in use, and the field's regression suite",
   );
   await expect(lines).toContainText(
-    'Keeps the same practice tasks, check tasks, checker and study.',
+    'Keeps the same practice tasks, held-out checks, checker and study.',
   );
   await expect(lines).toContainText('stay never seen, sealed exactly as they are.');
   await expect(lines).toContainText(
-    'The agent in use keeps answering on Glimmer until you switch it.',
+    'The specialist in use keeps answering on Glimmer until you switch it.',
   );
   await capture('new-model-dialog-dark.png');
 

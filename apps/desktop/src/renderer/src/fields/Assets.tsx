@@ -10,6 +10,7 @@ import {
   Card,
   CardGrid,
   CardRow,
+  defineTerm,
   InfoTip,
   Skeleton,
   toast,
@@ -29,7 +30,7 @@ import { count, EmptyRow, plural } from './parts';
 
 /** What can be said of an export, in the words of docs/SCALE.md and decision 071. */
 const WORDING =
-  'Checker-verified training examples from this field. No model has been trained on them here: GPU execution, large models and training gains are unverified.';
+  'Checker-verified fine-tuning data from this field. No model has been fine-tuned on it yet, so GPU runs, large models and fine-tuning gains are unverified.';
 
 function Figure({ children }: { children: ReactNode }) {
   return <span className="font-display text-h2 font-semibold tabular-nums">{children}</span>;
@@ -67,9 +68,14 @@ export function Assets({ jobId }: { jobId: string }) {
 function Counterexamples({ counterexamples }: { counterexamples: readonly Counterexample[] }) {
   return (
     <Card
-      title="Counterexamples"
+      title="Regression suite"
       icon={<Bug strokeWidth={1.8} aria-hidden />}
-      action={<Figure>{count(counterexamples.length)}</Figure>}
+      action={
+        <span className="flex items-center gap-2">
+          <InfoTip about="the regression suite">{defineTerm('regressionSuite')}</InfoTip>
+          <Figure>{count(counterexamples.length)}</Figure>
+        </span>
+      }
       wide
       flush
     >
@@ -135,7 +141,7 @@ function AssetsView({
         record({ jobId, name: written.job.name, dir: folder });
         toast({
           title: 'Field exported',
-          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the final test's manifest, by hash only.`,
+          description: `${shortPath(folder)}: ${plural(written.counts.demonstrations, 'demonstration')}, the scorer and the sealed final test's manifest, by hash only.`,
           action: { label: 'Open Compute', onClick: () => navigate(paths.compute({ jobId })) },
         });
       }
@@ -185,7 +191,7 @@ function AssetsView({
               </RowIcon>
             }
             title="Never-seen evaluation"
-            detail={`Final-test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
+            detail={`Sealed final test tasks and ${plural(counts.sealed_organizations, 'never-seen organization')}, by hash only`}
             end={<Figure>{count(counts.locked_test_tasks)}</Figure>}
           />
         </Card>

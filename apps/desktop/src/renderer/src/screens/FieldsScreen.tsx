@@ -66,7 +66,7 @@ function NoFields() {
     <EmptyState
       icon={<Library aria-hidden />}
       title="No fields yet"
-      description="A field is one job taught across organizations and tested on ones it never saw."
+      description="Describe a field to engineer a specialist for its organizations."
       className="pt-16"
     />
   );
@@ -113,7 +113,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'sealed',
           header: 'Never seen',
           group: ORGANIZATIONS,
-          hint: 'Generated organizations kept from teaching for the final test',
+          hint: 'Generated organizations kept from teaching for the sealed final test',
           align: 'end',
           cell: (row) => row.counts.sealed,
           sortValue: (row) => row.counts.sealed,
@@ -122,7 +122,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'realOrgs',
           header: 'Real',
           group: ORGANIZATIONS,
-          hint: 'Real organizations kept from teaching for the final test',
+          hint: 'Real organizations kept from teaching for the sealed final test',
           align: 'end',
           cell: (row) => row.counts.real,
           sortValue: (row) => row.counts.real,
@@ -164,7 +164,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
 }
 
 const ORGANIZATIONS = 'Organizations';
-const BEST = 'Best final test';
+const BEST = 'Best sealed final test';
 
 type FieldTab = 'overview' | 'organizations' | 'tasks' | 'versions' | 'assets';
 

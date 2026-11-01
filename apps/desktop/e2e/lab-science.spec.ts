@@ -155,7 +155,7 @@ test('the experiment on Sweep desk reads like a short paper', async () => {
   await expect(plot.getByRole('group', { name: 'Organizations it was taught on' })).toBeVisible();
   await expect(plot.getByRole('group', { name: 'Fennick Research, never seen' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Paired comparisons' })).toContainText(
-    'Targeted mentoring vs Glimmer alone',
+    'Spark-engineered harness vs Glimmer alone',
   );
   await capture('lab-science-experiment-dark.png');
 });

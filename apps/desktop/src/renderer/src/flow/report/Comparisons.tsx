@@ -3,6 +3,7 @@ import { Disclosure, EvidenceMark } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import { Section } from '../ledger';
+import { useEdition } from '../../shell/edition';
 import type { ModelNames } from '../train/phase';
 import { armCost, notRunReason, wasRun, type Arm, type ArmKey } from './arms';
 
@@ -10,7 +11,26 @@ import { armCost, notRunReason, wasRun, type Arm, type ArmKey } from './arms';
  * Each comparison named for what the student ran with, in the job's own model names. Without a
  * blank start, the student before any change still had the setup the run started from.
  */
-function armLabel(key: ArmKey, { mentor, student }: ModelNames, blankStart: boolean): string {
+function armLabel(
+  key: ArmKey,
+  { mentor, student }: ModelNames,
+  blankStart: boolean,
+  lab: boolean,
+): string {
+  if (lab) {
+    switch (key) {
+      case 'untouched':
+        return blankStart ? `${student}, base harness` : `${student}, starting harness`;
+      case 'setup':
+        return `${student}, ${mentor}-engineered harness`;
+      case 'weights':
+        return `${student}, LoRA adapter`;
+      case 'both':
+        return `${student}, engineered harness and LoRA adapter`;
+      case 'mentor':
+        return `${mentor} on the tasks itself`;
+    }
+  }
   switch (key) {
     case 'untouched':
       return blankStart ? `${student}, untouched` : `${student} with the starting setup`;
@@ -71,6 +91,7 @@ export function Comparisons({
   /** How many check tasks one run has, to say when a score adds up more than one. */
   checkTasks: number | undefined;
 }) {
+  const lab = useEdition() === 'lab';
   const measured = arms.filter(wasRun);
   const unmeasured = arms.filter((arm) => !wasRun(arm));
   const metered = measured.filter((arm) => arm.memory !== null);
@@ -83,12 +104,12 @@ export function Comparisons({
               <th className="pb-3" />
               <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
                 <EvidenceMark kind="check" className="justify-end">
-                  Check tasks
+                  {lab ? 'Held-out checks' : 'Check tasks'}
                 </EvidenceMark>
               </th>
               <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
                 <EvidenceMark kind="final" className="justify-end">
-                  Final test
+                  {lab ? 'Sealed final test' : 'Final test'}
                 </EvidenceMark>
               </th>
               <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">Cost</th>
@@ -103,7 +124,7 @@ export function Comparisons({
               >
                 <th scope="row" className="py-3.5 pr-4 text-left font-normal">
                   <span className={arm.current ? 'font-medium' : undefined}>
-                    {armLabel(arm.key, names, blankStart)}
+                    {armLabel(arm.key, names, blankStart, lab)}
                   </span>
                   {arm.current && <span className="whitespace-nowrap"> · this agent</span>}
                 </th>
@@ -126,14 +147,14 @@ export function Comparisons({
           <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-small">
             {metered.map((arm) => (
               <li key={arm.key} className="text-pretty">
-                {armLabel(arm.key, names, blankStart)} used at most{' '}
+                {armLabel(arm.key, names, blankStart, lab)} used at most{' '}
                 {memoryLine(arm.memory?.peakProcessBytes ?? null, arm.memory?.peakGpuBytes ?? null)}{' '}
                 in its final test.
               </li>
             ))}
             {unmeasured.map((arm) => (
               <li key={arm.key} className="text-pretty">
-                {armLabel(arm.key, names, blankStart)} wasn&apos;t measured
+                {armLabel(arm.key, names, blankStart, lab)} wasn&apos;t measured
                 {notRunReason(arm.key, names.mentor) && `: ${notRunReason(arm.key, names.mentor)}`}.
               </li>
             ))}

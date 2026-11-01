@@ -51,7 +51,7 @@ export function Overview({
         </Card>
       ) : (
         <Card title="By organization" flush>
-          <EmptyRow title="No candidate has taken its final test yet" />
+          <EmptyRow title="No candidate has taken its sealed final test yet" />
         </Card>
       )}
       <StudyAndSkills field={field} openTab={openTab} />

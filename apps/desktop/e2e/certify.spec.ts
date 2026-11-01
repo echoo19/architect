@@ -76,9 +76,9 @@ async function openReport(report = CERTIFIED_REPORT): Promise<void> {
 
 test('states the certificate, its curve and whether it held where it was not calibrated', async () => {
   await openReport();
-  const section = page.getByRole('region', { name: 'Certified answers' });
+  const section = page.getByRole('region', { name: 'Risk certificate' });
   await expect(section).toContainText(
-    'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
+    "8% risk bound on Academy desk's answers, at 95% confidence and 78% coverage.",
   );
   // What it rests on and assumes is a click away, under the sentence.
   const measured = section.getByRole('button', { name: 'How this is measured' });
@@ -115,7 +115,7 @@ test('states the certificate, its curve and whether it held where it was not cal
 
 test('says why no certificate was issued, and how many tasks would do', async () => {
   await openReport(UNCERTIFIED_REPORT);
-  const section = page.getByRole('region', { name: 'Certified answers' });
+  const section = page.getByRole('region', { name: 'Risk certificate' });
   await expect(section).toContainText(
     "No certificate: 24 calibration tasks can't show a bound of 10%; about 38 would.",
   );
@@ -125,7 +125,7 @@ test('says why no certificate was issued, and how many tasks would do', async ()
 test('a report without a certificate has no certificate section', async () => {
   await openReport({ ...CERTIFIED_REPORT, certificate: undefined } as typeof CERTIFIED_REPORT);
   await expect(page.getByRole('table', { name: 'Final test by organization' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Certified answers' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Risk certificate' })).toHaveCount(0);
 });
 
 test('shows each version’s certificate in Models', async () => {
@@ -143,7 +143,7 @@ test('shows each version’s certificate in Models', async () => {
   );
   await reloadAt('/models');
   const table = page.getByRole('table', { name: 'Models' });
-  await expect(table.getByRole('columnheader', { name: /Certified/ })).toBeVisible();
+  await expect(table.getByRole('columnheader', { name: /Risk bound/ })).toBeVisible();
   const academyDesk = table.getByRole('row', { name: /^Academy desk\s+version 2/ });
   await expect(academyDesk).toContainText('≤ 8%');
 });
@@ -156,7 +156,7 @@ test('shows a recent graduate’s certificate in the Lab', async () => {
   });
   await reloadAt('/');
   const finished = page.getByRole('region', { name: 'Recently finished' });
-  await expect(finished).toContainText('Certified');
+  await expect(finished).toContainText('Risk bound');
   await expect(finished).toContainText('≤ 8%');
 });
 
@@ -181,14 +181,14 @@ test('sets the certificate in the inspector, with what it costs before a run', a
   await page.getByRole('button', { name: 'Advanced settings', exact: true }).click();
   const inspector = page.getByRole('complementary', { name: 'Advanced settings' });
   await inspector.getByRole('tab', { name: 'Evaluation' }).click();
-  const group = inspector.getByRole('region', { name: 'Certified answers' });
-  await expect(group.getByRole('switch', { name: 'Answer only when sure' })).toBeChecked();
-  await expect(group.getByRole('textbox', { name: 'Tries per request' })).toHaveValue('5');
-  await expect(group.getByRole('textbox', { name: 'Wrong at most' })).toHaveValue('10');
+  const group = inspector.getByRole('region', { name: 'Risk certificate' });
+  await expect(group.getByRole('switch', { name: 'Issue a risk certificate' })).toBeChecked();
+  await expect(group.getByRole('textbox', { name: 'Attempts per request' })).toHaveValue('5');
+  await expect(group.getByRole('textbox', { name: 'Risk target' })).toHaveValue('10');
   await expect(group.getByRole('textbox', { name: 'Confidence' })).toHaveValue('95');
   await expect(group).toContainText('30 tasks');
   await expect(group).toContainText(`The final test makes ${5 * (job.splits.test + 30)} tries`);
-  await group.getByRole('textbox', { name: 'Tries per request' }).fill('3');
+  await group.getByRole('textbox', { name: 'Attempts per request' }).fill('3');
   await expect
     .poll(async () => {
       const calls = await recordedCalls(launched.app, 'jobs:save');

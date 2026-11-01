@@ -39,7 +39,7 @@ const icon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
 
 /** What a cluster bundle is and isn't, once and short (docs/SCALE.md). */
 export const CLUSTER_NOTE =
-  'Architect writes this bundle and never submits it. It is checked against simulated schedulers only; GPU runs, large models and training gains are unverified.';
+  'Architect writes the bundle and your own scheduler submits it. It is validated against simulated schedulers; no cluster has run one yet, so GPU runs, large models and fine-tuning gains are unverified.';
 
 /** The fields exported from the app, each offering the folder of its latest export. */
 function LatestExport({
@@ -137,12 +137,12 @@ export function BundleCard({
 
   return (
     <Card
-      title="Bundle"
+      title="Cluster launch bundle"
       flush
       action={
         <span className="flex items-center gap-1">
           <Badge>Experimental</Badge>
-          <InfoTip about="the bundle">{CLUSTER_NOTE}</InfoTip>
+          <InfoTip about="the cluster launch bundle">{CLUSTER_NOTE}</InfoTip>
         </span>
       }
     >
@@ -223,14 +223,14 @@ export function BundleCard({
       <div className="flex items-center justify-end gap-4 border-t border-line px-6 py-4">
         {blocker === null ? (
           <Button variant="primary" size="md" loading={writing} onClick={() => void write()}>
-            Write bundle
+            Write launch bundle
           </Button>
         ) : (
           // A disabled button takes no pointer, so what holds it back hangs on the span around it.
           <Tooltip content={blocker}>
             <span tabIndex={0} className="rounded-control">
               <Button variant="primary" size="md" disabled>
-                Write bundle
+                Write launch bundle
               </Button>
             </span>
           </Tooltip>

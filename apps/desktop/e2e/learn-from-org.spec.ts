@@ -207,7 +207,7 @@ test('teaches on it in a new version of the field, and seals a fresh cohort ther
   await expect(changes).toContainText('Makes Academy desk v2, a new version of the field.');
   await expect(changes).toContainText('Academy desk stays as it is.');
   await expect(changes).toContainText(
-    `${HARBOR}’s files become material Spark may read, and its tasks become practice and check tasks.`,
+    `${HARBOR}’s files become material Spark may read, and its tasks become practice tasks and held-out checks.`,
   );
   await expect(changes).toContainText('Real academy stays never seen, sealed again');
   await expect(changes).toContainText(

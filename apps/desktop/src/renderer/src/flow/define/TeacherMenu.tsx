@@ -5,6 +5,7 @@ import {
   type Job,
 } from '@architect/shared';
 import { Button, ToggleRow } from '@architect/ui';
+import { useEdition } from '../../shell/edition';
 import { modelNames, kindLabel } from '../names';
 import { Issue } from './fields';
 import {
@@ -18,7 +19,7 @@ import {
 } from './teacher-menu';
 
 /** A line under each kind that says what it is, in a few plain words. */
-function explanation(type: InterventionType, teacher: string): string {
+function explanation(type: InterventionType, teacher: string, lab: boolean): string {
   switch (type) {
     case 'procedure':
       return 'Rules and step-by-step procedures it follows';
@@ -27,7 +28,9 @@ function explanation(type: InterventionType, teacher: string): string {
     case 'helper':
       return 'Small programs for exact sums and lookups';
     case 'weights':
-      return 'Trains the model on checked corrections';
+      return lab
+        ? 'Fine-tunes a LoRA adapter on verified corrections'
+        : 'Trains the model on checked corrections';
     case 'clarification':
       return `${teacher} may stop and ask you one question`;
   }
@@ -45,17 +48,17 @@ export function rowNote(
     block: WeightsBlock | null;
     teacher: string;
     student: string;
+    lab?: boolean;
   },
 ): string {
-  const { on, last, block, teacher, student } = state;
+  const { on, last, block, teacher, student, lab = false } = state;
   const blocked = type === 'weights' && on && block !== null;
   if (last) {
     const stays = `Stays on: ${teacher} needs at least one way to change ${student}.`;
-    return blocked
-      ? `${stays} Retraining ${student} itself ${BLOCK_REASONS[block]}.${keyHint(block)}`
-      : stays;
+    const weights = lab ? 'Fine-tuning a LoRA adapter' : `Retraining ${student} itself`;
+    return blocked ? `${stays} ${weights} ${BLOCK_REASONS[block]}.${keyHint(block)}` : stays;
   }
-  return blocked ? BLOCK_NOTES[block] : explanation(type, teacher);
+  return blocked ? BLOCK_NOTES[block] : explanation(type, teacher, lab);
 }
 
 /** What each kind of change is made of, at the right of its switch. */
@@ -86,6 +89,7 @@ interface TeacherMenuProps {
  */
 export function TeacherMenu({ job, facts, issue, onToggle, onAddKey }: TeacherMenuProps) {
   const { mentor: teacher, student } = modelNames(job);
+  const lab = useEdition() === 'lab';
   const allowed = allowedInterventions(job);
   const block = weightsBlock(job, facts);
   const title = `What ${teacher} may change`;
@@ -102,14 +106,14 @@ export function TeacherMenu({ job, facts, issue, onToggle, onAddKey }: TeacherMe
             className="flex flex-col gap-0.5 border-t border-line pb-2.5 first-of-type:border-t-0"
           >
             <ToggleRow
-              label={kindLabel(type, student)}
+              label={kindLabel(type, student, lab)}
               type={KIND_TYPES[type]}
               checked={on}
               disabled={last}
               onCheckedChange={(next) => onToggle(type, next)}
             />
             <p className="m-0 pl-[52px] text-small text-pretty">
-              {rowNote(type, { on, last, block, teacher, student })}
+              {rowNote(type, { on, last, block, teacher, student, lab })}
             </p>
             {needsKey && (
               <Button size="xs" className="ml-[52px] mt-1.5 self-start" onClick={onAddKey}>

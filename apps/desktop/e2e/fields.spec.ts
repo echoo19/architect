@@ -229,13 +229,13 @@ test("counts the field's assets and exports them to a folder the person picks", 
   await expect(assets).toContainText('41');
   await expect(assets).toContainText('Train tasks at 3 organizations');
   await expect(assets).toContainText(
-    'Final-test tasks and 2 never-seen organizations, by hash only',
+    'Sealed final test tasks and 2 never-seen organizations, by hash only',
   );
   await expect(card('Left out')).toContainText('the calibration and check tasks');
   // What an export is and isn't is said beside its Experimental mark, when asked.
   await expect(page.getByText('Experimental', { exact: true })).toBeVisible();
   expect(await infoTipText(page, page, 'these assets')).toContain(
-    'GPU execution, large models and training gains are unverified',
+    'GPU runs, large models and fine-tuning gains are unverified',
   );
   await capture('field-assets-dark.png');
 

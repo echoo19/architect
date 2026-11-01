@@ -6,6 +6,7 @@ import { graduatesApi, refreshAgent } from '../../api/graduates';
 import { useQuery } from '../../api/query';
 import { attempt } from '../../lib/notify';
 import { GROUP_LABELS } from '../../models/registry';
+import { useEdition } from '../../shell/edition';
 import {
   changeFigures,
   changesModel,
@@ -112,8 +113,15 @@ export function MoveDialog({
   const [moving, setMoving] = useState(false);
   const promote = kind === 'promote';
   const number = version.version;
-  const carries =
-    version.manifest.model.adapter === undefined ? 'setup' : 'setup and trained weights';
+  const lab = useEdition() === 'lab';
+  const adapter = version.manifest.model.adapter !== undefined;
+  const carries = lab
+    ? adapter
+      ? 'harness and LoRA adapter'
+      : 'harness'
+    : adapter
+      ? 'setup and trained weights'
+      : 'setup';
   const caution = promote ? promoteCaution(version) : null;
   const switching = changesModel(version, active);
   const [to, from] = [versionModel(version), versionModel(active)];

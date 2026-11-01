@@ -6,7 +6,7 @@ import { PLACES, placeOf, type Place } from './places';
 /** Each edition's name, as the shell shows it, and what it is for in one line (decision 076). */
 export const EDITIONS: Record<Edition, { name: string; says: string }> = {
   personal: { name: 'Architect', says: 'Teach an agent one job' },
-  lab: { name: 'Architect Lab', says: 'Fields, experiments, models and compute' },
+  lab: { name: 'Architect Lab', says: 'R&D for an entire field' },
 };
 
 /** The places an edition shows: the personal app has its agents and none of the Lab's places. */

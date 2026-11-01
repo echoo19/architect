@@ -241,7 +241,7 @@ function SkillTable({
           { key: 'skill', header: 'Skill', cell: (skill) => skill.label },
           ...groups.map((group) => ({
             key: group.key,
-            header: group.label || 'Final test',
+            header: group.label || 'Sealed final test',
             align: 'end' as const,
             cell: (skill: { type: string }) => {
               const count = skillIn(row, group, skill.type);
@@ -378,7 +378,7 @@ function RunsTable({
         },
         {
           key: 'check',
-          header: 'Check tasks',
+          header: 'Held-out checks',
           align: 'end',
           width: '176px',
           cell: (arm) => scoreText(arm.dev.kept?.after ?? arm.dev.baseline),
@@ -433,7 +433,7 @@ function ArmRun({ arm, named }: { arm: ArmReport; named: ArmNames }) {
             </ol>
           )}
         </DrawerSection>
-        <DrawerSection title="Check tasks">
+        <DrawerSection title="Held-out checks">
           <DetailList
             items={[
               { label: 'At the start', value: scoreText(arm.dev.baseline) ?? '–' },
@@ -458,7 +458,7 @@ function ArmRun({ arm, named }: { arm: ArmReport; named: ArmNames }) {
                 { label: 'Model', value: frozen.localModel },
                 { label: 'Runs on', value: frozen.backend },
                 ...(frozen.adapter
-                  ? [{ label: 'Adapter', value: frozen.adapter.sha256.slice(0, 7) }]
+                  ? [{ label: 'LoRA adapter', value: frozen.adapter.sha256.slice(0, 7) }]
                   : []),
                 { label: 'Final-test seeds', value: frozen.testSeeds.join(', ') },
               ]}
@@ -492,7 +492,7 @@ function ArmRuns({
   return (
     <TableExhibit
       label="Table 5"
-      caption="Each arm's run: its rounds, its check tasks, and the version of its harness it froze."
+      caption="Each arm's run: its rounds, its held-out checks, and the harness version it froze."
     >
       <RunsTable
         arms={arms}
@@ -547,7 +547,7 @@ export function Results({
           )}
           <Figure
             label="Figure 1"
-            caption={`Final-test pass rate of each arm${groups.length > 1 ? ' in each group' : ''}, with its 95% interval. ${measured.backend.label}, seed ${seed}.`}
+            caption={`Sealed final test pass rate of each arm${groups.length > 1 ? ' in each group' : ''}, with its 95% interval. ${measured.backend.label}, seed ${seed}.`}
           >
             <IntervalPlot
               aria-label={`Final-test pass rate, ${measured.backend.label}`}

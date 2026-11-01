@@ -149,7 +149,7 @@ export function ModelsScreen({
               <EmptyState
                 icon={<Boxes aria-hidden />}
                 title="No models yet"
-                description="Each agent Architect teaches is kept here, with every version of it."
+                description="Every specialist you engineer is kept here, with each version."
                 className="pt-16"
                 actions={
                   <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>

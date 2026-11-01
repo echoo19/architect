@@ -13,6 +13,7 @@ import {
   checkCounts,
   checkPlace,
   noCertificateSentence,
+  riskCertificateSentence,
 } from '../../../src/renderer/src/flow/report/certificate-words';
 import { makeJob } from './factories';
 
@@ -38,6 +39,9 @@ describe('a certificate in words (decision 077)', () => {
     expect(boundPercent(0.0701)).toBe(8);
     const all = { ...issued, threshold: { ...point, coverage: 1 } };
     expect(certificateSentence(all, 'Academy desk')).toContain('It answered every one.');
+    expect(riskCertificateSentence(issued, 'Academy desk')).toBe(
+      "8% risk bound on Academy desk's answers, at 95% confidence and 78% coverage.",
+    );
   });
 
   it('states n, k, the rule, ε and δ', () => {

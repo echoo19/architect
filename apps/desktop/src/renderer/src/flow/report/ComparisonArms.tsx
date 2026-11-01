@@ -4,6 +4,7 @@ import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import { Section } from '../ledger';
 import type { ModelNames } from '../train/phase';
+import { useEdition } from '../../shell/edition';
 import { reportArms, type ArmScore, type ReportArm } from './comparison-report';
 
 const percentOf = (share: number) => Math.round(share * 100);
@@ -164,7 +165,7 @@ export function ComparisonArms({
   /** Where this run's own final test ran, so its row reads the same figure as the stats above. */
   testedOn: StudentTarget;
 }) {
-  const arms = reportArms(report, runId, names);
+  const arms = reportArms(report, runId, names, useEdition() === 'lab');
   const main = arms.filter(isHeadline);
   const more = arms.filter((arm) => !isHeadline(arm));
   const notes = arms

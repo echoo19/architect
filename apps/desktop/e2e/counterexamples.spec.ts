@@ -88,7 +88,7 @@ test("counts and lists a field's counterexamples in its assets", async () => {
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, `/fields/${LAB.academyDeskJob}`);
   await page.getByRole('tab', { name: 'Assets' }).click();
-  const card = page.getByRole('region', { name: 'Counterexamples' });
+  const card = page.getByRole('region', { name: 'Regression suite' });
   await expect(card).toContainText('2');
   await expect(card).toContainText(
     'question_lookup stops with the error "test position not found"',
