@@ -346,6 +346,23 @@ export function allowingLine(minutes: number): string {
   return `Allowing ${capText(minutes)} leaves room for one round of teaching.`;
 }
 
+/**
+ * The button that sets that limit. It names training, since the limit is training's alone: the
+ * final test runs after it, outside the limit, and the estimate adds the two.
+ */
+export function allowLabel(minutes: number): string {
+  return `Allow ${capText(minutes)} of training`;
+}
+
+/**
+ * The final test's time, said in the callout beside the time training needs, so the estimate
+ * (training and the final test) adds up from the two: "The final test adds about 1.5 h after
+ * training."
+ */
+export function finalTestAfter(job: Job, testPlace: TrainPlace, finalTest: string): string {
+  return `The ${finalTest} adds about ${shortDuration(testSeconds(job, testPlace))} after training.`;
+}
+
 /** A length of time to the minute, which the person can add up: "1 h 40 min", "23 min". */
 function toTheMinute(seconds: number): string {
   return formatDuration(seconds * 1000);

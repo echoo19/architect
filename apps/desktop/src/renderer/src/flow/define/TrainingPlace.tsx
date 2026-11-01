@@ -17,14 +17,15 @@ import { modelNames } from '../names';
 import {
   aboutUsd,
   allowingLine,
+  allowLabel,
   type Bills,
-  capText,
   comparisonSeconds,
   estimateNotes,
   estimateTime,
   fittingRounds,
   formatAboutUsd,
   limitText,
+  finalTestAfter,
   minutesForOneRound,
   planBills,
   placePhrase,
@@ -103,8 +104,9 @@ interface TrainingPlaceProps extends PlanFacts {
  * the callout with the ways out.
  */
 export function TrainingPlace(props: TrainingPlaceProps) {
-  const { job, hosted, onPlaceChange, onRetryKeys, onRaiseLimit, onAllowTime, onSetUpOnline } =
-    props;
+  const { job, hosted, testPlace, onPlaceChange, onRetryKeys, onRaiseLimit, onAllowTime } = props;
+  const { onSetUpOnline } = props;
+  const w = useWords();
   const facts = factsOf(props);
   const { names, device, remote, localSlow, remoteSlow, onHost, chosen, fits, pricing } = facts;
   const { mentor, student } = names;
@@ -168,12 +170,12 @@ export function TrainingPlace(props: TrainingPlaceProps) {
         {!fits && (
           <WontTeach
             title={wontTeachTitle(job, job.student.trainOn, device)}
-            body={wontTeachBody(job, chosen)}
+            body={`${wontTeachBody(job, chosen)} ${finalTestAfter(job, testPlace, w.finalTest)}`}
             allow={
               roomy === null
                 ? null
                 : {
-                    label: `Allow ${capText(roomy)}`,
+                    label: allowLabel(roomy),
                     gives: allowingLine(roomy),
                     onAllow: () => onAllowTime(roomy),
                   }
