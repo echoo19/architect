@@ -1,4 +1,5 @@
 export { cn } from './lib/cn';
+export { useWindowBelow } from './lib/window-width';
 export { WINDOW_CHROME, type WindowChrome } from './chrome';
 export { defineTerm, WORDS, type LabTerm, type Words } from './terms';
 export {

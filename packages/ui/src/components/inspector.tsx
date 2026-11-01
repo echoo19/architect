@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Tabs } from 'radix-ui';
 import { cn } from '../lib/cn';
+import { useWindowBelow } from '../lib/window-width';
 import { springs } from '../motion/springs';
 import { StepTransition } from '../motion/step-transition';
 import { IconButton } from './icon-button';
@@ -37,7 +38,8 @@ export interface InspectorProps<T extends string> {
   onTabChange?: (tab: T) => void;
   /**
    * Starts folded on a narrow window (`INSPECTOR_FOLDS_BELOW`) until the person opens or folds it
-   * themselves, for a panel beside a page that needs its width more than the panel does.
+   * themselves, for a panel beside a page that needs its width more than the panel does. Opened
+   * on a narrow window, it floats over the page from its rail rather than squeezing the page.
    */
   foldWhenNarrow?: boolean;
   /** Whether the panel is shown. Closing slides it shut; it stays mounted, so it keeps its tab. */
@@ -50,9 +52,12 @@ export interface InspectorProps<T extends string> {
 }
 
 /** How wide the inspector is, open and folded: open, five tabs fit side by side by name. */
-export const INSPECTOR_WIDTH = { open: 400, folded: 56 } as const;
+export const INSPECTOR_WIDTH = { open: 408, folded: 56 } as const;
 
-/** How far the floating panel stands in from the window's right edge, and from top and bottom. */
+/**
+ * How far the floating panel stands in from the window's right edge, from top and bottom, and,
+ * open, from the page beside it, so the page's scrollbar reads as the page's.
+ */
 const INSPECTOR_INSET = 8;
 
 /** The open panel and the rail trade places: the old one fades out fast as the new fades in. */
@@ -77,6 +82,12 @@ const INSPECTOR_FOLDS_BELOW = 1400;
 
 const narrowWindow = () =>
   typeof window !== 'undefined' && window.innerWidth < INSPECTOR_FOLDS_BELOW;
+
+/** How wide the floating panel is, inside the inspector's width. */
+const panelWidth = (width: number) =>
+  width === INSPECTOR_WIDTH.open
+    ? width - 2 * INSPECTOR_INSET
+    : Math.max(0, width - INSPECTOR_INSET);
 
 /**
  * What an inspector kept under a name: its tab, if that tab still exists, and whether it was
@@ -158,26 +169,54 @@ export function Inspector<T extends string>({
     setState(next);
     keep(rememberAs, next);
   }, [asked, rememberAs]);
+  const narrow = useWindowBelow(INSPECTOR_FOLDS_BELOW);
+  const aside = useRef<HTMLElement>(null);
   const tab = asked ?? state.tab ?? first;
-  if (tab === undefined) return null;
   const width = !open ? 0 : state.folded ? INSPECTOR_WIDTH.folded : INSPECTOR_WIDTH.open;
+  // Opened on a narrow window, the panel floats over the page; the rail keeps its place.
+  const overlay = foldWhenNarrow && narrow && width === INSPECTOR_WIDTH.open;
+  // Floating, it folds again when the page under it is pointed at; a menu it opened, which
+  // floats outside the page, leaves it open.
+  useEffect(() => {
+    if (!overlay) return;
+    const away = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || aside.current?.contains(target)) return;
+      if (!target.closest('main')) return;
+      setState((current) => {
+        const next = { ...current, folded: true };
+        keep(rememberAs, next);
+        return next;
+      });
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [overlay, rememberAs]);
+  if (tab === undefined) return null;
 
   return (
     <motion.aside
+      ref={aside}
       aria-label={props['aria-label']}
       initial={false}
-      animate={{ width }}
+      animate={{ width: overlay ? INSPECTOR_WIDTH.folded : width }}
       transition={springs.smooth}
       data-folded={state.folded || undefined}
+      data-overlay={overlay || undefined}
       aria-hidden={!open || undefined}
-      className={cn('relative h-full shrink-0 overflow-hidden', className)}
+      className={cn('relative h-full shrink-0', overlay && 'z-20', className)}
     >
       {/*
         The panel floats 8px in from the window's edge. As the width springs, the open panel
         stays anchored at its left and slides with that edge, clipped, never squeezed; the rail
         stays anchored at the right. One fades out quickly as the other fades in.
       */}
-      <div className="absolute inset-y-2 left-0 right-2 overflow-hidden rounded-card surface-float">
+      <motion.div
+        initial={false}
+        animate={{ width: panelWidth(width) }}
+        transition={springs.smooth}
+        className="absolute inset-y-2 right-2 overflow-hidden rounded-card surface-float"
+      >
         <AnimatePresence initial={false}>
           {!open ? null : state.folded ? (
             <motion.div
@@ -214,7 +253,7 @@ export function Inspector<T extends string>({
             <motion.div
               key="open"
               {...swap}
-              style={{ width: INSPECTOR_WIDTH.open - INSPECTOR_INSET }}
+              style={{ width: panelWidth(INSPECTOR_WIDTH.open) }}
               className="absolute inset-y-0 left-0 flex"
             >
               <Tabs.Root
@@ -289,7 +328,7 @@ export function Inspector<T extends string>({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </motion.aside>
   );
 }

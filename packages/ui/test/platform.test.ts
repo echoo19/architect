@@ -220,7 +220,9 @@ describe('Inspector', () => {
     );
     expect(html).toMatch(/aria-selected="true"[^>]*>.*?Budget/);
     expect(html).toContain('content of budget');
-    expect(html).toContain('width:400px');
+    // The panel keeps 392px for its tabs, 8px in from the page beside it and the window's edge.
+    expect(html).toContain('width:408px');
+    expect(html).toContain('width:392px');
     // Every tab shows its name; none is reduced to its icon.
     expect(html).toContain('>Teacher</span>');
     expect(html).not.toContain('data-icon');
