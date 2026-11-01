@@ -50,7 +50,7 @@ const COLUMNS: {
 /** A category's line under its task type, said only where teaching gave up on it. */
 function stoppedLine(category: Capability['categories'][number], mentor: string): string | null {
   return category.stopped
-    ? `${mentor} stopped teaching ${category.label}: no gain`
+    ? `${mentor} stopped teaching ${category.label}: its changes didn't help`
     : null;
 }
 
