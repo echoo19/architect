@@ -110,7 +110,7 @@ function Spent({
       ? formatCost(amount.used)
       : `${formatCost(amount.used)} of ${formatCost(amount.cap)}`;
   return (
-    <span className="ml-auto flex w-36 flex-col items-end gap-1.5">
+    <span className="ml-auto flex w-28 flex-col items-end gap-1.5 whitespace-nowrap">
       <span className={amount.cap !== null && amount.used > amount.cap ? 'text-danger' : undefined}>
         {reading}
       </span>
@@ -146,9 +146,11 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
         {
           key: 'status',
           header: 'Status',
-          width: '176px',
           cell: (row) => (
-            <span className="flex items-center gap-2" title={row.reason ?? undefined}>
+            <span
+              className="flex items-center gap-2 whitespace-nowrap"
+              title={row.reason ?? undefined}
+            >
               {row.status === DONE_TEACHING && <Lock size={13} aria-hidden />}
               {row.status}
             </span>
@@ -158,26 +160,25 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
           key: 'rounds',
           header: 'Rounds',
           align: 'end',
-          width: '104px',
           cell: (row) =>
-            row.rounds === null
-              ? null
-              : row.rounds.cap === null
-                ? row.rounds.used
-                : `${row.rounds.used} of ${row.rounds.cap}`,
+            row.rounds === null ? null : (
+              <span className="whitespace-nowrap">
+                {row.rounds.cap === null
+                  ? row.rounds.used
+                  : `${row.rounds.used} of ${row.rounds.cap}`}
+              </span>
+            ),
         },
         {
           key: 'spark',
           header: names.mentor,
           align: 'end',
-          width: '176px',
           cell: (row) => <Spent amount={row.spark} tone="mentor" />,
         },
         {
           key: 'student',
           header: names.student,
           align: 'end',
-          width: '176px',
           cell: (row) => <Spent amount={row.student} tone="student" />,
         },
       ]}
