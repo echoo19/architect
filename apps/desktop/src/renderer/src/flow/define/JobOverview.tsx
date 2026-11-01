@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Job, PermissionMode } from '@architect/shared';
 import { Heading, NumberTicker, Segmented, SettingsValue } from '@architect/ui';
-import { Check, X, type LucideIcon } from 'lucide-react';
+import { Check, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { useWords } from '../../shell/edition';
 import { WRITE_MODE_LABELS, WRITE_MODES, WRITE_SETTING } from '../../workspace/labels';
 import { formatTimeLimit } from '../format';
@@ -32,7 +32,11 @@ export function Capabilities({ job }: { job: Job }) {
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-x-12 gap-y-8">
       <CapabilityList label="What it does" items={job.does} icon={Check} />
-      <CapabilityList label="What it won't do" items={job.doesNot} icon={X} />
+      {/*
+        Its limits are said both ways ("Never changes past invoices", "Asks before it saves"), so
+        they carry a guard's mark, which reads right for either, and not a cross.
+      */}
+      <CapabilityList label="What it won't do" items={job.doesNot} icon={ShieldCheck} />
     </div>
   );
 }
@@ -49,7 +53,8 @@ function CapabilityList({
   return (
     <section aria-label={label}>
       {items.length === 0 ? (
-        <p className="m-0 text-body">Nothing listed</p>
+        // The lists have no headings, so an empty one says which it is.
+        <p className="m-0 text-body">{label}: nothing listed</p>
       ) : (
         <ul className="m-0 flex list-none flex-col p-0 text-body">
           {items.map((item) => (
