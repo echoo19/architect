@@ -143,7 +143,7 @@ function CurveChart({
             x={PLOT.left - 10}
             y={tick.y + 4.4}
             textAnchor="end"
-            className="fill-fg font-mono text-small"
+            className="fill-fg tabular-nums text-small"
           >
             {tick.value}%
           </text>
@@ -161,7 +161,7 @@ function CurveChart({
         x={CURVE_BOX.width}
         y={targetY + 4.4}
         textAnchor="end"
-        className="fill-fg font-mono text-small"
+        className="fill-fg tabular-nums text-small"
       >
         Target {target}%
       </text>
@@ -186,7 +186,7 @@ function CurveChart({
             y={PLOT.labelY}
             textAnchor="middle"
             className={cn(
-              'font-mono text-small',
+              'tabular-nums text-small',
               tick.round === pending?.round && 'fill-mentor',
               tick.round !== pending?.round && 'fill-fg',
               tick.reached && 'font-medium',

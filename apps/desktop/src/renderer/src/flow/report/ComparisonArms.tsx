@@ -125,7 +125,9 @@ function Rows({
                         <span>Not run</span>
                       ) : (
                         <span className="inline-flex items-baseline justify-end gap-3 whitespace-nowrap tabular-nums">
-                          <span className="font-mono font-medium">{formatRate(shown.score)}</span>
+                          <span className="tabular-nums font-medium">
+                            {formatRate(shown.score)}
+                          </span>
                           <span className="text-small">
                             {counts(shown.score)}
                             {shown.where && `, ${shown.where}`}
@@ -133,7 +135,7 @@ function Rows({
                         </span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap py-3.5 pl-6 text-right align-top font-mono tabular-nums">
+                    <td className="whitespace-nowrap py-3.5 pl-6 text-right align-top tabular-nums">
                       {costOf(arm.spent)}
                     </td>
                   </>
