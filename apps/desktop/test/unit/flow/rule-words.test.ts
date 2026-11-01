@@ -103,10 +103,11 @@ describe('the words that put a rule in front of the person', () => {
       data: { ...plan({ state: 'needed', token: 'abc' }), study: { state, token: 'def' } },
     });
     expect(trainingWait(studied('unstudied'))).toBe('study');
-    expect(trainingWait(studied('needed'))).toBe('study');
+    expect(trainingWait(studied('needed'))).toBe('brief');
     expect(trainingWait(studied('changed'))).toBe('study');
     expect(trainingWait(studied('confirmed'))).toBe('confirm');
-    expect(waitLine('study')).toBe('Confirm the brief first');
+    expect(waitLine('study')).toBe('Study the material first');
+    expect(waitLine('brief')).toBe('Confirm the brief first');
   });
 
   it('says in the footer why training waits', () => {

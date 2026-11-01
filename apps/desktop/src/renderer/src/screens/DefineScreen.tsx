@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   isBaselineMethod,
   MethodSchema,
@@ -105,7 +105,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   const taskPlan = useTaskPlan(initial.id);
   // Whether the job has a rule to confirm is in its plan, so training waits until it is read.
   const wait = trainingWait(taskPlan);
-  const { job } = editor;
+  const { job, estimable } = editor;
   const settings = useSettings();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   // Undefined until something here picks a tab: the inspector opens on the one it kept.
@@ -155,7 +155,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   const hosted = hostedAvailability(job.student, preflight.keys);
   // Training where the job trains would run out of time before the teacher changed anything. It
   // waits like any other need, and the way out is on the page: more time, or the other place.
-  const wontTeach = trainsTooSlow(job);
+  const wontTeach = trainsTooSlow(estimable);
   // A time limit that stops training early is said beside Start training, with its fix.
   // Retraining with no compute is said in Budget only: jobs allow it by default and skip it.
 
@@ -264,7 +264,11 @@ function DefineEditor({ initial }: { initial: Job }) {
                 (preflight.needs.length > 0
                   ? preflight.summary
                   : wontTeach
-                    ? wontTeachTitle(job, job.student.trainOn, deviceInSentence(currentPlatform()))
+                    ? wontTeachTitle(
+                        estimable,
+                        estimable.student.trainOn,
+                        deviceInSentence(currentPlatform()),
+                      )
                     : null)
               }
               onStart={() => void start()}
@@ -311,7 +315,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         </Collapse>
         <StaggerItem className="pb-10">
           <TrainingPlace
-            job={job}
+            job={estimable}
             hosted={hosted}
             testPlace={testPlace}
             onPlaceChange={(trainOn) =>
@@ -333,7 +337,12 @@ function DefineEditor({ initial }: { initial: Job }) {
           />
         </StaggerItem>
         <StaggerItem className="flex flex-col">
-          <TrainingRows job={job} hosted={hosted} testPlace={testPlace} baselines={baselines} />
+          <TrainingRows
+            job={estimable}
+            hosted={hosted}
+            testPlace={testPlace}
+            baselines={baselines}
+          />
           <ReadyWhen job={job} />
           {taskPlan.data && taskPlan.status !== 'error' && (
             <TaskRows plan={taskPlan.data} onMore={() => openAdvanced('evaluation')} />
@@ -360,7 +369,8 @@ function DefineEditor({ initial }: { initial: Job }) {
 
 /**
  * Start training. While something on the page holds it back (a rule to confirm, a need above,
- * a limit no round fits in), it is disabled, and its tooltip says what; the page says how to fix it.
+ * a limit no round fits in), it is disabled, and the line beside it says what; the page says how
+ * to fix it.
  */
 function StartButton({
   starting,
@@ -373,18 +383,24 @@ function StartButton({
   why: string | null;
   onStart: () => void;
 }) {
-  const button = (
-    <Button variant="primary" loading={starting} disabled={disabled} onClick={onStart}>
-      Start training
-    </Button>
-  );
-  if (!disabled || why === null) return button;
-  // A disabled button takes no pointer, so the tooltip hangs on the span around it.
+  const id = useId();
+  const held = disabled && why !== null;
   return (
-    <Tooltip content={why}>
-      <span tabIndex={0} className="rounded-control">
-        {button}
-      </span>
-    </Tooltip>
+    <>
+      {held && (
+        <span id={`${id}-why`} className="order-first mr-2 text-ui">
+          {why}
+        </span>
+      )}
+      <Button
+        variant="primary"
+        loading={starting}
+        disabled={disabled}
+        aria-describedby={held ? `${id}-why` : undefined}
+        onClick={onStart}
+      >
+        Start training
+      </Button>
+    </>
   );
 }

@@ -165,11 +165,14 @@ export async function tooltipText(page: Page, trigger: Locator): Promise<string>
 }
 
 /**
- * Why Start training is held, from the tooltip on what wraps the disabled button, or null when
- * it isn't held. The footer holds only its buttons, so a held one says why in its tooltip.
+ * Why Start training is held, from the line beside the disabled button, or null when it isn't
+ * held.
  */
-export function startHeldBy(page: Page): Promise<string | null> {
-  return heldBy(page, page.getByRole('button', { name: 'Start training' }));
+export async function startHeldBy(page: Page): Promise<string | null> {
+  const button = page.getByRole('button', { name: 'Start training' });
+  if (await button.isEnabled()) return null;
+  const why = await button.getAttribute('aria-describedby');
+  return why === null ? null : page.locator(`[id="${why}"]`).innerText();
 }
 
 /**

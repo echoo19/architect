@@ -22,13 +22,14 @@ export interface PlanQuery {
  * it couldn't be, it is not known that nothing is owed. `confirm`: a rule the person hasn't
  * confirmed. `describe`: records that changed under the rule, which confirming can't mend.
  */
-export type TrainingWait = 'reading' | 'unreadable' | 'study' | 'confirm' | 'describe';
+export type TrainingWait = 'reading' | 'unreadable' | 'study' | 'brief' | 'confirm' | 'describe';
 
 export function trainingWait(plan: PlanQuery): TrainingWait | null {
   if (plan.status === 'loading') return 'reading';
   if (plan.status === 'error') return 'unreadable';
   // A field job waits first for the person to confirm what the teacher understood (069).
   const study = plan.data?.study;
+  if (study?.state === 'needed') return 'brief';
   if (study !== undefined && study.state !== 'confirmed') return 'study';
   switch (plan.data?.confirmation?.state) {
     case 'needed':
@@ -48,6 +49,8 @@ export function waitLine(wait: TrainingWait | null): string | null {
     case 'unreadable':
       return "Couldn't check the job";
     case 'study':
+      return 'Study the material first';
+    case 'brief':
       return 'Confirm the brief first';
     case 'confirm':
       return 'Confirm the rule first';
