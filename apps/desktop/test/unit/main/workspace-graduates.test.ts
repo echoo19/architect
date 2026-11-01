@@ -77,6 +77,34 @@ describe('WorkspaceGraduates', () => {
     expect(openGraduate).not.toHaveBeenCalledWith('grd_unconverted');
   });
 
+  it('opens a graduate a run made, before requests that wait for the graduates go on', async () => {
+    const graduates = [graduate('grd_1')];
+    const { host, workspace } = setup(graduates);
+    workspace.openAll();
+    await workspace.settled();
+    host.openGraduate.mockClear();
+
+    // A run made a new agent: requests made from now on wait until it is open.
+    graduates.push(graduate('grd_made'));
+    void workspace.openMade('grd_made');
+    await workspace.settled();
+    expect(host.openGraduate.mock.calls).toEqual([['grd_made']]);
+    expect(workspace.failure('grd_made')).toBeUndefined();
+
+    // A later version of an open agent leaves the one it answers with as it is.
+    await workspace.openMade('grd_1');
+    await workspace.openMade('grd_made');
+    expect(host.openGraduate.mock.calls).toEqual([['grd_made']]);
+  });
+
+  it('opens a graduate a run made again after it was closed', async () => {
+    const { host, workspace } = setup([graduate('grd_1')]);
+    await workspace.openMade('grd_1');
+    await workspace.close('grd_1');
+    await workspace.openMade('grd_1');
+    expect(host.openGraduate.mock.calls).toEqual([['grd_1'], ['grd_1']]);
+  });
+
   it('closes a graduate and forgets why it failed', async () => {
     const { host, workspace } = setup([graduate('grd_unconverted', null)]);
     workspace.openAll();

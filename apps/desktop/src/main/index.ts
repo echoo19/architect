@@ -186,7 +186,12 @@ async function start(): Promise<void> {
         keys,
       )),
     onConnect: (client) => {
-      client.runs.onEvent((event) => router.emit('runs', 'onEvent', event));
+      client.runs.onEvent((event) => {
+        // An agent's first version is active from the start (decision 039), so it chats at once:
+        // opened before the screens hear of it, so their first request waits for it.
+        if (event.type === 'graduate.ready') void graduates.openMade(event.graduateId);
+        router.emit('runs', 'onEvent', event);
+      });
       client.experiments.onEvent((event) => router.emit('experiments', 'onEvent', event));
       client.graduates.onPublishProgress((progress) =>
         router.emit('graduates', 'onPublishProgress', progress),
