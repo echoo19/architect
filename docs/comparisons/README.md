@@ -25,3 +25,5 @@ Sweep desk, which reads ML research groups' training runs, has its first report:
 An earlier comparison, on the service desk sample job with the first version of Glimmer's tools, is described in the README's Results section and in [docs/PROGRESS.md](../PROGRESS.md).
 
 `screens/` holds captures of comparison 2's taught agent in the app, made by opening that run's own records in Architect: its training, its first round and its results page.
+
+Fine-tuning has its own report: [qlora-1.md](qlora-1.md), the first real QLoRA job. Inventory desk's 22 checker-passed practice attempts trained a LoRA adapter on Glimmer's open weights on one A100 on Hugging Face Jobs, in 8.2 minutes for $0.34 (about $0.98 with the three failed jobs that found and fixed three faults). The adapter passes the product's file-level checks against the local base. Its effect on the sealed final test is measured next.
