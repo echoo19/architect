@@ -222,12 +222,6 @@ body {
   }
 
   @media (min-width: 1024px) {
-    .why-quote {
-      font-size: 1.75rem;
-      line-height: 1.25;
-      letter-spacing: -0.018em;
-    }
-
     .why-quote::before {
       position: absolute;
       right: 100%;
