@@ -309,7 +309,7 @@ test('changes what the agent may write and opens its settings', async () => {
   await expect(dialog.getByText('Passed: 92% · 55 of 60')).toBeVisible();
   // The model this computer runs it on, in a picker of the models here, with its tag beside.
   await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
-    'Muse Glimmer · 4-bit',
+    'Glimmer · 4-bit',
   );
   await expect(dialog.getByText('4-bit · 17 GB on disk · muse-glimmer:30b')).toBeVisible();
   // This computer's checks sit apart from the author's final test.

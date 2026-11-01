@@ -249,8 +249,8 @@ test('picks the model for new agents on this computer, with whether it fits the 
   await openModelsTab();
   await page.getByRole('button', { name: 'Model for new agents' }).click();
   const menu = page.getByRole('listbox');
-  await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('Fast');
-  await expect(menu.getByRole('option', { name: /Muse Glimmer · 4-bit/ })).toContainText(
+  await expect(menu.getByRole('option', { name: /Glimmer · 2-bit/ })).toContainText('Fast');
+  await expect(menu.getByRole('option', { name: /Glimmer · 4-bit/ })).toContainText(
     'Not downloaded',
   );
   await menu.getByRole('option', { name: new RegExp(GRANITE) }).click();
@@ -258,7 +258,7 @@ test('picks the model for new agents on this computer, with whether it fits the 
 
   // The 4-bit build would run partly on this 12 GB card; the 2-bit one fits and is here.
   await page.getByRole('button', { name: 'Model for new agents' }).click();
-  await page.getByRole('option', { name: /Muse Glimmer · 4-bit/ }).click();
+  await page.getByRole('option', { name: /Glimmer · 4-bit/ }).click();
   await expect(page.getByText('Not downloaded yet')).toBeVisible();
   expect(await infoTipText(page, page, /.* fits your GPU$/)).toBe(
     `Runs entirely on the ${GPU_12GB.name}, several times faster.`,

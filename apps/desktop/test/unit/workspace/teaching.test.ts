@@ -120,7 +120,7 @@ describe('a proposed lesson', () => {
     });
     // Any other failure keeps its own message, and the note to send again.
     expect(proposeFailure(new Error('Spark is busy.'), 'Spark', 0.25)).toEqual({
-      title: "Couldn't propose a lesson",
+      title: "Spark couldn't propose a lesson",
       text: 'Spark is busy.',
       retry: true,
     });
