@@ -32,6 +32,30 @@ const SETUP_FAILED: Installation['checks'] = [
 ];
 
 describe('the one verdict of a report', () => {
+  it('qualifies a ready agent whose certificate did not hold somewhere, in the title itself', () => {
+    const check = { seen: false, synthetic: false, tasks: 30, answered: 21, errors: 3 };
+    const point = { votes: 4, answered: 60, errors: 1, coverage: 0.78, bound: 0.0766 };
+    const certificate = {
+      issued: true as const,
+      ...{ n: 77, k: 5, delta: 0.05, epsilon: 0.1, curve: [point], threshold: point },
+      assumption: 'Requests like the calibration ones.',
+      checks: [
+        { ...check, seen: true, held: true },
+        { ...check, held: false, org: 'real', orgName: 'Real academy' },
+      ],
+    };
+    const report = { ...card(), certificate };
+    expect(reportVerdict(report, null, CONTEXT)).toMatchObject({
+      state: 'ready',
+      title: "Returns desk is ready, but its certificate didn't hold at Real academy",
+      usable: true,
+    });
+    const held = { ...certificate, checks: [{ ...check, seen: true, held: true }] };
+    expect(reportVerdict({ ...card(), certificate: held }, null, CONTEXT).title).toBe(
+      'Returns desk is ready',
+    );
+  });
+
   it('graduates an agent that met its targets and runs here, or whose checks are not known yet', () => {
     for (const installation of [null, checked('ready'), checked('unchecked')]) {
       expect(reportVerdict(card(), installation, CONTEXT)).toMatchObject({

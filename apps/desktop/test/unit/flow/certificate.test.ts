@@ -9,6 +9,7 @@ import {
   boundPercent,
   certificateBasis,
   certificateFigure,
+  certificateHint,
   certificateSentence,
   checkCounts,
   checkPlace,
@@ -34,16 +35,18 @@ const issued: Extract<Certificate, { issued: true }> = {
 describe('a certificate in words (decision 077)', () => {
   it('says the bound rounded up, the confidence and what it handed on', () => {
     expect(certificateSentence(issued, 'Academy desk')).toBe(
-      'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
+      'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% of its calibration tasks to a person.',
     );
     expect(boundPercent(0.07)).toBe(7);
     expect(boundPercent(0.0701)).toBe(8);
     const all = { ...issued, threshold: { ...point, coverage: 1 } };
-    expect(certificateSentence(all, 'Academy desk')).toContain('It answered every one.');
+    expect(certificateSentence(all, 'Academy desk')).toContain(
+      'It answered every calibration task.',
+    );
     expect(riskCertificateFigures(issued)).toEqual([
       { label: 'Risk bound', value: '8%' },
       { label: 'Confidence', value: '95%' },
-      { label: 'Coverage', value: '78%' },
+      { label: 'Coverage on calibration tasks', value: '78%' },
     ]);
   });
 
@@ -61,6 +64,11 @@ describe('a certificate in words (decision 077)', () => {
       notHeldLine({ ...issued, checks: [{ ...taught, held: false }] }, 'sealed final test'),
     ).toBe('Not held on the sealed final test');
     expect(notHeldLine(undefined)).toBeNull();
+    // The figure's hint says where it failed, so a tooltip never reads as holding everywhere.
+    expect(certificateHint({ ...issued, checks: [taught, real] })).toBe(
+      'Risk certificate: bound 8% at 95% confidence, coverage 78% on calibration tasks; not held at Real academy',
+    );
+    expect(certificateHint({ ...issued, checks: [taught] })).not.toContain('not held');
   });
 
   it('states n, k, the rule, ε and δ', () => {

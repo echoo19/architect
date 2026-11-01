@@ -36,6 +36,7 @@ import {
   Pause,
   Plus,
   ShieldCheck,
+  TriangleAlert,
   ArrowBigUpDash,
 } from 'lucide-react';
 import { api, architect } from '../api/client';
@@ -51,6 +52,7 @@ import { formatCost, shortDate } from '../flow/format';
 import {
   certificateFigure,
   certificateHint,
+  notHeldLine,
   riskCertificateFigures,
 } from '../flow/report/certificate-words';
 import { formatPercent, percentOf } from '../lib/format';
@@ -486,11 +488,14 @@ interface HeroFigure {
   value: string;
   /** What the figure rests on: "55 of 66", "95% confidence". */
   note: string;
+  /** Where the claim failed, said beside it: "Not held at Real academy". */
+  caveat?: string;
 }
 
 /**
- * The figures that make the claim, in the order it is made: organizations it never saw, the real
- * one among them, and the risk bound; a job of one organization has its sealed final test instead.
+ * The figures that make the claim, in the order it is made: the generated organizations it never
+ * saw, the real one beside them, and the risk bound with where it didn't hold; a job of one
+ * organization has its sealed final test instead.
  */
 function heroFigures(card: ReportCard): HeroFigure[] {
   const scores = card.test.perOrg?.length ? orgScores(card.test.perOrg) : null;
@@ -508,11 +513,13 @@ function heroFigures(card: ReportCard): HeroFigure[] {
   const bound = certificateFigure(card.certificate);
   if (card.certificate?.issued === true && bound !== null) {
     const [, confidence] = riskCertificateFigures(card.certificate);
+    const notHeld = notHeldLine(card.certificate, 'sealed final test');
     figures.push({
       label: 'Risk bound',
       term: 'riskBound',
       value: bound,
       note: `${confidence?.value ?? ''} confidence`,
+      ...(notHeld === null ? {} : { caveat: notHeld }),
     });
   }
   return figures;
@@ -520,7 +527,7 @@ function heroFigures(card: ReportCard): HeroFigure[] {
 
 /**
  * The newest finished result, leading the Lab: how the specialist did on organizations it never
- * saw, the real one among them and its risk bound, each term explained behind its info icon, with
+ * saw, the real one beside them and its risk bound, each term explained behind its info icon, with
  * the organizations it was taught on beside them.
  */
 export function HeroResultCard({ row, mentor }: { row: RunRow; mentor?: string | undefined }) {
@@ -594,6 +601,12 @@ function HeroNumber({
         <InfoTip about={figure.label}>{defineTerm(figure.term, mentor)}</InfoTip>
       </span>
       <span className="text-small tabular-nums">{figure.note}</span>
+      {figure.caveat && (
+        <span className="flex items-center gap-1.5 text-small font-medium">
+          <TriangleAlert size={13} strokeWidth={1.8} className="text-danger" aria-hidden />
+          {figure.caveat}
+        </span>
+      )}
     </div>
   );
 }
