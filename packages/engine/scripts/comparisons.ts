@@ -6,7 +6,8 @@
  *   pnpm --filter @architect/engine exec tsx scripts/comparisons.ts <command> <jobDir> --out <dir>
  *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,weights-one-shot,
  *       weights-targeted]
- *     [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N]
+ *     [--student-usd N] [--spark-usd N] [--spark-cap <cap>=<usd>]... [--compute-usd N]
+ *     [--gpu-minutes N] [--rounds N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
  *     [--adapter-protocol four-cell|reduced] [--smoke-tasks N]
  *     [--providers DeepInfra|any] [--mentor <preset>] [--local-model <name>] [--headroom N]
@@ -26,6 +27,9 @@
  * The job's own teacher mentors every arm, Spark when a coding agent teaches it, unless --mentor
  * names a mentor preset by its key instead. --providers pins the hosted student; a teacher on
  * OpenRouter is pinned by the providers in the job's mentor settings.
+ *
+ * --spark-cap sets one Spark cap over its default, such as targeted=0.75, and can be repeated; the
+ * caps are draft, targeted, fixed, reference, referenceTargeted and weights.
  *
  * Money and the GPU are held at each request. Every hosted request is reserved against
  * --student-usd at the most it could cost and written to requests.jsonl before it is sent, so
@@ -57,6 +61,8 @@ import {
   realEnvironment,
   reportOnly,
   runComparison,
+  SparkCapError,
+  sparkCapsWith,
   type ComparisonConfig,
   type ComparisonRequest,
 } from '../src/comparisons';
@@ -66,7 +72,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--mentor <preset>] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N] [--raise-student-usd N] [--drop-arms a,b]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--spark-cap <cap>=<usd>]... [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--mentor <preset>] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N] [--raise-student-usd N] [--drop-arms a,b]';
 
 class UsageError extends Error {}
 
@@ -84,6 +90,7 @@ function parse(args: readonly string[]): Parsed {
   const positional: string[] = [];
   const values = new Map<string, string>();
   const flags = new Set<string>();
+  const sparkCaps: string[] = [];
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index] ?? '';
     if (FLAGS.has(arg)) {
@@ -96,7 +103,8 @@ function parse(args: readonly string[]): Parsed {
     }
     const value = args[index + 1];
     if (value === undefined) throw new UsageError(`${arg} needs a value.`);
-    values.set(arg, value);
+    if (arg === '--spark-cap') sparkCaps.push(value);
+    else values.set(arg, value);
     index += 1;
   }
   const [command, jobDir] = positional;
@@ -132,9 +140,17 @@ function parse(args: readonly string[]): Parsed {
       'The reduced adapter protocol measures only the one-shot adapter; leave weights-targeted out of --arms.',
     );
   }
+  let chosenSparkCaps: ComparisonConfig['sparkCaps'];
+  try {
+    chosenSparkCaps = sparkCapsWith(sparkCaps);
+  } catch (error) {
+    if (error instanceof SparkCapError) throw new UsageError(error.message);
+    throw error;
+  }
   const config: ComparisonConfig = {
     ...DEFAULT_CONFIG,
     arms,
+    sparkCaps: chosenSparkCaps,
     adapterProtocol: adapterProtocol.data,
     smokeTasks: Math.max(1, Math.floor(number('--smoke-tasks', DEFAULT_CONFIG.smokeTasks))),
     // Refinement rounds for the targeted and fixed arms; the plan records them, so a resume keeps them.

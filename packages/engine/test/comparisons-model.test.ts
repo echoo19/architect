@@ -15,6 +15,8 @@ import {
   parseGpuMemory,
   parseProcessMemory,
   project,
+  SparkCapError,
+  sparkCapsWith,
   wilson,
   type ComparisonConfig,
 } from '../src/comparisons';
@@ -437,5 +439,45 @@ describe('the system meter', () => {
     expect(parseProcessMemory(ps, 'darwin', ['ollama'])).toBeNull();
     expect(parseGpuMemory('11264\n')).toBe(11264 * 1024 * 1024);
     expect(parseGpuMemory('')).toBeNull();
+  });
+});
+
+describe('Spark caps set from the command line', () => {
+  it('sets each cap named over its default, the last naming winning', () => {
+    expect(sparkCapsWith([])).toEqual(DEFAULT_CONFIG.sparkCaps);
+    expect(sparkCapsWith(['targeted=0.75', 'draft=0.5', 'targeted=0.8'])).toEqual({
+      ...DEFAULT_CONFIG.sparkCaps,
+      targeted: 0.8,
+      draft: 0.5,
+    });
+  });
+
+  it('funds a taught arm on $2 of Spark once its cap is set to fit', () => {
+    const funded = (sparkCaps: ComparisonConfig['sparkCaps']) => {
+      const settings = config({
+        arms: ['draft', 'targeted'],
+        caps: { studentUsd: 100, sparkUsd: 2, computeUsd: 0, localMinutes: 0 },
+        sparkCaps,
+      });
+      const job = comparisonJob(source, settings, DEFAULT_MODELS);
+      const inputs = modelInputs(job, settings, [], { attempts: [], reading: null });
+      return project(job, settings, inputs).arms.find((arm) => arm.arm === 'targeted')?.funded;
+    };
+    expect(funded(DEFAULT_CONFIG.sparkCaps)).toBe(false);
+    expect(funded(sparkCapsWith(['targeted=0.75']))).toBe(true);
+  });
+
+  it.each([
+    ['targeted', 'positive number'],
+    ['bare=1', 'a cap of draft'],
+    ['reference-targeted=1', 'a cap of draft'],
+    ['targeted=1=2', 'a cap of draft'],
+    ['targeted=', 'positive number'],
+    ['targeted=0', 'positive number'],
+    ['targeted=-1', 'positive number'],
+    ['targeted=lots', 'positive number'],
+  ])('refuses %s', (entry, says) => {
+    expect(() => sparkCapsWith([entry])).toThrow(SparkCapError);
+    expect(() => sparkCapsWith([entry])).toThrow(says);
   });
 });
