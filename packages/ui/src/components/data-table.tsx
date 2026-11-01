@@ -27,6 +27,11 @@ export interface DataColumn<R> {
   group?: string;
   /** What the header means, in a sentence, shown on hover or focus of the header. */
   hint?: string;
+  /**
+   * Left out of view, such as beside an open panel, while the table can still be sorted by it, so
+   * the order a person chose holds.
+   */
+  hidden?: boolean;
 }
 
 export interface DataSort {
@@ -121,9 +126,8 @@ export function DataTable<R>({
   className,
   ...props
 }: DataTableProps<R>) {
-  const groups = columns.some((column) => column.group !== undefined)
-    ? columnGroups(columns)
-    : null;
+  const shown = columns.filter((column) => !column.hidden);
+  const groups = shown.some((column) => column.group !== undefined) ? columnGroups(shown) : null;
   const [sort, setSort] = useState<DataSort | undefined>(initialSort);
   const sorted = sortRows(
     rows,
@@ -145,7 +149,7 @@ export function DataTable<R>({
     >
       <table
         aria-label={props['aria-label']}
-        className="w-full border-separate border-spacing-0 text-ui tabular-nums"
+        className="w-full border-separate border-spacing-0 text-ui"
       >
         <thead className="sticky top-0 z-10">
           {groups && (
@@ -155,7 +159,10 @@ export function DataTable<R>({
                   key={run.key}
                   scope={run.group ? 'colgroup' : undefined}
                   colSpan={run.span}
-                  className="bg-card px-3 pt-3 text-center text-small font-normal first:pl-6 last:pr-6"
+                  className={cn(
+                    'bg-card px-3 pt-3 text-center text-small font-normal first:pl-6 last:pr-6',
+                    STICKY,
+                  )}
                 >
                   {run.group && (
                     <span className="block border-b border-line pb-1.5">{run.group}</span>
@@ -165,7 +172,7 @@ export function DataTable<R>({
             </tr>
           )}
           <tr>
-            {columns.map((column) => {
+            {shown.map((column) => {
               const active = sort?.key === column.key ? sort.direction : undefined;
               const Arrow = active === 'descending' ? ArrowDown : ArrowUp;
               return (
@@ -177,6 +184,7 @@ export function DataTable<R>({
                   className={cn(
                     'h-11 whitespace-nowrap border-b border-line bg-card px-3 font-medium',
                     'first:pl-6 last:pr-6',
+                    STICKY,
                     column.align === 'end' ? 'text-right' : 'text-left',
                   )}
                 >
@@ -222,6 +230,15 @@ export function DataTable<R>({
                         event.preventDefault();
                         onRowClick(row);
                       }
+                      // The arrows move between rows, as in a list.
+                      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        const next =
+                          event.key === 'ArrowDown'
+                            ? event.currentTarget.nextElementSibling
+                            : event.currentTarget.previousElementSibling;
+                        if (next instanceof HTMLElement) next.focus();
+                      }
                     }
                   : undefined
               }
@@ -229,10 +246,10 @@ export function DataTable<R>({
                 'group/row',
                 selectedKey === rowKey(row) && 'bg-selected',
                 onRowClick &&
-                  'cursor-pointer transition-colors duration-150 hover:bg-hover focus-visible:bg-hover focus-visible:outline-none',
+                  'cursor-pointer transition-colors duration-150 hover:bg-hover focus-visible:relative focus-visible:z-[2] focus-visible:bg-hover focus-visible:-outline-offset-2',
               )}
             >
-              {columns.map((column, index) => {
+              {shown.map((column, index) => {
                 const value = column.cell(row);
                 return (
                   <td
@@ -240,8 +257,19 @@ export function DataTable<R>({
                     className={cn(
                       'h-12 border-t border-line px-3 first:pl-6 last:pr-6',
                       'group-first/row:border-t-0',
-                      index === 0 && 'font-medium',
-                      column.align === 'end' && 'text-right',
+                      // Figures line up; words keep their own spacing ("Held-out", "4-bit").
+                      column.align === 'end' && 'text-right tabular-nums',
+                      index === 0 && [
+                        'font-medium',
+                        STICKY,
+                        selectedKey === rowKey(row)
+                          ? 'shadow-[inset_0_0_0_100vmax_var(--color-selected)]'
+                          : onRowClick &&
+                            'group-hover/row:shadow-[inset_0_0_0_100vmax_var(--color-hover)]',
+                        // The focused row's ring, drawn again on this cell, which sits above it.
+                        onRowClick &&
+                          'group-focus-visible/row:shadow-[inset_2px_0_0_var(--color-ring),inset_0_2px_0_var(--color-ring),inset_0_-2px_0_var(--color-ring),inset_0_0_0_100vmax_var(--color-hover)]',
+                      ],
                     )}
                   >
                     {value === null || value === undefined ? <Absent /> : value}
@@ -258,6 +286,12 @@ export function DataTable<R>({
     </div>
   );
 }
+
+/**
+ * The first column stays in view while a wide table scrolls sideways, on the card's own fill; a
+ * row's hover or selected fill is laid over it as an inset shadow.
+ */
+const STICKY = 'first:sticky first:left-0 first:bg-card';
 
 /** A header with a hint: the tooltip opens from the header itself. */
 function HeaderHint({ hint, children }: { hint: string | undefined; children: ReactNode }) {
