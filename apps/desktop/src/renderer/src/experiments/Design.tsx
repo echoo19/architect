@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ArmId, ExperimentDetail, ExperimentGroup, ExperimentInput } from '@architect/shared';
 import {
   Badge,
@@ -66,6 +66,12 @@ import {
 import { NumberRow } from './NumberRow';
 import type { ModelNames } from '../flow/train/phase';
 
+/** The most a cap may be set to: well past any experiment, short of a typing slip. */
+const MAX_CAP_USD = 10_000;
+
+/** The longest an experiment may run: a week. */
+const MAX_WALL_HOURS = 168;
+
 type Tab = 'teacher' | 'student' | 'teaching' | 'evaluation' | 'budget';
 
 const tabIcon = { size: 16, strokeWidth: 1.7, 'aria-hidden': true } as const;
@@ -103,6 +109,20 @@ export function ExperimentDesign({
   const [problem, setProblem] = useState<Error | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [confirming, setConfirming] = useState<'preregister' | 'calibrate' | null>(null);
+  // Settings rows whose typed value isn't one they take: what is frozen is what is on screen, so
+  // while one is marked nothing is preregistered.
+  const [unfit, setUnfit] = useState<ReadonlySet<string>>(new Set());
+  const markUnfit = useCallback(
+    (row: string, problem: string | null) =>
+      setUnfit((current) => {
+        if (current.has(row) === (problem !== null)) return current;
+        const next = new Set(current);
+        if (problem === null) next.delete(row);
+        else next.add(row);
+        return next;
+      }),
+    [],
+  );
   const pending = useRef<{ timer: ReturnType<typeof setTimeout>; send: () => Promise<void> }>(
     undefined,
   );
@@ -203,7 +223,9 @@ export function ExperimentDesign({
   const blocked =
     input === null || detail === null
       ? null
-      : (inputProblem(input) ?? preregisterProblem(input, detail.groups));
+      : unfit.size > 0
+        ? 'Fix the marked settings first.'
+        : (inputProblem(input) ?? preregisterProblem(input, detail.groups));
   const calibrating = detail?.experiment.status === 'calibrating';
 
   return (
@@ -238,6 +260,7 @@ export function ExperimentDesign({
                 names={names}
                 splitsSeed={detail?.experiment.job.splitsSeed ?? null}
                 onChange={change}
+                onProblem={markUnfit}
               />
             )}
           </Inspector>
@@ -710,12 +733,14 @@ function Settings({
   names,
   splitsSeed,
   onChange,
+  onProblem,
 }: {
   tab: Tab;
   input: ExperimentInput;
   names: ModelNames;
   splitsSeed: number | null;
   onChange: (next: ExperimentInput) => void;
+  onProblem: (row: string, problem: string | null) => void;
 }) {
   const chosen = input.arms.map((item) => item.arm);
   const capRows = (arms: readonly ArmId[], kind: 'sparkUsd' | 'studentUsd') => {
@@ -731,6 +756,8 @@ function Settings({
         optional
         placeholder="Default"
         unit="USD"
+        max={MAX_CAP_USD}
+        onProblem={onProblem}
         onChange={(value) => onChange(withArmCap(input, arm, kind, value))}
       />
     ));
@@ -759,6 +786,7 @@ function Settings({
             min={1}
             max={10}
             unit="Rounds"
+            onProblem={onProblem}
             onChange={(rounds) => rounds !== undefined && onChange({ ...input, rounds })}
           />
           <NumberRow
@@ -766,6 +794,7 @@ function Settings({
             value={input.seeds.mentoring}
             integer
             unit="Seed"
+            onProblem={onProblem}
             onChange={(mentoring) =>
               mentoring !== undefined &&
               onChange({ ...input, seeds: { ...input.seeds, mentoring } })
@@ -785,6 +814,7 @@ function Settings({
           </div>
           <SeedList
             seeds={input.seeds.lockedTest}
+            onProblem={onProblem}
             onChange={(lockedTest) => onChange({ ...input, seeds: { ...input.seeds, lockedTest } })}
           />
         </Section>
@@ -796,6 +826,8 @@ function Settings({
             label={names.mentor}
             value={input.caps.sparkUsd}
             unit="USD"
+            max={MAX_CAP_USD}
+            onProblem={onProblem}
             onChange={(sparkUsd) =>
               sparkUsd !== undefined && onChange({ ...input, caps: { ...input.caps, sparkUsd } })
             }
@@ -804,6 +836,8 @@ function Settings({
             label={names.student}
             value={input.caps.studentUsd}
             unit="USD"
+            max={MAX_CAP_USD}
+            onProblem={onProblem}
             onChange={(studentUsd) =>
               studentUsd !== undefined &&
               onChange({ ...input, caps: { ...input.caps, studentUsd } })
@@ -813,6 +847,8 @@ function Settings({
             label="Compute"
             value={input.caps.computeUsd}
             unit="USD"
+            max={MAX_CAP_USD}
+            onProblem={onProblem}
             onChange={(computeUsd) =>
               computeUsd !== undefined &&
               onChange({ ...input, caps: { ...input.caps, computeUsd } })
@@ -822,7 +858,9 @@ function Settings({
             label="Wall clock"
             value={input.caps.wallMinutes / 60}
             min={0.1}
+            max={MAX_WALL_HOURS}
             unit="Hours"
+            onProblem={onProblem}
             onChange={(hours) =>
               hours !== undefined &&
               onChange({
@@ -840,14 +878,20 @@ function Settings({
 function SeedList({
   seeds,
   onChange,
+  onProblem,
 }: {
   seeds: readonly number[];
   onChange: (next: number[]) => void;
+  onProblem: (row: string, problem: string | null) => void;
 }) {
   const [text, setText] = useState(seeds.join(', '));
   const parts = text.split(/[\s,]+/).filter(Boolean);
   const numbers = parts.map(Number);
   const valid = parts.length > 0 && numbers.every((seed) => Number.isInteger(seed));
+  useEffect(() => {
+    onProblem('final-test-seeds', valid ? null : 'Use whole numbers, separated by commas');
+  }, [onProblem, valid]);
+  useEffect(() => () => onProblem('final-test-seeds', null), [onProblem]);
   return (
     <div className="flex flex-col gap-2 pt-2">
       <label htmlFor="final-test-seeds" className="text-ui font-medium">
@@ -867,8 +911,13 @@ function SeedList({
           if (next.length > 0 && next.every((seed) => Number.isInteger(seed))) onChange(next);
         }}
       />
-      <span className="text-small">
-        The first for every arm{numbers.length > 1 ? `, ${numbers.length - 1} more as repeats` : ''}
+      <span
+        className={valid ? 'text-small' : 'text-small text-danger'}
+        role={valid ? undefined : 'alert'}
+      >
+        {valid
+          ? `The first for every arm${numbers.length > 1 ? `, ${numbers.length - 1} more as repeats` : ''}`
+          : 'Use whole numbers, separated by commas'}
       </span>
     </div>
   );
