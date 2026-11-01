@@ -500,7 +500,10 @@ describe('a team reply (decision 100)', () => {
     const { reply } = await ask(world, 'Ask twice.');
     expect(reply.consultations?.map((each) => [each.outcome, each.text])).toEqual([
       ['no_answer', 'Sweep desk finished without an answer.'],
-      ['out_of_steps', 'Sweep desk stopped after 4 steps without an answer.'],
+      [
+        'out_of_steps',
+        'Sweep desk stopped after 4 steps without an answer. It used read 4 times. Ask it again with more detail.',
+      ],
     ]);
   });
 

@@ -140,6 +140,14 @@ export async function respond(input: ReplyRequest): Promise<void> {
  * "Stopped after 24 steps without an answer. It used read_file 12 times and lookup_order once. …"
  */
 export function outOfStepsNote(steps: readonly TraceStep[], maxSteps: number): string {
+  return `Stopped after ${maxSteps} steps without an answer. ${toolsTried(steps)} Ask again with more detail, or flag this reply to show it what you wanted.`;
+}
+
+/**
+ * The tools a run used, its three most used first:
+ * "It used read_file 12 times and lookup_order once."
+ */
+export function toolsTried(steps: readonly TraceStep[]): string {
   const calls = new Map<string, number>();
   for (const step of steps) {
     if (step.kind === 'tool') calls.set(step.name, (calls.get(step.name) ?? 0) + 1);
@@ -151,11 +159,9 @@ export function outOfStepsNote(steps: readonly TraceStep[], maxSteps: number): s
       ([name, count]) =>
         `${name} ${count === 1 ? 'once' : count === 2 ? 'twice' : `${count} times`}`,
     );
-  const tried =
-    used.length === 0
-      ? 'It never used its tools.'
-      : `It used ${used.length === 1 ? used[0] : `${used.slice(0, -1).join(', ')} and ${used.at(-1)}`}.`;
-  return `Stopped after ${maxSteps} steps without an answer. ${tried} Ask again with more detail, or flag this reply to show it what you wanted.`;
+  return used.length === 0
+    ? 'It never used its tools.'
+    : `It used ${used.length === 1 ? used[0] : `${used.slice(0, -1).join(', ')} and ${used.at(-1)}`}.`;
 }
 
 /** Ends a reply that needed an approval no one could give, with the change it wanted as data. */

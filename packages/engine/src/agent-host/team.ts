@@ -26,6 +26,7 @@ import { ToolError } from '../tools/errors';
 import type { ExtraTool } from '../tools/toolbox';
 import type { GraduateSession } from './graduate';
 import { replyStep, type LiveReply } from './reply';
+import { toolsTried } from './respond';
 import { showStep, type NewStep, type StepList, type Teammates } from './steps';
 
 /** Sampler seeds stay within a signed 32-bit integer, which every runtime accepts. */
@@ -293,7 +294,7 @@ function settledAs(session: GraduateSession, trace: Trace): Settled {
     case 'max_steps':
       return {
         outcome: 'out_of_steps',
-        text: `${session.name} stopped after ${session.harness.decoding.maxSteps} steps without an answer.`,
+        text: `${session.name} stopped after ${session.harness.decoding.maxSteps} steps without an answer. ${toolsTried(trace.steps)} Ask it again with more detail.`,
       };
     case 'answer': {
       const { answer } = parseAnswerLine(trace.finalText);
