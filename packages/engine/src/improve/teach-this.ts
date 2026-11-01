@@ -432,7 +432,10 @@ export class TeachThis {
     });
     const reply = ProposalReplySchema.safeParse(completion.json);
     if (!reply.success) {
-      throw new Error("The reply to your correction couldn't be read as a lesson. Try again.");
+      // The mentor was paid for the reply, so the person is told what it cost before trying again.
+      throw new Error(
+        `The reply to your correction couldn't be read as a lesson. Reading it cost ${formatUsd(costUsd)}; share it again to try once more.`,
+      );
     }
     const at = this.now();
     const correction: Correction = {
