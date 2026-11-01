@@ -17,6 +17,8 @@ Academy desk, the field runs on test-prep academies, has its own reports. Their 
 - [academy-desk-3.md](academy-desk-3.md): the third field run, which replaced a second run that stopped before any result was read, with [academy-desk-3-misses.md](academy-desk-3-misses.md).
 - [academy-desk-cert-1.md](academy-desk-cert-1.md): the first live certificate run, on the third run's Academy desk. No certificate was issued.
 
+Inventory desk, which reserves screening labs' compound stock for re-tests, has its own report: [inventory-desk-1.md](inventory-desk-1.md), the first run. Its sealed test covers a generated lab it never saw.
+
 An earlier comparison, on the service desk sample job with the first version of Glimmer's tools, is described in the README's Results section and in [docs/PROGRESS.md](../PROGRESS.md).
 
 `screens/` holds captures of comparison 2's taught agent in the app, made by opening that run's own records in Architect: its training, its first round and its results page.
