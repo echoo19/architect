@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import type {
   AddedQualification,
   Certification,
@@ -44,6 +44,7 @@ import { graduatesApi } from '../api/graduates';
 import { useQuery } from '../api/query';
 import { useImprovements } from '../api/teaching';
 import { FilePatch } from '../components/FilePatch';
+import { CopyButton } from '../components/CopyButton';
 import { HarnessFiles } from '../components/HarnessFiles';
 import { ProblemState } from '../components/ProblemState';
 import { shortDate } from '../flow/format';
@@ -99,16 +100,28 @@ export function ModelPanel({
   onCompare: (other: ModelRow) => void;
   onMoved: () => void;
 }) {
+  // Opened, focus moves to the panel's title, so the keyboard carries on from there; closed, it
+  // goes back to the row or button that opened it.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    heading.current?.focus({ preventScroll: true });
+  }, []);
+  const close = useCallback(() => {
+    if (opener.current?.isConnected) opener.current.focus();
+    onClose();
+  }, [onClose]);
   useEffect(() => {
     // Escape closes the panel, unless a dialog or a menu above it takes the key first.
-    const close = (event: KeyboardEvent) => {
+    const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return;
       if (document.querySelector('[role="dialog"], [role="menu"]')) return;
-      onClose();
+      close();
     };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onClose]);
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [close]);
 
   return (
     <div className="flex h-full shrink-0 flex-col">
@@ -122,7 +135,8 @@ export function ModelPanel({
           <PanelHeader
             row={row}
             rows={rows}
-            onClose={onClose}
+            heading={heading}
+            onClose={close}
             onCompare={onCompare}
             onMoved={onMoved}
           />
@@ -145,12 +159,14 @@ export function ModelPanel({
 function PanelHeader({
   row,
   rows,
+  heading,
   onClose,
   onCompare,
   onMoved,
 }: {
   row: ModelRow;
   rows: readonly ModelRow[];
+  heading: RefObject<HTMLHeadingElement | null>;
   onClose: () => void;
   onCompare: (other: ModelRow) => void;
   onMoved: () => void;
@@ -184,7 +200,11 @@ function PanelHeader({
       <div className="flex items-start gap-3">
         <AgentAvatar name={agent.name} size="md" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="m-0 flex items-center gap-2 font-display text-h2 font-semibold">
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="m-0 flex items-center gap-2 font-display text-h2 font-semibold outline-none"
+          >
             <span className="truncate">{agent.name}</span>
             <VersionTag version={version.version} active={version.active} />
             <span className="sr-only">version {version.version}</span>
@@ -344,6 +364,16 @@ function Fact({ label, hint, children }: { label: string; hint?: string; childre
   );
 }
 
+/** A hash cut short to read, with the whole of it a click away for whoever needs to quote it. */
+function Hash({ hash, label }: { hash: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="font-mono text-small">{shortHash(hash)}</span>
+      <CopyButton text={hash} label={label} className="-my-1.5" />
+    </span>
+  );
+}
+
 function Figure({ label, score }: { label: string; score: Score | null }) {
   const measured = score !== null && score.total > 0;
   return (
@@ -400,11 +430,11 @@ function ReportTab({ row }: { row: ModelRow }) {
         <Fact label="Base model">{baseModelOf(version)}</Fact>
         <Fact label="Runs on">{runtimeName(model.runtime.compatible[0])}</Fact>
         <Fact label="Harness" hint={defineTerm('harness')}>
-          <span className="font-mono text-small">{shortHash(harness.hash)}</span>
+          <Hash hash={harness.hash} label="Copy the harness hash" />
         </Fact>
         <Fact label="LoRA adapter" hint={defineTerm('loraAdapter')}>
           {model.adapter ? (
-            <span className="font-mono text-small">{shortHash(model.adapter.sha256)}</span>
+            <Hash hash={model.adapter.sha256} label="Copy the adapter hash" />
           ) : (
             <Absent />
           )}
