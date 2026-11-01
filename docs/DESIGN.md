@@ -119,7 +119,9 @@ Two materials, and nothing else makes depth (`surface-card` and `surface-float` 
   cards. The light is fixed; it never moves, animates or brightens.
 - **What floats** (menus, popovers, selects, tooltips, toasts, dialogs, the drawer, the palette and
   the inspector) is `float`: slightly see-through with a light blur, the same rims, and the one
-  soft shadow, `0 24px 60px -12px rgb(0 0 0 / 0.6)`. Nothing else casts a shadow.
+  soft shadow, `0 24px 60px -12px rgb(0 0 0 / 0.6)`. Nothing else casts a shadow. The drawer is
+  the one exception to the see-through fill: it runs the window's height over the header's bright
+  buttons, which its frost would smear, so it takes the solid `raised` fill.
 - **Hover brightens a rim only** (`rim-hover`, or the `hover` fill of a row inside a card).
   Nothing grows, moves or changes size under the pointer, so hover never shifts the layout.
 

@@ -42,7 +42,9 @@ export function PlacePage({
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="app-drag h-12 shrink-0" />
-        <div className="min-h-0 flex-1 overflow-y-auto scroll-quiet">
+        {/* The scrollbar's room is kept whether or not the page scrolls, so a page's header
+            doesn't shift as its tabs change length. */}
+        <div className="min-h-0 flex-1 overflow-y-auto scroll-quiet [scrollbar-gutter:stable]">
           <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-10 pb-14 pt-4">
             <div className="flex min-h-12 items-center justify-between gap-4">
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">

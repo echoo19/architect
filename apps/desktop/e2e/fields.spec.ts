@@ -248,10 +248,8 @@ test("counts the field's assets and exports them to a folder the person picks", 
   // Each figure carries its unit.
   await expect(assets).toContainText('96tasks');
   await expect(assets).toContainText('138tasks');
-  await expect(assets).toContainText('Train tasks at 3 organizations');
-  await expect(assets).toContainText(
-    'Sealed final test tasks and 2 never-seen organizations, by hash only',
-  );
+  await expect(assets).toContainText('Train tasks at 3 organizations, checker and Python client');
+  await expect(assets).toContainText('Sealed tasks and 2 never-seen organizations, by hash');
   // Each row of what it leaves out starts as a line does.
   await expect(card('Left out')).toContainText('The calibration and check tasks');
   await expect(card('Left out')).toContainText('They stay for measuring');
