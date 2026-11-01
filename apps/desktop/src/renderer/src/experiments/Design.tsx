@@ -230,6 +230,7 @@ export function ExperimentDesign({
             aria-label="Experiment settings"
             tabs={tabsFor(names)}
             rememberAs="experiment"
+            foldWhenNarrow
           >
             {(tab) => (
               <Settings
