@@ -164,7 +164,8 @@ a strip or a title is. When a new part needs a size, it takes one from this tabl
 The sidebar leads with Architect's places, an icon and a word each: Lab, Fields, Experiments,
 Models, Compute (decision 073). The agents and their chats follow under a hairline. A place's page
 has a 40px title and nothing under it; its one primary action, if it has one, sits at the title's
-right. In the personal edition (decision 076) there are no places: New agent and the agents lead,
+right. A page about something that belongs to a field (an experiment) is titled by its own name,
+with the field as a breadcrumb before the title that opens it. In the personal edition (decision 076) there are no places: New agent and the agents lead,
 and the wordmark reads "Architect" instead of "Architect Lab".
 
 - **Card and CardGrid.** A card is the flat card surface with a title row: the title at 15px Inter
@@ -194,8 +195,16 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   mixes the two; the film's mocks use `WORDS.lab`. Each term's one-sentence
   meaning comes from `defineTerm` (`packages/ui/src/terms.ts`), shown behind an InfoTip or a column
   hint where the term first appears on a screen, so the app and the film never define it twice.
+  Every column header and status word whose meaning isn't plain carries its hint, and a header
+  that heads counts in one group and scores in another says which it is. The risk certificate
+  leads with its plain sentence, as the personal edition's does, then names its three figures.
+- **Disabled controls** say why in their tooltip, on the span around them (a disabled control
+  takes no pointer). A step that goes ahead despite a failed check says so beside its button
+  ("Not held at Real academy"), and the button stays usable.
 - **Sidebar.** Rows are `NavItem`s: 40px, a 16px icon, the label, and a status word or spinner at
-  the right. The current page's row takes the selected fill, which slides between the places.
+  the right. The current page's row takes the selected fill, which slides between the places. An
+  agent's or a team's actions sit over the end of its row only while it is pointed at, so its name
+  has the row's width; agents that share a name show the version each answers with.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
   teacher, the student, teaching, evaluation, budget). It floats: the float material at radius
   20, 8px in from the window's right edge, the strip above and the edge below. Its tabs are the
@@ -219,7 +228,8 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   amber and the student's blue. An amount with no recorded cap stands alone, with no meter.
 - **IntervalPlot.** A dot for each measured value and a line for its 95% interval, rows grouped
   under a name, faint guides at the ticks, figures at the right. A value not measured shows a dash
-  and draws nothing. Each row reads out as its label, value and interval.
+  and draws nothing. Each row reads out as its label, value and interval. A tall plot shows its
+  scale above its rows as well as under them.
 - **RiskCoveragePlot.** A certificate's curve (decision 077): the share answered across, the error
   up; the bound as a white line, the error measured as small dots, the target as a stronger
   hairline, the certified point in the student's blue, with a three-item key under it.
