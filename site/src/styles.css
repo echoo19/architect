@@ -387,6 +387,28 @@ body {
   }
 }
 
+/* A section's tables, folded under one quiet line; its arrow turns as it opens. */
+.tables > summary {
+  list-style: none;
+}
+
+.tables > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tables > summary:focus-visible {
+  outline: 2px solid var(--ui-ring);
+  outline-offset: 2px;
+}
+
+.tables-chevron {
+  transition: rotate 200ms var(--ease-out-soft);
+}
+
+.tables[open] .tables-chevron {
+  rotate: 90deg;
+}
+
 /* A table set as a paper sets it: a firm rule under the header, hairlines between rows. */
 .paper-table th {
   border-bottom: 1px solid var(--ui-line-strong);
