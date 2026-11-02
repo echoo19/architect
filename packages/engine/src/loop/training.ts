@@ -16,7 +16,7 @@ import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, LLAMA_CPP, llamaCppConfig, type AttemptConfig } from './configuration';
 import { must } from './errors';
-import { evaluate, type EvaluationSpec } from './evaluation';
+import { attemptsLeft, evaluate, type EvaluationSpec } from './evaluation';
 import { measurement, recordExperiment, settleExperimentCompute } from './experiments';
 import { readJsonFile } from './files';
 import {
@@ -586,12 +586,19 @@ async function measureRound(
 ): Promise<DevPair | null> {
   const seeds = devSeeds(state.record.seeds.devPanel, index, runs);
   const config = state.incumbentConfig();
+  const specs: EvaluationSpec[] = [];
   for (const version of [versions.base, versions.candidate]) {
-    if (!(await evaluate(state, await devEvaluation(state, version, index, runs, config)))) {
-      return null;
-    }
-    const result = state.devResult(version, index, seeds, config);
-    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
+    specs.push(await devEvaluation(state, version, index, runs, config));
+  }
+  // One count for the round's whole measurement, so the score doesn't start over halfway.
+  const left = specs.map((spec) => attemptsLeft(state, spec));
+  const total = left.reduce((sum, count) => sum + count, 0);
+  let before = 0;
+  for (const [i, spec] of specs.entries()) {
+    if (!(await evaluate(state, { ...spec, of: { before, total } }))) return null;
+    before += left[i]!;
+    const result = state.devResult(spec.version, index, seeds, config);
+    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: spec.version, ...result });
   }
   return {
     before: state.devResult(versions.base, index, seeds, config),
