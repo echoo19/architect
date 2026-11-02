@@ -49,7 +49,6 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** Parts the film moves to that carry no name of their own, found by where they sit. */
 const FOUND: readonly (readonly [string, string])[] = [
-  ['status', '[data-page="workspace"] header > span:last-child'],
   ['brief-rules', '[data-frame="brief"] > div:nth-child(2)'],
   ['brief-differ', '[data-frame="brief"] > div:nth-child(3)'],
   ['running', '[data-page="lab"] .grid > div:last-child'],

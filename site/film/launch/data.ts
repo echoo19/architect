@@ -76,6 +76,67 @@ export const COUNTEREXAMPLE_TASK = 'copperfield-diagnose-03';
 /** The first field run's check score before and after its first round (academy-desk-1.md): 17 and 25 of 36. */
 export const FIRST_ROUND = [47, 69] as const;
 
+/**
+ * The first field run as its Train screen draws it (academy-desk-1.md, "What the three rounds
+ * changed", and the run's rounds in architect-runs/phil-1): held-out checks passed of 36 at the
+ * start and after each round's first measurement, the practice tasks right of 12 in each round,
+ * and what each round cost of Spark. Round 2 was rolled back. Its caps: 3 rounds, $5 and 4 hours.
+ */
+export const TRAINING = {
+  of: 36,
+  start: 17,
+  rounds: [
+    { after: 25, practice: 7, cost: 0.1018 },
+    { after: 23, practice: 6, cost: 0.1299 },
+    { after: 35, practice: 9, cost: 0.0746 },
+  ],
+  practiceOf: 12,
+  target: 90,
+  minutes: 15,
+  caps: { minutes: 240, usd: 5, rounds: 3 },
+} as const;
+
+/**
+ * Academy desk on this computer, as its home shows it (academy-desk-1-local.md and its records in
+ * architect-runs/phil-1-local): the 2-bit Glimmer through Ollama on an RTX 4070 Ti with 12 GB, the
+ * most GPU memory it held over the 120 locked tasks (11,604 of 12,282 MiB, logs/gpu.csv), and its
+ * answer times and speed there (median 38 s, the slowest 5% from 173 s, 33 tokens a second). The
+ * week of requests is the film's own.
+ */
+export const ON_PREMISE = {
+  gpu: 'NVIDIA GeForce RTX 4070 Ti',
+  gpuMemory: '12 GB of GPU memory',
+  build: 'Glimmer, 2-bit',
+  model: 'muse-glimmer:30b-iq2, 16K context, Ollama',
+  size: '10 GB',
+  peak: { gb: 11, of: '12 GB', share: 11604 / 12282 },
+  loaded: '11 GB on the GPU',
+  checks: '6 of 6 installation checks passed, Oct 30',
+  host: '127.0.0.1:11434',
+  activity: {
+    figures: [
+      ['Requests, 7 days', '23'],
+      ['Median answer', '38 s'],
+      ['95th percentile', '2 min 53 s'],
+      ['Tokens per second', '33'],
+    ],
+    days: [
+      ['8', 3],
+      ['9', 5],
+      ['10', 2],
+      ['11', 0],
+      ['12', 4],
+      ['13', 6],
+      ['14', 3],
+    ],
+  },
+  starters: [
+    'Name the topic, right choice and error behind a wrong answer.',
+    'Work a question given in the request.',
+    'Choose the approved first hint.',
+  ],
+} as const;
+
 /** Inventory desk's run finished on Nov 1 (inventory-desk-1.md). */
 export const FIELD_ACTIVITY = { 'Inventory desk': 'Nov 1' } as const;
 

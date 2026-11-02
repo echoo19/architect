@@ -87,7 +87,8 @@ const asks = teamClick + 1.6;
 const holds = asks + 3.2;
 
 // 11. "Then cut the network. The specialist runs on-premise, on your own machine, and asks before
-// it writes."
+// it writes." Academy desk's home: its Offline row as the network goes, its GPU, model and
+// memory, then on into its chat, where Allow is pressed on "writes".
 const workspace = holds + 2.2;
 const saves = workspace + 6.6;
 
@@ -177,8 +178,9 @@ export const T = {
   backScroll: workspace - 0.8,
   workspace,
   network: workspace + 1.2,
-  keeps: workspace + 2.2,
-  chatBack: workspace + 1.9,
+  machine: workspace + 2.3,
+  memory: workspace + 3.2,
+  intoChat: saves - 1.0,
   saves,
   welcome,
   oneJob: welcome + 0.6,

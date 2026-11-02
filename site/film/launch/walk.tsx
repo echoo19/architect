@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pointer, type Framing, type Measured } from '../lab/film';
-import { CounterexampleDrawer, DefinePage, TrainPage } from '../lab/pages-flow';
+import { CounterexampleDrawer, DefinePage } from '../lab/pages-flow';
 import { FieldPage, Fields, LabHome } from '../lab/pages-lab';
 import { ExperimentPage, ModelsPage } from '../lab/pages-lab2';
 import { WelcomePage, WorkspacePage } from '../lab/pages-more';
@@ -27,8 +27,10 @@ import {
 } from './data';
 import { FINE_TUNE_AT, FINE_TUNE_SCROLL, FineTunePage } from './finetune';
 import { HarnessDrawer } from './harness';
+import { AgentHomePage } from './home';
 import type { Layer, Mode, ScreenView } from './screen';
 import { DURATION, T } from './timeline';
+import { TrainPage } from './train';
 
 /**
  * The walkthrough part of the launch film: one window of Architect Lab, its pages changing as the
@@ -44,6 +46,7 @@ const FRAME = { width: 1920, height: 1080 } as const;
 type Fill = readonly [number, number];
 const place = (index: number): Fill => [ROW.place(index), ROW.height];
 const TEAM_CHAT: Fill = [TEAM_ROW.chat, TEAM_ROW.chatHeight];
+const ACADEMY_ROW: Fill = [ROW.agent(CHAT_AGENT), ROW.height];
 const ACADEMY_CHAT: Fill = [ROW.agent(CHAT_AGENT) + ROW.height, 36];
 
 interface PageSpan {
@@ -57,6 +60,11 @@ interface PageSpan {
   clock?: readonly (readonly [number, number])[];
   /** Swapped in at once, out of sight under a figure that fills the frame. */
   cut?: boolean;
+  /**
+   * A quicker hand-off: the page before goes faster and this one follows at once, so no frame is
+   * left empty for long.
+   */
+  swift?: boolean;
 }
 
 const local = (pairs: readonly (readonly [number, number])[]) => smoothMap(pairs);
@@ -141,21 +149,9 @@ const PAGES: readonly PageSpan[] = [
     key: 'train',
     at: T.train,
     mode: 'flow',
+    swift: true,
     fill: place(1),
-    draw: (lt) => <TrainPage lt={lt} />,
-    clock: [
-      [0, 0],
-      [1.4, 1.4],
-      [T.hypothesis - T.train, 4.6],
-      [T.hypothesis - T.train + 1.0, 5.4],
-      [T.rolledBack - T.train - 0.2, 5.5],
-      [T.rolledBack - T.train, 5.8],
-      [T.rolledBack - T.train + 0.4, 6.2],
-      [T.rolledBack - T.train + 0.7, 7.8],
-      [T.thirtyFive - T.train - 1.0, 10.8],
-      [T.thirtyFive - T.train, 11.9],
-      [T.thirtyFive - T.train + 1.6, 13.5],
-    ],
+    draw: (_lt, t) => <TrainPage t={t} />,
   },
   {
     key: 'vault',
@@ -226,20 +222,25 @@ const PAGES: readonly PageSpan[] = [
     ],
   },
   {
-    key: 'workspace',
+    key: 'home',
     at: T.workspace,
     mode: 'place',
+    swift: true,
+    fill: ACADEMY_ROW,
+    draw: (_lt, t) => <AgentHomePage t={t} />,
+  },
+  {
+    key: 'workspace',
+    at: T.intoChat,
+    mode: 'place',
+    swift: true,
     fill: ACADEMY_CHAT,
     draw: (lt) => <WorkspacePage lt={lt} allowAt={ALLOW_AT} />,
+    // It opens on the reply already waiting for approval, and Allow once is pressed on its word.
     clock: [
-      [0, 0],
-      [T.network - T.workspace, 1.2],
-      [2.0, 2.4],
-      [3.0, 4.4],
-      [5.0, 6.8],
-      [6.0, 8.4],
-      [T.saves - T.workspace - 0.2, 9.2],
-      [12, 14.4],
+      [0, 8.9],
+      [T.saves - T.intoChat, ALLOW_AT + 0.15],
+      [T.saves - T.intoChat + 2, ALLOW_AT + 2],
     ],
   },
   {
@@ -288,7 +289,7 @@ function sidebarState(t: number): SidebarState {
   const page = PAGES[index]!;
   const before = PAGES[index - 1];
   // The fill moves as the pointer presses, a little before the page it opens comes in.
-  const lead = page.key === 'team' || page.key === 'workspace' ? 0.18 : 0.12;
+  const lead = page.key === 'team' || page.key === 'home' ? 0.18 : 0.12;
   const p = ui(t, page.at - lead, 0.32);
   const was = before && hasSidebar(before.mode) ? before.fill : page.fill;
   return {
@@ -344,8 +345,12 @@ export function walkView(t: number): ScreenView {
     if (next && t > next.at + 0.35) return;
     if (next?.cut && t >= next.at) return;
     // A page leaves before the next arrives, so no two are ever seen through each other.
-    const enter = page.cut ? 1 : outQuart(span(t, page.at + 0.12, 0.45));
-    const leave = next && !next.cut ? outQuart(span(t, next.at, 0.14)) : 0;
+    const enter = page.cut
+      ? 1
+      : page.swift
+        ? outQuart(span(t, page.at + 0.06, 0.3))
+        : outQuart(span(t, page.at + 0.12, 0.45));
+    const leave = next && !next.cut ? outQuart(span(t, next.at, next.swift ? 0.1 : 0.14)) : 0;
     layers.push({
       key: page.key,
       mode: page.mode,
@@ -462,6 +467,21 @@ const SIDEBAR_VIEW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 
 /** The team's chat, the frame's left edge just right of the sidebar. */
 const TEAM_VIEW: Framing = { cx: 695, cy: 56 + 540 / 2.43, s: 2.43 };
 
+/**
+ * The home's On-premise card, close: the frame's left edge in the gutter between the page's two
+ * columns, its top and bottom just outside two of the card's parts, so it cuts only between rows.
+ */
+function onPremise(measured: Measured, top: string, bottom: string): Framing {
+  const first = measured.get(top);
+  const last = measured.get(bottom);
+  if (!first || !last) return FULL;
+  const left = first.x - 8;
+  const from = first.y - 8;
+  const to = last.y + last.h + 8;
+  const s = FRAME.height / (to - from);
+  return { cx: left + FRAME.width / 2 / s, cy: (from + to) / 2, s };
+}
+
 /** The academy desk's chat, as the walkthrough frames it. */
 const CHAT_VIEW: Framing = { cx: 258 + 480, cy: 250, s: 2.0 };
 
@@ -486,11 +506,21 @@ function brief(measured: Measured): Framing {
   return { cx: WINDOW.width / 2, cy: top + FRAME.height / 2 / s, s };
 }
 
+/**
+ * Closer on the training screen as the score lands: from its status line to the Rounds heading,
+ * so the frame's edges fall in the space above and below them.
+ */
+function trainScore(measured: Measured): Framing {
+  const top = measured.get('train-status');
+  const bottom = measured.get('train-rounds');
+  if (!top || !bottom) return FULL;
+  const from = top.y - 10;
+  const to = bottom.y + bottom.h + 10;
+  return { cx: WINDOW.width / 2, cy: (from + to) / 2, s: FRAME.height / (to - from) };
+}
+
 /** The two editions. */
 const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
-
-/** A little closer on the flow as the score lands, the window's width still whole. */
-const SCORE_VIEW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2 + 2, s: 1.7 };
 
 interface Shot {
   at: number;
@@ -518,7 +548,7 @@ const SHOTS: readonly Shot[] = [
   // 6. The harness: its drawer over the rounds, then the rounds, then into the score.
   { at: T.harness - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
   { at: T.harnessOut, dur: 0.7, to: FLOW, ease: inOutQuint },
-  { at: T.pushScore, dur: 0.9, to: SCORE_VIEW },
+  { at: T.pushScore, dur: 0.9, to: (m) => trainScore(m) },
   // 7. The counterexample, and the case locked in on the field's Assets.
   { at: T.drawer - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
   { at: T.drawerOut - 0.05, dur: 0.55, to: FULL, ease: inOutQuint },
@@ -549,10 +579,17 @@ const SHOTS: readonly Shot[] = [
   { at: T.scienceResolve, dur: 1.25, to: content(108), ease: inOutQuint },
   { at: T.teamScroll - 0.7, dur: 0.7, to: SIDEBAR_VIEW, ease: inOutQuint },
   { at: T.teamClick + 0.25, dur: 1.1, to: TEAM_VIEW },
-  // 11. Offline: back for the sidebar, then the chat as the network goes.
+  // 11. Offline: back for the sidebar and onto Academy desk's home, its Offline row as the network
+  // goes, then up its GPU, model and memory, and on into its chat for the approval.
   { at: T.backScroll - 0.5, dur: 0.6, to: SIDEBAR_VIEW, ease: inOutQuint },
-  { at: T.workspace + 0.15, dur: 0.9, to: (m) => frameOf(m, 'status', 60, 3.6) },
-  { at: T.chatBack, dur: 1.0, to: CHAT_VIEW, ease: inOutQuint },
+  { at: T.workspace + 0.35, dur: 0.8, to: (m) => onPremise(m, 'home-loaded', 'home-offline') },
+  {
+    at: T.machine,
+    dur: 0.9,
+    to: (m) => onPremise(m, 'home-gpu', 'home-memory'),
+    ease: inOutQuint,
+  },
+  { at: T.intoChat - 0.85, dur: 1.0, to: CHAT_VIEW },
   // 12. The editions, then the whole window again for the end.
   { at: T.welcome - 0.4, dur: 0.6, to: FULL, ease: inOutQuint },
   { at: T.welcome + 0.8, dur: 1.2, to: EDITIONS },
@@ -591,6 +628,8 @@ interface Click {
   dy?: number;
   /** A hover, held this long, with no press. */
   hover?: number;
+  /** The pointer stays and goes straight on to the next click as its travel starts. */
+  onward?: boolean;
 }
 
 const navPoint = (index: number): readonly [number, number] => [92, ROW.place(index) + 20];
@@ -616,7 +655,8 @@ const CLICKS: readonly Click[] = [
   },
   { at: T.beyond - 0.1, target: navPoint(1) },
   { at: T.teamClick, target: [120, TEAM_ROW.chat + TEAM_ROW.chatHeight / 2] },
-  { at: T.workspace - 0.1, target: [120, ROW.agent(CHAT_AGENT) + ROW.height + 18] },
+  { at: T.workspace - 0.1, target: [120, ROW.agent(CHAT_AGENT) + ROW.height / 2] },
+  { at: T.intoChat - 0.05, target: 'open-session', onward: true },
   { at: T.saves - 0.15, target: 'allow' },
   { at: T.labEdition, target: 'lab-edition' },
 ];
@@ -630,23 +670,28 @@ function pointOf(measured: Measured, click: Click): readonly [number, number] {
 }
 
 export function Cursor({ measured, t }: { measured: Measured; t: number }) {
-  const index = CLICKS.findIndex((click) => t < click.at + (click.hover ?? 0) + 0.7);
+  // A pointer that goes on leaves once its press is done, or when the next travel would start.
+  const until = (click: Click, index: number) => {
+    const next = CLICKS[index + 1];
+    return click.onward && next
+      ? Math.max(next.at - 0.85, click.at + 0.2)
+      : click.at + (click.hover ?? 0) + 0.7;
+  };
+  const index = CLICKS.findIndex((click, i) => t < until(click, i));
   if (index < 0) return null;
   const click = CLICKS[index]!;
   if (t < click.at - 1.0) return null;
   const to = pointOf(measured, click);
   const previous = CLICKS[index - 1];
-  const from =
-    previous && click.at - previous.at < 2.6
-      ? pointOf(measured, previous)
-      : ([to[0] + 170, to[1] + 130] as const);
-  const travel = span(t, click.at - 0.85, 0.75);
+  const close = previous !== undefined && click.at - previous.at < 2.6;
+  const from = close ? pointOf(measured, previous) : ([to[0] + 170, to[1] + 130] as const);
+  const start = close && previous.onward ? until(previous, index - 1) : click.at - 0.85;
+  const travel = span(t, start, click.at - 0.1 - start);
   const x = mix(from[0], to[0], outQuart(travel));
   const y = mix(from[1], to[1], inOutCubic(travel));
   const press = click.hover ? 0 : Math.sin(Math.PI * span(t, click.at - 0.04, 0.18));
-  const shown = Math.min(
-    outQuart(span(t, click.at - 1.0, 0.25)),
-    1 - outQuart(span(t, click.at + (click.hover ?? 0) + 0.35, 0.3)),
-  );
-  return <Pointer x={x} y={y} shown={clamp(shown)} press={press} />;
+  // A pointer carried on from the click before is already in; one going on to the next stays.
+  const arrive = close && previous.onward ? 1 : outQuart(span(t, click.at - 1.0, 0.25));
+  const leave = click.onward ? 0 : outQuart(span(t, click.at + (click.hover ?? 0) + 0.35, 0.3));
+  return <Pointer x={x} y={y} shown={clamp(Math.min(arrive, 1 - leave))} press={press} />;
 }
