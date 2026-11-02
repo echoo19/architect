@@ -91,7 +91,7 @@ Every number below comes from a real run, with the plan written before it starte
 | Returns desk, taught by Spark Open | sealed final test | 18 of 60 | 39 of 60 |
 | Returns desk | sealed final test | 44 of 60 | 58 of 60 |
 
-The first risk certificate and the first QLoRA fine-tune follow the academy runs below.
+The first risk certificate and the first QLoRA fine-tune follow the academy runs below. With Inventory desk's harness held fixed, the fine-tune's adapter took Glimmer from 22 of 30 to 32 of 32 at Corvid Hill Discovery.
 
 ### Inventory desk at a lab it never saw
 
@@ -243,9 +243,23 @@ Architect fine-tuned Glimmer's open weights for the first time, end to end throu
 | Adapter | a 180 MB GGUF LoRA that passes the adapter runtime's checks against the base model |
 
 - The three faults (the image's Python, the planner's memory estimate and the converter's handling of the q and k projections) were each fixed in the product, with a test, before the next job.
-- Its effect on Inventory desk's sealed final test is measured next, on a GPU serving the base with the adapter. The low loss says the adapter fits its 22 examples, which are Glimmer's own successes.
 
 The report is [docs/comparisons/qlora-1.md](docs/comparisons/qlora-1.md).
+
+#### The adapter on the sealed final test
+
+With Inventory desk's harness held fixed, the adapter took Glimmer from 22 of 30 to 32 of 32 at Corvid Hill Discovery, the lab neither the harness nor the adapter ever saw. One deployment served Glimmer with the adapter and without it.
+
+| Inventory desk's harness | Without the adapter | With the adapter | Task by task | Difference, 95% interval |
+| --- | --- | --- | --- | --- |
+| Corvid Hill Discovery, unseen | 22 of 30 | 32 of 32 | 8 won, 0 lost | +26.7 points, +9.8 to +44.4 |
+| All labs | 41 of 54 | 55 of 56 | 12 won, 0 lost | +22.2 points, +10.4 to +35.1 |
+
+- With the adapter, Glimmer wrote 149 output tokens a call against 357, and its median attempt took 14.4 seconds against 55.5.
+- On the base harness, the adapter's differences stayed within their intervals in every group.
+- It cost at most $4.42 of GPU: one A100 80 GB on a Hugging Face Inference Endpoint, served by vLLM in bf16.
+
+Limits: it is one seed, and the adapter was trained on 22 examples. The adapter also stopped Glimmer writing its reasoning, because its training examples held none, so part of the gain may come from that. Two of the base arm's Corvid Hill tasks never ran when the endpoint was paused; the adapter passed both, and the interval stays above zero whichever way they are counted. Both arms ran in bf16, not the 4-bit base the adapter was trained on, and the local build has not taken the test with the adapter. The report is [docs/comparisons/adapter-eval-1.md](docs/comparisons/adapter-eval-1.md).
 
 ### The returns desk, one job
 
@@ -287,7 +301,7 @@ From a chosen model's own configuration on Hugging Face, Architect also sizes a 
 
 <img alt="A training plan in Architect Lab for a 235-billion-parameter mixture-of-experts model: 16 GPUs on 2 nodes of 8, with each memory term and its arithmetic" src="docs/screenshots/compute-plan-dark.png">
 
-Architect develops and evaluates field-specific agent harnesses and exports checker-verified training data. The single-GPU path has run for real: the QLoRA fine-tune above trained an adapter on one A100, and its effect on the sealed test is measured next. The experimental cluster templates are validated structurally and against simulated schedulers; running them on a real cluster and with large models is still ahead. What the results measure today is the harness. A model trained on a whole field is the direction. The plan is [docs/SCALE.md](docs/SCALE.md).
+Architect develops and evaluates field-specific agent harnesses and exports checker-verified training data. The single-GPU path has run for real: the QLoRA fine-tune above trained an adapter on one A100, and with the harness held fixed it took Glimmer to 32 of 32 at the unseen lab, against 22 of 30 without it. The experimental cluster templates are validated structurally and against simulated schedulers; running them on a real cluster and with large models is still ahead. A model trained on a whole field is the direction. The plan is [docs/SCALE.md](docs/SCALE.md).
 
 ## Where it fits
 

@@ -80,6 +80,7 @@ How it works:
 
 - **Test-prep academies:** on Harborview Prep, an academy neither model saw, the Spark-engineered harness passed 43 of 48 tasks, against 24 for Glimmer alone.
 - **A screening lab:** Inventory desk, which reserves compound stock for re-tests, passed 27 of 32 at Corvid Hill Discovery, a lab neither model saw, against 4 for Glimmer alone.
+- **LoRA fine-tuning:** with Inventory desk's harness held fixed, a QLoRA adapter trained on 22 of Glimmer's checker-passed attempts took it from 22 of 30 to 32 of 32 at Corvid Hill Discovery. Task by task that is 8 wins and no losses, +26.7 points (95% interval +9.8 to +44.4), for $4.42 of GPU. It is one seed, and the adapter also stopped Glimmer writing its reasoning, so part of the gain may come from that.
 - **The first risk certificate:** when Academy desk answers, it is wrong on at most 5% of requests like these, at 95% confidence, and the bound held at Harborview Prep: 53 of 54 answered, none wrong.
 - **An open-weight teacher:** with Muse Spark Open as the teacher, served by Baseten, the whole pipeline runs on Meta's open weights. Its engineered harness took Glimmer from 18 to 39 of 60 requests on a returns desk's sealed final test.
 - **On-premise:** the same Academy desk passed 103 of 120 on one 12 GB graphics card, against 99 of 120 hosted.
@@ -93,14 +94,14 @@ How it works:
 
 **Bonus fits:**
 
-- **Best Build on Open Weight Models:** Spark Open teaching through Baseten, Glimmer on-premise on a 12 GB card, and LoRA fine-tuning on Glimmer's open weights through Hugging Face Jobs.
+- **Best Build on Open Weight Models:** Spark Open teaching through Baseten, Glimmer on-premise on a 12 GB card, and LoRA fine-tuning on Glimmer's open weights through Hugging Face Jobs, which took Glimmer on its taught harness to 32 of 32 at a lab it never saw.
 - **Best Agentic Use-Case:** specialists that act on an organization's records and work as a team, checked by a program on the state they leave behind.
 
 **Track:** indie developer. **Problem statement:** Build for Your World.
 
 **Links:** https://github.com/echoo19/architect, https://echoo19.github.io/architect/, the latest release for Windows and macOS, and the video (to add).
 
-**X post (draft):** I built Architect: an R&D platform that trains specialist AI on your own work. A frontier model engineers a small model's harness and fine-tunes it with LoRA, every refinement tested on held-out checks and the result judged on a sealed test. On a lab it never saw: 27 of 32, up from 4. Open source: github.com/echoo19/architect
+**X post (draft):** I built Architect: an R&D platform that trains specialist AI on your own work. A frontier model engineers a small model's harness and fine-tunes it with LoRA, every refinement tested on held-out checks and the result judged on a sealed test. On a lab it never saw: 27 of 32, up from 4, and 32 of 32 with a LoRA adapter. Open source: github.com/echoo19/architect
 
 ## Demo script
 

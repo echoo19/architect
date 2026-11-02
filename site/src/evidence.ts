@@ -25,6 +25,7 @@ export const SOURCES = {
   team2: { name: 'team-2.md', path: 'docs/comparisons/team-2.md' },
   qlora1: { name: 'qlora-1.md', path: 'docs/comparisons/qlora-1.md' },
   qlora2: { name: 'qlora-2.md', path: 'docs/comparisons/qlora-2.md' },
+  adapterEval: { name: 'adapter-eval-1.md', path: 'docs/comparisons/adapter-eval-1.md' },
   sweep2: { name: 'sweep-desk-2.md', path: 'docs/comparisons/sweep-desk-2.md' },
   scale: { name: 'SCALE.md', path: 'docs/SCALE.md' },
   second: { name: 'returns-desk-2.md', path: 'docs/comparisons/returns-desk-2.md' },
@@ -1189,8 +1190,8 @@ export const FINETUNE_LOSS: readonly { step: number; loss: number }[] = [
 
 /**
  * The two QLoRA adapters of Glimmer, each trained on one A100 on Hugging Face Jobs, with the
- * checks the product ran on each at the file level, from their reports. Neither has been measured
- * on a sealed final test.
+ * checks the product ran on each at the file level, from their reports. Inventory desk's is
+ * measured on its sealed final test below; Sweep desk's has not been.
  */
 export interface Adapter {
   desk: string;
@@ -1237,3 +1238,159 @@ export const ADAPTERS: readonly Adapter[] = [
 
 /** Sweep desk's second run on all 84 final-test tasks: the draft-based taught arm against bare. */
 export const SWEEP_RUN = { tasks: 84, taught: 37, bare: 26 } as const;
+
+/**
+ * Inventory desk's adapter on Inventory desk's sealed final test, from `adapter-eval-1.md`: the
+ * taught harness and the base harness, each with the adapter and without it, on one deployment of
+ * Glimmer under seed 101. Each count is out of the tasks that arm took, since two base-arm tasks
+ * never ran. Intervals are the report's own: Wilson for a pass rate, Newcombe for a paired
+ * difference.
+ */
+export interface AdapterArm {
+  name: string;
+  /** Passes at the taught labs and at Corvid Hill Discovery, out of the tasks taken. */
+  groups: readonly { passed: number; of: number; low: number; high: number }[];
+  all: { passed: number; of: number; low: number; high: number };
+  /** Output tokens a call, and the median and 95th-percentile seconds an attempt. */
+  tokens: number;
+  p50: number;
+  p95: number;
+  tone: Tone;
+}
+
+export const ADAPTER_ARMS: readonly AdapterArm[] = [
+  {
+    name: 'Glimmer on the base harness',
+    groups: [
+      { passed: 5, of: 24, low: 9.2, high: 40.5 },
+      { passed: 3, of: 32, low: 3.2, high: 24.2 },
+    ],
+    all: { passed: 8, of: 56, low: 7.4, high: 25.7 },
+    tokens: 391,
+    p50: 13.4,
+    p95: 199.5,
+    tone: 'plain',
+  },
+  {
+    name: 'The base harness with the adapter',
+    groups: [
+      { passed: 6, of: 24, low: 12.0, high: 44.9 },
+      { passed: 7, of: 30, low: 11.8, high: 40.9 },
+    ],
+    all: { passed: 13, of: 54, low: 14.6, high: 36.9 },
+    tokens: 133,
+    p50: 51.4,
+    p95: 149.0,
+    tone: 'plain',
+  },
+  {
+    name: 'Inventory desk',
+    groups: [
+      { passed: 19, of: 24, low: 59.5, high: 90.8 },
+      { passed: 22, of: 30, low: 55.6, high: 85.8 },
+    ],
+    all: { passed: 41, of: 54, low: 63.1, high: 85.4 },
+    tokens: 357,
+    p50: 55.5,
+    p95: 200.2,
+    tone: 'plain',
+  },
+  {
+    name: 'Inventory desk with the adapter',
+    groups: [
+      { passed: 23, of: 24, low: 79.8, high: 99.3 },
+      { passed: 32, of: 32, low: 89.3, high: 100 },
+    ],
+    all: { passed: 55, of: 56, low: 90.6, high: 99.7 },
+    tokens: 149,
+    p50: 14.4,
+    p95: 73.6,
+    tone: 'student',
+  },
+];
+
+/** With the adapter against without it, on the tasks both arms took. Corvid Hill on Inventory desk is primary. */
+export const ADAPTER_PAIRS: readonly FieldPair<LabGroupKey>[] = [
+  {
+    label: 'Inventory desk',
+    group: 'corvid',
+    n: 30,
+    wins: 8,
+    losses: 0,
+    both: 22,
+    neither: 0,
+    diff: 26.7,
+    low: 9.8,
+    high: 44.4,
+  },
+  {
+    label: 'Inventory desk',
+    group: 'seen',
+    n: 24,
+    wins: 4,
+    losses: 0,
+    both: 19,
+    neither: 1,
+    diff: 16.7,
+    low: -1.7,
+    high: 36.1,
+  },
+  {
+    label: 'Inventory desk',
+    group: 'all',
+    n: 54,
+    wins: 12,
+    losses: 0,
+    both: 41,
+    neither: 1,
+    diff: 22.2,
+    low: 10.4,
+    high: 35.1,
+  },
+  {
+    label: 'The base harness',
+    group: 'corvid',
+    n: 30,
+    wins: 6,
+    losses: 2,
+    both: 1,
+    neither: 21,
+    diff: 13.3,
+    low: -6.1,
+    high: 32.1,
+  },
+  {
+    label: 'The base harness',
+    group: 'seen',
+    n: 24,
+    wins: 4,
+    losses: 3,
+    both: 2,
+    neither: 15,
+    diff: 4.2,
+    low: -18.7,
+    high: 26.6,
+  },
+  {
+    label: 'The base harness',
+    group: 'all',
+    n: 54,
+    wins: 10,
+    losses: 5,
+    both: 3,
+    neither: 36,
+    diff: 9.3,
+    low: -5.3,
+    high: 23.5,
+  },
+];
+
+/**
+ * The run's GPU spend, and the primary difference at Corvid Hill counted with the two base-arm
+ * tasks that never ran as passed and as failed.
+ */
+export const ADAPTER_RUN = {
+  gpuUsd: 4.42,
+  ifPassed: { diff: 25.0, low: 9.1, high: 42.1 },
+  ifFailed: { diff: 31.3, low: 14.2, high: 48.6 },
+} as const;
