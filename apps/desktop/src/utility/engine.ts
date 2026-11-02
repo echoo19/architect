@@ -112,6 +112,8 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
         getSecret,
         huggingFaceToken: hubTokenResolver({ saved: savedHubKey }),
         allowedHosts: () => followed.allowedHosts,
+        // The arms' tools run in the app's built sandbox, as a training run's do.
+        sandboxEntryPath: message.sandboxEntryPath,
       }),
   });
   host.serve(asEnginePort(requests));
