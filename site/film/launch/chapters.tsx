@@ -19,8 +19,8 @@ export interface Whip {
 }
 
 /** How long the window takes to go, and to come back. */
-export const OUT = 0.7;
-export const IN = 0.8;
+export const OUT = 0.8;
+export const IN = 1.0;
 /** Both ways the window eases in and out, so no glide starts or stops abruptly. */
 export const outEase = inOutCubic;
 export const inEase = inOutCubic;
@@ -32,8 +32,8 @@ export const WHIPS = {
   offline: { out: T.workspace - 1.0, in: T.network - 0.6, line: 'Cut the network.' },
 } as const satisfies Record<string, Whip>;
 
-/** When a whip's line starts to rise: as the window clears the frame, so the two never overlap. */
-export const lineAt = (whip: Whip) => whip.out + OUT * 0.8;
+/** When a whip's line starts to rise: as the window is leaving, so the frame is never empty. */
+export const lineAt = (whip: Whip) => whip.out + OUT * 0.55;
 
 /** How far the line is carried across the frame, in pixels, as the window comes back. */
 const ACROSS = 2200;

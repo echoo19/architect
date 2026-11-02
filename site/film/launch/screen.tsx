@@ -87,14 +87,6 @@ export function Screen({
         />
       )}
       {drawer && drawer.open > 0 && drawer.close < 1 && (
-        // The app's drawer darkens what it opens over, so the drawer is the one thing in view.
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-backdrop"
-          style={{ opacity: clamp(drawer.open * 1.5) * (1 - drawer.close), zIndex: 15 }}
-        />
-      )}
-      {drawer && drawer.open > 0 && drawer.close < 1 && (
         <div
           data-frame="drawer"
           className="absolute bottom-3 right-3 top-[68px] w-[500px] overflow-hidden rounded-card bg-raised shadow-float"

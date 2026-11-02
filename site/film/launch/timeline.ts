@@ -142,10 +142,11 @@ export const T = {
   four: drawer + 5.8,
   fixed,
   regression,
-  drawerOut: regression + 1.0,
+  /** The drawer closes as the vault's page pushes in. */
+  drawerOut: vaultPage - 1.0,
   vaultPage,
   opens: vaultPage + 1.1,
-  grows: vaultPage + 1.5,
+  grows: vaultPage + 1.9,
   hero,
   vaultCut: hero + 0.95,
   fortyThree,

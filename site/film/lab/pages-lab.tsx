@@ -275,6 +275,7 @@ export function Fields({
   lt,
   selected,
   lab = 0,
+  scores,
   when,
 }: {
   lt: number;
@@ -282,6 +283,8 @@ export function Fields({
   lab?: number;
   /** Last activity to show in place of a field's own, by the field's name. */
   when?: Readonly<Record<string, string>>;
+  /** Best final tests to show in place of a field's own, by the field's name. */
+  scores?: Readonly<Record<string, readonly [string, string, string]>>;
 }) {
   const labels = useLabels();
   return (
@@ -323,7 +326,7 @@ export function Fields({
             <span className="relative text-right">{field.taught}</span>
             <span className="relative text-right">{field.unseen}</span>
             <span className="relative text-right">{field.real}</span>
-            {field.scores.map((score, column) => (
+            {(scores?.[field.name] ?? field.scores).map((score, column) => (
               <span
                 key={column}
                 data-frame={`${field.name}-${column}`}

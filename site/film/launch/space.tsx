@@ -91,7 +91,7 @@ const MOVES: readonly Move[] = [
     ease: (p) => outQuart(p * 0.8) / outQuart(0.8),
   },
   // One move from the score to the requests: back and across, the list rising as it arrives.
-  { at: T.asked - 1.2, dur: 1.5, to: () => seen(STATION), ease: inOutCubic },
+  { at: T.asked - 1.8, dur: 2.2, to: () => seen(STATION), ease: inOutCubic },
   // A slow drift in while the list builds.
   {
     at: T.asked + 0.3,
@@ -179,7 +179,7 @@ const FOUNDER_FRAMES = 116;
 const INSET = { scale: 0.76, radius: 20 } as const;
 
 /** The training screen pushes up into the founder's window, and his picture goes up out of it. */
-const pushUp = (t: number) => inOutCubic(span(t, T.trainRises, 0.6));
+const pushUp = (t: number) => inOutCubic(span(t, T.trainRises, 1.0));
 
 /**
  * The founder's window: inset on the ground as the clip before it shows him, captioned as the clip
@@ -187,7 +187,7 @@ const pushUp = (t: number) => inOutCubic(span(t, T.trainRises, 0.6));
  * camera sees it, and the training screen pushes his picture up and out of it.
  */
 function Founder({ t, camera }: { t: number; camera: Point }) {
-  if (t > T.trainRises + 0.6) return null;
+  if (t > T.trainRises + 1.0) return null;
   const frame = clamp(Math.round((t - T.founder) * 60), 0, FOUNDER_FRAMES - 1);
   const p = inOutCubic(span(t, T.recede, 1.2));
   // The slot as the camera sees it now.
@@ -310,7 +310,7 @@ function ScoreLine({ t, camera }: { t: number; camera: Point }) {
       <div className="flex h-full items-center justify-center">
         <span
           className={`${TITLE} whitespace-nowrap text-[76px] leading-none tabular-nums`}
-          style={riseIn(t, T.trainRises + 0.7)}
+          style={riseIn(t, T.trainPush + 0.6)}
         >
           Right on {score}% of tasks it never trained on.
         </span>

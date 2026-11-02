@@ -27,11 +27,11 @@ export const BEATS: readonly Beat[] = [
   },
   { name: 'film start', at: 0, played: 0, section: 1, word: '' },
   {
-    name: 'the training screen pushes into his window, on the drop',
+    name: 'the training screen pushes into his window',
     at: 0.6,
-    played: 0.45,
+    played: 0.6,
     section: 1,
-    word: '(the drop before) Every',
+    word: 'Every',
   },
   { name: 'the training screen, Spark at work', at: 1.6, played: 1.56, section: 1, word: 'knows' },
   { name: 'onto the score', at: 4.3, played: 3.7, section: 1, word: 'Your' },
@@ -82,7 +82,7 @@ export const BEATS: readonly Beat[] = [
   {
     name: 'the vault again, on the drop',
     at: 88.6,
-    played: 72.45,
+    played: 73.53,
     section: 8,
     word: '(the drop before) Then',
   },
