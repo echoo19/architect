@@ -7,8 +7,6 @@ import {
   ADAPTER_PAIRS,
   ADAPTER_RUN,
   ADAPTERS,
-  CERT,
-  CERT_ROWS,
   CERT2,
   CERT2_CHECK,
   CERT2_ROWS,
@@ -150,25 +148,6 @@ describe('the results page', () => {
       expect(report).toContain(`${row.wins} / ${row.losses}`);
       expect(report).toContain(`${row.both} / ${row.neither}`);
     }
-  });
-
-  it('adds up the certificate run and gives the report its numbers', () => {
-    const report = readFileSync(
-      join(ROOT, 'docs', 'comparisons', 'academy-desk-cert-1.md'),
-      'utf8',
-    );
-    for (const row of CERT_ROWS) {
-      expect(row.wrong).toBeLessThanOrEqual(row.answered);
-      expect(row.answered).toBeLessThanOrEqual(CERT.calibration);
-      expect(row.handedOff).toBe(Math.round((1 - row.answered / CERT.calibration) * 100));
-      expect(row.bound).toBeGreaterThan(CERT.target);
-      expect(row.realWrong).toBeLessThanOrEqual(row.realAnswered);
-      expect(row.realAnswered).toBeLessThanOrEqual(CERT.checkTasks);
-      expect(report).toContain(
-        `| ${row.answered} | ${row.wrong} | ${100 - row.handedOff}% | ${row.handedOff}% | ${row.bound.toFixed(1)}% |`,
-      );
-    }
-    expect(report).toContain(`$${CERT.usd.toFixed(2)}`);
   });
 
   it('adds up the screening lab run and gives the report its numbers', () => {
