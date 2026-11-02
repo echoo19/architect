@@ -507,6 +507,25 @@ describe('a team reply (decision 100)', () => {
     ]);
   });
 
+  it('tells the lead when its teammate wrote a tool call as text instead of running it', async () => {
+    const world = await setup([
+      asks('Read the policy.'),
+      {
+        text: '<atem:parameter name="path">data/policy.md</atem:parameter> </atem:invoke> </atem:function_calls>',
+      },
+      { text: 'It gave no answer.' },
+    ]);
+    const { reply } = await ask(world, 'What does the policy say?');
+    expect(reply.consultations?.map((each) => [each.outcome, each.text])).toEqual([
+      [
+        'no_answer',
+        'Sweep desk wrote a tool call as text instead of running it, so it gave no answer. Ask it again.',
+      ],
+    ]);
+    expect(consultOf(reply)?.view).toMatchObject({ outcome: 'no_answer' });
+    expect(world.model.chats()[2]?.messages.at(-1)?.content).toContain('Ask it again.');
+  });
+
   it('answers once as a team, though its lead is certified', async () => {
     const certificate = {
       issued: true as const,
