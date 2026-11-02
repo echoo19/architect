@@ -32,6 +32,12 @@ import { showStep, type NewStep, type StepList, type Teammates } from './steps';
 /** Sampler seeds stay within a signed 32-bit integer, which every runtime accepts. */
 const SEED_LIMIT = 2 ** 31;
 
+/**
+ * A tool call the model wrote out as text, such as `<atem:invoke name="read">` or a stray
+ * `<atem:parameter name="path">`, which no runtime ran. It is not an answer for the lead to read.
+ */
+const WRITTEN_CALL = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)(?=[\s/>])/i;
+
 /** What a team's lead is told about when to ask, in its system prompt, in team replies only. */
 export const TEAM_INSTRUCTION = `You work in a team. When a request names something your files don't have, or needs work your teammates' files cover, ask that teammate with ${ASK_TEAMMATE} first, and say exactly what you need back from it, such as the list or the records you will work from.`;
 
@@ -298,6 +304,13 @@ function settledAs(session: GraduateSession, trace: Trace): Settled {
       };
     case 'answer': {
       const { answer } = parseAnswerLine(trace.finalText);
+      const changed = (trace.changes ?? []).length > 0;
+      if (answer === null && !changed && WRITTEN_CALL.test(trace.finalText)) {
+        return {
+          outcome: 'no_answer',
+          text: `${session.name} wrote a tool call as text instead of running it, so it gave no answer. Ask it again.`,
+        };
+      }
       const gave = gaveAnswer({ answer, stopReason: 'answer' }, trace.changes, trace.finalText);
       return gave
         ? { outcome: 'answered', text: trace.finalText.trim() }

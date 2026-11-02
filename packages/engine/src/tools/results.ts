@@ -14,12 +14,17 @@ export interface RenderedResult {
 
 /**
  * A result as the model reads it. Text, which every built-in tool returns, goes as it is; any
- * other value, such as a harness tool's, goes as JSON. Either is cut to the budget with a note.
+ * other value, such as a harness tool's, goes as JSON. Either is cut to the budget with a note
+ * that ends by saying what to do `instead`.
  */
-export function renderResult(value: JsonValue, budget: number): RenderedResult {
+export function renderResult(
+  value: JsonValue,
+  budget: number,
+  instead = 'ask for less',
+): RenderedResult {
   const text = typeof value === 'string' ? value : JSON.stringify(value);
   if (text.length <= budget) return { content: text, result: value };
-  const content = cutText(text, budget, 'ask for less');
+  const content = cutText(text, budget, instead);
   return { content, result: content };
 }
 

@@ -248,6 +248,39 @@ describe('a correction', () => {
     expect(result.tools.map((tool) => tool.name)).toContain('append');
   });
 
+  it("keeps a helper's result that was too long to show, for run code after the checkpoint", async () => {
+    harness = makeHarness({
+      tools: [
+        {
+          name: 'ledger',
+          description: 'Every line of the ledger.',
+          parameters: { type: 'object' },
+          code: 'function run() { var o = {}; for (var i = 0; i < 1000; i++) o["k" + i] = i; return o; }',
+        },
+      ],
+    });
+    const failed = await attempt(BILL, [
+      { toolCalls: [{ name: 'ledger', arguments: {} }] },
+      append('INV-4,C-2,250,2026-12-03,'),
+      answer('{"invoice_id":"INV-4"}'),
+    ]);
+    const code = 'JSON.parse(files.read("results/ledger.json")).k999';
+    const result = await runCorrection(
+      BILL,
+      context([
+        { toolCalls: [{ name: 'run', arguments: { code } }] },
+        append('INV-4,C-2,2500,2026-12-03,'),
+        answer('{"invoice_id":"INV-4"}'),
+      ]),
+      { kind: 'checkpoint', trace: failed.trace, turn: 2 },
+      { seed: 3 },
+    );
+    expect(result.verified).toBe(true);
+    const shown = result.messages.filter((message) => message.role === 'tool');
+    expect(shown[0]?.content).toContain('files.read("results/ledger.json")');
+    expect(shown[1]?.content).toBe('=> 999');
+  });
+
   it('is rejected with the checker reason when the continuation is wrong too', async () => {
     const trace = await failedBill();
     const result = await runCorrection(

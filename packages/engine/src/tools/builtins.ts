@@ -63,6 +63,8 @@ interface BuiltinDeps {
   today: string;
   approveWrite?: ApproveWrite;
   budget: number;
+  /** Harness tools' results too long to show, by the path `run` code reads each one at. */
+  kept: () => Readonly<Record<string, string>>;
 }
 
 const SKILL_FILE = /^skills\/([^/]+)\/SKILL\.md$/;
@@ -240,7 +242,11 @@ export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Exe
     async run(args) {
       const { code } = parseArguments('run', args);
       if (code.trim() === '') throw new ToolError('code is empty, so there is nothing to run.');
-      const outcome = await sandbox.runCode({ code, files: files.texts(), today: deps.today });
+      const outcome = await sandbox.runCode({
+        code,
+        files: { ...files.texts(), ...deps.kept() },
+        today: deps.today,
+      });
       if (!outcome.ok) throw new ToolError(`The code couldn't run: ${outcome.failure.message}`);
       if (outcome.error) {
         const printed = outcome.printed.trimEnd();

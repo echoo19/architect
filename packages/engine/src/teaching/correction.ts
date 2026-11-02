@@ -196,6 +196,7 @@ export async function runCorrection(
       turnsTaken: point.turn - 1,
       replay: point.replay,
       startTexts: point.startTexts,
+      kept: point.kept,
       onStep: watch.onStep,
       ...(options.signal === undefined ? {} : { signal: options.signal }),
     });
