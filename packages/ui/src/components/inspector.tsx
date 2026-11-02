@@ -318,9 +318,13 @@ export function Inspector<T extends string>({
                     </IconButton>
                   </Tooltip>
                 </div>
+                {/*
+                  The scrollbar's 10px always keeps its place inside the 16px edge, so a tab that
+                  scrolls and one that doesn't end on the same line.
+                */}
                 <Tabs.Content
                   value={tab}
-                  className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3 scroll-quiet focus-visible:outline-none"
+                  className="min-h-0 flex-1 overflow-y-auto pb-6 pl-4 pr-1.5 pt-3 scroll-quiet [scrollbar-gutter:stable] focus-visible:outline-none"
                 >
                   <StepTransition transitionKey={tab} kind="tab">
                     {children(tab)}

@@ -11,15 +11,15 @@ const KIND_ICONS: Record<CorrectionKind, typeof ListChecks> = {
   invalid: CircleSlash,
 };
 
-/** A lesson's kind as a small tile, the way rows mark what they hold. */
-export function KindTile({ kind, className }: { kind: CorrectionKind; className?: string }) {
+/** A lesson's kind as its icon, bare at the start of a row, the way rows mark what they hold. */
+export function KindIcon({ kind, className }: { kind: CorrectionKind; className?: string }) {
   const Icon = KIND_ICONS[kind];
   return (
     <span
       role="img"
       aria-label={KIND_LABELS[kind]}
       className={cn(
-        'flex size-7 shrink-0 items-center justify-center rounded-control bg-hover text-fg',
+        'flex size-6 shrink-0 items-center justify-center text-fg [&_svg]:size-4',
         className,
       )}
     >

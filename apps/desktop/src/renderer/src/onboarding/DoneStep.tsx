@@ -22,7 +22,7 @@ export function DoneStep({ mentor, student, percent }: DoneStepProps) {
       <StepIntro title="You're set up">Next, describe a job. Or try {offered} first.</StepIntro>
       <Panel
         aria-label="Setup"
-        className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
+        className="w-full max-w-[720px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
         <SettingsRow
           label={student.name}

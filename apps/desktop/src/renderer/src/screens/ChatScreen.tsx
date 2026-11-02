@@ -484,7 +484,11 @@ function Chat({
       />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <div ref={viewport} className="min-h-0 flex-1 overflow-y-auto px-8 pb-[72px] pt-8">
+          {/* A gutter on both sides keeps the messages centred over the composer as they scroll. */}
+          <div
+            ref={viewport}
+            className="min-h-0 flex-1 overflow-y-auto px-8 pb-[72px] pt-8 [scrollbar-gutter:stable_both-edges]"
+          >
             <div ref={content} className="mx-auto flex max-w-[720px] flex-col gap-10 text-body">
               {body}
             </div>

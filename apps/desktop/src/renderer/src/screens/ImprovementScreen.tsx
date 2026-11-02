@@ -146,7 +146,7 @@ function Loaded({
     <Page
       title={name}
       footer={
-        <div className="mx-auto flex max-w-[1120px] flex-wrap justify-end gap-2">
+        <div className="mx-auto box-content flex max-w-[1120px] flex-wrap justify-end gap-2 px-10">
           <Button onClick={watch}>See all rounds</Button>
           {canPromote ? (
             <Button variant="primary" onClick={() => setPromoting(true)}>

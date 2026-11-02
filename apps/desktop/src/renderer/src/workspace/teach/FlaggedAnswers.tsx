@@ -4,7 +4,7 @@ import { Button, Drawer, DrawerContent, Skeleton } from '@architect/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCorrections, useImprovements } from '../../api/teaching';
 import { ProblemState } from '../../components/ProblemState';
-import { KindTile } from './kinds';
+import { KindIcon } from './kinds';
 import { correctionStatus, KIND_LABELS, openCorrections, runningImprovement } from './lessons';
 import { ProposalActions, ProposalView } from './Proposal';
 
@@ -88,7 +88,7 @@ export function FlaggedAnswers({
                   onClick={() => setSelectedId(correction.id)}
                   className="-mx-2 flex w-[calc(100%+16px)] items-center gap-3.5 rounded-control px-2 py-3 text-left transition-colors duration-150 hover:bg-hover"
                 >
-                  <KindTile kind={correction.proposal.kind} />
+                  <KindIcon kind={correction.proposal.kind} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="line-clamp-2 text-fg text-pretty">
                       {correction.proposal.lesson}

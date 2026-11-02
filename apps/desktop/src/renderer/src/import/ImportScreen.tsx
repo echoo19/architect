@@ -77,7 +77,11 @@ function baseName(path: string): string {
 }
 
 function Footer({ children }: { children: ReactNode }) {
-  return <div className="mx-auto flex max-w-[680px] justify-between gap-3">{children}</div>;
+  return (
+    <div className="mx-auto box-content flex max-w-[680px] justify-between gap-3 px-8">
+      {children}
+    </div>
+  );
 }
 
 /**

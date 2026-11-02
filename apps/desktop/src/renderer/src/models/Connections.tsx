@@ -1,4 +1,4 @@
-import { DataTable, ProviderMark, Skeleton, type DataColumn } from '@architect/ui';
+import { DataTable, ProviderMark, Skeleton, useWindowBelow, type DataColumn } from '@architect/ui';
 import { Check, Cpu } from 'lucide-react';
 import { useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
@@ -39,9 +39,10 @@ function roleColumn(
 
 /**
  * The table's columns, the roles named as the rest of the Lab says them: "Spark is teaching
- * Glimmer", and the specialists Glimmer becomes.
+ * Glimmer", and the specialists Glimmer becomes. An address stays on one line; on a narrow
+ * window it steps aside, as Settings shows it too.
  */
-function columns(mentor: string, student: string): DataColumn<Connection>[] {
+function columns(mentor: string, student: string, narrow: boolean): DataColumn<Connection>[] {
   return [
     {
       key: 'connection',
@@ -59,8 +60,9 @@ function columns(mentor: string, student: string): DataColumn<Connection>[] {
     {
       key: 'address',
       header: 'Address',
+      hidden: narrow,
       cell: (connection) => (
-        <span className="break-all font-mono text-small">{connection.baseUrl}</span>
+        <span className="whitespace-nowrap font-mono text-small">{connection.baseUrl}</span>
       ),
     },
     { key: 'status', header: 'Status', width: '168px', cell: statusOf },
@@ -90,6 +92,7 @@ export function ConnectionsView() {
   // The roles go by the default models' short names, Spark and Glimmer unless changed.
   const mentor = settings.data ? mentorName(settings.data.defaultMentor) : DEFAULT_NAMES.mentor;
   const student = settings.data ? studentName(settings.data.defaultStudent) : DEFAULT_NAMES.student;
+  const narrow = useWindowBelow(1400);
   if (secrets.status === 'error') {
     return (
       <ProblemState
@@ -105,7 +108,7 @@ export function ConnectionsView() {
   return (
     <DataTable
       aria-label="Connections"
-      columns={columns(mentor, student)}
+      columns={columns(mentor, student, narrow)}
       rows={connections}
       rowKey={(connection) => connection.id}
       empty="Nothing is connected yet"

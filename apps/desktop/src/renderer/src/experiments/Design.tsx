@@ -221,9 +221,12 @@ export function ExperimentDesign({
     return true;
   };
 
+  // Before a field is chosen that is the reason itself; one named is being planned on at once.
   const blocked =
     input === null || detail === null
-      ? null
+      ? jobId === undefined
+        ? 'Choose a field'
+        : null
       : unfit.size > 0
         ? 'Fix the marked settings first.'
         : (inputProblem(input) ?? preregisterProblem(input, detail.groups));
@@ -235,7 +238,7 @@ export function ExperimentDesign({
       status={detail ? <Badge>{STATUS_WORDS[detail.experiment.status]}</Badge> : undefined}
       action={
         <div className="flex items-center gap-3">
-          {blocked && detail && <span className="text-ui">{blocked}</span>}
+          {blocked && <span className="text-ui">{blocked}</span>}
           <Button
             variant="primary"
             size="md"

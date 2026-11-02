@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, DataTable, EmptyState, PageTabs, Skeleton } from '@architect/ui';
+import { Button, DataTable, EmptyState, PageTabs, Skeleton, useWindowBelow } from '@architect/ui';
 import {
   ArrowRightLeft,
   Boxes,
@@ -75,6 +75,8 @@ function NoFields() {
 
 function FieldList({ ids }: { ids: readonly string[] }) {
   const read = useQuery(`fields:${ids.join(',')}`, () => Promise.all(ids.map(readField)));
+  // On a narrow window the date steps aside, so each name keeps one line; it still sorts the list.
+  const narrow = useWindowBelow(1280);
   if (!read.data) {
     return read.status === 'error' ? (
       <ProblemState error={read.error} title="Couldn't read your fields" onRetry={read.reload} />
@@ -160,6 +162,7 @@ function FieldList({ ids }: { ids: readonly string[] }) {
           key: 'activity',
           header: 'Last activity',
           align: 'end',
+          hidden: narrow,
           cell: (row) => shortDate(row.field.lastActivity),
           sortValue: (row) => row.field.lastActivity,
         },

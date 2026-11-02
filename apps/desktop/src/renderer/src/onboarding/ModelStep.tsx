@@ -161,7 +161,8 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
             <p className="m-0 px-1 text-fg text-pretty">
               The {buildName(build)} build is already on this computer. The recommended{' '}
               {buildName(recommended)} build runs faster here, after a{' '}
-              {formatBytes(recommended.downloadBytes)} download.
+              <span className="whitespace-nowrap">{formatBytes(recommended.downloadBytes)}</span>{' '}
+              download.
             </p>
           )}
         {downloading && (
