@@ -7,6 +7,7 @@ import {
   type Job,
   type OrgTypeResult,
   type ReportCard,
+  type RuntimeMeasurement,
   type TypeResult,
   type WorkspaceChat,
   type WorkspaceMessage,
@@ -21,6 +22,7 @@ import {
   ACADEMY_RUN,
   ACADEMY_SKILLS,
   AT,
+  at,
   graduate,
   storyReport,
   trainedJob,
@@ -258,6 +260,41 @@ export const MINI_REPORT: ReportCard = {
   ),
   name: 'Academy desk Mini',
   student: { ...storyReport.student, quantization: 'Q8_0' },
+};
+
+/**
+ * Version 2 tested again on the hosted copy of Glimmer, three days after it graduated on this
+ * computer's 4-bit build: one more first hint right at a never-seen academy, the rest the same.
+ */
+export const HOSTED_RETEST_REPORT: ReportCard = {
+  ...academyCard(
+    ACADEMY_RUN,
+    moved((result) => (result.type === 'hint' && !result.seen && result.synthetic ? 1 : 0)),
+  ),
+  testedOn: 'hosted',
+  createdAt: at(120 + 3 * 24 * 60),
+};
+
+/**
+ * What the meter read while version 2's final test ran on this computer: the 4-bit build on a
+ * 12 GB card, which holds most of it, the rest in system memory.
+ */
+export const FIELD_MEASUREMENT: RuntimeMeasurement = {
+  id: 'msr_academydesk',
+  runId: ACADEMY_RUN.runId,
+  split: 'test',
+  target: 'local',
+  config: 'student',
+  harnessVersion: academyVersion(ACADEMY_RUN),
+  seeds: [11],
+  backend: 'ollama',
+  peakProcessBytes: 20_412_000_000,
+  peakGpuBytes: 11_640_000_000,
+  coldStartMs: 14_800,
+  samples: 412,
+  sampler: 'nvidia-smi and tasklist every 2 s',
+  startedAt: at(60),
+  endedAt: at(118),
 };
 
 export const FIELD_CAPABILITIES: CapabilityBreakdown = {

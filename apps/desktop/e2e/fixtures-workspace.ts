@@ -449,6 +449,20 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
     handle('workspace:messages', (chatId: string) =>
       messages.filter((item) => item.chatId === chatId),
     );
+    handle('workspace:createChat', (graduateId: string) => {
+      const at = new Date().toISOString();
+      const chat = {
+        id: `cht_created_${chats.length + 1}`,
+        graduateId,
+        title: 'New chat',
+        createdAt: at,
+        updatedAt: at,
+        running: false,
+        waiting: false,
+      };
+      chats.unshift(chat);
+      return chat;
+    });
     handle('workspace:send', (chatId: string, text: string) => {
       sent += 1;
       const at = new Date().toISOString();
@@ -470,6 +484,7 @@ export async function installFakeEngine(app: ElectronApplication, seed: EngineSe
         current.title === 'New chat' ? text.split(' ').slice(0, 6).join(' ') : current.title;
       apply({ type: 'chat.updated', chat: { ...current, title, running: true, updatedAt: at } });
     });
+    handle('workspace:blockedConnections', () => []);
     handle('workspace:stop', (chatId: string) => {
       apply({ type: 'chat.updated', chat: { ...chatOf(chatId), running: false } });
     });

@@ -45,6 +45,7 @@ export {
   type AgentAvatarProps,
   type AgentAvatarSize,
 } from './components/brand';
+export { BarChart, niceCeiling, type BarChartProps, type BarDatum } from './components/bar-chart';
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './components/button';
 export { Checkbox, type CheckboxProps } from './components/checkbox';
 export {

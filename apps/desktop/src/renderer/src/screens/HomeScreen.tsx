@@ -8,12 +8,12 @@ import { ProblemState } from '../components/ProblemState';
 import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import { mentorName, studentName } from '../lib/names';
-import { chatPath, navigate, paths } from '../lib/router';
+import { navigate, paths } from '../lib/router';
 import { jobToPickUp, TRAINING_ROW_WORDS } from '../shell/training-rows';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
-import { latestChat } from '../workspace/store';
+import { latestAgent } from '../workspace/store';
 
-/** The workspace with no chat open: it opens the chat used last, or shows how to start. */
+/** The workspace with nothing open: it opens the home of the agent used last, or shows how to start. */
 export function HomeScreen() {
   const graduates = useGraduates();
   return (
@@ -31,7 +31,7 @@ export function HomeScreen() {
         )}
         {graduates.status === 'success' &&
           (graduates.data.length > 0 ? (
-            <OpenLatestChat graduates={graduates.data} />
+            <OpenLatestAgent graduates={graduates.data} />
           ) : (
             <NoAgentsYet />
           ))}
@@ -50,7 +50,7 @@ function HomeSkeleton() {
   );
 }
 
-function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
+function OpenLatestAgent({ graduates }: { graduates: GraduateSummary[] }) {
   const settings = useSettings();
   const onboarded = settings.data?.onboarded === true;
   const [failure, setFailure] = useState<Error | null>(null);
@@ -60,9 +60,9 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
     // Until setup is finished, the app sends this screen to the welcome flow instead.
     if (!onboarded) return;
     let current = true;
-    latestChat(graduates.map((graduate) => graduate.id)).then(
-      (chat) => {
-        if (current) navigate(chatPath(chat), { replace: true });
+    latestAgent(graduates.map((graduate) => graduate.id)).then(
+      (graduateId) => {
+        if (current) navigate(paths.agent(graduateId), { replace: true });
       },
       (error: unknown) => {
         if (current) setFailure(toError(error));
@@ -78,7 +78,7 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
     return (
       <ProblemState
         error={problem}
-        title="Couldn't open your chats"
+        title="Couldn't open your agents"
         onRetry={() => {
           setFailure(null);
           settings.reload();

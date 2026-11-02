@@ -4,6 +4,7 @@ import { useSettings } from '../api/hooks';
 import { useEngineUpdates } from '../api/updates';
 import { ImportScreen } from '../import/ImportScreen';
 import { navigate, paths, useRoute, type Route } from '../lib/router';
+import { AgentScreen } from '../screens/AgentScreen';
 import { ChatScreen, TeamChatScreen } from '../screens/ChatScreen';
 import { ComputeScreen } from '../screens/ComputeScreen';
 import { DefineScreen } from '../screens/DefineScreen';
@@ -90,6 +91,12 @@ function Screen({ route }: { route: Route }) {
             jobId={route.jobId}
             model={route.model}
           />
+        </WorkspaceShell>
+      );
+    case 'agent':
+      return (
+        <WorkspaceShell route={route}>
+          <AgentScreen key={route.graduateId} graduateId={route.graduateId} />
         </WorkspaceShell>
       );
     case 'chat':

@@ -10,10 +10,8 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { api } from '../api/client';
 import { useExperiments } from '../api/experiments';
-import { createChat, useGraduates, useJobs } from '../api/hooks';
-import { attempt } from '../lib/notify';
+import { useGraduates, useJobs } from '../api/hooks';
 import { isMac } from '../lib/platform';
 import { chatPath, navigate, paths } from '../lib/router';
 import { SHORTCUT_KEYS } from '../lib/shortcuts';
@@ -22,14 +20,6 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { useAgentChats } from '../workspace/store';
 import { placesOf, useEdition } from './edition';
 import { TRAINING_ROW_WORDS, trainingRows } from './training-rows';
-
-/** Opens an agent at its most recent chat, starting one if it has none. */
-async function openAgent(graduateId: string): Promise<void> {
-  const chats = await api.chats(graduateId);
-  const latest = [...chats].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-  const chat = latest ?? (await createChat(graduateId));
-  navigate(paths.chat(graduateId, chat.id));
-}
 
 export function CommandMenu() {
   const { open, setOpen, openSettings } = useUi(
@@ -71,14 +61,9 @@ export function CommandMenu() {
             <CommandItem
               key={graduate.id}
               value={`open-${graduate.id}`}
-              keywords={[graduate.name, 'open', 'chat']}
+              keywords={[graduate.name, 'open', 'home', 'sessions']}
               icon={<AgentAvatar name={graduate.name} size="md" />}
-              onSelect={() =>
-                run(
-                  () =>
-                    void attempt(`Couldn't open ${graduate.name}`, () => openAgent(graduate.id)),
-                )
-              }
+              onSelect={() => run(() => navigate(paths.agent(graduate.id)))}
             >
               Open {graduate.name}
             </CommandItem>

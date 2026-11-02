@@ -226,6 +226,13 @@ export const WorkspaceMessageSchema = z.object({
     .object({ kind: z.literal('approval_required'), approval: ApprovalRequestSchema })
     .optional(),
   workedMs: z.number().int().nonnegative().optional(),
+  /**
+   * The tokens the local runtime counted as written in the reply's model turns, and the time those
+   * turns took, for its speed. Absent on user messages and on replies from before it was kept.
+   */
+  generated: z
+    .object({ tokens: z.number().int().nonnegative(), ms: z.number().int().nonnegative() })
+    .optional(),
   /** The graduate version that answered. Absent on user messages and on replies from before versions. */
   graduateVersion: z.number().int().positive().optional(),
   /** In a team chat, each time the reply asked a teammate, kept as each one goes. */
@@ -260,3 +267,16 @@ export const WorkspaceEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('chat.updated'), chat: WorkspaceChatSchema }),
 ]);
 export type WorkspaceEvent = z.infer<typeof WorkspaceEventSchema>;
+
+/**
+ * A network call the agent host's guard stopped before a byte left: graduates reach only this
+ * computer, so any other destination is refused. Never a whole URL.
+ */
+export const BlockedConnectionSchema = z.object({
+  /** The function that was called, e.g. `fetch` or `net.Socket.connect`. */
+  api: z.string(),
+  /** Where it tried to go: a host and port, a pipe, or a DNS query. */
+  target: z.string(),
+  at: z.iso.datetime(),
+});
+export type BlockedConnection = z.infer<typeof BlockedConnectionSchema>;

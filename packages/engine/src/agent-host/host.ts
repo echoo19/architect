@@ -34,8 +34,11 @@ import type { WorkspaceStore } from './store';
 import { askTeammate, teammatesOf, type Teammate } from './team';
 import { approveWrites, PendingWrites } from './writes';
 
-/** The workspace part of the app's API: what the agent host serves to the UI. */
-export type WorkspaceApi = ArchitectApi['workspace'];
+/**
+ * The workspace part of the app's API: what the agent host serves to the UI. What its network
+ * guard stopped is the process's to answer, not the host's (`serveAgentHost`).
+ */
+export type WorkspaceApi = Omit<ArchitectApi['workspace'], 'blockedConnections'>;
 
 export interface AgentHostOptions {
   /** Graduates, their installations and chats, on the app's database. */

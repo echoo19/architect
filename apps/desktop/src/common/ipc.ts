@@ -184,6 +184,7 @@ const INVOKE_METHODS: { [D in Domain]: Record<InvokeMethod<D>, true> } = {
     send: true,
     stop: true,
     decide: true,
+    blockedConnections: true,
   },
 };
 

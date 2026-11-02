@@ -195,6 +195,8 @@ describe('chatting with a graduate', () => {
       blocks: [],
     });
     expect(reply.workedMs).toBeGreaterThanOrEqual(0);
+    // The runtime's own count of the tokens each of the two turns wrote, and the time they took.
+    expect(reply.generated).toEqual({ tokens: 60, ms: expect.any(Number) });
     // The whole exchange is kept with the reply: each call's arguments and full result.
     expect(reply.trace).toEqual([
       {

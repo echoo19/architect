@@ -211,6 +211,13 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   the right. The current page's row takes the selected fill, which slides between the places. An
   agent's or a team's actions sit over the end of its row only while it is pointed at, so its name
   has the row's width; agents that share a name show the version each answers with.
+- **Agent home.** Opening an agent lands on its page, titled by its name and version: a box
+  that starts a session with its starter requests under it, then Activity (four figures over a
+  bar chart of requests per day, failed replies in red at the top of their bar) and Sessions at
+  the left; On-premise (On this computer), the sealed final test with its retests and drift, and
+  Tools and decisions at the right. Every figure counts a record; what isn't recorded isn't shown.
+- **BarChart.** Counts as vertical bars on guides at zero, half and a round top, the top's figure
+  at the left, a short baseline mark for a step with none; it reads out as one line per bar.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
   teacher, the student, teaching, evaluation, budget). It floats: the float material at radius
   20, 8px in from the window's right edge and from the page beside it, the strip above and the
