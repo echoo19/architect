@@ -77,6 +77,8 @@ export interface ComparisonConfig {
   certifyAttempts?: number;
   /** The teacher arm's model when it isn't the field's teacher (decision 096). */
   teacher?: ModelTeacher;
+  /** A harness folder the draft arm adopts whole in place of the mentor's draft (decision 105). */
+  draftHarness?: string;
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
@@ -374,8 +376,10 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
         ...none,
         hosted: 2 * dev + test,
         oneAtATime: test,
-        sparkCalls: 2,
-        sparkCap: config.sparkCaps.draft,
+        // An adopted draft costs no mentor call.
+        ...(config.draftHarness === undefined
+          ? { sparkCalls: 2, sparkCap: config.sparkCaps.draft }
+          : {}),
       };
     case 'targeted':
       return {

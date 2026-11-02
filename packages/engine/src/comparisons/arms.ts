@@ -1,6 +1,7 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  customSecretRef,
   DEFAULT_STUDENT,
   GLIMMER_BUILDS,
   JobSchema,
@@ -13,6 +14,7 @@ import {
   type MentorPresetKey,
   type Method,
   type ModelMentor,
+  StudentEndpointSchema,
   type StudentEndpoint,
   type StudentTarget,
 } from '@architect/shared';
@@ -42,6 +44,23 @@ export const DEFAULT_MODELS: ComparisonModels = {
 };
 
 const isGlimmer = (model: string) => GLIMMER_BUILDS.some((build) => build.model === model);
+
+/**
+ * A hosted student at an address no preset names, such as Glimmer served on a rented GPU
+ * (decision 105). Its key, when it takes one, is bound to that host alone. It is priced at the
+ * default hosted copy's rates, so its tokens are held to the student's cap as they would be
+ * there; a GPU rented by the hour is the person's to hold.
+ */
+export function studentAt(baseUrl: string, model: string, keyed: boolean): StudentEndpoint {
+  const preset = STUDENT_PRESETS.find((candidate) => candidate.key === DEFAULT_MODELS.student);
+  return StudentEndpointSchema.parse({
+    runtime: 'openai_compatible',
+    baseUrl,
+    model,
+    ...(keyed ? { secretRef: customSecretRef(baseUrl) } : {}),
+    ...(preset?.pricing === undefined ? {} : { pricing: preset.pricing }),
+  });
+}
 
 /**
  * The models a comparison on this field runs (decision 094): the field's own teacher and the
@@ -285,14 +304,30 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
           : {}),
       };
     }
-    case 'draft':
+    case 'draft': {
+      if (config.draftHarness === undefined) {
+        return {
+          arm,
+          job: copy({ budget: budget({ maxMentorUsd: config.sparkCaps.draft }) }),
+          method: 'one_shot',
+          lockedTestOn: 'hosted',
+          protocol,
+        };
+      }
+      // A harness given whole, such as another comparison's frozen graduate's: adopted as the
+      // draft with no mentor call, so its final test is that harness's as it was frozen.
+      const given = await context.deps.harness.importHarness(config.draftHarness);
+      const adopted = join(context.files.dataDir, 'comparisons', 'adopted', arm);
+      await rm(adopted, { recursive: true, force: true });
+      await context.writeHarness(adopted, given);
       return {
         arm,
-        job: copy({ budget: budget({ maxMentorUsd: config.sparkCaps.draft }) }),
+        job: copy({ budget: budget({ maxMentorUsd: 0 }) }),
         method: 'one_shot',
         lockedTestOn: 'hosted',
-        protocol,
+        protocol: { ...protocol, adopt: context.engine.paths.toStored(adopted) },
       };
+    }
     case 'targeted':
     case 'fixed': {
       const draft = context.runOf('draft');

@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon, 00:00 UTC): the fine-tune's effect, measured
+
+- *Done:* qlora-1's adapter measured on Inventory desk's sealed final test (`docs/comparisons/adapter-eval-1.md`, run folder `architect-runs/adapter-eval-1`). One Hugging Face Inference Endpoint (A100, vLLM 0.32.0, bf16) served Glimmer with and without the adapter under two names. With the taught harness: Corvid Hill 32/32 with it against 22/30 without, +26.7 points (+9.8 to +44.4), 12 wins and no losses over all 54. With the blank harness: flat. GPU at most $4.42; endpoint deleted. The comparisons runner gained `--student-url/--student-model/--student-key-env`, `--draft-harness` and `--study` (decision 105) on branch `runs/adapter-eval-1`, not merged.
+- *Open:* the adapter also dropped Glimmer's reasoning, so the gain mixes lessons with answering without reasoning; a base arm at low reasoning would separate them. Hugging Face paused the endpoint when the account's prepaid credit ran out, 4 attempts short. `pnpm check` on `field/main` fails `design-rules.test.ts` on two hex colors in `site/src/components/Why.tsx` (from `e9d67188`), unrelated to this branch.
+
 ## 2026-11-02 (Mon, early hours): measured runs, a real fine-tune, the Lab's language, 0.9.0 and the launch film
 
 - *Done, runs* (reports in `docs/comparisons`, each registered before it ran, keys loaded per process, no local GPU):

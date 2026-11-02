@@ -9,6 +9,7 @@ export {
   DEFAULT_MODELS,
   fieldModels,
   jobModels,
+  studentAt,
   type ComparisonModels,
 } from './arms';
 export { realEnvironment, type RealEnvironmentOptions } from './environment';
