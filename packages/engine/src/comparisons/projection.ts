@@ -2,6 +2,7 @@ import {
   ARM_LABELS,
   armInSentence,
   ArmIdSchema,
+  DEFAULT_PROBES,
   mentorPricing,
   MENTOR_PRESETS,
   type AdapterProtocol,
@@ -32,6 +33,8 @@ export interface ComparisonConfig {
     draft: number;
     targeted: number;
     fixed: number;
+    /** Propose, probe, compose (decision 108): the targeted arm composing from probes. */
+    composed: number;
     reference: number;
     referenceTargeted: number;
     weights: number;
@@ -39,7 +42,7 @@ export interface ComparisonConfig {
   mentoringSeed: number;
   /** The locked test's decoding seeds: the first for every arm, the rest for the repeat. */
   testSeeds: readonly number[];
-  /** Refinement rounds for the targeted and fixed arms, at most. */
+  /** Refinement rounds for the targeted, fixed and composed arms, at most. */
   rounds: number;
   /** Training rounds for the failure-specific adapter, at most. */
   weightsRounds: number;
@@ -82,7 +85,15 @@ export interface ComparisonConfig {
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
-  sparkCaps: { draft: 1, targeted: 5, fixed: 5, reference: 4, referenceTargeted: 4, weights: 3 },
+  sparkCaps: {
+    draft: 1,
+    targeted: 5,
+    fixed: 5,
+    composed: 5,
+    reference: 4,
+    referenceTargeted: 4,
+    weights: 3,
+  },
   mentoringSeed: 1,
   testSeeds: [101, 102],
   rounds: 2,
@@ -400,6 +411,22 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
         sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
         sparkCap: config.sparkCaps.fixed,
       };
+    case 'composed': {
+      // A round of its own (decision 108): the train batch, the incumbent and each probe on dev,
+      // each probe on the train batch, then the composed change, measured twice at most. Two
+      // calls to Spark a round, each with its fix.
+      const probes = job.evaluation.probes ?? DEFAULT_PROBES;
+      const probed = (1 + probes) * trainBatch + (probes + 4) * dev;
+      return {
+        ...none,
+        hosted: dev + config.rounds * probed + test,
+        oneAtATime: test,
+        local: localTest,
+        sparkCalls: 4 * config.rounds,
+        sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
+        sparkCap: config.sparkCaps.composed,
+      };
+    }
     case 'reference':
       return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.reference };
     case 'reference-targeted':
@@ -468,6 +495,7 @@ function prerequisite(
   switch (arm) {
     case 'targeted':
     case 'fixed':
+    case 'composed':
       return needs('draft');
     case 'reference':
       return needs('bare');

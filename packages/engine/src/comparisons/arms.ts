@@ -329,10 +329,16 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
       };
     }
     case 'targeted':
-    case 'fixed': {
+    case 'fixed':
+    case 'composed': {
       const draft = context.runOf('draft');
       const kept = draft?.freeze?.harnessVersion;
-      const cap = arm === 'targeted' ? config.sparkCaps.targeted : config.sparkCaps.fixed;
+      const cap =
+        arm === 'targeted'
+          ? config.sparkCaps.targeted
+          : arm === 'fixed'
+            ? config.sparkCaps.fixed
+            : config.sparkCaps.composed;
       const spent = draft === null ? 0 : context.sparkSpent(draft.run.id);
       const draftKept =
         draft !== null &&
@@ -349,6 +355,16 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
             maxMentorUsd: Math.max(0, cap - (shared ? spent : 0)),
           }),
           ...(shared ? { startingHarness: { kind: 'import' as const, path: 'draft' } } : {}),
+          // The one difference from the targeted arm: each round proposes, probes and composes
+          // (decision 108).
+          ...(arm === 'composed'
+            ? {
+                evaluation: {
+                  ...base.evaluation,
+                  roundMode: 'propose_probe_compose' as const,
+                },
+              }
+            : {}),
         }),
         method: 'architect',
         lockedTestOn: 'hosted',

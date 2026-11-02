@@ -24,6 +24,7 @@ export const ArmIdSchema = z.enum([
   'teacher',
   'repeat',
   'fixed',
+  'composed',
   'weights-one-shot',
   'weights-targeted',
 ]);
@@ -38,6 +39,7 @@ export const ARM_LABELS: Record<ArmId, string> = {
   teacher: 'Teacher alone',
   repeat: 'Decoding repeat',
   fixed: 'Fixed intervention',
+  composed: 'Propose, probe, compose',
   'weights-one-shot': 'One-shot adapter',
   'weights-targeted': 'Failure-specific adapter',
 };
@@ -50,6 +52,8 @@ export function armInSentence(label: string): string {
 /**
  * Decision 037's place of each arm; both weights arms are its seventh. Spark with the targeted
  * harness is a second reference beside the first, which stays the primary one (decision 051).
+ * Propose, probe, compose is the targeted arm with another round mode (decision 108), funded
+ * with the fixed arm, the other variant of it.
  */
 export const ARM_PRIORITY: Record<ArmId, number> = {
   bare: 1,
@@ -60,6 +64,7 @@ export const ARM_PRIORITY: Record<ArmId, number> = {
   teacher: 4,
   repeat: 5,
   fixed: 6,
+  composed: 6,
   'weights-one-shot': 7,
   'weights-targeted': 7,
 };

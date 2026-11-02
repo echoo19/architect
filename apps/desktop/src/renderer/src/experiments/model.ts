@@ -92,6 +92,7 @@ export function armNames({ mentor, student }: ModelNames): Record<ArmId, string>
     teacher: `${mentor} alone`,
     repeat: 'Decoding repeat',
     fixed: 'Fixed intervention',
+    composed: 'Propose, probe, compose',
     'weights-one-shot': 'One-shot LoRA adapter',
     'weights-targeted': 'Failure-targeted LoRA adapter',
   };
@@ -119,6 +120,7 @@ export function armDescriptions({ mentor, student }: ModelNames): Record<ArmId, 
     teacher: `${mentor} does the job itself in a run of its own, with no teaching`,
     repeat: 'The finished arms tested again on a new seed, to show the noise',
     fixed: `${mentor} may use one kind of change only`,
+    composed: `${mentor} tries several changes each round, then keeps one made from what they did`,
     'weights-one-shot': `Fine-tunes a LoRA adapter for ${student} once on verified examples`,
     'weights-targeted': `Fine-tunes a LoRA adapter for ${student} on the failures ${mentor} found`,
   };
@@ -136,6 +138,7 @@ export const SPARK_ARMS: readonly ArmId[] = [
   'reference',
   'reference-targeted',
   'fixed',
+  'composed',
 ];
 
 /**
@@ -149,6 +152,7 @@ export const STUDENT_ARMS: readonly ArmId[] = [
   'teacher',
   'repeat',
   'fixed',
+  'composed',
 ];
 
 /**

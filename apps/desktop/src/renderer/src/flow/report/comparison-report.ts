@@ -72,6 +72,8 @@ function labArmLabel(arm: ArmId, { mentor, student }: ModelNames): string {
       return 'The first three, tested a second time';
     case 'fixed':
       return `${student}, harness of written rules only`;
+    case 'composed':
+      return `${student}, harness composed from probes`;
     case 'weights-one-shot':
       return `${student}, one-shot LoRA adapter`;
     case 'weights-targeted':
@@ -97,6 +99,8 @@ function personalArmLabel(arm: ArmId, { mentor, student }: ModelNames): string {
       return 'The first three, tested a second time';
     case 'fixed':
       return `${student} taught with written rules only`;
+    case 'composed':
+      return `${student} taught by ${mentor}, several tries a round`;
     case 'weights-one-shot':
       return `${student} with weights trained once on sample tasks`;
     case 'weights-targeted':

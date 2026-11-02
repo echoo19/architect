@@ -264,6 +264,18 @@ describe('the projection', () => {
     expect(arms['reference']?.wallMinutes).toBeCloseTo((60 * 20) / 60, 9);
   });
 
+  it('counts every probe of an arm that proposes, probes and composes, and both Spark calls', () => {
+    const arms = planned({ arms: ['bare', 'draft', 'targeted', 'composed'] }).arms;
+    const composed = arms.find((arm) => arm.arm === 'composed');
+    // A round: four practice batches of 12 (the incumbent's and three probes'), and the 45 dev
+    // tasks for the incumbent, three probes and the composed change, then both again.
+    expect(composed?.hostedAttempts).toBe(45 + 2 * (4 * 12 + 7 * 45) + 60);
+    expect(composed?.sparkCalls).toBe(8);
+    const targeted = arms.find((arm) => arm.arm === 'targeted');
+    expect(composed?.sparkUsd).toBeGreaterThan(targeted?.sparkUsd ?? Infinity);
+    expect(composed?.sparkUsd).toBeLessThanOrEqual(DEFAULT_CONFIG.sparkCaps.composed);
+  });
+
   it("funds arms in decision 037's order and drops the latest that no longer fits", () => {
     const projection = planned({});
     const funded = projection.arms.filter((arm) => arm.funded).map((arm) => arm.arm);

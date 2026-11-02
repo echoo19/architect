@@ -4,8 +4,8 @@
  * student, META_API_TOKEN for Spark, and HF_TOKEN (or `hf auth login`) for training compute.
  *
  *   pnpm --filter @architect/engine exec tsx scripts/comparisons.ts <command> <jobDir> --out <dir>
- *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,weights-one-shot,
- *       weights-targeted]
+ *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,composed,
+ *       weights-one-shot,weights-targeted]
  *     [--student-usd N] [--spark-usd N] [--spark-cap <cap>=<usd>]... [--compute-usd N]
  *     [--gpu-minutes N] [--rounds N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
@@ -31,7 +31,7 @@
  * OpenRouter is pinned by the providers in the job's mentor settings.
  *
  * --spark-cap sets one Spark cap over its default, such as targeted=0.75, and can be repeated; the
- * caps are draft, targeted, fixed, reference, referenceTargeted and weights.
+ * caps are draft, targeted, fixed, composed, reference, referenceTargeted and weights.
  *
  * --student-url and --student-model name a hosted student no preset names, such as Glimmer served
  * on a rented GPU, and --student-key-env the environment variable that holds its key, which goes
@@ -172,7 +172,8 @@ function parse(args: readonly string[]): Parsed {
     sparkCaps: chosenSparkCaps,
     adapterProtocol: adapterProtocol.data,
     smokeTasks: Math.max(1, Math.floor(number('--smoke-tasks', DEFAULT_CONFIG.smokeTasks))),
-    // Refinement rounds for the targeted and fixed arms; the plan records them, so a resume keeps them.
+    // Refinement rounds for the targeted, fixed and composed arms; the plan records them, so a
+    // resume keeps them.
     rounds: Math.max(1, Math.floor(number('--rounds', DEFAULT_CONFIG.rounds))),
     caps: {
       studentUsd: number('--student-usd', 0),
