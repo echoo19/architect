@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon): the packaged app driven end to end, and a page sweep (`qa/packaged-sweep`)
+
+- *Done, driver:* `qa/driver.ts --exe <path>` runs any world on a packaged build. All three worlds (first-run, personal, lab), IPC stubs included, ran on `release/win-unpacked/Architect.exe` 0.9.1. Its hidden window gives Playwright no frame, so `/shot` has the window capture itself, twice. The Lab world now stubs Academy desk's tasks.
+- *Journey on the exe:* setup, describe with files, the scripted question, define, a real training run to its report, the agent's home, chat, an import of the ready-made agent from the packaged resources, the team chat's two approvals (one allowed, one denied), Settings, Fields, Experiments, Models, Compute and empty states. `/errors` stayed empty throughout.
+- *Fixed (swept at 1440, 1280 and 1100):* a flow's footer now lines up with its page, inspector open or not; chat messages are centred over the composer; inspector and settings tabs end on one edge; the Lab's headline figures share a baseline; Fields, Connections and a field's Tasks drop a column on narrow windows instead of wrapping, breaking or clipping; the grey tiles behind row icons are gone; Preregister says "Choose a field"; setup's last card sits on the column and "14 GB" stays on one line.
+- *Open:* Compare's Real column is cramped at 1100. The Lab world has no teaching or graduate-files fakes, so the Teaching and Files tabs show their error states there. A tab switch in a hidden window can capture one frame with the old segment's label hidden. `docs/screenshots/` was not regenerated. The branch isn't merged.
+
 ## 2026-11-02 (Mon): the results page reads as one story (`site/results-cohesive`)
 
 - *Done:* `site/src/ResultsPage.tsx` reordered with the strongest results first: how it works, Academy desk, Inventory desk, fine-tuning, the risk certificate, the open-weight teacher, the field model, the earlier returns desk, limitations. Each section has a plain lead, its headline figure set large, one figure and a folded "Details" with the method and the tables. The real academy's misses, the third run, the first certificate attempt, the first returns desk and the other desks moved to Limitations, a sentence or two each by cause, with their reports cited. No number changed; every figure still reads from `evidence.ts`.
