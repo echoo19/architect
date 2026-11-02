@@ -546,12 +546,13 @@ export function HeroResultCard({ row, mentor }: { row: RunRow; mentor?: string |
       }
     >
       {card ? (
-        <div className="flex flex-wrap items-end gap-x-14 gap-y-6 pt-2">
+        // The figures share one baseline; what rests on them, a caveat too, hangs below.
+        <div className="flex flex-wrap items-baseline gap-x-14 gap-y-6 pt-2">
           {heroFigures(card).map((figure) => (
             <HeroNumber key={figure.label} figure={figure} mentor={mentor} />
           ))}
           {taught && (
-            <span className="ml-auto self-end">
+            <span className="ml-auto">
               <HeroNumber
                 figure={{
                   label: 'Taught on',
