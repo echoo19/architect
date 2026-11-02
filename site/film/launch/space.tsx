@@ -341,7 +341,8 @@ function Opening({
   const open = inOutCubic(span(t, at - 0.3, 0.7));
   return (
     <div className="grid" style={{ gridTemplateRows: `${open}fr` }}>
-      <div className="min-h-0 overflow-hidden" style={{ paddingTop: gap }}>
+      {/* Not clipped: the line's own words fade up as its room opens, so no edge crosses them. */}
+      <div className="min-h-0" style={{ paddingTop: gap }}>
         {children}
       </div>
     </div>

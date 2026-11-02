@@ -568,8 +568,8 @@ function StepMark({ mark, color }: { mark: string; color: 'mentor' | 'student' }
  * teaching Glimmer, the small model that fits a PC.
  */
 export function LabModels({ t }: { t: number }) {
-  // Gone once the window has whipped out to the field, so the camera never passes them again.
-  if (t < T.how - 0.1 || t > T.fields + 0.2) return null;
+  // They go out with the window as it glides to the field, and are gone before it comes back.
+  if (t < T.how - 0.1 || t > T.fieldIn) return null;
   const rows = [
     { name: 'Spark', color: 'mentor' as const, role: "Meta's frontier model", at: T.how },
     { name: 'Glimmer', color: 'student' as const, role: '30B, fits on a PC', at: T.labHover + 0.2 },
