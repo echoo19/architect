@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Round } from '@architect/shared';
+import type { Job, Round } from '@architect/shared';
 import {
   cn,
   EvidenceMark,
@@ -15,6 +15,7 @@ import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
 import { percent, signed } from '../format';
 import { curveData, describeCurve, type CurveData, type CurveInput } from './curve';
+import { roundShortfall } from './decision';
 import { draftRoundOf } from './draft';
 import { DISPOSITIONS, FIRST_DRAFT } from './evidence-words';
 import type { ModelNames } from './phase';
@@ -107,6 +108,7 @@ export function TaskSuccess({
         {aside}
       </div>
       <ProgressCurve
+        job={job}
         input={input}
         rounds={rounds}
         ended={hasEnded(run)}
@@ -175,12 +177,14 @@ function marksOf(data: CurveData): ChartMark[] {
 }
 
 function ProgressCurve({
+  job,
   input,
   rounds,
   ended,
   mentor,
   onOpenRound,
 }: {
+  job: Job;
   input: CurveInput;
   rounds: readonly Round[];
   /** The run is over, so a curve with no score will never get one. */
@@ -235,7 +239,14 @@ function ProgressCurve({
       empty={data.head ? undefined : ended ? 'Not scored' : 'Not scored yet'}
       legend={legend}
       readout={(x) => (
-        <Readout x={x} data={data} round={roundAt(x)} input={input} mentor={mentor} />
+        <Readout
+          x={x}
+          data={data}
+          round={roundAt(x)}
+          job={job}
+          input={input}
+          mentor={mentor}
+        />
       )}
       onPick={(x) => {
         const round = roundAt(x);
@@ -251,12 +262,14 @@ function Readout({
   x,
   data,
   round,
+  job,
   input,
   mentor,
 }: {
   x: number;
   data: CurveData;
   round: Round | undefined;
+  job: Job;
   input: CurveInput;
   mentor: string;
 }) {
@@ -275,6 +288,7 @@ function Readout({
     );
   }
   const draft = round.index === input.draftRound;
+  const shortfall = draft ? null : roundShortfall(round, job, w);
   const outcome = round.decision
     ? draft
       ? FIRST_DRAFT.label
@@ -293,6 +307,7 @@ function Readout({
           ? `${percent(round.devBefore)}% → ${percent(round.devAfter)}%, ${outcome}`
           : outcome}
       </span>
+      {shortfall && <span className="tabular-nums">{shortfall}</span>}
       {round.train.total > 0 && (
         <span className="tabular-nums">
           Practice {round.train.pass} of {round.train.total}

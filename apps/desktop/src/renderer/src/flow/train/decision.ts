@@ -8,6 +8,7 @@ import {
   type Score,
 } from '@architect/shared';
 import { WORDS, type Words } from '@architect/ui';
+import { signed } from '../format';
 import { kindLabel, modelNames, typeLabel } from '../names';
 import { gateLabel } from './evidence-words';
 
@@ -208,9 +209,46 @@ export function harmSentence(
 }
 
 /**
- * What a round's list line adds to its outcome, in a few words, from its experiment: what a
- * change that made things worse harmed, or the rule it broke. The other outcomes say all of it in
- * their own words, so they add nothing.
+ * Why a change was undone for gaining too little, short enough for a list's line or a tooltip:
+ * "+1 held-out check, needs +2 to stay". `runs` is how many runs over the check tasks the scores
+ * add up, which the keep rule's margin counts per run. Null when it gained enough.
+ */
+function shortfallNote(
+  before: Score,
+  after: Score,
+  runs: number,
+  job: Job,
+  w: Words,
+): string | null {
+  const gain = after.pass - before.pass;
+  const margin = job.evaluation.minDevGain * runs;
+  if (gain >= margin) return null;
+  const one = Math.abs(gain) === 1;
+  const noun = w.lab ? `held-out ${one ? 'check' : 'checks'}` : `check ${one ? 'task' : 'tasks'}`;
+  return `${signed(gain)} ${noun}, needs ${signed(margin)} to stay`;
+}
+
+/**
+ * Why a decided round's change was undone for gaining too little, in a few words, from the round's
+ * own scores: a change measured again on new seeds is held to the margin for both runs. Null for
+ * any other round.
+ */
+export function roundShortfall(
+  round: Round,
+  job: Job,
+  w: Words = WORDS.personal,
+): string | null {
+  const { devBefore: before, devAfter: after, decision, firstMeasurement } = round;
+  if (decision !== 'reverted' || !before || !after) return null;
+  const runs = job.evaluation.devRepeats * (firstMeasurement ? 2 : 1);
+  return shortfallNote(before, after, runs, job, w);
+}
+
+/**
+ * What a round's list line adds to its outcome, in a few words, from its experiment: how far a
+ * change with no gain fell short of the keep rule, and what a change that made things worse
+ * harmed, or the rule it broke. The other outcomes say all of it in their own words, so they add
+ * nothing.
  */
 export function outcomeNote(
   experiment: Experiment,
@@ -218,8 +256,13 @@ export function outcomeNote(
   w: Words = WORDS.personal,
 ): string | null {
   switch (experiment.disposition) {
+    case 'reverted': {
+      const { devBefore: before, devAfter: after } = experiment;
+      if (!before || !after) return null;
+      const runs = Math.max(1, experiment.seeds.dev.length);
+      return shortfallNote(before, after, runs, job, w);
+    }
     case 'kept':
-    case 'reverted':
     case 'invalid':
     case 'stopped':
       return null;
