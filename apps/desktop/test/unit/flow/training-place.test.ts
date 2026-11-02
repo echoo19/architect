@@ -210,8 +210,8 @@ describe('a place that cannot fit a round', () => {
     expect(text(html)).not.toContain('Not even one round');
     expect(text(html)).toContain('Too slow for the 3-hour limit');
     expect(html.match(/>Allow more time</g)).toHaveLength(1);
-    // And where both fit there is nothing to say about time at all.
-    const roomy = render(jobOf('local', 2000));
+    // And where every round fits at both there is nothing to say about time at all.
+    const roomy = render(jobOf('local', 10_000));
     expect(text(roomy)).not.toContain('Not even one round');
     expect(roomy).not.toContain('Allow more time');
   });
@@ -230,6 +230,21 @@ describe('the card of the place that is chosen', () => {
     expect(callout(html)).toContain('Not even one round');
     // Online is not chosen and fits: it says nothing of the kind either.
     expect(card(html, 'Train online')).not.toContain('Too slow');
+  });
+
+  it('says when the time limit stops training before its last round, with more time a click away', () => {
+    const online = render(jobOf('hosted'));
+    expect(text(card(online, 'Train online'))).toContain(
+      '3 to 7 of 12 rounds fit the 3-hour limit',
+    );
+    expect(online.match(/>Allow more time</g)).toHaveLength(1);
+    const here = render(jobOf('local', 2000));
+    expect(text(card(here, 'Train on this computer'))).toContain(
+      '4 to 8 of 12 rounds fit the 33.3-hour limit',
+    );
+    expect(text(card(here, 'Train online'))).not.toContain('rounds fit');
+    expect(here).toContain('>Allow more time<');
+    expect(text(render(jobOf('local', 10_000)))).not.toContain('rounds fit');
   });
 
   it('keeps the line on a card that is not chosen', () => {

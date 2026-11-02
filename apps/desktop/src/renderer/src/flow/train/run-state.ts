@@ -121,6 +121,8 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
         run: event.run,
         graduateId: event.run.graduateId ?? live.graduateId,
         notice: phaseChanged ? null : live.notice,
+        // A new step counts its own tasks from none.
+        progress: phaseChanged ? null : live.progress,
       };
     }
     case 'round.updated':
@@ -141,7 +143,14 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
         progress: { split: event.split, done: event.done, total: event.total },
       };
     case 'eval.finished':
-      return { ...live, progress: null };
+      // The count stays at its end until the run moves on, so a finished step reads as full.
+      return {
+        ...live,
+        progress:
+          live.progress?.split === event.split
+            ? { ...live.progress, done: live.progress.total }
+            : null,
+      };
     case 'budget':
       return { ...live, budget: event.state };
     case 'log':

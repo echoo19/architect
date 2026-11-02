@@ -16,7 +16,7 @@ import { Appear, useFirstKeys } from '../appear';
 import { Counted } from '../counted';
 import { percent } from '../format';
 import { RowButton, Section } from '../ledger';
-import { outcomeNote } from './decision';
+import { outcomeNote, roundShortfall } from './decision';
 import {
   DISPOSITIONS,
   dispositionMeaning,
@@ -211,17 +211,19 @@ function RoundRow({
 }) {
   const w = useWords();
   // A question says what was asked, or what the person answered, unless the round is open under
-  // its line and says so there; a change that was made worse says what it harmed. Every other
-  // outcome says all of it in its own words.
+  // its line and says so there; a change with no gain says how far it fell short, and one that was
+  // made worse says what it harmed. Every other outcome says all of it in its own words.
   const note = asked
     ? open
       ? null
       : asked.answer
         ? `Your answer: ${asked.answer.text}`
         : asked.question
-    : experiment && !draft
-      ? outcomeNote(experiment, job, w)
-      : null;
+    : draft
+      ? null
+      : experiment
+        ? outcomeNote(experiment, job, w)
+        : roundShortfall(round, job, w);
   return (
     <RowButton
       onClick={onOpen}

@@ -301,7 +301,7 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
   await expect(notice).toContainText('Turn one on, then start training again from the job.');
   // Nothing ran, so the notice is all there is: no score, meters, rounds or attempts.
   await expect(page.getByRole('region', { name: 'Rounds' })).toHaveCount(0);
-  await expect(page.getByText("Spark's cost")).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Budget' })).toHaveCount(0);
   await capture(page, 'teacher-idle-dark');
 
   // The engine's own sentence is kept under Details.

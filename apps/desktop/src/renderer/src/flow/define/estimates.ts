@@ -182,6 +182,20 @@ export function tooSlow(job: Job, estimate: TimeEstimate): string | null {
   return `Too slow for the ${limitText(job.budget.maxWallMinutes)} limit`;
 }
 
+/**
+ * Where the time limit cuts training at a place short of its round budget, for the card of the
+ * place chosen: "4 to 8 of 8 rounds fit the 4-hour limit". Null when every round fits, and when
+ * none does, which the callout says.
+ */
+export function limitedLine(job: Job, estimate: TimeEstimate): string | null {
+  const { maxRounds, maxWallMinutes } = job.budget;
+  const { fewest, most } = estimate.rounds;
+  if (most === 0 || fewest >= maxRounds) return null;
+  const count = countRange(estimate.rounds);
+  const verb = most === 1 ? 'fits' : 'fit';
+  return `${count.charAt(0).toUpperCase()}${count.slice(1)} of ${roundCount(maxRounds)} ${verb} the ${limitText(maxWallMinutes)} limit`;
+}
+
 /** Where training happens, as the middle of a sentence: "online", or "on this computer". */
 export function placePhrase(place: TrainPlace, device: string): string {
   return place === 'hosted' ? 'online' : `on ${device}`;
