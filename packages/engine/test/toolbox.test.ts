@@ -454,6 +454,51 @@ unpaid.reduce((sum, row) => sum + Number(row.total_cents), 0)`,
     expect(runTool).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps a harness tool's result too long to show whole for run code, until one fits", async () => {
+    const wells = Object.fromEntries(Array.from({ length: 200 }, (_, at) => [`W${at}`, at * 1.5]));
+    const runTool = vi.fn<Sandbox['runTool']>();
+    runTool.mockResolvedValueOnce({ ok: true, value: { plate: 'P-1', wells } });
+    runTool.mockResolvedValueOnce({ ok: true, value: { plate: 'P-2', wells: { W0: 1 } } });
+    const { toolbox } = await setup({
+      resultBudget: 1000,
+      sandbox: {
+        ...sandbox,
+        runTool,
+        runCode: (request) => sandbox.runCode(request),
+        dispose: async () => undefined,
+      },
+      harness: {
+        tools: [
+          {
+            name: 'plate_math',
+            description: 'Every well of a plate.',
+            parameters: { type: 'object' },
+            code: 'function run(args, ctx) { return 1; }',
+          },
+        ],
+      },
+    });
+    const cut = await toolbox.run(call('plate_math'));
+    expect(cut.content.length).toBeLessThanOrEqual(1000);
+    expect(cut.content).toMatch(
+      /; run code has it whole as JSON\.parse\(files\.read\("results\/plate_math\.json"\)\)\]$/,
+    );
+    const picked = await toolbox.run(
+      call('run', {
+        code: 'const r = JSON.parse(files.read("results/plate_math.json"));\nr.plate + " " + r.wells.W199',
+      }),
+    );
+    expect(picked.content).toBe('=> "P-1 298.5"');
+    expect((await toolbox.run(call('plate_math'))).content).toBe(
+      '{"plate":"P-2","wells":{"W0":1}}',
+    );
+    const gone = await toolbox.run(call('run', { code: 'files.read("results/plate_math.json")' }));
+    expect(gone.error).toBeDefined();
+    expect((await toolbox.run(call('run', { code: 'files.list("")' }))).content).not.toContain(
+      'results/',
+    );
+  });
+
   it('refuses a harness tool that shadows a built-in', async () => {
     job = makeJobDir();
     const files = await openAgentFiles({
