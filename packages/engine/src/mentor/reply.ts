@@ -72,6 +72,23 @@ export const HYPOTHESIS_JSON_SCHEMA: JsonSchemaObject = {
 };
 
 /**
+ * The reply format for a propose-probe-compose round's proposals (decision 108): alternative
+ * change sets for the same failures, each a hypothesis in the usual format.
+ */
+export const PROPOSALS_JSON_SCHEMA: JsonSchemaObject = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['proposals'],
+  properties: {
+    proposals: {
+      type: 'array',
+      description: 'Alternative changes for the same failures, each complete on its own.',
+      items: HYPOTHESIS_JSON_SCHEMA,
+    },
+  },
+};
+
+/**
  * The reply format for a round that diagnoses failures: the hypothesis's fields, the findings
  * with the turns they point at, and one intervention from the types this run allows. Like the
  * hypothesis format it suits constrained decoding: every key is required, and fields an
@@ -305,4 +322,37 @@ export function parseHypothesis(
     throw new MentorReplyError(`The hypothesis was invalid: ${describeIssues(hypothesis.error)}`);
   }
   return hypothesis.data;
+}
+
+/**
+ * A propose-probe-compose round's proposals (decision 108): each one a hypothesis read as any
+ * reply is, the first `count` of them, and at least two, or there is nothing to contrast.
+ */
+export function parseProposals(
+  reply: { json?: unknown; text: string },
+  visibleTaskIds: ReadonlySet<string>,
+  count: number,
+): Hypothesis[] {
+  const raw = reply.json ?? extractJson(reply.text);
+  if (raw === undefined) throw new MentorReplyError('The reply contained no JSON object.');
+  const parsed = z.object({ proposals: z.array(z.unknown()) }).safeParse(raw);
+  if (!parsed.success) {
+    throw new MentorReplyError(
+      `The reply wasn't a list of proposals: ${describeIssues(parsed.error)}`,
+    );
+  }
+  const items = parsed.data.proposals.slice(0, count);
+  if (items.length < 2) {
+    throw new MentorReplyError(
+      `The reply held ${items.length === 1 ? 'one proposal' : 'no proposals'}; ${count} alternative changes were asked for.`,
+    );
+  }
+  return items.map((item, position) => {
+    try {
+      return parseHypothesis({ json: item, text: '' }, visibleTaskIds);
+    } catch (error) {
+      if (!(error instanceof MentorReplyError)) throw error;
+      throw new MentorReplyError(`Proposal ${position + 1}: ${error.message}`);
+    }
+  });
 }

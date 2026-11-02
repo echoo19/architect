@@ -51,6 +51,7 @@ import {
   modelInputs,
   needsConfirmation,
   project,
+  refinementRound,
   studentCapOf,
   type ComparisonConfig,
 } from './projection';
@@ -157,7 +158,7 @@ const REGRESSION_PER_TYPE = 10;
  */
 const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
   ['bare', 'draft'],
-  ['targeted', 'fixed'],
+  ['targeted', 'fixed', 'composed'],
   ['weights-one-shot', 'weights-targeted', 'teacher'],
 ];
 
@@ -168,7 +169,12 @@ const MEASURING: ReadonlySet<ArmId> = new Set(['reference', 'reference-targeted'
  * Arms whose spending their rounds decide: these are held to their student cap at each round's
  * start. The others have a size fixed in advance, so stopping one could only lose it.
  */
-const VARIABLE_ARMS: ReadonlySet<ArmId> = new Set(['targeted', 'fixed', 'weights-targeted']);
+const VARIABLE_ARMS: ReadonlySet<ArmId> = new Set([
+  'targeted',
+  'fixed',
+  'composed',
+  'weights-targeted',
+]);
 
 /** The arms the repeat takes again under the deferred seed. */
 const REPEATED: readonly ArmId[] = ['bare', 'draft', 'targeted'];
@@ -1197,7 +1203,6 @@ function watchRounds(
   decide: Decide,
 ): () => void {
   const stopped = new Set<string>();
-  const dev = base.splits.dev * base.evaluation.devRepeats;
   return engine.controller.onEvent((event) => {
     if (event.type !== 'round.updated') return;
     const { round } = event;
@@ -1218,7 +1223,7 @@ function watchRounds(
         ? record.run.currentAdapter === undefined
           ? base.evaluation.trainBatch
           : 0
-        : base.evaluation.trainBatch + 4 * dev;
+        : refinementRound(base, arm);
     const test = record.lockedTestOn === 'hosted' ? finalTestAttemptsOf(base, config) : 0;
     const spent = credit.development(record.run.id);
     const ahead = (hostedRound + test) * price;
@@ -1293,7 +1298,7 @@ async function startArm(
   study: Study,
 ): Promise<void> {
   const needs: ArmId | null =
-    arm === 'targeted' || arm === 'fixed'
+    arm === 'targeted' || arm === 'fixed' || arm === 'composed'
       ? 'draft'
       : arm === 'weights-one-shot' || arm === 'weights-targeted'
         ? 'targeted'

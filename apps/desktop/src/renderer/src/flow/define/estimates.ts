@@ -7,6 +7,7 @@ import {
   costUsd,
   MENTOR_PRESETS,
   mentorPricing,
+  probesPerRound,
   SECONDS_PER_ATTEMPT,
   type Job,
   type MentorPreset,
@@ -41,7 +42,10 @@ export interface TimeEstimate {
   trainingSeconds: Span;
   /** Rounds that fit in the time cap: if every round is measured again, and if none is. */
   rounds: { fewest: number; most: number };
-  /** One round: a practice batch and two measurements, or four when its change is measured again. */
+  /**
+   * One round: a practice batch and two measurements, or four when its change is measured again.
+   * A round that probes (decision 108) adds each probe's practice batch and measurement.
+   */
   roundSeconds: Span;
 }
 
@@ -49,15 +53,19 @@ export interface TimeEstimate {
  * How long training takes at a place. The starting version is measured on the check tasks once;
  * then every round attempts a practice batch and measures the current version and the change on
  * the check tasks, once per repeat. A change that clears the keep limits has both measured again
- * on new seeds (decision 022), so a round measures twice or four times. All of it stops at the
- * time cap. The final test is separate: it runs afterwards, on this computer unless the person
- * chose the online copy (decision 009), outside the cap, and `testSeconds` times it.
+ * on new seeds (decision 022), so a round measures twice or four times. A round that proposes,
+ * probes and composes (decision 108) also takes each probe's practice batch and measurement before
+ * its change is measured. All of it stops at the time cap. The final test is separate: it runs
+ * afterwards, on this computer unless the person chose the online copy (decision 009), outside
+ * the cap, and `testSeconds` times it.
  */
 export function estimateTime(job: Job, place: TrainPlace): TimeEstimate {
   const perTask = SECONDS_PER_TASK[place];
   const checkRun = job.splits.dev * job.evaluation.devRepeats * perTask;
   const practice = job.evaluation.trainBatch * perTask;
-  const round = { least: practice + 2 * checkRun, most: practice + 4 * checkRun };
+  const probes = probesPerRound(job) ?? 0;
+  const least = (1 + probes) * practice + (2 + probes) * checkRun;
+  const round = { least, most: least + 2 * checkRun };
   const { maxRounds } = job.budget;
   const capSeconds = job.budget.maxWallMinutes * 60;
   const fit = (perRound: number) =>
@@ -196,6 +204,18 @@ export function limitedLine(job: Job, estimate: TimeEstimate): string | null {
   return `${count.charAt(0).toUpperCase()}${count.slice(1)} of ${roundCount(maxRounds)} ${verb} the ${limitText(maxWallMinutes)} limit`;
 }
 
+/**
+ * What a round does in the mode chosen, in one plain line under the choice (decision 108): one
+ * change, or several tried on the check tasks and one made from what they did. Either way only a
+ * measured gain stays.
+ */
+export function roundModeLine(job: Job, mentor: string, w: Words = WORDS.personal): string {
+  const probes = probesPerRound(job);
+  return probes === null
+    ? `${mentor} makes one change a round, kept only if the ${w.checks} gain.`
+    : `${mentor} tries ${probes} changes on the ${w.checks}, then makes one from what they did and keeps it only if it gains.`;
+}
+
 /** Where training happens, as the middle of a sentence: "online", or "on this computer". */
 export function placePhrase(place: TrainPlace, device: string): string {
   return place === 'hosted' ? 'online' : `on ${device}`;
@@ -248,6 +268,11 @@ export function estimateNotes(job: Job, input: EstimateNotesInput): string[] {
     `${device.label}: ${roundsLine(job, local)}.`,
     ...(remote === null ? [] : [`Online: ${roundsLine(job, remote)}.`]),
     'A promising change is measured twice, so its round takes longer.',
+    ...(probesPerRound(job) === null
+      ? []
+      : [
+          `Each round also tries ${probesPerRound(job)} changes on the ${words.checks} before the one it keeps, and asks ${mentor} twice.`,
+        ]),
     `${mentor} ${teacherWorks(job, device.inSentence)} and sees the practice attempts and the file samples it needs.`,
     ...(baselines
       ? [
@@ -631,10 +656,14 @@ export function mentorUsdFor(pricing: TokenPricing, rounds: number): number {
   return rounds * costUsd(pricing, MENTOR_TOKENS_PER_ROUND);
 }
 
-/** What the mentor usually costs over the whole round budget, or null if its price is unknown. */
+/**
+ * What the mentor usually costs over the whole round budget, or null if its price is unknown. A
+ * round that probes asks it twice, for its proposals and for the change it composes (decision 108).
+ */
 export function estimateMentorUsd(job: Job): number | null {
   const pricing = mentorPriceOf(job);
-  return pricing ? mentorUsdFor(pricing, job.budget.maxRounds) : null;
+  const calls = probesPerRound(job) === null ? 1 : 2;
+  return pricing ? mentorUsdFor(pricing, job.budget.maxRounds * calls) : null;
 }
 
 /**

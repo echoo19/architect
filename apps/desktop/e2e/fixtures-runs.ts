@@ -174,6 +174,87 @@ const asking: Round = {
   firstMeasurement: undefined,
 };
 
+const PROBE_PREDICTION = { devDeltaMin: 1, devDeltaMax: 4, rationale: 'Scheduling is weakest.' };
+
+/**
+ * Round 4 of a run whose rounds propose, probe and compose (decision 108): three tries measured,
+ * one refused, and Spark about to make one change from them.
+ */
+export const PROBING_ROUND: Round = {
+  ...(rounds[3] as Round),
+  status: 'composing',
+  title: undefined,
+  diagnosis: undefined,
+  predicted: undefined,
+  files: [],
+  candidateVersion: undefined,
+  devBefore: undefined,
+  devAfter: undefined,
+  firstMeasurement: undefined,
+  probes: [
+    {
+      index: 1,
+      title: 'Add travel time to the booking skill',
+      diagnosis: 'The booking skill never adds the drive between zones.',
+      files: ['skills/book-urgent-calls/SKILL.md'],
+      predicted: PROBE_PREDICTION,
+      version: 5,
+      devBefore: { pass: 32, total: 40 },
+      devAfter: { pass: 34, total: 40 },
+      train: { pass: 10, total: 12 },
+    },
+    {
+      index: 2,
+      title: 'A rule in AGENTS.md about zones',
+      diagnosis: 'One standing rule: check the zone before the slot.',
+      files: ['AGENTS.md'],
+      predicted: PROBE_PREDICTION,
+      version: 6,
+      devBefore: { pass: 32, total: 40 },
+      devAfter: { pass: 31, total: 40 },
+      train: { pass: 8, total: 12 },
+    },
+    {
+      index: 3,
+      title: 'A travel-minutes helper',
+      diagnosis: 'Work the drive out in code, not by eye.',
+      files: ['tools/travel_minutes.js', 'tools/travel_minutes.json'],
+      predicted: PROBE_PREDICTION,
+      refused: "tools/travel_minutes.js doesn't load: SyntaxError: expecting ';'",
+    },
+  ],
+};
+
+/** The same round once Spark has made its one change from the tries. */
+export const COMPOSED_ROUND: Round = {
+  ...PROBING_ROUND,
+  status: 'evaluating',
+  title: 'Travel time in the booking skill',
+  diagnosis:
+    'The booking skill alone helped; the rule in AGENTS.md cost a check task. Keep the skill ' +
+    'and say where the zone is read.',
+  predicted: { devDeltaMin: 2, devDeltaMax: 4, rationale: 'The first try gained two.' },
+  files: ['skills/book-urgent-calls/SKILL.md'],
+  candidateVersion: 7,
+};
+
+/** The training screen of a run whose round 4 is about to compose from its tries. */
+export function probingEngine(): EngineReplies {
+  return {
+    ...FLOW_ENGINE,
+    'runs:get': {
+      ...detail,
+      job: {
+        ...detail.job,
+        evaluation: { ...detail.job.evaluation, roundMode: 'propose_probe_compose' },
+      },
+      run: makeRun({ status: 'running', phase: 'diagnosing', updatedAt: at(120) }),
+      rounds: [...rounds.slice(0, 3), PROBING_ROUND],
+    } satisfies RunDetail,
+    'mentoring:interventions': [],
+  };
+}
+
 /** The training screen of a run waiting for an answer to Spark's question. */
 export function askingEngine(answered?: { text: string; changesCriteria: boolean }): EngineReplies {
   const waiting = answered === undefined;

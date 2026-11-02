@@ -92,6 +92,7 @@ describe('a dry run of every arm on fakes', () => {
       'reference-targeted': 'complete',
       repeat: 'complete',
       fixed: 'not_run',
+      composed: 'not_run',
       'weights-one-shot': 'complete',
       'weights-targeted': 'stopped',
     });

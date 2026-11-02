@@ -10,6 +10,7 @@ import { proposeVersion } from '../improve/improvement';
 import { isHeld } from './protocol';
 import { freeze, lockedTest } from './graduation';
 import { planNextStep, type ActionStep, type PlanInput } from './plan';
+import { probeRound } from './probes';
 import { RunState, type SessionContext, type SessionControl } from './run-state';
 import { waitOnClock } from './time';
 import {
@@ -91,6 +92,11 @@ export class RunDriver {
       case 'attempt_train':
         return attemptTrain(state, step.round);
       case 'author':
+        return author(state, step.round);
+      case 'probe':
+        return probeRound(state, step.round);
+      case 'compose':
+        // The author composes the round's one change from its measured probes (decision 108).
         return author(state, step.round);
       case 'teach':
         return this.teachRound(step.round);

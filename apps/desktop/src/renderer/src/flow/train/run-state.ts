@@ -47,7 +47,8 @@ export interface LiveRun {
    * Each round's practice answers counted in full, by round number: the attempts list keeps only
    * the newest, and a batch can be longer than it.
    */
-  practiced: Record<number, Score>;
+  /** Practice answers counted by round, then by the harness version that gave them. */
+  practiced: Record<number, Record<number, Score>>;
   lineage: LineageEntry[];
   budget: BudgetState | null;
   progress: EvalProgress | null;
@@ -176,12 +177,22 @@ function isListed(attempt: Attempt): boolean {
   return attempt.split === 'train' || attempt.split === 'dev';
 }
 
-function countPractice(practiced: Record<number, Score>, attempt: Attempt): Record<number, Score> {
+function countPractice(
+  practiced: Record<number, Record<number, Score>>,
+  attempt: Attempt,
+): Record<number, Record<number, Score>> {
   if (attempt.split !== 'train' || attempt.round === null) return practiced;
-  const so = practiced[attempt.round] ?? { pass: 0, total: 0 };
+  const round = practiced[attempt.round] ?? {};
+  const so = round[attempt.harnessVersion] ?? { pass: 0, total: 0 };
   return {
     ...practiced,
-    [attempt.round]: { pass: so.pass + (attempt.check.pass ? 1 : 0), total: so.total + 1 },
+    [attempt.round]: {
+      ...round,
+      [attempt.harnessVersion]: {
+        pass: so.pass + (attempt.check.pass ? 1 : 0),
+        total: so.total + 1,
+      },
+    },
   };
 }
 
@@ -196,12 +207,15 @@ function isOlder(candidate: Run, current: Run): boolean {
 const ROUND_PROGRESS: Record<Round['status'], number> = {
   attempting: 0,
   diagnosing: 1,
-  clarifying: 2,
-  teaching: 2,
-  training: 3,
-  evaluating: 4,
-  decided: 5,
-  failed: 5,
+  // A propose-probe-compose round measures its probes and composes before anything below.
+  probing: 2,
+  composing: 3,
+  clarifying: 4,
+  teaching: 4,
+  training: 5,
+  evaluating: 6,
+  decided: 7,
+  failed: 7,
 };
 
 /** A round only moves forward: a late copy from an earlier step never replaces a later one. */
@@ -220,20 +234,44 @@ export function currentRound(live: LiveRun): Round | null {
 
 /** The newest practice task the student got wrong in a round. */
 export function latestFailure(live: LiveRun, round: number): RecentAttempt | null {
-  return (
-    live.attempts.find(
-      (attempt) => attempt.split === 'train' && attempt.round === round && !attempt.check.pass,
-    ) ?? null
+  return roundAttempts(live, round).find((attempt) => !attempt.check.pass) ?? null;
+}
+
+/**
+ * A round's practice answers so far, every one counted, the list's older ones included. A
+ * propose-probe-compose round's probes take the same tasks (decision 108); theirs aren't the
+ * round's own practice, so they're left out.
+ */
+export function practiceSoFar(live: LiveRun, round: number): Score {
+  const probes = probeVersions(live, round);
+  return Object.entries(live.practiced[round] ?? {}).reduce<Score>(
+    (sum, [version, score]) =>
+      probes.has(Number(version))
+        ? sum
+        : { pass: sum.pass + score.pass, total: sum.total + score.total },
+    { pass: 0, total: 0 },
   );
 }
 
-/** A round's practice answers so far, every one counted, the list's older ones included. */
-export function practiceSoFar(live: LiveRun, round: number): Score {
-  return live.practiced[round] ?? { pass: 0, total: 0 };
+/** The harness versions of a round's probes, none for a one-change round. */
+function probeVersions(live: LiveRun, round: number): Set<number> {
+  return new Set(
+    (live.rounds.find((candidate) => candidate.index === round)?.probes ?? []).flatMap((probe) =>
+      probe.version === undefined ? [] : [probe.version],
+    ),
+  );
 }
 
+/**
+ * The practice attempts of a round's own version, newest first. A propose-probe-compose round's
+ * probes take the same practice tasks (decision 108), and their attempts are each probe's.
+ */
 export function roundAttempts(live: LiveRun, round: number): RecentAttempt[] {
-  return live.attempts.filter((attempt) => attempt.split === 'train' && attempt.round === round);
+  const probes = probeVersions(live, round);
+  return live.attempts.filter(
+    (attempt) =>
+      attempt.split === 'train' && attempt.round === round && !probes.has(attempt.harnessVersion),
+  );
 }
 
 /** Median answer time of the most recent attempts, or null before the first one. */

@@ -147,6 +147,28 @@ describe('liveRunReducer', () => {
     expect(practiceSoFar(live(state), 2)).toEqual({ pass: 50, total: 50 });
   });
 
+  it("leaves a probe's practice answers out of the round's own (decision 108)", () => {
+    const probe = {
+      index: 1,
+      title: 'Read the policy first',
+      diagnosis: '',
+      files: [],
+      predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: '' },
+      version: 5,
+    };
+    const round = makeRound(2, { status: 'evaluating', probes: [probe] });
+    const answers = [
+      makeAttempt('att_own', { round: 2, harnessVersion: 2 }),
+      makeAttempt('att_probe', {
+        round: 2,
+        harnessVersion: 5,
+        check: { pass: false, reason: 'Wrong lot.' },
+      }),
+    ];
+    const result = loaded(roundUpdated(round), ...answers.map((a) => attemptFinished(a)));
+    expect(practiceSoFar(result, 2)).toEqual({ pass: 1, total: 1 });
+  });
+
   it('tracks the mentor, evaluation progress, budget and the graduate', () => {
     const base = { runId: 'run_1', at: AT } as const;
     const busy = loaded({ ...base, type: 'mentor.started', round: 1 });

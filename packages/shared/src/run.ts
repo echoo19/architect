@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ScoreSchema } from './lineage';
+import { ProbeSchema, ScoreSchema } from './lineage';
 import { OrgScoreSchema, PredictionSchema } from './mentor';
 import { TrainedAdapterSchema } from './mentoring';
 
@@ -132,6 +132,10 @@ export const RoundSchema = z.object({
     'teaching',
     'training',
     'clarifying',
+    /** A propose-probe-compose round measures its alternatives (decision 108). */
+    'probing',
+    /** ...and the mentor composes one change from what they did. */
+    'composing',
     'evaluating',
     'decided',
     'failed',
@@ -142,6 +146,11 @@ export const RoundSchema = z.object({
   predicted: PredictionSchema.optional(),
   files: z.array(z.string()).default([]),
   candidateVersion: z.number().int().nonnegative().optional(),
+  /**
+   * A propose-probe-compose round's alternatives (decision 108), as proposed and then measured.
+   * The round's own title, change and decision are the change composed from them.
+   */
+  probes: z.array(ProbeSchema).optional(),
   /** The adapter a weights round trained, served with the incumbent harness. */
   candidateAdapter: TrainedAdapterSchema.optional(),
   devBefore: ScoreSchema.optional(),

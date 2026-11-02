@@ -8,7 +8,7 @@ import {
   type MentorView,
   type ReasoningEffort,
 } from '@architect/shared';
-import { diagnosisJsonSchema, HYPOTHESIS_JSON_SCHEMA } from './reply';
+import { diagnosisJsonSchema, HYPOTHESIS_JSON_SCHEMA, PROPOSALS_JSON_SCHEMA } from './reply';
 import type { OneShotView } from './view';
 
 /** Room for reasoning plus a change set of a few files. */
@@ -231,6 +231,37 @@ The student is small: every line of AGENTS.md and every loaded skill costs it at
 Set readyClaim to true only if you expect the harness after this change to meet the job's requirement on tasks you haven't seen. The claim is recorded and checked against the locked test.`;
 }
 
+/**
+ * The first step of a propose-probe-compose round (decision 108): the same evidence as any round,
+ * and several alternative changes for it instead of one.
+ */
+function proposeInstructions(settings: PromptSettings, count: number): string {
+  const { devRepeats } = settings.evaluation;
+  const measured = devRepeats === 1 ? 'on dev' : `on dev ${devRepeats} times`;
+  return `You are the mentor for a small local model, the student. The student attempts tasks for the job below inside a harness that you write, and a deterministic checker grades each attempt pass or fail with a reason. Your job is to improve the harness until the student passes on its own.
+
+Each round you see this round's train attempts with the checker's reasons and a compact trace of each, the train results per task type, the current harness files, the student's overall dev score and your earlier hypotheses with their outcomes. Dev tasks are hidden apart from overall scores, and the locked test is never shown.
+
+This round has three steps. Now you propose ${count} alternative changes. The runner then probes each one: it measures it ${measured} and runs it on this round's train tasks. Then you see what each probe did and compose the round's one change from them, which is measured and kept or reverted like any change. No probe is ever kept on its own.
+
+For this step:
+1. Read the failing traces and find the root cause shared by the most failures: a missing rule, a procedure the student gets wrong, a computation it can't do reliably by hand, a format slip.
+2. Propose ${count} alternative changes for it: different ways to fix it, such as a rule in AGENTS.md, a skill, a helper tool or a retrieval rule. Make them differ in what they would teach the student, so what they do tells you which way works. Each is a complete change set on its own, with its own title, diagnosis and predicted effect in net dev passes.
+3. Don't repeat a reverted hypothesis unless the new change is meaningfully different. A rejected round never reached dev: fix what its reason names first.
+
+Dev and test tasks are different tasks of the same types, so write rules that generalize, never answers for particular train tasks. The student is small: every line of AGENTS.md and every loaded skill costs it attention and time, so keep each change lean. readyClaim is read only from the change you compose.`;
+}
+
+/**
+ * How the second step of a propose-probe-compose round works (decision 108), beside the usual
+ * instructions for the one change a round makes.
+ */
+const COMPOSE_INSTRUCTIONS = `## Composing from your probes
+
+This round you first proposed alternative changes, and the runner probed each one: it measured it on dev under seeds of its own, beside the current harness's dev score under this round's seeds, and ran it on this round's train tasks. They are listed after the train attempts, each with its change set and what it did, or why the runner refused it. Dev scores are overall counts, as everywhere else.
+
+Compose the round's one change from that evidence: keep what helped, drop what cost passes, combine probes that fixed different train tasks, or take one probe whole when it is clearly best. Write it as one hypothesis with its own complete change set against the current harness. It is measured on dev under this round's seeds, on draws no probe was scored on, and kept or reverted by the rule above; no probe is kept on its own.`;
+
 /** What a first draft holds, less whatever of it the person turned off for this job. */
 function whatToWrite(settings: PromptSettings): string {
   const kept = writable(settings).map(({ draft }) => draft);
@@ -333,12 +364,21 @@ function renderLineageItem(item: MentorView['lineage'][number]): string {
     const files = item.files.length > 0 ? ` Files: ${item.files.join(', ')}.` : '';
     return `- Round ${item.round}, rejected before dev saw it: ${what}${files} Why: ${item.reason}`;
   }
-  const signed = (n: number) => (n >= 0 ? `+${n}` : String(n));
   const again =
     item.confirmedDelta === undefined
       ? ''
       : `; measured again, ${signed(item.confirmedDelta)} over both`;
-  return `- Round ${item.round}, ${item.decision} (dev ${signed(item.devDelta)}${again}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.`;
+  const probes =
+    item.probes === undefined
+      ? ''
+      : ` Its probes: ${item.probes
+          .map((probe) =>
+            probe.devDelta === undefined
+              ? `"${probe.title}" (refused)`
+              : `"${probe.title}" (dev ${signed(probe.devDelta)})`,
+          )
+          .join(', ')}.`;
+  return `- Round ${item.round}, ${item.decision} (dev ${signed(item.devDelta)}${again}): ${item.title}. ${item.diagnosis} Files: ${item.files.join(', ')}.${probes}`;
 }
 
 function renderLineage(lineage: MentorView['lineage']): string {
@@ -394,6 +434,77 @@ function renderCounterexamples(
     .join('\n\n');
 }
 
+function signed(n: number): string {
+  return n >= 0 ? `+${n}` : String(n);
+}
+
+type ViewProbes = NonNullable<MentorView['probes']>;
+
+/** One probe: its change set, and what it did or why the runner refused it. */
+function renderProbe(probe: ViewProbes['items'][number], before: ViewProbes['devBefore']): string {
+  const edits = probe.edits
+    .map((edit) =>
+      edit.op === 'delete' ? `Delete ${edit.path}` : `Write ${edit.path}:\n${fenced(edit.content)}`,
+    )
+    .join('\n');
+  const lines = [`## Probe ${probe.index}: ${probe.title}`, probe.diagnosis];
+  if (probe.refused !== undefined) {
+    lines.push(`Refused by the runner, so never measured: ${probe.refused}`);
+  } else {
+    const { devDeltaMin, devDeltaMax } = probe.predicted;
+    lines.push(`Predicted: ${signed(devDeltaMin)} to ${signed(devDeltaMax)} dev passes.`);
+    const after = probe.devAfter;
+    if (after !== undefined) {
+      lines.push(
+        `Dev: ${after.pass}/${after.total} passed, against ${before.pass}/${before.total} for the current harness (${signed(after.pass - before.pass)}).`,
+      );
+    }
+    if (probe.train !== undefined) {
+      const passed = probe.train.filter((result) => result.pass).length;
+      lines.push(`Train tasks this round: ${passed}/${probe.train.length} passed.`);
+    }
+  }
+  return [...lines, edits].join('\n');
+}
+
+/** The train tasks the probes and the current harness disagree on, with each failure's reason. */
+function renderContrasts(probes: ViewProbes, train: MentorView['train']): string {
+  const measured = probes.items.filter((probe) => probe.train !== undefined);
+  const differing = train.results.flatMap((result) => {
+    const verdicts = measured.map((probe) => ({
+      index: probe.index,
+      verdict: probe.train?.find((item) => item.taskId === result.taskId),
+    }));
+    const passes = verdicts.map(({ verdict }) => verdict?.pass ?? result.pass);
+    if (passes.every((pass) => pass === result.pass)) return [];
+    const lines = verdicts.flatMap(({ index, verdict }) =>
+      verdict === undefined
+        ? []
+        : [`  Probe ${index}: ${verdict.pass ? 'PASS' : `FAIL. ${verdict.reason}`}`],
+    );
+    return [
+      [`- ${result.taskId}: current harness ${result.pass ? 'PASS' : 'FAIL'}`, ...lines].join('\n'),
+    ];
+  });
+  const body =
+    differing.length === 0
+      ? 'Every probe passed and failed the same train tasks as the current harness.'
+      : differing.join('\n');
+  return `# Where the probes differ on this round's train tasks\n${body}`;
+}
+
+/**
+ * A propose-probe-compose round's probes, for its compose step (decision 108): each one's change
+ * set and what it did, then the train tasks they disagree on, task by task.
+ */
+function renderProbes(probes: ViewProbes, train: MentorView['train']): string {
+  return [
+    '# Probes this round',
+    ...probes.items.map((probe) => renderProbe(probe, probes.devBefore)),
+    renderContrasts(probes, train),
+  ].join('\n\n');
+}
+
 export function renderMentorView(view: MentorView): string {
   return [
     renderJob(view.job),
@@ -406,6 +517,7 @@ export function renderMentorView(view: MentorView): string {
       Object.keys(view.counterexamples.suite).length === 0)
       ? []
       : [renderCounterexamples(view.counterexamples)]),
+    ...(view.probes === undefined ? [] : [renderProbes(view.probes, view.train)]),
   ].join('\n\n');
 }
 
@@ -457,6 +569,7 @@ export function diagnoseRequest(
   const system = [
     diagnoseInstructions(settings),
     menuInstructions(mentoring),
+    ...(view.probes === undefined ? [] : [COMPOSE_INSTRUCTIONS]),
     harnessSurface(settings),
     BUILT_IN_TOOLS,
     TOOL_RULES,
@@ -474,7 +587,35 @@ export function diagnoseRequest(
   };
 }
 
-/** The one-shot baseline's single request: a whole harness, written without seeing attempts. */
+/**
+ * A propose-probe-compose round's first request (decision 108): the round's evidence, and
+ * `count` alternative changes for it, each in the hypothesis format, to be measured before one
+ * change is composed from them.
+ */
+export function proposeRequest(
+  view: MentorView,
+  settings: PromptSettings,
+  count: number,
+): MentorCompletionRequest {
+  const system = [
+    proposeInstructions(settings, count),
+    harnessSurface(settings),
+    BUILT_IN_TOOLS,
+    TOOL_RULES,
+    ANSWER_FORMAT,
+    `## Your reply
+
+Reply with one JSON object holding proposals: a list of ${count} hypotheses, each with title (at most 80 characters), diagnosis, causeTaskIds, edits (each {op, path, content}: the whole new file for a write, empty content for a delete), predicted {devDeltaMin, devDeltaMax, rationale} and readyClaim.`,
+  ].join('\n\n');
+  return {
+    system,
+    messages: [{ role: 'user', content: renderMentorView(view) }],
+    json: { name: 'proposals', schema: PROPOSALS_JSON_SCHEMA },
+    reasoningEffort: settings.reasoningEffort,
+    maxOutputTokens: DIAGNOSE_MAX_OUTPUT_TOKENS,
+  };
+}
+
 /**
  * A whole harness written from the job setup and train examples. `refinedLater` is true for the
  * first round of a run that refines it afterwards, false for the one-shot method.

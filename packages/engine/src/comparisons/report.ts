@@ -5,6 +5,7 @@ import {
   COMPARISON_REPORT_FORMAT,
   ComparisonReportSchema,
   costUsd,
+  DEFAULT_PROBES,
   FREE_PRICING,
   mentorPricing,
   studentPricing,
@@ -430,6 +431,8 @@ const CONTRASTS: readonly [ArmId, ArmId][] = [
   ['targeted', 'draft'],
   ['fixed', 'bare'],
   ['targeted', 'fixed'],
+  ['composed', 'bare'],
+  ['composed', 'targeted'],
   ['weights-one-shot', 'bare'],
   ['weights-targeted', 'bare'],
   ['weights-targeted', 'weights-one-shot'],
@@ -706,6 +709,7 @@ function builtOn(input: ReportInput, arm: ArmId, jobOf: JobOf): ArmId[] {
   switch (arm) {
     case 'targeted':
     case 'fixed':
+    case 'composed':
       return jobOf(arm)?.startingHarness.kind === 'import' && armRun(store, 'draft') !== null
         ? ['draft']
         : [];
@@ -951,8 +955,11 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
     }
     case 'targeted':
     case 'fixed':
+    case 'composed':
       notes.push(
-        "Each round Spark reads Glimmer's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on the check tasks.",
+        arm === 'composed'
+          ? `Each round Spark reads Glimmer's failed attempts on practice tasks and proposes ${job?.evaluation.probes ?? DEFAULT_PROBES} changes to the harness; each is measured on the check tasks and the practice tasks, Spark composes one change from what they did, and that change is kept only if it clears the keep rule on the check tasks.`
+          : "Each round Spark reads Glimmer's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on the check tasks.",
       );
       if (job?.startingHarness.kind === 'import' && draft !== null) {
         notes.push(

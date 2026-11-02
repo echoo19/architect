@@ -113,8 +113,13 @@ export class DataPaths {
 
   /** What the mentor was sent and what it returned in a round; written only for calls that ran. */
   /** A round's author request and reply; `fix` names the fix of a reply the runner refused. */
-  mentorFile(jobId: string, runId: string, round: number, fix = 0): string {
-    const name = fix === 0 ? `round-${round}.json` : `round-${round}-fix-${fix}.json`;
+  /**
+   * A round's request and reply. A propose-probe-compose round's proposals are filed apart from
+   * the change composed from them, which is the round's own (decision 108).
+   */
+  mentorFile(jobId: string, runId: string, round: number, fix = 0, stage?: 'propose'): string {
+    const base = stage === undefined ? `round-${round}` : `round-${round}-${stage}`;
+    const name = fix === 0 ? `${base}.json` : `${base}-fix-${fix}.json`;
     return join(this.runDir(jobId, runId), 'mentor', name);
   }
 

@@ -2,6 +2,15 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon): propose, probe, compose, a second round mode (`engine/propose-probe-compose`)
+
+- *Done (decision 108, after Google Research's Harness², arXiv 2610.14224):* a job can set `evaluation.roundMode: propose_probe_compose` (`probes` 2 to 4, default 3). Each refining round then asks Spark for k change sets for the same failures, measures each as a version of its own on dev under the round's probe seeds and on the round's practice tasks, shows Spark each probe's overall dev score and practice verdicts, and takes one composed change through the usual keep rule, decided on the round's own seeds. Lineage keeps one entry a round with its `probes`; the experiment records each probe's measurement; one progress count runs through the incumbent, the probes and the composed change. Store migration 25.
+- *Done, app:* Define's Teaching tab has "Each round" (One change, or Propose, probe, compose) with one line under it, and "Changes tried a round"; the estimate counts the probes and a second Spark call. The training view's round lists its tries with their gain on the check tasks, refused ones marked, and the headline says when the round scores its tries or composes. The comparisons runner has a `composed` arm, the targeted arm in this mode.
+- *Tests:* engine `probe-rounds.test.ts`, the arm's projection and round modes, the desktop's estimate, round and headline tests, and `define-inspector.spec.ts` and `runs.spec.ts`. No real model has run in this mode.
+- *Review:* Codex (Astra) found six problems, all fixed with tests: a fix call could start after a stop or the time limit (in one-change rounds too), probes measured before a round was cut short were dropped from its experiment and from lineage, the runner priced a composed round as a one-change one, the control arms inherited the field's round mode, a restart could save a proposal twice, and the count restarted after a pause.
+- *Next:* a comparison of `targeted` against `composed` on one field, within its caps.
+- *Open:* decision 107 is on `team/consult-reads`, not merged here, so this branch skips to 108.
+
 ## 2026-11-02 (Mon, 08:00 UTC): team-4, a teammate can't write in a consult (`team/consult-reads`)
 
 - *Done, engine (decision 107):* in a consult, a teammate's write tools fail at once with "In a consult you can't write; say in your answer what should be written.", with no approval asked; the lead decides any write. `read` opens a kept helper result, written one entry a line. The markup check now counts only an attempted call, so quoted XML in an answer survives (Codex's release review). Codex (Astra) reviewed the branch; its four findings were fixed with tests.

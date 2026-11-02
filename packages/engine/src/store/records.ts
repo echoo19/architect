@@ -265,6 +265,11 @@ export const AuthorReplySchema = z.object({
   latencyMs: z.number().nonnegative(),
   /** 0 for the author's answer, 1 for its fix after the runner couldn't use that answer. */
   fix: z.number().int().nonnegative().default(0),
+  /**
+   * `propose` for a propose-probe-compose round's proposals (decision 108), which its compose
+   * step's reply replaces; absent for the round's own change.
+   */
+  stage: z.literal('propose').optional(),
 });
 export type AuthorReply = z.infer<typeof AuthorReplySchema>;
 

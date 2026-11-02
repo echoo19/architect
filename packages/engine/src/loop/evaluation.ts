@@ -321,6 +321,11 @@ export function attemptsLeft(state: RunState, spec: EvaluationSpec): number {
   return seededTasks(spec).filter(({ seed, task }) => !done.has(keyOf(seed, task.id))).length;
 }
 
+/** How many attempts of an evaluation its stored attempts already cover. */
+export function attemptsMade(state: RunState, spec: EvaluationSpec): number {
+  return spec.tasks.length * spec.seeds.length - attemptsLeft(state, spec);
+}
+
 async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boolean> {
   const filter = filterOf(spec);
   const done = new Set(

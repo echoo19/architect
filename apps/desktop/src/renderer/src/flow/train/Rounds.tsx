@@ -41,6 +41,10 @@ function untitled(round: Round, w: Words): string {
       return w.TrainingWeights;
     case 'clarifying':
       return 'Waiting for your answer';
+    case 'probing':
+      return 'Scoring the probes';
+    case 'composing':
+      return 'Composing one change';
     case 'evaluating':
       return 'Scoring the change';
     case 'decided':

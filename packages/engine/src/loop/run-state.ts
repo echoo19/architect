@@ -1,6 +1,7 @@
 import {
   HARNESS_INTERVENTIONS,
   mayIntervene,
+  probesPerRound,
   type Job,
   type Round,
   type Run,
@@ -219,6 +220,25 @@ export class RunState {
     // A job that lets the mentor change no file of the harness has no draft for it to write.
     if (!HARNESS_INTERVENTIONS.some((type) => mayIntervene(this.job, type))) return false;
     return !this.rounds().some(({ round }) => round.index < index && round.decision === 'kept');
+  }
+
+  /**
+   * The alternatives the round's mentor proposes and the runner measures before one change is
+   * composed from them (decision 108), or null when the round makes one change. Only Architect's
+   * own rounds that change the harness probe: a draft, an adopted harness, a one-shot adapter, an
+   * improvement and a run whose every harness change is off make one change, as before.
+   */
+  probeCount(index: number): number | null {
+    const count = probesPerRound(this.job);
+    if (count === null || this.run.method !== 'architect' || this.drafts(index)) return null;
+    const { protocol, improves } = this.record;
+    if (protocol?.adopt !== undefined || protocol?.oneShotAdapter !== undefined) return null;
+    if (improves !== undefined) return null;
+    const fixed = protocol?.interventions;
+    const harness = HARNESS_INTERVENTIONS.some(
+      (type) => mayIntervene(this.job, type) && (fixed === undefined || fixed.includes(type)),
+    );
+    return harness ? count : null;
   }
 
   trainTasks(): Promise<Task[]> {

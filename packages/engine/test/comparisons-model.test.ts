@@ -21,7 +21,10 @@ import {
   wilson,
   type ComparisonConfig,
 } from '../src/comparisons';
-import { modelKeys } from '../src/comparisons/arms';
+import { armStart, modelKeys, type StagingContext } from '../src/comparisons/arms';
+import type { ComparisonEngine } from '../src/comparisons/engine';
+import type { ComparisonFiles } from '../src/comparisons/records';
+import type { LoopDeps } from '../src/loop/deps';
 import type { SweepAttempt } from '../src/comparisons/records';
 import { RETURNS_DESK } from './support/comparison-world';
 
@@ -262,6 +265,18 @@ describe('the projection', () => {
     expect(arms['bare']?.wallMinutes).toBeCloseTo(((45 / 6 + 60) * 20) / 60, 9);
     // Spark's 60 tasks, one at a time, at the student's measured time.
     expect(arms['reference']?.wallMinutes).toBeCloseTo((60 * 20) / 60, 9);
+  });
+
+  it('counts every probe of an arm that proposes, probes and composes, and both Spark calls', () => {
+    const arms = planned({ arms: ['bare', 'draft', 'targeted', 'composed'] }).arms;
+    const composed = arms.find((arm) => arm.arm === 'composed');
+    // A round: four practice batches of 12 (the incumbent's and three probes'), and the 45 dev
+    // tasks for the incumbent, three probes and the composed change, then both again.
+    expect(composed?.hostedAttempts).toBe(45 + 2 * (4 * 12 + 7 * 45) + 60);
+    expect(composed?.sparkCalls).toBe(8);
+    const targeted = arms.find((arm) => arm.arm === 'targeted');
+    expect(composed?.sparkUsd).toBeGreaterThan(targeted?.sparkUsd ?? Infinity);
+    expect(composed?.sparkUsd).toBeLessThanOrEqual(DEFAULT_CONFIG.sparkCaps.composed);
   });
 
   it("funds arms in decision 037's order and drops the latest that no longer fits", () => {
@@ -517,5 +532,30 @@ describe('Spark caps set from the command line', () => {
   ])('refuses %s', (entry, says) => {
     expect(() => sparkCapsWith([entry])).toThrow(SparkCapError);
     expect(() => sparkCapsWith([entry])).toThrow(says);
+  });
+});
+
+describe('the composed arm', () => {
+  it('alone proposes, probes and composes, whatever round mode the field chose', async () => {
+    const probing: Job = {
+      ...source,
+      evaluation: { ...source.evaluation, roundMode: 'propose_probe_compose' },
+    };
+    const context: StagingContext = {
+      base: probing,
+      config: config({}),
+      engine: {} as ComparisonEngine,
+      deps: {} as LoopDeps,
+      files: {} as ComparisonFiles,
+      runOf: () => null,
+      sparkSpent: () => 0,
+      wallMinutes: 60,
+      writeHarness: async () => undefined,
+    };
+    const modes = [];
+    for (const arm of ['targeted', 'fixed', 'composed'] as const) {
+      modes.push((await armStart(arm, context)).job.evaluation.roundMode);
+    }
+    expect(modes).toEqual(['one_change', 'one_change', 'propose_probe_compose']);
   });
 });

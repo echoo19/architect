@@ -138,3 +138,22 @@ describe('missedRequirements', () => {
     ]);
   });
 });
+
+describe('a round that proposes, probes and composes', () => {
+  it('says when it scores its tries and when Spark makes one change from them', () => {
+    const running = (phase: 'evaluating' | 'diagnosing') => makeRun({ status: 'running', phase });
+    expect(phaseView(running('evaluating'), NAMES, false, false, undefined, 'probing').text).toBe(
+      'Scoring each try on the check tasks',
+    );
+    expect(phaseView(running('diagnosing'), NAMES, false, false, undefined, 'composing').text).toBe(
+      'Spark is making one change from the tries',
+    );
+    expect(phaseView(running('evaluating'), NAMES, false, false, WORDS.lab, 'probing').text).toBe(
+      'Scoring each probe on the held-out checks',
+    );
+    // Any other round reads as before.
+    expect(
+      phaseView(running('diagnosing'), NAMES, false, false, undefined, 'diagnosing').text,
+    ).toBe('Spark is reading the failures');
+  });
+});
