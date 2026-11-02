@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon): the results page reads as one story (`site/results-cohesive`)
+
+- *Done:* `site/src/ResultsPage.tsx` reordered with the strongest results first: how it works, Academy desk, Inventory desk, fine-tuning, the risk certificate, the open-weight teacher, the field model, the earlier returns desk, limitations. Each section has a plain lead, its headline figure set large, one figure and a folded "Details" with the method and the tables. The real academy's misses, the third run, the first certificate attempt, the first returns desk and the other desks moved to Limitations, a sentence or two each by cause, with their reports cited. No number changed; every figure still reads from `evidence.ts`.
+- *Removed:* the third run's table, the first certificate's table and the first returns desk's tables, with `ROUNDS_FIRST`, `THIRD_MONEY`, `CERT` and `CERT_ROWS` and the test that checked the last two against their report. Captions are set at body size.
+- *Length:* the text a reader sees with the details folded went from 4,216 words to 2,845; the running prose from 3,171 to 1,872. Figures, tables, sections and the 29 references were renumbered and checked against the built page.
+- *Open:* the branch isn't merged. On a phone, the wide tables still scroll sideways inside their panels.
+
 ## 2026-11-02 (Mon): propose, probe, compose, a second round mode (`engine/propose-probe-compose`)
 
 - *Done (decision 108, after Google Research's Harness², arXiv 2610.14224):* a job can set `evaluation.roundMode: propose_probe_compose` (`probes` 2 to 4, default 3). Each refining round then asks Spark for k change sets for the same failures, measures each as a version of its own on dev under the round's probe seeds and on the round's practice tasks, shows Spark each probe's overall dev score and practice verdicts, and takes one composed change through the usual keep rule, decided on the round's own seeds. Lineage keeps one entry a round with its `probes`; the experiment records each probe's measurement; one progress count runs through the incumbent, the probes and the composed change. Store migration 25.
