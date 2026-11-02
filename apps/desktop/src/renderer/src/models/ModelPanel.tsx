@@ -67,6 +67,7 @@ import {
   comparable,
   fieldOf,
   imported,
+  oneOrganization,
   rowKey,
   runtimeName,
   scoresOf,
@@ -406,6 +407,8 @@ function ReportTab({ row }: { row: ModelRow }) {
           <ProblemState layout="inline" error={reportError} title="Couldn't read its report card" />
         ) : scores.seen === null && scores.unseen === null && scores.real === null ? (
           <p className="m-0 text-ui">No sealed final test yet</p>
+        ) : oneOrganization(scores) ? (
+          <Figure label="Score" score={scores.seen} />
         ) : (
           <div className="grid grid-cols-3 gap-3">
             <Figure label="Taught on" score={scores.seen} />

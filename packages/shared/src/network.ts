@@ -118,8 +118,8 @@ export function contactsLine(contacts: readonly RunContact[]): string {
     .filter((host) => !isLoopbackUrl(`http://${host}`));
   if (online.length === 0) return `Contacted ${hosts}, ${all}on this computer`;
   const here = count - online.length;
-  const named = `Contacted ${hosts}: ${online.join(', ')} online`;
-  return here === 0 ? named : `${named}, and ${here} on this computer`;
+  if (here === 0) return `Contacted ${hosts} online: ${online.join(', ')}`;
+  return `Contacted ${hosts}: ${online.length} online (${online.join(', ')}) and ${here} on this computer`;
 }
 
 /** Where Ollama pulls a model whose name names no registry. */

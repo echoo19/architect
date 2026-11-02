@@ -18,6 +18,7 @@ import {
   baseModelOf,
   CHECK_HINT,
   methodOf,
+  oneOrganization,
   runtimeName,
   scoresOf,
   shortHash,
@@ -192,6 +193,24 @@ function withCertificates(rows: readonly ModelRow[]): DataColumn<ModelRow>[] {
 }
 
 /**
+ * With only jobs of one organization listed, there is no organization they never saw: their final
+ * test is one Score column, as a plain job's is, never "Taught on" beside two empty ones.
+ */
+function forOneOrganization(
+  rows: readonly ModelRow[],
+  columns: DataColumn<ModelRow>[],
+): DataColumn<ModelRow>[] {
+  if (rows.length === 0 || !rows.every((row) => oneOrganization(scoresOf(row)))) return columns;
+  return columns
+    .filter((column) => column.key !== 'unseen' && column.key !== 'real')
+    .map((column) =>
+      column.key === 'seen'
+        ? { ...column, header: 'Score', hint: defineTerm('sealedFinalTest') }
+        : column,
+    );
+}
+
+/**
  * Beside an open panel, which shows the rest, or on a narrow window: the agent, its final test and
  * its status. The check tasks lead the panel, so the table leaves them out and its Status column
  * stays in view. The others are hidden rather than dropped, so the table keeps the order it was
@@ -230,13 +249,14 @@ export function RegistryTable({
       aria-label="Models"
       rows={rows}
       rowKey={(row) => row.key}
-      columns={
+      columns={forOneOrganization(
+        rows,
         beside || narrow
           ? shownOnly(columns, (column) => NARROW.has(column))
           : middle
             ? shownOnly(columns, (column) => !MIDDLE.has(column))
-            : columns
-      }
+            : columns,
+      )}
       onRowClick={onOpen}
       initialSort={{ key: 'name', direction: 'ascending' }}
       empty={empty}

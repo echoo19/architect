@@ -498,7 +498,7 @@ test('walks from a description to a graduate', async () => {
   await capture(page, 'flow-report-dark');
 
   await page.getByRole('button', { name: 'Start using Service desk' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/agents/${FLOW.graduateId}/chats/${FLOW.chatId}$`));
+  await expect(page).toHaveURL(new RegExp(`#/agents/${FLOW.graduateId}$`));
 });
 
 test("says in the results' details where a drafted job's final test came from", async () => {

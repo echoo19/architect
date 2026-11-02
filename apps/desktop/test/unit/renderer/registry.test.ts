@@ -8,6 +8,7 @@ import {
   formatPoints,
   matchesFilter,
   matchesSearch,
+  oneOrganization,
   ordered,
   scoresOf,
   shortHash,
@@ -158,6 +159,17 @@ describe('the registry of models', () => {
       real: null,
       check: null,
     });
+  });
+
+  it('reads a job with no organization it never saw as one of one organization', () => {
+    const fielded = rowOf({
+      version: 1,
+      report: report([result('hint', 'north', 3, 4, SEEN), result('hint', 'harbor', 5, 6, UNSEEN)]),
+    });
+    expect(oneOrganization(scoresOf(fielded))).toBe(false);
+    const single = rowOf({ version: 1, report: report([result('hint', 'north', 3, 4, SEEN)]) });
+    expect(oneOrganization(scoresOf(single))).toBe(true);
+    expect(oneOrganization(scoresOf(rowOf({ version: 2 })))).toBe(true);
   });
 
   it('compares two versions of one agent, or two agents of one job, older first', () => {

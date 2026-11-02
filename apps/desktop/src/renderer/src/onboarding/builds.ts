@@ -10,3 +10,15 @@ export function sizeWord(build: StudentBuild, recommended: StudentBuild): string
   if (build.key === recommended.key) return 'Recommended';
   return build.downloadBytes < recommended.downloadBytes ? 'Smaller' : 'Larger';
 }
+
+/**
+ * Whether setup may move the person's untouched default build to the one suggested for this
+ * computer: yes, unless the default is downloaded and the suggested one isn't.
+ */
+export function suggestBuild(
+  current: string,
+  suggested: string,
+  installed: (model: string) => boolean,
+): boolean {
+  return current !== suggested && (!installed(current) || installed(suggested));
+}

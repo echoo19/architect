@@ -23,6 +23,7 @@ import {
 } from '@architect/ui';
 import {
   Ban,
+  CirclePause,
   Clock,
   FlaskConical,
   FlaskConicalOff,
@@ -55,6 +56,7 @@ import {
   minutesText,
   primaryResult,
   primaryText,
+  stopReason,
 } from './model';
 import { Results } from './Results';
 
@@ -403,6 +405,45 @@ function WaitingCard({
 }
 
 /**
+ * Why it stopped short, and the way on: resume it from where it stopped, or, once it was stopped
+ * for good, plan another on the same field.
+ */
+function StoppedNotice({ detail }: { detail: ExperimentDetail }) {
+  const { experiment } = detail;
+  const why =
+    stopReason(detail, armNames(experimentNames(detail))) ?? 'It stopped without saying why.';
+  const stopped = experiment.status === 'stopped';
+  return (
+    <Card
+      title={stopped ? 'It stopped' : 'It stopped short'}
+      icon={
+        stopped ? (
+          <Square size={14} strokeWidth={1.7} aria-hidden />
+        ) : (
+          <CirclePause size={16} strokeWidth={1.7} aria-hidden />
+        )
+      }
+      action={
+        stopped && (
+          <Button size="sm" onClick={() => navigate(paths.newExperiment(experiment.job.id))}>
+            Plan another
+          </Button>
+        )
+      }
+    >
+      <div className="flex flex-col gap-1">
+        <p className="m-0 text-body text-pretty">{why}</p>
+        <p className="m-0 text-ui">
+          {stopped
+            ? "It can't start again. What it measured so far is kept."
+            : 'Resume to go on from where it stopped. What it measured so far is kept.'}
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+/**
  * Why the arm waits, by the name the arms table gives it: its start, or once it is done teaching
  * its sealed final test, at what an attempt has really cost against what is left under the cap.
  */
@@ -580,8 +621,9 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
             message={experiment.reason ?? 'The runner stopped without saying why.'}
           />
         )}
-        {(status === 'paused' || status === 'stopped' || status === 'incomplete') &&
-          experiment.reason && <p className="m-0 text-body">{experiment.reason}</p>}
+        {(status === 'paused' || status === 'stopped' || status === 'incomplete') && (
+          <StoppedNotice detail={detail} />
+        )}
         {released && report ? (
           <Results report={report} input={input} names={names} />
         ) : (

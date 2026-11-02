@@ -161,6 +161,13 @@ export function scoresOf(row: Pick<ModelRow, 'report' | 'version'>): RowScores {
   return { ...NONE, seen: report.test.score.total === 0 ? null : report.test.score, check };
 }
 
+/**
+ * Whether its final test had no organization it never saw: a job of one organization, labelled
+ * as a plain job's final test is, never "Taught on".
+ */
+export const oneOrganization = (scores: Pick<RowScores, 'unseen' | 'real'>) =>
+  scores.unseen === null && scores.real === null;
+
 /** A score as a number to sort by; null stays null so it sorts last. */
 export const sortScore = (score: Score | null) =>
   score === null || score.total === 0 ? null : percentOf(score);

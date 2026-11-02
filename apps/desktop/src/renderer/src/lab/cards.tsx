@@ -762,7 +762,7 @@ function FieldRow({ jobId }: { jobId: string }) {
       <li aria-busy="true" className="sr-only" />
     );
   }
-  return job.data.organizations ? <FieldCounts jobId={jobId} name={job.data.name} /> : null;
+  return <FieldCounts jobId={jobId} name={job.data.name} />;
 }
 
 /** A field's row, with its organizations counted as the Fields table counts them. */
@@ -797,7 +797,7 @@ function FieldCounts({ jobId, name }: { jobId: string; name: string }) {
   );
 }
 
-/** The jobs that serve several organizations of one field. */
+/** Every job, each a field of one organization or several, as Fields lists them. */
 export function FieldsCard({ jobs }: { jobs: readonly JobSummary[] }) {
   return (
     <Card

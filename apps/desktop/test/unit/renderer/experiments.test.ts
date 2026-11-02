@@ -2,6 +2,7 @@ import type {
   ArmRow,
   BackendTable,
   ComparisonReport,
+  ExperimentRecord,
   ExperimentInput,
   OrgTypeResult,
   Paired,
@@ -27,6 +28,7 @@ import {
   primaryText,
   rowLabel,
   skillIn,
+  stopReason,
   verdictOf,
   wilson,
   withArmCap,
@@ -301,5 +303,30 @@ describe('experiment plans', () => {
       b: 'bare',
       group: 'unseen',
     });
+  });
+
+  it('says why an experiment stopped short: its own reason, else what holds each arm', () => {
+    const arm = (id: string, status: string, frozen: unknown, reason: string | null) => ({
+      arm: id,
+      status,
+      frozen,
+      reason,
+    });
+    const detail = (reason: string | undefined, arms: unknown[]) => ({
+      experiment: { status: 'incomplete', reason } as unknown as ExperimentRecord,
+      report: { arms } as unknown as ComparisonReport,
+    });
+    const names = armNames(DEFAULT_NAMES);
+    const arms = [
+      arm('bare', 'incomplete', {}, "Its training is done, and its final test hasn't run yet."),
+      arm('draft', 'incomplete', null, 'The tool sandbox stopped while loading a tool.'),
+    ];
+    expect(stopReason(detail(undefined, arms), names)).toBe(
+      'One-shot harness: The tool sandbox stopped while loading a tool.',
+    );
+    expect(stopReason(detail('Stopped by you.', arms), names)).toBe('Stopped by you.');
+    expect(stopReason(detail(undefined, [arms[0]]), names)).toBeNull();
+    const paused = { ...detail(undefined, arms), experiment: { status: 'paused' } };
+    expect(stopReason(paused as never, names)).toBe('Paused by you.');
   });
 });

@@ -704,9 +704,11 @@ export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report
     card,
   }));
   const scored = rows.map((row) => ({ ...row, scores: reportScores(row.card) }));
+  // A job of one organization has no organization it never saw, so its score is just its score.
+  const fielded = scored.some((row) => row.scores.unseen !== null || row.scores.real !== null);
   const columns = (
     [
-      { key: 'seen', label: words.lab ? 'Taught on' : 'Score' },
+      { key: 'seen', label: words.lab && fielded ? 'Taught on' : 'Score' },
       { key: 'unseen', label: 'Never seen' },
       { key: 'real', label: 'Real' },
     ] as const
