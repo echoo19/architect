@@ -10,6 +10,7 @@ import {
   activeVersionName,
   agentModelName,
   baseModelName,
+  buildBits,
   modelTabsFit,
   capitalized,
   mentorIsLocal,
@@ -102,6 +103,16 @@ describe('model names', () => {
     expect(quantizationLabel('IQ3_XS')).toBe('3-bit');
     expect(quantizationLabel('F16')).toBe('16-bit');
     expect(quantizationLabel('MXFP4')).toBe('MXFP4');
+  });
+
+  it("names Glimmer's 2-bit build by its own bits, though Ollama reports its file as Q4_K_M", () => {
+    expect(buildBits('muse-glimmer:30b-iq2', 'Q4_K_M')).toBe('2-bit');
+    expect(buildBits('muse-glimmer:30b-iq2', undefined)).toBe('2-bit');
+    // Any other model by what its runtime reports.
+    expect(buildBits('muse-glimmer:30b', 'Q4_K_M')).toBe('4-bit');
+    expect(buildBits('muse-glimmer:30b', 'Q8_0')).toBe('8-bit');
+    expect(buildBits('qwen3:8b', 'Q8_0')).toBe('8-bit');
+    expect(buildBits('qwen3:8b', undefined)).toBeUndefined();
   });
 
   it("names an agent's model Glimmer for any of its builds, or by the id of any other model chosen", () => {
