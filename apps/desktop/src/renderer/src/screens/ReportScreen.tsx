@@ -4,13 +4,7 @@ import { Button, Skeleton } from '@architect/ui';
 import { ArrowRight, Boxes, Library, RotateCw, TriangleAlert } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
-import {
-  useGraduates,
-  useJob,
-  useReport,
-  useRunDetail,
-  useSettings,
-} from '../api/hooks';
+import { useGraduates, useJob, useReport, useRunDetail, useSettings } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { refreshRunLists } from '../api/updates';
 import { ProblemState } from '../components/ProblemState';
