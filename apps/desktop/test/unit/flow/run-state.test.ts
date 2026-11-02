@@ -172,16 +172,23 @@ describe('liveRunReducer', () => {
   });
 
   it('keeps a finished count full until the run moves on, then counts the next step from none', () => {
-    const base = { runId: 'run_1', at: AT, harnessVersion: 2, pass: 5 } as const;
+    const base = { runId: 'run_1', at: AT, harnessVersion: 2 } as const;
     const scoring = runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(1) }));
-    const counted = { ...base, type: 'eval.progress', split: 'dev', done: 30, total: 40 } as const;
-    const finished = {
+    const counted: RunEvent = {
+      ...base,
+      type: 'eval.progress',
+      split: 'dev',
+      done: 30,
+      total: 40,
+      pass: 5,
+    };
+    const finished: RunEvent = {
       ...base,
       type: 'eval.finished',
       split: 'dev',
       score: { pass: 20, total: 40 },
       perType: [],
-    } as const;
+    };
     const ended = loaded(scoring, counted, finished);
     expect(activeProgress(ended)).toEqual({ split: 'dev', done: 40, total: 40 });
 

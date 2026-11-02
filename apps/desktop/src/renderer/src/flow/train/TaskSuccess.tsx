@@ -239,14 +239,7 @@ function ProgressCurve({
       empty={data.head ? undefined : ended ? 'Not scored' : 'Not scored yet'}
       legend={legend}
       readout={(x) => (
-        <Readout
-          x={x}
-          data={data}
-          round={roundAt(x)}
-          job={job}
-          input={input}
-          mentor={mentor}
-        />
+        <Readout x={x} data={data} round={roundAt(x)} job={job} input={input} mentor={mentor} />
       )}
       onPick={(x) => {
         const round = roundAt(x);

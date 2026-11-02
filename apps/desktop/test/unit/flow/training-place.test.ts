@@ -234,7 +234,9 @@ describe('the card of the place that is chosen', () => {
 
   it('says when the time limit stops training before its last round, with more time a click away', () => {
     const online = render(jobOf('hosted'));
-    expect(text(card(online, 'Train online'))).toContain('3 to 7 of 12 rounds fit the 3-hour limit');
+    expect(text(card(online, 'Train online'))).toContain(
+      '3 to 7 of 12 rounds fit the 3-hour limit',
+    );
     expect(online.match(/>Allow more time</g)).toHaveLength(1);
     const here = render(jobOf('local', 2000));
     expect(text(card(here, 'Train on this computer'))).toContain(

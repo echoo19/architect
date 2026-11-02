@@ -233,11 +233,7 @@ function shortfallNote(
  * own scores: a change measured again on new seeds is held to the margin for both runs. Null for
  * any other round.
  */
-export function roundShortfall(
-  round: Round,
-  job: Job,
-  w: Words = WORDS.personal,
-): string | null {
+export function roundShortfall(round: Round, job: Job, w: Words = WORDS.personal): string | null {
   const { devBefore: before, devAfter: after, decision, firstMeasurement } = round;
   if (decision !== 'reverted' || !before || !after) return null;
   const runs = job.evaluation.devRepeats * (firstMeasurement ? 2 : 1);

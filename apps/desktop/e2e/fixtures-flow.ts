@@ -326,7 +326,8 @@ const PRACTICE: Practice[] = [
     type: 'scheduling',
     pass: false,
     prompt: 'Book an electrician for a sparking outlet at 5 Pine St, zone A.',
-    reason: 'Omar K. holds no electrical license; Marcus O. is the earliest licensed one, at 10:30.',
+    reason:
+      'Omar K. holds no electrical license; Marcus O. is the earliest licensed one, at 10:30.',
   },
   {
     type: 'invoice',
