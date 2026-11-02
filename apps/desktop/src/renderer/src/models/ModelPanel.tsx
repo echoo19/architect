@@ -383,8 +383,8 @@ function Figure({ label, score }: { label: string; score: Score | null }) {
       <span className="font-display text-h1 font-semibold tabular-nums">
         {measured ? formatPercent(score) : <span aria-label="not tested">–</span>}
       </span>
-      <span className="font-mono text-small tabular-nums">
-        {measured ? `${score.pass}/${score.total}` : ' '}
+      <span className="text-small tabular-nums">
+        {measured ? `${score.pass} of ${score.total}` : ' '}
       </span>
     </div>
   );
@@ -420,8 +420,8 @@ function ReportTab({ row }: { row: ModelRow }) {
           {scores.check ? (
             <span className="tabular-nums">
               {formatPercent(scores.check)}{' '}
-              <span className="font-mono text-small">
-                {scores.check.pass}/{scores.check.total}
+              <span className="text-small">
+                {scores.check.pass} of {scores.check.total}
               </span>
             </span>
           ) : (
