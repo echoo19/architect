@@ -279,6 +279,7 @@ test('reviews an export: what goes in, what stays, the scan and the parts', asyn
 
   // Sharing the data folder is opt-in, and the scan's finding in it holds the export back.
   await share.click();
+  await expect(share).toHaveAttribute('aria-checked', 'true');
   await expect(dialog.getByText('1 line looks like a key or a private path')).toBeVisible();
   await expect(dialog.getByRole('list', { name: 'Findings' })).toContainText('data/policy.md:14');
   await expect(exportPackage).toBeDisabled();

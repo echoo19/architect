@@ -214,14 +214,15 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
           item.optional ? (
             <SettingsRow
               key={item.id}
-              icon={<StatusMark state={item.included ? 'ok' : 'off'} />}
+              icon={<StatusMark state={include.includes(item.id) ? 'ok' : 'off'} />}
               label={itemLabel(item)}
               meta={item.files.join(', ')}
             >
               <div className="flex items-center gap-4">
                 <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
+                {/* The person's choice moves at once; the scan of it follows. */}
                 <Switch
-                  checked={item.included}
+                  checked={include.includes(item.id)}
                   onCheckedChange={(on) => share(item, on)}
                   aria-label={`Share the ${itemLabel(item).toLowerCase()}`}
                 />
@@ -241,6 +242,14 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
             </SettingsRow>
           ),
+        )}
+        {error && (
+          <ProblemState
+            layout="inline"
+            error={error}
+            title="Couldn't review this choice"
+            onRetry={reload}
+          />
         )}
       </SettingsSection>
 
