@@ -2,6 +2,14 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon, 06:00 UTC): team-3, the plate overflow's cause fixed and measured (`team/plate-fits`)
+
+- *Done, diagnosis:* team-2's taught consultations show every one of the 67 `assay_plate` calls was cut at the 8,000-character result budget (FW-0418's result is 16,124). The helper's per-compound summary comes last and was lost, the note said "ask for less", and Assay desk rebuilt the plate from raw files until its context or steps ran out.
+- *Done, engine (decision 106):* a helper's result too long to show is kept whole for `run` code at `results/<name>.json`, named in the cut note, and carried into a teaching correction from a checkpoint. A teammate's run that ends on a tool call written as text settles `no_answer`. Codex (Astra) reviewed it; both findings were fixed with tests.
+- *Done, run:* team-3 (`docs/comparisons/team-3.md`), the same protocol as team-2, $2.62 of a $4 cap. Both arms 0 of 20. Assay desk read the whole result in 5 of 47 cut asks. Once it found exactly FW-0418's list (FWC-13399, FWC-13444) and then stopped at its `retests.csv` write, which a non-interactive team reply can't approve. One amendment: the relay now waits out OpenRouter 429s, and the three attempts they hit were run again.
+- *Next:* let `read` serve a kept result too (15 asks tried it); decide whether a teammate's write in a non-interactive team reply should end the whole reply; the lead still asks for `retests.csv` rows at Alder Row.
+- *Open:* the branch isn't merged.
+
 ## 2026-11-02 (Mon, night): each agent opens on its home, and the training view is one instrument
 
 - *Done:* opening an agent (its sidebar row, the palette, the personal edition's start) lands on `/agents/<id>`, its home; the chat stays one click away (the sidebar's chats, the sessions list, the header's last-session button). The home starts a session from a box with the agent's starter requests and stays put while it works; lists every session (waiting ones first) with its last outcome; and shows, from records only: requests per day from the version's acceptance, 7 to 14 days (`BarChart`, new in `packages/ui`), median and 95th-percentile answer time, tokens per second, tool use by tool, writes allowed, waiting and declined, requests left to a person, errors; the GPU, model build, size, context, peak memory from the runtime meter, loaded or not, cold start and installation checks; the sealed final test at graduation beside every retest with its drift, the risk certificate and the regression suite; and the offline guarantee from the agent host's loopback guard (`workspace.blockedConnections`, new IPC, and what it stopped since start).
