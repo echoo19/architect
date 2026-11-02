@@ -79,7 +79,7 @@ The intervals are Wilson 95% intervals; the paired difference uses Newcombe's me
 | Experiment (calibration included) | $0.1010 | $0.1884 |
 | Total | $0.188 | $0.281 |
 
-$0.47 in all, against a $4 cap for the session. OpenRouter's usage rose by $0.2814 over the session, the same as the app's records. No GPU was used.
+The training run itself, with the drafting and the sealed final test, cost $0.18: $0.0866 of Spark and $0.0930 of hosted Glimmer. With the experiment, $0.47 in all, against a $4 cap for the session. OpenRouter's usage rose by $0.2814 over the session, the same as the app's records. No GPU was used.
 
 ## Limits
 

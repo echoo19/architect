@@ -25,13 +25,33 @@ export const HERO = {
 } as const;
 
 /** The walkthrough film under the first screen's words. Its files are in public/. */
+/** A film the site plays behind a still cover. */
+export interface FilmSource {
+  src: string;
+  /** A still from the film, shown until it plays. */
+  cover: string;
+  label: string;
+  play: string;
+}
+
 export const FILM = {
   src: './architect-film.mp4',
   /** A still of the Lab from the film, shown until it plays. */
   cover: './architect-film-cover.webp',
   label: 'A walkthrough of Architect, with narration: 2 minutes 40 seconds.',
   play: 'Play the walkthrough, 2 minutes 40 seconds, with sound',
-} as const;
+} as const satisfies FilmSource;
+
+/**
+ * The wind farm desk's run, recorded in the app as it ran (docs/comparisons/edge-1.md), cut to
+ * music with its waits shown faster. The results page shows it, from a folder below the root.
+ */
+export const EDGE_FILM = {
+  src: '../edge-1-film.mp4',
+  cover: '../edge-1-film-cover.webp',
+  label: 'A real run of Architect, recorded: 1 minute 11 seconds, with music.',
+  play: 'Play the recorded run, 1 minute 11 seconds, with music',
+} as const satisfies FilmSource;
 
 /**
  * Why Architect exists, under the film: our reason, then the three requests from Y Combinator that

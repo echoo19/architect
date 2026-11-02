@@ -12,6 +12,7 @@ import {
   CERT2,
   CERT2_CHECK,
   CERT2_ROWS,
+  EDGE,
   FIELD_ARMS,
   FIELD_PAIRS,
   FIELD_TEST_SIZE,
@@ -233,6 +234,41 @@ describe('the results page', () => {
     expect(report).toContain(`about $${LAB_RUN.sparkUnrecorded.toFixed(2)}`);
     expect(report).toContain(`${LAB_RUN.draftBefore}/24 to ${LAB_RUN.draftAfter}/24`);
     expect(report).toContain(`${LAB_RUN.keptBefore}/48 to ${LAB_RUN.keptAfter}/48`);
+  });
+
+  it('adds up the wind farm run and gives the report its numbers', () => {
+    const report = readFileSync(join(ROOT, 'docs', 'comparisons', 'edge-1.md'), 'utf8').replaceAll(
+      '**',
+      '',
+    );
+    const { pair } = EDGE;
+    expect(EDGE.types.reduce((sum, type) => sum + type.of, 0)).toBe(EDGE.test);
+    expect(EDGE.types.reduce((sum, type) => sum + type.alone, 0)).toBe(EDGE.alone.passed);
+    expect(EDGE.types.reduce((sum, type) => sum + type.harness, 0)).toBe(EDGE.harness.passed);
+    expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(EDGE.test);
+    expect(pair.both + pair.wins).toBe(EDGE.harness.passed);
+    expect(pair.both + pair.losses).toBe(EDGE.alone.passed);
+    expect(((pair.wins - pair.losses) / EDGE.test) * 100).toBeCloseTo(pair.diff, 0);
+    for (const arm of [EDGE.alone, EDGE.harness]) {
+      const rate = Math.round((arm.passed / EDGE.test) * 100);
+      expect(report).toContain(
+        `${arm.passed} of ${EDGE.test} (${rate}%, ${Math.round(arm.low)}% to ${Math.round(arm.high)}%)`,
+      );
+    }
+    for (const type of EDGE.types) {
+      expect(report).toContain(
+        `| ${type.name} | ${type.alone} of ${type.of} | ${type.harness} of ${type.of} |`,
+      );
+    }
+    expect(report).toContain(
+      `+${Math.round(pair.diff)} points (95% interval +${Math.round(pair.low)} to +${Math.round(pair.high)})`,
+    );
+    expect(report).toContain(`${pair.wins} wins and no losses`);
+    expect(report).toContain(`${EDGE.checks.before} of ${EDGE.checks.of} (33%)`);
+    expect(report).toContain(`${EDGE.checks.after} of ${EDGE.checks.of} (100%)`);
+    expect(report).toContain(`${EDGE.minutes} minutes 17 seconds`);
+    expect(report).toContain(`cost $${EDGE.runUsd.toFixed(2)}`);
+    expect(report).toContain(`$${EDGE.allUsd.toFixed(2)}`);
   });
 
   it('adds up the open-weight teacher run and gives the report its numbers', () => {
