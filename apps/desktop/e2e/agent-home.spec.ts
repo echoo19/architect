@@ -117,6 +117,28 @@ test('a session opens its chat, and the sidebar brings the home back', async () 
   await expect(page).toHaveURL(new RegExp(`#/agents/${AGENT.id}$`));
 });
 
+test('reads the network guard again when the home opens again', async () => {
+  await stubEngine(launched.app, {
+    'workspace:blockedConnections': [
+      { api: 'fetch', target: 'example.com:443', at: new Date().toISOString() },
+    ],
+  });
+  const newest = history.chats[0];
+  if (!newest) throw new Error('No sessions.');
+  await home()
+    .getByRole('region', { name: 'Sessions' })
+    .getByRole('button', { name: new RegExp(newest.title) })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`#/agents/${AGENT.id}/chats/${newest.id}$`));
+  await page
+    .getByRole('navigation', { name: 'Agents' })
+    .getByRole('button', { name: 'Service desk', exact: true })
+    .click();
+  const here = home().getByRole('region', { name: 'On this computer' });
+  await expect(here).toContainText('1 call stopped since Architect started');
+  await stubEngine(launched.app, { 'workspace:blockedConnections': [] });
+});
+
 test('a request sent from the home opens its new session, and the chat leads back home', async () => {
   const box = page.getByRole('textbox', { name: 'New session with Service desk' });
   await box.fill('Which invoices from October are still open?');
