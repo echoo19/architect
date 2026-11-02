@@ -97,7 +97,8 @@ const RUNTIMES: Record<string, string> = {
 export const runtimeName = (runtime: string | undefined) =>
   runtime === undefined ? undefined : (RUNTIMES[runtime] ?? runtime);
 
-export const shortHash = (hash: string) => hash.replace(/^sha256:/, '').slice(0, 7);
+/** A hash's first seven hex digits, written sha256:<hex> or sha256-<hex> (a harness folder's). */
+export const shortHash = (hash: string) => hash.replace(/^sha256[:-]/, '').slice(0, 7);
 
 /** How a version was made, in the Method column's word. */
 export const methodOf = (version: GraduateVersion) =>
