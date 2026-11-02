@@ -23,6 +23,16 @@ node --import tsx qa/driver.ts --world lab       --port 4803 --out C:\tmp\qa-lab
 
 It prints its address when ready. `--out` defaults to a new temp folder; screenshots go to `<out>/shots` and every act and its result to `<out>/actions.log`.
 
+## The packaged app
+
+`--exe` runs a packaged build instead of the built one, with the same worlds and stand-ins:
+
+```powershell
+node --import tsx qa/driver.ts --world first-run --port 4801 --exe release\win-unpacked\Architect.exe
+```
+
+All three worlds run on it. Its hidden window gives Playwright no frame to capture, so `/shot` has the window capture itself; it paints only when captured, so the driver captures twice and keeps the second.
+
 ## API
 
 ```bash
@@ -59,4 +69,4 @@ Do not report these fixed replies as product bugs.
 
 **personal**: set up, personal edition, on the recorded returns-desk run (`examples/gear-returns/scripts/record-run.ts`, recorded into `<out>/recorded` on first start). The job, run, rounds, evidence and agent are real records read by the real engine. The agent's chat runs in the real agent host against the fake Ollama: it reads `data/policy.md` once, then gives the same approval sentence to every message. Its home has sessions laid out over the days after its version was accepted, which on the recording's clock is Nov 24, 2026. The job now uses the scripted teacher and the fake student, so training it again behaves as in first-run.
 
-**lab**: Lab edition, entirely IPC stubs from the e2e fixtures (fields, organizations, science desks, experiments, models, teams, a certificate on Academy desk's report, fine-tuning data), with the recorded dry comparison (`<out>/comparison`) as Sweep desk's experiment. Keys show as saved but none exists. Start training on any job plays the service desk's story run (about 25 s: rounds 4 to 7 decided, the final test, then its report). A started or resumed experiment finishes 45 s later, and so does every other running one, with the recorded report. Compute reads Glimmer's stand-in config from a fake Hub; a launch bundle is written to the folder you pick, and nothing is submitted. Any agent's chat gives one fixed stand-in reply to every message. Service desk, Academy desk, Inventory desk and Assay desk have sessions from their version's acceptance to now (`e2e/fixtures-activity.ts`), so their homes show activity; Academy desk also has a hosted retest and a meter record of its final test here, and Glimmer shows as loaded. Assay desk counts as taught here, so its agent opens like the others. Changes you make (promotions, new teams, new experiments) last until the driver quits.
+**lab**: Lab edition, entirely IPC stubs from the e2e fixtures (fields, organizations and Academy desk's tasks, science desks, experiments, models, teams, a certificate on Academy desk's report, fine-tuning data), with the recorded dry comparison (`<out>/comparison`) as Sweep desk's experiment. Keys show as saved but none exists. Start training on any job plays the service desk's story run (about 25 s: rounds 4 to 7 decided, the final test, then its report). A started or resumed experiment finishes 45 s later, and so does every other running one, with the recorded report. Compute reads Glimmer's stand-in config from a fake Hub; a launch bundle is written to the folder you pick, and nothing is submitted. Any agent's chat gives one fixed stand-in reply to every message. Service desk, Academy desk, Inventory desk and Assay desk have sessions from their version's acceptance to now (`e2e/fixtures-activity.ts`), so their homes show activity; Academy desk also has a hosted retest and a meter record of its final test here, and Glimmer shows as loaded. Assay desk counts as taught here, so its agent opens like the others. Changes you make (promotions, new teams, new experiments) last until the driver quits.

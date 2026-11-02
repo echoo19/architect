@@ -1,17 +1,17 @@
-import { appendFile, mkdir } from 'node:fs/promises';
+import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import type { Locator, Page } from '@playwright/test';
-import { goTo, settle } from '../e2e/app';
+import { goTo } from '../e2e/app';
 import { startWorld, WORLDS, type World, type WorldName } from './worlds';
 
 /*
  * Keeps the built app open, hidden, in a world, and lets a tester use it over a small JSON API on
  * 127.0.0.1. See qa/README.md.
  *
- *   node --import tsx qa/driver.ts --world lab --port 4801 --out <dir>
+ *   node --import tsx qa/driver.ts --world lab --port 4801 --out <dir> [--exe <packaged app>]
  */
 
 type Target =
@@ -32,18 +32,24 @@ const SNAPSHOT_CHARS = 15_000;
 /** How long a person waits at most for a step or for the screen to settle. */
 const STEP_MS = 10_000;
 const KEY_DELAY_MS = 60;
+/** Waits poll on a timer: a hidden window runs animation frames about once a second. */
+const POLL_MS = 100;
 
 const { values } = parseArgs({
   options: {
     world: { type: 'string' },
     port: { type: 'string', default: '4801' },
     out: { type: 'string' },
+    exe: { type: 'string' },
   },
 });
 const worldName = values.world as WorldName;
 if (!WORLDS.includes(worldName)) {
   throw new Error(`Name a world with --world: ${WORLDS.join(', ')}.`);
 }
+// The e2e launcher starts the packaged app this names instead of the built one.
+const packaged = values.exe !== undefined;
+if (values.exe !== undefined) process.env.ARCHITECT_E2E_EXECUTABLE = resolve(values.exe);
 const port = Number(values.port);
 const out = resolve(values.out ?? join(tmpdir(), `architect-qa-${worldName}-${Date.now()}`));
 const shots = join(out, 'shots');
@@ -97,7 +103,9 @@ async function resize(on: Page, size: { width: number; height: number }): Promis
     if (!main) throw new Error('No window');
     main.setContentSize(next.width, next.height);
   }, size);
-  await on.waitForFunction((height) => window.innerHeight === height, size.height);
+  await on.waitForFunction((height) => window.innerHeight === height, size.height, {
+    polling: POLL_MS,
+  });
 }
 
 /** Waits until nothing on screen is loading, for STEP_MS at most; says whether it got there. */
@@ -106,7 +114,16 @@ async function settleFor(on: Page): Promise<boolean> {
   const late = new Promise<false>((done) => {
     timer = setTimeout(() => done(false), STEP_MS);
   });
-  const settled = await Promise.race([settle(on).then(() => true), late]).catch(() => false);
+  const settle = async () => {
+    await on.waitForFunction(
+      () => document.querySelectorAll('[aria-busy="true"]').length === 0,
+      undefined,
+      { polling: POLL_MS },
+    );
+    await on.evaluate(() => document.fonts.ready.then(() => undefined));
+    return true;
+  };
+  const settled = await Promise.race([settle(), late]).catch(() => false);
   clearTimeout(timer);
   return settled;
 }
@@ -215,7 +232,21 @@ async function act(request: Act): Promise<object> {
 async function shot(name: unknown): Promise<object> {
   const safe = String(name ?? 'shot').replace(/[^\w.-]+/g, '-') || 'shot';
   const path = join(shots, safe.endsWith('.png') ? safe : `${safe}.png`);
-  await page.screenshot({ path, animations: 'disabled', timeout: 15_000 });
+  if (packaged) {
+    // A packaged app's hidden window gives Playwright no frame to capture, so it captures itself.
+    // It paints only when captured, so the first capture can hold the frame before the last act.
+    const png = await app.evaluate(async ({ BrowserWindow }, waitMs) => {
+      const [main] = BrowserWindow.getAllWindows();
+      if (!main) throw new Error('No window');
+      await main.webContents.capturePage(undefined, { stayHidden: true });
+      await new Promise((done) => setTimeout(done, waitMs));
+      const image = await main.webContents.capturePage(undefined, { stayHidden: true });
+      return image.toPNG().toString('base64');
+    }, POLL_MS);
+    await writeFile(path, Buffer.from(png, 'base64'));
+  } else {
+    await page.screenshot({ path, animations: 'disabled', timeout: 15_000 });
+  }
   return { ok: true, path, route: route() };
 }
 
@@ -295,6 +326,7 @@ server.listen(port, '127.0.0.1', () => {
   process.stdout.write(
     [
       `Architect is open in the ${worldName} world, hidden, at http://127.0.0.1:${port}`,
+      `App: ${process.env.ARCHITECT_E2E_EXECUTABLE ?? 'the built one in out/'}`,
       `Output: ${out}`,
       ...world.notes,
       '',
