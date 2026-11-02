@@ -154,7 +154,7 @@ export function HarnessDrawer({ lt }: { lt: number }) {
                     const shown = outQuart(span(lt, HARNESS_AT.lines + index * 0.14, 0.4));
                     // Rolled back, the added lines go and the removed ones stand again.
                     const height = line.kind === 'added' ? mix(1, 0, back) : 1;
-                    const tint = line.kind === 'context' ? 0 : 1 - back;
+                    const tint = 1 - back;
                     return (
                       <div
                         key={index}

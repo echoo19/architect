@@ -1,21 +1,21 @@
 import type { ReactNode } from 'react';
-import type { Framing, Measured } from '../lab/film';
+import type { Measured } from '../lab/film';
 import { ROW, WINDOW } from '../lab/shell';
 import { clamp, inOutCubic, mix, outQuart, smoothMap, span } from '../lab/time';
 import { placeSidebar, RIM, Screen, type ScreenView } from './screen';
 import { T } from './timeline';
-import { HOOK_PHASES, TrainPage } from './train';
-import { trainScore, walkView } from './walk';
-import { Words, wordsShown } from './words';
+import { HOOK_PHASES, scoreAt, TrainPage } from './train';
+import { LAB_SIDE, walkView } from './walk';
+import { riseIn, Words, wordsShown } from './words';
 
 /**
- * The film's opening, in depth. The founder's last frame recedes into a window in the middle of
- * the frame, and on the score's first drop the training screen pushes up into that same window;
- * the camera goes onto its score as it climbs past the target and holds it through "Architect
- * builds it", then makes one move across to the requests that asked for Architect. Those build as
- * one list of titles, each on its words, the list staying centered as it grows, and the camera
- * moves on to the Lab's window beside them, which the walkthrough takes over from exactly where
- * this leaves it.
+ * The film's opening, in depth. The founder's last frame recedes into a window, and on the score's
+ * first drop the training screen pushes up into that same window, a plain line above it saying
+ * what its score is as it climbs past the target; the camera drifts in through "Architect builds
+ * it", then makes one move across to the requests that asked for Architect. Those build as one
+ * list of titles, each on its words, the list staying centered as it grows, and the camera moves
+ * on to the Lab's window beside them, where the walkthrough takes over from exactly where this
+ * leaves it.
  *
  * A point (x, y, z) is seen by a camera at (cx, cy, cz) looking down -z, at P pixels from the
  * plane it sees at full size: scale k = P / (cz - z), so nothing here is ever blurred to fake depth.
@@ -39,25 +39,15 @@ const fromScreen = (sx: number, sy: number, z: number): Point => ({
 });
 const seen = (p: Point): Point => ({ x: p.x, y: p.y, z: p.z + P });
 
-/** Where the founder's window and the training screen sit: the middle of the frame, large. */
-const SLOT = { cx: FRAME.width / 2, cy: FRAME.height / 2, w: 1500 } as const;
+/** Where the founder's window and the training screen sit: large, under the line that says what its score means. */
+const SLOT = { cx: FRAME.width / 2, cy: 620, w: 1400 } as const;
+
+/** The score's line, on the ground above the window. */
+const SCORE_LINE = { w: 1800, h: 120, at: fromScreen(FRAME.width / 2, 130, 0) } as const;
 
 /** The training screen, in the slot, at its own scale in the world. */
 const TRAIN = fromScreen(SLOT.cx, SLOT.cy, 0);
 const TRAIN_BASE = SLOT.w / WINDOW.width;
-
-/** A point of the training screen's window, in the world. */
-const onTrain = (x: number, y: number): Point => ({
-  x: TRAIN.x + (x - WINDOW.width / 2) * TRAIN_BASE,
-  y: TRAIN.y + (y - WINDOW.height / 2) * TRAIN_BASE,
-  z: TRAIN.z,
-});
-
-/** Where the camera sees a framing of the training screen's window. */
-function onto(framing: Framing): Point {
-  const at = onTrain(framing.cx, framing.cy);
-  return { x: at.x, y: at.y, z: TRAIN.z + (P * TRAIN_BASE) / framing.s };
-}
 
 /** The requests' list, on the same ground well right of the training screen. */
 const STATION: Point = { x: TRAIN.x + 2600, y: TRAIN.y, z: TRAIN.z };
@@ -71,8 +61,8 @@ const LAB: Point = {
   z: STATION.z,
 };
 
-/** The Lab's window at the frame's right, most of the frame wide, its name on the ground at its left. */
-const WIDE = { s: 1.04, cx: 1274, name: 384 } as const;
+/** The Lab's window at the frame's right as the walkthrough holds it, its name on the ground at its left. */
+const WIDE = { ...LAB_SIDE, name: 384 } as const;
 const LAB_K = WIDE.s / LAB_SCALE;
 const LAB_WIDE: Point = {
   x: LAB.x - (WIDE.cx - FRAME.width / 2) / LAB_K,
@@ -93,16 +83,13 @@ interface Move {
 }
 
 const MOVES: readonly Move[] = [
-  // Still while the founder's frame recedes, then a slow drift in.
+  // Still while the founder's frame recedes, then a slow drift in while the score climbs and lands.
   {
     at: 0,
-    dur: T.trainPush,
-    to: () => ({ x: TRAIN.x, y: TRAIN.y, z: P - 60 }),
+    dur: T.asked - 1.2,
+    to: () => ({ x: 0, y: 0, z: P - 60 }),
     ease: (p) => outQuart(p * 0.8) / outQuart(0.8),
   },
-  // Onto the training screen, from its status line to its rounds, held while the score climbs
-  // and lands.
-  { at: T.trainPush, dur: 0.8, to: (m) => onto(trainScore(m)), ease: inOutCubic },
   // One move from the score to the requests: back and across, the list rising as it arrives.
   { at: T.asked - 1.2, dur: 1.5, to: () => seen(STATION), ease: inOutCubic },
   // A slow drift in while the list builds.
@@ -112,10 +99,8 @@ const MOVES: readonly Move[] = [
     to: () => ({ ...seen(STATION), z: STATION.z + P - 70 }),
     ease: (p) => p,
   },
-  // To the Lab's window beside its name, then onto the window, to rest exactly where the
-  // walkthrough starts.
+  // To the Lab's window beside its name, where the walkthrough takes it over.
   { at: T.toLab - 0.15, dur: T.labWide - T.toLab + 0.15, to: () => LAB_WIDE, ease: outQuart },
-  { at: T.how - 2.4, dur: 2.4, to: () => seen(LAB), ease: inOutCubic },
 ];
 
 function cameraAt(measured: Measured, t: number): Point {
@@ -309,6 +294,27 @@ function Train({ t, camera }: { t: number; camera: Point }) {
 
 const TITLE = 'font-display font-semibold tracking-[-0.035em]';
 
+/**
+ * What the score is, in a plain line over the training screen: the share of held-out checks it
+ * gets right, tasks it never trained on and Spark never sees, counting as the screen's does.
+ */
+function ScoreLine({ t, camera }: { t: number; camera: Point }) {
+  if (t < T.trainRises + 0.5 || t > T.asked + 0.4) return null;
+  const score = Math.round(scoreAt(HOOK_CLOCK(t)));
+  return (
+    <Placed camera={camera} at={SCORE_LINE.at} w={SCORE_LINE.w} h={SCORE_LINE.h}>
+      <div className="flex h-full items-center justify-center">
+        <span
+          className={`${TITLE} whitespace-nowrap text-[76px] leading-none tabular-nums`}
+          style={riseIn(t, T.trainRises + 0.7)}
+        >
+          Right on {score}% of tasks it never trained on.
+        </span>
+      </div>
+    </Placed>
+  );
+}
+
 /** The three requests, in the narration's own words, each rising on them, the last on two lines. */
 const REQUESTS = [
   ['Own your intelligence.'],
@@ -386,6 +392,7 @@ function LabName({ t, camera }: { t: number; camera: Point }) {
           t={t}
           text="Architect Lab"
           at={T.labWide - 0.2}
+          until={T.how - 0.45}
           className={`${TITLE} text-[96px] leading-none`}
         />
       </div>
@@ -405,6 +412,7 @@ export function SpaceScene({ t, measured }: { t: number; measured: Measured }) {
       <LabName t={t} camera={camera} />
       <Requests t={t} camera={camera} />
       <Train t={t} camera={camera} />
+      <ScoreLine t={t} camera={camera} />
       <Founder t={t} camera={camera} />
     </div>
   );

@@ -23,8 +23,8 @@ export const CORVID = { taught: 27, alone: 4, of: 32, name: 'Corvid Hill Discove
 /**
  * The harness changes of the academy field's first run (tutor-1, its lineage and harness folder):
  * round 1's files with their lines added and removed, v0001 to v0002; round 2's change to the
- * assign skill, v0002 to v0003, a few of its lines, with what Spark predicted and what was
- * measured before it was rolled back.
+ * assign skill, v0002 to v0003, its first line as it was and as Spark wrote it, with what Spark
+ * predicted and what was measured before it was rolled back.
  */
 export const HARNESS = {
   first: [
@@ -46,18 +46,6 @@ export const HARNESS = {
         kind: 'added',
         line: 5,
         text: 'Do NOT read policy.md for numbers. Tools read policy automatically.',
-      },
-      { kind: 'context', line: 6, text: 'Assign:' },
-      {
-        kind: 'removed',
-        line: 7,
-        text: '1. Resolve name to student_id. Call practice_pick with student_id, topic, low, high, want_n.',
-      },
-      { kind: 'added', line: 7, text: '1. grep students.csv for exact name -> student_id.' },
-      {
-        kind: 'added',
-        line: 8,
-        text: '2. Call practice_pick with ONLY student_id, topic. Use picks, next_ids, tutor_id.',
       },
     ],
   },
@@ -197,8 +185,8 @@ export const CERTIFICATE: Certificate = {
 
 /** The certificate's check where the specialist never trained, as the film sets it large. */
 export const CERTIFICATE_CHECK = {
-  name: 'Harborview Prep',
-  answered: '53 of 54',
+  name: 'An academy it never trained on',
+  answered: 'Answered 53 of 54',
   wrong: 'none wrong',
 };
 
