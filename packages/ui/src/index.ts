@@ -106,6 +106,18 @@ export {
   type IntervalTone,
 } from './components/interval-plot';
 export {
+  LineChart,
+  spacedTicks,
+  stepPath,
+  type ChartMark,
+  type ChartPoint,
+  type ChartTick,
+  type ChartTone,
+  type LegendItem,
+  type LineChartProps,
+  type LineSeries,
+} from './components/line-chart';
+export {
   RiskCoveragePlot,
   riskTop,
   type RiskCoveragePlotProps,

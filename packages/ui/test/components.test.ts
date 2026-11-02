@@ -12,6 +12,7 @@ import {
   evidenceLabel,
   Field,
   IntervalPlot,
+  LineChart,
   Meter,
   PageTabs,
   ProgressStepper,
@@ -22,8 +23,10 @@ import {
   riskTop,
   SettingsRow,
   Shortcut,
+  spacedTicks,
   shortcutLabel,
   Spinner,
+  stepPath,
   StepList,
   StepListItem,
   Switch,
@@ -451,5 +454,72 @@ describe('DataTable', () => {
     expect(rows[0]).toContain('bg-selected');
     expect(rows[0]).not.toContain('hover:bg-hover');
     expect(rows[1]).toContain('hover:bg-hover');
+  });
+});
+
+describe('LineChart', () => {
+  const ticks = Array.from({ length: 13 }, (_, value) => ({ value, label: String(value) }));
+
+  it('draws a main series in steps that hold each value until the next point', () => {
+    expect(
+      stepPath([
+        { x: 0, y: 10 },
+        { x: 5, y: 4 },
+        { x: 9, y: 4 },
+      ]),
+    ).toBe('M0,10H5V4H9V4');
+  });
+
+  it('labels the x axis only as often as the labels fit, always the last', () => {
+    expect(spacedTicks(ticks, 60).map((tick) => tick.value)).toHaveLength(13);
+    expect(spacedTicks(ticks, 10).map((tick) => tick.value)).toEqual([0, 3, 6, 9, 12]);
+  });
+
+  it('reads out as its label, with its key and its reference level', () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, {
+        label: 'Score by round: 40% at the start, 65% after round 1.',
+        xMax: 12,
+        xTicks: ticks,
+        yRange: [30, 100],
+        yTicks: [40, 60, 80, 100].map((value) => ({ value, label: `${value}%` })),
+        series: [
+          {
+            id: 'checks',
+            tone: 'student',
+            main: true,
+            points: [
+              { x: 0, y: 40 },
+              { x: 1, y: 65 },
+            ],
+          },
+        ],
+        marks: [{ key: 'r2', x: 2, y: 60, from: 65, kind: 'ring', tone: 'fg', title: 'Round 2' }],
+        reference: { y: 90, label: 'Target 90%' },
+        head: { x: 1, y: 65 },
+        live: { x: 2, title: 'Round 2 in progress' },
+        legend: [{ label: 'Held-out checks', tone: 'student', kind: 'main' }],
+      }),
+    );
+    expect(html).toContain('role="img"');
+    expect(html).toContain('aria-label="Score by round: 40% at the start, 65% after round 1."');
+    expect(html).toContain('Target 90%');
+    expect(html).toContain('Held-out checks');
+    expect(html).toContain('<title>Round 2 in progress</title>');
+  });
+
+  it('says so in the plot when there is nothing to draw', () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, {
+        label: 'Nothing measured yet.',
+        xMax: 4,
+        xTicks: ticks.slice(0, 5),
+        yRange: [0, 100],
+        yTicks: [],
+        series: [],
+        empty: 'Not scored yet',
+      }),
+    );
+    expect(html).toContain('Not scored yet');
   });
 });
