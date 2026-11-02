@@ -205,7 +205,8 @@ test('designs an experiment on a field of the library and shows its estimate bef
   await expect(page.getByRole('button', { name: 'Preregister' })).toBeEnabled();
 
   const arms = page.getByRole('toolbar', { name: 'Arms' });
-  await expect(arms.getByRole('button')).toHaveCount(10);
+  await expect(arms.getByRole('button')).toHaveCount(11);
+  await expect(arms.getByRole('button', { name: 'Propose, probe, compose' })).toBeVisible();
   for (const name of ['One-shot LoRA adapter', 'Failure-targeted LoRA adapter']) {
     await expect(arms.getByRole('button', { name })).toBeDisabled();
   }
