@@ -459,7 +459,9 @@ test("offers the test on this computer in the agent's own Results", async () => 
   await expect(dialog.getByText('Passed: 90% (54 of 60)')).toBeVisible();
   await expect(dialog.getByText('On a hosted copy of the model')).toBeVisible();
   await dialog.getByRole('tab', { name: 'Results' }).click();
-  await expect(dialog.getByText('Typical answer, on a hosted copy of the model')).toBeVisible();
+  await expect(
+    dialog.getByText('Per task in the final test, on a hosted copy of the model'),
+  ).toBeVisible();
   const offer = dialog.getByRole('region', { name: 'Test on this computer' });
   await expect(offer).toContainText('uses the graphics card');
   await expect(offer.getByRole('button', { name: 'Test on this computer' })).toBeVisible();

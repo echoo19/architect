@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   CodedError,
+  reportScores,
   type GraduateSummary,
   type GraduateVersion,
   type Installation,
@@ -27,6 +28,7 @@ import {
   graduatesApi,
   refreshAgent,
   useInstallation,
+  useVersionReport,
   useVersions,
 } from '../../api/graduates';
 import { queryKeys } from '../../api/hooks';
@@ -73,6 +75,9 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const result = met
     ? `Passed: ${formatScore(score)}`
     : `Needs ${Math.round(target * 100)}%: ${formatScore(score)}`;
+  // A field's agent leads with the organizations it never saw, as its home and report do.
+  const report = useVersionReport(agent);
+  const unseen = report.data ? reportScores(report.data).unseen : null;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
   // A test taken on a hosted copy of its model says so: the agent itself never goes online.
@@ -102,14 +107,20 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
       </SettingsRow>
       <SettingsRow
         label="Final test"
-        meta={testedWhere}
+        meta={
+          unseen
+            ? [`Taught on, ${result.charAt(0).toLowerCase()}${result.slice(1)}`, testedWhere]
+                .filter(Boolean)
+                .join('. ')
+            : testedWhere
+        }
         info={
           hosted
             ? 'It took its final test on a hosted copy of the model, not on this computer.'
             : undefined
         }
       >
-        <SettingsValue>{result}</SettingsValue>
+        <SettingsValue>{unseen ? `Never seen: ${formatScore(unseen)}` : result}</SettingsValue>
       </SettingsRow>
       <AgentModelRow agent={agent} active={active} />
       <InstallRow agent={agent} active={active} />
