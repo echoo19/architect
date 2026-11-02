@@ -176,12 +176,15 @@ function isOlder(candidate: Run, current: Run): boolean {
 const ROUND_PROGRESS: Record<Round['status'], number> = {
   attempting: 0,
   diagnosing: 1,
-  clarifying: 2,
-  teaching: 2,
-  training: 3,
-  evaluating: 4,
-  decided: 5,
-  failed: 5,
+  // A propose-probe-compose round measures its probes and composes before anything below.
+  probing: 2,
+  composing: 3,
+  clarifying: 4,
+  teaching: 4,
+  training: 5,
+  evaluating: 6,
+  decided: 7,
+  failed: 7,
 };
 
 /** A round only moves forward: a late copy from an earlier step never replaces a later one. */
@@ -200,15 +203,23 @@ export function currentRound(live: LiveRun): Round | null {
 
 /** The newest practice task the student got wrong in a round. */
 export function latestFailure(live: LiveRun, round: number): RecentAttempt | null {
-  return (
-    live.attempts.find(
-      (attempt) => attempt.split === 'train' && attempt.round === round && !attempt.check.pass,
-    ) ?? null
-  );
+  return roundAttempts(live, round).find((attempt) => !attempt.check.pass) ?? null;
 }
 
+/**
+ * The practice attempts of a round's own version, newest first. A propose-probe-compose round's
+ * probes take the same practice tasks (decision 108), and their attempts are each probe's.
+ */
 export function roundAttempts(live: LiveRun, round: number): RecentAttempt[] {
-  return live.attempts.filter((attempt) => attempt.split === 'train' && attempt.round === round);
+  const probes = new Set(
+    (live.rounds.find((candidate) => candidate.index === round)?.probes ?? []).flatMap((probe) =>
+      probe.version === undefined ? [] : [probe.version],
+    ),
+  );
+  return live.attempts.filter(
+    (attempt) =>
+      attempt.split === 'train' && attempt.round === round && !probes.has(attempt.harnessVersion),
+  );
 }
 
 /** Median answer time of the most recent attempts, or null before the first one. */

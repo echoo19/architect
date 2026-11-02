@@ -546,4 +546,12 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX chats_by_team ON chats (team_id, updated_at);
     `,
   },
+  {
+    version: 25,
+    name: 'probes',
+    sql: `
+      -- A propose-probe-compose round's alternatives, as proposed and then measured (decision 108).
+      ALTER TABLE rounds ADD COLUMN probes TEXT;
+    `,
+  },
 ];

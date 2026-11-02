@@ -55,6 +55,8 @@ function statusText(status: Round['status'], w: Words): string {
     teaching: 'Checking corrections of the failures',
     training: `${w.TrainingWeights} on the corrections`,
     clarifying: 'Waiting for your answer',
+    probing: `Scoring each probe on the ${w.checks}`,
+    composing: 'Composing one change from the probes',
     evaluating: `Scoring the change on the ${w.checks}`,
     decided: 'Decided',
     failed: 'Failed',

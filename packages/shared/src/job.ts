@@ -149,6 +149,28 @@ export const CertifySettingsSchema = z.object({
 });
 export type CertifySettings = z.infer<typeof CertifySettingsSchema>;
 
+/**
+ * How a round makes its change (decision 108). `one_change`: the mentor proposes one change and
+ * the runner measures it. `propose_probe_compose`: the mentor proposes several alternatives for
+ * the same failures, the runner measures each on dev and on the round's practice tasks, and the
+ * mentor composes one change from what they did, which is measured and kept or reverted as any
+ * change is.
+ */
+export const RoundModeSchema = z.enum(['one_change', 'propose_probe_compose']);
+export type RoundMode = z.infer<typeof RoundModeSchema>;
+
+/** The alternatives a propose-probe-compose round measures when the job doesn't say. */
+export const DEFAULT_PROBES = 3;
+
+/** The alternatives each round of a job measures before composing, or null for one change a round. */
+export function probesPerRound(job: {
+  evaluation: Pick<EvaluationConfig, 'roundMode' | 'probes'>;
+}): number | null {
+  return job.evaluation.roundMode === 'propose_probe_compose'
+    ? (job.evaluation.probes ?? DEFAULT_PROBES)
+    : null;
+}
+
 export const EvaluationConfigSchema = z.object({
   /** Train tasks the student attempts each round before the mentor diagnoses. */
   trainBatch: z.number().int().min(1),
@@ -166,6 +188,13 @@ export const EvaluationConfigSchema = z.object({
    * reply or change set was rejected before dev saw it don't count.
    */
   patience: z.number().int().min(1).default(3),
+  /**
+   * How a round makes its change (decision 108): one change from the mentor, or several it
+   * proposes, each measured on dev, and one it composes from what they did. Absent: one change.
+   */
+  roundMode: RoundModeSchema.optional(),
+  /** The alternatives a propose-probe-compose round measures, 2 to 4; `DEFAULT_PROBES` when absent. */
+  probes: z.number().int().min(2).max(4).optional(),
   /**
    * The locked test's decoding seeds, declared before any run: every test task is attempted once
    * under each, and each repeat is recorded apart. Repeats are never counted as more scenarios.

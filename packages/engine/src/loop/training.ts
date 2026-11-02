@@ -17,7 +17,13 @@ import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, LLAMA_CPP, llamaCppConfig, type AttemptConfig } from './configuration';
 import { must } from './errors';
 import { attemptsLeft, evaluate, type EvaluationSpec } from './evaluation';
-import { measurement, recordExperiment, settleExperimentCompute } from './experiments';
+import {
+  devAttempts,
+  measurement,
+  recorded,
+  recordExperiment,
+  settleExperimentCompute,
+} from './experiments';
 import { readJsonFile } from './files';
 import {
   confirmKeep,
@@ -32,7 +38,7 @@ import {
 import { percentile } from '../report/report-card';
 import { menuOf, nothingToTry } from './menu';
 import { TRAINING_ENDED, trainingEnd, type RunState } from './run-state';
-import { deriveSeed, devSeeds, roundSeed, sampleTrainBatch } from './seeds';
+import { deriveSeed, devSeeds, probeSeeds, roundSeed, sampleTrainBatch } from './seeds';
 import { startingHarness } from './setup';
 
 function comparePerType(before: TypeScore[], after: TypeScore[]) {
@@ -92,22 +98,24 @@ async function first(state: RunState): Promise<Harness> {
 
 /**
  * One version on every dev task, under the seeds of the baseline (round null) or a round: the
- * job's repeats, or more when a round measures again. The incumbent's configuration unless one
- * is named: the job's student, or llama.cpp with the run's kept adapter.
+ * job's repeats, or more when a round measures again, unless other seeds are named, as a round's
+ * probes are measured under seeds of their own (decision 108). The incumbent's configuration
+ * unless one is named: the job's student, or llama.cpp with the run's kept adapter.
  */
-async function devEvaluation(
+export async function devEvaluation(
   state: RunState,
   version: number,
   round: number | null,
   runs = state.job.evaluation.devRepeats,
   config: AttemptConfig = state.incumbentConfig(),
+  seeds: readonly number[] = devSeeds(state.record.seeds.devPanel, round, runs),
 ): Promise<EvaluationSpec> {
   return {
     tasks: await state.devTasks(),
     split: 'dev',
     round,
     version,
-    seeds: devSeeds(state.record.seeds.devPanel, round, runs),
+    seeds,
     target: state.targetOf(config),
     purpose: 'training',
     concurrency: state.ctx.concurrency,
@@ -465,6 +473,7 @@ async function decide(
     },
     decision: decision.keep ? 'kept' : 'reverted',
     decisionReason: decision.reason,
+    ...(round.probes === undefined ? {} : { probes: round.probes }),
     versionFrom: stored.baseVersion,
     versionTo: must(round.candidateVersion, 'The candidate version'),
     mentor: { model: reply.model, costUsd: round.costUsd, ...authorTokens(state, round.index) },
@@ -527,53 +536,6 @@ async function decide(
   state.log('info', `Round ${round.index} ${verdict.disposition}: ${entry.decisionReason}.`);
 }
 
-/** A configuration's dev attempts in a round under some of its seeds. */
-function devAttempts(
-  state: RunState,
-  version: number,
-  round: number | null,
-  seeds: readonly number[],
-  config: AttemptConfig,
-) {
-  return state
-    .attempts({
-      split: 'dev',
-      version,
-      round,
-      target: state.targetOf(config),
-      config: configurationKey(config),
-    })
-    .filter((attempt) => seeds.includes(attempt.seed));
-}
-
-/** One configuration's measurement, as an experiment records it. */
-function recorded(
-  state: RunState,
-  label: string,
-  version: number,
-  round: number | null,
-  seeds: readonly number[],
-  config: AttemptConfig,
-  provenance: string,
-): RecordedMeasurement {
-  const result = state.devResult(version, round, seeds, config);
-  const latencies = devAttempts(state, version, round, seeds, config).map(
-    (attempt) => attempt.latencyMs,
-  );
-  return measurement(
-    label,
-    {
-      harnessVersion: version,
-      actor: config.actor,
-      backend: config.backend === 'job' ? state.studentBackend() : config.backend,
-      adapter: config.adapter,
-    },
-    { ...result, latencies },
-    seeds,
-    provenance,
-  );
-}
-
 /**
  * Both versions on dev under `runs` of the round's seeds, or null when the evaluation stopped
  * short. Runs already measured are reused, so a second measurement only adds the new seeds.
@@ -590,10 +552,12 @@ async function measureRound(
   for (const version of [versions.base, versions.candidate]) {
     specs.push(await devEvaluation(state, version, index, runs, config));
   }
-  // One count for the round's whole measurement, so the score doesn't start over halfway.
+  // One count for the round's whole measurement, so the score doesn't start over halfway. A
+  // change composed from probes ends the count its probe step began (decision 108).
+  const carried = runs === state.job.evaluation.devRepeats ? probedAttempts(state, index) : 0;
   const left = specs.map((spec) => attemptsLeft(state, spec));
-  const total = left.reduce((sum, count) => sum + count, 0);
-  let before = 0;
+  const total = carried + left.reduce((sum, count) => sum + count, 0);
+  let before = carried;
   for (const [i, spec] of specs.entries()) {
     if (!(await evaluate(state, { ...spec, of: { before, total } }))) return null;
     before += left[i]!;
@@ -604,6 +568,26 @@ async function measureRound(
     before: state.devResult(versions.base, index, seeds, config),
     after: state.devResult(versions.candidate, index, seeds, config),
   };
+}
+
+/**
+ * The dev attempts a round's probe step made (decision 108): the incumbent's under the round's
+ * seeds and each probe's under the probe seeds. None for a round that makes one change.
+ */
+function probedAttempts(state: RunState, index: number): number {
+  const { round, baseVersion } = state.round(index);
+  const probes = (round.probes ?? []).flatMap((probe) =>
+    probe.version === undefined ? [] : [probe.version],
+  );
+  if (probes.length === 0) return 0;
+  const { devPanel } = state.record.seeds;
+  const runs = state.job.evaluation.devRepeats;
+  const config = state.incumbentConfig();
+  const own = probeSeeds(devPanel, index, runs);
+  return probes.reduce(
+    (sum, version) => sum + devAttempts(state, version, index, own, config).length,
+    devAttempts(state, baseVersion, index, devSeeds(devPanel, index, runs), config).length,
+  );
 }
 
 /**

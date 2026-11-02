@@ -50,6 +50,15 @@ export function devSeeds(panel: number, round: number | null, repeats: number): 
   );
 }
 
+/**
+ * The sampler seeds a round's probes are measured under (decision 108): drawn from the round, one
+ * per repeat, apart from the seeds its decision uses, so the change composed from the probes is
+ * decided on draws no probe was scored on.
+ */
+export function probeSeeds(panel: number, round: number, repeats: number): number[] {
+  return devSeeds(deriveSeed(panel, 'probes'), round, repeats);
+}
+
 /** mulberry32: small and fast, and plenty for shuffling task lists. */
 export function seededRandom(seed: number): () => number {
   let state = seed >>> 0;

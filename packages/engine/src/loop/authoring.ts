@@ -12,6 +12,7 @@ import {
   type MentorAdapter,
   type MentorCompletionRequest,
   type MentorView,
+  type Probe,
   type Round,
 } from '@architect/shared';
 import {
@@ -21,8 +22,13 @@ import {
   type PayloadPart,
 } from '../mentor/gate';
 import { improvementLessons } from '../improve/improvement';
-import { diagnoseRequest, oneShotRequest, type PromptSettings } from '../mentor/prompts';
-import { MentorReplyError, parseHypothesis } from '../mentor/reply';
+import {
+  diagnoseRequest,
+  oneShotRequest,
+  proposeRequest,
+  type PromptSettings,
+} from '../mentor/prompts';
+import { MentorReplyError, parseHypothesis, parseProposals } from '../mentor/reply';
 import { studentAsMentor } from '../mentor/student-author';
 import {
   buildMentorView,
@@ -44,7 +50,15 @@ import { must } from './errors';
 import { readJsonFile, writeJsonFile } from './files';
 import { interventionRecord, resolveFindings } from './intervene';
 import { answerTableProblem, orgFactsProblem } from './lookup';
-import { changeSetRefusal, impliedKind, interventionRefusal, menuOf, roundMenu } from './menu';
+import {
+  changeSetRefusal,
+  impliedKind,
+  interventionRefusal,
+  menuOf,
+  roundMenu,
+  type Menu,
+} from './menu';
+import { probeEvidence } from './probes';
 import type { RunState } from './run-state';
 import { roundSeed } from './seeds';
 import { stoppedTeaching } from './teach';
@@ -86,6 +100,20 @@ function rejectedRounds(state: RunState): RejectedRound[] {
     }));
 }
 
+const COMPOSED_HARNESS = 'A change composed from probes changes the harness, as its probes did.';
+
+/**
+ * The menu of a round's author. A change composed from probes (decision 108) is made from harness
+ * changes measured as such, so it is a harness change too: weights and a question are off it.
+ */
+function composedMenu(menu: Menu, stored: StoredRound): Menu {
+  if (stored.round.probes === undefined) return menu;
+  const refused: Menu['refused'] = { ...menu.refused };
+  for (const type of ['weights', 'clarification'] as const) refused[type] ??= COMPOSED_HARNESS;
+  const allowed = menu.allowed.filter((type) => HARNESS_INTERVENTIONS.includes(type));
+  return { ...menu, allowed, refused };
+}
+
 /** The mentor writes the hypotheses, except in self-reflection, where the student does. */
 async function authorFor(state: RunState, index: number): Promise<MentorAdapter> {
   if (state.run.method !== 'self_reflection') return state.resources.mentor();
@@ -118,7 +146,12 @@ interface AuthorRequest {
   parts: PayloadPart[];
 }
 
-async function roundRequest(state: RunState, stored: StoredRound): Promise<AuthorRequest> {
+/**
+ * What the round's author sees: its train attempts, the harness, the dev score and the lineage,
+ * and with the menu, its counterexamples and mentoring records. When the round composes from its
+ * probes (decision 108), what each probe did as well.
+ */
+async function roundView(state: RunState, stored: StoredRound): Promise<MentorView> {
   const index = stored.round.index;
   const attempts = new Map(
     state
@@ -135,7 +168,7 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
     if (!attempt.check.pass) failed.push({ attemptId: attempt.id, task, trace });
   }
   const counterexamples = await roundCounterexamples(state, stored, failed);
-  const view = buildMentorView({
+  return buildMentorView({
     job: state.job,
     dataFiles: await state.resources.dataFiles(),
     harnessFiles: await mentorFiles(state, stored.baseVersion),
@@ -147,12 +180,30 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
     rejected: rejectedRounds(state),
     ...(state.run.method === 'architect'
       ? {
-          mentoring: await mentoringView(state),
+          mentoring: await mentoringView(state, stored),
           counterexamples: counterexampleView(state, counterexamples),
         }
       : {}),
+    ...(stored.round.probes === undefined ? {} : { probes: await probeEvidence(state, stored) }),
   });
+}
+
+async function roundRequest(state: RunState, stored: StoredRound): Promise<AuthorRequest> {
+  const view = await roundView(state, stored);
   return { request: diagnoseRequest(view, promptSettings(state)), parts: mentorViewParts(view) };
+}
+
+/** A propose-probe-compose round's first request: `count` alternatives for the same failures. */
+async function proposalsRequest(
+  state: RunState,
+  index: number,
+  count: number,
+): Promise<AuthorRequest> {
+  const view = await roundView(state, state.round(index));
+  return {
+    request: proposeRequest(view, promptSettings(state), count),
+    parts: mentorViewParts(view),
+  };
 }
 
 /**
@@ -160,9 +211,12 @@ async function roundRequest(state: RunState, stored: StoredRound): Promise<Autho
  * failure vocabulary with each category's verified lessons in this run and whether its teaching
  * stopped, and the person's answers to earlier questions. All of it from train and the person.
  */
-async function mentoringView(state: RunState): Promise<NonNullable<MentorView['mentoring']>> {
+async function mentoringView(
+  state: RunState,
+  stored: StoredRound,
+): Promise<NonNullable<MentorView['mentoring']>> {
   const { store, runId } = state.ctx;
-  const menu = await menuOf(state);
+  const menu = composedMenu(await menuOf(state), stored);
   const stopped = stoppedTeaching(state);
   const verified = store.lessons.list({ runId, status: 'verified' });
   return {
@@ -273,6 +327,7 @@ async function callAuthor(
   index: number,
   { request, parts }: AuthorRequest,
   fix: number,
+  stage?: 'propose',
 ): Promise<AuthorReply | null> {
   const author = await authorFor(state, index);
   const gate = await state.resources.gate();
@@ -315,12 +370,11 @@ async function callAuthor(
     model: completion.model,
     latencyMs: completion.latencyMs,
     fix,
+    ...(stage === undefined ? {} : { stage }),
   };
   charge(state, index, { model: completion.model, usage: completion.usage, costUsd }, reply);
-  await writeJsonFile(state.ctx.paths.mentorFile(state.run.jobId, state.ctx.runId, index, fix), {
-    request,
-    reply,
-  });
+  const file = state.ctx.paths.mentorFile(state.run.jobId, state.ctx.runId, index, fix, stage);
+  await writeJsonFile(file, { request, reply });
   return reply;
 }
 
@@ -339,8 +393,8 @@ async function requestFix(
   index: number,
   refused: AuthorReply,
   reason: string,
+  original: AuthorRequest,
 ): Promise<boolean> {
-  const original = await buildRequest(state, index);
   const note = [
     `The runner couldn't use that reply, so nothing was applied. ${reason}`,
     'Reply again with the whole JSON object, changing only what these problems need.',
@@ -358,7 +412,8 @@ async function requestFix(
     { label: "the author's refused reply", text: refused.text },
     { label: 'the reason it was refused', text: reason },
   ];
-  return (await callAuthor(state, index, { request, parts }, refused.fix + 1)) !== null;
+  const fix = refused.fix + 1;
+  return (await callAuthor(state, index, { request, parts }, fix, refused.stage)) !== null;
 }
 
 function changedFiles(hypothesis: Hypothesis): string[] {
@@ -468,7 +523,7 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
     : change.named
       ? interventionOf(hypothesis)
       : { ...LEGACY_INTERVENTION, type: impliedKind(change.paths, state.job) };
-  const menu = drafting ? null : await roundMenu(state);
+  const menu = drafting ? null : composedMenu(await roundMenu(state), stored);
   const resolved =
     drafting || hypothesis.findings === undefined
       ? { findings: [], setAside: [] }
@@ -526,14 +581,114 @@ async function adoptHypothesis(state: RunState, stored: StoredRound): Promise<Un
 }
 
 /**
+ * A propose-probe-compose round's proposals as its probes (decision 108). Each is held to the
+ * same checks as any change set: this round's menu, the harness, its tools loading, the helpers'
+ * counterexamples, and no answers or one organization's facts in the harness. One that fails them,
+ * or repeats an earlier one, is refused with the reason and never measured; the others are saved
+ * as versions, and the round goes on to measure them. Returns why the reply can't be used: it
+ * isn't a list of proposals, or not one of them can be measured.
+ */
+async function adoptProposals(
+  state: RunState,
+  stored: StoredRound,
+  count: number,
+): Promise<Unusable | null> {
+  const index = stored.round.index;
+  let proposals: Hypothesis[];
+  try {
+    proposals = parseProposals(
+      must(stored.reply, 'The reply'),
+      await visibleTaskIds(state, index),
+      count,
+    );
+  } catch (error) {
+    if (!(error instanceof MentorReplyError)) throw error;
+    return { reason: error.message, proposal: {} };
+  }
+  const menu = await roundMenu(state);
+  const seen = new Map<string, number>();
+  const probes: Probe[] = [];
+  for (const [position, hypothesis] of proposals.entries()) {
+    const probe: Probe = {
+      index: position + 1,
+      title: hypothesis.title,
+      diagnosis: hypothesis.diagnosis,
+      files: changedFiles(hypothesis),
+      predicted: hypothesis.predicted,
+    };
+    const key = JSON.stringify(hypothesis.edits);
+    const same = seen.get(key);
+    let refusal =
+      same === undefined
+        ? changeSetRefusal(probe.files, state.job, menu)
+        : `The same change set as probe ${same}.`;
+    if (refusal === null) {
+      const candidate = await candidateOf(state, stored, hypothesis);
+      if (!('reason' in candidate)) {
+        const saved = await state.versions.save(candidate.harness, stored.baseVersion);
+        seen.set(key, probe.index);
+        probes.push({ ...probe, version: saved.meta.version });
+        continue;
+      }
+      refusal = candidate.reason;
+    }
+    probes.push({ ...probe, refused: refusal });
+  }
+  if (probes.every((probe) => probe.version === undefined)) {
+    const reasons = probes.map((probe) => `Proposal ${probe.index}: ${probe.refused ?? ''}`);
+    return { reason: `No proposal could be measured. ${reasons.join(' ')}`, proposal: {} };
+  }
+  state.saveRound({ ...stored, round: { ...stored.round, status: 'probing', probes } });
+  return null;
+}
+
+/**
+ * A propose-probe-compose round's first step (decision 108): the author's alternatives, saved as
+ * probes for the runner to measure. A reply the runner can't use goes back once with the reason,
+ * as any reply does; if the fix can't be used either, the round is rejected.
+ */
+async function propose(state: RunState, index: number, count: number): Promise<void> {
+  const ask = () => proposalsRequest(state, index, count);
+  if (state.round(index).reply === null) {
+    if ((await callAuthor(state, index, await ask(), 0, 'propose')) === null) return;
+  }
+  for (;;) {
+    const stored = state.round(index);
+    const unusable = await adoptProposals(state, stored, count);
+    if (unusable === null) return;
+    const reply = must(stored.reply, 'The reply');
+    if (reply.fix >= MAX_FIXES) {
+      state.rejectRound(index, unusable.reason, unusable.proposal);
+      return;
+    }
+    state.log(
+      'info',
+      `Round ${index}: the runner couldn't use the proposals, so the author gets one fix. ${unusable.reason}`,
+    );
+    if (!(await requestFix(state, index, reply, unusable.reason, await ask()))) return;
+  }
+}
+
+/**
  * The author's step of a round: one hypothesis as a candidate version, or a round that ends
  * without a change. A reply the runner can't use goes back to the author once, with the reason;
  * if the fix can't be used either, the round is rejected. A reply already recorded before a
- * restart is used, never paid for again.
+ * restart is used, never paid for again. A propose-probe-compose round (decision 108) comes here
+ * twice: first for its proposals, then, once they are measured, to compose its one change from
+ * them, which then goes on as any round's change does.
  */
 export async function author(state: RunState, index: number): Promise<void> {
   state.setPhase('diagnosing');
-  if (state.round(index).reply === null && !(await requestHypothesis(state, index))) return;
+  const count = state.probeCount(index);
+  if (count !== null && state.round(index).round.probes === undefined) {
+    await propose(state, index, count);
+    return;
+  }
+  // A composing round holds its proposals' reply until the composed change's reply replaces it.
+  const recorded = state.round(index).reply;
+  if (recorded === null || recorded.stage === 'propose') {
+    if (!(await requestHypothesis(state, index))) return;
+  }
   for (;;) {
     const stored = state.round(index);
     const unusable = await adoptHypothesis(state, stored);
@@ -547,6 +702,10 @@ export async function author(state: RunState, index: number): Promise<void> {
       'info',
       `Round ${index}: the runner couldn't use the reply, so the author gets one fix. ${unusable.reason}`,
     );
-    if (!(await requestFix(state, index, reply, unusable.reason))) return;
+    if (
+      !(await requestFix(state, index, reply, unusable.reason, await buildRequest(state, index)))
+    ) {
+      return;
+    }
   }
 }
