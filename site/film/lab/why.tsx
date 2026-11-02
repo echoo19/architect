@@ -26,13 +26,13 @@ interface Card {
   until: number;
 }
 
-interface Request {
+export interface Request {
   title: string;
   author: string;
   quote: string;
 }
 
-const REQUESTS: readonly Request[] = [
+export const REQUESTS: readonly Request[] = [
   {
     title: 'Own Your Intelligence',
     author: 'Jon Xu',

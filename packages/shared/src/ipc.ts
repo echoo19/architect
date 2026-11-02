@@ -90,7 +90,12 @@ import type {
   VersionPick,
   VersionSource,
 } from './versions';
-import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspace';
+import type {
+  BlockedConnection,
+  WorkspaceChat,
+  WorkspaceEvent,
+  WorkspaceMessage,
+} from './workspace';
 
 export type Unsubscribe = () => void;
 
@@ -544,6 +549,16 @@ export interface ArchitectApi {
       defaultName: string;
       filters?: { name: string; extensions: string[] }[];
     }): Promise<string | null>;
+    /**
+     * Shows a file or folder in the system's file manager: one the person chose or wrote into, or
+     * Architect's own data folder.
+     */
+    show(path: string): Promise<void>;
+    /**
+     * What keeps each chosen file or folder from being read, in order, or null where it reads: a
+     * file as a job's attachment, a folder as an organization's. Only paths chosen in a dialog.
+     */
+    check(paths: string[]): Promise<(string | null)[]>;
   };
   jobs: {
     list(): Promise<JobSummary[]>;
@@ -935,6 +950,11 @@ export interface ArchitectApi {
     send(chatId: string, text: string): Promise<void>;
     stop(chatId: string): Promise<void>;
     decide(changeId: string, decision: 'approve' | 'deny' | 'always'): Promise<void>;
+    /**
+     * The network calls the agent host's loopback-only guard stopped since it started, oldest
+     * first: everything but this computer is refused before a byte leaves (invariant 3).
+     */
+    blockedConnections(): Promise<BlockedConnection[]>;
     onEvent(listener: (event: WorkspaceEvent) => void): Unsubscribe;
   };
 }

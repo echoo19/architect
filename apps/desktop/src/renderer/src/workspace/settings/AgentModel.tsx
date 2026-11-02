@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import type { GraduateSummary, GraduateVersion, ModelBinding } from '@architect/shared';
+import {
+  GLIMMER_BUILDS,
+  type GraduateSummary,
+  type GraduateVersion,
+  type ModelBinding,
+} from '@architect/shared';
 import { SettingsRow, Spinner, toast } from '@architect/ui';
 import { useShallow } from 'zustand/react/shallow';
 import { graduateKeys, graduatesApi, refreshAgent, useInstallation } from '../../api/graduates';
 import { setQueryData } from '../../api/query';
 import { errorOf, RetryButton } from '../../components/QueryValue';
-import { STATUS_LABELS, WORKS_HERE_TITLE } from '../../install/labels';
+import { statusLine, WORKS_HERE_TITLE } from '../../install/labels';
 import { formatBytes } from '../../lib/format';
 import { capitalized, quantizationLabel, STUDENT_ROLE } from '../../lib/names';
 import { attempt } from '../../lib/notify';
@@ -48,16 +53,19 @@ export function AgentModelRow({
   const [saving, setSaving] = useState(false);
   const binding = installation.data?.model;
   const weights = active?.manifest.model.adapter !== undefined;
-  // The package's own base: its build and size only describe that model.
+  // The package's own base: its build and size only describe that model. A build the app knows
+  // is named by the picker ("Glimmer, 2-bit"), so the runtime's word for its file type, which can
+  // differ (Ollama calls the 2-bit build Q4_K_M), isn't said beside it.
   const base = active?.manifest.model.base;
+  const known = GLIMMER_BUILDS.some((build) => build.model === base?.name);
   const details =
     base && binding?.model === base.name
       ? [
-          base.quantization && quantizationLabel(base.quantization),
+          !known && base.quantization && quantizationLabel(base.quantization),
           base.sizeBytes && `${formatBytes(base.sizeBytes)} on disk`,
         ]
           .filter(Boolean)
-          .join(' · ')
+          .join(', ')
       : '';
 
   const choose = async (choice: ModelChoice) => {
@@ -74,7 +82,7 @@ export function AgentModelRow({
     if (bound) {
       toast({
         title: `Changed the model of ${agent.name}`,
-        description: `${WORKS_HERE_TITLE}: ${STATUS_LABELS[bound.status]}`,
+        description: `${WORKS_HERE_TITLE}: ${statusLine(bound)}`,
       });
     }
   };
@@ -85,7 +93,7 @@ export function AgentModelRow({
       meta={
         binding && (
           <>
-            {details && `${details} · `}
+            {details && `${details}, `}
             <span className="font-mono text-small">{binding.model}</span>
           </>
         )

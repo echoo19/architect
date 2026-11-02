@@ -63,6 +63,8 @@ interface BuiltinDeps {
   today: string;
   approveWrite?: ApproveWrite;
   budget: number;
+  /** Harness tools' results too long to show, by the path `read` and `run` code find each at. */
+  kept: () => Readonly<Record<string, string>>;
 }
 
 const SKILL_FILE = /^skills\/([^/]+)\/SKILL\.md$/;
@@ -121,6 +123,10 @@ export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Exe
     async read(args) {
       const { path, offset = 1, limit = DEFAULT_READ_LINES } = parseArguments('read', args);
       const clean = agentPath(path);
+      const results = deps.kept();
+      const kept = Object.hasOwn(results, clean) ? results[clean] : undefined;
+      if (kept !== undefined)
+        return { value: readPage(clean, kept, offset, limit, budget).content };
       const text = files.read(clean);
       const page = readPage(clean, text, offset, limit, budget);
       const skill = SKILL_FILE.exec(clean)?.[1];
@@ -240,7 +246,11 @@ export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Exe
     async run(args) {
       const { code } = parseArguments('run', args);
       if (code.trim() === '') throw new ToolError('code is empty, so there is nothing to run.');
-      const outcome = await sandbox.runCode({ code, files: files.texts(), today: deps.today });
+      const outcome = await sandbox.runCode({
+        code,
+        files: { ...files.texts(), ...deps.kept() },
+        today: deps.today,
+      });
       if (!outcome.ok) throw new ToolError(`The code couldn't run: ${outcome.failure.message}`);
       if (outcome.error) {
         const printed = outcome.printed.trimEnd();

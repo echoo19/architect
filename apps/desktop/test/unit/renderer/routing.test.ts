@@ -9,6 +9,8 @@ describe('parsePath', () => {
     expect(parsePath('/new')).toEqual({ name: 'new' });
     expect(parsePath('/import')).toEqual({ name: 'import' });
     expect(parsePath(paths.importAgent())).toEqual({ name: 'import' });
+    expect(parsePath('/agents/grd_1')).toEqual({ name: 'agent', graduateId: 'grd_1' });
+    expect(parsePath(paths.agent('grd 1'))).toEqual({ name: 'agent', graduateId: 'grd 1' });
     expect(parsePath('/agents/grd_1/chats/cht_2')).toEqual({
       name: 'chat',
       graduateId: 'grd_1',

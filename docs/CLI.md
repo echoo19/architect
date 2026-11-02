@@ -106,7 +106,7 @@ On a terminal, a change that needs approval is asked about there; `always` allow
 
 The agent runs on its active version, with this computer's folders and permissions, exactly as a chat in the app would.
 
-**With `--team`**, `run` holds the same conversation with a team you made in the app (Models, Teams; decision 100), named by its name or its id. Every member's active version is checked first, as above, so nothing loads unless all of them can run here; then each opens in one agent host, under the same network guard. The team's lead answers, and asks a teammate when it needs one. A teammate works in its own folder on what the lead asked and nothing else, and only its answer comes back. Each ask prints as a step, with the first line of the answer, or how it ended without one, and the teammate's own steps under it. A change that needs approval says whose it is, and `always` is for that agent only:
+**With `--team`**, `run` holds the same conversation with a team you made in the app (Models, Teams; decision 100), named by its name or its id. Every member's active version is checked first, as above, so nothing loads unless all of them can run here; then each opens in one agent host, under the same network guard. The team's lead answers, and asks a teammate when it needs one. A teammate works in its own folder on what the lead asked and nothing else, and only its answer comes back. Each ask prints as a step, with the first line of the answer, or how it ended without one, and the teammate's own steps under it. A teammate can't write during an ask: its write tool says so at once, with no question, and it says in its answer what should be written (decision 107). Only the lead's own changes are asked about:
 
 ```
 $ architect run --team "Screening logistics"
@@ -115,14 +115,10 @@ Screening logistics, led by Inventory desk:
   Assay desk, version 1, on muse-glimmer:30b (ollama).
 Changes to files are asked about here. Ctrl+C stops a reply; Ctrl+D ends.
 > It's Wednesday, October 14, 2026. Reserve stock for FW-0418's re-tests.
-Assay desk: Add 2 rows to data/retests.csv:
-  + RT-0006, FW-0418, FWC-13399, INCONCLUSIVE, 2026-10-14
-  + RT-0007, FW-0418, FWC-13444, BORDERLINE, 2026-10-14
-Allow this change? [y]es, [n]o, [a]lways for Assay desk: y
   asked Assay desk (FW-0418 passes QC; re-test FWC-13399 and FWC-13444.)
     read data/plates.csv (8 rows)
     run data/lumen_export.csv (Z′ 0.7689)
-    append data/retests.csv (2 rows added)
+    append data/retests.csv failed (In a consult you can't write; say in your answer what shoul…)
   run data/inventory.csv, data/policy.md (FWC-13444: FL-04159, 20 µL)
 Inventory desk: Add 1 row to data/reservations.csv:
   + HOLD-0163, FWC-13444, FL-04159, 20 µL, 2026-10-14
@@ -131,7 +127,7 @@ Allow this change? [y]es, [n]o, [a]lways for Inventory desk: y
 Reserved 20 µL of FWC-13444 from FL-04159 as HOLD-0163. FWC-13399 has too little stock to draw.
 ```
 
-Without a terminal, or with `--non-interactive`, a teammate's change fails its reply as `approval_required` like the lead's, naming the teammate, and nothing is written. A team conversation can be kept with `--save`, and shows under the team in the app. A JSON request (`--input`) runs one agent, and `serve` serves one agent; neither takes a team.
+Without a terminal, or with `--non-interactive`, a change of the lead's fails its reply as `approval_required`, and nothing is written. A teammate's write never does: it was refused in the ask. A team conversation can be kept with `--save`, and shows under the team in the app. A JSON request (`--input`) runs one agent, and `serve` serves one agent; neither takes a team.
 
 ### serve
 
@@ -316,7 +312,7 @@ architect experiment list [--json]
 
 These are the app's experiments (decision 074) over the same engine calls, so an experiment made here shows in the app's Experiments place, and one made there can be read or run here. Nothing about what an experiment is changes: planning spends nothing, preregistering freezes the arms, seeds and caps with a hash, and every cap is a hard cap.
 
-- **`plan`** takes a field in the library, or a job folder. `--arms` names the arms (`bare`, `draft`, `targeted`, `reference`, `reference-targeted`, `repeat`, `fixed`, `weights-one-shot`, `weights-targeted`). `--primary a-b:group` is arm a's pass rate less arm b's on `all` of the final test, the organizations the arms are taught on (`seen`) or those they have never seen (`unseen`); `all` is the default. Seeds, rounds and caps start from the app's defaults (final-test seed 101, mentoring seed 1, 4 rounds, $15 for hosted Glimmer, $10 for Spark, no compute, 720 minutes); `--seeds`, `--mentoring-seed`, `--rounds`, `--student-usd`, `--spark-usd`, `--compute-usd` and `--wall-minutes` change them. It prints the id and what the plan would cost at the prices assumed so far.
+- **`plan`** takes a field in the library, or a job folder. `--arms` names the arms (`bare`, `draft`, `targeted`, `reference`, `reference-targeted`, `repeat`, `fixed`, `composed`, `weights-one-shot`, `weights-targeted`; `composed` is the targeted arm proposing, probing and composing each round, decision 108). `--primary a-b:group` is arm a's pass rate less arm b's on `all` of the final test, the organizations the arms are taught on (`seen`) or those they have never seen (`unseen`); `all` is the default. Seeds, rounds and caps start from the app's defaults (final-test seed 101, mentoring seed 1, 4 rounds, $15 for hosted Glimmer, $10 for Spark, no compute, 720 minutes); `--seeds`, `--mentoring-seed`, `--rounds`, `--student-usd`, `--spark-usd`, `--compute-usd` and `--wall-minutes` change them. It prints the id and what the plan would cost at the prices assumed so far.
 - **`preregister`** needs the hypothesis and, when two or more arms are compared, a primary comparison; it exits 3 without them, and 3 again once frozen.
 - **`start` and `resume`** run the experiment in the command and return when it ends, so they spend: they call the hosted models the experiment names, with keys from `<PROVIDER>_API_KEY` in the environment (for example `OPENROUTER_API_KEY`), and use no GPU on this computer. On a field, Spark studies the organizations first: the run stops with exit 3 and the brief to read (`status` shows it with its token), and `resume <id> --confirm-study <token>` goes on once you have read it. The same exit 3 means the caps cut the plan down (`--confirm` goes ahead with the arms that fit) or an arm can't be paid for at what an attempt cost (`--student-cap-usd` raises Glimmer's cap, `--drop-arm` drops the arm; decision 081). Ctrl+C pauses it with exit 130; the time it ran still counts against its wall clock, and `resume` goes on.
 - **`pause`** pauses an experiment running in the same command, so from a terminal the way to pause is Ctrl+C where `start` runs. **`stop`** ends an experiment for good and keeps what it measured.
@@ -428,7 +424,7 @@ Anything else in the request is refused. A request that isn't valid JSON or does
   "started_at": "2026-11-05T18:00:00.000Z",
   "finished_at": "2026-11-05T18:00:09.412Z",
   "duration_ms": 9412,
-  "architect": { "cli_version": "0.9.0", "request_format": "architect.run-request/1" }
+  "architect": { "cli_version": "0.9.1", "request_format": "architect.run-request/1" }
 }
 ```
 

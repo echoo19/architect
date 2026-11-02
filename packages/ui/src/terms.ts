@@ -16,6 +16,11 @@ export type LabTerm =
   | 'sealedFinalTest'
   | 'calibrationTasks'
   | 'riskCertificate'
+  | 'riskBound'
+  | 'taughtOn'
+  | 'neverSeen'
+  | 'realOrganization'
+  | 'arm'
   | 'regressionSuite'
   | 'fineTuningPlan'
   | 'clusterLaunchBundle'
@@ -45,6 +50,16 @@ export function defineTerm(term: LabTerm, mentor = 'the teacher model'): string 
       return 'Tasks kept from teaching, used to measure the risk certificate.';
     case 'riskCertificate':
       return 'A bound on how often the specialist is wrong when it answers.';
+    case 'riskBound':
+      return "The most the specialist is wrong when it answers, at the certificate's confidence.";
+    case 'taughtOn':
+      return `Organizations ${mentor} taught the specialist on, scored on sealed tasks it never practiced.`;
+    case 'neverSeen':
+      return 'Generated organizations kept out of teaching until the sealed final test; a real one counts apart.';
+    case 'realOrganization':
+      return 'A real organization, anonymized, kept out of teaching like the never-seen ones but counted apart.';
+    case 'arm':
+      return 'One way of teaching, a harness or a LoRA adapter, compared on the sealed final test.';
     case 'regressionSuite':
       return 'Failures cut down to a few rows, which later changes to the same helper must pass.';
     case 'fineTuningPlan':

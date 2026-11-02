@@ -249,9 +249,9 @@ test('the last switch that changes the agent stays on, and Start training says w
   await expect(needs).toContainText(
     'Only retraining Glimmer itself is on, and it needs a Hugging Face key. A free Hugging Face account gives you one.',
   );
-  // The button that is held says the same when asked.
+  // The button that is held says the same beside it, and the page says it once.
   expect(await startHeldBy(page)).toBe("Spark can't change anything yet");
-  await expect(page.getByText("Spark can't change anything yet")).toHaveCount(1);
+  await expect(page.getByRole('main').getByText("Spark can't change anything yet")).toHaveCount(1);
   // Nowhere does it say that nothing is permitted: the switch for the weights is on, and held.
   await expect(page.getByText('has nothing it may change')).toHaveCount(0);
 });
@@ -301,7 +301,7 @@ test('a run whose teacher may change nothing ends at once, with the reason and n
   await expect(notice).toContainText('Turn one on, then start training again from the job.');
   // Nothing ran, so the notice is all there is: no score, meters, rounds or attempts.
   await expect(page.getByRole('region', { name: 'Rounds' })).toHaveCount(0);
-  await expect(page.getByText("Spark's cost")).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Budget' })).toHaveCount(0);
   await capture(page, 'teacher-idle-dark');
 
   // The engine's own sentence is kept under Details.

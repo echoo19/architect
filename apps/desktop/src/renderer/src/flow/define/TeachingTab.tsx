@@ -1,9 +1,17 @@
-import type { Job, StartingHarness, StudentTarget } from '@architect/shared';
+import {
+  DEFAULT_PROBES,
+  probesPerRound,
+  type Job,
+  type RoundMode,
+  type StartingHarness,
+  type StudentTarget,
+} from '@architect/shared';
 import { defineTerm, Segmented, Select } from '@architect/ui';
 import { useHubToken } from '../../api/hooks';
-import { useEdition } from '../../shell/edition';
+import { useEdition, useWords } from '../../shell/edition';
 import { useUi } from '../../state/ui';
 import { kindLabel, modelNames } from '../names';
+import { roundModeLine } from './estimates';
 import { Group, InspectorRow, NumberField, PathField } from './fields';
 import type { InspectorTabProps } from './inspector-tabs';
 import { TeacherMenu } from './TeacherMenu';
@@ -21,7 +29,8 @@ interface TeachingTabProps extends InspectorTabProps {
  */
 export function TeachingTab({ editor, change, testPlace }: TeachingTabProps) {
   const { job, issues } = editor;
-  const { student } = modelNames(job);
+  const { mentor, student } = modelNames(job);
+  const w = useWords();
   const token = useHubToken();
   const openSettings = useUi((state) => state.openSettings);
   const lab = useEdition() === 'lab';
@@ -57,6 +66,28 @@ export function TeachingTab({ editor, change, testPlace }: TeachingTabProps) {
             }))
           }
         />
+        <InspectorRow label="Each round" note={roundModeLine(job, mentor, w)} stacked>
+          <Segmented
+            aria-label="Each round"
+            options={ROUND_MODES}
+            value={job.evaluation.roundMode ?? 'one_change'}
+            onValueChange={(roundMode) =>
+              change('Each round', (current) => ({
+                ...current,
+                evaluation: { ...current.evaluation, roundMode },
+              }))
+            }
+          />
+        </InspectorRow>
+        {probesPerRound(job) !== null && (
+          <NumberField
+            label="Changes tried a round"
+            unit="changes"
+            value={job.evaluation.probes ?? DEFAULT_PROBES}
+            issue={issues['evaluation.probes']}
+            onChange={(probes) => evaluation('Changes tried a round', { probes })}
+          />
+        )}
         <NumberField
           label="Practice tasks a round"
           unit="tasks"
@@ -99,6 +130,11 @@ export function TeachingTab({ editor, change, testPlace }: TeachingTabProps) {
     </div>
   );
 }
+
+const ROUND_MODES = [
+  { value: 'one_change', label: 'One change' },
+  { value: 'propose_probe_compose', label: 'Propose, probe, compose' },
+] as const satisfies readonly { value: RoundMode; label: string }[];
 
 const STARTS = [
   { value: 'blank', label: 'Blank' },

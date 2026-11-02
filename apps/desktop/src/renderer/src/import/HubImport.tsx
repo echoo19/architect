@@ -28,7 +28,7 @@ import { queryKeys, useHubToken } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { repositoryOf, shortCommit, tokenSourceText } from '../hub/labels';
-import { needsAnotherModel, needsLlama, stepsNeedingAttention } from '../install/labels';
+import { needsAnotherModel, needsLlama } from '../install/labels';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
@@ -37,7 +37,13 @@ import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
 import { createChat, forgetAgent } from '../workspace/store';
 import { CheckStep, WaitsForLlama } from './CheckStep';
 import { InstallStep } from './InstallStep';
-import { FoldersStep, PermissionsStep } from './SetupSteps';
+import {
+  FoldersStep,
+  foldersNotSetUp,
+  NotSetUp,
+  PermissionsStep,
+  stepsLeftUndone,
+} from './SetupSteps';
 
 type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
 
@@ -57,7 +63,11 @@ function isNotAnAgent(error: Error): boolean {
 }
 
 function Footer({ children }: { children: ReactNode }) {
-  return <div className="mx-auto flex max-w-[680px] justify-between gap-3">{children}</div>;
+  return (
+    <div className="mx-auto box-content flex max-w-[680px] justify-between gap-3 px-8">
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -77,7 +87,10 @@ function asPreview({ result, version }: Downloaded): Extract<ImportPreview, { ok
           version: result.version,
           parent: version.parent ?? result.version - 1,
         }
-      : { kind: 'new' };
+      : {
+          kind: 'new',
+          ...(graduate.name === manifest.identity.name ? {} : { name: graduate.name }),
+        };
   return {
     ok: true,
     manifest,
@@ -127,8 +140,10 @@ export function HubImportFlow() {
   const next = (from: Stage): Stage => steps[steps.indexOf(from) + 1] ?? 'Install';
   const back = (from: Stage): Stage => steps[steps.indexOf(from) - 1] ?? 'Package';
   const graduateId = downloaded?.result.graduate.id ?? null;
-  const name = downloaded ? downloaded.version.manifest.identity.name : 'Install from Hugging Face';
+  const name = downloaded ? downloaded.result.graduate.name : 'Install from Hugging Face';
   const home = () => navigate(paths.home());
+  const bind = (resource: string, folder: string) =>
+    setBindings((current) => ({ ...current, [resource]: folder }));
 
   const download = async () => {
     setDownloading(true);
@@ -277,7 +292,7 @@ export function HubImportFlow() {
     body = (
       <CheckStep
         preview={preview}
-        file={`${installed.source.repository} · commit ${shortCommit(installed.source.revision)}`}
+        file={`${installed.source.repository} at commit ${shortCommit(installed.source.revision)}`}
         onRecheck={recheck}
       />
     );
@@ -328,23 +343,18 @@ export function HubImportFlow() {
       </Footer>
     );
   } else if (stage === 'Folders') {
-    body = (
-      <FoldersStep
-        manifest={preview.manifest}
-        bindings={bindings}
-        onBind={(resource, folder) =>
-          setBindings((current) => ({ ...current, [resource]: folder }))
-        }
-      />
-    );
+    body = <FoldersStep manifest={preview.manifest} bindings={bindings} onBind={bind} />;
     footer = (
       <Footer>
         <Button size="lg" onClick={() => setStage(back('Folders'))}>
           Back
         </Button>
-        <Button variant="primary" size="lg" onClick={() => setStage(next('Folders'))}>
-          Continue
-        </Button>
+        <div className="flex items-center gap-4">
+          <NotSetUp resources={foldersNotSetUp(preview.manifest, bindings)} />
+          <Button variant="primary" size="lg" onClick={() => setStage(next('Folders'))}>
+            Continue
+          </Button>
+        </div>
       </Footer>
     );
   } else if (stage === 'Permissions') {
@@ -354,6 +364,7 @@ export function HubImportFlow() {
         bindings={bindings}
         grants={grants}
         writes={writes}
+        onBind={bind}
         onGrant={(resource, grant) => setGrants((current) => ({ ...current, [resource]: grant }))}
         onWrites={setWrites}
       />
@@ -363,9 +374,12 @@ export function HubImportFlow() {
         <Button size="lg" onClick={() => setStage(back('Permissions'))}>
           Back
         </Button>
-        <Button variant="primary" size="lg" onClick={() => void install()}>
-          Install
-        </Button>
+        <div className="flex items-center gap-4">
+          <NotSetUp resources={foldersNotSetUp(preview.manifest, bindings, grants)} />
+          <Button variant="primary" size="lg" onClick={() => void install()}>
+            Install
+          </Button>
+        </div>
       </Footer>
     );
   } else {
@@ -389,9 +403,12 @@ export function HubImportFlow() {
     if (result) {
       footer = (
         <Footer>
-          <Button size="lg" onClick={home}>
-            {result.installation.status === 'ready' || asVersion ? 'Done' : 'Not now'}
-          </Button>
+          {/* A new agent that is ready is opened by its chat; home would open another agent's. */}
+          {(asVersion || result.installation.status !== 'ready') && (
+            <Button size="lg" onClick={home}>
+              {asVersion ? 'Done' : 'Not now'}
+            </Button>
+          )}
           {asVersion ? (
             <Button
               variant="primary"
@@ -409,6 +426,7 @@ export function HubImportFlow() {
               size="lg"
               loading={leaving === 'chat'}
               onClick={() => void startChat()}
+              className="ml-auto"
             >
               {leaving !== 'chat' && <MessageSquarePlus size={16} strokeWidth={1.7} aria-hidden />}
               Start a chat
@@ -425,7 +443,9 @@ export function HubImportFlow() {
       step={stage}
       steps={steps}
       footer={footer}
-      attention={stage === 'Install' ? stepsNeedingAttention(result?.installation) : []}
+      attention={
+        preview ? stepsLeftUndone(preview.manifest, bindings, grants, result?.installation) : []
+      }
       // Leaving partway takes back what the download installed, as Cancel does.
       {...(downloaded && !result ? { onClose: () => void cancel() } : {})}
     >

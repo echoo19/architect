@@ -139,7 +139,7 @@ describe('the model on this computer', () => {
       id: 'model-missing',
       title: "Glimmer isn't on this computer yet",
       detail: 'Practice and the final test run on it. It downloads once.',
-      label: 'Download · 17 GB',
+      label: 'Download (17 GB)',
       action: { kind: 'download', model: MODEL },
     });
   });
@@ -150,7 +150,7 @@ describe('the model on this computer', () => {
       student: { ...here.student, local: { ...here.student.local, model: gpu.model } },
     });
     const [need] = runNeeds(input({ job, local: runtimes(true) }));
-    expect(need).toMatchObject({ label: 'Download · 14 GB', action: { model: gpu.model } });
+    expect(need).toMatchObject({ label: 'Download (14 GB)', action: { model: gpu.model } });
   });
 
   it('knows a model is there under either of the names Ollama gives it', () => {
@@ -201,7 +201,7 @@ describe('the model on this computer', () => {
         title: "Glimmer isn't on this computer yet",
         detail:
           'The finished agent runs on it, so it has to be here when training ends. It downloads once.',
-        label: 'Download · 17 GB',
+        label: 'Download (17 GB)',
         action: { kind: 'download', model: MODEL },
       });
     });

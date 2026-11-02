@@ -79,10 +79,10 @@ test('states the certificate, its curve and whether it held where it was not cal
   const section = page.getByRole('region', { name: 'Risk certificate' });
   // The plain sentence leads; the Lab names its three figures after it.
   await expect(section).toContainText(
-    'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% to a person.',
+    'When Academy desk answers, it is wrong on at most 8% of requests like these, with 95% confidence. It handed 22% of its calibration tasks to a person.',
   );
   await expect(section.getByLabel('Risk certificate figures')).toHaveText(
-    'Risk bound8%Confidence95%Coverage78%',
+    'Risk bound8%Confidence95%Coverage on calibration tasks78%',
   );
   // What it rests on and assumes is a click away, under the sentence.
   const measured = section.getByRole('button', { name: 'How this is measured' });
@@ -163,9 +163,10 @@ test('shows a recent graduate’s certificate in the Lab', async () => {
     run_clinic: storyReport,
   });
   await reloadAt('/');
-  const finished = page.getByRole('region', { name: 'Recently finished' });
-  await expect(finished).toContainText('Risk bound');
-  await expect(finished).toContainText('≤ 8%');
+  // The newest result leads the Lab, its risk bound beside its scores.
+  const hero = page.getByRole('region', { name: /^Academy desk, / });
+  await expect(hero).toContainText('Risk bound');
+  await expect(hero).toContainText('≤ 8%');
 });
 
 test('sets the certificate in the inspector, with what it costs before a run', async () => {

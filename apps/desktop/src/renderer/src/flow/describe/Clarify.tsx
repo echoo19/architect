@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Button, cn, Collapse, Reveal, ReplyComposer, Spinner } from '@architect/ui';
-import { CodedError } from '@architect/shared';
 import { ArrowRight, Check } from 'lucide-react';
 import { flowApi } from '../../api/client';
 import { queryKeys, useSettings } from '../../api/hooks';
@@ -9,8 +8,15 @@ import { ProblemState } from '../../components/ProblemState';
 import { mentorName } from '../../lib/names';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
+import { withFittingDefaults } from '../define/new-job';
 import { AttachedFile } from './AttachedFile';
-import { lastMentorEntry, speakerOf, type MentorEntry, type UserEntry } from './conversation';
+import {
+  ARCHITECT,
+  lastMentorEntry,
+  speakerOf,
+  type MentorEntry,
+  type UserEntry,
+} from './conversation';
 import {
   markDraftSaved,
   resetDraft,
@@ -87,7 +93,9 @@ export function Clarify() {
     const { draft } = entry;
     if (!draft) return;
     setSaving(true);
-    const stored = await attempt("Couldn't save the job", () => flowApi.saveJob(draft));
+    const stored = await attempt("Couldn't save the job", () =>
+      flowApi.saveJob(withFittingDefaults(draft)),
+    );
     setSaving(false);
     if (!stored) return;
     setQueryData(queryKeys.job(stored.id), stored);
@@ -156,11 +164,11 @@ export function Clarify() {
                     title={`${mentor} couldn't answer`}
                     onRetry={retryLastMessage}
                   />
-                  {(!sessionId || lost(failure.error)) && (
-                    <Button size="sm" className="self-start" onClick={startAgain}>
-                      Edit the description
-                    </Button>
-                  )}
+                  {/* Asking again may fail the same way, so the description and its files can
+                      always be changed instead. */}
+                  <Button size="sm" className="self-start" onClick={startAgain}>
+                    Edit the description
+                  </Button>
                 </div>
               )}
             </Collapse>
@@ -187,11 +195,6 @@ export function Clarify() {
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
-/** The conversation is gone from the engine, so asking again can't help. */
-function lost(error: Error): boolean {
-  return error instanceof CodedError && error.code === 'draft_not_found';
 }
 
 function UserMessage({ entry }: { entry: UserEntry }) {
@@ -250,7 +253,12 @@ function MentorMessage({
   const showMessage = message.length > 0 && !(entry.draft && message === DRAFTED);
   return (
     <div className={cn('flex flex-col text-body', entry.options.length > 0 ? 'gap-4' : 'gap-2.5')}>
-      {speaker && <span className="text-small font-medium text-mentor">{speaker}</span>}
+      {speaker && (
+        // The teacher's name is in its color; Architect's own is neutral.
+        <span className={cn('text-small font-medium', speaker !== ARCHITECT && 'text-mentor')}>
+          {speaker}
+        </span>
+      )}
       {entry.readFiles > 0 && (
         <StepLine icon={<Check size={14} strokeWidth={1.8} aria-hidden />}>
           Read {plural(entry.readFiles, 'file')}
@@ -258,7 +266,8 @@ function MentorMessage({
       )}
       {showMessage && <p className="m-0 whitespace-pre-wrap text-pretty">{message}</p>}
       {entry.options.length > 0 && (
-        <div role="group" aria-label="Answers" className="flex flex-wrap gap-2">
+        // The chip clicked becomes a mark in place, so a double click must not select its words.
+        <div role="group" aria-label="Answers" className="flex select-none flex-wrap gap-2">
           {entry.options.map((option) =>
             current ? (
               <Button
@@ -274,9 +283,10 @@ function MentorMessage({
                 key={option}
                 aria-current={entry.chosen === option ? 'true' : undefined}
                 className={cn(
-                  'inline-flex h-10 items-center rounded-control px-4',
+                  // The size of the button it was, so a chip picked keeps its place in the row.
+                  'inline-flex h-10 items-center rounded-control px-4 text-ui font-medium',
                   entry.chosen === option
-                    ? 'bg-selected font-medium inset-ring-1 inset-ring-fg'
+                    ? 'bg-selected inset-ring-1 inset-ring-fg'
                     : 'bg-card shadow-edge-strong',
                 )}
               >

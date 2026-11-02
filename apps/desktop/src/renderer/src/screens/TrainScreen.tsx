@@ -33,6 +33,7 @@ import {
   currentRound,
   hasEnded,
   hasKeptChange,
+  practiceSoFar,
   type LiveRun,
 } from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
@@ -367,7 +368,7 @@ function TrainBoard({
   const draft = draftRoundOf(live);
   const round = currentRound(live);
   const drafting = draft !== null && round?.index === draft;
-  const view = phaseView(run, names, drafting, improves !== null, words);
+  const view = phaseView(run, names, drafting, improves !== null, words, round?.status);
   const score = run.devCurrent ?? run.devBaseline;
   const evidence = records.data ?? null;
   const failure =
@@ -416,19 +417,31 @@ function TrainBoard({
             status={run.status}
             view={view}
             drafting={drafting}
+            inRound={round !== null}
             passRate={score ? rate(score) / 100 : null}
             progress={activeProgress(live)}
+            practice={
+              round?.status === 'attempting' && !drafting
+                ? {
+                    done: Math.min(
+                      practiceSoFar(live, round.index).total,
+                      job.evaluation.trainBatch,
+                    ),
+                    total: job.evaluation.trainBatch,
+                  }
+                : null
+            }
           />
         </StaggerItem>
       )}
       {!nothingRan && (
         <StaggerItem>
-          <TaskSuccess live={live} names={names} />
-        </StaggerItem>
-      )}
-      {!nothingRan && (
-        <StaggerItem>
-          <Budget live={live} mentor={names.mentor} />
+          <TaskSuccess
+            live={live}
+            names={names}
+            onOpenRound={onOpenRound}
+            aside={<Budget live={live} mentor={names.mentor} />}
+          />
         </StaggerItem>
       )}
       {!nothingRan && (
@@ -442,6 +455,7 @@ function TrainBoard({
             records={evidence}
             failure={failure}
             stopReason={run.stopReason}
+            improving={improves !== null}
             onOpen={onOpenRound}
             current={
               round && <CurrentRound live={live} round={round} names={names} question={question} />

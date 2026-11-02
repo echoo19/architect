@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { CurrentRound } from '../../../src/renderer/src/flow/train/CurrentRound';
+import { CurrentRound, practiceCells } from '../../../src/renderer/src/flow/train/CurrentRound';
 import type { LiveRun } from '../../../src/renderer/src/flow/train/run-state';
 import { makeAttempt, makeJob, makeRound, makeRun } from './factories';
 
@@ -14,6 +14,7 @@ function live(overrides: Partial<LiveRun['run']>, extra: Partial<LiveRun> = {}):
     lockedTestOn: 'local',
     rounds: [],
     attempts: [],
+    practiced: {},
     lineage: [],
     budget: null,
     progress: null,
@@ -38,6 +39,66 @@ function panel(run: LiveRun, round = makeRound(2, { status: 'attempting' })): st
 }
 
 describe('the newest round, open under its line', () => {
+  it('lists the tries of a round that probes, each with what it did to the check tasks', () => {
+    const predicted = { devDeltaMin: 1, devDeltaMax: 2, rationale: 'Two types.' };
+    const round = makeRound(2, {
+      status: 'composing',
+      train: { pass: 0, total: 12 },
+      probes: [
+        {
+          index: 1,
+          title: 'Add the invoice rule',
+          diagnosis: 'Totals skip labor.',
+          files: ['AGENTS.md'],
+          predicted,
+          version: 3,
+          devBefore: { pass: 4, total: 10 },
+          devAfter: { pass: 6, total: 10 },
+          train: { pass: 4, total: 12 },
+        },
+        {
+          index: 2,
+          title: 'Add the overdue rule',
+          diagnosis: 'Balances miss the grace days.',
+          files: ['skills/overdue/SKILL.md'],
+          predicted,
+          version: 4,
+          devBefore: { pass: 4, total: 10 },
+          devAfter: { pass: 3, total: 10 },
+          train: { pass: 2, total: 12 },
+        },
+        {
+          index: 3,
+          title: 'A helper for totals',
+          diagnosis: 'Sums by hand go wrong.',
+          files: ['tools/total.js'],
+          predicted,
+          refused: "tools/total.js doesn't load",
+        },
+      ],
+    });
+    // A try's practice attempts are its own, not the round's.
+    const own = makeAttempt('att_1', { round: 2, split: 'train', harnessVersion: 2 });
+    const tried = makeAttempt('att_2', {
+      round: 2,
+      split: 'train',
+      harnessVersion: 3,
+      check: { pass: false, reason: 'Wrong total.' },
+    });
+    const html = panel(
+      live({ status: 'running', phase: 'diagnosing' }, { attempts: [tried, own] }),
+      round,
+    );
+    expect(html).toContain('Making one change from what the 3 tries did.');
+    expect(html).toMatch(/Tries<\/dt>/);
+    expect(html).toContain('>+2</span>');
+    expect(html).toContain('>\u22121</span>');
+    expect(html).toContain('Add the overdue rule');
+    expect(html).toContain('aria-label="Refused"');
+    expect(html).not.toContain('Wrong total.');
+    expect(html).not.toContain('\u00b7');
+  });
+
   it('says what the student is working through and what the mentor waits for', () => {
     const html = panel(live({ status: 'running', phase: 'attempting' }));
     expect(html).toContain('aria-label="Current round"');
@@ -49,10 +110,13 @@ describe('the newest round, open under its line', () => {
     const round = makeRound(2, { status: 'attempting' });
     const attempt = makeAttempt('att_1', { round: 2, split: 'train' });
     const html = panel(
-      live({ status: 'running', phase: 'attempting' }, { attempts: [attempt] }),
+      live(
+        { status: 'running', phase: 'attempting' },
+        { attempts: [attempt], practiced: { 2: { 1: { pass: 1, total: 1 } } } },
+      ),
       round,
     );
-    expect(html).toContain('Got all 1 practice task right so far this round.');
+    expect(html).toContain('Got its first practice task right this round.');
   });
 
   it("gives the mentor's diagnosis and what it expects once it has one", () => {
@@ -83,5 +147,73 @@ describe('the newest round, open under its line', () => {
     expect(html).toContain(
       "Writing Glimmer's first full setup from the job and its example tasks.",
     );
+  });
+});
+
+describe("the round's practice tasks, one cell each", () => {
+  const attempting = makeRound(2, { status: 'attempting', train: { pass: 0, total: 0 } });
+
+  it('lists the answers so far in the order they came, then the tasks still to answer', () => {
+    const attempts = [
+      makeAttempt('att_3', { round: 2, check: { pass: true, reason: 'Matches.' } }),
+      makeAttempt('att_2', { round: 2, check: { pass: false, reason: 'Wrong total.' } }),
+      makeAttempt('att_1', { round: 2, check: { pass: true, reason: 'Matches.' } }),
+      makeAttempt('att_0', { round: 1, check: { pass: false, reason: 'Another round.' } }),
+    ];
+    const practiced = { 1: { 1: { pass: 0, total: 1 } }, 2: { 1: { pass: 2, total: 3 } } };
+    const cells = practiceCells(live({}, { attempts, practiced }), attempting);
+    expect(cells.slice(0, 3)).toEqual(['pass', 'fail', 'pass']);
+    expect(cells).toHaveLength(12);
+    expect(cells.slice(3).every((cell) => cell === 'waiting')).toBe(true);
+  });
+
+  it("counts a round's recorded score, right ones first, once its answers aren't all at hand", () => {
+    const round = makeRound(2, { status: 'diagnosing', train: { pass: 8, total: 12 } });
+    const attempts = [makeAttempt('att_1', { round: 2, check: { pass: false, reason: 'No.' } })];
+    expect(practiceCells(live({}, { attempts }), round)).toEqual([
+      ...Array(8).fill('pass'),
+      ...Array(4).fill('fail'),
+    ]);
+  });
+
+  it('has none for a round that practiced nothing', () => {
+    expect(practiceCells(live({}), attempting)).toEqual([]);
+  });
+
+  it('reads out how many are right, and how many are left', () => {
+    const attempts = [makeAttempt('att_1', { round: 2, check: { pass: true, reason: 'Yes.' } })];
+    const practiced = { 2: { 1: { pass: 1, total: 1 } } };
+    const html = panel(
+      live({ status: 'running', phase: 'attempting' }, { attempts, practiced }),
+      attempting,
+    );
+    expect(html).toContain('aria-label="1 of 1 right, 11 to go"');
+  });
+
+  it('counts every answer of a batch longer than the attempts list keeps', () => {
+    const attempts = Array.from({ length: 40 }, (_, index) =>
+      makeAttempt(`att_${index}`, { round: 2 }),
+    );
+    const practiced = { 2: { 1: { pass: 45, total: 50 } } };
+    const job = makeJob();
+    const run = live(
+      {},
+      { attempts, practiced, job: { ...job, evaluation: { ...job.evaluation, trainBatch: 60 } } },
+    );
+    const cells = practiceCells(run, attempting);
+    expect(cells.filter((cell) => cell === 'pass')).toHaveLength(45);
+    expect(cells.filter((cell) => cell === 'fail')).toHaveLength(5);
+    expect(cells.filter((cell) => cell === 'waiting')).toHaveLength(10);
+  });
+
+  it("keeps practice's own score once a lesson's recheck has practiced again", () => {
+    const round = makeRound(2, { status: 'evaluating', train: { pass: 1, total: 2 } });
+    const attempts = [
+      makeAttempt('att_3', { round: 2, harnessVersion: 2 }),
+      makeAttempt('att_2', { round: 2, check: { pass: false, reason: 'No.' } }),
+      makeAttempt('att_1', { round: 2 }),
+    ];
+    const practiced = { 2: { pass: 2, total: 3 } };
+    expect(practiceCells(live({}, { attempts, practiced }), round)).toEqual(['pass', 'fail']);
   });
 });

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isLoopbackHostname } from './net';
+import { isLoopbackHostname, isLoopbackUrl } from './net';
 
 /*
  * A closed network (decision 098): the hosts teaching may reach, for a team whose data can't
@@ -101,18 +101,25 @@ export const RunContactSchema = z.object({
 });
 export type RunContact = z.infer<typeof RunContactSchema>;
 
-/** "Contacted 2 hosts, both inside the network": what a run's records say about where it went. */
+/**
+ * "Contacted 2 hosts, both inside the network": what a run's records say about where it went. With
+ * no closed network on, it says which hosts were this computer and names the others.
+ */
 export function contactsLine(contacts: readonly RunContact[]): string {
   const count = contacts.length;
   if (count === 0) return 'Contacted no hosts';
   const hosts = count === 1 ? '1 host' : `${count} hosts`;
+  const all = count === 1 ? '' : count === 2 ? 'both ' : 'all ';
   const inside = contacts.filter((contact) => contact.inside).length;
-  if (inside === count) {
-    const all = count === 1 ? '' : count === 2 ? 'both ' : 'all ';
-    return `Contacted ${hosts}, ${all}inside the network`;
-  }
-  if (inside === 0) return `Contacted ${hosts}, with no closed network on`;
-  return `Contacted ${hosts}, ${inside} of them inside the network`;
+  if (inside === count) return `Contacted ${hosts}, ${all}inside the network`;
+  if (inside > 0) return `Contacted ${hosts}, ${inside} of them inside the network`;
+  const online = contacts
+    .map((contact) => contact.host)
+    .filter((host) => !isLoopbackUrl(`http://${host}`));
+  if (online.length === 0) return `Contacted ${hosts}, ${all}on this computer`;
+  const here = count - online.length;
+  if (here === 0) return `Contacted ${hosts} online: ${online.join(', ')}`;
+  return `Contacted ${hosts}: ${online.length} online (${online.join(', ')}) and ${here} on this computer`;
 }
 
 /** Where Ollama pulls a model whose name names no registry. */

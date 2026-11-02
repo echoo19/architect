@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
   DEFAULT_STUDENT,
   GLIMMER_BUILDS,
@@ -17,6 +17,7 @@ import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { useConnections } from '../settings/models/hooks';
 import { isInstalled } from '../settings/models/StudentRows';
+import { suggestBuild } from './builds';
 import { DoneStep } from './DoneStep';
 import { EditionStep } from './EditionStep';
 import { HostedStep } from './HostedStep';
@@ -38,6 +39,11 @@ export interface SetupProps {
  */
 export function Setup({ settings, update }: SetupProps) {
   const [step, setStep] = useState<SetupStep>('Edition');
+  // The second click of a double click lands on the next step's button, where the first one was,
+  // so only a single click moves between steps.
+  const go = (next: SetupStep) => (event: MouseEvent) => {
+    if (event.detail <= 1) setStep(next);
+  };
   const [connection, setConnection] = useState<ConnectionTest | null>(null);
   const [route, setRoute] = useState<MentorRoute>(() => routeOf(settings.defaultMentor));
   const [finishing, setFinishing] = useState(false);
@@ -56,15 +62,17 @@ export function Setup({ settings, update }: SetupProps) {
     isInstalled(ollama, student.model);
 
   // Until the user picks, the Glimmer build suggested for this computer's GPU is the choice,
-  // unless the default build is already downloaded.
+  // unless the default build is already downloaded and the suggested one isn't.
   const recommended = useRef(false);
   useEffect(() => {
     if (!local.data || recommended.current) return;
     recommended.current = true;
     const best = recommendedBuild(local.data.gpu);
-    const untouched =
-      student.model === DEFAULT_STUDENT.model && !isInstalled(local.data.ollama, student.model);
-    if (untouched && best.model !== student.model) {
+    const installed = (model: string) => isInstalled(local.data?.ollama, model);
+    if (
+      student.model === DEFAULT_STUDENT.model &&
+      suggestBuild(student.model, best.model, installed)
+    ) {
       void attempt("Couldn't choose the agent's model", () =>
         update({ defaultStudent: { ...student, model: best.model } }),
       );
@@ -102,7 +110,7 @@ export function Setup({ settings, update }: SetupProps) {
         footer={
           <>
             {spacer}
-            <Button variant="primary" onClick={() => setStep('Model')}>
+            <Button variant="primary" onClick={go('Model')}>
               Continue
             </Button>
           </>
@@ -124,15 +132,15 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Edition')}>Back</Button>
+            <Button onClick={go('Edition')}>Back</Button>
             {spacer}
             {modelReady || downloading ? (
-              <Button variant="primary" onClick={() => setStep('Teacher')}>
+              <Button variant="primary" onClick={go('Teacher')}>
                 Continue
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => setStep('Teacher')}>
+                <Button variant="ghost" onClick={go('Teacher')}>
                   Download later
                 </Button>
                 <Button
@@ -144,7 +152,7 @@ export function Setup({ settings, update }: SetupProps) {
                   {pull.state.phase === 'failed'
                     ? 'Try again'
                     : build
-                      ? `Download ${names.student} · ${formatBytes(build.downloadBytes)}`
+                      ? `Download ${names.student} (${formatBytes(build.downloadBytes)})`
                       : `Download ${names.student}`}
                 </Button>
               </>
@@ -173,10 +181,10 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Model')}>Back</Button>
+            <Button onClick={go('Model')}>Back</Button>
             {spacer}
             {mentorUsable ? (
-              <Button variant="primary" onClick={() => setStep('Faster training')}>
+              <Button variant="primary" onClick={go('Faster training')}>
                 Continue
               </Button>
             ) : (
@@ -184,7 +192,7 @@ export function Setup({ settings, update }: SetupProps) {
                 content="You can connect one later in Settings; until then, no new agent can train."
                 side="top"
               >
-                <Button onClick={() => setStep('Faster training')}>Skip for now</Button>
+                <Button onClick={go('Faster training')}>Skip for now</Button>
               </Tooltip>
             )}
           </>
@@ -211,14 +219,14 @@ export function Setup({ settings, update }: SetupProps) {
         step={step}
         footer={
           <>
-            <Button onClick={() => setStep('Teacher')}>Back</Button>
+            <Button onClick={go('Teacher')}>Back</Button>
             {spacer}
             {hostedConnected ? (
-              <Button variant="primary" onClick={() => setStep('Done')}>
+              <Button variant="primary" onClick={go('Done')}>
                 Continue
               </Button>
             ) : (
-              <Button onClick={() => setStep('Done')}>Skip</Button>
+              <Button onClick={go('Done')}>Skip</Button>
             )}
           </>
         }
@@ -233,7 +241,7 @@ export function Setup({ settings, update }: SetupProps) {
       step={step}
       footer={
         <>
-          <Button onClick={() => setStep('Faster training')}>Back</Button>
+          <Button onClick={go('Faster training')}>Back</Button>
           {spacer}
           <Button variant="primary" loading={finishing} onClick={() => void finish()}>
             Get started

@@ -1,4 +1,4 @@
-import type { Run } from '@architect/shared';
+import type { Round, Run } from '@architect/shared';
 import { WORDS, type Words } from '@architect/ui';
 import { neverStarted } from './run-state';
 
@@ -63,6 +63,8 @@ function improvementView(run: Run): PhaseView | null {
  * What the panel shows for the run's state. `drafting` is true while the current round writes
  * the first full draft of the agent's instructions instead of one watched change; `improving`
  * when the run is Improve agent's, which ends in a new version rather than a final test.
+ * `roundStatus` is the current round's, which says when a round scores its tries or makes one
+ * change from them (decision 108).
  */
 export function phaseView(
   run: Run,
@@ -70,6 +72,7 @@ export function phaseView(
   drafting = false,
   improving = false,
   w: Words = WORDS.personal,
+  roundStatus?: Round['status'],
 ): PhaseView {
   const improvement = improving ? improvementView(run) : null;
   if (improvement) return improvement;
@@ -123,7 +126,7 @@ export function phaseView(
         stage: stageOf(run),
         motion: motionOf(run),
         frozen: false,
-        text: runningText(run, names, drafting, w),
+        text: runningText(run, names, drafting, w, roundStatus),
       };
   }
 }
@@ -133,7 +136,14 @@ function runningText(
   { mentor, student }: ModelNames,
   drafting: boolean,
   w: Words,
+  roundStatus: Round['status'] | undefined,
 ): string {
+  if (roundStatus === 'probing' && run.phase === 'evaluating') {
+    return `Scoring each ${w.lab ? 'probe' : 'try'} on the ${w.checks}`;
+  }
+  if (roundStatus === 'composing' && run.phase === 'diagnosing') {
+    return `${mentor} is making one change from the ${w.lab ? 'probes' : 'tries'}`;
+  }
   if (drafting && run.phase === 'diagnosing') {
     return `${mentor} is writing a first full draft of ${student}'s ${w.lab ? 'harness' : 'instructions'}`;
   }

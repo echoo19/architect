@@ -4,8 +4,8 @@
  * student, META_API_TOKEN for Spark, and HF_TOKEN (or `hf auth login`) for training compute.
  *
  *   pnpm --filter @architect/engine exec tsx scripts/comparisons.ts <command> <jobDir> --out <dir>
- *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,weights-one-shot,
- *       weights-targeted]
+ *     [--arms bare,draft,targeted,reference,reference-targeted,repeat,fixed,composed,
+ *       weights-one-shot,weights-targeted]
  *     [--student-usd N] [--spark-usd N] [--spark-cap <cap>=<usd>]... [--compute-usd N]
  *     [--gpu-minutes N] [--rounds N]
  *     [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter]
@@ -13,6 +13,8 @@
  *     [--providers DeepInfra|any] [--mentor <preset>] [--local-model <name>] [--headroom N]
  *     [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N]
  *     [--raise-student-usd N] [--drop-arms a,b]
+ *     [--student-url <baseUrl> --student-model <model> [--student-key-env <NAME>]]
+ *     [--draft-harness <dir>] [--study <study.json>]
  *
  * Commands:
  *   plan    prices an attempt on the calibration tasks (the only spending) and projects every arm;
@@ -29,7 +31,13 @@
  * OpenRouter is pinned by the providers in the job's mentor settings.
  *
  * --spark-cap sets one Spark cap over its default, such as targeted=0.75, and can be repeated; the
- * caps are draft, targeted, fixed, reference, referenceTargeted and weights.
+ * caps are draft, targeted, fixed, composed, reference, referenceTargeted and weights.
+ *
+ * --student-url and --student-model name a hosted student no preset names, such as Glimmer served
+ * on a rented GPU, and --student-key-env the environment variable that holds its key, which goes
+ * to that host only. --draft-harness gives the draft arm a harness folder to adopt whole in place of
+ * Spark's draft, and --study a brief confirmed in an earlier comparison of the same organizations'
+ * files, so a frozen harness can take the final test with no mentor call (decision 105).
  *
  * Money and the GPU are held at each request. Every hosted request is reserved against
  * --student-usd at the most it could cost and written to requests.jsonl before it is sent, so
@@ -49,7 +57,14 @@
  */
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { AdapterProtocolSchema, ArmIdSchema, MENTOR_PRESETS, type ArmId } from '@architect/shared';
+import { readFileSync } from 'node:fs';
+import {
+  AdapterProtocolSchema,
+  ArmIdSchema,
+  MENTOR_PRESETS,
+  StudyRecordSchema,
+  type ArmId,
+} from '@architect/shared';
 import { hubTokenResolver } from '../src/hub';
 import { appDataDir, describeLlamaServer, LocalRuntimeError } from '../src/local-runtime';
 import {
@@ -63,6 +78,7 @@ import {
   runComparison,
   SparkCapError,
   sparkCapsWith,
+  studentAt,
   type ComparisonConfig,
   type ComparisonRequest,
 } from '../src/comparisons';
@@ -72,7 +88,7 @@ const COMMANDS = ['plan', 'run', 'probe', 'report'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const USAGE =
-  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--spark-cap <cap>=<usd>]... [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--mentor <preset>] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N] [--raise-student-usd N] [--drop-arms a,b]';
+  'Usage: tsx scripts/comparisons.ts <plan|run|probe|report> <jobDir> --out <dir> [--arms a,b] [--student-usd N] [--spark-usd N] [--spark-cap <cap>=<usd>]... [--compute-usd N] [--gpu-minutes N] [--rounds N] [--regression <jobDir>] [--local-ollama] [--compute] [--llama-server] [--meter] [--adapter-protocol four-cell|reduced] [--smoke-tasks N] [--providers <names>|any] [--mentor <preset>] [--local-model <name>] [--headroom N] [--parallel N] [--concurrency N] [--confirm] [--confirm-study <token>] [--tasks N] [--raise-student-usd N] [--drop-arms a,b] [--student-url <baseUrl> --student-model <model> [--student-key-env <NAME>]] [--draft-harness <dir>] [--study <study.json>]';
 
 class UsageError extends Error {}
 
@@ -80,6 +96,8 @@ interface Parsed {
   command: Command;
   request: ComparisonRequest;
   parallel: number;
+  /** The environment variable holding each extra key, by its ref. */
+  keyEnv: Record<string, string>;
   meter: boolean;
   tasks: number;
 }
@@ -147,13 +165,15 @@ function parse(args: readonly string[]): Parsed {
     if (error instanceof SparkCapError) throw new UsageError(error.message);
     throw error;
   }
+  const draftHarness = values.get('--draft-harness');
   const config: ComparisonConfig = {
     ...DEFAULT_CONFIG,
     arms,
     sparkCaps: chosenSparkCaps,
     adapterProtocol: adapterProtocol.data,
     smokeTasks: Math.max(1, Math.floor(number('--smoke-tasks', DEFAULT_CONFIG.smokeTasks))),
-    // Refinement rounds for the targeted and fixed arms; the plan records them, so a resume keeps them.
+    // Refinement rounds for the targeted, fixed and composed arms; the plan records them, so a
+    // resume keeps them.
     rounds: Math.max(1, Math.floor(number('--rounds', DEFAULT_CONFIG.rounds))),
     caps: {
       studentUsd: number('--student-usd', 0),
@@ -167,6 +187,7 @@ function parse(args: readonly string[]): Parsed {
     concurrency: Math.max(1, Math.floor(number('--concurrency', DEFAULT_CONFIG.concurrency))),
     // Each arm's student cap is its worst-case projection times this.
     headroom: Math.max(1, number('--headroom', DEFAULT_CONFIG.headroom)),
+    ...(draftHarness === undefined ? {} : { draftHarness: resolve(draftHarness) }),
   };
   const regression = values.get('--regression');
   const localModel = values.get('--local-model');
@@ -180,6 +201,23 @@ function parse(args: readonly string[]): Parsed {
       `--mentor takes a mentor preset: ${MENTOR_PRESETS.map((preset) => preset.key).join(', ')}.`,
     );
   }
+  const studentUrl = values.get('--student-url');
+  const studentModel = values.get('--student-model');
+  const studentKeyEnv = values.get('--student-key-env');
+  if ((studentUrl === undefined) !== (studentModel === undefined)) {
+    throw new UsageError('--student-url and --student-model name a hosted student together.');
+  }
+  if (studentKeyEnv !== undefined && studentUrl === undefined) {
+    throw new UsageError('--student-key-env names the key of the student at --student-url.');
+  }
+  const student =
+    studentUrl === undefined || studentModel === undefined
+      ? undefined
+      : studentAt(studentUrl, studentModel, studentKeyEnv !== undefined);
+  if (studentUrl !== undefined && providers !== undefined) {
+    throw new UsageError('--providers pins OpenRouter, so it goes without --student-url.');
+  }
+  const studyFile = values.get('--study');
   return {
     command: command as Command,
     request: {
@@ -190,6 +228,7 @@ function parse(args: readonly string[]): Parsed {
       models: {
         ...jobModels(readJob(resolve(jobDir)), preset?.key),
         ...(localModel === undefined ? {} : { localModel }),
+        ...(student === undefined ? {} : { student, providers: undefined }),
         ...(providers === undefined
           ? {}
           : providers === 'any'
@@ -199,10 +238,19 @@ function parse(args: readonly string[]): Parsed {
       confirm: flags.has('--confirm'),
       planOnly: command === 'plan',
       ...(studyToken === undefined ? {} : { studyToken }),
+      ...(studyFile === undefined
+        ? {}
+        : {
+            study: StudyRecordSchema.parse(JSON.parse(readFileSync(resolve(studyFile), 'utf8'))),
+          }),
       ...(raise === undefined ? {} : { studentCapUsd: number('--raise-student-usd', 0) }),
       ...(drops === undefined ? {} : { dropArms: armsOf('--drop-arms', drops) }),
     },
     parallel: Math.max(1, Math.floor(number('--parallel', 2))),
+    keyEnv:
+      student?.secretRef === undefined || studentKeyEnv === undefined
+        ? {}
+        : { [student.secretRef]: studentKeyEnv },
     meter: flags.has('--meter'),
     tasks: Math.max(1, Math.floor(number('--tasks', 3))),
   };
@@ -250,6 +298,7 @@ async function main(): Promise<number> {
     trainerDir: TRAINER_DIR,
     meter: parsed.meter,
     parallel: parsed.parallel,
+    keyEnv: parsed.keyEnv,
     commit: commit(),
     log,
   });

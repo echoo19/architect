@@ -76,39 +76,25 @@ describe('architect run --team (decision 100)', () => {
     expect(run.stdout).toBe('Nothing to ask.\n');
   });
 
-  it("asks about a teammate's write under the teammate's name, and writes only its file", async () => {
+  it("refuses a teammate's write in a consult without asking, and the reply goes on (decision 107)", async () => {
     const machine = await teamMachineWith([
       asks('Add the invoice.'),
       ADD_INVOICE,
-      { text: 'Added.\nANSWER: INV-4' },
-      { text: 'Assay desk added it.' },
+      { text: `Add this row to invoices.csv: ${NEW_INVOICE}` },
+      { text: 'Assay desk says to add INV-4.' },
     ]);
-    const keys = keyboard();
-    const pending = cli(['run', '--team', 'screening-logistics'], {
+    const run = await cli(['run', '--team', 'Screening logistics'], {
       env: machine.env,
-      stdin: keys,
-      terminal: true,
-      onStderr: (text) => {
-        if (text.endsWith('[a]lways for Assay desk: ')) keys.write('y\n');
-      },
+      stdin: 'Add an invoice for Ruiz, Ben.\n',
     });
-    keys.write('Add an invoice for Ruiz, Ben.\n');
-    const watching = setInterval(() => {
-      if (machine.model.chats().length === 4) {
-        clearInterval(watching);
-        setTimeout(() => keys.end(), 50);
-      }
-    }, 20);
-    const run = await pending;
-    clearInterval(watching);
     expect(run.code).toBe(0);
-    expect(run.stderr).toContain('Assay desk: Add 1 row to data/invoices.csv:');
-    expect(run.stderr).toContain('  + INV-4, C-2, 5000, 2026-12-05, false');
-    expect(run.stdout).toContain('Assay desk added it.');
-    expect(await invoices(machine, 'teammate')).toContain(NEW_INVOICE);
+    expect(run.stdout).toBe('Assay desk says to add INV-4.\n');
+    expect(run.stderr).not.toContain('Allow this change?');
+    expect(run.stderr).not.toContain('nobody could give it');
+    expect(run.stderr).toContain("append data/invoices.csv failed (In a consult you can't write");
+    expect(await invoices(machine, 'teammate')).toBe(SAMPLE_INVOICES);
     expect(await invoices(machine, 'graduate')).toBe(SAMPLE_INVOICES);
   });
-
   it('names the lead on its own write, so every question in a team says whose change it is', async () => {
     const machine = await teamMachineWith([ADD_INVOICE, { text: 'Left it as it was.' }]);
     const keys = keyboard();
@@ -124,25 +110,6 @@ describe('architect run --team (decision 100)', () => {
     const run = await pending;
     expect(run.stderr).toContain('Inventory desk: Add 1 row to data/invoices.csv:');
     expect(await invoices(machine, 'graduate')).toBe(SAMPLE_INVOICES);
-  });
-
-  it("fails closed on a teammate's write when nobody can answer, naming the teammate, with exit 3", async () => {
-    const machine = await teamMachineWith([
-      asks('Add the invoice.'),
-      ADD_INVOICE,
-      { text: 'never reached' },
-    ]);
-    const run = await cli(['run', '--team', 'Screening logistics'], {
-      env: machine.env,
-      stdin: 'Add an invoice for Ruiz, Ben.\n',
-    });
-    expect(run.code).toBe(3);
-    expect(run.stderr).toContain(
-      'Assay desk: Add 1 row to data/invoices.csv needs approval, and nobody could give it, so nothing was written.',
-    );
-    expect(run.stderr).toContain('allow writes for Assay desk in the app');
-    expect(await invoices(machine, 'teammate')).toBe(SAMPLE_INVOICES);
-    expect(machine.model.chats()).toHaveLength(2);
   });
 
   it('checks every member before any loads: a teammate without its folder stops the run with exit 3', async () => {

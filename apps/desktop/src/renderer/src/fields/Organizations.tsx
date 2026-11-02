@@ -50,13 +50,13 @@ const POLL_MS = 1_500;
 const kindWord = (synthetic: boolean | null) =>
   synthetic === null ? null : synthetic ? 'Generated' : 'Real';
 
-/** "Generated · 12 files · 4,210 rows": what an organization the job trains on holds. */
+/** "Generated, 12 files, 4,210 rows": what an organization the job trains on holds. */
 function holds(org: TaughtOn): string {
   const rows = org.files.reduce((sum, file) => sum + (file.rows ?? 0), 0);
   const tables = org.files.some((file) => file.rows !== null);
   return [kindWord(org.synthetic), plural(org.files.length, 'file'), tables && plural(rows, 'row')]
     .filter(Boolean)
-    .join(' · ');
+    .join(', ');
 }
 
 type Chosen = { kind: 'taught'; index: number } | { kind: 'sealed'; name: string };
@@ -144,7 +144,7 @@ export function Organizations({ field }: { field: FieldSummary }) {
               </RowIcon>
             }
             title={org.name}
-            detail={[kindWord(org.synthetic), plural(org.files, 'file')].join(' · ')}
+            detail={[kindWord(org.synthetic), plural(org.files, 'file')].join(', ')}
             end={standing(org)}
             selected={org === sealed}
             onClick={() => setChosen({ kind: 'sealed', name: org.name })}
@@ -346,7 +346,7 @@ function QualifyCard({
                 done?.status === 'paused' ? done.error : null,
               ]
                 .filter(Boolean)
-                .join(' · ')}
+                .join(', ')}
               end={
                 done?.status === 'finished' && done.score ? (
                   <span
@@ -452,7 +452,6 @@ function AddOrganizationDialog({
               id="added-org-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Maple Grove Academy"
             />
           </Field>
           <Segmented

@@ -89,15 +89,15 @@ describe('before and after on a version carried to another model', () => {
     const rows = places(BEFORE, AFTER, null, null, undefined);
     expect(rows.map((row) => row.name)).toEqual(['Northside', 'Harbor Learning', 'Real academy']);
     const harbor = rows[1];
-    expect(harbor?.before).toBe('50% · 10 of 20, never seen');
-    expect(harbor?.after).toBe('65% · 13 of 20, never seen');
+    expect(harbor?.before).toBe('50% (10 of 20), never seen');
+    expect(harbor?.after).toBe('65% (13 of 20), never seen');
     expect(harbor?.skills).toEqual([
-      { type: 'hint', label: 'First hint', before: '50% · 5 of 10', after: '70% · 7 of 10' },
+      { type: 'hint', label: 'First hint', before: '50% (5 of 10)', after: '70% (7 of 10)' },
       {
         type: 'assign',
         label: 'Assign practice',
-        before: '50% · 5 of 10',
-        after: '60% · 6 of 10',
+        before: '50% (5 of 10)',
+        after: '60% (6 of 10)',
       },
     ]);
   });

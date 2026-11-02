@@ -301,7 +301,7 @@ test("shows each organization before and after on the new version's report", asy
   await expect(table.getByRole('columnheader', { name: 'Academy desk v2' })).toBeVisible();
   const harbor = table.getByRole('row', { name: new RegExp(HARBOR) });
   await expect(harbor).toContainText('never seen');
-  await expect(harbor).toContainText('83% · 10 of 12, held-out checks, taught on');
+  await expect(harbor).toContainText('83% (10 of 12), held-out checks, taught on');
   await table.scrollIntoViewIfNeeded();
   await capture('learn-from-org-report-dark.png');
 });

@@ -1,4 +1,5 @@
 import { Meter, NumberTicker, type NumberKind } from '@architect/ui';
+import { CircleDollarSign, Clock, Repeat, type LucideIcon } from 'lucide-react';
 import { formatDuration, formatUsd } from '../../lib/format';
 import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
@@ -13,7 +14,7 @@ function roundCents(amount: number): number {
 }
 
 /**
- * Time, money and rounds used against the job's caps, in one row. A cap is a hard stop, so each
+ * Time, money and rounds used against the job's caps, one under another. A cap is a hard stop, so each
  * count shows how near the run is to it.
  */
 export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
@@ -26,11 +27,9 @@ export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
     minutes.used > minutes.max &&
     (live.run.phase === 'testing' || live.run.graduateId !== undefined);
   return (
-    <section
-      aria-label="Budget"
-      className="grid grid-cols-1 gap-x-12 gap-y-5 border-b border-line pb-8 sm:grid-cols-3"
-    >
+    <section aria-label="Budget" className="flex flex-col gap-5 border-t border-line pt-6">
       <BudgetMeter
+        icon={Clock}
         label="Time"
         value={minutes.used * 60_000}
         kind="duration"
@@ -41,8 +40,12 @@ export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
           testedPast ? `Training stopped at the limit, then the ${w.finalTest} ran` : undefined
         }
       />
+      {/* Only the mentor's bill has a cap; what an online student costs is billed apart, so the
+          label names the bill it counts, as the estimate's line for it does. */}
       <BudgetMeter
-        label={`${mentor}'s cost`}
+        icon={CircleDollarSign}
+        tone="mentor"
+        label={`${mentor} teaching`}
         value={roundCents(usd.used)}
         kind="currency"
         used={formatUsd(roundCents(usd.used))}
@@ -50,6 +53,7 @@ export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
         fraction={share(usd.used, usd.max)}
       />
       <BudgetMeter
+        icon={Repeat}
         label="Rounds"
         value={rounds.used}
         kind="integer"
@@ -62,6 +66,8 @@ export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
 }
 
 function BudgetMeter({
+  icon: Icon,
+  tone = 'fg',
   label,
   value,
   kind,
@@ -70,6 +76,8 @@ function BudgetMeter({
   fraction,
   reachedHint,
 }: {
+  icon: LucideIcon;
+  tone?: 'fg' | 'mentor';
   label: string;
   /** What has been used, as a number that rolls to its new value. */
   value: number;
@@ -83,20 +91,29 @@ function BudgetMeter({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <Icon size={16} strokeWidth={1.8} aria-hidden className="shrink-0" />
         <span className="min-w-0 truncate">
           {label}
           {/* A cap is checked between steps, so the last step can carry the count past it. */}
-          {fraction >= 1 && <span title={reachedHint}> · limit reached</span>}
+          {fraction >= 1 && <span title={reachedHint}>, limit reached</span>}
         </span>
-        <span className="shrink-0 tabular-nums">
+        <span className="ml-auto shrink-0 tabular-nums">
           <Counted said={used}>
-            <NumberTicker value={value} kind={kind} />
+            <span className="font-medium">
+              <NumberTicker value={value} kind={kind} />
+            </span>
           </Counted>{' '}
           <span>/ {max}</span>
         </span>
       </div>
-      <Meter label={label} value={fraction} valueText={`${used} of ${max}`} />
+      <Meter
+        label={label}
+        value={fraction}
+        valueText={`${used} of ${max}`}
+        tone={tone}
+        thickness={4}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ export type Step =
   | { kind: 'start_round'; round: number }
   | { kind: 'attempt_train'; round: number }
   | { kind: 'author'; round: number }
+  | { kind: 'probe'; round: number }
+  | { kind: 'compose'; round: number }
   | { kind: 'teach'; round: number }
   | { kind: 'await_training'; round: number }
   | { kind: 'clarify'; round: number }
@@ -76,6 +78,8 @@ const OPEN: ReadonlySet<Round['status']> = new Set([
   'teaching',
   'training',
   'clarifying',
+  'probing',
+  'composing',
   'evaluating',
 ]);
 
@@ -129,6 +133,10 @@ function continueRound(round: PlanInput['rounds'][number]): Step {
       return round.awaitingAnswer === true
         ? { kind: 'park' }
         : { kind: 'clarify', round: round.index };
+    case 'probing':
+      return { kind: 'probe', round: round.index };
+    case 'composing':
+      return { kind: 'compose', round: round.index };
     default:
       return { kind: 'evaluate_candidate', round: round.index };
   }

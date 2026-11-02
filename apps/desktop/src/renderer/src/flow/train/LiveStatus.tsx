@@ -1,7 +1,7 @@
 import { Fragment, useMemo, type CSSProperties } from 'react';
 import type { RunStatus } from '@architect/shared';
-import { cn, NumberTicker, StepTransition, Tooltip } from '@architect/ui';
-import { Check, ChevronRight, CircleAlert, Cloud, Laptop, Square } from 'lucide-react';
+import { cn, Meter, NumberTicker, StepTransition, Tooltip } from '@architect/ui';
+import { Check, CircleAlert, Cloud, Laptop, Square } from 'lucide-react';
 import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
 import { ROUND_STAGES, STAGE_LABELS, type PhaseView, type Stage } from './phase';
@@ -40,9 +40,13 @@ interface LiveStatusProps {
   view: PhaseView;
   /** The current round writes the first full draft rather than one watched change. */
   drafting: boolean;
+  /** A round has begun; before it, scoring the start has no steps before it. */
+  inRound: boolean;
   /** The current pass rate on check tasks, 0 to 1, once measured. */
   passRate: number | null;
   progress: EvalProgress | null;
+  /** Practice tasks answered so far in the round, while the student practices. */
+  practice: { done: number; total: number } | null;
 }
 
 /**
@@ -57,8 +61,10 @@ export function LiveStatus({
   status,
   view,
   drafting,
+  inRound,
   passRate,
   progress,
+  practice,
 }: LiveStatusProps) {
   const w = useWords();
   // A draft round makes no practice attempts: the mentor writes the draft, then it is checked.
@@ -67,8 +73,10 @@ export function LiveStatus({
   const label =
     view.motion === 'testing'
       ? `${student} is taking the ${w.finalTest}`
-      : `${mentor} is mentoring ${student}`;
+      : `${mentor} is teaching ${student}`;
   const stepsLabel = view.stage === 'testing' ? 'After training' : 'Each round';
+  const counted = progress ?? (view.stage === 'attempting' ? practice : null);
+  const stepShare = counted && counted.total > 0 ? counted.done / counted.total : null;
   const place =
     view.motion === 'testing'
       ? `taking the ${w.finalTest} ${studentPlace}`
@@ -90,36 +98,51 @@ export function LiveStatus({
           </p>
         </StepTransition>
       </div>
-      {progress && (
+      {counted && (
         <span className="text-ui tabular-nums">
-          <Counted said={`${progress.done} of ${progress.total}`}>
-            <NumberTicker value={progress.done} /> of <NumberTicker value={progress.total} />
+          <Counted said={`${counted.done} of ${counted.total}`}>
+            <NumberTicker value={counted.done} /> of <NumberTicker value={counted.total} />
           </Counted>
         </span>
       )}
-      <ol aria-label={stepsLabel} className="m-0 flex list-none items-center gap-2 p-0 text-small">
-        {stages.map((stage, index) => (
-          <li
-            key={stage}
-            aria-current={stage === view.stage ? 'step' : undefined}
-            className="flex items-center gap-2"
-          >
-            {index > 0 && <ChevronRight size={13} strokeWidth={1.8} aria-hidden />}
-            <span
-              className={cn(
-                'border-b-2 pb-0.5 transition-colors duration-150',
-                stage === view.stage ? 'border-fg font-medium' : 'border-transparent',
-              )}
-            >
-              {drafting && stage === 'diagnosing'
+      {/* A run that has ended has no step under way, so its steps go with it. */}
+      {view.motion !== 'still' && (
+        <ol aria-label={stepsLabel} className="m-0 flex list-none items-end gap-2 p-0 text-small">
+          {stages.map((stage, index) => {
+            const reached = view.stage === null || !inRound ? -1 : stages.indexOf(view.stage);
+            const current = stage === view.stage;
+            const name =
+              drafting && stage === 'diagnosing'
                 ? 'Write first draft'
                 : stage === 'testing'
                   ? w.FinalTest
-                  : STAGE_LABELS[stage]}
-            </span>
-          </li>
-        ))}
-      </ol>
+                  : STAGE_LABELS[stage];
+            // The step under way fills as its tasks are done, in the color of whoever does it, from
+            // empty until its first count arrives; the mentor's step has no count, so it shows full.
+            // The steps before it are full.
+            const share = current
+              ? (stepShare ?? (stage === 'diagnosing' ? 1 : 0))
+              : index < reached
+                ? 1
+                : 0;
+            return (
+              <li
+                key={stage}
+                aria-current={current ? 'step' : undefined}
+                className="flex min-w-24 flex-col gap-2"
+              >
+                <span className={cn('whitespace-nowrap', current && 'font-medium')}>{name}</span>
+                <Meter
+                  label={name}
+                  value={share}
+                  valueText={current ? 'Under way' : index < reached ? 'Done' : 'Not yet'}
+                  tone={current ? stageTone(stage) : 'fg'}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      )}
       {view.motion !== 'still' && (
         <Tooltip content={`${student} is ${place}`}>
           <span
@@ -138,6 +161,11 @@ export function LiveStatus({
       )}
     </section>
   );
+}
+
+/** Whoever does a step: the student answers tasks, the mentor reads what went wrong. */
+function stageTone(stage: Stage): 'student' | 'mentor' {
+  return stage === 'diagnosing' ? 'mentor' : 'student';
 }
 
 /** A line with each model's name in its own color, so who does what reads at a glance. */

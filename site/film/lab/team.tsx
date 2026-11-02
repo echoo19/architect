@@ -237,7 +237,7 @@ function ApprovalCard({
               />
             </span>
             <span className="text-small">
-              {agent} · {count}
+              {agent}, {count}
             </span>
           </span>
         </span>

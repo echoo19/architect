@@ -31,7 +31,7 @@ export function Card({ title, icon, action, wide, flush, children, className }: 
       >
         <div className="flex min-h-14 items-center gap-2.5 pl-6 pr-4 pt-1">
           {icon && <span className="flex shrink-0 [&_svg]:size-4">{icon}</span>}
-          <h2 className="m-0 min-w-0 flex-1 truncate font-display text-body font-semibold">
+          <h2 className="m-0 min-w-0 flex-1 break-words font-display text-body font-semibold text-pretty">
             {title}
           </h2>
           {action}
@@ -94,15 +94,17 @@ export function CardRow({
   const body = (
     <>
       {icon && <span className="flex min-w-6 shrink-0 items-center justify-center">{icon}</span>}
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate font-medium">{title}</span>
+      {/* A name wraps rather than being cut; when the end leaves it too little room, the end
+          moves under it, still at the right. */}
+      <span className="flex min-w-32 flex-1 flex-col gap-0.5">
+        <span className="line-clamp-2 break-words font-medium">{title}</span>
         {detail && <span className="truncate text-small">{detail}</span>}
       </span>
-      {end && <span className="flex shrink-0 items-center gap-2 tabular-nums">{end}</span>}
+      {end && <span className="ml-auto flex shrink-0 items-center gap-2 tabular-nums">{end}</span>}
     </>
   );
   const classes = cn(
-    'flex min-h-14 w-full items-center gap-3 border-t border-line px-6 py-2.5 text-left text-ui',
+    'flex min-h-14 w-full flex-wrap items-center gap-3 border-t border-line px-6 py-2.5 text-left text-ui',
     selected && 'bg-selected',
     className,
   );

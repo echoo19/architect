@@ -22,6 +22,7 @@ import { toError, type QueryState } from '../api/query';
 import { errorOf } from '../components/QueryValue';
 import { mentorName, shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
+import { useEdition } from '../shell/edition';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { mentorFromChoice, type Connection } from '../settings/models/connections';
 import { useConnections } from '../settings/models/hooks';
@@ -66,7 +67,7 @@ function ConnectionResult({ result }: { result: ConnectionTest }) {
         aria-hidden
       />
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span>{result.ok ? `Connected · ${result.latencyMs} ms` : result.error}</span>
+        <span>{result.ok ? `Connected in ${result.latencyMs} ms` : result.error}</span>
         {!result.ok && result.hint && (
           <span className="text-small text-fg text-pretty">{result.hint}</span>
         )}
@@ -114,13 +115,20 @@ export function MentorStep({
   const chosenHere = model !== null && route === routeOf(model);
   const metaSaved = secrets.data?.['meta'] === true;
   const waiting = signIn.state.phase === 'waiting';
+  const lab = useEdition() === 'lab';
+
+  // The teacher each way last had, so going back to a way brings its teacher back with it.
+  const [chosen, setChosen] = useState<Partial<Record<MentorRoute, MentorConfig>>>({});
 
   const chooseRoute = (next: MentorRoute) => {
     onResult(null);
     onRoute(next);
-    if (next === 'meta' && model?.provider !== 'meta') {
-      onMentor(mentorFromPreset(mentorPreset('meta-spark'), mentor));
-    }
+    const remembered = model ? { ...chosen, [routeOf(model)]: model } : chosen;
+    setChosen(remembered);
+    const earlier = remembered[next];
+    if (model !== null && routeOf(model) === next) return;
+    if (earlier) onMentor(earlier);
+    else if (next === 'meta') onMentor(mentorFromPreset(mentorPreset('meta-spark'), mentor));
   };
 
   const test = async (event?: FormEvent) => {
@@ -264,7 +272,9 @@ export function MentorStep({
   return (
     <>
       <StepIntro title="Connect a teacher">
-        {mentorName(mentor)} teaches new agents while they train; finished agents never use it.
+        {mentorName(mentor)}
+        {lab ? ', a frontier model,' : ''} teaches new agents while they train; finished agents
+        never use it.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         <Panel aria-label="Teacher connection" className="px-7 py-1 [&>*:first-child]:border-t-0">

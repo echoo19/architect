@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
+  pairedDifference,
   runComparison,
   type ComparisonConfig,
   type ComparisonRequest,
@@ -14,9 +15,10 @@ import { finalTestAttemptsLeft } from '../src/comparisons/field';
 import { armRun } from '../src/comparisons/report';
 import { PROCEDURE_PATH } from '../src/drafting/study';
 import { systemClock } from '../src/loop/deps';
+import { ADOPTED_TITLE } from '../src/loop/training';
 import { DataPaths } from '../src/loop/paths';
 import { openEngineStore } from '../src/store/engine-store';
-import { FileVersions, harnessToFiles } from './fakes/harness';
+import { blankHarness, FileVersions, harnessToFiles } from './fakes/harness';
 import { orgJob } from './support/organizations';
 import { comparisonWorld, type ComparisonWorld } from './support/comparison-world';
 import { BRIEF, fieldJob } from './support/field-comparison';
@@ -121,6 +123,15 @@ describe('a comparison on a job with organizations', () => {
       const sealed = (orgs.get('quayside')?.total ?? 0) + (orgs.get('hillcrest')?.total ?? 0);
       expect(sealed).toBe(sealedTasks);
     }
+    // Each pair is paired again within the organizations taught on and those never seen.
+    const pair = hosted?.paired.find((item) => item.a === 'draft' && item.b === 'bare');
+    expect(pair?.byGroup?.map((group) => [group.group, group.scenarios])).toEqual([
+      ['seen', 36],
+      ['unseen', sealedTasks],
+    ]);
+    for (const group of pair?.byGroup ?? []) {
+      expect(group.difference).toEqual(pairedDifference(group));
+    }
     const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
     expect(markdown).toContain('Hillcrest Outlet (never seen, real)');
     expect(markdown).toContain('North Desk (taught on, synthetic)');
@@ -146,6 +157,71 @@ describe('a comparison on a job with organizations', () => {
       }
       expect(firstHarness['bare']).not.toContain(PROCEDURE_PATH);
       expect(firstHarness['draft']).toContain(PROCEDURE_PATH);
+    } finally {
+      store.close();
+    }
+  }, 300_000);
+});
+
+describe('a frozen harness on a job with organizations', () => {
+  it('shares a brief confirmed before and adopts the harness as the draft, with no call to Spark', async () => {
+    // A first comparison has Spark study the organizations, and the person confirms the brief.
+    const first = setUp();
+    const lines: string[] = [];
+    first.world.env.log = (line) => lines.push(line);
+    await runComparison({ ...first.request, planOnly: true }, first.world.env);
+    const token = /--confirm-study (\S+)/.exec(lines.join('\n'))?.[1] ?? '';
+    await runComparison({ ...first.request, planOnly: true, studyToken: token }, first.world.env);
+    const brief = StudyRecordSchema.parse(
+      JSON.parse(readFileSync(join(first.world.out, 'study.json'), 'utf8')),
+    );
+    expect(brief.confirmedAt).toBeDefined();
+
+    // A second comparison, on its own copy of the same files, gets that brief and a harness.
+    const { world, request } = setUp();
+    const given = {
+      ...blankHarness('Returns desk', 'Frozen elsewhere.'),
+      system: 'Returns desk.\nfix:refund\nfix:order\nfix:pickup',
+    };
+    const harnessDir = join(world.root, 'frozen');
+    await world.env.writeHarness(harnessDir, given);
+    const frozenRequest: ComparisonRequest = {
+      ...request,
+      study: brief,
+      config: {
+        ...CONFIG,
+        arms: ['draft'],
+        caps: { ...CONFIG.caps, sparkUsd: 0 },
+        draftHarness: harnessDir,
+      },
+    };
+
+    // A brief the person never confirmed is refused, and no arm starts.
+    const { confirmedAt: _confirmed, ...unconfirmed } = brief;
+    await expect(
+      runComparison({ ...frozenRequest, study: unconfirmed }, world.env),
+    ).rejects.toThrow(/confirmed/);
+
+    const done = await runComparison(frozenRequest, world.env);
+    expect(done.outcome).toBe('finished');
+    expect(world.mentor.requests).toHaveLength(0);
+    expect(done.report.projection?.arms.find((arm) => arm.arm === 'draft')?.sparkUsd).toBe(0);
+    const hosted = done.report.backends.find((table) => table.backend === 'hosted');
+    expect(hosted?.rows.map((row) => [row.arm, row.complete])).toEqual([['draft', true]]);
+
+    // The draft is the harness given, adopted whole and frozen as it was.
+    const paths = new DataPaths(join(world.out, 'data'));
+    const store = openEngineStore(paths.database);
+    try {
+      const run = armRun(store, 'draft');
+      if (run === null || run.freeze === null) throw new Error('The draft arm never froze.');
+      expect(
+        store.rounds.list(run.run.id).map(({ round }) => [round.title, round.decision]),
+      ).toEqual([[ADOPTED_TITLE, 'kept']]);
+      const frozen = await new FileVersions(paths.harnessDir(run.run.jobId, run.run.id)).load(
+        run.freeze.harnessVersion,
+      );
+      expect(frozen.system).toBe(given.system);
     } finally {
       store.close();
     }

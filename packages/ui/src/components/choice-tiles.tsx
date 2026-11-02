@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Info } from 'lucide-react';
+import { CircleCheck, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ToggleGroup } from 'radix-ui';
 import { cn } from '../lib/cn';
@@ -99,16 +99,22 @@ function Tile<T extends string>({ option, chosen }: { option: ChoiceTile<T>; cho
         whileTap={{ scale: PRESS_SCALE }}
         transition={springs.snappy}
         className={cn(
-          'flex min-h-[68px] min-w-0 flex-col items-start justify-between gap-2 rounded-control',
+          // A tile with a description sets its name right under the icon, so the names in a row
+          // of tiles line up whatever each description's length; a bare name sits at the foot.
+          'flex min-h-[68px] min-w-0 flex-col items-start gap-2 rounded-control',
+          option.description ? 'justify-start' : 'justify-between',
           'bg-field px-3 py-2.5 text-left text-ui shadow-edge',
           'transition-[background-color,box-shadow] duration-150 hover:bg-hover',
           'disabled:pointer-events-none disabled:opacity-40',
           chosen && 'bg-selected shadow-edge-strong inset-ring-1 inset-ring-fg/50',
         )}
       >
-        <span aria-hidden className="flex w-full items-center justify-between [&_svg]:size-4">
+        <span aria-hidden className="flex w-full items-center gap-1.5 [&_svg]:size-4">
           {option.icon}
+          <span className="flex-1" />
           {option.tip && <Info strokeWidth={1.8} />}
+          {/* A chosen tile says so with a check, not by its fill alone. */}
+          {chosen && <CircleCheck strokeWidth={2} className="text-fg" />}
         </span>
         <span className="flex w-full flex-col gap-0.5">
           <span className="line-clamp-2 w-full break-words font-medium">{option.label}</span>

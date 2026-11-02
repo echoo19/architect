@@ -7,7 +7,7 @@ import { graduatesApi, refreshAgent } from '../api/graduates';
 import { queryKeys } from '../api/hooks';
 import { fetchQuery, toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
-import { needsLlama, stepsNeedingAttention } from '../install/labels';
+import { needsLlama } from '../install/labels';
 import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { FlowShell } from '../shell/FlowShell';
@@ -16,7 +16,13 @@ import { createChat, forgetAgent } from '../workspace/store';
 import { CheckStep, Refused, WaitsForLlama } from './CheckStep';
 import { HubImportFlow } from './HubImport';
 import { InstallStep } from './InstallStep';
-import { FoldersStep, PermissionsStep } from './SetupSteps';
+import {
+  FoldersStep,
+  foldersNotSetUp,
+  NotSetUp,
+  PermissionsStep,
+  stepsLeftUndone,
+} from './SetupSteps';
 import { chooseFromHub, chooseImport, useImportSession } from './session';
 
 type Stage = 'Package' | 'Folders' | 'Permissions' | 'Install';
@@ -71,7 +77,11 @@ function baseName(path: string): string {
 }
 
 function Footer({ children }: { children: ReactNode }) {
-  return <div className="mx-auto flex max-w-[680px] justify-between gap-3">{children}</div>;
+  return (
+    <div className="mx-auto box-content flex max-w-[680px] justify-between gap-3 px-8">
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -101,7 +111,11 @@ function ImportFlow({
   const next = (from: Stage): Stage => steps[steps.indexOf(from) + 1] ?? 'Install';
   const back = (from: Stage): Stage => steps[steps.indexOf(from) - 1] ?? 'Package';
   const close = () => navigate(paths.home());
-  const name = ok ? ok.manifest.identity.name : 'Import agent';
+  const name = ok
+    ? ok.place.kind === 'new'
+      ? (ok.place.name ?? ok.manifest.identity.name)
+      : ok.manifest.identity.name
+    : 'Import agent';
 
   /** Installs the package with what this flow chose, then reads the agent list again. */
   const install = async () => {
@@ -135,6 +149,9 @@ function ImportFlow({
     setLeaving(null);
     if (chat) navigate(paths.chat(result.graduate.id, chat.id));
   };
+
+  const bind = (resource: string, folder: string) =>
+    setBindings((current) => ({ ...current, [resource]: folder }));
 
   const remove = async () => {
     if (!result) return;
@@ -243,23 +260,18 @@ function ImportFlow({
       </Footer>
     );
   } else if (stage === 'Folders') {
-    body = (
-      <FoldersStep
-        manifest={preview.manifest}
-        bindings={bindings}
-        onBind={(resource, folder) =>
-          setBindings((current) => ({ ...current, [resource]: folder }))
-        }
-      />
-    );
+    body = <FoldersStep manifest={preview.manifest} bindings={bindings} onBind={bind} />;
     footer = (
       <Footer>
         <Button size="lg" onClick={() => setStage(back('Folders'))}>
           Back
         </Button>
-        <Button variant="primary" size="lg" onClick={() => setStage(next('Folders'))}>
-          Continue
-        </Button>
+        <div className="flex items-center gap-4">
+          <NotSetUp resources={foldersNotSetUp(preview.manifest, bindings)} />
+          <Button variant="primary" size="lg" onClick={() => setStage(next('Folders'))}>
+            Continue
+          </Button>
+        </div>
       </Footer>
     );
   } else if (stage === 'Permissions') {
@@ -269,6 +281,7 @@ function ImportFlow({
         bindings={bindings}
         grants={grants}
         writes={writes}
+        onBind={bind}
         onGrant={(resource, grant) => setGrants((current) => ({ ...current, [resource]: grant }))}
         onWrites={setWrites}
       />
@@ -278,9 +291,12 @@ function ImportFlow({
         <Button size="lg" onClick={() => setStage(back('Permissions'))}>
           Back
         </Button>
-        <Button variant="primary" size="lg" onClick={() => void install()}>
-          Install
-        </Button>
+        <div className="flex items-center gap-4">
+          <NotSetUp resources={foldersNotSetUp(preview.manifest, bindings, grants)} />
+          <Button variant="primary" size="lg" onClick={() => void install()}>
+            Install
+          </Button>
+        </div>
       </Footer>
     );
   } else {
@@ -305,9 +321,12 @@ function ImportFlow({
     if (result) {
       footer = (
         <Footer>
-          <Button size="lg" onClick={close}>
-            {result.installation.status === 'ready' || asVersion ? 'Done' : 'Not now'}
-          </Button>
+          {/* A new agent that is ready is opened by its chat; home would open another agent's. */}
+          {(asVersion || result.installation.status !== 'ready') && (
+            <Button size="lg" onClick={close}>
+              {asVersion ? 'Done' : 'Not now'}
+            </Button>
+          )}
           {asVersion ? (
             <Button
               variant="primary"
@@ -325,6 +344,7 @@ function ImportFlow({
               size="lg"
               loading={leaving === 'chat'}
               onClick={() => void startChat()}
+              className="ml-auto"
             >
               {leaving !== 'chat' && <MessageSquarePlus size={16} strokeWidth={1.7} aria-hidden />}
               Start a chat
@@ -341,7 +361,7 @@ function ImportFlow({
       step={stage}
       steps={steps}
       footer={footer}
-      attention={stage === 'Install' ? stepsNeedingAttention(result?.installation) : []}
+      attention={ok ? stepsLeftUndone(ok.manifest, bindings, grants, result?.installation) : []}
     >
       <div className="mx-auto box-content flex max-w-[680px] flex-col gap-10 px-8 pb-12 pt-14">
         {body}

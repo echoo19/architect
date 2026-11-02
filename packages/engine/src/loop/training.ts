@@ -16,8 +16,14 @@ import type { StoredRound } from '../store/records';
 import { resultOf, type EvaluationResult } from './attempts';
 import { configurationKey, LLAMA_CPP, llamaCppConfig, type AttemptConfig } from './configuration';
 import { must } from './errors';
-import { evaluate, type EvaluationSpec } from './evaluation';
-import { measurement, recordExperiment, settleExperimentCompute } from './experiments';
+import { attemptsLeft, attemptsMade, evaluate, type EvaluationSpec } from './evaluation';
+import {
+  devAttempts,
+  measurement,
+  recorded,
+  recordExperiment,
+  settleExperimentCompute,
+} from './experiments';
 import { readJsonFile } from './files';
 import {
   confirmKeep,
@@ -32,7 +38,7 @@ import {
 import { percentile } from '../report/report-card';
 import { menuOf, nothingToTry } from './menu';
 import { TRAINING_ENDED, trainingEnd, type RunState } from './run-state';
-import { deriveSeed, devSeeds, roundSeed, sampleTrainBatch } from './seeds';
+import { deriveSeed, devSeeds, probeSeeds, roundSeed, sampleTrainBatch } from './seeds';
 import { startingHarness } from './setup';
 
 function comparePerType(before: TypeScore[], after: TypeScore[]) {
@@ -79,7 +85,7 @@ export async function prepare(state: RunState): Promise<void> {
   // the runner's own plan, so the mentor is not asked there.
   const planned = adopts(state, 1) || isOneShotAdapter(state);
   const idle = planned ? null : await nothingToTry(state, 1);
-  if (idle !== null) finishTraining(state, 'nothing_to_try', idle);
+  if (idle !== null) await finishTraining(state, 'nothing_to_try', idle);
 }
 
 async function first(state: RunState): Promise<Harness> {
@@ -92,22 +98,24 @@ async function first(state: RunState): Promise<Harness> {
 
 /**
  * One version on every dev task, under the seeds of the baseline (round null) or a round: the
- * job's repeats, or more when a round measures again. The incumbent's configuration unless one
- * is named: the job's student, or llama.cpp with the run's kept adapter.
+ * job's repeats, or more when a round measures again, unless other seeds are named, as a round's
+ * probes are measured under seeds of their own (decision 108). The incumbent's configuration
+ * unless one is named: the job's student, or llama.cpp with the run's kept adapter.
  */
-async function devEvaluation(
+export async function devEvaluation(
   state: RunState,
   version: number,
   round: number | null,
   runs = state.job.evaluation.devRepeats,
   config: AttemptConfig = state.incumbentConfig(),
+  seeds: readonly number[] = devSeeds(state.record.seeds.devPanel, round, runs),
 ): Promise<EvaluationSpec> {
   return {
     tasks: await state.devTasks(),
     split: 'dev',
     round,
     version,
-    seeds: devSeeds(state.record.seeds.devPanel, round, runs),
+    seeds,
     target: state.targetOf(config),
     purpose: 'training',
     concurrency: state.ctx.concurrency,
@@ -315,6 +323,7 @@ async function oneShotRound(state: RunState, index: number): Promise<void> {
 }
 
 export async function startRound(state: RunState, index: number): Promise<void> {
+  await settleProbes(state);
   if (adopts(state, index)) {
     await adoptRound(state, index);
     return;
@@ -325,7 +334,7 @@ export async function startRound(state: RunState, index: number): Promise<void> 
   }
   const idle = await nothingToTry(state, index);
   if (idle !== null) {
-    finishTraining(state, 'nothing_to_try', idle);
+    await finishTraining(state, 'nothing_to_try', idle);
     return;
   }
   const drafting = state.drafts(index);
@@ -465,6 +474,7 @@ async function decide(
     },
     decision: decision.keep ? 'kept' : 'reverted',
     decisionReason: decision.reason,
+    ...(round.probes === undefined ? {} : { probes: round.probes }),
     versionFrom: stored.baseVersion,
     versionTo: must(round.candidateVersion, 'The candidate version'),
     mentor: { model: reply.model, costUsd: round.costUsd, ...authorTokens(state, round.index) },
@@ -527,53 +537,6 @@ async function decide(
   state.log('info', `Round ${round.index} ${verdict.disposition}: ${entry.decisionReason}.`);
 }
 
-/** A configuration's dev attempts in a round under some of its seeds. */
-function devAttempts(
-  state: RunState,
-  version: number,
-  round: number | null,
-  seeds: readonly number[],
-  config: AttemptConfig,
-) {
-  return state
-    .attempts({
-      split: 'dev',
-      version,
-      round,
-      target: state.targetOf(config),
-      config: configurationKey(config),
-    })
-    .filter((attempt) => seeds.includes(attempt.seed));
-}
-
-/** One configuration's measurement, as an experiment records it. */
-function recorded(
-  state: RunState,
-  label: string,
-  version: number,
-  round: number | null,
-  seeds: readonly number[],
-  config: AttemptConfig,
-  provenance: string,
-): RecordedMeasurement {
-  const result = state.devResult(version, round, seeds, config);
-  const latencies = devAttempts(state, version, round, seeds, config).map(
-    (attempt) => attempt.latencyMs,
-  );
-  return measurement(
-    label,
-    {
-      harnessVersion: version,
-      actor: config.actor,
-      backend: config.backend === 'job' ? state.studentBackend() : config.backend,
-      adapter: config.adapter,
-    },
-    { ...result, latencies },
-    seeds,
-    provenance,
-  );
-}
-
 /**
  * Both versions on dev under `runs` of the round's seeds, or null when the evaluation stopped
  * short. Runs already measured are reused, so a second measurement only adds the new seeds.
@@ -586,17 +549,125 @@ async function measureRound(
 ): Promise<DevPair | null> {
   const seeds = devSeeds(state.record.seeds.devPanel, index, runs);
   const config = state.incumbentConfig();
+  const specs: EvaluationSpec[] = [];
   for (const version of [versions.base, versions.candidate]) {
-    if (!(await evaluate(state, await devEvaluation(state, version, index, runs, config)))) {
-      return null;
-    }
-    const result = state.devResult(version, index, seeds, config);
-    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: version, ...result });
+    specs.push(await devEvaluation(state, version, index, runs, config));
+  }
+  // One count for the round's whole measurement, so the score doesn't start over halfway. A
+  // change composed from probes ends the count its probe step began, every attempt of it counted,
+  // those made before a restart included (decision 108).
+  const probing = runs === state.job.evaluation.devRepeats ? await probingSpecs(state, index) : [];
+  const counted = probing.length === 0 ? null : [...probing, ...specs.slice(1)];
+  const left = specs.map((spec) => attemptsLeft(state, spec));
+  const total =
+    counted === null
+      ? left.reduce((sum, count) => sum + count, 0)
+      : counted.reduce((sum, spec) => sum + spec.tasks.length * spec.seeds.length, 0);
+  let before = 0;
+  for (const [i, spec] of specs.entries()) {
+    const of =
+      counted === null
+        ? { before, total }
+        : { before: counted.reduce((sum, item) => sum + attemptsMade(state, item), 0), total };
+    if (!(await evaluate(state, { ...spec, of }))) return null;
+    before += left[i]!;
+    const result = state.devResult(spec.version, index, seeds, config);
+    state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: spec.version, ...result });
   }
   return {
     before: state.devResult(versions.base, index, seeds, config),
     after: state.devResult(versions.candidate, index, seeds, config),
   };
+}
+
+/**
+ * A round's probe step on dev (decision 108): the incumbent under the round's seeds, then each
+ * probe the runner built under the round's probe seeds. Empty for a round that makes one change.
+ */
+export async function probingSpecs(state: RunState, index: number): Promise<EvaluationSpec[]> {
+  const { round, baseVersion } = state.round(index);
+  const versions = (round.probes ?? []).flatMap((probe) =>
+    probe.version === undefined ? [] : [probe.version],
+  );
+  if (versions.length === 0) return [];
+  const runs = state.job.evaluation.devRepeats;
+  const config = state.incumbentConfig();
+  const own = probeSeeds(state.record.seeds.devPanel, index, runs);
+  const specs = [await devEvaluation(state, baseVersion, index, runs, config)];
+  for (const version of versions) {
+    specs.push(await devEvaluation(state, version, index, runs, config, own));
+  }
+  return specs;
+}
+
+/**
+ * Lineage for a probing round that ended before a change composed from its probes was decided
+ * (decision 108): its reply refused twice, or a stop, the time limit or the dollar cap first. The
+ * round kept nothing, so its entry is the incumbent against itself, with every probe and what it
+ * measured. Written once, before the next round starts or training ends.
+ */
+async function settleProbes(state: RunState): Promise<void> {
+  // The database's index decides, so an entry the file got before a crash is still indexed.
+  const logged = new Set(state.ctx.store.lineage.list(state.ctx.runId).map((row) => row.round));
+  for (const stored of state.rounds()) {
+    const { round } = stored;
+    if (round.status !== 'failed' || logged.has(round.index)) continue;
+    if (!(round.probes ?? []).some((probe) => probe.devAfter !== undefined)) continue;
+    const seeds = devSeeds(
+      state.record.seeds.devPanel,
+      round.index,
+      state.job.evaluation.devRepeats,
+    );
+    const incumbent = state.devResult(
+      stored.baseVersion,
+      round.index,
+      seeds,
+      state.incumbentConfig(),
+    );
+    const why = round.error === undefined ? '' : ` ${round.error}`;
+    const entry = await state.lineage.record({
+      id: newId('chg'),
+      runId: state.ctx.runId,
+      round: round.index,
+      title: 'Probes, with no change decided',
+      diagnosis: `The round ended before a change composed from its probes was decided.${why}`,
+      files: [],
+      causeTaskIds: [],
+      predicted: {
+        devDeltaMin: 0,
+        devDeltaMax: 0,
+        rationale: 'No change was decided, so none was predicted.',
+      },
+      measured: {
+        devBefore: incumbent.score,
+        devAfter: incumbent.score,
+        delta: 0,
+        perType: comparePerType(incumbent.perType, incumbent.perType),
+      },
+      decision: 'reverted',
+      decisionReason: 'Nothing was kept: no change composed from the probes was decided',
+      probes: round.probes,
+      versionFrom: stored.baseVersion,
+      versionTo: stored.baseVersion,
+      mentor: {
+        model: stored.reply?.model ?? 'none',
+        costUsd: round.costUsd,
+        ...authorTokens(state, round.index),
+      },
+      at: state.now(),
+    });
+    state.ctx.store.lineage.insert({
+      id: entry.id,
+      runId: entry.runId,
+      round: entry.round,
+      title: entry.title,
+      decision: entry.decision,
+      delta: entry.measured.delta,
+      versionFrom: entry.versionFrom,
+      versionTo: entry.versionTo,
+      at: entry.at,
+    });
+  }
 }
 
 /**
@@ -1173,13 +1244,15 @@ export function abandonRound(state: RunState, index: number, reason: string): vo
 /**
  * Hands the run to its locked test, or ends it when there is nothing to test: a stop, or a mentor
  * with nothing it may change (decision 063), before anything was kept. `why` is the sentence for
- * the second, which the run keeps where the person reads it.
+ * the second, which the run keeps where the person reads it. A probing round that decided nothing
+ * is put in lineage first.
  */
-export function finishTraining(
+export async function finishTraining(
   state: RunState,
   reason: RunStopReason | undefined,
   why?: string,
-): void {
+): Promise<void> {
+  await settleProbes(state);
   for (const settled of settleExperimentCompute(
     state.ctx.store,
     state.ctx.deps.training,

@@ -289,11 +289,10 @@ test('keeps practice, check tasks, the final test and install checks apart', asy
   await expect(comparisons.getByRole('row')).toHaveCount(4);
   const section = page.locator('section[aria-labelledby="comparisons"]');
   await section.getByRole('button', { name: 'Details' }).click();
-  for (const arm of ['Glimmer with trained weights', 'Glimmer with both']) {
-    await expect(section).toContainText(
-      `${arm} wasn't measured: no round measured trained weights`,
-    );
-  }
+  // One reason covers both configurations with trained weights, so it is said once.
+  await expect(section).toContainText(
+    'Glimmer with trained weights, alone or with the setup: not measured yet, as no round of this run trained them.',
+  );
   await expect(
     comparisons.getByRole('row', { name: /Spark doing the tasks itself/ }),
   ).toContainText('Not run');

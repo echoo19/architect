@@ -1,4 +1,5 @@
 export { cn } from './lib/cn';
+export { useWindowBelow } from './lib/window-width';
 export { WINDOW_CHROME, type WindowChrome } from './chrome';
 export { defineTerm, WORDS, type LabTerm, type Words } from './terms';
 export {
@@ -44,6 +45,7 @@ export {
   type AgentAvatarProps,
   type AgentAvatarSize,
 } from './components/brand';
+export { BarChart, niceCeiling, type BarChartProps, type BarDatum } from './components/bar-chart';
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './components/button';
 export { Checkbox, type CheckboxProps } from './components/checkbox';
 export {
@@ -104,6 +106,18 @@ export {
   type IntervalRow,
   type IntervalTone,
 } from './components/interval-plot';
+export {
+  LineChart,
+  spacedTicks,
+  stepPath,
+  type ChartMark,
+  type ChartPoint,
+  type ChartTick,
+  type ChartTone,
+  type LegendItem,
+  type LineChartProps,
+  type LineSeries,
+} from './components/line-chart';
 export {
   RiskCoveragePlot,
   riskTop,

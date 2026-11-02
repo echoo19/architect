@@ -3,12 +3,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  ADAPTER_ARMS,
+  ADAPTER_PAIRS,
+  ADAPTER_RUN,
   ADAPTERS,
-  CERT,
-  CERT_ROWS,
   CERT2,
   CERT2_CHECK,
   CERT2_ROWS,
+  EDGE,
   FIELD_ARMS,
   FIELD_PAIRS,
   FIELD_TEST_SIZE,
@@ -149,25 +151,6 @@ describe('the results page', () => {
     }
   });
 
-  it('adds up the certificate run and gives the report its numbers', () => {
-    const report = readFileSync(
-      join(ROOT, 'docs', 'comparisons', 'academy-desk-cert-1.md'),
-      'utf8',
-    );
-    for (const row of CERT_ROWS) {
-      expect(row.wrong).toBeLessThanOrEqual(row.answered);
-      expect(row.answered).toBeLessThanOrEqual(CERT.calibration);
-      expect(row.handedOff).toBe(Math.round((1 - row.answered / CERT.calibration) * 100));
-      expect(row.bound).toBeGreaterThan(CERT.target);
-      expect(row.realWrong).toBeLessThanOrEqual(row.realAnswered);
-      expect(row.realAnswered).toBeLessThanOrEqual(CERT.checkTasks);
-      expect(report).toContain(
-        `| ${row.answered} | ${row.wrong} | ${100 - row.handedOff}% | ${row.handedOff}% | ${row.bound.toFixed(1)}% |`,
-      );
-    }
-    expect(report).toContain(`$${CERT.usd.toFixed(2)}`);
-  });
-
   it('adds up the screening lab run and gives the report its numbers', () => {
     const report = readFileSync(
       join(ROOT, 'docs', 'comparisons', 'inventory-desk-1.md'),
@@ -230,6 +213,41 @@ describe('the results page', () => {
     expect(report).toContain(`about $${LAB_RUN.sparkUnrecorded.toFixed(2)}`);
     expect(report).toContain(`${LAB_RUN.draftBefore}/24 to ${LAB_RUN.draftAfter}/24`);
     expect(report).toContain(`${LAB_RUN.keptBefore}/48 to ${LAB_RUN.keptAfter}/48`);
+  });
+
+  it('adds up the wind farm run and gives the report its numbers', () => {
+    const report = readFileSync(join(ROOT, 'docs', 'comparisons', 'edge-1.md'), 'utf8').replaceAll(
+      '**',
+      '',
+    );
+    const { pair } = EDGE;
+    expect(EDGE.types.reduce((sum, type) => sum + type.of, 0)).toBe(EDGE.test);
+    expect(EDGE.types.reduce((sum, type) => sum + type.alone, 0)).toBe(EDGE.alone.passed);
+    expect(EDGE.types.reduce((sum, type) => sum + type.harness, 0)).toBe(EDGE.harness.passed);
+    expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(EDGE.test);
+    expect(pair.both + pair.wins).toBe(EDGE.harness.passed);
+    expect(pair.both + pair.losses).toBe(EDGE.alone.passed);
+    expect(((pair.wins - pair.losses) / EDGE.test) * 100).toBeCloseTo(pair.diff, 0);
+    for (const arm of [EDGE.alone, EDGE.harness]) {
+      const rate = Math.round((arm.passed / EDGE.test) * 100);
+      expect(report).toContain(
+        `${arm.passed} of ${EDGE.test} (${rate}%, ${Math.round(arm.low)}% to ${Math.round(arm.high)}%)`,
+      );
+    }
+    for (const type of EDGE.types) {
+      expect(report).toContain(
+        `| ${type.name} | ${type.alone} of ${type.of} | ${type.harness} of ${type.of} |`,
+      );
+    }
+    expect(report).toContain(
+      `+${Math.round(pair.diff)} points (95% interval +${Math.round(pair.low)} to +${Math.round(pair.high)})`,
+    );
+    expect(report).toContain(`${pair.wins} wins and no losses`);
+    expect(report).toContain(`${EDGE.checks.before} of ${EDGE.checks.of} (33%)`);
+    expect(report).toContain(`${EDGE.checks.after} of ${EDGE.checks.of} (100%)`);
+    expect(report).toContain(`${EDGE.minutes} minutes 17 seconds`);
+    expect(report).toContain(`cost $${EDGE.runUsd.toFixed(2)}`);
+    expect(report).toContain(`$${EDGE.allUsd.toFixed(2)}`);
   });
 
   it('adds up the open-weight teacher run and gives the report its numbers', () => {
@@ -303,7 +321,7 @@ describe('the results page', () => {
   });
 
   it('gives the fine-tuning reports their loss curve and their adapters', () => {
-    const read = (key: 'qlora1' | 'qlora2' | 'sweep2') =>
+    const read = (key: 'qlora1' | 'qlora2' | 'sweep2' | 'decisions') =>
       readFileSync(join(ROOT, SOURCES[key].path), 'utf8').replaceAll('**', '');
     const first = read('qlora1');
     expect(FINETUNE_LOSS.map((row) => row.step)).toEqual([1, 2, 3, 4, 5, 6]);
@@ -329,6 +347,40 @@ describe('the results page', () => {
     expect(read('sweep2')).toContain(
       `On all ${SWEEP_RUN.tasks} tasks the taught arm passed ${SWEEP_RUN.taught} against bare's ${SWEEP_RUN.bare}`,
     );
+    expect(read('sweep2')).toContain('a gain by the same rule, on a secondary outcome');
+    expect(read('decisions')).toContain('from 2,312 rows to 4');
+  });
+
+  it("gives the adapter's final test its report's passes, pairs, speed and spend", () => {
+    const report = readFileSync(join(ROOT, SOURCES.adapterEval.path), 'utf8').replaceAll('**', '');
+    const point = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+    const bound = (value: number) => (value === 100 ? '100' : value.toFixed(1));
+    for (const arm of ADAPTER_ARMS) {
+      for (const result of [...arm.groups, arm.all]) {
+        expect(result.passed).toBeLessThanOrEqual(result.of);
+        expect(report).toMatch(
+          new RegExp(
+            `${result.passed} of ${result.of}, [0-9.]+% \\(${bound(result.low)} to ${bound(result.high)}\\)`,
+          ),
+        );
+      }
+      expect(arm.groups.reduce((sum, group) => sum + group.passed, 0)).toBe(arm.all.passed);
+      expect(report).toContain(`| ${arm.tokens} | ${arm.p50.toFixed(1)} (${arm.p95.toFixed(1)}) |`);
+    }
+    for (const pair of ADAPTER_PAIRS) {
+      expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(pair.n);
+      expect(report).toContain(
+        `| ${pair.n} | ${pair.wins} / ${pair.losses} | ${pair.both} / ${pair.neither} | ${point(pair.diff)} (${point(pair.low)} to ${point(pair.high)}) |`,
+      );
+    }
+    const { ifPassed, ifFailed } = ADAPTER_RUN;
+    expect(report).toContain(
+      `${point(ifPassed.diff)} (${point(ifPassed.low)} to ${point(ifPassed.high)}) if the base had passed both`,
+    );
+    expect(report).toContain(
+      `${point(ifFailed.diff)} (${point(ifFailed.low)} to ${point(ifFailed.high)}) if it had failed both`,
+    );
+    expect(report).toContain(`GPU: at most $${ADAPTER_RUN.gpuUsd.toFixed(2)}`);
   });
 
   it('cites documents that exist', () => {

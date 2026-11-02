@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Job, MentorConfig, Task } from '@architect/shared';
-import { allowMoreTime, goTo, launchApp, settle, startHeldBy, type LaunchedApp } from './app';
+import { goTo, launchApp, settle, startHeldBy, type LaunchedApp } from './app';
 import { bikeDraft, bikeShop, EMPTY_QUESTION, OPEN_QUESTION, POLICY, type BikeShop } from './bike';
 import { stubEngine } from './fixtures';
 import { FLOW_LOCAL } from './fixtures-flow';
@@ -457,40 +457,22 @@ test('asks what the policy leaves open, shows the rule, and trains only after it
   await expect(section.getByText(/^Confirmed on /)).toBeInViewport();
   await expect(ruleHeading).toBeFocused();
   await resize(1300);
-  // The rule is no longer what holds training back. Time is: this computer can't fit a round in
-  // four hours, so one callout by the choice says so, with the way out, and Start training waits.
+  // The rule is no longer what holds training back, and nothing else is: the job was made with a
+  // time limit this computer fits its rounds in, so no callout asks for more time.
   expect(await startHeldBy(page)).not.toBe('Confirm the rule first');
-  await expect(start).toBeDisabled();
-  const slow = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
-  await expect(slow).toContainText(
-    'Not even one round of teaching fits in 4 hours on this computer',
-  );
-  const allow = slow.getByRole('button', { name: 'Allow 7 hours' });
-  await expect(allow).toBeVisible();
-  // The round's time is said as a range, which the limit the button names is made from.
-  await expect(slow).toContainText(
-    /Scoring the check tasks once takes about \d+ h( \d+ min)?, then \d+ h( \d+ min)? to \d+ h( \d+ min)? for each round of teaching\./,
-  );
-  await capture(page, 'rule-confirmed-dark');
-  // What the button gives is said when it is asked.
-  await allow.hover();
-  await expect(
-    page.getByRole('tooltip').getByText('Allowing 7 hours leaves room for one round of teaching.'),
-  ).toBeVisible();
-  await page.mouse.move(0, 0);
-  await allowMoreTime(page);
-  await expect(slow).toHaveCount(0);
   await expect(start).toBeEnabled();
-  // The longer limit is saved as it is allowed; the models below are saved after it, not before.
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Not even one round of teaching' }),
+  ).toHaveCount(0);
+  await capture(page, 'rule-confirmed-dark');
+  // That limit is the job's own, saved when the job was made, past the four hours a draft has.
   const jobAt = jobIdOf(page);
-  await expect
-    .poll(() =>
-      page.evaluate(
-        (id) => window.architect.jobs.get(id).then((saved) => saved.budget.maxWallMinutes),
-        jobAt,
-      ),
-    )
-    .toBeGreaterThan(240);
+  expect(
+    await page.evaluate(
+      (id) => window.architect.jobs.get(id).then((saved) => saved.budget.maxWallMinutes),
+      jobAt,
+    ),
+  ).toBeGreaterThan(240);
 
   // The app puts the person's own models on a new job when it arrives; this stands in for that.
   const job = await page.evaluate((id) => window.architect.jobs.get(id), jobId);
@@ -609,7 +591,6 @@ test('asks for the confirmation again when a record changes, or when the files a
   const section = page.getByRole('region', { name: 'Check the rule' });
   await section.getByRole('button', { name: 'Confirm the rule' }).click();
   await expect(section.getByText(/^Confirmed on /)).toBeVisible();
-  await allowMoreTime(page);
   await expect(page.getByRole('button', { name: 'Start training' })).toBeEnabled();
 
   // A record changes on this computer after the person confirmed: the confirmation no longer

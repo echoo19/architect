@@ -77,7 +77,7 @@ test.afterAll(async () => {
 
 /** The agent's settings, on a tab. */
 async function openSettingsTab(tab: string): Promise<Locator> {
-  await page.getByRole('button', { name: 'Service desk settings' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Service desk settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Service desk', exact: true });
   await dialog.getByRole('tab', { name: tab }).click();
   return dialog;
@@ -110,7 +110,7 @@ test('publishes to the Hub, private, through to the repository link and its comm
   expect(repository?.private).toBe(true);
   packageCommit = repository?.commits[0]?.sha ?? '';
   expect(packageCommit).toMatch(/^[0-9a-f]{40}$/);
-  await expect(dialog.getByText(`Commit ${packageCommit.slice(0, 7)} · Private`)).toBeVisible();
+  await expect(dialog.getByText(`Commit ${packageCommit.slice(0, 7)}, private`)).toBeVisible();
   const link = `${hub.url.replace(/^https?:\/\//, '')}/${REPO}`;
   await expect(dialog.getByRole('button', { name: link })).toBeVisible();
   // The card came in a second commit, and names the package's.
@@ -118,7 +118,7 @@ test('publishes to the Hub, private, through to the repository link and its comm
     `architect install hf://${REPO} --revision ${packageCommit}`,
   );
   await expect(dialog.getByRole('list', { name: 'Publications' })).toContainText(
-    `Version 1 · commit ${packageCommit.slice(0, 7)}`,
+    `Version 1, commit ${packageCommit.slice(0, 7)}`,
   );
   const stages = await page.evaluate(
     () => (window as unknown as { publishStages: string[] }).publishStages,
@@ -193,7 +193,7 @@ test('installs from the Hub by commit, through the same steps as a package file'
   await expect(page.getByRole('heading', { level: 1, name: 'Service desk' })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByText(`${REPO} · commit ${packageCommit.slice(0, 7)}`)).toBeVisible();
+  await expect(page.getByText(`${REPO} at commit ${packageCommit.slice(0, 7)}`)).toBeVisible();
   await expect(page.getByText('Tested by its author')).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
   const recordsRow = page
@@ -267,7 +267,7 @@ test("changes the agent's model to one on this computer, and its checks run agai
   await expect(page.getByText('Changed the model of Service desk', { exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(dialog.getByText('All checks passed')).toBeVisible();
+  await expect(dialog.getByText(/install checks passed/)).toBeVisible();
 
   const after = await page.evaluate((id) => window.architect.graduates.installation(id), AGENT);
   expect(after.model).toEqual({

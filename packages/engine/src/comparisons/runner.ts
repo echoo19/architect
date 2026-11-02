@@ -10,6 +10,7 @@ import {
   studentPricing,
   type ArmId,
   type StudyRecord,
+  type StudyState,
   type BackendId,
   type ComparisonReport,
   type FundingPause,
@@ -50,6 +51,7 @@ import {
   modelInputs,
   needsConfirmation,
   project,
+  refinementRound,
   studentCapOf,
   type ComparisonConfig,
 } from './projection';
@@ -108,6 +110,11 @@ export interface ComparisonRequest {
    */
   studyToken?: string;
   /**
+   * For a job with organizations: a brief the person confirmed in an earlier comparison of the
+   * same organizations' files, shared with every arm in place of a new study (decision 105).
+   */
+  study?: StudyRecord;
+  /**
    * Raises the confirmed plan's student cap to this, before any locked test is released: the
    * person's answer to a comparison paused for money, recorded as an amendment (decision 081).
    */
@@ -151,7 +158,7 @@ const REGRESSION_PER_TYPE = 10;
  */
 const DEVELOPMENT_WAVES: readonly (readonly ArmId[])[] = [
   ['bare', 'draft'],
-  ['targeted', 'fixed'],
+  ['targeted', 'fixed', 'composed'],
   ['weights-one-shot', 'weights-targeted', 'teacher'],
 ];
 
@@ -162,7 +169,12 @@ const MEASURING: ReadonlySet<ArmId> = new Set(['reference', 'reference-targeted'
  * Arms whose spending their rounds decide: these are held to their student cap at each round's
  * start. The others have a size fixed in advance, so stopping one could only lose it.
  */
-const VARIABLE_ARMS: ReadonlySet<ArmId> = new Set(['targeted', 'fixed', 'weights-targeted']);
+const VARIABLE_ARMS: ReadonlySet<ArmId> = new Set([
+  'targeted',
+  'fixed',
+  'composed',
+  'weights-targeted',
+]);
 
 /** The arms the repeat takes again under the deferred seed. */
 const REPEATED: readonly ArmId[] = ['bare', 'draft', 'targeted'];
@@ -571,7 +583,8 @@ export async function runComparison(
         (request.regressionJobDir === undefined || regressionDone
           ? 0
           : REGRESSION_PER_TYPE * source.taskTypes.length * model.studentUsd.value);
-      const projection = project(base, config, model, committed, study.record?.cost.usd ?? 0);
+      const studyUsd = madeHere(study.record, request)?.cost.usd ?? 0;
+      const projection = project(base, config, model, committed, studyUsd);
       const fits = !needsConfirmation(projection);
       plan = {
         format: PLAN_FORMAT,
@@ -811,7 +824,9 @@ interface Study {
  * reads the train organizations' files and writes its brief, which the person reads in the
  * output folder's `study.json` and confirms by passing its token. A study already made is kept,
  * so a later command makes no call; one the material changed since is made again. Every arm
- * starts from the same confirmed brief. A job without organizations has nothing to study.
+ * starts from the same confirmed brief. A job without organizations has nothing to study. A
+ * brief the person confirmed in an earlier comparison, when the request gives one, is kept in
+ * place of a study.
  */
 async function studyOnce(
   request: ComparisonRequest,
@@ -823,7 +838,9 @@ async function studyOnce(
 ): Promise<Study> {
   if (!isStudied(base)) return { record: null, confirmed: true };
   let state = await engine.jobs.studyState(base.id);
-  if (state === null || state.state === 'unstudied' || state.state === 'changed') {
+  if (request.study !== undefined && state?.state !== 'confirmed') {
+    state = await reuseStudy(engine, base, request.study);
+  } else if (state === null || state.state === 'unstudied' || state.state === 'changed') {
     env.log("Study: Spark reads the train organizations' files and writes its brief.");
     state = await new JobStudy({
       jobs: engine.jobs,
@@ -847,6 +864,31 @@ async function studyOnce(
     );
   }
   return { record, confirmed };
+}
+
+/** The study, unless it is the brief the request reused, which an earlier comparison paid for. */
+function madeHere(record: StudyRecord | null, request: ComparisonRequest): StudyRecord | null {
+  return record !== null && record.createdAt === request.study?.createdAt ? null : record;
+}
+
+/**
+ * A brief the person confirmed in an earlier comparison, kept as this one's with no call to Spark
+ * (decision 105): refused unless it is confirmed and these are the organizations' files it read.
+ */
+async function reuseStudy(
+  engine: ComparisonEngine,
+  base: Job,
+  record: StudyRecord,
+): Promise<StudyState> {
+  await engine.jobs.writeStudy(base.id, record);
+  const state = await engine.jobs.studyState(base.id);
+  if (state === null || state.state !== 'confirmed') {
+    throw new Error(
+      state?.problem ??
+        "The brief given isn't one the person confirmed, so it isn't shared with any arm.",
+    );
+  }
+  return state;
 }
 
 /**
@@ -1161,7 +1203,6 @@ function watchRounds(
   decide: Decide,
 ): () => void {
   const stopped = new Set<string>();
-  const dev = base.splits.dev * base.evaluation.devRepeats;
   return engine.controller.onEvent((event) => {
     if (event.type !== 'round.updated') return;
     const { round } = event;
@@ -1182,7 +1223,7 @@ function watchRounds(
         ? record.run.currentAdapter === undefined
           ? base.evaluation.trainBatch
           : 0
-        : base.evaluation.trainBatch + 4 * dev;
+        : refinementRound(base, arm);
     const test = record.lockedTestOn === 'hosted' ? finalTestAttemptsOf(base, config) : 0;
     const spent = credit.development(record.run.id);
     const ahead = (hostedRound + test) * price;
@@ -1257,7 +1298,7 @@ async function startArm(
   study: Study,
 ): Promise<void> {
   const needs: ArmId | null =
-    arm === 'targeted' || arm === 'fixed'
+    arm === 'targeted' || arm === 'fixed' || arm === 'composed'
       ? 'draft'
       : arm === 'weights-one-shot' || arm === 'weights-targeted'
         ? 'targeted'
@@ -1572,7 +1613,7 @@ async function composeReport(
     deps: env.deps,
     config: withLockedTests(request, field).config,
     field,
-    study: isStudied(base) ? await engine.jobs.studyRecord(base.id) : null,
+    study: isStudied(base) ? madeHere(await engine.jobs.studyRecord(base.id), request) : null,
     // The plan as stored: decisions made since it was confirmed are in the file.
     plan,
     base,

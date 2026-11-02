@@ -48,11 +48,11 @@ function valueOf(connectionId: string, model: string): string {
   return JSON.stringify([connectionId, model]);
 }
 
-/** "$1.25 · $4.25": dollars per million tokens in and out, or Free. */
+/** "$1.25 in, $4.25 out": dollars per million tokens, or Free. */
 export function priceText(pricing: TokenPricing): string {
   if (pricing.inputPerM === 0 && pricing.outputPerM === 0) return 'Free';
   const amount = (value: number) => `$${Number(value.toFixed(3))}`;
-  return `${amount(pricing.inputPerM)} · ${amount(pricing.outputPerM)}`;
+  return `${amount(pricing.inputPerM)} in, ${amount(pricing.outputPerM)} out`;
 }
 
 /** Whether a local model runs entirely on the graphics card, as a mark and a word: fast or slower. */

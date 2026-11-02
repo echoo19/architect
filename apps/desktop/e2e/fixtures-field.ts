@@ -1,32 +1,64 @@
-import type {
-  CapabilityBreakdown,
-  GraduateSummary,
-  Job,
-  OrgTypeResult,
-  ReportCard,
-  TypeResult,
-  WorkspaceChat,
-  WorkspaceMessage,
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import {
+  JobSchema,
+  type CapabilityBreakdown,
+  type GraduateSummary,
+  type Job,
+  type OrgTypeResult,
+  type ReportCard,
+  type RuntimeMeasurement,
+  type TypeResult,
+  type WorkspaceChat,
+  type WorkspaceMessage,
 } from '@architect/shared';
-import { AT, graduate, storyReport, trainedJob } from './story';
+import {
+  academyCost,
+  academyDev,
+  academyInterventions,
+  academyVersion,
+  ACADEMY_EARLIER_RUN,
+  ACADEMY_MINI_RUN,
+  ACADEMY_RUN,
+  ACADEMY_SKILLS,
+  AT,
+  at,
+  graduate,
+  storyReport,
+  trainedJob,
+  type AcademyRunStory,
+} from './story';
 
 /*
  * Academy desk, the academy agent of the field plan, as a report and an agent: one specialist trained
  * with three synthetic academies and tested also on one it never saw and on a real one it never
  * saw (decisions 068 and 070). The real one has no question text, so only some skills are tested
- * there.
+ * there. Its job, files and skills are the shipped example's (examples/academy); its runs are the
+ * story's (story.ts), and every card here is made from them.
  */
 
-const SKILLS = [
-  { id: 'diagnose', label: 'Diagnose a wrong answer' },
-  { id: 'solve', label: 'Work the question' },
-  { id: 'hint', label: 'First hint' },
-  { id: 'history', label: 'Topic history' },
-  { id: 'assign', label: 'Assign practice' },
-  { id: 'after_wrong', label: 'Whole tutoring turn' },
-] as const;
+const EXAMPLE = JobSchema.parse(
+  JSON.parse(
+    readFileSync(
+      fileURLToPath(new URL('../../../examples/academy/job/job.json', import.meta.url)),
+      'utf8',
+    ),
+  ),
+);
 
-type Skill = (typeof SKILLS)[number]['id'];
+type Skill = (typeof ACADEMY_SKILLS)[number];
+
+/** Each skill under the name the Lab's screens give it, in the job's order. */
+const LABELS: Record<Skill, string> = {
+  diagnose: 'Diagnose a wrong answer',
+  solve: 'Work the question',
+  hint: 'First hint',
+  history: 'Topic history',
+  assign: 'Assign practice',
+  after_wrong: 'Whole tutoring turn',
+};
+
+const SKILLS = ACADEMY_SKILLS.map((id) => ({ id, label: LABELS[id] }));
 
 const ORGS: {
   org: string;
@@ -140,37 +172,133 @@ const SCORE = {
   total: PER_TYPE.reduce((sum, type) => sum + type.total, 0),
 };
 
+/** Trained on hosted Glimmer with Spark, as the service desk was, on the academy's own files. */
 export const FIELD_JOB: Job = {
   ...trainedJob,
   name: 'Academy desk',
+  description: EXAMPLE.description,
   organizationNoun: 'academy',
-  summary: 'Helps a student right after a wrong answer, from the academy’s own curriculum.',
+  summary:
+    'Tells the academy’s staff what to do when a student misses a question, from the academy’s own curriculum.',
   does: [],
   doesNot: ['Changes a grade or a recorded score'],
-  taskTypes: SKILLS.map((skill) => ({ id: skill.id, label: skill.label, description: '' })),
+  taskTypes: SKILLS.map((skill) => ({
+    id: skill.id,
+    label: skill.label,
+    description: EXAMPLE.taskTypes.find((type) => type.id === skill.id)?.description ?? skill.label,
+  })),
+  data: EXAMPLE.data,
+  permissions: EXAMPLE.permissions,
+  budget: EXAMPLE.budget,
+  splits: { ...trainedJob.splits, calibration: 12, train: 96, dev: 48, test: 72 },
 };
 
-export const FIELD_REPORT: ReportCard = {
-  ...storyReport,
-  name: 'Academy desk',
-  organizationNoun: 'academy',
-  refusedTypes: [],
-  topInterventions: [],
-  test: {
-    ...storyReport.test,
-    score: SCORE,
-    perType: PER_TYPE,
-    perOrg: PER_ORG,
-    refusals: 0,
-  },
-  requirements: {
-    passRate: { target: 0.9, actual: SCORE.pass / SCORE.total, met: true },
-  },
-  overclaim: null,
+/** A final test as a card holds it, from its results at each organization. */
+function testOf(perOrg: OrgTypeResult[]): ReportCard['test'] {
+  const perType: TypeResult[] = SKILLS.map((skill) => {
+    const seen = perOrg.filter((row) => row.type === skill.id && row.seen);
+    return {
+      type: skill.id,
+      label: skill.label,
+      pass: seen.reduce((sum, row) => sum + row.pass, 0),
+      total: seen.reduce((sum, row) => sum + row.total, 0),
+      refused: false,
+    };
+  });
+  const score = {
+    pass: perType.reduce((sum, type) => sum + type.pass, 0),
+    total: perType.reduce((sum, type) => sum + type.total, 0),
+  };
+  return { ...storyReport.test, score, perType, perOrg, refusals: 0 };
+}
+
+/** An academy run's card: its story's check tasks and spend, and its final test. */
+function academyCard(story: AcademyRunStory, perOrg: OrgTypeResult[]): ReportCard {
+  const test = testOf(perOrg);
+  const actual = test.score.pass / test.score.total;
+  return {
+    ...storyReport,
+    jobId: 'job_academy_desk',
+    runId: story.runId,
+    name: 'Academy desk',
+    organizationNoun: 'academy',
+    createdAt: story.testedAt,
+    test,
+    dev: academyDev(story),
+    cost: academyCost(story),
+    refusedTypes: [],
+    topInterventions: academyInterventions(story),
+    requirements: { passRate: { target: 0.9, actual, met: actual >= 0.9 } },
+    overclaim: null,
+  };
+}
+
+/** The final test with some cells moved by a task, at the same organizations. */
+function moved(change: (result: OrgTypeResult) => number): OrgTypeResult[] {
+  return PER_ORG.map((result) => ({
+    ...result,
+    pass: Math.max(0, Math.min(result.total, result.pass + change(result))),
+  }));
+}
+
+/** The card of the run Academy desk's active version 2 came from. */
+export const FIELD_REPORT: ReportCard = academyCard(ACADEMY_RUN, PER_ORG);
+
+/** Version 1's card: a task fewer on hints and whole turns where it was taught, on all else elsewhere. */
+export const EARLIER_REPORT: ReportCard = academyCard(
+  ACADEMY_EARLIER_RUN,
+  moved((result) =>
+    result.type === 'after_wrong' || result.type === 'hint' ? -1 : result.seen ? 0 : -1,
+  ),
+);
+
+/** Academy desk Mini's card, on Glimmer's 8-bit build: one more first hint wherever it missed one. */
+export const MINI_REPORT: ReportCard = {
+  ...academyCard(
+    ACADEMY_MINI_RUN,
+    moved((result) => (result.type === 'hint' ? 1 : 0)),
+  ),
+  name: 'Academy desk Mini',
+  student: { ...storyReport.student, quantization: 'Q8_0' },
+};
+
+/**
+ * Version 2 tested again on the hosted copy of Glimmer, three days after it graduated on this
+ * computer's 4-bit build: one more first hint right at a never-seen academy, the rest the same.
+ */
+export const HOSTED_RETEST_REPORT: ReportCard = {
+  ...academyCard(
+    ACADEMY_RUN,
+    moved((result) => (result.type === 'hint' && !result.seen && result.synthetic ? 1 : 0)),
+  ),
+  testedOn: 'hosted',
+  createdAt: at(120 + 3 * 24 * 60),
+};
+
+/**
+ * What the meter read while version 2's final test ran on this computer: the 4-bit build on a
+ * 12 GB card, which holds most of it, the rest in system memory.
+ */
+export const FIELD_MEASUREMENT: RuntimeMeasurement = {
+  id: 'msr_academydesk',
+  runId: ACADEMY_RUN.runId,
+  split: 'test',
+  target: 'local',
+  config: 'student',
+  harnessVersion: academyVersion(ACADEMY_RUN),
+  seeds: [11],
+  backend: 'ollama',
+  peakProcessBytes: 20_412_000_000,
+  peakGpuBytes: 11_640_000_000,
+  coldStartMs: 14_800,
+  samples: 412,
+  sampler: 'nvidia-smi and tasklist every 2 s',
+  startedAt: at(60),
+  endedAt: at(118),
 };
 
 export const FIELD_CAPABILITIES: CapabilityBreakdown = {
-  runId: storyReport.runId,
+  runId: FIELD_REPORT.runId,
   capabilities: PER_TYPE.map((type) => ({
     type: type.type,
     label: type.label,
@@ -188,6 +316,14 @@ export const FIELD_AGENT: GraduateSummary = {
   manifest: {
     ...graduate.manifest,
     name: 'Academy desk',
+    runId: ACADEMY_RUN.runId,
+    createdAt: ACADEMY_RUN.testedAt,
+    acceptedAt: ACADEMY_RUN.testedAt,
+    harness: {
+      version: academyVersion(ACADEMY_RUN),
+      round: ACADEMY_RUN.changes.length,
+      hash: 'sha256-academy',
+    },
     requirements: FIELD_REPORT.requirements,
     test: { score: SCORE, perType: PER_TYPE },
   },

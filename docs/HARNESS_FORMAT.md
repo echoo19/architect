@@ -60,7 +60,7 @@ function run(args, ctx) {
 }
 ```
 
-Helpers run in a QuickJS sandbox with no network, no clock and no randomness. `ctx` exposes only the job's declared data files, read-only, by name (`jobs.csv`, or `data/jobs.csv`). A helper returns JSON-serializable data; a thrown error comes back to the agent as a tool error. A helper can't have the name of a built-in tool, nor `ask_teammate`, the tool a team's lead asks its teammates with (decision 100). That name is refused when a mentor's edit or a starting harness would add it; a harness that already had such a helper still opens and runs, but its agent can't join a team.
+Helpers run in a QuickJS sandbox with no network, no clock and no randomness. `ctx` exposes only the job's declared data files, read-only, by name (`jobs.csv`, or `data/jobs.csv`). A helper returns JSON-serializable data; a thrown error comes back to the agent as a tool error. The agent sees at most 8,000 characters of what it returns. When a result is longer, the agent sees it cut, with a note saying that `read` shows the whole of it at `results/<name>.json`, a page at a time, and that `run` code has it as `JSON.parse(files.read("results/<name>.json"))`. That file holds the helper's latest result that was too long, one entry a line, until a later call of the same helper fits (decisions 106 and 107). A helper can't have the name of a built-in tool, nor `ask_teammate`, the tool a team's lead asks its teammates with (decision 100). That name is refused when a mentor's edit or a starting harness would add it; a harness that already had such a helper still opens and runs, but its agent can't join a team.
 
 ### examples/<slug>.json
 

@@ -380,8 +380,11 @@ export type PackageInspection = z.infer<typeof PackageInspectionSchema>;
 
 /** Where an import would go on this computer. */
 export const ImportPlaceSchema = z.discriminatedUnion('kind', [
-  /** A new agent, set up with the folders and grants the import names. */
-  z.object({ kind: z.literal('new') }),
+  /**
+   * A new agent, set up with the folders and grants the import names. `name` is the name it is
+   * listed under when another agent here already has the package's ("Returns desk 2").
+   */
+  z.object({ kind: z.literal('new'), name: z.string().optional() }),
   /**
    * The next version of an agent this computer has, waiting as a candidate. The agent keeps its
    * own folders and grants.

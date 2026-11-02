@@ -60,21 +60,17 @@ export function DownloadPage() {
           />
           <System os="mac" name="macOS" mark={<AppleMark size={18} />} href={MAC_DMG} />
         </ul>
-        <p className="t-small enter m-0 mt-8 text-center text-pretty tabular-nums" style={beat(3)}>
+        <p
+          className="t-small enter m-0 mt-8 flex flex-wrap justify-center gap-x-6 gap-y-1 text-center text-pretty tabular-nums"
+          style={beat(3)}
+        >
           <a className="link-quiet" href={RELEASES}>
             Version {APP_VERSION}
           </a>
-          <span aria-hidden> · </span>
           <a className="link-inline" href={MAC_INTEL_DMG}>
             Intel Mac
           </a>
-          <span aria-hidden className="max-sm:hidden">
-            {' '}
-            ·{' '}
-          </span>
-          <span className="inline-block max-sm:mt-1 max-sm:block">
-            If Windows warns you: More info, then Run anyway
-          </span>
+          <span>If Windows warns you: More info, then Run anyway</span>
         </p>
       </main>
       <Footer page="download" />

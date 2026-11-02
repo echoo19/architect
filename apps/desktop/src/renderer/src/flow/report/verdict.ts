@@ -1,5 +1,6 @@
 import type { Installation, ReportCard } from '@architect/shared';
 import { installProblem, type InstallProblemContext } from '../../install/labels';
+import { notHeldPlaces } from './certificate-words';
 import { missedRequirements } from './requirements';
 
 /**
@@ -76,7 +77,7 @@ export function reportVerdict(
         `It missed the job's target${where}: ${missed.join(', and ')}.`,
         ...(online && local !== null ? [`It scored ${testResult(report, finalTest)}.`] : []),
         ...(problem ? [problem.cause] : []),
-        'You can still use it.',
+        'Train it again with more rounds or time, or start using it and teach it from its answers.',
       ],
       usable: installation?.status !== 'needs_attention',
     };
@@ -100,9 +101,14 @@ export function reportVerdict(
       usable: true,
     };
   }
+  // A certificate whose bound failed somewhere qualifies the claim in the title itself.
+  const notHeld = notHeldPlaces(report.certificate, finalTest);
   return {
     state: 'ready',
-    title: `${name} is ready`,
+    title:
+      notHeld === null
+        ? `${name} is ready`
+        : `${name} is ready, but its certificate didn't hold ${notHeld}`,
     // The local test's own card says how it went, so the verdict doesn't say it again.
     because: [],
     usable: true,

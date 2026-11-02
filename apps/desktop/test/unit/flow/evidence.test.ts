@@ -323,13 +323,14 @@ describe('comparisons', () => {
   });
 
   it('say why a comparison with no record was not run', () => {
-    expect(ARM_ORDER.map((key) => [key, notRunReason(key, 'Spark')])).toEqual([
+    expect(ARM_ORDER.map((key) => [key, notRunReason(key)])).toEqual([
       ['untouched', 'nothing was measured before training'],
       ['setup', null],
-      ['weights', 'no round measured trained weights'],
-      ['both', 'no round measured trained weights'],
-      ['mentor', "Spark wasn't measured on these tasks"],
+      ['weights', 'no round of this run trained them'],
+      ['both', 'no round of this run trained them'],
+      ['mentor', 'no reference run was made'],
     ]);
+    expect(notRunReason('weights', true)).toBe('no round of this run fine-tuned one');
   });
 
   it('take all four configurations from a round that measured trained weights', () => {

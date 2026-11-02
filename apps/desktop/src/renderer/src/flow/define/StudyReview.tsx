@@ -12,7 +12,7 @@ import { BookOpen, Check, CircleAlert, CircleHelp, Sparkles } from 'lucide-react
 import { flowApi } from '../../api/client';
 import { ProblemState } from '../../components/ProblemState';
 import { queryKeys } from '../../api/hooks';
-import { setQueryData } from '../../api/query';
+import { setQueryData, toError } from '../../api/query';
 import { attempt } from '../../lib/notify';
 import { shortDate } from '../format';
 import { modelNames } from '../names';
@@ -28,6 +28,8 @@ import { SheetRow } from './SheetRow';
 export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
   const { study } = plan;
   const [busy, setBusy] = useState(false);
+  // Said under the button that failed, with a way to try again, since training waits on it.
+  const [failed, setFailed] = useState<Error | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   if (study === undefined) return null;
   const { mentor } = modelNames(job);
@@ -36,11 +38,13 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
 
   const studyNow = async () => {
     setBusy(true);
-    const state = await attempt(`${mentor} couldn't study the material`, () =>
-      flowApi.study(job.id),
-    );
+    setFailed(null);
+    try {
+      keep(await flowApi.study(job.id));
+    } catch (error) {
+      setFailed(toError(error));
+    }
     setBusy(false);
-    if (state) keep(state);
   };
 
   const confirm = async () => {
@@ -90,6 +94,17 @@ export function StudyReview({ job, plan }: { job: Job; plan: TaskPlan }) {
             Study the material
           </Button>
         </div>
+      </Collapse>
+      <Collapse open={failed !== null && state === 'unstudied'}>
+        {failed && (
+          <ProblemState
+            layout="inline"
+            error={failed}
+            title={`${mentor} couldn't study the material`}
+            onRetry={() => void studyNow()}
+            className="pt-3"
+          />
+        )}
       </Collapse>
 
       <Recordings job={job} plan={plan} mentor={mentor} />

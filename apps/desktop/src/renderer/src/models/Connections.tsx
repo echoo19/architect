@@ -1,6 +1,9 @@
-import { DataTable, ProviderMark, Skeleton, type DataColumn } from '@architect/ui';
+import { DataTable, ProviderMark, Skeleton, useWindowBelow, type DataColumn } from '@architect/ui';
 import { Check, Cpu } from 'lucide-react';
+import { useSettings } from '../api/hooks';
 import { ProblemState } from '../components/ProblemState';
+import { DEFAULT_NAMES } from '../experiments/model';
+import { mentorName, studentName } from '../lib/names';
 import { rolesOf, type Connection, type ConnectionRoles } from '../settings/models/connections';
 import { useConnections } from '../settings/models/hooks';
 
@@ -10,10 +13,10 @@ function statusOf(connection: Connection): string {
   if (!runtime) return connection.secretRef ? 'Key saved' : 'Connected';
   if (!runtime.running) return connection.provider === 'ollama' ? 'Not running' : 'Not found';
   const count = runtime.models.length;
-  return `Running · ${count} ${count === 1 ? 'model' : 'models'}`;
+  return `Running, ${count} ${count === 1 ? 'model' : 'models'}`;
 }
 
-const ROLES = 'Can be';
+const ROLES = 'Can run';
 
 function roleColumn(
   key: keyof ConnectionRoles,
@@ -34,40 +37,48 @@ function roleColumn(
   };
 }
 
-const COLUMNS: readonly DataColumn<Connection>[] = [
-  {
-    key: 'connection',
-    header: 'Connection',
-    cell: (connection) => (
-      <span className="flex items-center gap-3">
-        <ProviderMark
-          name={connection.label}
-          icon={connection.local ? <Cpu aria-hidden /> : undefined}
-        />
-        {connection.label}
-      </span>
+/**
+ * The table's columns, the roles named as the rest of the Lab says them: "Spark is teaching
+ * Glimmer", and the specialists Glimmer becomes. An address stays on one line; on a narrow
+ * window it steps aside, as Settings shows it too.
+ */
+function columns(mentor: string, student: string, narrow: boolean): DataColumn<Connection>[] {
+  return [
+    {
+      key: 'connection',
+      header: 'Connection',
+      cell: (connection) => (
+        <span className="flex items-center gap-3">
+          <ProviderMark
+            name={connection.label}
+            icon={connection.local ? <Cpu aria-hidden /> : undefined}
+          />
+          {connection.label}
+        </span>
+      ),
+    },
+    {
+      key: 'address',
+      header: 'Address',
+      hidden: narrow,
+      cell: (connection) => (
+        <span className="whitespace-nowrap font-mono text-small">{connection.baseUrl}</span>
+      ),
+    },
+    { key: 'status', header: 'Status', width: '168px', cell: statusOf },
+    roleColumn('teach', `${mentor}, teaching`, `It can serve ${mentor} as it teaches a field`),
+    roleColumn(
+      'practice',
+      `${student}, practicing`,
+      `${student} can practice on it while ${mentor} teaches it: here, or on a hosted or cluster copy`,
     ),
-  },
-  {
-    key: 'address',
-    header: 'Address',
-    cell: (connection) => (
-      <span className="break-all font-mono text-small">{connection.baseUrl}</span>
+    roleColumn(
+      'agent',
+      'Specialists',
+      `A finished specialist, ${student} with its harness, can run on it. Specialists run only on-premise`,
     ),
-  },
-  { key: 'status', header: 'Status', width: '168px', cell: statusOf },
-  roleColumn('teach', 'Teacher', 'It can serve the teacher of a field'),
-  roleColumn(
-    'practice',
-    'Practice',
-    'The student can practice on it while it is taught: here, or a hosted or cluster copy',
-  ),
-  roleColumn(
-    'agent',
-    'Agent',
-    'A finished specialist can run on it. Specialists run only on-premise',
-  ),
-];
+  ];
+}
 
 /**
  * Every place models come from, in one table: the providers with a saved key, the endpoints
@@ -77,6 +88,11 @@ const COLUMNS: readonly DataColumn<Connection>[] = [
  */
 export function ConnectionsView() {
   const { connections, secrets, local } = useConnections();
+  const settings = useSettings();
+  // The roles go by the default models' short names, Spark and Glimmer unless changed.
+  const mentor = settings.data ? mentorName(settings.data.defaultMentor) : DEFAULT_NAMES.mentor;
+  const student = settings.data ? studentName(settings.data.defaultStudent) : DEFAULT_NAMES.student;
+  const narrow = useWindowBelow(1400);
   if (secrets.status === 'error') {
     return (
       <ProblemState
@@ -92,7 +108,7 @@ export function ConnectionsView() {
   return (
     <DataTable
       aria-label="Connections"
-      columns={COLUMNS}
+      columns={columns(mentor, student, narrow)}
       rows={connections}
       rowKey={(connection) => connection.id}
       empty="Nothing is connected yet"

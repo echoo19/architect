@@ -50,6 +50,8 @@ export interface MentorViewInput {
   mentoring?: MentorView['mentoring'];
   /** This round's counterexamples and the size of each helper's suite (decision 078). */
   counterexamples?: MentorView['counterexamples'];
+  /** A propose-probe-compose round's probes, when the mentor composes from them (decision 108). */
+  probes?: MentorView['probes'];
 }
 
 function jobView(job: Job, dataFiles: MentorDataFile[]): MentorView['job'] {
@@ -121,6 +123,16 @@ export function mentorLineage(
             confirmedDelta: entry.measured.delta,
           }
         : { devDelta: entry.measured.delta }),
+      ...(entry.probes === undefined
+        ? {}
+        : {
+            probes: entry.probes.map((probe) => ({
+              title: probe.title,
+              ...(probe.devBefore === undefined || probe.devAfter === undefined
+                ? {}
+                : { devDelta: probe.devAfter.pass - probe.devBefore.pass }),
+            })),
+          }),
     };
   });
   const rejections = rejected.map((item): MentorLineageItem => ({
@@ -136,8 +148,10 @@ export function mentorLineage(
 /**
  * Assembles what the mentor may see in a round from an allowlist (decision 006): the job setup,
  * the harness, this round's train attempts with checker reasons and compact traces, the overall
- * dev score, and earlier hypotheses, rejected ones with their reasons. Dev task content, ids,
- * traces and per-type counts never appear, and nothing from the test split does.
+ * dev score, and earlier hypotheses, rejected ones with their reasons. When it composes a round's
+ * change from probes (decision 108), each probe's change set, overall dev score and train
+ * verdicts. Dev task content, ids, traces and per-type counts never appear, and nothing from the
+ * test split does.
  */
 export function buildMentorView(input: MentorViewInput): MentorView {
   return MentorViewSchema.parse({
@@ -165,6 +179,7 @@ export function buildMentorView(input: MentorViewInput): MentorView {
     lineage: mentorLineage(input.lineage, input.rejected),
     ...(input.counterexamples === undefined ? {} : { counterexamples: input.counterexamples }),
     ...(input.mentoring === undefined ? {} : { mentoring: input.mentoring }),
+    ...(input.probes === undefined ? {} : { probes: input.probes }),
   });
 }
 
@@ -247,6 +262,10 @@ export function mentorViewParts(view: MentorView): PayloadPart[] {
           { label: "the person's answers", text: JSON.stringify(view.mentoring.answers) },
           { label: "the person's lessons", text: JSON.stringify(view.mentoring.lessons ?? []) },
         ]),
+    ...(view.probes?.items ?? []).map((probe) => ({
+      label: `probe ${probe.index} of this round`,
+      text: JSON.stringify(probe),
+    })),
   ];
 }
 

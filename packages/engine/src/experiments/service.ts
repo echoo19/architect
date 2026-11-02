@@ -123,6 +123,7 @@ function sparkCapsOf(input: ExperimentInput): ComparisonConfig['sparkCaps'] {
     draft: set('draft') ?? defaults.draft,
     targeted: set('targeted') ?? defaults.targeted,
     fixed: set('fixed') ?? defaults.fixed,
+    composed: set('composed') ?? defaults.composed,
     reference: set('reference') ?? defaults.reference,
     referenceTargeted: set('reference-targeted') ?? defaults.referenceTargeted,
     weights: set('weights-one-shot') ?? set('weights-targeted') ?? defaults.weights,

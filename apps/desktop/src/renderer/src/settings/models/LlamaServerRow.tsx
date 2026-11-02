@@ -19,10 +19,10 @@ import { llamaServerRowState, type LlamaServerRowState } from './llamaServerStat
 
 /** Where it was found and its build, when it works. */
 function found({ build, path }: NonNullable<LlamaServerRowState['found']>) {
-  if (path === null) return `Build ${build ?? ''} · on PATH`;
+  if (path === null) return `Build ${build ?? ''}, on PATH`;
   return (
     <>
-      Build {build} · <span className="break-all font-mono text-small">{path}</span>
+      Build {build} at <span className="break-all font-mono text-small">{path}</span>
     </>
   );
 }

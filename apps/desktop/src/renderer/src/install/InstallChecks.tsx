@@ -210,7 +210,7 @@ export function DownloadModelButton({
     >
       {!working && <Download size={14} strokeWidth={1.7} aria-hidden />}
       {working
-        ? `Downloading${percent === null ? '' : ` · ${percent}%`}`
+        ? `Downloading${percent === null ? '' : ` ${percent}%`}`
         : state.phase === 'failed'
           ? 'Try the download again'
           : `Download ${model}`}

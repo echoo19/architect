@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import type { GraduateSummary } from '@architect/shared';
-import { Button, EmptyState, Skeleton } from '@architect/ui';
+import { Button, EmptyState, Heading, Skeleton } from '@architect/ui';
 import { Bot } from 'lucide-react';
-import { useGraduates, useSettings } from '../api/hooks';
+import { useGraduates, useJobs, useSettings } from '../api/hooks';
 import { toError } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { SampleJobButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import { mentorName, studentName } from '../lib/names';
-import { chatPath, navigate, paths } from '../lib/router';
+import { navigate, paths } from '../lib/router';
+import { jobToPickUp, TRAINING_ROW_WORDS } from '../shell/training-rows';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
-import { latestChat } from '../workspace/store';
+import { latestAgent } from '../workspace/store';
 
-/** The workspace with no chat open: it opens the chat used last, or shows how to start. */
+/** The workspace with nothing open: it opens the home of the agent used last, or shows how to start. */
 export function HomeScreen() {
   const graduates = useGraduates();
   return (
@@ -30,7 +31,7 @@ export function HomeScreen() {
         )}
         {graduates.status === 'success' &&
           (graduates.data.length > 0 ? (
-            <OpenLatestChat graduates={graduates.data} />
+            <OpenLatestAgent graduates={graduates.data} />
           ) : (
             <NoAgentsYet />
           ))}
@@ -49,7 +50,7 @@ function HomeSkeleton() {
   );
 }
 
-function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
+function OpenLatestAgent({ graduates }: { graduates: GraduateSummary[] }) {
   const settings = useSettings();
   const onboarded = settings.data?.onboarded === true;
   const [failure, setFailure] = useState<Error | null>(null);
@@ -59,9 +60,9 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
     // Until setup is finished, the app sends this screen to the welcome flow instead.
     if (!onboarded) return;
     let current = true;
-    latestChat(graduates.map((graduate) => graduate.id)).then(
-      (chat) => {
-        if (current) navigate(chatPath(chat), { replace: true });
+    latestAgent(graduates.map((graduate) => graduate.id)).then(
+      (graduateId) => {
+        if (current) navigate(paths.agent(graduateId), { replace: true });
       },
       (error: unknown) => {
         if (current) setFailure(toError(error));
@@ -77,7 +78,7 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
     return (
       <ProblemState
         error={problem}
-        title="Couldn't open your chats"
+        title="Couldn't open your agents"
         onRetry={() => {
           setFailure(null);
           settings.reload();
@@ -91,27 +92,55 @@ function OpenLatestChat({ graduates }: { graduates: GraduateSummary[] }) {
 
 function NoAgentsYet() {
   const settings = useSettings();
+  // A job drafted or training is picked up from here, so home never reads as empty while it is.
+  const jobs = useJobs();
+  const pickUp = jobs.status === 'success' ? jobToPickUp(jobs.data) : null;
   const pitch =
     settings.status === 'success'
-      ? `Describe a job, and ${mentorName(settings.data.defaultMentor)} teaches ${studentName(
+      ? `Describe a job. ${mentorName(settings.data.defaultMentor)} teaches it to ${studentName(
           settings.data.defaultStudent,
-        )} to do it.`
-      : 'Describe a job and Architect trains an agent to do it.';
+        )}, which then does it offline on this computer.`
+      : 'Describe a job, and Architect teaches it to a model that then does it offline on this computer.';
+
+  if (pickUp) {
+    return (
+      <EmptyState
+        icon={<Bot aria-hidden />}
+        title={pickUp.job.name}
+        description={
+          pickUp.kind === 'drafted'
+            ? 'Drafted, not trained yet.'
+            : `${TRAINING_ROW_WORDS[pickUp.kind]}.`
+        }
+        actions={
+          <>
+            <Button variant="primary" size="md" onClick={() => navigate(pickUp.path)}>
+              {pickUp.kind === 'drafted' ? 'Review the job' : `Open ${pickUp.job.name}`}
+            </Button>
+            <Button size="md" onClick={() => navigate(paths.newAgent())}>
+              New agent
+            </Button>
+          </>
+        }
+      />
+    );
+  }
 
   return (
-    <EmptyState
-      icon={<Bot aria-hidden />}
-      title="No agents yet"
-      description={pitch}
-      actions={
-        <>
-          <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
-            New agent
-          </Button>
-          <SampleJobButton size="md" />
-          <ReadyMadeAgentButton size="md" />
-        </>
-      }
-    />
+    <div className="flex max-w-[600px] animate-rise flex-col items-center gap-6 px-6 text-center">
+      <div className="flex flex-col items-center gap-3.5">
+        <Heading as="h1" size="display">
+          Teach your first agent
+        </Heading>
+        <p className="m-0 text-body text-balance">{pitch}</p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button variant="primary" size="md" onClick={() => navigate(paths.newAgent())}>
+          New agent
+        </Button>
+        <SampleJobButton size="md" />
+        <ReadyMadeAgentButton size="md" />
+      </div>
+    </div>
   );
 }

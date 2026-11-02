@@ -191,7 +191,7 @@ test('promotes a candidate and rolls back, each after saying what changes', asyn
   await expect(row(2)).toContainText('57 of 60');
   // Each row is named by its number; a version with a move says what it is by its button.
   await expect(row(3)).not.toContainText('New, not in use yet');
-  await expect(row(3)).toContainText('Below its 90% target · Oct');
+  await expect(row(3)).toContainText('Below its 90% target, Oct');
   await expect(row(4)).toContainText('No test');
   await expect(row(4)).toContainText('From version 2, imported');
   await expect(row(1)).toContainText('55 of 60');
@@ -279,6 +279,7 @@ test('reviews an export: what goes in, what stays, the scan and the parts', asyn
 
   // Sharing the data folder is opt-in, and the scan's finding in it holds the export back.
   await share.click();
+  await expect(share).toHaveAttribute('aria-checked', 'true');
   await expect(dialog.getByText('1 line looks like a key or a private path')).toBeVisible();
   await expect(dialog.getByRole('list', { name: 'Findings' })).toContainText('data/policy.md:14');
   await expect(exportPackage).toBeDisabled();
@@ -336,7 +337,7 @@ test('imports a package through its folders and permissions to a ready install',
   await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
   await expect(page.getByText('returns-desk-v1.architect.zip')).toBeVisible();
   await expect(page.getByText('Tested by its author')).toBeVisible();
-  await expect(page.getByText('Passed: 92% · 55 of 60')).toBeVisible();
+  await expect(page.getByText('Passed: 92% (55 of 60)')).toBeVisible();
   await expect(page.getByText('On this computer', { exact: true })).toBeVisible();
   await capture('import-check-dark.png');
 
@@ -369,7 +370,7 @@ test('imports a package through its folders and permissions to a ready install',
     page.getByRole('heading', { level: 1, name: 'Returns desk is ready' }),
   ).toBeVisible();
   await expect(page.getByText('Works on this computer', { exact: true })).toBeVisible();
-  await expect(page.getByText('All checks passed')).toBeVisible();
+  await expect(page.getByText('6 install checks passed')).toBeVisible();
   await capture('import-ready-dark.png');
   // The checks behind that one sentence wait under Details.
   await page.getByRole('button', { name: 'Details' }).click();
@@ -492,12 +493,17 @@ test('installs without a folder as needing attention, and fixes it from the resu
     0,
   );
   await expect(page.getByText('No folder chosen').first()).toBeVisible();
+  // It can still be chosen here, beside the access it would get; the Folders pill isn't ticked.
+  await expect(page.getByRole('button', { name: 'Choose' }).first()).toBeVisible();
+  await expect(page.getByText('Folders, needs attention')).toBeVisible();
   await page.getByRole('button', { name: 'Install', exact: true }).click();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Returns desk needs attention' }),
   ).toBeVisible();
   // The step that left it undone is marked, and the result leads with the one thing to do.
   await expect(page.getByText('Folders, needs attention')).toBeVisible();
+  // No folder means no access was given to one either.
+  await expect(page.getByText('Permissions, needs attention')).toBeVisible();
   await expect(page.getByText("Its records folder isn't chosen yet.")).toBeVisible();
   await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();

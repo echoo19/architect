@@ -10,6 +10,7 @@ import {
 import {
   Button,
   Checkbox,
+  RowIcon,
   Segmented,
   SettingsRow,
   SettingsSection,
@@ -17,7 +18,6 @@ import {
   Skeleton,
   StatusMark,
   Switch,
-  toast,
 } from '@architect/ui';
 import {
   CircleAlert,
@@ -34,7 +34,7 @@ import { graduatesApi } from '../../api/graduates';
 import { toError } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatBytes } from '../../lib/format';
-import { attempt } from '../../lib/notify';
+import { attempt, toastWritten } from '../../lib/notify';
 import { useAgentSettingsUi } from './agentSettingsUi';
 import { PublishPanel } from './PublishPanel';
 import { usePublishing } from './publishing';
@@ -188,7 +188,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
       });
     });
     setBusy(null);
-    if (written) toast({ title: `Exported ${agent.name}`, description: written.archive });
+    if (written) toastWritten(`Exported ${agent.name}`, written.archive);
   };
 
   const exportPart = async (part: ExportPart) => {
@@ -204,7 +204,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
       });
     });
     setBusy(null);
-    if (written) toast({ title: `Exported the ${noun}`, description: written.path });
+    if (written) toastWritten(`Exported the ${noun}`, written.path);
   };
 
   return (
@@ -214,15 +214,15 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
           item.optional ? (
             <SettingsRow
               key={item.id}
-              icon={<StatusMark state={item.included ? 'ok' : 'off'} />}
+              icon={<StatusMark state={include.includes(item.id) ? 'ok' : 'off'} />}
               label={itemLabel(item)}
               meta={item.files.join(', ')}
-              metaFont="code"
             >
               <div className="flex items-center gap-4">
                 <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
+                {/* The person's choice moves at once; the scan of it follows. */}
                 <Switch
-                  checked={item.included}
+                  checked={include.includes(item.id)}
                   onCheckedChange={(on) => share(item, on)}
                   aria-label={`Share the ${itemLabel(item).toLowerCase()}`}
                 />
@@ -242,6 +242,14 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
             </SettingsRow>
           ),
+        )}
+        {error && (
+          <ProblemState
+            layout="inline"
+            error={error}
+            title="Couldn't review this choice"
+            onRetry={reload}
+          />
         )}
       </SettingsSection>
 
@@ -310,13 +318,12 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
             <SettingsRow
               key={part.part}
               icon={
-                <span className="flex size-7 items-center justify-center rounded-control bg-hover text-fg">
+                <RowIcon>
                   <Icon size={15} strokeWidth={1.7} aria-hidden />
-                </span>
+                </RowIcon>
               }
               label={label}
-              meta={`${partFile(review, part.part)} · ${formatBytes(part.bytes)}`}
-              metaFont="code"
+              meta={`${partFile(review, part.part)}, ${formatBytes(part.bytes)}`}
             >
               <Button
                 size="xs"

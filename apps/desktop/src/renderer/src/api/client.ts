@@ -2,6 +2,7 @@ import {
   AppInfoSchema,
   AppSettingsSchema,
   AttemptPageSchema,
+  BlockedConnectionSchema,
   ConnectionTestSchema,
   DraftTurnSchema,
   FieldExportManifestSchema,
@@ -21,6 +22,7 @@ import {
   RuleConfirmationStateSchema,
   RunDetailSchema,
   RunSchema,
+  RuntimeMeasurementSchema,
   SecretStatusSchema,
   StudentTargetSchema,
   RecordingQuoteSchema,
@@ -136,6 +138,20 @@ export const api = {
       z.array(WorkspaceMessageSchema),
       bridge().workspace.messages(chatId),
     ),
+  /** What the runtime meter read while the run's sealed tests ran on this computer. */
+  runtimeMeasurements: (runId: string) =>
+    read(
+      'runs.runtimeMeasurements',
+      z.array(RuntimeMeasurementSchema),
+      bridge().runs.runtimeMeasurements(runId),
+    ),
+  /** What the agent host's network guard stopped since it started; nothing, as a rule. */
+  blockedConnections: () =>
+    read(
+      'workspace.blockedConnections',
+      z.array(BlockedConnectionSchema),
+      bridge().workspace.blockedConnections(),
+    ),
 };
 
 export { bridge as architect };
@@ -147,6 +163,8 @@ export { bridge as architect };
 export const flowApi = {
   pickFiles: (options: Parameters<ArchitectApi['files']['pick']>[0]) =>
     read('files.pick', z.array(z.string()), bridge().files.pick(options)),
+  checkFiles: (paths: string[]) =>
+    read('files.check', z.array(z.string().nullable()), bridge().files.check(paths)),
   draftStart: (description: string, files: string[]) =>
     read('jobs.draftStart', DraftTurnSchema, bridge().jobs.draftStart(description, files)),
   draftField: (description: string, organizations: DraftOrganization[]) =>

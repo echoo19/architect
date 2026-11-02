@@ -9,7 +9,7 @@ import {
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import { mentorFromPreset, presetFor, routeOf } from '../../../src/renderer/src/onboarding/mentor';
-import { sizeWord, tradeoff } from '../../../src/renderer/src/onboarding/builds';
+import { sizeWord, suggestBuild, tradeoff } from '../../../src/renderer/src/onboarding/builds';
 import {
   idlePull,
   pullBytes,
@@ -145,5 +145,16 @@ describe("Glimmer's builds, named next to the one recommended", () => {
     if (!fourBit || !gpu) throw new Error('Glimmer has two builds.');
     expect(tradeoff(fourBit)).toBe('Most accurate');
     expect(tradeoff(gpu)).toBe('Lighter, but less accurate');
+  });
+
+  it('moves an untouched default to the suggested build unless only the default is here', () => {
+    const here =
+      (...models: string[]) =>
+      (model: string) =>
+        models.includes(model);
+    expect(suggestBuild('4bit', '2bit', here())).toBe(true);
+    expect(suggestBuild('4bit', '2bit', here('4bit', '2bit'))).toBe(true);
+    expect(suggestBuild('4bit', '2bit', here('4bit'))).toBe(false);
+    expect(suggestBuild('4bit', '4bit', here())).toBe(false);
   });
 });

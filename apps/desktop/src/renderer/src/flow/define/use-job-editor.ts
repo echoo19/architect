@@ -14,6 +14,11 @@ export type SaveStatus = 'saved' | 'saving' | 'failed';
 
 export interface JobEditor {
   job: Job;
+  /**
+   * The job the estimates read: the job, with its budget as last set without an issue, so a cap
+   * still being fixed never feeds a figure.
+   */
+  estimable: Job;
   issues: JobIssues;
   saveStatus: SaveStatus;
   /** Changes the job at once on screen; saves it when valid, after `quietMs` without changes. */
@@ -47,6 +52,13 @@ export function useJobEditor(initial: Job, taskCount: number | null): JobEditor 
   }, [taskCount]);
 
   const issues = useMemo(() => validateJob(job, taskCount), [job, taskCount]);
+  const budgetFits = !Object.keys(issues).some((path) => path.startsWith('budget.'));
+  const [fittingBudget, setFittingBudget] = useState(initial.budget);
+  if (budgetFits && fittingBudget !== job.budget) setFittingBudget(job.budget);
+  const estimable = useMemo(
+    () => (budgetFits ? job : { ...job, budget: fittingBudget }),
+    [budgetFits, job, fittingBudget],
+  );
 
   const save = useCallback(async (): Promise<Job | null> => {
     if (timer.current) {
@@ -112,5 +124,5 @@ export function useJobEditor(initial: Job, taskCount: number | null): JobEditor 
     [save],
   );
 
-  return { job, issues, saveStatus, change, flush: save };
+  return { job, estimable, issues, saveStatus, change, flush: save };
 }

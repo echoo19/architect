@@ -443,6 +443,170 @@ html.motion [data-reveal][data-armed]:not([data-seen]) {
   translate: 0 12px;
 }
 
+/*
+ * Others working on this: the slides share one grid cell, so the block keeps the height of its
+ * tallest and nothing under it moves. Where the page moves, the old slide fades out first and the
+ * new one rises a few pixels into place once it has gone, so two never overlap mid-fade.
+ */
+.others {
+  display: grid;
+}
+
+.others-slide {
+  grid-area: 1 / 1;
+}
+
+.others-slide[data-active='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Leaving: it fades where it stands, and only once it is gone does it drop back to wait. */
+html.motion .others-slide {
+  transition:
+    opacity 360ms ease-in,
+    translate 0s linear 360ms,
+    visibility 0s linear 360ms;
+}
+
+html.motion .others-slide[data-active='false'] {
+  translate: 0 8px;
+}
+
+/* Arriving: once the last has gone, it fades in as it rises into place. */
+html.motion .others-slide[data-active='true'] {
+  transition:
+    opacity 640ms var(--ease-enter) 360ms,
+    translate 800ms var(--ease-enter) 360ms,
+    visibility 0s linear 360ms;
+}
+
+/* A quote set a step larger than the requests above it: it stands alone on its line. */
+.others-quote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.05rem + 1.5vw, 2.375rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  color: var(--ui-fg);
+  text-wrap: pretty;
+  quotes: '\201C' '\201D';
+}
+
+.others-quote::before {
+  content: open-quote;
+}
+
+.others-quote::after {
+  content: close-quote;
+}
+
+/*
+ * A mark at its own height (--mark-h, in px), scaled per place: large beside its quote, two
+ * thirds of that in the row of all of them, and smaller again on a phone.
+ */
+.others-mark {
+  display: block;
+  width: auto;
+  height: calc(var(--mark-h) * 0.82px);
+}
+
+.others-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.024em;
+  color: var(--ui-fg);
+}
+
+/* The slide's mark sits level with the first line of its quote. */
+.others-lead {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .others-mark {
+    height: calc(var(--mark-h) * 1px);
+  }
+
+  .others-name {
+    font-size: 2.5rem;
+  }
+
+  .others-lead {
+    align-items: flex-start;
+    padding-top: 4px;
+  }
+}
+
+/* Every organization at once: the one shown at full strength, the others dimmed. */
+.others-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+}
+
+@media (min-width: 1024px) {
+  .others-row {
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 24px;
+  }
+}
+
+.others-chip {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  border-radius: 8px;
+  opacity: 0.38;
+  transition: opacity 240ms var(--ease-out-soft);
+}
+
+.others-chip:hover {
+  opacity: 0.72;
+}
+
+.others-chip[aria-current='true'] {
+  opacity: 1;
+}
+
+.others-chip:focus-visible {
+  outline: 2px solid var(--ui-ring);
+  outline-offset: 4px;
+}
+
+.others-chip .others-mark {
+  height: calc(var(--mark-h) * 0.5px);
+}
+
+.others-chip .others-name {
+  font-size: 1.125rem;
+  letter-spacing: -0.012em;
+}
+
+@media (min-width: 1024px) {
+  .others-chip .others-mark {
+    height: calc(var(--mark-h) * 0.667px);
+  }
+
+  .others-chip .others-name {
+    font-size: 1.5rem;
+  }
+}
+
+.others-control {
+  width: 36px;
+  padding: 0;
+}
+
 /* The film's cover leaves once the film is playing, not before, so nothing flashes black. */
 .film-cover {
   transition: opacity 360ms var(--ease-enter);

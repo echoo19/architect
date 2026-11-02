@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
 import { Play } from 'lucide-react';
-import { FILM } from '../content';
+import { FILM, type FilmSource } from '../content';
 
 /**
- * The walkthrough film behind a still cover: a frame of the Lab from the film, and one button.
- * Only the still loads before the button is pressed. The cover stays until the film is
+ * A film behind a still cover, the walkthrough unless another is named: a frame from the film, and
+ * one button. Only the still loads before the button is pressed. The cover stays until the film is
  * actually playing, then fades, so there is never a black frame between them; from there the
  * browser's own controls take over. If the film cannot play, the cover steps aside all the same,
  * so the browser can say why.
  */
-export function HeroFilm() {
+export function HeroFilm({ film = FILM }: { film?: FilmSource }) {
   const video = useRef<HTMLVideoElement>(null);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -18,18 +18,18 @@ export function HeroFilm() {
       <video
         ref={video}
         className="block size-full"
-        src={FILM.src}
-        poster={FILM.cover}
+        src={film.src}
+        poster={film.cover}
         preload="none"
         playsInline
         controls={playing}
-        aria-label={FILM.label}
+        aria-label={film.label}
         onPlaying={() => setPlaying(true)}
         onError={() => setPlaying(true)}
       />
       <button
         type="button"
-        aria-label={FILM.play}
+        aria-label={film.play}
         className="film-cover absolute inset-0 grid cursor-pointer place-items-center bg-ground"
         {...(playing ? { 'data-leaving': '' } : {})}
         disabled={started}
@@ -40,7 +40,7 @@ export function HeroFilm() {
       >
         <img
           className="absolute inset-0 size-full object-cover opacity-70"
-          src={FILM.cover}
+          src={film.cover}
           alt=""
           width={1920}
           height={1080}

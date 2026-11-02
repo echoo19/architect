@@ -63,6 +63,25 @@ export function armStatusWord(arm: ArmReport, experiment: ExperimentStatus): str
 }
 
 /**
+ * Why a paused, stopped or unfinished experiment stopped, in its words: its own reason, or else
+ * what holds each arm still teaching, such as the error that paused its run. Null when nothing
+ * says.
+ */
+export function stopReason(
+  detail: Pick<ExperimentDetail, 'experiment' | 'report'>,
+  arms: Record<ArmId, string>,
+): string | null {
+  const { experiment, report } = detail;
+  if (experiment.reason !== undefined) return experiment.reason;
+  // Only the person pauses it without a reason: closing Architect gives one.
+  if (experiment.status === 'paused') return 'Paused by you.';
+  const held = (report?.arms ?? []).filter(
+    (arm) => arm.status === 'incomplete' && arm.frozen === null && arm.reason !== null,
+  );
+  return held.length === 0 ? null : held.map((arm) => `${arms[arm.arm]}: ${arm.reason}`).join(' ');
+}
+
+/**
  * The short names of the models an experiment runs, as every line names them: the field's own
  * teacher and student (decision 094), "Spark" and "Glimmer" by default.
  */
@@ -92,6 +111,7 @@ export function armNames({ mentor, student }: ModelNames): Record<ArmId, string>
     teacher: `${mentor} alone`,
     repeat: 'Decoding repeat',
     fixed: 'Fixed intervention',
+    composed: 'Propose, probe, compose',
     'weights-one-shot': 'One-shot LoRA adapter',
     'weights-targeted': 'Failure-targeted LoRA adapter',
   };
@@ -119,6 +139,7 @@ export function armDescriptions({ mentor, student }: ModelNames): Record<ArmId, 
     teacher: `${mentor} does the job itself in a run of its own, with no teaching`,
     repeat: 'The finished arms tested again on a new seed, to show the noise',
     fixed: `${mentor} may use one kind of change only`,
+    composed: `${mentor} tries several changes each round, then keeps one made from what they did`,
     'weights-one-shot': `Fine-tunes a LoRA adapter for ${student} once on verified examples`,
     'weights-targeted': `Fine-tunes a LoRA adapter for ${student} on the failures ${mentor} found`,
   };
@@ -136,6 +157,7 @@ export const SPARK_ARMS: readonly ArmId[] = [
   'reference',
   'reference-targeted',
   'fixed',
+  'composed',
 ];
 
 /**
@@ -149,6 +171,7 @@ export const STUDENT_ARMS: readonly ArmId[] = [
   'teacher',
   'repeat',
   'fixed',
+  'composed',
 ];
 
 /**
@@ -464,23 +487,57 @@ export const VERDICT_WORDS: Record<Verdict, string> = {
   none: 'No gain shown',
 };
 
+/** The gain rule's verdict as the end of a sentence: "so a gain is shown." */
+export function verdictClause(difference: PassDifference): string {
+  const verdict = verdictOf(difference);
+  return verdict === 'gain'
+    ? 'so a gain is shown.'
+    : verdict === 'loss'
+      ? 'so a loss is shown.'
+      : 'so no gain is shown.';
+}
+
+/**
+ * The paired difference the primary comparison reads, where the student ran first: on the whole
+ * test or on the part of it the comparison names, the pairing turned round when the report kept
+ * it the other way. Null where no such pairing was kept.
+ */
+export function primaryDifference(
+  report: ComparisonReport,
+  primary: PrimaryComparison,
+): PassDifference | null {
+  const [figure] = figuresOf(report);
+  for (const pair of figure?.pairs ?? []) {
+    const turned = pair.a === primary.b && pair.b === primary.a;
+    if (!turned && (pair.a !== primary.a || pair.b !== primary.b)) continue;
+    const found =
+      primary.group === 'all'
+        ? pair.difference
+        : pair.byGroup?.find((item) => item.group === primary.group)?.difference;
+    if (found === undefined) continue;
+    return turned ? { rate: -found.rate, low: -found.high, high: -found.low } : found;
+  }
+  return null;
+}
+
 /**
  * What the released results say about the primary comparison, in a sentence, where the student
- * ran first: on the whole test, the paired difference with its interval and the gain rule; on a
- * part of it, each arm's pass rate there and the difference. Null where either arm has nothing.
+ * ran first: the paired difference with its 95% interval and the gain rule, as the headline gives
+ * its own. A report from before parts of the test were paired gives, for a part, each arm's pass
+ * rate there and the difference. Null where either arm has nothing.
  */
 export function primaryResult(
   report: ComparisonReport,
   primary: PrimaryComparison,
   arms = ARM_NAMES,
 ): string | null {
+  const difference = primaryDifference(report, primary);
+  if (difference !== null) {
+    const { rate, low, high } = difference;
+    return `${points(rate)} points, 95% interval ${points(low)} to ${points(high)}, ${verdictClause(difference)}`;
+  }
   const [figure] = figuresOf(report);
   if (figure === undefined) return null;
-  const pair = figure.pairs.find((item) => item.a === primary.a && item.b === primary.b);
-  if (primary.group === 'all' && pair !== undefined) {
-    const { rate, low, high } = pair.difference;
-    return `${points(rate)} points, 95% interval ${points(low)} to ${points(high)}: ${VERDICT_WORDS[verdictOf(pair.difference)].toLowerCase()}.`;
-  }
   const rowOf = (arm: ArmId) =>
     figure.rows.find((row) => row.arm === arm && row.configuration === null);
   const group = primaryGroup(primary.group);

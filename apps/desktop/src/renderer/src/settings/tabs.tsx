@@ -1,8 +1,20 @@
 import { type ReasoningEffort } from '@architect/shared';
-import { Segmented, SettingsRow, SettingsValue, Skeleton, Switch } from '@architect/ui';
+import {
+  IconButton,
+  Segmented,
+  SettingsRow,
+  SettingsValue,
+  Skeleton,
+  Switch,
+  Tooltip,
+} from '@architect/ui';
+import { FolderOpen } from 'lucide-react';
+import { architect } from '../api/client';
 import { useAppInfo, useGraduates, useOllamaStatus } from '../api/hooks';
+import { CopyButton } from '../components/CopyButton';
 import { errorOf, QueryValue, RetryButton } from '../components/QueryValue';
 import { formatBytes } from '../lib/format';
+import { attempt } from '../lib/notify';
 import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
 import { EDITIONS } from '../shell/edition';
@@ -148,6 +160,24 @@ export function StorageTab() {
         metaFont="code"
       >
         {info.status === 'error' && <RetryButton onClick={info.reload} />}
+        {info.status === 'success' && (
+          <div className="flex items-center gap-1">
+            <Tooltip content="Show in folder" side="bottom">
+              <IconButton
+                label="Show in folder"
+                size="sm"
+                onClick={() =>
+                  void attempt("Couldn't show the folder", () =>
+                    architect().files.show(info.data.dataPath),
+                  )
+                }
+              >
+                <FolderOpen size={15} strokeWidth={1.7} aria-hidden />
+              </IconButton>
+            </Tooltip>
+            <CopyButton text={info.data.dataPath} label="Copy the location" />
+          </div>
+        )}
       </SettingsRow>
       <SettingsRow label="Agents" error={errorOf(graduates)}>
         <QueryValue query={graduates}>

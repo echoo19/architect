@@ -5,6 +5,7 @@ import {
   COMPARISON_REPORT_FORMAT,
   ComparisonReportSchema,
   costUsd,
+  DEFAULT_PROBES,
   FREE_PRICING,
   mentorPricing,
   studentPricing,
@@ -365,6 +366,21 @@ function pairOf(input: ReportInput, a: Slice, b: Slice, label?: string): Paired 
     const { scenarios: _scenarios, ...rest } = counts;
     return [{ type: id, ...rest }];
   });
+  // The organizations taught on and those never seen, paired apart, as perOrgOf splits them.
+  const taught = new Map(input.field.organizations.map((org) => [org.id, org.role === 'train']));
+  const byGroup = (['seen', 'unseen'] as const).flatMap((group) => {
+    const pick = (map: Map<string, boolean>) =>
+      new Map(
+        [...map].filter(
+          ([task]) => taught.get(input.field.orgOf.get(task) ?? '') === (group === 'seen'),
+        ),
+      );
+    const counts = paired(pick(left), pick(right));
+    const within = pairedDifference(counts);
+    return counts.scenarios === 0 || within === null
+      ? []
+      : [{ group, ...counts, difference: within }];
+  });
   return {
     a: a.arm,
     b: b.arm,
@@ -373,6 +389,7 @@ function pairOf(input: ReportInput, a: Slice, b: Slice, label?: string): Paired 
     ...all,
     difference,
     byType,
+    ...(byGroup.length === 0 ? {} : { byGroup }),
   };
 }
 
@@ -414,6 +431,8 @@ const CONTRASTS: readonly [ArmId, ArmId][] = [
   ['targeted', 'draft'],
   ['fixed', 'bare'],
   ['targeted', 'fixed'],
+  ['composed', 'bare'],
+  ['composed', 'targeted'],
   ['weights-one-shot', 'bare'],
   ['weights-targeted', 'bare'],
   ['weights-targeted', 'weights-one-shot'],
@@ -690,6 +709,7 @@ function builtOn(input: ReportInput, arm: ArmId, jobOf: JobOf): ArmId[] {
   switch (arm) {
     case 'targeted':
     case 'fixed':
+    case 'composed':
       return jobOf(arm)?.startingHarness.kind === 'import' && armRun(store, 'draft') !== null
         ? ['draft']
         : [];
@@ -935,8 +955,11 @@ function notesOf(input: ReportInput, arm: ArmId, run: StoredRun | null, job: Job
     }
     case 'targeted':
     case 'fixed':
+    case 'composed':
       notes.push(
-        "Each round Spark reads Glimmer's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on the check tasks.",
+        arm === 'composed'
+          ? `Each round Spark reads Glimmer's failed attempts on practice tasks and proposes ${job?.evaluation.probes ?? DEFAULT_PROBES} changes to the harness; each is measured on the check tasks and the practice tasks, Spark composes one change from what they did, and that change is kept only if it clears the keep rule on the check tasks.`
+          : "Each round Spark reads Glimmer's failed attempts on practice tasks and makes one change to the harness; a change is kept only if it clears the keep rule on the check tasks.",
       );
       if (job?.startingHarness.kind === 'import' && draft !== null) {
         notes.push(

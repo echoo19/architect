@@ -23,6 +23,8 @@ export type Route =
    */
   | { name: 'compute'; jobId?: string; model?: string }
   | { name: 'welcome' }
+  /** An agent's home: where its sessions are dispatched from and its work on this computer shows. */
+  | { name: 'agent'; graduateId: string }
   | { name: 'chat'; graduateId: string; chatId: string }
   /** A chat with a team, which its lead answers (decision 100). */
   | { name: 'team-chat'; teamId: string; chatId: string }
@@ -55,6 +57,7 @@ export const paths = {
         ? `/compute/fields/${segment(field.jobId)}`
         : `/compute/fields/${segment(field.jobId)}/${segment(field.model)}`,
   welcome: () => '/welcome',
+  agent: (graduateId: string) => `/agents/${segment(graduateId)}`,
   chat: (graduateId: string, chatId: string) =>
     `/agents/${segment(graduateId)}/chats/${segment(chatId)}`,
   teamChat: (teamId: string, chatId: string) =>
@@ -116,6 +119,7 @@ export function parsePath(path: string): Route {
   if (first === 'compute' && id === 'fields' && third && fourth && exactly(4)) {
     return { name: 'compute', jobId: third, model: fourth };
   }
+  if (first === 'agents' && id && exactly(2)) return { name: 'agent', graduateId: id };
   if (first === 'agents' && third === 'chats' && id && fourth && exactly(4)) {
     return { name: 'chat', graduateId: id, chatId: fourth };
   }

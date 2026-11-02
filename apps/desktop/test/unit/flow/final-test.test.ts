@@ -24,11 +24,11 @@ describe('where the final test runs', () => {
   const job = makeJob({ student: onlineCopy });
 
   it('says how long it takes on this computer, and that it is free', () => {
-    expect(finalTestFacts(job, 'local')).toBe('About 2.5 hours for 60 tasks · Free');
+    expect(finalTestFacts(job, 'local')).toBe('About 2.5 hours for 60 tasks, free');
   });
 
   it('says how long it takes on the online copy, and about what it costs', () => {
-    expect(finalTestFacts(job, 'hosted')).toBe('About 15 minutes for 60 tasks · About $0.20');
+    expect(finalTestFacts(job, 'hosted')).toBe('About 15 minutes for 60 tasks, about $0.20');
   });
 
   it('names no cost for an online copy that has no price', () => {
@@ -46,7 +46,7 @@ describe('where the final test runs', () => {
       student: onlineCopy,
       splits: { seed: 7, calibration: 10, train: 60, dev: 40, test: 1 },
     });
-    expect(finalTestFacts(one, 'local')).toBe('About 5 minutes for 1 task · Free');
+    expect(finalTestFacts(one, 'local')).toBe('About 5 minutes for 1 task, free');
   });
 
   it('marks the agent ready when it passes here, and tested online when it passed there', () => {

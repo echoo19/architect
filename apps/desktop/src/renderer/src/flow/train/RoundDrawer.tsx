@@ -46,6 +46,7 @@ import {
 } from './ExperimentSections';
 import type { ModelNames } from './phase';
 import { RoundCounterexamples } from './Counterexamples';
+import { Probes } from './CurrentRound';
 import { answerEffect } from './questions';
 
 function statusText(status: Round['status'], w: Words): string {
@@ -55,6 +56,8 @@ function statusText(status: Round['status'], w: Words): string {
     teaching: 'Checking corrections of the failures',
     training: `${w.TrainingWeights} on the corrections`,
     clarifying: 'Waiting for your answer',
+    probing: `Scoring each probe on the ${w.checks}`,
+    composing: 'Composing one change from the probes',
     evaluating: `Scoring the change on the ${w.checks}`,
     decided: 'Decided',
     failed: 'Failed',
@@ -171,6 +174,12 @@ export function RoundDrawerContent({
                 </Effect>
               )}
             </dl>
+          </DrawerSection>
+        )}
+
+        {round.probes !== undefined && round.probes.length > 0 && (
+          <DrawerSection title={w.lab ? 'Probes' : 'Tries'}>
+            <Probes probes={round.probes} measuring={round.status === 'probing'} w={w} />
           </DrawerSection>
         )}
 
@@ -366,8 +375,13 @@ function dispositionReason(
   if (!experiment) return scores;
   switch (experiment.disposition) {
     case 'kept':
-    case 'reverted':
       return scores ?? sentence(experiment.reason);
+    // An improvement's change is undone for what the student didn't learn, never for a gain it
+    // needn't make (decision 066): the runner's own reason says which.
+    case 'reverted':
+      return experiment.learned === undefined
+        ? (scores ?? sentence(experiment.reason))
+        : sentence(experiment.reason);
     case 'rejected': {
       const failed = experiment.gates.find((gate) => !gate.passed);
       if (!failed) return harmSentence(experiment, job, w) ?? sentence(experiment.reason);

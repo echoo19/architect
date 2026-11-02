@@ -53,24 +53,27 @@ function experimentsData(report: ComparisonReport, names: ExperimentNames) {
 /**
  * Installs the stand-in; `report` is what a finished experiment reads, such as the recorded one,
  * and `names` the models its field runs, and `kept` the experiments it already holds, such as a
- * finished one.
+ * finished one. A new experiment is planned on the field it names, when `fields` lists it, and
+ * on the report's otherwise.
  */
 export async function installExperimentsFake(
   app: ElectronApplication,
   report: ComparisonReport,
   names: ExperimentNames = DEFAULT_NAMES,
   kept: readonly ExperimentRecord[] = [],
+  fields: readonly { id: string; name: string }[] = [],
 ): Promise<void> {
   // Sent untyped: the report's types are too deep for Playwright to unbox, and it is ours anyway.
-  const sent: unknown = { data: experimentsData(report, names), kept };
+  const sent: unknown = { data: experimentsData(report, names), kept, fields };
   await app.evaluate(({ BrowserWindow, ipcMain }, raw) => {
-    const { data, kept } = raw as {
+    const { data, kept, fields } = raw as {
       data: ReturnType<typeof experimentsData>;
       kept: Record[];
+      fields: { id: string; name: string }[];
     };
     type Record = {
       id: string;
-      input: { jobId?: string; jobDir?: string; name: string };
+      input: { jobId?: string; jobDir?: string; name: string; caps: { studentUsd: number } };
       job: { id: string; name: string; splitsSeed: number };
       status: string;
       reason?: string;
@@ -79,6 +82,8 @@ export async function installExperimentsFake(
       runningMs: number;
       createdAt: string;
       updatedAt: string;
+      /** The student cap raised before the release, as the engine keeps it (decision 081). */
+      amendments?: unknown[];
     };
     const records: Record[] = [...kept];
     const now = () => new Date().toISOString();
@@ -111,8 +116,21 @@ export async function installExperimentsFake(
       groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
-      funding: null,
-      amendments: [],
+      // The engineered arm, done teaching, whose final test needs $4.20 more of the hosted student
+      // than is left under its cap.
+      funding:
+        record.status === 'needs_funding'
+          ? {
+              arm: 'targeted',
+              stage: 'test',
+              priceUsd: 0.0123,
+              needUsd: 9.2,
+              leftUsd: 5,
+              capUsd: 15,
+              at: record.updatedAt,
+            }
+          : null,
+      amendments: record.amendments ?? [],
       report: released(record) ? data.released : record.status === 'draft' ? null : data.held,
     });
     const handle = (channel: string, reply: (...args: never[]) => unknown) => {
@@ -133,8 +151,10 @@ export async function installExperimentsFake(
         id: `cmp_${records.length + 1}`,
         input,
         job: {
-          id: data.released.job.id,
-          name: data.released.job.name,
+          ...(fields.find((field) => field.id === input.jobId) ?? {
+            id: data.released.job.id,
+            name: data.released.job.name,
+          }),
           splitsSeed: data.released.job.splitsSeed,
         },
         status: 'draft',
@@ -188,9 +208,27 @@ export async function installExperimentsFake(
       });
     };
     handle('experiments:start', (id: string) => run(id, ['preregistered']));
-    handle('experiments:resume', (id: string) =>
-      run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']),
-    );
+    handle('experiments:resume', (id: string, options?: { studentCapUsd?: number }) => {
+      const record = find(id);
+      // A raised cap is kept as the engine keeps it, from the cap in force before.
+      if (options?.studentCapUsd !== undefined && record.status === 'needs_funding') {
+        const before = record.amendments ?? [];
+        const last = before.at(-1) as { toUsd: number } | undefined;
+        record.amendments = [
+          ...before,
+          {
+            arm: 'targeted',
+            fromUsd: last?.toUsd ?? record.input.caps.studentUsd,
+            toUsd: options.studentCapUsd,
+            armFromUsd: null,
+            armToUsd: null,
+            priceUsd: 0.0123,
+            at: now(),
+          },
+        ];
+      }
+      return run(id, ['paused', 'waiting', 'needs_funding', 'incomplete']);
+    });
     handle('experiments:pause', (id: string) => {
       const record = find(id);
       if (record.status !== 'running') throw coded('experiment_state', `It is ${record.status}.`);

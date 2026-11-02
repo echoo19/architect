@@ -78,7 +78,7 @@ describe('parseUnifiedDiff', () => {
     expect(createsFile(created)).toBe(true);
     expect(lineCounts(created)).toBe('2 lines');
     expect(createsFile(patch)).toBe(false);
-    expect(lineCounts(patch)).toBe('2 new lines · 1 line removed');
+    expect(lineCounts(patch)).toBe('2 new lines, 1 line removed');
   });
 });
 

@@ -275,7 +275,7 @@ export function ApprovalCard({
                 />
               </span>
               <span className="text-small text-fg">
-                {named ? `${agent.name} · ${counts}` : counts}
+                {named ? `${agent.name}: ${counts}` : counts}
               </span>
             </span>
           </button>

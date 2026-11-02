@@ -1,8 +1,26 @@
 import type { ReactNode } from 'react';
 import type { Score } from '@architect/shared';
-import { cn } from '@architect/ui';
+import { cn, defineTerm, Tooltip, type LabTerm } from '@architect/ui';
 import { Section } from '../ledger';
-import type { OrgColumn, OrgGrid } from './org-grid';
+import type { OrgColumn, OrgGrid, OrgGroup } from './org-grid';
+
+/** What each group's name means, on its heading. Organizations added later need no term. */
+const GROUP_TERMS: Partial<Record<OrgGroup, LabTerm>> = {
+  seen: 'taughtOn',
+  unseen: 'neverSeen',
+  real: 'realOrganization',
+};
+
+/** A group's name, with what it means on hover or focus where it is a term of its own. */
+function GroupName({ group, label }: { group: OrgGroup; label: string }) {
+  const term = GROUP_TERMS[group];
+  if (term === undefined) return label;
+  return (
+    <Tooltip content={defineTerm(term)} side="top">
+      <span tabIndex={0}>{label}</span>
+    </Tooltip>
+  );
+}
 
 /** The first column of each group after the first, which a hairline sets apart. */
 function opensGroup(grid: OrgGrid, index: number): boolean {
@@ -19,7 +37,7 @@ function Cell({ score, label, strong }: { score: Score | null; label: string; st
   return (
     <span
       aria-label={`${label}, ${score.pass} of ${score.total} passed`}
-      className={cn('font-mono tabular-nums', strong && 'font-medium')}
+      className={cn('tabular-nums', strong && 'font-medium')}
     >
       {score.pass}/{score.total}
     </span>
@@ -63,7 +81,7 @@ export function Organizations({
                     index > 0 && 'border-l border-line',
                   )}
                 >
-                  {group.label}
+                  <GroupName group={group.group} label={group.label} />
                 </th>
               ))}
             </tr>

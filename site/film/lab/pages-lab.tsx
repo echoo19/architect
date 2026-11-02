@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ACADEMY, ORGANIZATIONS, RIDGELINE_FILES } from './data';
+import { useLabels } from './labels';
 import { PlacePage } from './shell';
 import { count, mix, outQuart, rise, span, ui } from './time';
 
@@ -25,7 +26,17 @@ const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
  * The Lab: what needs you and what is running (apps/desktop lab/cards.tsx). The row's icon names
  * the kind and its end word what to do; a detail line stays only where it says something specific.
  */
-export function LabHome({ lt }: { lt: number }) {
+export function LabHome({
+  lt,
+  hover = 0,
+  score: [scoreFrom, scoreTo] = [35, 47],
+}: {
+  lt: number;
+  /** The teaching run's check score before and after its last kept round, in percent. */
+  score?: readonly [number, number];
+  /** How far the pointer's hover has lit the academy desk's running row, from 0 to 1. */
+  hover?: number;
+}) {
   const needs: readonly {
     kind: string;
     icon: ReactNode;
@@ -60,7 +71,7 @@ export function LabHome({ lt }: { lt: number }) {
     },
   ];
   // The third academy run's first round, kept: 25 to 34 of 72 check tasks (docs/PROGRESS.md).
-  const score = count(lt, 7.2, 1.2, 35, 47);
+  const score = count(lt, 7.2, 1.2, scoreFrom, scoreTo);
   return (
     <PlacePage title="Lab">
       <div className="grid grid-cols-[1fr_330px] items-start gap-4">
@@ -97,6 +108,7 @@ export function LabHome({ lt }: { lt: number }) {
           <Card title="Running" flush>
             <RunRow
               name={ACADEMY}
+              hover={hover}
               state="Teaching, round 2 of 3"
               figure={`${score}%`}
               progress={mix(0.36, 0.5, outQuart(span(lt, 7.2, 4)))}
@@ -124,14 +136,19 @@ function RunRow({
   state,
   figure,
   progress,
+  hover = 0,
 }: {
   name: string;
   state: string;
   figure?: string;
   progress: number;
+  hover?: number;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-line px-6 py-3.5">
+    <div className="relative flex flex-col gap-3 border-t border-line px-6 py-3.5">
+      {hover > 0 && (
+        <span aria-hidden className="absolute inset-0 bg-hover" style={{ opacity: hover }} />
+      )}
       <div className="flex items-center gap-3">
         <RowIcon>
           <Spinner size={16} />
@@ -254,14 +271,28 @@ const fieldGrid = 'grid grid-cols-[1.6fr_repeat(6,1fr)_1.1fr] items-center gap-3
  * Fields: each field with its organizations and its best final test (apps/desktop fields/).
  * `selected` lights the academy's row, and `lab` the screening labs' desks.
  */
-export function Fields({ lt, selected, lab = 0 }: { lt: number; selected: number; lab?: number }) {
+export function Fields({
+  lt,
+  selected,
+  lab = 0,
+  when,
+}: {
+  lt: number;
+  selected: number;
+  lab?: number;
+  /** Last activity to show in place of a field's own, by the field's name. */
+  when?: Readonly<Record<string, string>>;
+}) {
+  const labels = useLabels();
   return (
     <PlacePage title="Fields" action={<Button size="sm">New field</Button>}>
       <section className="rounded-card surface-card">
         <div className={`${fieldGrid} pt-4 text-small font-medium`}>
           <span />
           <span className="col-span-3 border-b border-line pb-2 text-center">Organizations</span>
-          <span className="col-span-3 border-b border-line pb-2 text-center">Best final test</span>
+          <span className="col-span-3 border-b border-line pb-2 text-center">
+            {labels.bestFinalTest}
+          </span>
           <span />
         </div>
         <div className={`${fieldGrid} h-12 text-ui font-medium`}>
@@ -293,11 +324,15 @@ export function Fields({ lt, selected, lab = 0 }: { lt: number; selected: number
             <span className="relative text-right">{field.unseen}</span>
             <span className="relative text-right">{field.real}</span>
             {field.scores.map((score, column) => (
-              <span key={column} className="relative text-right">
+              <span
+                key={column}
+                data-frame={`${field.name}-${column}`}
+                className="relative text-right"
+              >
                 {score}
               </span>
             ))}
-            <span className="relative text-right">{field.when}</span>
+            <span className="relative text-right">{when?.[field.name] ?? field.when}</span>
           </div>
         ))}
         <div className="h-2" />
@@ -315,7 +350,7 @@ const FIELD_TABS = [
 ] as const;
 
 /** The field page's tab strip, with one tab open. */
-function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
+export function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
   return (
     <div className="-mt-2 flex h-10 w-fit items-center gap-1 rounded-full p-1 shadow-edge">
       {FIELD_TABS.map(({ label, Icon }) => (
@@ -333,9 +368,9 @@ function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label'] }) {
 
 /** What an organization's row says under its name: generated or not, and what it holds. */
 function orgDetail(org: (typeof ORGANIZATIONS)[number]): string {
-  const rows = org.rows ? ` · ${org.rows.toLocaleString('en-US')} rows` : '';
+  const rows = org.rows ? `, ${org.rows.toLocaleString('en-US')} rows` : '';
   // A real organization carries its Real chip, so its row doesn't say it again.
-  return org.kind === 'Real' ? `${org.files} files` : `${org.kind} · ${org.files} files${rows}`;
+  return org.kind === 'Real' ? `${org.files} files` : `${org.kind}, ${org.files} files${rows}`;
 }
 
 /** A row's selected fill, fading as the choice moves from one row to another. */
@@ -354,7 +389,14 @@ function Chosen({ shown, children }: { shown: number; children: ReactNode }) {
  * A field's page on its Organizations tab: the academies it is taught on, and the two it never
  * sees, sealed until the final test, one of them real.
  */
-export function FieldPage({ lt }: { lt: number }) {
+export function FieldPage({
+  lt,
+  unlock = 0,
+}: {
+  lt: number;
+  /** How far the sealed academy's lock has opened, from 0 to 1, as its final test begins. */
+  unlock?: number;
+}) {
   // After the seals close, the sealed academy is chosen: what it holds stays out of view.
   const pick = ui(lt, 5.4, 0.3);
   return (
@@ -452,7 +494,28 @@ export function FieldPage({ lt }: { lt: number }) {
             <Card title="Harborview Prep" flush className="w-[320px]">
               <div className="flex flex-1 items-center justify-center border-t border-line">
                 <EmptyState
-                  icon={<Lock strokeWidth={1.8} aria-hidden />}
+                  icon={
+                    // Lucide's lock, its shackle lifting clear of the body as the lock opens,
+                    // the lock swelling a little as it goes.
+                    <svg
+                      data-frame="vault"
+                      viewBox="0 0 24 24"
+                      className="size-5"
+                      style={{ transform: `scale(${1 + 0.35 * Math.sin(Math.PI * unlock)})` }}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path
+                        d="M7 11V7a5 5 0 0 1 10 0v4"
+                        transform={`translate(0 ${-5 * unlock})`}
+                      />
+                    </svg>
+                  }
                   title="Sealed until the final test"
                   description="Spark and Glimmer never see its files, its tasks or its scores."
                 />

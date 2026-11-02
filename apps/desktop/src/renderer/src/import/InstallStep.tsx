@@ -6,8 +6,8 @@ import { CheckRows, FixButtons } from '../install/InstallChecks';
 import {
   installProblem,
   needsAnotherModel,
+  statusLine,
   statusMark,
-  STATUS_LABELS,
   WORKS_HERE_TITLE,
 } from '../install/labels';
 import { baseModelName } from '../lib/names';
@@ -100,7 +100,7 @@ export function InstallStep({
         <div className="flex flex-col gap-1.5 pt-1">
           <p className="m-0 flex items-start gap-2.5 text-body text-fg text-pretty">
             <StatusMark state={statusMark(status)} className="mt-1.5" />
-            {problem ? problem.cause : STATUS_LABELS[status]}
+            {problem ? problem.cause : statusLine(installation)}
           </p>
           {sendersFix && (
             <p className="m-0 pl-[26px] text-fg">Ask whoever sent it for a fixed copy.</p>

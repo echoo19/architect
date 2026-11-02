@@ -13,12 +13,12 @@ const TOKEN_SOURCES: Record<NonNullable<HubTokenStatus['source']>, string> = {
   token_file: "From Hugging Face's token file",
 };
 
-/** One fact of a target: its name at the left, its value at the right. */
+/** One fact of a target: its name at the left, its value at the right, wrapped when long. */
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex min-h-9 items-center justify-between gap-4 border-t border-line text-ui">
-      <span className="font-medium">{label}</span>
-      <span className="min-w-0 truncate text-right tabular-nums">{children}</span>
+    <div className="flex min-h-9 items-center justify-between gap-4 border-t border-line py-1.5 text-ui">
+      <span className="shrink-0 whitespace-nowrap font-medium">{label}</span>
+      <span className="min-w-0 break-words text-right text-pretty">{children}</span>
     </div>
   );
 }
@@ -80,13 +80,13 @@ export function Targets() {
             ? loading
             : local.data.gpu === null
               ? 'Not found'
-              : `${local.data.gpu.name} · ${formatBytes(local.data.gpu.memoryBytes)}`}
+              : `${local.data.gpu.name}, ${formatBytes(local.data.gpu.memoryBytes)}`}
         </Fact>
         <Fact label="Ollama">
           {local.data === undefined
             ? loading
             : local.data.ollama.running
-              ? `Running${local.data.ollama.version ? ` · ${local.data.ollama.version}` : ''}`
+              ? `Running${local.data.ollama.version ? ` version ${local.data.ollama.version}` : ''}`
               : 'Not running'}
         </Fact>
         <Fact label="llama-server">
@@ -94,7 +94,7 @@ export function Targets() {
             ? loading
             : llama.data.source === null
               ? 'Not found'
-              : `${llama.data.ready ? 'Ready' : 'Too old'}${llama.data.build ? ` · build ${llama.data.build}` : ''}`}
+              : `${llama.data.ready ? 'Ready' : 'Too old'}${llama.data.build ? `, build ${llama.data.build}` : ''}`}
         </Fact>
       </Card>
       <Card
@@ -127,11 +127,7 @@ export function Targets() {
         {CLUSTERS.map((cluster) => (
           <CardRow
             key={cluster.target}
-            icon={
-              <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-                {cluster.icon}
-              </span>
-            }
+            icon={cluster.icon}
             title={cluster.name}
             detail={cluster.lead}
             end={<span className="font-mono text-small">{cluster.command}</span>}

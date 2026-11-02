@@ -79,17 +79,27 @@ export function FlowShell<Step extends string = FlowStep>({
         <ProgressStepper steps={pills} current={index} attention={attention ?? []} />
         <div className="flex min-w-0 justify-end gap-2 pr-window-controls">{actions}</div>
       </header>
-      <div className="flex min-h-0 flex-1">
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden scroll-quiet">
+      {/*
+        The footer sits under the page, never under the panel beside it, and keeps the page's
+        scrollbar gutter on both sides, so its buttons line up with the column above at any
+        width. Its hairline still runs the window's width.
+      */}
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[minmax(0,1fr)_auto]">
+        <main
+          tabIndex={-1}
+          className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden outline-none scroll-quiet [scrollbar-gutter:stable_both-edges]"
+        >
           <StepTransition transitionKey={step} direction={direction} appear className="h-full">
             {children}
           </StepTransition>
         </main>
         {aside}
+        {footer && (
+          <footer className="col-span-2 grid grid-cols-subgrid border-t border-line bg-ground">
+            <div className="px-2.5 py-4">{footer}</div>
+          </footer>
+        )}
       </div>
-      {footer && (
-        <footer className="shrink-0 border-t border-line bg-ground px-8 py-4">{footer}</footer>
-      )}
     </div>
   );
 }

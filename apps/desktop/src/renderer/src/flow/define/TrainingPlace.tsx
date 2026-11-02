@@ -17,14 +17,17 @@ import { modelNames } from '../names';
 import {
   aboutUsd,
   allowingLine,
+  allowLabel,
   type Bills,
-  capText,
   comparisonSeconds,
   estimateNotes,
   estimateTime,
   fittingRounds,
+  mentorRoundsLine,
   formatAboutUsd,
   limitText,
+  limitedLine,
+  finalTestAfter,
   minutesForOneRound,
   planBills,
   placePhrase,
@@ -103,8 +106,9 @@ interface TrainingPlaceProps extends PlanFacts {
  * the callout with the ways out.
  */
 export function TrainingPlace(props: TrainingPlaceProps) {
-  const { job, hosted, onPlaceChange, onRetryKeys, onRaiseLimit, onAllowTime, onSetUpOnline } =
-    props;
+  const { job, hosted, testPlace, onPlaceChange, onRetryKeys, onRaiseLimit, onAllowTime } = props;
+  const { onSetUpOnline } = props;
+  const w = useWords();
   const facts = factsOf(props);
   const { names, device, remote, localSlow, remoteSlow, onHost, chosen, fits, pricing } = facts;
   const { mentor, student } = names;
@@ -129,6 +133,8 @@ export function TrainingPlace(props: TrainingPlaceProps) {
     };
   }
   const roomy = fits ? null : minutesForOneRound(job, job.student.trainOn);
+  // The place chosen says too when the time limit stops training before its last round.
+  const limited = limitedLine(job, chosen);
   return (
     <div className="flex flex-col gap-3">
       <RadioCardGroup
@@ -147,6 +153,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           <span>Free</span>
           {/* The callout says it for the place chosen, so the card does not say it again. */}
           {localSlow && onHost && <span>{localSlow}</span>}
+          {limited && !onHost && <span>{limited}</span>}
         </RadioCard>
         <RadioCard
           value="hosted"
@@ -162,18 +169,19 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           ) : (
             <span>{hosted.reason}</span>
           )}
+          {limited && onHost && <span>{limited}</span>}
         </RadioCard>
       </RadioCardGroup>
       <Collapse open={!fits}>
         {!fits && (
           <WontTeach
             title={wontTeachTitle(job, job.student.trainOn, device)}
-            body={wontTeachBody(job, chosen)}
+            body={`${wontTeachBody(job, chosen)} ${finalTestAfter(job, testPlace, w.finalTest)}`}
             allow={
               roomy === null
                 ? null
                 : {
-                    label: `Allow ${capText(roomy)}`,
+                    label: allowLabel(roomy),
                     gives: allowingLine(roomy),
                     onAllow: () => onAllowTime(roomy),
                   }
@@ -183,7 +191,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           />
         )}
       </Collapse>
-      {fits && (localSlow || remoteSlow) && (
+      {fits && (localSlow || remoteSlow || limited) && (
         <Button variant="ghost" size="xs" className="-ml-3 self-start" onClick={onRaiseLimit}>
           Allow more time
           <ChevronRight size={13} strokeWidth={1.8} aria-hidden />
@@ -262,14 +270,20 @@ export function TrainingRows(props: PlanFacts) {
       : [{ label: `Online ${w.finalTest}`, value: formatAboutUsd(shares.testUsd) }]),
     ...(shares.mentorUsd === null
       ? []
-      : [{ label: `${mentor} teaching`, value: formatAboutUsd(shares.mentorUsd) }]),
+      : [
+          {
+            label: `${mentor} teaching`,
+            detail: mentorRoundsLine(job, chosen),
+            value: formatAboutUsd(shares.mentorUsd),
+          },
+        ]),
   ];
   const cost = billLines(bills.total);
   const costTotal = shownTotalUsd(bills.total);
   const adds = [
     shortDuration(comparisonSeconds(job, chosen, testPlace)),
     ...billLines(bills.comparison).map((line) => `${line.value} ${line.label}`),
-  ].join(' · ');
+  ].join(', ');
   const notes = estimateNotes(job, {
     names,
     device: { inSentence: device, label: deviceLabel(currentPlatform()) },

@@ -128,7 +128,7 @@ function PlanLines({ certification }: { certification: Certification }) {
         {plan.target === 'local' ? 'on-premise' : `on ${shortModelName(plan.student)}`}
       </Line>
       <Line icon={<Clock aria-hidden strokeWidth={1.8} />}>
-        {formatAbout(plan.seconds)} · {plan.usd === 0 ? 'Free' : aboutUsd(plan.usd)}
+        {formatAbout(plan.seconds)}, {plan.usd === 0 ? 'free' : aboutUsd(plan.usd).toLowerCase()}
       </Line>
     </ul>
   );
@@ -354,7 +354,7 @@ function SetUp({
     value: job.id,
     label:
       (jobs.data ?? []).filter((other) => other.name === job.name).length > 1
-        ? `${job.name} · ${shortDate(job.createdAt)}`
+        ? `${job.name}, ${shortDate(job.createdAt)}`
         : job.name,
   }));
 

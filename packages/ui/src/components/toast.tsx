@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CircleAlert, X } from 'lucide-react';
 import { Toast as RadixToast } from 'radix-ui';
+import { cn } from '../lib/cn';
 import { useFloatingMotion } from '../motion/floating';
 import { useEnterFrom } from '../motion/provider';
 import { FLOAT_SCALE } from '../motion/springs';
@@ -100,8 +101,20 @@ export function Toaster() {
           </RadixToast.Root>
         ))}
       </AnimatePresence>
-      {/* Over a pinned action bar (a page's <footer>), toasts sit above it, clear of its buttons. */}
-      <RadixToast.Viewport className="fixed bottom-4 right-4 z-[60] [body:has(footer)_&]:bottom-24 flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none" />
+      {/*
+        Toasts never cover the controls in use: over a pinned action bar (a page's <footer>) they
+        sit above it, and beside an open inspector or drawer they sit to its left, clear of its
+        fields and actions.
+      */}
+      <RadixToast.Viewport
+        className={cn(
+          'fixed bottom-4 right-4 z-[60] flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2 outline-none',
+          '[body:has(footer)_&]:bottom-24',
+          '[body:has(aside[data-inspector=folded])_&]:right-[72px]',
+          '[body:has(aside[data-inspector=open])_&]:right-[416px]',
+          '[body:has([data-drawer])_&]:right-[min(628px,calc(100vw-396px))]',
+        )}
+      />
     </RadixToast.Provider>
   );
 }

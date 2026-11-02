@@ -7,6 +7,7 @@ import type {
   TestedConfiguration,
 } from '@architect/shared';
 import {
+  AgentAvatar,
   DetailList,
   Disclosure,
   Heading,
@@ -47,10 +48,10 @@ function useRecheckAfterSettings(recheck: (() => void) | null): void {
   }, [open, recheck]);
 }
 
-/** "Windows x64 with Ollama", or "with a hosted copy" for a test that didn't run locally. */
+/** "Windows x64 with Ollama", or where a test that didn't run on the author's computer ran. */
 export function testedOn(config: TestedConfiguration): string {
-  const backend = config.backend === 'hosted' ? 'a hosted copy' : runtimeName(config.backend);
-  return `${osName(config.os)} ${config.arch} with ${backend}`;
+  if (config.backend === 'hosted') return "A hosted copy of the model, not the author's computer";
+  return `${osName(config.os)} ${config.arch} with ${runtimeName(config.backend)}`;
 }
 
 /**
@@ -94,8 +95,8 @@ export function CheckStep({
         <p className="m-0 text-body text-fg text-pretty">
           {manifest.contract.summary ?? manifest.contract.description}
         </p>
-        <p className="m-0 font-mono text-small text-fg">
-          Version {manifest.identity.version} · {file}
+        <p className="m-0 text-small text-fg">
+          Version {manifest.identity.version} of {file}
         </p>
       </header>
 
@@ -103,11 +104,18 @@ export function CheckStep({
         <SettingsRow
           icon={<StatusMark state="ok" label="Passed" />}
           label="Safe to open"
-          meta={`${preview.files} files · ${formatBytes(preview.bytes)}`}
+          meta={`${preview.files} files, ${formatBytes(preview.bytes)}`}
           info={`Checked without running any of it${
             preview.migratedFrom === undefined ? '' : ', and converted from an older format'
           }.`}
         />
+        {place.kind === 'new' && place.name !== undefined && (
+          <SettingsRow
+            icon={<AgentAvatar name={place.name} />}
+            label={`Added as ${place.name}`}
+            info={`You already have an agent called ${manifest.identity.name}. This is another agent, and it doesn't change yours.`}
+          />
+        )}
         {place.kind === 'version' && (
           <SettingsRow
             icon={<VersionTag version={place.version} />}
@@ -131,7 +139,7 @@ export function CheckStep({
           meta={fit?.status === 'passed' ? 'Can run it' : fit?.detail}
         >
           <SettingsValue>
-            {osName(machine.os)} · {formatBytes(machine.memoryBytes)} of memory
+            {osName(machine.os)}, {formatBytes(machine.memoryBytes)} of memory
           </SettingsValue>
         </SettingsRow>
         {server && (
@@ -210,7 +218,10 @@ export function AuthorResult({ manifest }: { manifest: PackageManifest }) {
           </SettingsRow>
           {tested && (
             <Disclosure label="Details" className="pt-1">
-              <DetailList items={[{ label: 'Tested on', value: testedOn(tested) }]} />
+              <DetailList
+                items={[{ label: 'Tested on', value: testedOn(tested) }]}
+                valueFont="text"
+              />
             </Disclosure>
           )}
         </>

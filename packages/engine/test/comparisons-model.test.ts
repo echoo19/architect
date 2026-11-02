@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { JobSchema, MENTOR_PRESETS, type Job } from '@architect/shared';
+import { JobSchema, keyMayGoTo, MENTOR_PRESETS, type Job } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   comparisonJob,
@@ -17,10 +17,14 @@ import {
   project,
   SparkCapError,
   sparkCapsWith,
+  studentAt,
   wilson,
   type ComparisonConfig,
 } from '../src/comparisons';
-import { modelKeys } from '../src/comparisons/arms';
+import { armStart, modelKeys, type StagingContext } from '../src/comparisons/arms';
+import type { ComparisonEngine } from '../src/comparisons/engine';
+import type { ComparisonFiles } from '../src/comparisons/records';
+import type { LoopDeps } from '../src/loop/deps';
 import type { SweepAttempt } from '../src/comparisons/records';
 import { RETURNS_DESK } from './support/comparison-world';
 
@@ -197,6 +201,38 @@ function config(changes: Partial<ComparisonConfig>): ComparisonConfig {
 
 const source = JobSchema.parse(JSON.parse(readFileSync(join(RETURNS_DESK, 'job.json'), 'utf8')));
 
+describe('a hosted student no preset names', () => {
+  const endpoint = studentAt('https://glimmer.example.cloud/v1', 'muse-glimmer-lora', true);
+
+  it("is priced at the default hosted copy's rates, so its tokens are held to the cap", () => {
+    expect(endpoint).toMatchObject({
+      runtime: 'openai_compatible',
+      baseUrl: 'https://glimmer.example.cloud/v1',
+      model: 'muse-glimmer-lora',
+      // Its key goes to that host alone.
+      secretRef: 'custom:glimmer.example.cloud',
+      pricing: { inputPerM: 0.3, cachedInputPerM: 0.04, outputPerM: 1.2 },
+    });
+  });
+
+  it('sends its key to that host and no other', () => {
+    const ref = endpoint.secretRef ?? '';
+    expect(keyMayGoTo(ref, endpoint.baseUrl)).toBe(true);
+    expect(keyMayGoTo(ref, 'https://openrouter.ai/api/v1')).toBe(false);
+    expect(studentAt(endpoint.baseUrl, endpoint.model, false).secretRef).toBeUndefined();
+  });
+
+  it("is every arm's hosted student, with no provider pin", () => {
+    const job = comparisonJob(source, config({}), {
+      ...DEFAULT_MODELS,
+      student: endpoint,
+      providers: undefined,
+    });
+    expect(job.student.hosted).toMatchObject({ baseUrl: endpoint.baseUrl, model: endpoint.model });
+    expect(job.student.hosted?.providers).toBeUndefined();
+  });
+});
+
 describe('the projection', () => {
   const planned = (changes: Partial<ComparisonConfig>) => {
     const settings = config(changes);
@@ -207,6 +243,11 @@ describe('the projection', () => {
       modelInputs(job, settings, calibration(), { attempts: [], reading: null }),
     );
   };
+
+  it('asks no Spark of a draft adopted whole', () => {
+    const draft = planned({ draftHarness: '/frozen' }).arms.find((arm) => arm.arm === 'draft');
+    expect(draft).toMatchObject({ sparkCalls: 0, sparkUsd: 0, hostedAttempts: 150 });
+  });
 
   it('counts each arm at the most its caps allow', () => {
     const arms = Object.fromEntries(planned({}).arms.map((arm) => [arm.arm, arm]));
@@ -224,6 +265,18 @@ describe('the projection', () => {
     expect(arms['bare']?.wallMinutes).toBeCloseTo(((45 / 6 + 60) * 20) / 60, 9);
     // Spark's 60 tasks, one at a time, at the student's measured time.
     expect(arms['reference']?.wallMinutes).toBeCloseTo((60 * 20) / 60, 9);
+  });
+
+  it('counts every probe of an arm that proposes, probes and composes, and both Spark calls', () => {
+    const arms = planned({ arms: ['bare', 'draft', 'targeted', 'composed'] }).arms;
+    const composed = arms.find((arm) => arm.arm === 'composed');
+    // A round: four practice batches of 12 (the incumbent's and three probes'), and the 45 dev
+    // tasks for the incumbent, three probes and the composed change, then both again.
+    expect(composed?.hostedAttempts).toBe(45 + 2 * (4 * 12 + 7 * 45) + 60);
+    expect(composed?.sparkCalls).toBe(8);
+    const targeted = arms.find((arm) => arm.arm === 'targeted');
+    expect(composed?.sparkUsd).toBeGreaterThan(targeted?.sparkUsd ?? Infinity);
+    expect(composed?.sparkUsd).toBeLessThanOrEqual(DEFAULT_CONFIG.sparkCaps.composed);
   });
 
   it("funds arms in decision 037's order and drops the latest that no longer fits", () => {
@@ -479,5 +532,30 @@ describe('Spark caps set from the command line', () => {
   ])('refuses %s', (entry, says) => {
     expect(() => sparkCapsWith([entry])).toThrow(SparkCapError);
     expect(() => sparkCapsWith([entry])).toThrow(says);
+  });
+});
+
+describe('the composed arm', () => {
+  it('alone proposes, probes and composes, whatever round mode the field chose', async () => {
+    const probing: Job = {
+      ...source,
+      evaluation: { ...source.evaluation, roundMode: 'propose_probe_compose' },
+    };
+    const context: StagingContext = {
+      base: probing,
+      config: config({}),
+      engine: {} as ComparisonEngine,
+      deps: {} as LoopDeps,
+      files: {} as ComparisonFiles,
+      runOf: () => null,
+      sparkSpent: () => 0,
+      wallMinutes: 60,
+      writeHarness: async () => undefined,
+    };
+    const modes = [];
+    for (const arm of ['targeted', 'fixed', 'composed'] as const) {
+      modes.push((await armStart(arm, context)).job.evaluation.roundMode);
+    }
+    expect(modes).toEqual(['one_change', 'one_change', 'propose_probe_compose']);
   });
 });

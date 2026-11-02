@@ -8,7 +8,7 @@ import type {
 import { defineTerm } from '@architect/ui';
 import { orgScores } from '../lab/items';
 import { percentOf } from '../lib/format';
-import { quantizationLabel, shortModelName } from '../lib/names';
+import { buildBits, shortModelName } from '../lib/names';
 
 /** One version of one agent, with the report card its own final test left, when it took one. */
 export interface ModelRow {
@@ -77,11 +77,12 @@ export function matchesFilter(row: ModelRow, filter: RegistryFilter): boolean {
   }
 }
 
-/** The base model as people know it, with how it is quantized: "Glimmer · 4-bit". */
+/** The base model as people know it, with how it is quantized: "Glimmer, 4-bit". */
 export function baseModelOf(version: GraduateVersion): string {
   const { label, base } = version.manifest.model;
   const name = shortModelName(label);
-  return base.quantization ? `${name} · ${quantizationLabel(base.quantization)}` : name;
+  const bits = buildBits(base.name, base.quantization);
+  return bits ? `${name}, ${bits}` : name;
 }
 
 export const fieldOf = (version: GraduateVersion) => version.manifest.contract.name;
@@ -96,9 +97,21 @@ const RUNTIMES: Record<string, string> = {
 export const runtimeName = (runtime: string | undefined) =>
   runtime === undefined ? undefined : (RUNTIMES[runtime] ?? runtime);
 
-export const shortHash = (hash: string) => hash.replace(/^sha256:/, '').slice(0, 7);
+/** A hash's first seven hex digits, written sha256:<hex> or sha256-<hex> (a harness folder's). */
+export const shortHash = (hash: string) => hash.replace(/^sha256[:-]/, '').slice(0, 7);
 
-/** Matches the words typed against the agent, its field, model, harness, status and version. */
+/** How a version was made, in the Method column's word. */
+export const methodOf = (version: GraduateVersion) =>
+  version.manifest.model.adapter ? 'LoRA' : 'Harness';
+
+/**
+ * What the Agent column sorts by: the name, then the version. A tab between them sorts before any
+ * letter or space, so "Academy desk" comes before "Academy desk Mini".
+ */
+export const agentSortKey = (row: ModelRow) =>
+  `${row.agent.name}\t${String(row.version.version).padStart(5, '0')}`;
+
+/** Matches the words typed against the agent, its field, model, method, harness, status and version. */
 export function matchesSearch(row: ModelRow, search: string): boolean {
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return true;
@@ -108,6 +121,7 @@ export function matchesSearch(row: ModelRow, search: string): boolean {
     fieldOf(version),
     baseModelOf(version),
     version.manifest.model.base.name,
+    methodOf(version),
     shortHash(version.manifest.harness.hash),
     version.manifest.model.adapter ? shortHash(version.manifest.model.adapter.sha256) : '',
     STATUS_WORDS[statusOf(version)],
@@ -147,6 +161,13 @@ export function scoresOf(row: Pick<ModelRow, 'report' | 'version'>): RowScores {
   return { ...NONE, seen: report.test.score.total === 0 ? null : report.test.score, check };
 }
 
+/**
+ * Whether its final test had no organization it never saw: a job of one organization, labelled
+ * as a plain job's final test is, never "Taught on".
+ */
+export const oneOrganization = (scores: Pick<RowScores, 'unseen' | 'real'>) =>
+  scores.unseen === null && scores.real === null;
+
 /** A score as a number to sort by; null stays null so it sorts last. */
 export const sortScore = (score: Score | null) =>
   score === null || score.total === 0 ? null : percentOf(score);
@@ -168,13 +189,13 @@ export function ordered(a: ModelRow, b: ModelRow): [ModelRow, ModelRow] {
   return at(a) <= at(b) ? [a, b] : [b, a];
 }
 
-/** Where an organization stands to the agent: taught on, never seen, or never seen and real. */
+/** Where an organization stands to the agent: taught on, never seen, or the real one, never seen. */
 export type OrgGroup = 'seen' | 'unseen' | 'real';
 
 export const GROUP_LABELS: Record<OrgGroup, string> = {
   seen: 'Taught on',
   unseen: 'Never seen',
-  real: 'Never seen, real',
+  real: 'Real',
 };
 
 const GROUP_ORDER: OrgGroup[] = ['seen', 'unseen', 'real'];

@@ -16,7 +16,7 @@ import { Appear, useFirstKeys } from '../appear';
 import { Counted } from '../counted';
 import { percent } from '../format';
 import { RowButton, Section } from '../ledger';
-import { outcomeNote } from './decision';
+import { outcomeNote, roundShortfall } from './decision';
 import {
   DISPOSITIONS,
   dispositionMeaning,
@@ -41,6 +41,10 @@ function untitled(round: Round, w: Words): string {
       return w.TrainingWeights;
     case 'clarifying':
       return 'Waiting for your answer';
+    case 'probing':
+      return 'Scoring the probes';
+    case 'composing':
+      return 'Composing one change';
     case 'evaluating':
       return 'Scoring the change';
     case 'decided':
@@ -84,6 +88,7 @@ export function Rounds({
   records,
   failure,
   stopReason,
+  improving,
   onOpen,
   current,
 }: {
@@ -100,6 +105,8 @@ export function Rounds({
   failure: { error: Error; reload: () => void } | null;
   /** Why training ended, once it has. */
   stopReason: RunStopReason | undefined;
+  /** Improve agent's run, whose changes need no gain to stay. */
+  improving: boolean;
   onOpen: (round: Round) => void;
   /** The newest round, opened: what is happening in it. */
   current: ReactNode;
@@ -171,6 +178,7 @@ export function Rounds({
                   draft={round.index === draftRound}
                   running={running}
                   ended={ended}
+                  improving={improving}
                   experiment={records?.experiments.find((item) => item.round === round.index)}
                   asked={records ? questionOfRound(round, records.interventions) : undefined}
                   open={round.index === newest}
@@ -192,6 +200,7 @@ function RoundRow({
   draft,
   running,
   ended,
+  improving,
   experiment,
   asked,
   open,
@@ -202,6 +211,7 @@ function RoundRow({
   draft: boolean;
   running: boolean;
   ended: boolean;
+  improving: boolean;
   experiment: Experiment | undefined;
   /** The question the round put to the person, when it was one. */
   asked: Intervention | undefined;
@@ -211,17 +221,19 @@ function RoundRow({
 }) {
   const w = useWords();
   // A question says what was asked, or what the person answered, unless the round is open under
-  // its line and says so there; a change that was made worse says what it harmed. Every other
-  // outcome says all of it in its own words.
+  // its line and says so there; a change with no gain says how far it fell short, and one that was
+  // made worse says what it harmed. Every other outcome says all of it in its own words.
   const note = asked
     ? open
       ? null
       : asked.answer
         ? `Your answer: ${asked.answer.text}`
         : asked.question
-    : experiment && !draft
-      ? outcomeNote(experiment, job, w)
-      : null;
+    : draft
+      ? null
+      : experiment
+        ? outcomeNote(experiment, job, w)
+        : roundShortfall(round, job, w, improving);
   return (
     <RowButton
       onClick={onOpen}

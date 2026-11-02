@@ -14,9 +14,10 @@ import {
 import { percentile } from '../report/report-card';
 import type { EngineStore } from '../store/engine-store';
 import { computeEnded, computeSoFar } from '../training/budget';
+import { configurationKey, type AttemptConfig } from './configuration';
 import type { TrainingDeps } from './deps';
 import type { RunState } from './run-state';
-import { roundSeed } from './seeds';
+import { probeSeeds, roundSeed } from './seeds';
 
 /** How a round ended, beside what the records already hold about it. */
 export interface ExperimentOutcome {
@@ -137,7 +138,7 @@ export function recordExperiment(
       train: round.train.total > 0 ? roundSeed(state.record.seeds.trainStudent, index) : null,
     },
     decoding: outcome.decoding ?? null,
-    measurements: outcome.measurements ?? [],
+    measurements: [...(outcome.measurements ?? []), ...probeMeasurements(state, index)],
     devBefore: outcome.devBefore ?? null,
     devAfter: outcome.devAfter ?? null,
     perType,
@@ -184,6 +185,78 @@ export function settleExperimentCompute(
     settled.push(next);
   }
   return settled;
+}
+
+/**
+ * A propose-probe-compose round's measured probes (decision 108), recorded beside the round's own
+ * measurements however the round ended, so each probe's effect stays on its experiment too.
+ */
+function probeMeasurements(state: RunState, index: number): Measurement[] {
+  const { round } = state.round(index);
+  const seeds = probeSeeds(state.record.seeds.devPanel, index, state.job.evaluation.devRepeats);
+  const config = state.incumbentConfig();
+  return (round.probes ?? []).flatMap((probe) =>
+    probe.version === undefined || probe.devAfter === undefined
+      ? []
+      : [
+          recorded(
+            state,
+            `probe ${probe.index}`,
+            probe.version,
+            index,
+            seeds,
+            config,
+            "A probe, measured under the round's probe seeds for the change composed from it, never kept on its own.",
+          ),
+        ],
+  );
+}
+
+/** A configuration's dev attempts in a round under some of its seeds. */
+export function devAttempts(
+  state: RunState,
+  version: number,
+  round: number | null,
+  seeds: readonly number[],
+  config: AttemptConfig,
+) {
+  return state
+    .attempts({
+      split: 'dev',
+      version,
+      round,
+      target: state.targetOf(config),
+      config: configurationKey(config),
+    })
+    .filter((attempt) => seeds.includes(attempt.seed));
+}
+
+/** One configuration's measurement, as an experiment records it. */
+export function recorded(
+  state: RunState,
+  label: string,
+  version: number,
+  round: number | null,
+  seeds: readonly number[],
+  config: AttemptConfig,
+  provenance: string,
+): Measurement {
+  const result = state.devResult(version, round, seeds, config);
+  const latencies = devAttempts(state, version, round, seeds, config).map(
+    (attempt) => attempt.latencyMs,
+  );
+  return measurement(
+    label,
+    {
+      harnessVersion: version,
+      actor: config.actor,
+      backend: config.backend === 'job' ? state.studentBackend() : config.backend,
+      adapter: config.adapter,
+    },
+    { ...result, latencies },
+    seeds,
+    provenance,
+  );
 }
 
 /** A measurement as an experiment records it. */

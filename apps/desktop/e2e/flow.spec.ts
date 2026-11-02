@@ -217,11 +217,11 @@ test('walks from a description to a graduate', async () => {
       .first()
       .evaluate((title) => getComputedStyle(title).color);
   expect(await titleColor(local)).toBe(await titleColor(hosted));
-  expect(await startHeldBy(page)).toBe(wont);
+  expect(await startHeldBy(page)).toBe('Make room for a round of teaching first');
   await expect(page.getByText(wont, { exact: true })).toHaveCount(1);
   await capture(page, 'flow-define-slow-dark');
   // Its first button sets the shortest limit, in whole hours, that is sure to fit a round: 1 h
-  // 40 min of check tasks and a round of at most 7 h 10 min. Clicking it is in `allowMoreTime`.
+  // 40 min of check tasks and a round of at most 7 h 10 min.
   const allow = callout.getByRole('button', { name: 'Allow 9 hours' });
   await expect(allow).toBeVisible();
   // What the button gives is said when it is asked, and it is the limit the button names.
@@ -245,7 +245,9 @@ test('walks from a description to a graduate', async () => {
   await expect(time).toContainText('No round fits the 4-hour limit');
   await expect(time).toContainText('60 new tasks on this computer');
   await expect(cost).not.toContainText('Online practice');
-  await expect(cost).toContainText(/Spark teaching\s*\$0\.70/);
+  await expect(cost).toContainText(
+    /Spark teaching\s*All 12 rounds, as none fits the limit yet\s*\$0\.70/,
+  );
   // The choices the run below starts with, so every later screen agrees with this one. Its
   // second button trains online instead, and with that the callout is gone.
   await callout.getByRole('button', { name: 'Train online instead' }).click();
@@ -258,7 +260,7 @@ test('walks from a description to a graduate', async () => {
   await expect(time).toContainText(/Training\s*5 to 10 rounds online\s*4 h/);
   await expect(estimate).toContainText('6.5 h');
   await expect(cost).toContainText(/Online practice\s*\$3/);
-  await expect(cost).toContainText(/Spark teaching\s*\$0\.60/);
+  await expect(cost).toContainText(/Spark teaching\s*10 rounds\s*\$0\.60/);
   // The total is the figures under it added up.
   await expect(estimate.getByRole('img', { name: '$3.60' })).toBeVisible();
   // The footer holds its buttons and nothing else.
@@ -326,7 +328,7 @@ test('walks from a description to a graduate', async () => {
   const success = page.getByRole('region', { name: 'Score on the check tasks' });
   const rounds = page.getByRole('region', { name: 'Rounds' });
   await expect(success).toContainText('78%');
-  await expect(success).toContainText('31 of 40');
+  await expect(success).toContainText('62 of 80, 2 runs');
   await expect(page.getByRole('list', { name: 'Each round' })).toHaveText('PracticeDiagnoseScore');
   await expect(page.getByRole('status').filter({ hasText: 'Scoring the change' })).toBeVisible();
   await expect(rounds).toContainText('65% → 63%');
@@ -336,8 +338,24 @@ test('walks from a description to a graduate', async () => {
   await expect(success.getByRole('img')).toHaveAttribute(
     'aria-label',
     'Score on the check tasks by round: 40% at the start, 65% after the first draft, round 2 undone at 63%, ' +
-      '78% after round 3, round 4 in progress. Target 90%.',
+      '78% after round 3, round 4 in progress. Target 90%. Practice tasks right: 58% in round 2, ' +
+      '58% in round 3, 67% in round 4.',
   );
+  // Pointing at a round on the curve reads it out; clicking it opens the round.
+  // The plot starts 48px in and ends 12px short of the figure's edge.
+  const box = await success.locator('figure').boundingBox();
+  if (!box) throw new Error('The curve has no box.');
+  const roundX = (round: number) => box.x + 48 + (round * (box.width - 60)) / 12;
+  await page.mouse.move(roundX(3), box.y + 150);
+  await expect(success.locator('figure')).toContainText('Round 3, Cents, not dollars');
+  await expect(success.locator('figure')).toContainText('65% → 78%, Kept');
+  await expect(success.locator('figure')).toContainText('Practice 7 of 12');
+  await page.mouse.click(roundX(3), box.y + 150);
+  const picked = page.getByRole('dialog', { name: 'Round 3: Cents, not dollars' });
+  await expect(picked).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(picked).toBeHidden();
+  await page.mouse.move(0, 0);
   const budget = page.getByRole('region', { name: 'Budget' });
   await expect(budget).toContainText('/ 4 h');
   await expect(budget.getByRole('meter', { name: 'Time' })).toHaveAttribute(
@@ -373,9 +391,9 @@ test('walks from a description to a graduate', async () => {
   await failed.click();
   const traceDrawer = page.getByRole('dialog');
   await expect(traceDrawer.getByText('Failed', { exact: true })).toBeVisible();
-  await expect(traceDrawer).toContainText(
-    'Scheduling · Practice task, round 4 · using the setup from round 3',
-  );
+  for (const fact of ['Scheduling', 'Practice task, round 4', 'using the setup from round 3']) {
+    await expect(traceDrawer).toContainText(fact);
+  }
   // Each step reads the way the workspace words it; the first is open, with its evidence.
   const steps = traceDrawer.getByRole('list', { name: "Glimmer's steps" });
   await expect(steps).toContainText('Read data/technicians.csv 3 rows');
@@ -480,7 +498,7 @@ test('walks from a description to a graduate', async () => {
   await capture(page, 'flow-report-dark');
 
   await page.getByRole('button', { name: 'Start using Service desk' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/agents/${FLOW.graduateId}/chats/${FLOW.chatId}$`));
+  await expect(page).toHaveURL(new RegExp(`#/agents/${FLOW.graduateId}$`));
 });
 
 test("says in the results' details where a drafted job's final test came from", async () => {
@@ -642,8 +660,8 @@ test('says beside the score that a confirmed rule made the expected answers, wit
   expect(leftBox!.y).toBeGreaterThanOrEqual(noteBox!.y + noteBox!.height);
   expect(leftBox!.y + leftBox!.height).toBeLessThanOrEqual(detailsBox!.y);
 
-  // The tiles say what they are: the time of an answer, and the model's size on disk.
-  await expect(page.getByText('Typical answer time', { exact: true })).toBeVisible();
+  // The tiles say what they are: the model's size on disk. The time of an answer is in the
+  // run's details, where it has the slowest answers beside it.
   await expect(page.getByText(/^\d+(\.\d)? GB on disk$/)).toBeVisible();
 
   // Behind the run's details: the rule and its version, where it came from, how it was read, what
@@ -762,7 +780,7 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   });
   await expect(compare).not.toBeChecked();
   await expect(
-    page.getByText('Adds 11.5 h · $3 Online practice · $0.06 Spark teaching', { exact: true }),
+    page.getByText('Adds 11.5 h, $3 Online practice, $0.06 Spark teaching', { exact: true }),
   ).toBeVisible();
   const estimate = page.getByRole('region', { name: 'Estimate', exact: true });
   await estimate.getByRole('button', { name: 'Breakdown' }).click();
@@ -777,7 +795,7 @@ test('trains three simpler versions beside the agent when comparison mode is on'
   await expect(time).toContainText(/Comparison\s*Three simpler versions\s*11\.5 h/);
   await expect(estimate).toContainText('18 h');
   await expect(cost).toContainText(/Online practice\s*\$6/);
-  await expect(cost).toContainText(/Spark teaching\s*\$0\.65/);
+  await expect(cost).toContainText(/Spark teaching\s*10 rounds\s*\$0\.65/);
   await expect(estimate.getByRole('img', { name: '$6.65' })).toBeVisible();
 
   // The baselines reuse the agent's seed, so the four runs compare like for like.
@@ -829,9 +847,9 @@ test('says what a run needs before it starts, with one action for each', async (
   await expect(needs).toContainText("Glimmer isn't on this computer yet");
 
   // The download is on the row too; once the model is there the whole list is gone.
-  await expect(needs.getByRole('button', { name: 'Download · 17 GB' })).toBeVisible();
+  await expect(needs.getByRole('button', { name: 'Download (17 GB)' })).toBeVisible();
   await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
-  await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
+  await needs.getByRole('button', { name: 'Download (17 GB)' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
 });
@@ -924,7 +942,7 @@ test('still asks for the model on this computer when practice and the final test
 
   // With the model downloaded the list is gone, and the run starts with both ends online.
   await stubEngine(app, { 'ollama:install': null, 'connections:detectLocal': FLOW_LOCAL });
-  await needs.getByRole('button', { name: 'Download · 17 GB' }).click();
+  await needs.getByRole('button', { name: 'Download (17 GB)' }).click();
   await expect(page.getByRole('region', { name: 'Before it can start' })).toHaveCount(0);
   await expect(start).toBeEnabled();
   await start.click();
@@ -959,9 +977,9 @@ test('takes the final test on the online copy when asked', async () => {
   const here = where.getByRole('radio', { name: /On this computer/ });
   const online = where.getByRole('radio', { name: /On the hosted or cluster endpoint/ });
   await expect(here).toBeChecked();
-  await expect(here).toContainText('About 2.5 hours for 60 tasks · Free');
+  await expect(here).toContainText('About 2.5 hours for 60 tasks, free');
   await expect(here).toContainText('The agent is marked ready when it passes.');
-  await expect(online).toContainText('About 15 minutes for 60 tasks · About $0.20');
+  await expect(online).toContainText('About 15 minutes for 60 tasks, about $0.20');
   await expect(online).toContainText(
     'The agent is marked as tested online. You can test it on this computer later.',
   );
@@ -1241,7 +1259,7 @@ test('recovers when the mentor fails, and says so when it is slow', async () => 
 const NOTE =
   "I couldn't settle this from your files and answers, so I left it open:\nWhether cancelled orders count in totals.\n\nI've drafted the job for you to review.";
 const TOO_FEW =
-  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.';
+  'Your files hold only 3 rows between them, too few to make 30 different tasks to train and test on. Attach more of the records, or a file of example requests with their right answers, and describe the job again.';
 
 test('shows what a draft left open, beside the way to review it', async () => {
   const { app, page } = launched;
@@ -1311,6 +1329,30 @@ test('offers to edit the description when the conversation is gone, since asking
   const failure = page.getByRole('alert');
   await expect(failure).toContainText('This conversation is gone.');
   await expect(failure.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit the description' }).click();
+  await expect(page.getByRole('textbox', { name: 'Describe the job' })).toHaveValue(DESCRIPTION);
+});
+
+test('offers to edit the description when a reply fails mid-conversation, since asking again may fail the same way', async () => {
+  const { app, page } = launched;
+  await stubFlow();
+  await applySettings(page, { onboarded: true, comparisonMode: false });
+  await stubEngineFailure(app, {
+    'jobs:draftReply': {
+      message: "The draft couldn't be used: the file customers.csv wasn't attached.",
+    },
+  });
+  await resize(900);
+  await goTo(page, '/new');
+  await page.getByRole('textbox', { name: 'Describe the job' }).fill(DESCRIPTION);
+  await page.getByRole('button', { name: 'Send' }).click();
+  const reply = page.getByRole('textbox', { name: 'Reply' });
+  await reply.fill('North');
+  await reply.press('Enter');
+
+  const failure = page.getByRole('alert');
+  await expect(failure).toContainText('customers.csv');
+  await expect(failure.getByRole('button', { name: 'Try again' })).toBeVisible();
   await page.getByRole('button', { name: 'Edit the description' }).click();
   await expect(page.getByRole('textbox', { name: 'Describe the job' })).toHaveValue(DESCRIPTION);
 });

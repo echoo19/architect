@@ -192,17 +192,17 @@ test('lists every connection and picks the mentor from any of them', async () =>
   await openModelsTab();
   const connections = page.getByRole('region', { name: 'Connections' });
   // The runtimes on this computer wait under Advanced, which opens when Ollama is down.
-  await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeHidden();
+  await expect(connections.getByText('Running version 0.12.6, 2 models')).toBeHidden();
   await connections.getByRole('button', { name: 'Advanced' }).click();
-  await expect(connections.getByText('Running · 0.12.6 · 2 models')).toBeVisible();
+  await expect(connections.getByText('Running version 0.12.6, 2 models')).toBeVisible();
   await expect(connections.getByText('Not found')).toBeVisible();
-  await expect(connections.getByText('Build 10472 · on PATH')).toBeVisible();
+  await expect(connections.getByText('Build 10472, on PATH')).toBeVisible();
 
   await page.getByRole('button', { name: 'Teacher', exact: true }).click();
   const menu = page.getByRole('listbox');
   await expect(menu.getByRole('option', { name: /Muse Spark 1\.3/ }).first()).toBeVisible();
   const listed = menu.getByRole('option', { name: /Some Model/ });
-  await expect(listed).toContainText('$0.5 · $2');
+  await expect(listed).toContainText('$0.5 in, $2 out');
   await expect(menu.getByRole('option', { name: new RegExp(GRANITE) })).toBeVisible();
   // Providers without a key are offered by their presets.
   await expect(menu.getByText('Needs a key').first()).toBeVisible();
@@ -249,8 +249,8 @@ test('picks the model for new agents on this computer, with whether it fits the 
   await openModelsTab();
   await page.getByRole('button', { name: 'Model for new agents' }).click();
   const menu = page.getByRole('listbox');
-  await expect(menu.getByRole('option', { name: /Muse Glimmer · 2-bit/ })).toContainText('Fast');
-  await expect(menu.getByRole('option', { name: /Muse Glimmer · 4-bit/ })).toContainText(
+  await expect(menu.getByRole('option', { name: /Glimmer, 2-bit/ })).toContainText('Fast');
+  await expect(menu.getByRole('option', { name: /Glimmer, 4-bit/ })).toContainText(
     'Not downloaded',
   );
   await menu.getByRole('option', { name: new RegExp(GRANITE) }).click();
@@ -258,7 +258,7 @@ test('picks the model for new agents on this computer, with whether it fits the 
 
   // The 4-bit build would run partly on this 12 GB card; the 2-bit one fits and is here.
   await page.getByRole('button', { name: 'Model for new agents' }).click();
-  await page.getByRole('option', { name: /Muse Glimmer · 4-bit/ }).click();
+  await page.getByRole('option', { name: /Glimmer, 4-bit/ }).click();
   await expect(page.getByText('Not downloaded yet')).toBeVisible();
   expect(await infoTipText(page, page, /.* fits your GPU$/)).toBe(
     `Runs entirely on the ${GPU_12GB.name}, several times faster.`,
@@ -356,10 +356,18 @@ test('offers Spark first and three other ways to a teacher in setup, and a model
   await page.getByRole('option', { name: new RegExp(GRANITE) }).click();
   await expect(next).toBeEnabled();
   await page.getByRole('button', { name: 'Test', exact: true }).click();
-  await expect(page.getByText('Connected · 412 ms')).toBeVisible();
+  await expect(page.getByText('Connected in 412 ms')).toBeVisible();
   const [[tested]] = (await callsTo(launched.app, 'connections:testMentor')) as [[object]];
   expect(tested).toMatchObject({ provider: 'ollama', model: GRANITE });
   expect(tested).not.toHaveProperty('secretRef');
+
+  // Looking at another way and coming back keeps the teacher chosen here.
+  await page.getByRole('radio', { name: /^Spark/ }).click();
+  await page.getByRole('radio', { name: /On this computer/ }).click();
+  await expect(next).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Teacher', exact: true })).not.toContainText(
+    'Choose a model',
+  );
 
   // OpenRouter's way signs in first, then offers its models.
   await page.getByRole('radio', { name: /OpenRouter/ }).click();
@@ -378,12 +386,12 @@ test('sizes Glimmer for the GPU in setup and installs the GPU-sized build', asyn
   // The build that fits this card is chosen while the default isn't downloaded.
   await expect(recommended).toHaveAttribute('aria-checked', 'true');
   await expect(recommended).toContainText('Runs on your graphics card');
-  await expect(recommended).toContainText('14 GB download · Lighter, but less accurate');
+  await expect(recommended).toContainText('14 GB downloadLighter, but less accurate');
   await expect(larger).toContainText('Part runs on the processor');
-  await expect(larger).toContainText('17 GB download · Most accurate');
+  await expect(larger).toContainText('17 GB downloadMost accurate');
   await expect.poll(async () => (await settings(page)).defaultStudent.model).toBe(GPU_BUILD.model);
 
-  await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();
+  await page.getByRole('button', { name: /^Download Glimmer \(/ }).click();
   await expect.poll(() => callsTo(launched.app, 'ollama:install')).toEqual([['glimmer-gpu']]);
   await emitPullProgress(launched.app, {
     model: GPU_BUILD.model,

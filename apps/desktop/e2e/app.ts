@@ -53,6 +53,8 @@ export interface LaunchOptions {
   comparison?: string;
   /** Fills the throwaway profile before the app starts, such as with a graduate. */
   prepare?: (userData: string) => Promise<void>;
+  /** Records the window to a video in `dir`, written when the app closes. */
+  recordVideo?: { dir: string; size?: { width: number; height: number } };
 }
 
 /**
@@ -89,6 +91,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   const executablePath = packagedExecutable();
   const app = await electron.launch({
     ...(executablePath ? { executablePath } : { args: [APP_DIR] }),
+    ...(options.recordVideo ? { recordVideo: options.recordVideo } : {}),
     env: {
       ...process.env,
       ...noHub(userData),
@@ -114,16 +117,6 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
 
 export function updateSettings(page: Page, patch: Partial<AppSettings>): Promise<AppSettings> {
   return page.evaluate((next) => window.architect.settings.update(next), patch);
-}
-
-/**
- * Raises the training time on the Define screen through the callout that says the place chosen
- * can't fit a round in it, the way a person would: its first button sets a limit a round fits in.
- */
-export async function allowMoreTime(page: Page): Promise<void> {
-  const callout = page.getByRole('status').filter({ hasText: 'Not even one round of teaching' });
-  await callout.getByRole('button', { name: /^Allow \d+ hours?$/ }).click();
-  await expect(callout).toHaveCount(0);
 }
 
 /**
@@ -165,11 +158,14 @@ export async function tooltipText(page: Page, trigger: Locator): Promise<string>
 }
 
 /**
- * Why Start training is held, from the tooltip on what wraps the disabled button, or null when
- * it isn't held. The footer holds only its buttons, so a held one says why in its tooltip.
+ * Why Start training is held, from the line beside the disabled button, or null when it isn't
+ * held.
  */
-export function startHeldBy(page: Page): Promise<string | null> {
-  return heldBy(page, page.getByRole('button', { name: 'Start training' }));
+export async function startHeldBy(page: Page): Promise<string | null> {
+  const button = page.getByRole('button', { name: 'Start training' });
+  if (await button.isEnabled()) return null;
+  const why = await button.getAttribute('aria-describedby');
+  return why === null ? null : page.locator(`[id="${why}"]`).innerText();
 }
 
 /**

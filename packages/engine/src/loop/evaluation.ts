@@ -51,6 +51,11 @@ export interface EvaluationSpec {
   sealedData?: Readonly<Record<string, string>>;
   /** Asked before each attempt starts; false halts the evaluation there, as a pause does. */
   mayAttempt?: () => boolean;
+  /**
+   * Its place in a measurement of several, as a round measures both versions: the attempts the
+   * measurement made before this one and all it will make, so its progress reads as one count.
+   */
+  of?: { before: number; total: number };
 }
 
 /** The stored filter for one evaluation's attempts. */
@@ -83,16 +88,22 @@ function shouldHalt(state: RunState, training: boolean): boolean {
   return training && (state.record.stopRequested || state.budget.wallClockSpent());
 }
 
-function reportProgress(state: RunState, spec: EvaluationSpec, done: ReadonlySet<string>): void {
+function reportProgress(
+  state: RunState,
+  spec: EvaluationSpec,
+  done: ReadonlySet<string>,
+  already: number,
+): void {
   if (spec.split !== 'dev' && spec.split !== 'test') return;
   const filter = filterOf(spec);
   const all = seededTasks(spec);
+  const own = all.filter(({ seed, task }) => done.has(keyOf(seed, task.id))).length;
   state.emit({
     type: 'eval.progress',
     split: spec.split,
     harnessVersion: spec.version,
-    done: all.filter(({ seed, task }) => done.has(keyOf(seed, task.id))).length,
-    total: all.length,
+    done: spec.of ? spec.of.before + own - already : own,
+    total: spec.of?.total ?? all.length,
     pass: state.attempts(filter).filter((attempt) => attempt.check.pass).length,
   });
 }
@@ -302,12 +313,27 @@ export async function evaluate(state: RunState, spec: EvaluationSpec): Promise<b
   return state.ctx.libraryLock.run(SERVER_TURN, () => evaluateNow(state, spec));
 }
 
+/** How many attempts an evaluation has left to make: those its stored attempts don't cover. */
+export function attemptsLeft(state: RunState, spec: EvaluationSpec): number {
+  const done = new Set(
+    state.attempts(filterOf(spec)).map((attempt) => keyOf(attempt.seed, attempt.taskId)),
+  );
+  return seededTasks(spec).filter(({ seed, task }) => !done.has(keyOf(seed, task.id))).length;
+}
+
+/** How many attempts of an evaluation its stored attempts already cover. */
+export function attemptsMade(state: RunState, spec: EvaluationSpec): number {
+  return spec.tasks.length * spec.seeds.length - attemptsLeft(state, spec);
+}
+
 async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boolean> {
   const filter = filterOf(spec);
   const done = new Set(
     state.attempts(filter).map((attempt) => keyOf(attempt.seed, attempt.taskId)),
   );
-  const remaining = seededTasks(spec).filter(({ seed, task }) => !done.has(keyOf(seed, task.id)));
+  const all = seededTasks(spec);
+  const remaining = all.filter(({ seed, task }) => !done.has(keyOf(seed, task.id)));
+  const already = all.length - remaining.length;
   if (remaining.length > 0) {
     const { resources } = state;
     const student = await resources.student(spec.target, spec.config ?? STUDENT_CONFIG);
@@ -341,7 +367,7 @@ async function evaluateNow(state: RunState, spec: EvaluationSpec): Promise<boole
         if (item === null) return;
         await recordAttempt(state, spec, seed, item, student);
         done.add(keyOf(seed, task.id));
-        reportProgress(state, spec, done);
+        reportProgress(state, spec, done, already);
       });
     } finally {
       if (meter !== null) await recordMeasurement(state, spec, meter);

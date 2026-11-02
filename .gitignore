@@ -42,3 +42,6 @@ pnpm-debug.log*
 # python
 __pycache__/
 dist-film/
+
+# the founder clip's tail, rendered locally from the owner's take for the launch film page
+site/film/launch/public/founder/

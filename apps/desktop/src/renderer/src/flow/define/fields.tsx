@@ -50,7 +50,7 @@ export function NumberField({ label, value, onChange, issue, unit }: NumberField
           setUnreadable(!readable);
           if (readable) onChange(parsed);
         }}
-        className="h-9 w-20 text-right tabular-nums"
+        className="h-9 w-24 text-right tabular-nums"
       />
       {unit && <span className="w-14 text-small">{unitFor(unit, value)}</span>}
     </InspectorRow>
@@ -82,16 +82,30 @@ interface InspectorRowProps {
   note?: ReactNode;
   /** The control or value at the right. */
   children?: ReactNode;
+  /** The control goes under the label, for one too wide to sit beside it. */
+  stacked?: boolean;
   className?: string;
 }
 
 /** One setting in an inspector: a label and its control on a line, rows split by hairlines. */
-export function InspectorRow({ label, error, note, children, className }: InspectorRowProps) {
+export function InspectorRow({
+  label,
+  error,
+  note,
+  children,
+  stacked = false,
+  className,
+}: InspectorRowProps) {
   return (
     <div
       className={cn('flex flex-col gap-1 border-t border-line py-2 first:border-t-0', className)}
     >
-      <div className="flex min-h-10 items-center justify-between gap-3">
+      <div
+        className={cn(
+          'flex min-h-10 justify-between gap-3',
+          stacked ? 'flex-col items-start gap-2 pt-2' : 'items-center',
+        )}
+      >
         <span className="min-w-0 text-ui">{label}</span>
         {children !== undefined && (
           <div className="flex shrink-0 items-center gap-2">{children}</div>

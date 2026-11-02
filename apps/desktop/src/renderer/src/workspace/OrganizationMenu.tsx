@@ -69,7 +69,7 @@ function useOrganization(agent: GraduateSummary) {
         directory: true,
       });
       if (!picked) return undefined;
-      const problem = folderProblem(orgs, org, picked);
+      const problem = folderProblem(orgs, org, picked, noun);
       if (problem !== null) throw new Error(problem);
       return picked;
     });
@@ -153,7 +153,7 @@ export function OrganizationMenu({
 
   return (
     <DropdownMenu>
-      <Tooltip content={named ? `${agent.name} · ${where}` : where} side="bottom">
+      <Tooltip content={named ? `${agent.name}: ${where}` : where} side="bottom">
         <DropdownMenuTrigger asChild>
           <button
             type="button"

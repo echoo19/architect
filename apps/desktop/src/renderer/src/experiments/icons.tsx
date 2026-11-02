@@ -3,6 +3,7 @@ import type { ArmId } from '@architect/shared';
 import { RowIcon } from '@architect/ui';
 import {
   BookCheck,
+  Combine,
   Cpu,
   Crosshair,
   GraduationCap,
@@ -26,6 +27,7 @@ export const ARM_ICONS: Record<ArmId, ReactNode> = {
   teacher: <School {...icon} />,
   repeat: <Repeat {...icon} />,
   fixed: <Pin {...icon} />,
+  composed: <Combine {...icon} />,
   'weights-one-shot': <Cpu {...icon} />,
   'weights-targeted': <Layers {...icon} />,
 };

@@ -20,10 +20,10 @@ function statusOf(connection: Connection): string {
     if (!runtime.running) return connection.provider === 'ollama' ? 'Not running' : 'Not found';
     const count = runtime.models.length;
     const models = `${count} ${count === 1 ? 'model' : 'models'}`;
-    return runtime.version ? `Running · ${runtime.version} · ${models}` : `Running · ${models}`;
+    return runtime.version ? `Running version ${runtime.version}, ${models}` : `Running, ${models}`;
   }
   if (connection.provider === 'other') {
-    return connection.secretRef ? `${connection.baseUrl} · key saved` : connection.baseUrl;
+    return connection.secretRef ? `${connection.baseUrl}, key saved` : connection.baseUrl;
   }
   return 'Connected';
 }

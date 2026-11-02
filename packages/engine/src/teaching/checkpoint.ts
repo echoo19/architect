@@ -56,6 +56,8 @@ export interface Checkpoint {
   replayedCalls: number;
   /** The tool calls replayed, in order, for the checker's view of the whole episode. */
   calls: ToolCall[];
+  /** Helpers' results the replayed calls kept whole for `run`, as the attempt had them. */
+  kept: Record<string, string>;
 }
 
 export type CheckpointResult = { ok: true; checkpoint: Checkpoint } | { ok: false; reason: string };
@@ -229,6 +231,7 @@ export async function rebuildCheckpoint(input: CheckpointInput): Promise<Checkpo
       replay: opened.replay,
       replayedCalls: calls.length,
       calls,
+      kept: opened.toolbox.kept(),
     },
   };
 }

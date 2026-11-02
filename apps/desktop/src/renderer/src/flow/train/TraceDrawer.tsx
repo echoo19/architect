@@ -20,7 +20,7 @@ const STOP_REASONS: Record<Trace['stopReason'], string | null> = {
   aborted: 'Stopped before it finished.',
 };
 
-/** "Practice task, round 4" or "Check task, round 3 · Spark sees only the score", with its mark. */
+/** "Practice task, round 4", or "Check task, round 3" and that Spark sees only its score. */
 function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: string }) {
   const w = useWords();
   const check = attempt.split === 'dev';
@@ -30,7 +30,7 @@ function AttemptKind({ attempt, mentor }: { attempt: ListedAttempt; mentor: stri
       <EvidenceMark kind={check ? 'check' : 'practice'} className="align-[-2px]">
         {attempt.round ? `${kind}, round ${attempt.round}` : kind}
       </EvidenceMark>
-      {check && ` · ${mentor} sees only the score`}
+      {check && <span>{mentor} sees only the score</span>}
     </>
   );
 }
@@ -65,9 +65,11 @@ export function TraceDrawerContent({
       title={attempt.prompt ? taskTitle(attempt.prompt) : `Task ${attempt.taskId}`}
       onBack={onBack}
       subtitle={
-        <>
-          {type} · <AttemptKind attempt={attempt} mentor={names.mentor} /> · using {setup}
-        </>
+        <span className="flex items-baseline gap-x-3">
+          <span>{type}</span>
+          <AttemptKind attempt={attempt} mentor={names.mentor} />
+          <span>using {setup}</span>
+        </span>
       }
     >
       <div className="flex flex-col gap-7">

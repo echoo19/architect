@@ -43,7 +43,7 @@ function BeforeAfter({
   if (earlier.status !== 'success') return null;
   const rows = places(earlier.data, report, job, run, versionOf.org, checks);
   const { model } = versionOf;
-  const heading = (name: string, on: string | undefined) => (on ? `${name} · ${on}` : name);
+  const heading = (name: string, on: string | undefined) => (on ? `${name} on ${on}` : name);
   return (
     <Section title="Before and after" id="before-after">
       <div className="overflow-x-auto border-b border-line">
@@ -120,7 +120,7 @@ export function LabOrganizations({
             <Button
               variant="ghost"
               size="sm"
-              className="-ml-2.5 mt-1"
+              className="-ml-3.5 mt-1"
               aria-label={`Teach on ${column.name}`}
               onClick={() => setTeaching(column.name)}
             >

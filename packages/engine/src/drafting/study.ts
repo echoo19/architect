@@ -59,7 +59,7 @@ async function readableNames(dir: string, org: Organization): Promise<string[]> 
   const kept = names.filter((name) => READABLE.has(extname(name).toLowerCase())).sort();
   if (kept.length === 0) {
     throw new Error(
-      `${org.name} has no files to study yet. Its tables and policy belong in orgs/${org.id}/data/ in the job's folder.`,
+      `${org.name} has no tables or policy to study yet. Add them to its records folder, then study again.`,
     );
   }
   return kept;

@@ -5,5 +5,12 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"]
   },
-  "include": ["src", "film", "vite.config.ts", "vite.film.config.ts", "vite.film-lab.config.ts"]
+  "include": [
+    "src",
+    "film",
+    "vite.config.ts",
+    "vite.film.config.ts",
+    "vite.film-lab.config.ts",
+    "vite.film-launch.config.ts"
+  ]
 }

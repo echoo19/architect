@@ -32,6 +32,30 @@ const SETUP_FAILED: Installation['checks'] = [
 ];
 
 describe('the one verdict of a report', () => {
+  it('qualifies a ready agent whose certificate did not hold somewhere, in the title itself', () => {
+    const check = { seen: false, synthetic: false, tasks: 30, answered: 21, errors: 3 };
+    const point = { votes: 4, answered: 60, errors: 1, coverage: 0.78, bound: 0.0766 };
+    const certificate = {
+      issued: true as const,
+      ...{ n: 77, k: 5, delta: 0.05, epsilon: 0.1, curve: [point], threshold: point },
+      assumption: 'Requests like the calibration ones.',
+      checks: [
+        { ...check, seen: true, held: true },
+        { ...check, held: false, org: 'real', orgName: 'Real academy' },
+      ],
+    };
+    const report = { ...card(), certificate };
+    expect(reportVerdict(report, null, CONTEXT)).toMatchObject({
+      state: 'ready',
+      title: "Returns desk is ready, but its certificate didn't hold at Real academy",
+      usable: true,
+    });
+    const held = { ...certificate, checks: [{ ...check, seen: true, held: true }] };
+    expect(reportVerdict({ ...card(), certificate: held }, null, CONTEXT).title).toBe(
+      'Returns desk is ready',
+    );
+  });
+
   it('graduates an agent that met its targets and runs here, or whose checks are not known yet', () => {
     for (const installation of [null, checked('ready'), checked('unchecked')]) {
       expect(reportVerdict(card(), installation, CONTEXT)).toMatchObject({
@@ -80,7 +104,9 @@ describe('the one verdict of a report', () => {
       usable: true,
     });
     expect(verdict.because[0]).toMatch(/^It missed the job's target: /);
-    expect(verdict.because.at(-1)).toBe('You can still use it.');
+    expect(verdict.because.at(-1)).toBe(
+      'Train it again with more rounds or time, or start using it and teach it from its answers.',
+    );
   });
 
   it('asks for the one step that is missing when an agent that met its targets needs attention', () => {
@@ -176,7 +202,9 @@ describe('an agent whose final test ran on the online copy', () => {
       "It missed the job's target on this computer: 40 of 60 right, and the job needs 90%, which is 54 of 60.",
     );
     expect(verdict.because[1]).toBe('It scored 58 of 60 on its final test, run online.');
-    expect(verdict.because.at(-1)).toBe('You can still use it.');
+    expect(verdict.because.at(-1)).toBe(
+      'Train it again with more rounds or time, or start using it and teach it from its answers.',
+    );
   });
 
   it('says it fell short online when that is the only test there is', () => {

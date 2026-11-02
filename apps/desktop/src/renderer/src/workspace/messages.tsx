@@ -5,7 +5,7 @@ import type {
   GraduateSummary,
   WorkspaceMessage,
 } from '@architect/shared';
-import { ErrorState, Reveal, Spinner } from '@architect/ui';
+import { AgentAvatar, ErrorState, Reveal, Spinner } from '@architect/ui';
 import { CopyButton } from '../components/CopyButton';
 import { ApprovalCard, NoteBlock, RefusalCard, TableBlock } from './blocks';
 import { writerOf } from './changes';
@@ -33,6 +33,25 @@ export function Thinking() {
       <Spinner size={13} />
       Thinking
     </div>
+  );
+}
+
+/**
+ * Who answered a team reply, and whom it asked: "Inventory desk asked Assay desk", so the reply
+ * says it before its steps are opened.
+ */
+function ReplyAuthor({ agent, message }: { agent: GraduateSummary; message: WorkspaceMessage }) {
+  const asked = [
+    ...new Set(message.steps.filter((step) => step.kind === 'consult').map((step) => step.name)),
+  ];
+  return (
+    <p className="m-0 -mb-2 flex items-center gap-2 text-ui">
+      <AgentAvatar name={agent.name} className="size-5" />
+      <span>
+        <span className="font-medium">{agent.name}</span>
+        {asked.length > 0 && ` asked ${asked.join(' and ')}`}
+      </span>
+    </p>
   );
 }
 
@@ -78,6 +97,7 @@ export const AgentMessage = memo(function AgentMessage({
   return (
     <Reveal>
       <article aria-label={agent.name} className="flex min-w-0 flex-col gap-[18px]">
+        {teammates !== undefined && <ReplyAuthor agent={agent} message={message} />}
         {message.steps.length > 0 && (
           <Steps
             message={message}
@@ -125,7 +145,9 @@ export const AgentMessage = memo(function AgentMessage({
         {!working && (message.text || message.status === 'done') && (
           <div className="-ml-2 -mt-2 flex">
             {message.text && <CopyButton text={message.text} />}
-            {message.status === 'done' && <FlagButton onFlag={() => onFlag(message)} />}
+            {message.status === 'done' && (
+              <FlagButton graduateId={agent.id} onFlag={() => onFlag(message)} />
+            )}
           </div>
         )}
       </article>

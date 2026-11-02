@@ -175,7 +175,7 @@ function SeedsField({ editor, change }: InspectorTabProps) {
       <Input
         aria-label={label}
         aria-invalid={error ? true : undefined}
-        placeholder="One, from the training"
+        placeholder="Picked by the run"
         value={text}
         onChange={(event) => {
           const next = event.target.value;

@@ -7,12 +7,16 @@ import type {
   WorkspaceMessage,
 } from '@architect/shared';
 import {
+  AgentAvatar,
   Badge,
   Button,
   Drawer,
   DrawerContent,
   EmptyState,
   IconButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Skeleton,
   Tooltip,
 } from '@architect/ui';
@@ -27,7 +31,7 @@ import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
 import { WorkspaceHeader } from '../shell/WorkspaceShell';
 import { ChatComposer } from '../workspace/ChatComposer';
-import { draftFor, keepDraft } from '../workspace/drafts';
+import { draftFor, isToTeach, keepDraft } from '../workspace/drafts';
 import { EmptyChat } from '../workspace/EmptyChat';
 import { AgentMessage, Thinking, UserMessage } from '../workspace/messages';
 import { useAgentSettingsUi } from '../workspace/settings/agentSettingsUi';
@@ -79,7 +83,16 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
     <div className="flex items-center gap-1">
       {agent.status === 'blocked' && <BlockedBadge agent={agent} named={false} />}
       <OrganizationMenu agent={agent} />
-      <Tooltip content={facts.join(' · ')} side="bottom">
+      <Tooltip
+        content={
+          <span className="flex flex-col">
+            {facts.map((fact) => (
+              <span key={fact}>{fact}</span>
+            ))}
+          </span>
+        }
+        side="bottom"
+      >
         <IconButton label={`About ${agent.name}`} size="sm" onClick={() => showSettings(agent.id)}>
           <Info size={16} strokeWidth={1.8} aria-hidden />
         </IconButton>
@@ -90,15 +103,13 @@ function AgentDetails({ agent }: { agent: GraduateSummary }) {
 
 /**
  * A team chat's header side: each agent of the team on the records it works on, and a quiet icon
- * naming who is in the team at which version, which opens the team in Models.
+ * that opens what the team is: who leads and who it asks, at which version and for what, what a
+ * teammate sees, and a way to change the team in Models.
  */
 function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }) {
   const members = [agent, ...team.teammates];
-  const facts = [
-    ...members.map((member) => `${member.name}, ${activeVersionName(member).toLowerCase()}`),
-    'Not certified as a team',
-    `Runs on ${deviceInSentence(currentPlatform())}`,
-  ];
+  const roleOf = (graduateId: string) =>
+    team.team.members.find((member) => member.graduateId === graduateId)?.role;
   return (
     <div className="flex items-center gap-1">
       {members
@@ -107,15 +118,41 @@ function TeamDetails({ agent, team }: { agent: GraduateSummary; team: ChatTeam }
           <BlockedBadge key={member.id} agent={member} named />
         ))}
       <TeamOrganizationMenu agents={members} />
-      <Tooltip content={facts.join(' · ')} side="bottom">
-        <IconButton
-          label={`About ${team.team.name}`}
-          size="sm"
-          onClick={() => navigate(paths.teams())}
-        >
-          <Info size={16} strokeWidth={1.8} aria-hidden />
-        </IconButton>
-      </Tooltip>
+      <Popover>
+        <PopoverTrigger asChild>
+          <IconButton label={`About ${team.team.name}`} size="sm">
+            <Info size={16} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+        </PopoverTrigger>
+        <PopoverContent align="end" aria-label={team.team.name} className="w-80">
+          <p className="m-0 text-ui font-medium">{team.team.name}</p>
+          <p className="m-0 mt-1 text-small text-pretty">
+            {`${agent.name} answers, and asks its teammates for their part. A teammate sees only what it is asked, never this chat, and works on its own files with its own permissions.`}
+          </p>
+          <ul className="m-0 mt-3 flex list-none flex-col gap-2.5 p-0">
+            {members.map((member) => {
+              const role = member.id === agent.id ? 'Leads' : roleOf(member.id);
+              return (
+                <li key={member.id} className="flex items-start gap-2.5">
+                  <AgentAvatar name={member.name} className="mt-0.5" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-ui">
+                      {`${member.name}, ${activeVersionName(member).toLowerCase()}`}
+                    </span>
+                    {role && <span className="text-small text-pretty">{role}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="m-0 mt-3 text-small">
+            {`Not certified as a team. Runs on ${deviceInSentence(currentPlatform())}.`}
+          </p>
+          <Button size="xs" className="mt-3" onClick={() => navigate(paths.teams())}>
+            Edit team
+          </Button>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -381,6 +418,12 @@ function Chat({
   };
 
   const awaitingReply = chat?.running === true && list?.at(-1)?.role === 'user';
+  // The reply waits on the person's answer to a write it wants to make.
+  const last = list?.at(-1);
+  const approving =
+    chat?.running === true &&
+    last?.role === 'agent' &&
+    last.blocks.some((block) => block.kind === 'approval' && block.status === 'pending');
   const stepsStartOpen = settings.data?.steps === 'expanded';
 
   let body: ReactNode;
@@ -402,6 +445,7 @@ function Chat({
       <EmptyChat
         agent={agent}
         {...(team ? { team: { name: team.team.name, teammates: team.teammates } } : {})}
+        toTeach={isToTeach(chatId)}
         onPick={pick}
       />
     );
@@ -431,6 +475,7 @@ function Chat({
   return (
     <>
       <WorkspaceHeader
+        crumb={{ label: agent.name, onClick: () => navigate(paths.agent(agent.id)) }}
         title={
           chat?.title ??
           (chats.entry.status === 'loading' ? <Skeleton className="h-3.5 w-44" /> : 'Chat')
@@ -439,7 +484,11 @@ function Chat({
       />
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <div ref={viewport} className="min-h-0 flex-1 overflow-y-auto px-8 pb-[72px] pt-8">
+          {/* A gutter on both sides keeps the messages centred over the composer as they scroll. */}
+          <div
+            ref={viewport}
+            className="min-h-0 flex-1 overflow-y-auto px-8 pb-[72px] pt-8 [scrollbar-gutter:stable_both-edges]"
+          >
             <div ref={content} className="mx-auto flex max-w-[720px] flex-col gap-10 text-body">
               {body}
             </div>
@@ -454,6 +503,7 @@ function Chat({
               void attempt(`Couldn't stop ${agent.name}`, () => architect().workspace.stop(chatId))
             }
             running={chat?.running ?? false}
+            approving={approving}
             disabled={list === undefined}
             pinned={pinned}
             onJumpToLatest={pinToBottom}

@@ -13,12 +13,11 @@ import {
   Input,
   Select,
   Textarea,
-  Tooltip,
 } from '@architect/ui';
 import { CircleAlert, MessagesSquare, Trash2 } from 'lucide-react';
 import { useVersions } from '../api/graduates';
 import { toError } from '../api/query';
-import { refreshTeams, removeTeam, teamsApi } from '../api/teams';
+import { refreshTeams, removeTeam, teamsApi, useTeams } from '../api/teams';
 import { ProblemState } from '../components/ProblemState';
 import { useTeamChats } from '../workspace/store';
 import {
@@ -67,6 +66,11 @@ function TeamForm({
   onDone: () => void;
 }) {
   const id = useId();
+  // The other teams' names as the dialog opens, so the team it saves isn't one of them.
+  const saved = useTeams().data;
+  const [others] = useState(() =>
+    (saved ?? []).filter((item) => item.id !== team?.id).map((item) => item.name),
+  );
   const agents = teamAgents(graduates);
   const [name, setName] = useState(team?.name ?? '');
   const [lead, setLead] = useState<string | undefined>(
@@ -89,7 +93,7 @@ function TeamForm({
     return <RemoveTeam team={team} onBack={() => setRemoving(false)} onRemoved={onDone} />;
   }
 
-  const problem = teamProblem(name, lead, picks, graduates);
+  const problem = teamProblem(name, lead, picks, graduates, others);
   const full = picks.length >= MAX_TEAMMATES;
   const teammates = agents.filter((agent) => agent.id !== lead);
 
@@ -121,22 +125,11 @@ function TeamForm({
     onDone();
   };
 
-  const leadSelect = (
-    <Select
-      aria-label="Lead"
-      value={lead}
-      disabled={team !== undefined}
-      options={agents.map((agent) => ({ value: agent.id, label: agent.name }))}
-      onValueChange={(next) => {
-        setLead(next);
-        setPicks((current) => current.filter((pick) => pick.graduateId !== next));
-      }}
-    />
-  );
+  const leadName = agents.find((item) => item.id === lead)?.name ?? 'The lead';
 
   return (
     <DialogContent title={team ? team.name : 'New team'}>
-      <div className="flex flex-col gap-6 px-6 pt-5">
+      <div className="flex flex-col gap-5 px-6 pt-5">
         <Field label="Name" htmlFor={`${id}-name`}>
           <Input
             id={`${id}-name`}
@@ -147,43 +140,63 @@ function TeamForm({
           />
         </Field>
         <Field label="Lead" htmlFor={`${id}-lead`}>
-          {team ? (
-            // A team keeps its lead, which the locked choice says when pointed at.
-            <Tooltip content="Stays for the team's life" side="top">
-              <span tabIndex={0} className="block rounded-control">
-                {leadSelect}
-              </span>
-            </Tooltip>
-          ) : (
-            leadSelect
+          <Select
+            aria-label="Lead"
+            value={lead}
+            disabled={team !== undefined}
+            options={agents.map((agent) => ({ value: agent.id, label: agent.name }))}
+            onValueChange={(next) => {
+              setLead(next);
+              setPicks((current) => current.filter((pick) => pick.graduateId !== next));
+            }}
+          />
+          {/* Its chats were answered by it, so the lead stays; the locked choice says why. */}
+          {team && (
+            <p className="m-0 text-small text-pretty">
+              A team keeps its lead. For another lead, make a new team.
+            </p>
           )}
         </Field>
         <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
-          <legend className="mb-2 p-0 text-ui font-medium">Teammates</legend>
+          <legend className="mb-1 flex w-full items-baseline justify-between p-0 text-ui font-medium">
+            Teammates
+            {teammates.length > 0 && (
+              <span className="text-small font-normal">
+                {full
+                  ? `${MAX_TEAMMATES} of ${MAX_TEAMMATES}, the most a team takes`
+                  : `Up to ${MAX_TEAMMATES}`}
+              </span>
+            )}
+          </legend>
           {teammates.length === 0 ? (
             <p className="m-0 text-ui">Teach another agent first.</p>
           ) : (
-            <ul className="m-0 flex list-none flex-col gap-1 p-0">
-              {teammates.map((agent) => {
-                const pick = picks.find((item) => item.graduateId === agent.id);
-                return (
-                  <TeammateRow
-                    key={agent.id}
-                    agent={agent}
-                    lead={agents.find((item) => item.id === lead)?.name ?? 'The lead'}
-                    pick={pick}
-                    disabled={!pick && full}
-                    onToggle={(chosen) => toggle(agent.id, chosen)}
-                    onRole={(role) => setRole(agent.id, role)}
-                    onDefault={(role) =>
-                      setDefaults((current) =>
-                        current[agent.id] === role ? current : { ...current, [agent.id]: role },
-                      )
-                    }
-                  />
-                );
-              })}
-            </ul>
+            <>
+              <p className="m-0 text-small text-pretty">
+                {`Each sees only what ${leadName} asks it, never the chat, and reads and changes only its own files.`}
+              </p>
+              <ul className="m-0 flex list-none flex-col p-0">
+                {teammates.map((agent) => {
+                  const pick = picks.find((item) => item.graduateId === agent.id);
+                  return (
+                    <TeammateRow
+                      key={agent.id}
+                      agent={agent}
+                      lead={leadName}
+                      pick={pick}
+                      disabled={!pick && full}
+                      onToggle={(chosen) => toggle(agent.id, chosen)}
+                      onRole={(role) => setRole(agent.id, role)}
+                      onDefault={(role) =>
+                        setDefaults((current) =>
+                          current[agent.id] === role ? current : { ...current, [agent.id]: role },
+                        )
+                      }
+                    />
+                  );
+                })}
+              </ul>
+            </>
           )}
         </fieldset>
         {failure && (
@@ -193,8 +206,8 @@ function TeamForm({
             title={team ? `Couldn't save ${team.name}` : "Couldn't make the team"}
           />
         )}
-        {/* An empty name speaks for itself; anything else that holds the team back is said. */}
-        {problem !== null && name.trim() !== '' && (
+        {/* Whatever holds the team back is said, beside the button it holds. */}
+        {problem !== null && (
           <p
             id={`${id}-problem`}
             role="status"
@@ -220,7 +233,7 @@ function TeamForm({
           size="md"
           loading={saving}
           disabled={problem !== null}
-          aria-describedby={problem !== null && name.trim() !== '' ? `${id}-problem` : undefined}
+          aria-describedby={problem !== null ? `${id}-problem` : undefined}
           onClick={() => void save()}
         >
           {team ? 'Save' : 'Make team'}
@@ -252,54 +265,37 @@ function TeammateRow({
   onRole: (role: string) => void;
   onDefault: (role: string) => void;
 }) {
-  const roleId = useId();
   const versions = useVersions(agent.id);
   const active = versions.data?.find((version) => version.version === agent.activeVersion);
   const contract = active?.manifest.contract;
   const fallback = defaultRole(contract?.summary ?? contract?.description);
   useEffect(() => onDefault(fallback), [fallback, onDefault]);
-  const checkbox = (
-    <Checkbox
-      checked={pick !== undefined}
-      disabled={disabled}
-      onCheckedChange={onToggle}
-      className="h-10"
-      label={
-        <span className="flex items-center gap-2.5">
-          <AgentAvatar name={agent.name} />
-          {agent.name}
-        </span>
-      }
-    />
-  );
   return (
     <li className="flex flex-col">
-      {disabled ? (
-        // A team is full at its limit, which the unchosen agents say when pointed at.
-        <Tooltip content={`Up to ${MAX_TEAMMATES}`} side="right">
-          <span tabIndex={0} className="self-start rounded-control">
-            {checkbox}
+      <Checkbox
+        checked={pick !== undefined}
+        disabled={disabled}
+        onCheckedChange={onToggle}
+        className="h-9"
+        label={
+          <span className="flex items-center gap-2.5">
+            <AgentAvatar name={agent.name} />
+            {agent.name}
           </span>
-        </Tooltip>
-      ) : (
-        checkbox
-      )}
+        }
+      />
       <Collapse open={pick !== undefined}>
-        <Field
-          label={`What ${lead} asks it for`}
-          htmlFor={roleId}
-          className="pb-3 pl-[30px] pr-1 pt-1"
-        >
+        <div className="pb-2 pl-[30px] pr-1">
           <Textarea
-            id={roleId}
+            aria-label={`What ${lead} asks ${agent.name} for`}
             rows={2}
             value={pick?.role ?? fallback}
             maxLength={ROLE_CHARS}
-            placeholder="What it does for the team"
-            className="min-h-0 resize-none"
+            placeholder={`What ${lead} asks it for`}
+            className="max-h-40 min-h-0 resize-none field-sizing-content"
             onChange={(event) => onRole(event.target.value)}
           />
-        </Field>
+        </div>
       </Collapse>
     </li>
   );

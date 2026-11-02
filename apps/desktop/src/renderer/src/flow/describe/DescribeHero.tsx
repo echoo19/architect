@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DRAFTING_LIMITS } from '@architect/shared';
 import {
   Button,
@@ -7,10 +8,9 @@ import {
   IconButton,
   Stagger,
   StaggerItem,
-  toast,
   Tooltip,
 } from '@architect/ui';
-import { Building2, Cloud, Laptop, Paperclip } from 'lucide-react';
+import { Building2, CircleAlert, Cloud, Laptop, Paperclip } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { flowApi } from '../../api/client';
 import { useSettings } from '../../api/hooks';
@@ -60,7 +60,13 @@ export function DescribeHero() {
       : null;
   // A field of several organizations is Architect Lab's; the personal edition never shows one.
   const field = edition === 'lab' ? organizations : null;
+  // What was wrong with each file of the last pick, which was left out.
+  const [refused, setRefused] = useState<string[]>([]);
+  // Whether the field was sent with something still to fix, which is then said under its rows.
+  const [tried, setTried] = useState(false);
 
+  // Each file is checked as it is attached, so one that can't be read is said at once, with what
+  // is wrong with it, instead of when the description is sent.
   const attach = async () => {
     const picked = await attempt("Couldn't open the file picker", () =>
       flowApi.pickFiles({
@@ -69,7 +75,13 @@ export function DescribeHero() {
         multiple: true,
       }),
     );
-    if (picked) setFiles([...new Set([...files, ...picked])]);
+    if (!picked || picked.length === 0) return;
+    const problems =
+      (await attempt("Couldn't check the files", () => flowApi.checkFiles(picked))) ??
+      picked.map(() => null);
+    setRefused(problems.filter((problem): problem is string => problem !== null));
+    const readable = picked.filter((_, at) => problems[at] === null);
+    setFiles([...new Set([...files, ...readable])]);
   };
 
   // The box and the files stay as they are when the description is sent: the page leaves with them,
@@ -79,9 +91,8 @@ export function DescribeHero() {
       sendToMentor(description, files);
       return;
     }
-    const problem = fieldProblem(field);
-    if (problem) {
-      toast({ tone: 'danger', title: problem });
+    if (fieldProblem(field)) {
+      setTried(true);
       return;
     }
     sendField(
@@ -123,6 +134,24 @@ export function DescribeHero() {
             }
             trailing={mentor && <TeacherMark name={mentor.name} local={mentor.local} />}
           />
+          <Collapse open={!field && refused.length > 0}>
+            <ul
+              aria-label="Files left out"
+              className="m-0 flex list-none flex-col gap-1.5 p-0 pt-3"
+            >
+              {refused.map((problem) => (
+                <li key={problem} role="alert" className="flex gap-2.5 text-small text-pretty">
+                  <CircleAlert
+                    size={15}
+                    strokeWidth={1.8}
+                    className="mt-0.5 shrink-0 text-danger"
+                    aria-hidden
+                  />
+                  {problem}
+                </li>
+              ))}
+            </ul>
+          </Collapse>
           <Collapse open={!field && files.length > 0}>
             <ul aria-label="Attached files" className="m-0 flex list-none flex-wrap gap-2 p-0 pt-3">
               {files.map((path) => (
@@ -142,6 +171,7 @@ export function DescribeHero() {
               organizations={field}
               onChange={setOrganizations}
               onLeave={() => setOrganizations(null)}
+              problem={tried ? fieldProblem(field) : null}
             />
           </StaggerItem>
         )}

@@ -9,6 +9,7 @@ import type {
   RunDetail,
   RunEvent,
   RunImprovement,
+  Score,
   StudentTarget,
 } from '@architect/shared';
 
@@ -42,6 +43,12 @@ export interface LiveRun {
   rounds: Round[];
   /** Newest first, practice (train) and check (dev) attempts only. */
   attempts: RecentAttempt[];
+  /**
+   * Each round's practice answers counted in full, by round number: the attempts list keeps only
+   * the newest, and a batch can be longer than it.
+   */
+  /** Practice answers counted by round, then by the harness version that gave them. */
+  practiced: Record<number, Record<number, Score>>;
   lineage: LineageEntry[];
   budget: BudgetState | null;
   progress: EvalProgress | null;
@@ -100,6 +107,7 @@ function fromDetail(detail: RunDetail): LiveRun {
     lockedTestOn: detail.lockedTestOn ?? 'local',
     rounds: [...detail.rounds].sort((a, b) => a.index - b.index),
     attempts: keepRecent(detail.recentAttempts.filter(isListed)),
+    practiced: detail.recentAttempts.reduce(countPractice, {}),
     lineage: detail.lineage,
     budget: null,
     progress: null,
@@ -121,6 +129,8 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
         run: event.run,
         graduateId: event.run.graduateId ?? live.graduateId,
         notice: phaseChanged ? null : live.notice,
+        // A new step counts its own tasks from none.
+        progress: phaseChanged ? null : live.progress,
       };
     }
     case 'round.updated':
@@ -129,7 +139,11 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
       const attempt: RecentAttempt =
         event.prompt === undefined ? event.attempt : { ...event.attempt, prompt: event.prompt };
       if (!isListed(attempt) || live.attempts.some((a) => a.id === attempt.id)) return live;
-      return { ...live, attempts: keepRecent([attempt, ...live.attempts]) };
+      return {
+        ...live,
+        attempts: keepRecent([attempt, ...live.attempts]),
+        practiced: countPractice(live.practiced, attempt),
+      };
     }
     case 'mentor.started':
       return { ...live, mentorBusy: true };
@@ -141,7 +155,9 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
         progress: { split: event.split, done: event.done, total: event.total },
       };
     case 'eval.finished':
-      return { ...live, progress: null };
+      // The count stays where it ended until the run moves on: full at the end of a step, and
+      // part way when a round has measured one version and goes on to the other.
+      return { ...live, progress: live.progress?.split === event.split ? live.progress : null };
     case 'budget':
       return { ...live, budget: event.state };
     case 'log':
@@ -161,6 +177,25 @@ function isListed(attempt: Attempt): boolean {
   return attempt.split === 'train' || attempt.split === 'dev';
 }
 
+function countPractice(
+  practiced: Record<number, Record<number, Score>>,
+  attempt: Attempt,
+): Record<number, Record<number, Score>> {
+  if (attempt.split !== 'train' || attempt.round === null) return practiced;
+  const round = practiced[attempt.round] ?? {};
+  const so = round[attempt.harnessVersion] ?? { pass: 0, total: 0 };
+  return {
+    ...practiced,
+    [attempt.round]: {
+      ...round,
+      [attempt.harnessVersion]: {
+        pass: so.pass + (attempt.check.pass ? 1 : 0),
+        total: so.total + 1,
+      },
+    },
+  };
+}
+
 function keepRecent(attempts: RecentAttempt[]): RecentAttempt[] {
   return attempts.slice(0, RECENT_ATTEMPT_LIMIT);
 }
@@ -172,12 +207,15 @@ function isOlder(candidate: Run, current: Run): boolean {
 const ROUND_PROGRESS: Record<Round['status'], number> = {
   attempting: 0,
   diagnosing: 1,
-  clarifying: 2,
-  teaching: 2,
-  training: 3,
-  evaluating: 4,
-  decided: 5,
-  failed: 5,
+  // A propose-probe-compose round measures its probes and composes before anything below.
+  probing: 2,
+  composing: 3,
+  clarifying: 4,
+  teaching: 4,
+  training: 5,
+  evaluating: 6,
+  decided: 7,
+  failed: 7,
 };
 
 /** A round only moves forward: a late copy from an earlier step never replaces a later one. */
@@ -196,15 +234,44 @@ export function currentRound(live: LiveRun): Round | null {
 
 /** The newest practice task the student got wrong in a round. */
 export function latestFailure(live: LiveRun, round: number): RecentAttempt | null {
-  return (
-    live.attempts.find(
-      (attempt) => attempt.split === 'train' && attempt.round === round && !attempt.check.pass,
-    ) ?? null
+  return roundAttempts(live, round).find((attempt) => !attempt.check.pass) ?? null;
+}
+
+/**
+ * A round's practice answers so far, every one counted, the list's older ones included. A
+ * propose-probe-compose round's probes take the same tasks (decision 108); theirs aren't the
+ * round's own practice, so they're left out.
+ */
+export function practiceSoFar(live: LiveRun, round: number): Score {
+  const probes = probeVersions(live, round);
+  return Object.entries(live.practiced[round] ?? {}).reduce<Score>(
+    (sum, [version, score]) =>
+      probes.has(Number(version))
+        ? sum
+        : { pass: sum.pass + score.pass, total: sum.total + score.total },
+    { pass: 0, total: 0 },
   );
 }
 
+/** The harness versions of a round's probes, none for a one-change round. */
+function probeVersions(live: LiveRun, round: number): Set<number> {
+  return new Set(
+    (live.rounds.find((candidate) => candidate.index === round)?.probes ?? []).flatMap((probe) =>
+      probe.version === undefined ? [] : [probe.version],
+    ),
+  );
+}
+
+/**
+ * The practice attempts of a round's own version, newest first. A propose-probe-compose round's
+ * probes take the same practice tasks (decision 108), and their attempts are each probe's.
+ */
 export function roundAttempts(live: LiveRun, round: number): RecentAttempt[] {
-  return live.attempts.filter((attempt) => attempt.split === 'train' && attempt.round === round);
+  const probes = probeVersions(live, round);
+  return live.attempts.filter(
+    (attempt) =>
+      attempt.split === 'train' && attempt.round === round && !probes.has(attempt.harnessVersion),
+  );
 }
 
 /** Median answer time of the most recent attempts, or null before the first one. */

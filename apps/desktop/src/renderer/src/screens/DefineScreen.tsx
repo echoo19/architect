@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   isBaselineMethod,
   MethodSchema,
@@ -23,7 +23,7 @@ import { ProblemState } from '../components/ProblemState';
 import { resetDraft, useDraftStore } from '../flow/describe/draft-store';
 import { takeAdvanced } from '../flow/define/advanced-request';
 import { DefineInspector } from '../flow/define/DefineInspector';
-import { trainsTooSlow, wontTeachTitle } from '../flow/define/estimates';
+import { trainsTooSlow } from '../flow/define/estimates';
 import { ExportJobFile } from '../flow/define/ExportJobFile';
 import { hostedAvailability } from '../flow/define/hosted';
 import { INSPECTOR_NAME, tabWithIssue, type DefineTab } from '../flow/define/inspector-tabs';
@@ -32,13 +32,14 @@ import { RuleReview } from '../flow/define/RuleReview';
 import { ruleTypesOf, trainingWait, waitLine } from '../flow/define/rule-words';
 import { RunNeeds } from '../flow/define/RunNeeds';
 import { StudyReview } from '../flow/define/StudyReview';
+import { TaskRows } from '../flow/define/TaskRows';
 import { TrainingPlace, TrainingRows } from '../flow/define/TrainingPlace';
 import { useJobEditor } from '../flow/define/use-job-editor';
 import { usePreflight } from '../flow/define/use-preflight';
 import { AddKeyDialog } from '../settings/models/AddKeyDialog';
 import { attempt } from '../lib/notify';
-import { currentPlatform, deviceInSentence } from '../lib/platform';
 import { navigate, paths } from '../lib/router';
+import { useEdition } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
 
 /** The simpler versions a comparison trains beside the agent: every method but the agent's own. */
@@ -52,7 +53,7 @@ export function DefineScreen({ jobId }: { jobId: string }) {
   const job = useJob(jobId);
   if (job.status === 'success') return <DefineEditor key={job.data.id} initial={job.data} />;
   return (
-    <FlowShell title="New agent" step="Define">
+    <FlowShell title="New agent" step="Define" field={jobId}>
       <div className={PAGE}>
         {job.status === 'loading' ? (
           <DefineSkeleton />
@@ -103,7 +104,7 @@ function DefineEditor({ initial }: { initial: Job }) {
   const taskPlan = useTaskPlan(initial.id);
   // Whether the job has a rule to confirm is in its plan, so training waits until it is read.
   const wait = trainingWait(taskPlan);
-  const { job } = editor;
+  const { job, estimable } = editor;
   const settings = useSettings();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   // Undefined until something here picks a tab: the inspector opens on the one it kept.
@@ -112,6 +113,16 @@ function DefineEditor({ initial }: { initial: Job }) {
   const [starting, setStarting] = useState(false);
   // Where the final test runs belongs to the run, not to the job: on this computer unless chosen.
   const [testPlace, setTestPlace] = useState<StudentTarget>('local');
+
+  // Back returns to the conversation that drafted this job; a job opened from elsewhere has none,
+  // so Back goes where Close does: the field's page in the Lab, home otherwise.
+  const drafted = useDraftStore((state) => state.conversation.saved?.jobId === initial.id);
+  const edition = useEdition();
+  const back = drafted
+    ? paths.newAgent()
+    : edition === 'lab'
+      ? paths.field(initial.id)
+      : paths.home();
 
   const comparisonMode = settings.data?.comparisonMode === true;
   const baselines = comparisonMode
@@ -143,9 +154,9 @@ function DefineEditor({ initial }: { initial: Job }) {
   const hosted = hostedAvailability(job.student, preflight.keys);
   // Training where the job trains would run out of time before the teacher changed anything. It
   // waits like any other need, and the way out is on the page: more time, or the other place.
-  const wontTeach = trainsTooSlow(job);
+  const wontTeach = trainsTooSlow(estimable);
   // A time limit that stops training early is said beside Start training, with its fix.
-  // Retraining with no compute is said in Budget only: jobs allow it by default and skip it.
+  // Retraining with no compute is said in Budget only: a run skips it.
 
   // With no online copy there is nothing for the final test to run on.
   const hasCopy = job.student.hosted !== undefined;
@@ -212,6 +223,7 @@ function DefineEditor({ initial }: { initial: Job }) {
     <FlowShell
       title={job.name}
       step="Define"
+      field={initial.id}
       aside={
         <DefineInspector
           open={advancedOpen}
@@ -223,7 +235,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         />
       }
       footer={
-        <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
+        <div className="mx-auto box-content flex max-w-[880px] flex-wrap items-center justify-between gap-3 px-8">
           <div className="-ml-2.5 flex items-center gap-1">
             <Tooltip content={INSPECTOR_NAME}>
               <IconButton
@@ -242,7 +254,7 @@ function DefineEditor({ initial }: { initial: Job }) {
             <ExportJobFile editor={editor} />
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => navigate(paths.newAgent())}>Back</Button>
+            <Button onClick={() => navigate(back)}>Back</Button>
             <StartButton
               starting={starting}
               disabled={preflight.blocked || wait !== null || wontTeach}
@@ -251,7 +263,8 @@ function DefineEditor({ initial }: { initial: Job }) {
                 (preflight.needs.length > 0
                   ? preflight.summary
                   : wontTeach
-                    ? wontTeachTitle(job, job.student.trainOn, deviceInSentence(currentPlatform()))
+                    ? // The callout above says what doesn't fit; this points to it.
+                      'Make room for a round of teaching first'
                     : null)
               }
               onStart={() => void start()}
@@ -298,7 +311,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         </Collapse>
         <StaggerItem className="pb-10">
           <TrainingPlace
-            job={job}
+            job={estimable}
             hosted={hosted}
             testPlace={testPlace}
             onPlaceChange={(trainOn) =>
@@ -320,8 +333,16 @@ function DefineEditor({ initial }: { initial: Job }) {
           />
         </StaggerItem>
         <StaggerItem className="flex flex-col">
-          <TrainingRows job={job} hosted={hosted} testPlace={testPlace} baselines={baselines} />
+          <TrainingRows
+            job={estimable}
+            hosted={hosted}
+            testPlace={testPlace}
+            baselines={baselines}
+          />
           <ReadyWhen job={job} />
+          {taskPlan.data && taskPlan.status !== 'error' && (
+            <TaskRows plan={taskPlan.data} onMore={() => openAdvanced('evaluation')} />
+          )}
           <FilePermissions
             job={job}
             onChange={(permissions) => editor.change((current) => ({ ...current, permissions }))}
@@ -344,7 +365,8 @@ function DefineEditor({ initial }: { initial: Job }) {
 
 /**
  * Start training. While something on the page holds it back (a rule to confirm, a need above,
- * a limit no round fits in), it is disabled, and its tooltip says what; the page says how to fix it.
+ * a limit no round fits in), it is disabled, and the line beside it says what; the page says how
+ * to fix it.
  */
 function StartButton({
   starting,
@@ -357,18 +379,24 @@ function StartButton({
   why: string | null;
   onStart: () => void;
 }) {
-  const button = (
-    <Button variant="primary" loading={starting} disabled={disabled} onClick={onStart}>
-      Start training
-    </Button>
-  );
-  if (!disabled || why === null) return button;
-  // A disabled button takes no pointer, so the tooltip hangs on the span around it.
+  const id = useId();
+  const held = disabled && why !== null;
   return (
-    <Tooltip content={why}>
-      <span tabIndex={0} className="rounded-control">
-        {button}
-      </span>
-    </Tooltip>
+    <>
+      {held && (
+        <span id={`${id}-why`} className="order-first mr-2 text-ui">
+          {why}
+        </span>
+      )}
+      <Button
+        variant="primary"
+        loading={starting}
+        disabled={disabled}
+        aria-describedby={held ? `${id}-why` : undefined}
+        onClick={onStart}
+      >
+        Start training
+      </Button>
+    </>
   );
 }

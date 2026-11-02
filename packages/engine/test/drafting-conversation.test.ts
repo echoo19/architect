@@ -312,7 +312,7 @@ describe('starting the conversation', () => {
     );
     expect(few).toMatchObject({ ended: true });
     expect(few.message).toContain('Your files hold only 3 rows between them');
-    expect(few.message).toContain('tasks.jsonl');
+    expect(few.message).toContain('example requests with their right answers');
 
     expect(world.mentor.requests).toEqual([]);
     await expect(world.drafting.reply(nothing.sessionId, 'Hello', TEACHER)).rejects.toMatchObject({
@@ -381,6 +381,9 @@ describe('asking and answering', () => {
     expect(recordOf(turn.draft?.id ?? '')['answers']).toEqual([
       { question: 'Should cancelled orders count?', answer },
     ]);
+    // Define shows the answer beside the tasks it shaped.
+    const plan = await world.jobs.taskPlan(turn.draft?.id ?? '');
+    expect(plan.answers).toEqual([{ question: 'Should cancelled orders count?', answer }]);
   });
 
   it('sends the answer to the last question as it was written, before the words that close it', async () => {
@@ -899,7 +902,7 @@ describe('drafting the job', () => {
     expect(turn).toMatchObject({ ended: true, options: [] });
     expect(turn.message).toContain('support only 12 different tasks I can check');
     expect(turn.message).toContain('training needs at least 30');
-    expect(turn.message).toContain('tasks.jsonl');
+    expect(turn.message).toContain('example requests with their right answers');
     expect(world.jobs.summaries()).toEqual([]);
     await expect(world.drafting.reply(turn.sessionId, 'More', TEACHER)).rejects.toMatchObject({
       code: 'draft_not_found',

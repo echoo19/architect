@@ -2,6 +2,7 @@ import {
   ARM_LABELS,
   armInSentence,
   ArmIdSchema,
+  DEFAULT_PROBES,
   mentorPricing,
   MENTOR_PRESETS,
   type AdapterProtocol,
@@ -32,6 +33,8 @@ export interface ComparisonConfig {
     draft: number;
     targeted: number;
     fixed: number;
+    /** Propose, probe, compose (decision 108): the targeted arm composing from probes. */
+    composed: number;
     reference: number;
     referenceTargeted: number;
     weights: number;
@@ -39,7 +42,7 @@ export interface ComparisonConfig {
   mentoringSeed: number;
   /** The locked test's decoding seeds: the first for every arm, the rest for the repeat. */
   testSeeds: readonly number[];
-  /** Refinement rounds for the targeted and fixed arms, at most. */
+  /** Refinement rounds for the targeted, fixed and composed arms, at most. */
   rounds: number;
   /** Training rounds for the failure-specific adapter, at most. */
   weightsRounds: number;
@@ -77,10 +80,20 @@ export interface ComparisonConfig {
   certifyAttempts?: number;
   /** The teacher arm's model when it isn't the field's teacher (decision 096). */
   teacher?: ModelTeacher;
+  /** A harness folder the draft arm adopts whole in place of the mentor's draft (decision 105). */
+  draftHarness?: string;
 }
 
 export const DEFAULT_CONFIG: Omit<ComparisonConfig, 'arms' | 'caps'> = {
-  sparkCaps: { draft: 1, targeted: 5, fixed: 5, reference: 4, referenceTargeted: 4, weights: 3 },
+  sparkCaps: {
+    draft: 1,
+    targeted: 5,
+    fixed: 5,
+    composed: 5,
+    reference: 4,
+    referenceTargeted: 4,
+    weights: 3,
+  },
   mentoringSeed: 1,
   testSeeds: [101, 102],
   rounds: 2,
@@ -349,13 +362,25 @@ interface Need {
   sparkCap: number;
 }
 
+/**
+ * A refinement round's hosted attempts at its most: the train batch, then the incumbent and the
+ * change on dev, both again for a confirmation. A composed arm's round adds each probe's train
+ * batch and dev run (decision 108).
+ */
+export function refinementRound(job: Job, arm: ArmId): number {
+  const dev = job.splits.dev * job.evaluation.devRepeats;
+  const { trainBatch } = job.evaluation;
+  if (arm !== 'composed') return trainBatch + 4 * dev;
+  const probes = job.evaluation.probes ?? DEFAULT_PROBES;
+  return (1 + probes) * trainBatch + (probes + 4) * dev;
+}
+
 function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: ReadonlySet<ArmId>): Need {
   const dev = job.splits.dev * job.evaluation.devRepeats;
   // A certified locked test attempts each calibration and test task k times (decision 077).
   const test = lockedTestsOf(job, config) + (config.certifyAttempts ?? 0);
   const trainBatch = job.evaluation.trainBatch;
-  // A refinement round at its most: the train batch, then both versions twice for a confirmation.
-  const round = trainBatch + 4 * dev;
+  const round = refinementRound(job, 'targeted');
   const none: Need = {
     hosted: 0,
     oneAtATime: 0,
@@ -374,8 +399,10 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
         ...none,
         hosted: 2 * dev + test,
         oneAtATime: test,
-        sparkCalls: 2,
-        sparkCap: config.sparkCaps.draft,
+        // An adopted draft costs no mentor call.
+        ...(config.draftHarness === undefined
+          ? { sparkCalls: 2, sparkCap: config.sparkCaps.draft }
+          : {}),
       };
     case 'targeted':
       return {
@@ -395,6 +422,17 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
         sparkCalls: 2 * config.rounds,
         sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
         sparkCap: config.sparkCaps.fixed,
+      };
+    case 'composed':
+      // Two calls to Spark a round, each with its fix (decision 108).
+      return {
+        ...none,
+        hosted: dev + config.rounds * refinementRound(job, arm) + test,
+        oneAtATime: test,
+        local: localTest,
+        sparkCalls: 4 * config.rounds,
+        sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
+        sparkCap: config.sparkCaps.composed,
       };
     case 'reference':
       return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.reference };
@@ -464,6 +502,7 @@ function prerequisite(
   switch (arm) {
     case 'targeted':
     case 'fixed':
+    case 'composed':
       return needs('draft');
     case 'reference':
       return needs('bare');

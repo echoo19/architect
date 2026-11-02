@@ -2,7 +2,15 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import {
+  goTo,
+  infoTipText,
+  launchApp,
+  settle,
+  tooltipText,
+  updateSettings,
+  type LaunchedApp,
+} from './app';
 import { ENGINE_RESTARTING, stubEngineFailure } from './fixtures';
 import {
   finishImprovement,
@@ -237,6 +245,11 @@ test("says why a lesson couldn't be proposed, keeps what was written, and refuse
   await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
   await expect(sheet.getByRole('button', { name: 'Share with Spark' })).toBeEnabled();
   await capture('teach-error-dark.png');
+  // Closed before it is shared, the note waits for the next time this answer is flagged.
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await flagReply();
+  await expect(sheet.getByLabel('What was wrong')).toHaveValue(WRONG);
 
   await stubEngineFailure(launched.app, {
     'teach:propose': {
@@ -261,9 +274,9 @@ test('shows what is being taught above the versions, and the flagged answers to 
   const dialog = await openTeaching();
   const lessons = dialog.getByRole('region', { name: 'Lessons' });
   await expect(lessons).toContainText('Flagged answers');
-  await expect(lessons).toContainText('3 flagged answers · 1 to review');
+  await expect(lessons).toContainText('3 flagged answers, 1 to review');
   await expect(lessons).toContainText('Teach it something new');
-  await expect(lessons).toContainText('2 lessons saved · up to $5 and 4 hours');
+  await expect(lessons).toContainText('2 lessons saved, up to $5 and 4 hours');
   await expect(dialog.getByRole('list', { name: 'Versions' }).getByRole('listitem')).toHaveCount(2);
   await capture('agent-teaching-lessons-dark.png');
 
@@ -286,10 +299,17 @@ test('shows what is being taught above the versions, and the flagged answers to 
   await page.keyboard.press('Escape');
   await expect(lessons).toContainText('3 flagged answers');
 
-  // Teaching it something new starts a chat to show it.
+  // Teaching it something new opens a chat to show it: its empty one, rather than another.
   await lessons.getByRole('button', { name: 'New chat' }).click();
-  await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_teach_1$/);
+  await expect(page).toHaveURL(/#\/agents\/grd_servicedesk\/chats\/cht_new$/);
+  expect(await callsTo(launched.app, 'workspace:createChat')).toEqual([]);
   await expect(dialog).toBeHidden();
+  // The new chat says how to teach from it.
+  await expect(
+    page.getByText(
+      'Ask what it should learn, then flag its answer and say what it should have done.',
+    ),
+  ).toBeVisible();
 });
 
 test("shows a Teaching tab with nothing flagged yet, and one that couldn't load", async () => {
@@ -299,6 +319,9 @@ test("shows a Teaching tab with nothing flagged yet, and one that couldn't load"
   await expect(lessons).toContainText('None yet');
   await expect(lessons.getByRole('button', { name: 'Review' })).toHaveCount(0);
   await expect(lessons.getByRole('button', { name: 'Improve' })).toHaveCount(0);
+  await expect(lessons).toContainText(
+    'No lessons saved yet. Flag an answer in a chat to save one.',
+  );
   await capture('agent-teaching-empty-dark.png');
   await page.keyboard.press('Escape');
 
@@ -314,15 +337,14 @@ test("shows a Teaching tab with nothing flagged yet, and one that couldn't load"
 
 test("says why an agent from another computer can't be taught here", async () => {
   await open(chatPath(IMPORTED_AGENT.id, IMPORTED_CHAT.id), FILLED);
-  const sheet = await flagReply();
-  await expect(sheet.getByText("Returns desk can't be taught here")).toBeVisible();
-  await expect(sheet).toContainText(
+  // The flag is held, and says why, rather than opening a sheet that can only say no.
+  const flag = page.getByRole('button', { name: 'Flag for teaching' }).last();
+  await expect(flag).toBeDisabled();
+  expect(await tooltipText(page, flag.locator('..'))).toBe(
     'Returns desk was made on another computer. It can be taught there, where its practice and check tasks are.',
   );
-  await expect(sheet.getByRole('button', { name: /Share/ })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Teach this' })).toHaveCount(0);
   await capture('teach-imported-dark.png');
-  await sheet.getByRole('button', { name: 'Close' }).last().click();
-  await expect(sheet).toBeHidden();
 
   const dialog = await openTeaching('Returns desk');
   const lessons = dialog.getByRole('region', { name: 'Lessons' });
@@ -431,7 +453,7 @@ test('improves the agent into a new version while the active one keeps answering
   await page.getByRole('button', { name: 'Back to Teaching' }).click();
   const again = page.getByRole('dialog', { name: 'Service desk', exact: true });
   const lessons = again.getByRole('region', { name: 'Lessons' });
-  await expect(lessons).toContainText('2 lessons saved · up to $5 and 4 hours');
+  await expect(lessons).toContainText('2 lessons saved, up to $5 and 4 hours');
   await lessons.getByRole('button', { name: 'Improve' }).click();
   await page
     .getByRole('dialog', { name: 'Improve Service desk?' })
@@ -450,7 +472,7 @@ test('improves the agent into a new version while the active one keeps answering
 
   await finishImprovement(app);
   const made = running.getByRole('region', { name: 'Lessons' });
-  await expect(made).toContainText('Made version 3 · 93% → 98% on check tasks');
+  await expect(made).toContainText('Made version 3, 93% → 98% on check tasks');
   const versions = running.getByRole('list', { name: 'Versions' });
   await expect(
     versions

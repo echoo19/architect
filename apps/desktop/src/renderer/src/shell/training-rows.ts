@@ -67,3 +67,27 @@ export function trainingRows(jobs: readonly JobSummary[]): TrainingRow[] {
     ];
   });
 }
+
+/** Jobs drafted and never trained, which the sidebar lists so they can be picked up again. */
+export function draftedJobs(jobs: readonly JobSummary[]): JobSummary[] {
+  return jobs.filter((job) => job.latestRun === undefined);
+}
+
+/**
+ * The job home offers to pick up while there is no agent yet: the newest one drafted and never
+ * trained, or whose newest run has a row. A job whose agent was made and later deleted has none.
+ */
+export function jobToPickUp(
+  jobs: readonly JobSummary[],
+): { job: JobSummary; kind: TrainingRowKind | 'drafted'; path: string } | null {
+  const rows = new Map(trainingRows(jobs).map((row) => [row.jobId, row]));
+  const open = jobs
+    .filter((job) => job.latestRun === undefined || rows.has(job.id))
+    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const job = open[0];
+  if (job === undefined) return null;
+  const row = rows.get(job.id);
+  return row
+    ? { job, kind: row.kind, path: row.path }
+    : { job, kind: 'drafted', path: paths.define(job.id) };
+}

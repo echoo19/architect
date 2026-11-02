@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { StepTransition, useTravel } from '@architect/ui';
+import { useRef, type ReactNode } from 'react';
+import { Button, StepTransition, useTravel } from '@architect/ui';
+import { ChevronRight } from 'lucide-react';
 import type { Route } from '../lib/router';
 import { PLACES, placeOf } from './places';
 import { AgentSettingsModal } from '../workspace/settings/AgentSettingsModal';
@@ -12,6 +13,8 @@ function transitionKey(route: Route): string {
     case 'chat':
     case 'team-chat':
       return route.chatId;
+    case 'agent':
+      return `agent:${route.graduateId}`;
     case 'field':
       return `field:${route.jobId}`;
     case 'experiment':
@@ -37,10 +40,20 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
   useWorkspaceEvents();
   const key = transitionKey(route);
   const direction = useTravel(key, sidebarOrder(route));
+  const main = useRef<HTMLElement>(null);
   return (
     <div className="flex h-full bg-ground">
+      {/* The first stop for Tab, seen only when reached: past the sidebar to the page. */}
+      <Button
+        size="md"
+        className="pointer-events-none fixed left-3 top-2 z-50 bg-raised opacity-0 focus-visible:pointer-events-auto focus-visible:opacity-100"
+        onClick={() => main.current?.focus()}
+      >
+        Skip to content
+      </Button>
       <Sidebar route={route} />
-      <main className="flex min-w-0 flex-1 flex-col">
+      {/* Focus lands here from the skip link, and when a dialog closes with nothing to go back to. */}
+      <main ref={main} tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
         <StepTransition
           transitionKey={key}
           kind="place"
@@ -58,15 +71,27 @@ export function WorkspaceShell({ route, children }: { route: Route; children: Re
 
 export interface WorkspaceHeaderProps {
   title?: ReactNode;
+  /** Before the title, the agent the chat belongs to: a breadcrumb back to its home. */
+  crumb?: { label: string; onClick: () => void };
   /** Right side, such as a status badge or an icon button. */
   actions?: ReactNode;
 }
 
 /** The draggable header above a chat. It leaves room for the native window controls. */
-export function WorkspaceHeader({ title, actions }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ title, crumb, actions }: WorkspaceHeaderProps) {
   return (
     <header className="app-drag flex min-h-14 shrink-0 items-center justify-between gap-3 py-2 pl-7 pr-window-controls [--window-controls-gap:20px]">
-      <h1 className="m-0 min-w-0 truncate text-body font-medium">{title}</h1>
+      <div className="flex min-w-0 items-center gap-1">
+        {crumb && (
+          <nav aria-label="Breadcrumb" className="flex shrink-0 items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={crumb.onClick} className="-ml-3.5">
+              {crumb.label}
+            </Button>
+            <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
+          </nav>
+        )}
+        {title && <h1 className="m-0 min-w-0 truncate text-body font-medium">{title}</h1>}
+      </div>
       {actions}
     </header>
   );

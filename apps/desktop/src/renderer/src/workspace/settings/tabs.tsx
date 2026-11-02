@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   CodedError,
+  reportScores,
   type GraduateSummary,
   type GraduateVersion,
   type Installation,
@@ -27,6 +28,7 @@ import {
   graduatesApi,
   refreshAgent,
   useInstallation,
+  useVersionReport,
   useVersions,
 } from '../../api/graduates';
 import { queryKeys } from '../../api/hooks';
@@ -40,6 +42,7 @@ import {
   installProblem,
   osName,
   STATUS_LABELS,
+  statusLine,
   statusMark,
   WORKS_HERE_TITLE,
 } from '../../install/labels';
@@ -69,11 +72,21 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
   const { manifest } = agent;
   const { score, testedOn } = manifest.test;
   const { met, target } = manifest.requirements.passRate;
-  // A test taken on the online copy says so: the agent isn't marked ready until it is taken here.
-  const online = testedOn === 'hosted' ? ' online' : '';
-  const result = `${met ? `Passed${online}` : `Needs ${Math.round(target * 100)}%${online}`}: ${formatScore(score)}`;
+  const result = met
+    ? `Passed: ${formatScore(score)}`
+    : `Needs ${Math.round(target * 100)}%: ${formatScore(score)}`;
+  // A field's agent leads with the organizations it never saw, as its home and report do.
+  const report = useVersionReport(agent);
+  const unseen = report.data ? reportScores(report.data).unseen : null;
   const contract = active?.manifest.contract;
   const evaluatedHere = active?.origin === undefined;
+  // A test taken on a hosted copy of its model says so: the agent itself never goes online.
+  const hosted = testedOn === 'hosted';
+  const testedWhere = hosted
+    ? `${evaluatedHere ? 'On' : 'By its author, on'} a hosted copy of the model`
+    : evaluatedHere
+      ? undefined
+      : AUTHOR_RESULT_TITLE;
 
   return (
     <>
@@ -88,11 +101,26 @@ export function GeneralTab({ agent, route }: { agent: GraduateSummary; route: Ro
           pending
         )}
       </SettingsRow>
-      <SettingsRow label="Setup">
+      {/* The agent's own version, as a chat's "Answered by version 2" names it. */}
+      <SettingsRow label="Answers with">
         <SettingsValue>{activeVersionName(agent)}</SettingsValue>
       </SettingsRow>
-      <SettingsRow label="Final test" meta={evaluatedHere ? undefined : AUTHOR_RESULT_TITLE}>
-        <SettingsValue>{result}</SettingsValue>
+      <SettingsRow
+        label="Final test"
+        meta={
+          unseen
+            ? [`Taught on, ${result.charAt(0).toLowerCase()}${result.slice(1)}`, testedWhere]
+                .filter(Boolean)
+                .join('. ')
+            : testedWhere
+        }
+        info={
+          hosted
+            ? 'It took its final test on a hosted copy of the model, not on this computer.'
+            : undefined
+        }
+      >
+        <SettingsValue>{unseen ? `Never seen: ${formatScore(unseen)}` : result}</SettingsValue>
       </SettingsRow>
       <AgentModelRow agent={agent} active={active} />
       <InstallRow agent={agent} active={active} />
@@ -137,7 +165,7 @@ function InstallRow({
   // badge beside it doesn't say.
   const meta =
     status === 'ready' && machine && checked?.checkedAt
-      ? `${osName(machine.os)} ${machine.arch} · checked ${versionDate(checked.checkedAt)}`
+      ? `${osName(machine.os)} ${machine.arch}, checked ${versionDate(checked.checkedAt)}`
       : (problem?.cause ?? (checked?.reasons ?? agent.reasons).join(' '));
   const changed = (next: Installation) => setQueryData(graduateKeys.installation(agent.id), next);
 
@@ -151,7 +179,7 @@ function InstallRow({
             tone={status === 'ready' ? 'student' : status === 'blocked' ? 'danger' : 'outline'}
             icon={<StatusMark state={statusMark(status)} size={14} />}
           >
-            {STATUS_LABELS[status]}
+            {checked ? statusLine(checked) : STATUS_LABELS[status]}
           </Badge>
         )}
       </SettingsRow>
@@ -365,7 +393,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       </SettingsRow>
       <SettingsRow label="Files it can read" error={errorOf(versions)}>
         {contract ? (
-          <span className="max-w-[340px] text-right font-mono text-small text-fg text-pretty">
+          <span className="max-w-[340px] text-right text-small text-fg text-pretty">
             {files.map((file) => file.name).join(', ')}
           </span>
         ) : (
@@ -379,7 +407,7 @@ export function PermissionsTab({ agent }: { agent: GraduateSummary }) {
       >
         {contract ? (
           writable.length > 0 ? (
-            <span className="font-mono text-small text-fg">{writable.join(', ')}</span>
+            <span className="text-small text-fg">{writable.join(', ')}</span>
           ) : (
             <SettingsValue>None</SettingsValue>
           )

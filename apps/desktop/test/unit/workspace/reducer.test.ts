@@ -2,6 +2,7 @@ import type { WorkspaceChat, WorkspaceMessage } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
   emptyWorkspace,
+  unusedChat,
   workspaceReducer,
   type WorkspaceAction,
   type WorkspaceState,
@@ -188,5 +189,25 @@ describe('workspaceReducer', () => {
     ]);
     expect(Object.keys(state.chats)).toEqual(['grd_1']);
     expect(state.messages).toEqual({});
+  });
+
+  it('finds an empty chat to open instead of starting another', () => {
+    const state = run([
+      {
+        type: 'chats.loaded',
+        owner: 'grd_1',
+        chats: [chat('cht_3'), chat('cht_2'), chat('cht_1')],
+      },
+      // cht_3's messages were never read, so it may hold some.
+      { type: 'messages.loaded', chatId: 'cht_2', messages: [] },
+      { type: 'messages.loaded', chatId: 'cht_1', messages: [message('msg_1')] },
+    ]);
+    expect(unusedChat(state, 'grd_1')?.id).toBe('cht_2');
+    expect(unusedChat(state, 'grd_2')).toBeUndefined();
+    const sent = run(
+      [{ type: 'message.updated', message: message('msg_2', { chatId: 'cht_2' }) }],
+      state,
+    );
+    expect(unusedChat(sent, 'grd_1')).toBeUndefined();
   });
 });

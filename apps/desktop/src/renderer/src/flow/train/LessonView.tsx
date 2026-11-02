@@ -65,13 +65,14 @@ export function LessonDrawerContent({
       }
       onBack={onBack}
       subtitle={
-        <>
-          Worked example · {typeLabel(job, lesson.taskType)} ·{' '}
+        <span className="flex items-baseline gap-x-3">
+          <span>Worked example</span>
+          <span>{typeLabel(job, lesson.taskType)}</span>
           <EvidenceMark kind="practice" className="align-[-2px]">
             {round}
-          </EvidenceMark>{' '}
-          · {lessonOrigin(lesson)}
-        </>
+          </EvidenceMark>
+          <span>{lessonOrigin(lesson)}</span>
+        </span>
       }
     >
       <div className="flex flex-col gap-7">
@@ -119,14 +120,9 @@ export function LessonDrawerContent({
         />
         <Checked lesson={lesson} />
         <DrawerSection title="What this example cost">
-          <p className="m-0 flex flex-wrap gap-x-2 text-small text-fg tabular-nums">
-            <span>
-              {names.mentor} {formatCost(lesson.cost.usd)}
-            </span>
-            <span aria-hidden>·</span>
-            <span>
-              {lesson.cost.calls} {lesson.cost.calls === 1 ? 'call' : 'calls'} to {names.mentor}
-            </span>
+          <p className="m-0 text-small text-fg tabular-nums">
+            {formatCost(lesson.cost.usd)} in {lesson.cost.calls}{' '}
+            {lesson.cost.calls === 1 ? 'call' : 'calls'} to {names.mentor}
           </p>
         </DrawerSection>
         <Disclosure label="Details">

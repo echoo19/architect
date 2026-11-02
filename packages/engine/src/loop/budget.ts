@@ -17,8 +17,10 @@ export interface BudgetLeft {
 /** Slack for floating-point sums, so a call that exactly fills the cap may still start. */
 const USD_EPSILON = 1e-9;
 
+/** Dollars as a sentence says them: "$1.25", "$0", or "less than a cent" for a fraction of one. */
 export function formatUsd(usd: number): string {
-  return `$${usd < 0.01 ? usd.toFixed(4) : usd.toFixed(2)}`;
+  if (usd <= 0) return '$0';
+  return usd < 0.01 ? 'less than a cent' : `$${usd.toFixed(2)}`;
 }
 
 /**

@@ -70,6 +70,9 @@ describe('teams', () => {
       baseUrl: LOCAL,
       job: { name: 'Sweep desk' },
     });
+    // A new agent is listed apart ("Sweep desk 2"); one made before that may still share a name.
+    const twin = computer.store.graduates.get('grd_twin');
+    if (twin) computer.store.graduates.update({ ...twin, name: 'Sweep desk' });
     expect(() =>
       teams.create({
         name: 'Twins',

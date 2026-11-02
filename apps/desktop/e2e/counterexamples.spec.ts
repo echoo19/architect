@@ -93,7 +93,7 @@ test("counts and lists a field's counterexamples in its assets", async () => {
   await expect(card).toContainText(
     'question_lookup stops with the error "test position not found"',
   );
-  await expect(card).toContainText('copperfield-diagnose-03 · round 2');
+  await expect(card).toContainText('copperfield-diagnose-03, round 2');
   await expect(card).toContainText('2,312 rows');
   await expect(card).toContainText('4 rows');
   await expect(card.getByRole('img', { name: 'Repaired', exact: true })).toHaveCount(1);

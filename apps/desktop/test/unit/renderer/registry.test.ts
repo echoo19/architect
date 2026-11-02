@@ -1,13 +1,17 @@
 import type { GraduateVersion, OrgTypeResult, ReportCard } from '@architect/shared';
+import { sortRows } from '@architect/ui';
 import { describe, expect, it } from 'vitest';
 import {
+  agentSortKey,
   comparable,
   compareScores,
   formatPoints,
   matchesFilter,
   matchesSearch,
+  oneOrganization,
   ordered,
   scoresOf,
+  shortHash,
   statusOf,
   type ModelRow,
 } from '../../../src/renderer/src/models/registry';
@@ -113,7 +117,25 @@ describe('the registry of models', () => {
     expect(matchesSearch(mini, '8-bit mini')).toBe(true);
     expect(matchesSearch(mini, 'v1 61b8a9d')).toBe(true);
     expect(matchesSearch(mini, 'adapter')).toBe(false);
+    expect(matchesSearch(mini, 'harness')).toBe(true);
+    expect(matchesSearch(rowOf({ version: 3, adapter: true }), 'lora')).toBe(true);
+    expect(matchesSearch(mini, 'lora')).toBe(false);
     expect(matchesSearch(mini, '   ')).toBe(true);
+  });
+
+  it('sorts an agent before a longer name that begins with it, then by version', () => {
+    const rows = [
+      rowOf({ agent: 'grd_mini', name: 'Academy desk Mini', version: 1 }),
+      rowOf({ version: 10 }),
+      rowOf({ version: 2 }),
+    ];
+    const names = (sorted: ModelRow[]) =>
+      sorted.map((row) => `${row.agent.name} v${row.version.version}`);
+    expect(names(sortRows(rows, { sortValue: agentSortKey }, 'ascending'))).toEqual([
+      'Academy desk v2',
+      'Academy desk v10',
+      'Academy desk Mini v1',
+    ]);
   });
 
   it('reads seen, unseen and real apart, the check tasks on their own, and nothing as zero', () => {
@@ -137,6 +159,17 @@ describe('the registry of models', () => {
       real: null,
       check: null,
     });
+  });
+
+  it('reads a job with no organization it never saw as one of one organization', () => {
+    const fielded = rowOf({
+      version: 1,
+      report: report([result('hint', 'north', 3, 4, SEEN), result('hint', 'harbor', 5, 6, UNSEEN)]),
+    });
+    expect(oneOrganization(scoresOf(fielded))).toBe(false);
+    const single = rowOf({ version: 1, report: report([result('hint', 'north', 3, 4, SEEN)]) });
+    expect(oneOrganization(scoresOf(single))).toBe(true);
+    expect(oneOrganization(scoresOf(rowOf({ version: 2 })))).toBe(true);
   });
 
   it('compares two versions of one agent, or two agents of one job, older first', () => {
@@ -197,6 +230,14 @@ describe('the registry of models', () => {
       kind: 'apart',
       reason: 'One of them took no final test.',
     });
+  });
+
+  it('shortens a hash to its first seven hex digits, whichever way sha256 is written', () => {
+    const hex = '48cd80189600a63ea33bc9f24ff0c3a64d80bb8938ab035dab6bd908a0a82336';
+    // The harness folder's own hash is written sha256-<hex>.
+    expect(shortHash(`sha256-${hex}`)).toBe('48cd801');
+    expect(shortHash(`sha256:${hex}`)).toBe('48cd801');
+    expect(shortHash(hex)).toBe('48cd801');
   });
 
   it('writes a change in points with a true minus sign', () => {

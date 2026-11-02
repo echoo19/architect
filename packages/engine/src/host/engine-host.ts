@@ -184,6 +184,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     clock,
     hub,
     experiments,
+    localRuntime,
     ...(options.trainerDir === undefined ? {} : { trainerDir: options.trainerDir }),
   });
   const ports = new Set<EnginePort>();

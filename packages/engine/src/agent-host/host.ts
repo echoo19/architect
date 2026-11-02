@@ -34,8 +34,11 @@ import type { WorkspaceStore } from './store';
 import { askTeammate, teammatesOf, type Teammate } from './team';
 import { approveWrites, PendingWrites } from './writes';
 
-/** The workspace part of the app's API: what the agent host serves to the UI. */
-export type WorkspaceApi = ArchitectApi['workspace'];
+/**
+ * The workspace part of the app's API: what the agent host serves to the UI. What its network
+ * guard stopped is the process's to answer, not the host's (`serveAgentHost`).
+ */
+export type WorkspaceApi = Omit<ArchitectApi['workspace'], 'blockedConnections'>;
 
 export interface AgentHostOptions {
   /** Graduates, their installations and chats, on the app's database. */
@@ -150,7 +153,12 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
 
   function graduateOf(graduateId: string): GraduateSession {
     const graduate = graduates.get(graduateId);
-    if (!graduate) throw new Error(`Open the graduate "${graduateId}" before chatting with it.`);
+    if (!graduate) {
+      const name = store.graduateName(graduateId) ?? 'This agent';
+      throw new Error(
+        `${name} isn't ready to chat yet. Try again in a moment, or check in its settings that it works on this computer.`,
+      );
+    }
     return graduate;
   }
 
@@ -318,21 +326,6 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
               leadUse: use,
               leadHold: () => held,
               watch,
-              approveWrite: ({ session }, pause) =>
-                approveWrites({
-                  agentName: session.name,
-                  agent: { graduateId: session.id, name: session.name },
-                  mode: () => writeMode(session),
-                  allowFromNowOn: () => store.saveWriteMode(session.id, 'allow'),
-                  reply,
-                  pending,
-                  setWaiting: (waiting) => {
-                    updateChat(chat.id, { waiting });
-                    if (waiting) pause();
-                  },
-                  interactive,
-                  approvalRequired,
-                }),
               signal: controller.signal,
             }),
           };
@@ -373,11 +366,8 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
   return {
     async openGraduate(graduateId, cpuThreads) {
       assertOpen();
-      if (!store.hasGraduate(graduateId)) {
-        throw new CodedError(
-          'agent_not_found',
-          `There is no graduate "${graduateId}" in Architect.`,
-        );
+      if (store.graduateName(graduateId) === null) {
+        throw new CodedError('agent_not_found', 'That agent is no longer in Architect.');
       }
       threads.set(graduateId, cpuThreads);
       // A graduate that is answering is opened again before its next reply, never during one.

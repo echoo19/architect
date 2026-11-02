@@ -2,15 +2,20 @@ import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
+  BarChart,
+  ChoiceTiles,
   cn,
   Combobox,
+  DataTable,
   Disclosure,
   EvidenceMark,
   EvidenceMeter,
   evidenceLabel,
   Field,
   IntervalPlot,
+  LineChart,
   Meter,
+  niceCeiling,
   PageTabs,
   ProgressStepper,
   ProviderMark,
@@ -20,8 +25,10 @@ import {
   riskTop,
   SettingsRow,
   Shortcut,
+  spacedTicks,
   shortcutLabel,
   Spinner,
+  stepPath,
   StepList,
   StepListItem,
   Switch,
@@ -410,5 +417,145 @@ describe('RiskCoveragePlot', () => {
     );
     expect(html).not.toContain('bg-student');
     expect(html).not.toContain('Certified');
+  });
+});
+
+describe('ChoiceTiles', () => {
+  it('marks a chosen tile with a check, not by its fill alone', () => {
+    const html = renderToStaticMarkup(
+      createElement(ChoiceTiles<'a' | 'b'>, {
+        multiple: true,
+        'aria-label': 'Arms',
+        value: ['a'],
+        onValueChange: () => undefined,
+        options: [
+          { value: 'a', label: 'Chosen', icon: null },
+          { value: 'b', label: 'Not chosen', icon: null },
+        ],
+      }),
+    );
+    const [chosen, other] = html.split('</button>');
+    expect(chosen).toContain('lucide-circle-check');
+    expect(other).not.toContain('lucide-circle-check');
+  });
+});
+
+describe('DataTable', () => {
+  it('keeps one fill on the selected row, pointed at or not', () => {
+    const html = renderToStaticMarkup(
+      createElement(DataTable<{ id: string }>, {
+        'aria-label': 'Rows',
+        rows: [{ id: 'one' }, { id: 'two' }],
+        rowKey: (row) => row.id,
+        onRowClick: () => undefined,
+        selectedKey: 'one',
+        columns: [{ key: 'id', header: 'Id', cell: (row) => row.id }],
+      }),
+    );
+    const rows = html.split('<tr').slice(2);
+    expect(rows[0]).toContain('bg-selected');
+    expect(rows[0]).not.toContain('hover:bg-hover');
+    expect(rows[1]).toContain('hover:bg-hover');
+  });
+});
+
+describe('LineChart', () => {
+  const ticks = Array.from({ length: 13 }, (_, value) => ({ value, label: String(value) }));
+
+  it('draws a main series in steps that hold each value until the next point', () => {
+    expect(
+      stepPath([
+        { x: 0, y: 10 },
+        { x: 5, y: 4 },
+        { x: 9, y: 4 },
+      ]),
+    ).toBe('M0,10H5V4H9V4');
+  });
+
+  it('labels the x axis only as often as the labels fit, always the last', () => {
+    expect(spacedTicks(ticks, 60).map((tick) => tick.value)).toHaveLength(13);
+    expect(spacedTicks(ticks, 10).map((tick) => tick.value)).toEqual([0, 3, 6, 9, 12]);
+  });
+
+  it('reads out as its label, with its key and its reference level', () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, {
+        label: 'Score by round: 40% at the start, 65% after round 1.',
+        xMax: 12,
+        xTicks: ticks,
+        yRange: [30, 100],
+        yTicks: [40, 60, 80, 100].map((value) => ({ value, label: `${value}%` })),
+        series: [
+          {
+            id: 'checks',
+            tone: 'student',
+            main: true,
+            points: [
+              { x: 0, y: 40 },
+              { x: 1, y: 65 },
+            ],
+          },
+        ],
+        marks: [{ key: 'r2', x: 2, y: 60, from: 65, kind: 'ring', tone: 'fg', title: 'Round 2' }],
+        reference: { y: 90, label: 'Target 90%' },
+        head: { x: 1, y: 65 },
+        live: { x: 2, title: 'Round 2 in progress' },
+        legend: [{ label: 'Held-out checks', tone: 'student', kind: 'main' }],
+      }),
+    );
+    expect(html).toContain('role="img"');
+    expect(html).toContain('aria-label="Score by round: 40% at the start, 65% after round 1."');
+    expect(html).toContain('Target 90%');
+    expect(html).toContain('Held-out checks');
+    expect(html).toContain('<title>Round 2 in progress</title>');
+  });
+
+  it('says so in the plot when there is nothing to draw', () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, {
+        label: 'Nothing measured yet.',
+        xMax: 4,
+        xTicks: ticks.slice(0, 5),
+        yRange: [0, 100],
+        yTicks: [],
+        series: [],
+        empty: 'Not scored yet',
+      }),
+    );
+    expect(html).toContain('Not scored yet');
+  });
+});
+
+describe('BarChart', () => {
+  it('reads out each bar and draws an empty one as a mark on the baseline', () => {
+    const html = renderToStaticMarkup(
+      createElement(BarChart, {
+        'aria-label': 'Requests per day',
+        data: [
+          { key: 'a', label: '30', description: 'October 30: 3 requests', value: 3 },
+          { key: 'b', label: '31', description: 'October 31: no requests', value: 0 },
+          {
+            key: 'c',
+            label: '1',
+            description: 'November 1: 7 requests, 1 failed',
+            value: 7,
+            alert: 1,
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('aria-label="Requests per day"');
+    expect(html).toContain('<li>October 30: 3 requests</li>');
+    expect(html).toContain('<li>November 1: 7 requests, 1 failed</li>');
+    // The scale tops out at 10, so the tallest bar fills 70% of it and its failure a seventh.
+    expect(html).toContain('height:70%');
+    expect(html).toContain('bg-danger');
+    expect(html).toContain('h-0.5');
+  });
+
+  it('tops its scale at a round number', () => {
+    expect([0, 1, 3, 7, 10, 11, 24, 51, 180].map(niceCeiling)).toEqual([
+      1, 1, 5, 10, 10, 20, 50, 100, 200,
+    ]);
   });
 });

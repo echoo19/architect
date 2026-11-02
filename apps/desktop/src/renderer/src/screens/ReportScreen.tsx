@@ -1,17 +1,10 @@
 import { useId, useState } from 'react';
 import type { ReportCard } from '@architect/shared';
 import { Button, Skeleton } from '@architect/ui';
-import { ArrowRight, Boxes, Library, TriangleAlert } from 'lucide-react';
+import { ArrowRight, Boxes, Library, RotateCw, TriangleAlert } from 'lucide-react';
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
-import {
-  createChat,
-  useGraduates,
-  useJob,
-  useReport,
-  useRunDetail,
-  useSettings,
-} from '../api/hooks';
+import { useGraduates, useJob, useReport, useRunDetail, useSettings } from '../api/hooks';
 import { useQuery } from '../api/query';
 import { refreshRunLists } from '../api/updates';
 import { ProblemState } from '../components/ProblemState';
@@ -30,7 +23,7 @@ import { useLocalCard } from '../flow/report/use-retest';
 import { reportVerdict } from '../flow/report/verdict';
 import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
-import { chatPath, navigate, paths } from '../lib/router';
+import { navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
 import { useEdition, useWords } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
@@ -47,10 +40,11 @@ export function ReportScreen({ runId }: { runId: string }) {
       const graduate = await flowApi.acceptGraduate(runId);
       // Its row stops reading "Results ready" now that the agent is the person's.
       await refreshRunLists();
-      return createChat(graduate.id);
+      return graduate;
     });
     setAccepting(false);
-    if (opened) navigate(chatPath(opened));
+    // Its home, where opening an agent lands; a chat starts there when the person asks.
+    if (opened) navigate(paths.agent(opened.id));
   };
 
   return (
@@ -90,9 +84,11 @@ export function ReportScreen({ runId }: { runId: string }) {
  * the results give from them and the final test together. The footer and the page read the same
  * cached queries, so they never disagree.
  */
-function useReportAgent(report: ReportCard) {
+function useReportAgent(card: ReportCard) {
   const graduates = useGraduates();
-  const graduate = graduates.data?.find((item) => item.manifest.runId === report.runId);
+  const graduate = graduates.data?.find((item) => item.manifest.runId === card.runId);
+  // The card carries the job's name; the agent may go by another, beside one named the same.
+  const report = graduate ? { ...card, name: graduate.name } : card;
   // Install checks belong to the agent on this computer, once the run has made one.
   const installation = useQuery(graduateKeys.installation(graduate?.id ?? 'none'), () =>
     graduate ? graduatesApi.installation(graduate.id) : Promise.resolve(null),
@@ -110,7 +106,7 @@ function useReportAgent(report: ReportCard) {
     here,
     finalTest,
   );
-  return { graduate, installation: installation.data ?? null, verdict };
+  return { report, graduate, installation: installation.data ?? null, verdict };
 }
 
 /**
@@ -118,7 +114,7 @@ function useReportAgent(report: ReportCard) {
  * which is in its settings.
  */
 function ReportFooter({
-  report,
+  report: card,
   accepting,
   onAccept,
 }: {
@@ -126,14 +122,15 @@ function ReportFooter({
   accepting: boolean;
   onAccept: () => void;
 }) {
-  const { graduate, verdict } = useReportAgent(report);
+  const { report, graduate, verdict } = useReportAgent(card);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const edition = useEdition();
   const { finalTest } = useWords();
   const notHeld = notHeldLine(report.certificate, finalTest);
   const notHeldId = useId();
+  const belowTarget = verdict.state === 'below_target';
   return (
-    <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-end gap-2">
+    <div className="mx-auto box-content flex max-w-[1120px] flex-wrap items-center justify-end gap-2 px-10">
       {edition === 'lab' && <LabLinks report={report} />}
       <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
       {verdict.usable || !graduate ? (
@@ -146,7 +143,7 @@ function ReportFooter({
             </span>
           )}
           <Button
-            variant="primary"
+            variant={belowTarget ? 'secondary' : 'primary'}
             loading={accepting}
             onClick={onAccept}
             {...(notHeld ? { 'aria-describedby': notHeldId } : {})}
@@ -154,6 +151,13 @@ function ReportFooter({
             Start using {report.name}
             <ArrowRight size={16} strokeWidth={2} aria-hidden />
           </Button>
+          {/* Below its target, training again leads; using it as it is stays open beside it. */}
+          {belowTarget && (
+            <Button variant="primary" onClick={() => navigate(paths.define(report.jobId))}>
+              <RotateCw size={16} strokeWidth={1.8} aria-hidden />
+              Train again
+            </Button>
+          )}
         </>
       ) : (
         <Button
@@ -178,8 +182,9 @@ function ReportFooter({
 function LabLinks({ report }: { report: ReportCard }) {
   const registry = useRegistry();
   const version = registry.data ? versionOfRun(registry.data, report.runId) : undefined;
+  // Pulled out by a button's padding, so the first icon starts on the page's edge.
   return (
-    <div className="mr-auto flex flex-wrap gap-2">
+    <div className="-ml-4 mr-auto flex flex-wrap gap-2">
       <Button variant="ghost" onClick={() => navigate(paths.field(report.jobId))}>
         <Library size={16} strokeWidth={1.8} aria-hidden />
         Open field
@@ -194,7 +199,8 @@ function LabLinks({ report }: { report: ReportCard }) {
   );
 }
 
-function LoadedReport({ report }: { report: ReportCard }) {
+function LoadedReport({ report: card }: { report: ReportCard }) {
+  const { report, graduate, installation, verdict } = useReportAgent(card);
   const job = useJob(report.jobId);
   const settings = useSettings();
   const run = useRunDetail(report.runId);
@@ -204,7 +210,6 @@ function LoadedReport({ report }: { report: ReportCard }) {
   const evidence = useReportEvidence(report);
   const comparisonReport = useComparisonReport(report);
   const bare = useBareReport(report, blankStart);
-  const { graduate, installation, verdict } = useReportAgent(report);
   const lab = useEdition() === 'lab';
   const shownJob = job.status === 'success' ? job.data : null;
   const shownRun = run.data?.run ?? null;

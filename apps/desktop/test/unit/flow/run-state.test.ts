@@ -13,6 +13,7 @@ import {
   latestFailure,
   liveRunReducer,
   medianLatencyMs,
+  practiceSoFar,
   RECENT_ATTEMPT_LIMIT,
   type LiveRun,
   type LiveRunState,
@@ -121,6 +122,53 @@ describe('liveRunReducer', () => {
     expect(result.attempts[0]?.id).toBe(`att_${RECENT_ATTEMPT_LIMIT + 4}`);
   });
 
+  it("counts each round's practice answers in full, past the attempts the list keeps", () => {
+    const events = Array.from({ length: RECENT_ATTEMPT_LIMIT + 10 }, (_, index) =>
+      attemptFinished(
+        makeAttempt(`att_${index}`, {
+          round: 2,
+          check: { pass: index % 5 !== 0, reason: 'Checked.' },
+        }),
+      ),
+    );
+    const result = loaded(...events, events.at(-1) as RunEvent);
+    expect(practiceSoFar(result, 2)).toEqual({ pass: 40, total: 50 });
+    expect(practiceSoFar(result, 3)).toEqual({ pass: 0, total: 0 });
+  });
+
+  it('counts the practice answers of a snapshot, older than the list keeps', () => {
+    const recentAttempts = Array.from({ length: RECENT_ATTEMPT_LIMIT + 10 }, (_, index) =>
+      makeAttempt(`att_${index}`, { round: 2 }),
+    );
+    const state = liveRunReducer(initialLiveRunState, {
+      type: 'snapshot',
+      detail: makeDetail({ recentAttempts }),
+    });
+    expect(practiceSoFar(live(state), 2)).toEqual({ pass: 50, total: 50 });
+  });
+
+  it("leaves a probe's practice answers out of the round's own (decision 108)", () => {
+    const probe = {
+      index: 1,
+      title: 'Read the policy first',
+      diagnosis: '',
+      files: [],
+      predicted: { devDeltaMin: 1, devDeltaMax: 3, rationale: '' },
+      version: 5,
+    };
+    const round = makeRound(2, { status: 'evaluating', probes: [probe] });
+    const answers = [
+      makeAttempt('att_own', { round: 2, harnessVersion: 2 }),
+      makeAttempt('att_probe', {
+        round: 2,
+        harnessVersion: 5,
+        check: { pass: false, reason: 'Wrong lot.' },
+      }),
+    ];
+    const result = loaded(roundUpdated(round), ...answers.map((a) => attemptFinished(a)));
+    expect(practiceSoFar(result, 2)).toEqual({ pass: 1, total: 1 });
+  });
+
   it('tracks the mentor, evaluation progress, budget and the graduate', () => {
     const base = { runId: 'run_1', at: AT } as const;
     const busy = loaded({ ...base, type: 'mentor.started', round: 1 });
@@ -169,6 +217,53 @@ describe('liveRunReducer', () => {
       perType: [],
     });
     expect(finished.progress).toBeNull();
+  });
+
+  it('keeps a finished count where it ended until the run moves on, then counts the next step from none', () => {
+    const base = { runId: 'run_1', at: AT, harnessVersion: 2 } as const;
+    const scoring = runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(1) }));
+    const counted: RunEvent = {
+      ...base,
+      type: 'eval.progress',
+      split: 'dev',
+      done: 40,
+      total: 40,
+      pass: 5,
+    };
+    const finished: RunEvent = {
+      ...base,
+      type: 'eval.finished',
+      split: 'dev',
+      score: { pass: 20, total: 40 },
+      perType: [],
+    };
+    const ended = loaded(scoring, counted, finished);
+    expect(activeProgress(ended)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    // A round measures both versions as one count: the first version's end is half way.
+    const half: RunEvent = { ...counted, done: 20 };
+    expect(activeProgress(loaded(scoring, half, finished))).toEqual({
+      split: 'dev',
+      done: 20,
+      total: 40,
+    });
+
+    const decided = loaded(
+      scoring,
+      counted,
+      finished,
+      runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(2) })),
+    );
+    expect(activeProgress(decided)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    const next = loaded(
+      scoring,
+      counted,
+      finished,
+      runUpdated(makeRun({ phase: 'attempting', updatedAt: at(2) })),
+      runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(3) })),
+    );
+    expect(activeProgress(next)).toBeNull();
   });
 
   it('shows the latest warning until the phase changes', () => {

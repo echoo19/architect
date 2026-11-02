@@ -20,11 +20,13 @@ import {
   minutesForOneRound,
   mentorPriceOf,
   mentorRounds,
+  mentorRoundsLine,
   mentorUsdFor,
   placePhrase,
   planBills,
   planSeconds,
   practiceUsd,
+  roundModeLine,
   roughUsd,
   shownTotalUsd,
   typicalPracticeUsd,
@@ -38,6 +40,8 @@ import {
   trainsTooSlow,
   wontTeachBody,
   wontTeachTitle,
+  allowLabel,
+  finalTestAfter,
   type Bills,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
@@ -103,6 +107,21 @@ describe('estimateTime', () => {
       rounds: { fewest: 4, most: 4 },
       roundSeconds: { least: hosted.short, most: hosted.long },
     });
+  });
+
+  it('adds each probe of a round that proposes, probes and composes', () => {
+    // Three probes: four practice batches of 6, and the 10 check tasks five times (the current
+    // version, the three probes and the change), seven when the change is checked again.
+    const probing = makeJob({
+      ...job,
+      evaluation: { ...job.evaluation, roundMode: 'propose_probe_compose' },
+    });
+    expect(estimateTime(probing, 'local').roundSeconds).toEqual({
+      least: (4 * 6 + 5 * 10) * 150,
+      most: (4 * 6 + 7 * 10) * 150,
+    });
+    const two = makeJob({ ...probing, evaluation: { ...probing.evaluation, probes: 2 } });
+    expect(estimateTime(two, 'local').roundSeconds.least).toBe((3 * 6 + 4 * 10) * 150);
   });
 
   it('runs the check tasks once per repeat', () => {
@@ -261,6 +280,18 @@ describe('what each part of a run takes', () => {
     );
   });
 
+  it('names training in the button and says the final test that runs after it, so the estimate adds up', () => {
+    const job = makeJob();
+    // The limit is training's; the final test is outside it, and the estimate adds the two.
+    expect(allowLabel(540)).toBe('Allow 9 hours of training');
+    expect(finalTestAfter(job, 'local', 'final test')).toBe(
+      'The final test adds about 2.5 h after training.',
+    );
+    expect(finalTestAfter(job, 'hosted', 'sealed final test')).toBe(
+      'The sealed final test adds about 15 min after training.',
+    );
+  });
+
   it("says a round's range, so the limit the button names adds up from what is said", () => {
     /** A time as the callout writes it: "1 h 40 min", "23 min" or "9 h". */
     const time = String.raw`\d+ h(?: \d+ min)?|\d+ min`;
@@ -371,6 +402,11 @@ describe('the plan in all', () => {
       6,
     );
     expect(expectedMentorUsd(codingAgent, estimateTime(codingAgent, 'local'))).toBeNull();
+    // The figure says which rounds it counts, so a longer limit that lowers it says why.
+    expect(mentorRoundsLine(hosted, estimateTime(hosted, 'hosted'))).toBe('7 rounds');
+    expect(mentorRoundsLine(local, estimateTime(local, 'local'))).toBe(
+      'All 12 rounds, as none fits the limit yet',
+    );
   });
 
   it('adds training and the final test, and the comparison when asked for', () => {
@@ -549,6 +585,14 @@ describe('mentor spending', () => {
     expect(mentorUsdFor(mentorPreset('meta-spark').pricing, 8)).toBeCloseTo(8 * 0.05875, 6);
   });
 
+  it('asks the mentor twice a round when the round proposes, probes and composes', () => {
+    const job = makeJob();
+    const probing = makeJob({
+      evaluation: { ...job.evaluation, roundMode: 'propose_probe_compose' },
+    });
+    expect(estimateMentorUsd(probing)).toBeCloseTo(2 * 12 * 0.05875, 6);
+  });
+
   it('has no estimate when the price is unknown', () => {
     const job = makeJob({
       mentor: { kind: 'coding_agent', agent: 'claude_code', label: 'Claude Code' },
@@ -635,5 +679,21 @@ describe('caps the plan does not fit in', () => {
     });
     expect(capShortfalls(job, names).map((shortfall) => shortfall.what)).toEqual(['compute']);
     expect(capShortfalls({ ...job, interventions: ['procedure'] }, names)).toEqual([]);
+  });
+});
+
+describe('the round mode, in a line', () => {
+  it('says what one round does in either mode, and that only a gain stays', () => {
+    const job = makeJob();
+    expect(roundModeLine(job, 'Spark')).toBe(
+      'Spark makes one change a round, kept only if the check tasks gain.',
+    );
+    const probing = makeJob({
+      evaluation: { ...job.evaluation, roundMode: 'propose_probe_compose' },
+    });
+    expect(roundModeLine(probing, 'Spark')).toBe(
+      'Spark tries 3 changes on the check tasks, then makes one from what they did and keeps it only if it gains.',
+    );
+    expect(roundModeLine(probing, 'Spark')).not.toContain('\u00b7');
   });
 });

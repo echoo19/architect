@@ -155,6 +155,13 @@ export const MentorLineageItemSchema = z.discriminatedUnion('decision', [
     devDelta: z.number().int(),
     /** When the change was measured again on new seeds: net dev passes over both measurements. */
     confirmedDelta: z.number().int().optional(),
+    /**
+     * For a change composed from probes (decision 108): each alternative's title and its net dev
+     * passes beside the incumbent under that round's seeds; absent for one refused before dev.
+     */
+    probes: z
+      .array(z.object({ title: z.string(), devDelta: z.number().int().optional() }))
+      .optional(),
   }),
   z.object({
     round: z.number().int().positive(),
@@ -285,6 +292,39 @@ export const MentorViewSchema = z.object({
           }),
         )
         .optional(),
+    })
+    .optional(),
+  /**
+   * When the mentor composes a propose-probe-compose round's change (decision 108): the
+   * alternatives it proposed this round, each with its change set and either why the runner
+   * refused it or what it did. What it did is the same kind of evidence the rest of the view
+   * holds: an overall dev score beside the incumbent's, under this round's seeds, and the
+   * checker's verdict on each of this round's train tasks. No dev task, trace or per-type count,
+   * and nothing from the test split.
+   */
+  probes: z
+    .object({
+      /** The incumbent's overall dev score under this round's seeds. */
+      devBefore: z.object({
+        pass: z.number().int().nonnegative(),
+        total: z.number().int().nonnegative(),
+      }),
+      items: z.array(
+        z.object({
+          index: z.number().int().positive(),
+          title: z.string(),
+          diagnosis: z.string(),
+          edits: z.array(FileEditSchema),
+          predicted: PredictionSchema,
+          refused: z.string().optional(),
+          devAfter: z
+            .object({ pass: z.number().int().nonnegative(), total: z.number().int().nonnegative() })
+            .optional(),
+          train: z
+            .array(z.object({ taskId: z.string(), pass: z.boolean(), reason: z.string() }))
+            .optional(),
+        }),
+      ),
     })
     .optional(),
 });

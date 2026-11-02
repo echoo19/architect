@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GraduateSummary, JobSummary, Team, WorkspaceChat } from '@architect/shared';
 import {
   AgentAvatar,
@@ -21,6 +21,7 @@ import {
   CircleCheck,
   Cloud,
   Ellipsis,
+  FilePen,
   MessageCircleQuestion,
   PackageOpen,
   Pause,
@@ -51,6 +52,7 @@ import {
   type ListState,
 } from '../workspace/store';
 import {
+  draftedJobs,
   TRAINING_ROW_WORDS,
   trainingRows,
   type TrainingRow,
@@ -133,24 +135,12 @@ export function Sidebar({ route }: { route: Route }) {
           <AgentMenu />
         </div>
 
-        <div className="-mx-1 flex min-h-0 flex-col gap-5 overflow-y-auto px-1 scroll-quiet">
+        {/* Padded so a focused row's ring isn't cut by the scrolling edge. */}
+        <div className="-m-1 flex min-h-0 flex-col gap-5 overflow-y-auto p-1 scroll-quiet">
           {graduates.data ? (
             <>
               <AgentList graduates={graduates.data} route={route} />
               {edition === 'lab' && <TeamList route={route} />}
-              {jobs.data ? (
-                <TrainingList jobs={jobs.data} route={route} />
-              ) : (
-                jobs.status === 'error' && (
-                  <ProblemState
-                    layout="inline"
-                    error={jobs.error}
-                    title="Couldn't load training"
-                    onRetry={jobs.reload}
-                    className="px-2.5"
-                  />
-                )
-              )}
             </>
           ) : graduates.status === 'error' ? (
             <ProblemState
@@ -167,6 +157,28 @@ export function Sidebar({ route }: { route: Route }) {
             <AgentListSkeleton />
           )}
         </div>
+
+        {/*
+          The runs keep their own place under the agents, whole, so one that ends while the person
+          is elsewhere stays in view however many agents and teams there are; the agents scroll.
+        */}
+        {graduates.data && (
+          <div className="flex shrink-0 flex-col">
+            {jobs.data ? (
+              <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
+            ) : (
+              jobs.status === 'error' && (
+                <ProblemState
+                  layout="inline"
+                  error={jobs.error}
+                  title="Couldn't load training"
+                  onRetry={jobs.reload}
+                  className="px-2.5"
+                />
+              )
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="flex-1" />
@@ -281,7 +293,15 @@ function NewChatButton({
  * row's whole width until the group is pointed at or reached with the keyboard.
  */
 const GROUP_ACTIONS =
-  'absolute inset-y-0 right-0.5 flex items-center bg-ground pl-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
+  'absolute inset-y-0 right-0.5 flex items-center rounded-r-control bg-ground pl-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
+
+/*
+ * Over a row with a fill, the actions carry the same fill on the ground beneath them, so the
+ * row reads as one piece: an inset shadow lays the translucent fill over the opaque ground.
+ */
+const ON_SELECTED = 'shadow-[inset_0_0_0_999px_var(--ui-selected)]';
+const ON_HOVER = 'group-hover/row:shadow-[inset_0_0_0_999px_var(--ui-hover)]';
+const ON_IN_CHAT = 'shadow-[inset_0_0_0_999px_var(--ui-hover)]';
 
 function AgentGroup({
   graduate,
@@ -296,18 +316,37 @@ function AgentGroup({
   const chats = useAgentChats(graduate.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const { creating, start } = useStartChat(graduate.name, () => createChat(graduate.id));
+  const home = route.name === 'agent' && route.graduateId === graduate.id;
+  // In one of its chats, the agent's row keeps a lighter fill, so the open chat has its place.
+  const openChat = route.name === 'chat' && route.graduateId === graduate.id ? route.chatId : null;
+  // The open agent, at its home or in one of its chats, scrolls into view with its chats, and
+  // the open chat with it, however far down the list it is.
+  const group = useRef<HTMLDivElement>(null);
+  const loaded = chats.entry.data !== undefined;
+  useEffect(() => {
+    if (!(home || openChat) || !loaded) return;
+    group.current?.scrollIntoView({ block: 'nearest' });
+    group.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
+  }, [home, openChat, loaded]);
 
   return (
-    <div className="group/agent flex flex-col gap-0.5">
-      <div className="relative flex h-9 items-center gap-2.5 pl-2.5 pr-2.5">
-        <AgentAvatar name={graduate.name} />
-        <span className="min-w-0 flex-1 truncate font-medium" title={graduate.name}>
-          {graduate.name}
-        </span>
-        {showVersion && graduate.activeVersion !== null && (
-          <span className="shrink-0 font-mono text-small">v{graduate.activeVersion}</span>
-        )}
-        <div className={GROUP_ACTIONS}>
+    <div ref={group} className="group/agent flex flex-col gap-0.5">
+      <div className="group/row relative">
+        <NavItem
+          icon={<AgentAvatar name={graduate.name} />}
+          current={home}
+          indicator={INDICATOR}
+          className={home ? undefined : openChat ? 'bg-hover' : 'group-hover/row:bg-hover'}
+          onClick={() => navigate(paths.agent(graduate.id))}
+          end={
+            showVersion && graduate.activeVersion !== null ? (
+              <span className="font-mono">v{graduate.activeVersion}</span>
+            ) : undefined
+          }
+        >
+          <span className="font-medium">{graduate.name}</span>
+        </NavItem>
+        <div className={cn(GROUP_ACTIONS, home ? ON_SELECTED : openChat ? ON_IN_CHAT : ON_HOVER)}>
           <NewChatButton name={graduate.name} creating={creating} onClick={start} />
           <Tooltip content="Agent settings" side="right">
             <IconButton
@@ -357,13 +396,11 @@ function TeamGroup({ team, route }: { team: Team; route: Route }) {
   const { creating, start } = useStartChat(team.name, () => createTeamChat(team.id));
   return (
     <div className="group/agent flex flex-col gap-0.5">
-      <div className="relative flex h-9 items-center gap-2.5 pl-2.5 pr-2.5">
+      <div className="relative flex min-h-9 items-center gap-2.5 py-1.5 pl-2.5 pr-2.5">
         <RowIcon>
           <Users size={16} strokeWidth={1.8} aria-hidden />
         </RowIcon>
-        <span className="min-w-0 flex-1 truncate font-medium" title={team.name}>
-          {team.name}
-        </span>
+        <span className="line-clamp-2 min-w-0 flex-1 break-words font-medium">{team.name}</span>
         <div className={GROUP_ACTIONS}>
           {/* One action, so a team's longer name has room; the team itself is set in Models. */}
           <NewChatButton name={team.name} creating={creating} onClick={start} />
@@ -374,10 +411,18 @@ function TeamGroup({ team, route }: { team: Team; route: Route }) {
   );
 }
 
-/** An agent's or a team's chats, nested under it. */
+/** How many of a group's chats the sidebar lists; its home lists them all. */
+const RECENT_CHATS = 5;
+
+/**
+ * An agent's or a team's most recent chats, nested under it, with the open one among them
+ * however old it is: an older one takes the last place, so the group keeps its height.
+ */
 function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route: Route }) {
-  const list = chats.entry.data;
   const open = route.name === 'chat' || route.name === 'team-chat' ? route.chatId : null;
+  const openAt = chats.entry.data?.findIndex((chat) => chat.id === open) ?? -1;
+  const recent = openAt >= RECENT_CHATS ? RECENT_CHATS - 1 : RECENT_CHATS;
+  const list = chats.entry.data?.filter((chat, index) => index < recent || index === openAt);
   return (
     <>
       {!list && chats.entry.status === 'loading' && (
@@ -424,7 +469,7 @@ function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route
                 ) : undefined
               }
             >
-              {chat.title}
+              <span className="block truncate">{chat.title}</span>
             </NavItem>
           </StaggerItem>
         );
@@ -475,15 +520,36 @@ function TrainingRowButton({ row, route }: { row: TrainingRow; route: Route }) {
 /**
  * The runs a person can open from here: each job's newest run of its agent while it trains, when
  * its results are ready and nobody has taken the agent yet, and when it stopped or failed, so a
- * run that ends while they are elsewhere is never lost.
+ * run that ends while they are elsewhere is never lost. With `drafts`, jobs drafted and never
+ * trained follow; the Lab lists those in Fields.
  */
-function TrainingList({ jobs, route }: { jobs: JobSummary[]; route: Route }) {
+function TrainingList({
+  jobs,
+  route,
+  drafts,
+}: {
+  jobs: JobSummary[];
+  route: Route;
+  drafts: boolean;
+}) {
   const rows = trainingRows(jobs);
-  if (rows.length === 0) return null;
+  const drafted = drafts ? draftedJobs(jobs) : [];
+  if (rows.length === 0 && drafted.length === 0) return null;
   return (
     <div className="flex flex-col gap-0.5 border-t border-line pt-4">
       {rows.map((row) => (
         <TrainingRowButton key={row.jobId} row={row} route={route} />
+      ))}
+      {drafted.map((job) => (
+        <NavItem
+          key={job.id}
+          icon={<FilePen size={16} strokeWidth={1.8} aria-hidden />}
+          current={route.name === 'define' && route.jobId === job.id}
+          onClick={() => navigate(paths.define(job.id))}
+          end={<span className="text-fg">Draft</span>}
+        >
+          {job.name}
+        </NavItem>
       ))}
     </div>
   );

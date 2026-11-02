@@ -9,26 +9,40 @@ import { newField } from '../fields/new-field';
 import { SampleJobButton, ScienceLabButton } from '../flow/describe/SampleJobButton';
 import { ReadyMadeAgentButton } from '../import/ReadyMadeAgentButton';
 import {
-  AgentsCard,
   ExperimentsCard,
   FieldsCard,
   FinishedCard,
+  HeroResultCard,
   NeedsYouCard,
   RunningCard,
   SpendCard,
 } from '../lab/cards';
 import { finishedRuns, runningExperiments, runningRuns } from '../lab/items';
-import { mentorName } from '../lib/names';
+import { mentorName, studentName } from '../lib/names';
 import { navigate, paths } from '../lib/router';
 import { PlacePage } from '../shell/PlacePage';
 
 /**
- * The Lab: what waits for the person and what is running, side by side as the focal point, then
- * what just finished, what it cost, the fields and the agents. A fresh install shows the ways in.
+ * What Architect does, in one line under the Lab's title, with the two models introduced by role
+ * where they first appear.
+ */
+function useStory(): string | undefined {
+  const settings = useSettings();
+  if (settings.status !== 'success') return undefined;
+  const mentor = mentorName(settings.data.defaultMentor);
+  const student = studentName(settings.data.defaultStudent);
+  return `${mentor}, a frontier model, engineers the harness of ${student}, a small open model, and fine-tunes it on your organizations' work; each specialist is judged on tests sealed from both and runs on-premise.`;
+}
+
+/**
+ * The Lab: the newest result first, then what waits for the person and what is running side by
+ * side, what else finished, the fields, the experiments and what it cost. A fresh install shows
+ * the ways in.
  */
 export function LabScreen() {
   const graduates = useGraduates();
   const jobs = useJobs();
+  const story = useStory();
   const failed = graduates.status === 'error' ? graduates : jobs.status === 'error' ? jobs : null;
 
   if (failed?.error) {
@@ -62,16 +76,17 @@ export function LabScreen() {
     );
   }
   return (
-    <PlacePage title="Lab">
+    <PlacePage title="Lab" lede={story}>
       <LabBoard jobs={jobs.data} graduates={graduates.data} />
     </PlacePage>
   );
 }
 
 /**
- * Two columns, a wide one and a narrower one, each a stack of cards at its own height: what needs
- * the person, what finished and the fields at the left; what runs, the experiments, what it cost
- * and the agents at the right. A short card never stretches to match the one beside it.
+ * The newest result across the page, then two columns, a wide one and a narrower one, each a
+ * stack of cards at its own height: what needs the person, what else finished and the fields at
+ * the left; what runs, the experiments and what it cost at the right. A short card never
+ * stretches to match the one beside it. The agents are in the sidebar, so not here again.
  */
 const COLUMN = 'flex min-w-0 flex-col gap-4';
 
@@ -84,28 +99,38 @@ function LabBoard({
 }) {
   const running = runningRuns(jobs);
   const finished = finishedRuns(jobs);
+  const [newest, ...earlier] = finished;
+  const settings = useSettings();
+  const mentor =
+    settings.status === 'success' ? mentorName(settings.data.defaultMentor) : undefined;
   // The Lab still shows the rest when experiments can't be read; their card says why.
   const experiments = useExperiments();
   const records = experiments.data ?? [];
   // A team that can't be read is said so in the sidebar; the Lab shows the rest without it.
   const teams = useTeams().data ?? [];
   return (
-    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <Stagger className={COLUMN}>
-        <NeedsYouCard jobs={jobs} graduates={graduates} teams={teams} experiments={records} />
-        <FinishedCard rows={finished} />
-        <FieldsCard jobs={jobs} />
-      </Stagger>
-      <Stagger className={COLUMN}>
-        <RunningCard rows={running} experiments={runningExperiments(records)} />
-        <ExperimentsCard
-          experiments={experiments.data}
-          error={experiments.status === 'error' ? experiments.error : null}
-          onRetry={experiments.reload}
-        />
-        <SpendCard rows={[...running, ...finished].slice(0, 3)} />
-        <AgentsCard graduates={graduates} teams={teams} />
-      </Stagger>
+    <div className="flex flex-col gap-4">
+      {newest && (
+        <Stagger>
+          <HeroResultCard row={newest} mentor={mentor} />
+        </Stagger>
+      )}
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <Stagger className={COLUMN}>
+          <NeedsYouCard jobs={jobs} graduates={graduates} teams={teams} experiments={records} />
+          {(earlier.length > 0 || !newest) && <FinishedCard rows={earlier} />}
+          <FieldsCard jobs={jobs} />
+        </Stagger>
+        <Stagger className={COLUMN}>
+          <RunningCard rows={running} experiments={runningExperiments(records)} />
+          <ExperimentsCard
+            experiments={experiments.data}
+            error={experiments.status === 'error' ? experiments.error : null}
+            onRetry={experiments.reload}
+          />
+          <SpendCard rows={[...running, ...finished].slice(0, 3)} />
+        </Stagger>
+      </div>
     </div>
   );
 }
@@ -113,11 +138,11 @@ function LabBoard({
 function LabSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading the lab" className="flex flex-col gap-4">
-      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+      <div className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <Skeleton className="h-56 rounded-card" />
         <Skeleton className="h-56 rounded-card" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Skeleton className="h-44 rounded-card" />
         <Skeleton className="h-44 rounded-card" />
       </div>
