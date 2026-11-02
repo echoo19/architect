@@ -449,7 +449,10 @@ describe('a team reply (decision 100)', () => {
       name: ASK_TEAMMATE,
       arguments: { member: 'Sweep desk', request },
     });
-    const config = 'The schedule is set in <cfg:parameter-set>daily</cfg:parameter-set>.';
+    // Prose that quotes a setting's XML is an answer, even with a namespaced parameter tag in it.
+    const config =
+      'The setting `<cfg:parameter name="timeout">5</cfg:parameter>` means a five-second timeout, set daily by <cfg:parameter-set>.';
+    const reaching = 'Let me read the policy. <atem:invoke name="read">';
     const answered = 'I read it. <atem:invoke name="read"> was not needed.\nANSWER: {"ok": true}';
     const world = await setup([
       {
@@ -457,6 +460,7 @@ describe('a team reply (decision 100)', () => {
           asking('Read the policy.'),
           asking('Which schedule?'),
           asking('Answer in JSON.'),
+          asking('Read it again.'),
         ],
       },
       {
@@ -464,6 +468,7 @@ describe('a team reply (decision 100)', () => {
       },
       { text: config },
       { text: answered },
+      { text: reaching },
       { text: 'Done.' },
     ]);
     const { reply } = await ask(world, 'What does the policy say?');
@@ -474,8 +479,13 @@ describe('a team reply (decision 100)', () => {
       ],
       ['answered', config],
       ['answered', answered],
+      // A call of one of its own tools, though prose comes first, is still no answer.
+      [
+        'no_answer',
+        'Sweep desk wrote a tool call as text instead of running it, so it gave no answer. Ask it again.',
+      ],
     ]);
-    expect(world.model.chats()[4]?.messages.at(-3)?.content).toContain('Ask it again.');
+    expect(world.model.chats()[5]?.messages.at(-4)?.content).toContain('Ask it again.');
   });
 
   it('answers once as a team, though its lead is certified', async () => {

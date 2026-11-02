@@ -1,6 +1,7 @@
 import {
   AdapterError,
   ASK_TEAMMATE,
+  BUILTIN_TOOL_NAMES,
   LeafStepSchema,
   MAX_CONSULTATIONS,
   TEAM_REQUEST_CHARS,
@@ -32,11 +33,23 @@ import { showStep, type NewStep, type StepList, type Teammates } from './steps';
 /** Sampler seeds stay within a signed 32-bit integer, which every runtime accepts. */
 const SEED_LIMIT = 2 ** 31;
 
+/** A parameter of a call written out with its value: `<atem:parameter name="path">x</atem:parameter>`. */
+const CALL_PARAMETER = /<([a-z][\w-]*):parameter(?=[\s/>])[^>]*>[\s\S]*?<\/\1:parameter>/gi;
+/** Any other tag of a call written out, such as `<atem:invoke name="read">` or `</atem:function_calls>`. */
+const CALL_TAG = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)(?=[\s/>])[^>]*>/gi;
+/** The tool a written-out call names: `<atem:invoke name="read">`. */
+const INVOKED = /<[a-z][\w-]*:invoke\s+name="([^"]*)"/gi;
+
 /**
- * A tool call the model wrote out as text, such as `<atem:invoke name="read">` or a stray
- * `<atem:parameter name="path">`, which no runtime ran. It is not an answer for the lead to read.
+ * Whether a reply is a tool call the model wrote out as text, which no runtime ran: nothing is left
+ * of it once its call tags are taken out (a stray `">` included), or it invokes one of the agent's
+ * own tools. Prose that quotes a namespaced tag, such as a setting's XML, is an answer.
  */
-const WRITTEN_CALL = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)(?=[\s/>])/i;
+function writtenCall(text: string, tools: readonly string[]): boolean {
+  if ([...text.matchAll(INVOKED)].some((invoked) => tools.includes(invoked[1] ?? ''))) return true;
+  const rest = text.replace(CALL_PARAMETER, '').replace(CALL_TAG, '');
+  return rest !== text && rest.replace(/[\s">]/g, '') === '';
+}
 
 /** What a teammate's write tool returns in a consult, where it may not write (decision 107). */
 export const CONSULT_WRITE =
@@ -309,7 +322,8 @@ function settledAs(session: GraduateSession, trace: Trace): Settled {
     case 'answer': {
       const { answer } = parseAnswerLine(trace.finalText);
       const changed = (trace.changes ?? []).length > 0;
-      if (answer === null && !changed && WRITTEN_CALL.test(trace.finalText)) {
+      const tools = [...BUILTIN_TOOL_NAMES, ...session.harness.tools.map((tool) => tool.name)];
+      if (answer === null && !changed && writtenCall(trace.finalText, tools)) {
         return {
           outcome: 'no_answer',
           text: `${session.name} wrote a tool call as text instead of running it, so it gave no answer. Ask it again.`,
