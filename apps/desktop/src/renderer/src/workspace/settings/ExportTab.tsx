@@ -10,6 +10,7 @@ import {
 import {
   Button,
   Checkbox,
+  RowIcon,
   Segmented,
   SettingsRow,
   SettingsSection,
@@ -308,9 +309,9 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
             <SettingsRow
               key={part.part}
               icon={
-                <span className="flex size-7 items-center justify-center rounded-control bg-hover text-fg">
+                <RowIcon>
                   <Icon size={15} strokeWidth={1.7} aria-hidden />
-                </span>
+                </RowIcon>
               }
               label={label}
               meta={`${partFile(review, part.part)}, ${formatBytes(part.bytes)}`}

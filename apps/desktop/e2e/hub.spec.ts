@@ -77,7 +77,7 @@ test.afterAll(async () => {
 
 /** The agent's settings, on a tab. */
 async function openSettingsTab(tab: string): Promise<Locator> {
-  await page.getByRole('button', { name: 'Service desk settings' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Service desk settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Service desk', exact: true });
   await dialog.getByRole('tab', { name: tab }).click();
   return dialog;

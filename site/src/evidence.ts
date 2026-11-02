@@ -411,26 +411,6 @@ export const ROUNDS_SECOND: readonly Round[] = [
   },
 ];
 
-export const ROUNDS_FIRST: readonly Round[] = [
-  {
-    n: 1,
-    change: 'Fix pickup_next to parse legacy pickup_from dates',
-    before: 32,
-    after: 35,
-    again: [67, 68],
-    kept: false,
-    why: 'Short of the +4 margin',
-  },
-  {
-    n: 2,
-    change: 'Normalize legacy dates in pickup tool',
-    before: 30,
-    after: 39,
-    again: [60, 73],
-    kept: true,
-  },
-];
-
 /** The repair shop's job, from the film's demo run: a single run, not a planned comparison. */
 export const REPAIR = {
   checkBefore: 22,
@@ -871,70 +851,6 @@ export const THIRD_ROWS: readonly ThirdRow[] = [
     diff: 11.9,
     low: 1.3,
     high: 22.1,
-  },
-];
-
-/** What the third run cost, from its report. */
-export const THIRD_MONEY = {
-  spark: 0.44,
-  glimmer: 7.35,
-} as const;
-
-/**
- * The first live certificate run, from `academy-desk-cert-1.md`: the third run's Academy desk, frozen,
- * on 60 calibration tasks and the Real academy's 10 check tasks, five attempts each. No certificate
- * was issued. Bounds are the report's one-sided 95% Clopper-Pearson upper bounds, in percent.
- */
-export const CERT = {
-  calibration: 60,
-  attempts: 5,
-  target: 10,
-  confidence: 95,
-  checkTasks: 10,
-  usd: 4.42,
-  runs: 350,
-} as const;
-
-export interface CertRow {
-  /** How many of the five attempts must agree for Academy desk to answer. */
-  when: string;
-  /** Calibration tasks answered and wrong, of 60, with the share handed off in percent. */
-  answered: number;
-  wrong: number;
-  handedOff: number;
-  bound: number;
-  /** The Real academy's check tasks answered and wrong, of 10. */
-  realAnswered: number;
-  realWrong: number;
-}
-
-export const CERT_ROWS: readonly CertRow[] = [
-  {
-    when: '5 of 5 agree',
-    answered: 46,
-    wrong: 14,
-    handedOff: 23,
-    bound: 43.5,
-    realAnswered: 8,
-    realWrong: 8,
-  },
-  {
-    when: '4 or more of 5',
-    answered: 52,
-    wrong: 16,
-    handedOff: 13,
-    bound: 43.0,
-    realAnswered: 9,
-    realWrong: 9,
-  },
-  {
-    when: '3 or more of 5',
-    answered: 60,
-    wrong: 21,
-    handedOff: 0,
-    bound: 46.4,
-    realAnswered: 10,
-    realWrong: 10,
   },
 ];
 

@@ -235,7 +235,7 @@ function DefineEditor({ initial }: { initial: Job }) {
         />
       }
       footer={
-        <div className="mx-auto flex max-w-[880px] flex-wrap items-center justify-between gap-3">
+        <div className="mx-auto box-content flex max-w-[880px] flex-wrap items-center justify-between gap-3 px-8">
           <div className="-ml-2.5 flex items-center gap-1">
             <Tooltip content={INSPECTOR_NAME}>
               <IconButton

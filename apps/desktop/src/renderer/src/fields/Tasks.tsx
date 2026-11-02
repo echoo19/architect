@@ -11,6 +11,7 @@ import {
   Select,
   Skeleton,
   Tooltip,
+  useWindowBelow,
   type LabTerm,
 } from '@architect/ui';
 import { Lock } from 'lucide-react';
@@ -84,6 +85,9 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
   const [org, setOrg] = useState(ALL);
   const [open, setOpen] = useState<Task | null>(null);
   const [shown, setShown] = useState(false);
+  // On a narrow window what a task expects and its family step aside, so the table needn't scroll
+  // sideways; a task's panel shows both, and they still sort.
+  const narrow = useWindowBelow(1400);
   const orgs = (job.organizations ?? []).filter((item) => item.role === 'train');
   const mentor = mentorName(job.mentor);
   const orgName = (id: string | undefined) =>
@@ -182,12 +186,14 @@ function TaskBrowser({ job, listings }: { job: Job; listings: Listings }) {
           {
             key: 'expected',
             header: 'Expected',
+            hidden: narrow,
             cell: (task) => EXPECTED_WORDS[task.expected.kind],
             sortValue: (task) => EXPECTED_WORDS[task.expected.kind],
           },
           {
             key: 'family',
             header: 'Family',
+            hidden: narrow,
             cell: (task) => (
               <span className="block max-w-[180px] truncate font-mono text-small">
                 {task.family}

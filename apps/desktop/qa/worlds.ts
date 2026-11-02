@@ -20,6 +20,7 @@ import {
 } from '@architect/shared';
 import { launchApp, type LaunchedApp } from '../e2e/app';
 import { LLAMA_SERVER_READY, STORY_EVIDENCE, stubEngine } from '../e2e/fixtures';
+import { stubFieldTasks } from '../e2e/fixtures-browse';
 import {
   ACTIVITY_PLANS,
   activityOf,
@@ -784,6 +785,7 @@ async function lab(out: string): Promise<World> {
   // Later layers answer the channels they share with earlier ones.
   await installTeamsFake(app, teamWorld({ teams: [TEAM] }));
   await stubFields(app);
+  await stubFieldTasks(app);
   await installModelsFake(app, TEAM_RECORDS);
   // Every agent's install checks on this computer, the team's from their own folders.
   await stubByKey(app, 'graduates:installation', {

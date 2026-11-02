@@ -127,11 +127,7 @@ export function Targets() {
         {CLUSTERS.map((cluster) => (
           <CardRow
             key={cluster.target}
-            icon={
-              <span className="flex size-9 items-center justify-center rounded-control bg-selected">
-                {cluster.icon}
-              </span>
-            }
+            icon={cluster.icon}
             title={cluster.name}
             detail={cluster.lead}
             end={<span className="font-mono text-small">{cluster.command}</span>}

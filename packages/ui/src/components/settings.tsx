@@ -99,9 +99,13 @@ export function SettingsDialog<T extends string>({
                 </IconButton>
               </RadixDialog.Close>
             </div>
+            {/*
+              The scrollbar's 10px always keeps its place inside the 24px edge, so a tab that
+              scrolls and one that doesn't end on the same line.
+            */}
             <Tabs.Content
               value={tab}
-              className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 scroll-quiet focus-visible:outline-none"
+              className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-3.5 scroll-quiet [scrollbar-gutter:stable] focus-visible:outline-none"
             >
               {children}
             </Tabs.Content>

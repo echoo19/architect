@@ -6,8 +6,6 @@ import {
   ADAPTER_PAIRS,
   ADAPTER_RUN,
   ADAPTERS,
-  CERT,
-  CERT_ROWS,
   CERT2,
   CERT2_CHECK,
   CERT2_ROWS,
@@ -33,7 +31,6 @@ import {
   PER_TYPE,
   REPAIR,
   ROUNDS_FIELD,
-  ROUNDS_FIRST,
   ROUNDS_SECOND,
   SECOND,
   SKILL_ROWS,
@@ -43,7 +40,6 @@ import {
   SWEEP_RUN,
   TARGET_PASSES,
   TEST_SIZE,
-  THIRD_MONEY,
   THIRD_ROWS,
   THIRD_TEST_SIZE,
   TYPES,
@@ -65,9 +61,10 @@ import { Reveal } from './components/Reveal';
 import { RoundDiagram } from './components/RoundDiagram';
 
 /**
- * The results page, set out as a short paper: a title and an abstract, numbered sections, numbered
- * figures, and numbered tables folded under each section's figures, with numbered references to
- * the documents they come from. Every number is in `evidence.ts`, with the document it comes from.
+ * The results page, set out as a short paper: a title and an abstract, then numbered sections with
+ * the strongest results first. Each section has the same rhythm: a plain lead, its headline
+ * figure, a numbered figure, and a fold of details with the method and the numbered tables. Every
+ * number is in `evidence.ts`, with the document it comes from.
  */
 
 const dollars = (value: number) => `$${value.toFixed(2)}`;
@@ -88,13 +85,26 @@ const PAPERS: Partial<Record<RefKey, string>> = {
 };
 
 const REFERENCES: readonly { key: RefKey; what: string }[] = [
+  { key: 'plan', what: "The returns desk comparison's plan, published before it ran." },
+  { key: 'gepa', what: 'GEPA: improving prompts from failures by reflection.' },
+  { key: 'ace', what: 'ACE: agents that grow their own context from experience.' },
+  { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
   { key: 'academyDesk', what: "The Academy desk run's report." },
   { key: 'local', what: "The Academy desk's check on the build that runs on one graphics card." },
-  { key: 'third', what: 'The third Academy desk run.' },
-  { key: 'thirdMisses', what: "Why the third run's Academy desk missed, checked after the test." },
+  { key: 'edge', what: "The wind farm desk's run, made and recorded in the app." },
   { key: 'inventory', what: "Inventory desk's run, at a screening lab's compound store." },
-  { key: 'edge', what: "The wind farm desk's run, recorded in the app as it ran." },
-  { key: 'open', what: 'The returns desk taught by Muse Spark Open, on open weights.' },
+  { key: 'qlora1', what: "The first fine-tune: Inventory desk's work as a QLoRA adapter." },
+  {
+    key: 'adapterEval',
+    what: "Inventory desk's QLoRA adapter on Inventory desk's sealed final test.",
+  },
+  { key: 'cert2', what: 'The second live certificate run, which issued the first certificate.' },
+  { key: 'zeller', what: 'Simplifying and isolating failure-inducing input (delta debugging).' },
+  { key: 'certify', what: 'The plan for certified answers and counterexample-guided repair.' },
+  {
+    key: 'decisions',
+    what: 'The decision on counterexample-guided repair, with its first real reduction.',
+  },
   {
     key: 'crc',
     what: 'Conformal risk control: keeping the expected error of a prediction under a chosen level.',
@@ -107,104 +117,91 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
     key: 'abstention',
     what: 'Conformal abstention: when a language model should decline to answer.',
   },
-  { key: 'cert2', what: 'The second live certificate run, which issued the first certificate.' },
-  { key: 'cert', what: "The first live certificate run, on the third run's Academy desk." },
-  { key: 'zeller', what: 'Simplifying and isolating failure-inducing input (delta debugging).' },
-  { key: 'certify', what: 'The plan for certified answers and counterexample-guided repair.' },
-  {
-    key: 'decisions',
-    what: 'The decision on counterexample-guided repair, with its first real reduction.',
-  },
-  { key: 'plan', what: "The second comparison's plan, published before it ran." },
-  { key: 'second', what: "The second comparison's report." },
-  { key: 'gepa', what: 'GEPA: improving prompts from failures by reflection.' },
-  { key: 'ace', what: 'ACE: agents that grow their own context from experience.' },
-  { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
-  { key: 'first', what: "The first comparison's report." },
-  { key: 'hackathon', what: "The repair shop's demo run, recorded with the film." },
+  { key: 'open', what: 'The returns desk taught by Muse Spark Open, on open weights.' },
   { key: 'scale', what: 'The plan for going from a specialist to a field model.' },
-  { key: 'qlora1', what: "The first fine-tune: Inventory desk's work as a QLoRA adapter." },
-  {
-    key: 'adapterEval',
-    what: "Inventory desk's QLoRA adapter on Inventory desk's sealed final test.",
-  },
+  { key: 'second', what: "The returns desk comparison's report." },
+  { key: 'hackathon', what: "The repair shop's demo run, recorded with the film." },
+  { key: 'third', what: 'The third Academy desk run.' },
+  { key: 'thirdMisses', what: "Why the third run's Academy desk missed, checked after the test." },
+  { key: 'cert', what: "The first live certificate run, on the third run's Academy desk." },
+  { key: 'first', what: "The first returns desk comparison's report." },
   { key: 'qlora2', what: "The second fine-tune: Sweep desk's work as a QLoRA adapter." },
   { key: 'assay', what: "Assay desk's first run, at a screening lab's plate reader." },
-  { key: 'sweep2', what: "Sweep desk's second run, at ML research groups' training runs." },
   { key: 'assay2', what: "Assay desk's second run, under two seeds." },
+  { key: 'sweep2', what: "Sweep desk's second run, at ML research groups' training runs." },
   { key: 'team2', what: 'The second agent-team run, Inventory desk asking Assay desk.' },
 ];
 
 /**
- * Sections, figures and tables take their numbers from their place in these lists, so a section
- * added later takes its place in them and everything after it renumbers.
+ * Sections, figures and tables take their numbers from their place in these lists, which follow
+ * the order they appear on the page, so a section added later takes its place in them and
+ * everything after it renumbers.
  */
 const SECTIONS = [
+  'method',
   'field',
-  'inventory',
   'edge',
-  'open',
-  'certified',
-  'results',
-  'scale',
+  'inventory',
   'finetune',
+  'certified',
+  'open',
+  'scale',
+  'returns',
   'limits',
 ] as const;
 const FIGURES = [
+  'round',
   'fieldGroups',
   'fieldPairs',
-  'lab',
   'edgeFilm',
   'edge',
-  'open',
+  'lab',
+  'adapter',
+  'loss',
   'certificate',
-  'round',
+  'open',
   'returns',
   'speed',
-  'loss',
-  'adapter',
 ] as const;
 const TABLES = [
-  'fieldSkills',
   'fieldPairs',
+  'fieldSkills',
   'fieldRounds',
   'local',
-  'third',
+  'edgeSkills',
   'labPairs',
   'labSkills',
-  'edgeSkills',
-  'openArms',
-  'openPairs',
-  'certCalibration',
-  'certCheck',
-  'certFirst',
-  'returnsArms',
-  'returnsPairs',
-  'firstArms',
-  'firstPairs',
-  'returnsRounds',
-  'firstRounds',
-  'costs',
-  'scale',
-  'adapters',
   'adapterPairs',
   'adapterArms',
+  'adapters',
+  'certCalibration',
+  'certCheck',
+  'openArms',
+  'openPairs',
+  'scale',
+  'returnsArms',
+  'returnsPairs',
+  'returnsRounds',
+  'costs',
 ] as const;
 
 const sec = (key: (typeof SECTIONS)[number]) => SECTIONS.indexOf(key) + 1;
 const fig = (key: (typeof FIGURES)[number]) => `Figure ${FIGURES.indexOf(key) + 1}`;
 const tab = (key: (typeof TABLES)[number]) => `Table ${TABLES.indexOf(key) + 1}`;
 
-/** Numbered citations, each a link to its entry in the references. */
+const refNumber = (key: RefKey) => REFERENCES.findIndex((reference) => reference.key === key) + 1;
+
+/** Numbered citations in ascending order, each a link to its entry in the references. */
 function Cite({ to }: { to: readonly RefKey[] }) {
+  const sorted = [...to].sort((one, two) => refNumber(one) - refNumber(two));
   return (
     <span className="whitespace-nowrap tabular-nums">
       {' ['}
-      {to.map((key, index) => (
+      {sorted.map((key, index) => (
         <Fragment key={key}>
           {index > 0 && ', '}
           <a className="link-quiet" href={`#ref-${key}`}>
-            {REFERENCES.findIndex((reference) => reference.key === key) + 1}
+            {refNumber(key)}
           </a>
         </Fragment>
       ))}
@@ -213,57 +210,64 @@ function Cite({ to }: { to: readonly RefKey[] }) {
   );
 }
 
-/** A figure in its own panel, with its number and caption under it, as a paper sets it. */
-function Exhibit({
+/**
+ * A numbered figure or table in its own panel. A figure's number and caption sit under it and a
+ * table's over it, as a paper sets them.
+ */
+function Panel({
   label,
   caption,
   children,
+  table = false,
 }: {
   label: string;
   caption: ReactNode;
   children: ReactNode;
+  table?: boolean;
 }) {
-  return (
-    <Reveal className="exhibit my-6">
-      <figure className="m-0 flex flex-col gap-6 rounded-card bg-card px-8 py-7 shadow-edge max-sm:px-4 max-sm:py-5">
-        {children}
-        <figcaption className="t-small text-pretty">
-          <span className="font-semibold">{label}.</span> {caption}
-        </figcaption>
-      </figure>
-    </Reveal>
+  const text = (
+    <figcaption className="t-body text-pretty">
+      <span className="font-semibold">{label}.</span> {caption}
+    </figcaption>
   );
-}
-
-/** A table with its number and caption over it, as a paper sets it, inside a section's tables. */
-function TableExhibit({
-  label,
-  caption,
-  children,
-}: {
-  label: string;
-  caption: ReactNode;
-  children: ReactNode;
-}) {
   return (
     <figure className="m-0 flex flex-col gap-6 rounded-card bg-card px-8 py-7 shadow-edge max-sm:px-4 max-sm:py-5">
-      <figcaption className="t-small text-pretty">
-        <span className="font-semibold">{label}.</span> {caption}
-      </figcaption>
+      {table && text}
       {children}
+      {!table && text}
     </figure>
   );
 }
 
-/** A section's tables, folded under one line until a reader opens them. */
-function Tables({ label, children }: { label: string; children: ReactNode }) {
+/** A figure in the running text, stepping out past the column where the window is wide. */
+function Exhibit(props: { label: string; caption: ReactNode; children: ReactNode }) {
+  return (
+    <Reveal className="exhibit my-6">
+      <Panel {...props} />
+    </Reveal>
+  );
+}
+
+/** A table inside a section's details. */
+function TableExhibit(props: { label: string; caption: ReactNode; children: ReactNode }) {
+  return <Panel table {...props} />;
+}
+
+/**
+ * A section's method and tables, folded under one line until a reader opens them: the method in
+ * the column, then the panels stepping out past it.
+ */
+function Details({ method, children }: { method?: ReactNode; children: ReactNode }) {
   return (
     <details className="tables">
       <summary className="link-quiet inline-flex cursor-pointer items-center gap-2 font-medium">
         <ChevronRight className="tables-chevron" size={16} strokeWidth={1.8} aria-hidden />
-        {label}
+        Details
       </summary>
-      <div className="exhibit flex flex-col gap-6 pt-6">{children}</div>
+      <div className="flex flex-col gap-6 pt-6">
+        {method}
+        <div className="exhibit flex flex-col gap-6">{children}</div>
+      </div>
     </details>
   );
 }
@@ -295,17 +299,18 @@ function Section({
   );
 }
 
-function Subsection({ number, title }: { number: string; title: string }) {
-  return (
-    <h3 className="t-h2 hang mt-6">
-      <span className="sec-num">{number}</span>
-      {title}
-    </h3>
-  );
-}
-
 function Text({ children }: { children: ReactNode }) {
   return <p className="t-read">{children}</p>;
+}
+
+/** A section's headline figure, set large, then what it counts, read as one sentence. */
+function Headline({ figure, children }: { figure: string; children: ReactNode }) {
+  return (
+    <p className="m-0 my-2 flex flex-col gap-x-6 gap-y-2 border-y border-line py-6 sm:flex-row sm:items-baseline">
+      <span className="t-title shrink-0 tabular-nums">{figure}</span>{' '}
+      <span className="t-read">{children}</span>
+    </p>
+  );
 }
 
 /** One arm of a comparison, by its name. */
@@ -404,8 +409,8 @@ function CountFigure({
   );
 }
 
-/** The pass rate of each arm on the final test, with its 95% interval. */
-function PassRates({ comparison }: { comparison: Comparison }) {
+/** The pass rate of each arm on the final test, with its 95% interval, and the job's target. */
+function PassRates({ comparison, target = true }: { comparison: Comparison; target?: boolean }) {
   const rows: ForestRow[] = comparison.arms.map((arm) => ({
     label: armLabel(arm),
     value: (arm.passed / TEST_SIZE) * 100,
@@ -423,7 +428,11 @@ function PassRates({ comparison }: { comparison: Comparison }) {
       max={100}
       ticks={[0, 25, 50, 75, 100]}
       formatTick={(value) => `${value}%`}
-      target={{ at: 95, label: `The job's target: 95%, which is ${TARGET_PASSES} of ${TEST_SIZE}` }}
+      target={
+        target
+          ? { at: 95, label: `The job's target: 95%, which is ${TARGET_PASSES} of ${TEST_SIZE}` }
+          : undefined
+      }
     />
   );
 }
@@ -591,10 +600,15 @@ function GroupPassRates({
   );
 }
 
-/** Academy desk against each other arm, group by group: the difference in points with its interval. */
+/**
+ * Academy desk against each other arm at the taught academies and Harborview Prep: the difference
+ * in points with its interval. The Real academy's pairs are in the table under the section.
+ */
 function FieldPairForest() {
   const shown = FIELD_PAIRS.filter(
-    (each) => each.label.startsWith('Academy desk') && each.group !== 'all',
+    (each) =>
+      each.label.startsWith('Academy desk') &&
+      (each.group === 'harborview' || each.group === 'taught'),
   );
   const rows: ForestRow[] = shown.map((each) => ({
     label: <span className="text-pretty">{pairName(each)}</span>,
@@ -609,9 +623,9 @@ function FieldPairForest() {
     <Forest
       name="Difference in final-test pass rate, in percentage points, Academy desk against the other harnesses"
       rows={rows}
-      min={-40}
+      min={-20}
       max={70}
-      ticks={[-40, -20, 0, 20, 40, 60]}
+      ticks={[-20, 0, 20, 40, 60]}
       formatTick={(value) => `${value > 0 ? '+' : ''}${value}`}
       zero="No difference"
     />
@@ -705,57 +719,10 @@ function LocalTable() {
   );
 }
 
-/** The third run's passes for both harnesses, group by group, with the paired difference. */
-function ThirdTable() {
-  const rate = (result: { passed: number; low: number; high: number }, n: number) =>
-    `${result.passed} of ${n} (${result.low.toFixed(1)} to ${result.high.toFixed(1)})`;
-  return (
-    <Table
-      label="The third run: the base harness and Academy desk on the same final-test tasks"
-      columns={['Group', 'Base harness', 'Academy desk', 'Won', 'Lost', 'Difference, 95% interval']}
-      rows={THIRD_ROWS.map((row) => [
-        `${row.name} (${row.n})`,
-        rate(row.bare, row.n),
-        rate(row.academyDesk, row.n),
-        row.wins,
-        row.losses,
-        `${signed(row.diff)}, ${interval(row)}`,
-      ])}
-    />
-  );
-}
-
-/** The first live certificate run's risk and coverage, with the same thresholds on the Real academy. */
-function CertTable() {
-  return (
-    <Table
-      label="The first live certificate run: risk and coverage by agreement threshold"
-      columns={[
-        'Answers when',
-        'Answered',
-        'Wrong',
-        'Handed off',
-        'Upper bound',
-        'Real academy, answered',
-        'Real academy, wrong',
-      ]}
-      rows={CERT_ROWS.map((row) => [
-        row.when,
-        `${row.answered} of ${CERT.calibration}`,
-        row.wrong,
-        `${row.handedOff}%`,
-        `${row.bound.toFixed(1)}%`,
-        `${row.realAnswered} of ${CERT.checkTasks}`,
-        row.realWrong,
-      ])}
-    />
-  );
-}
-
 /** The certificate as the app states it, and the check on an academy it never trained on. */
 function CertificateFigure() {
   const items: readonly { figure: string; text: string }[] = [
-    { figure: `${CERT2.stated}% at most`, text: 'wrong when it answers' },
+    { figure: `At most ${CERT2.stated}%`, text: 'wrong when it answers' },
     { figure: `${CERT2.confidence}%`, text: 'confidence' },
     { figure: `${CERT2.coverage}%`, text: 'of calibration requests answered' },
     {
@@ -768,7 +735,7 @@ function CertificateFigure() {
       {items.map((item) => (
         <li key={item.text} className="flex flex-col gap-2 border-t border-line pt-4">
           <span className="font-display text-h2 font-semibold tabular-nums">{item.figure}</span>
-          <span className="t-small text-pretty">{item.text}</span>
+          <span className="t-body text-pretty">{item.text}</span>
         </li>
       ))}
     </ul>
@@ -916,7 +883,7 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
     'Harnesses engineered for a field',
     'Measured',
-    `Two Academy desk runs and an Inventory desk run, with sealed organizations, each under one seed (sections ${sec('field')} and ${sec('inventory')}).`,
+    `Two Academy desk runs and an Inventory desk run, with sealed organizations, each under one seed (sections ${sec('field')}, ${sec('inventory')} and ${sec('limits')}).`,
   ],
   [
     'Export of verified demonstrations and an outcome scorer',
@@ -946,136 +913,97 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   ],
 ];
 
-const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
+const ENGINEERED = 'Glimmer on the Spark-engineered harness';
+const BASE = 'Glimmer on the base harness';
+
+const firstReturns = {
+  engineered: arm(FIRST, ENGINEERED),
+  base: arm(FIRST, BASE),
+};
+const thirdJuniper = found(THIRD_ROWS[1], 'third-run row for Juniper Study House');
+const thirdReal = found(THIRD_ROWS[2], 'third-run row for the Real academy');
+const realFirst = {
+  academyDesk: found(FIELD_ARMS[2]?.groups[2], "Academy desk's Real academy result"),
+  base: found(FIELD_ARMS[0]?.groups[2], "the base harness's Real academy result"),
+  n: found(GROUPS[2], 'Real academy group').n,
+};
+const inventoryAdapter = found(ADAPTERS[0], "Inventory desk's adapter");
+const sweepAdapter = found(ADAPTERS[1], "Sweep desk's adapter");
+
+/**
+ * What the results do not show, grouped by cause, each with the documents that state it. Weak or
+ * unconfirmed runs are reported here, in a sentence or two, rather than in the sections above.
+ */
+const LIMITS: readonly { title: string; text: string; from: readonly SourceKey[] }[] = [
   {
-    title: 'One seed, mostly hosted Glimmer, for the Academy desk.',
-    text: "Every Academy desk figure comes from one seed, the number that fixes a run's chance choices, and all but section 1.5 from hosted Glimmer; a second declared seed was not run.",
-    from: 'academyDesk',
+    title: 'One seed.',
+    text: `Every comparison in sections ${sec('field')} to ${sec('returns')} ran its final test once, under one seed, and all but the local check used Glimmer served online.`,
+    from: ['academyDesk', 'second'],
   },
   {
-    title: 'The local check covers one harness.',
-    text: 'Only Academy desk ran on this computer, because the base harness ran out of memory early, so the check says nothing about Glimmer on the base harness here.',
-    from: 'local',
+    title: 'Whole configurations.',
+    text: `The harnesses ran with different temperatures, turn limits, reasoning levels and, on the returns desks, budgets (${tab('fieldPairs')}, ${tab('labPairs')} and ${tab('openPairs')}), and Inventory desk used about 3.6 times the base harness's student spend.`,
+    from: ['academyDesk', 'inventory', 'second'],
   },
   {
-    title: 'A small real sample.',
-    text: 'The real academy gave only 24 tasks in the first run and 30 in the third, many sharing students and files, and its records have no question text, so a gain there is not yet confirmed.',
-    from: 'academyDesk',
+    title: 'Generated organizations.',
+    text: 'Every organization but the Real academy is generated, and both returns desks come from one made-up shop. On the labs, a difference of a few tasks between the one-shot and the engineered harness is within what reruns could move.',
+    from: ['inventory', 'plan'],
   },
   {
-    title: "The third run's tools met a different real snapshot.",
-    text: `On the real academy's second snapshot Academy desk passed ${THIRD_ROWS[2]?.academyDesk.passed} of ${THIRD_ROWS[2]?.n}, against ${THIRD_ROWS[2]?.bare.passed} for the base harness. Replaying its tools after the test traced this to three causes: its diagnose instructions load on phrases that academy doesn't use, every history attempt ran to the step limit, and the empty assignments file gave no way to number the first row. The task builder was fixed afterwards. In the same run the one-shot harness was not tested and Academy desk spent about three times what the base harness did.`,
-    from: 'thirdMisses',
+    title: 'The Real academy.',
+    text: `Academy desk passed ${realFirst.academyDesk.passed} of ${realFirst.n} there against ${realFirst.base.passed}, too few tasks to confirm a gain. A replay traced its misses to a question lookup that searches by section, which most of the academy's tests list as Full, and to history answers marked right in other wording. Its policy was drafted for this test, partly from the generated academies, and awaits the academy's confirmation.`,
+    from: ['academyDesk'],
   },
   {
-    title: 'The third run reused its tasks.',
-    text: 'It reused the 126 tasks of the second run, which had released its tests and recorded two attempts per arm before it stopped; nobody opened them.',
-    from: 'third',
+    title: 'A third run.',
+    text: `A third run passed ${thirdJuniper.academyDesk.passed} of ${thirdJuniper.n} at Juniper Study House, another unseen academy, against ${thirdJuniper.bare.passed}, and ${thirdReal.academyDesk.passed} of ${thirdReal.n} against ${thirdReal.bare.passed} on a second Real academy snapshot. A replay traced the Real academy misses to instructions keyed to phrases that academy doesn't use, history attempts that hit the step limit and an empty assignments file, and the task builder was fixed afterwards. The run reused the ${THIRD_TEST_SIZE} tasks of a second run that stopped before any result was read.`,
+    from: ['third', 'thirdMisses'],
   },
   {
-    title: 'A policy in the expected layout.',
-    text: "The real academy's drafted policy used the table layout the generated academies' helper expected, so a policy in an academy's own layout was not tried.",
-    from: 'academyDesk',
+    title: 'The local check.',
+    text: 'Only Academy desk took it, since the base harness ran out of memory on one graphics card.',
+    from: ['local'],
   },
   {
-    title: 'A policy written for the test.',
-    text: "The real academy's policy was drafted for this test and awaits the academy's confirmation, and some of its numbers came from the generated academies, so it tests transfer less strictly than Harborview Prep.",
-    from: 'academyDesk',
+    title: 'Scripted steps.',
+    text: "A script, not a person, confirmed the study briefs, and the first academy run and Inventory desk's run used runner patches listed in their reports.",
+    from: ['academyDesk', 'inventory'],
   },
   {
-    title: 'Settings differ by harness.',
-    text: `The harnesses ran with different temperatures, turn limits and reasoning levels (${tab('fieldPairs')}, ${tab('labPairs')} and ${tab('openPairs')}), so each row compares a whole configuration.`,
-    from: 'academyDesk',
+    title: 'The adapter.',
+    text: 'It took the final test once, in bf16 rather than the 4-bit base it trained on. Its training examples held no reasoning, so it answers without writing any, and part of its gain may come from that. On the base harness, every interval for its gain includes zero.',
+    from: ['adapterEval'],
   },
   {
-    title: 'A scripted study and a patched runner.',
-    text: 'A script, not a person, confirmed the study brief, and the first academy run used a patched copy of the runner outside the repository. Spark Open ran on an unchanged checkout, and the second certificate on unchanged release 0.8.0.',
-    from: 'academyDesk',
+    title: 'The certificate.',
+    text: 'It covers diagnose, history and assign on generated academies, from attempts at temperature 0 that differ only through the provider, with calibration tasks that are new pairs on files the run already knew. An earlier attempt issued none: with no randomness, a wrong answer repeated as reliably as a right one.',
+    from: ['cert2', 'cert'],
   },
   {
-    title: 'Inventory desk: one seed, generated labs, hosted Glimmer.',
-    text: "Every figure is one run under one seed, on four labs from one generator and on hosted Glimmer, so a difference of a few tasks between the one-shot and the Spark-engineered harness is within what reruns could move. Inventory desk used about 3.6 times the base harness's student spend, a script confirmed its study brief, and the run raised the study's output limit and set the Spark-engineered arm's Spark cap in memory.",
-    from: 'inventory',
+    title: 'Spark Open.',
+    text: "Teaching ran 2 of its 3 registered rounds, as the Glimmer cap could not cover a third, and under the 16,384-token context 12 of the base harness's 60 attempts ended in an error, so that baseline is weaker than the earlier returns desk's. BaseTen's serving rests on probes, not a record per call.",
+    from: ['open'],
   },
   {
-    title: 'Spark Open: two rounds and a stricter context.',
-    text: "Teaching ran 2 of the 3 registered rounds, because the arm's Glimmer cap could not cover another. Under the 16,384-token context, 12 of the base harness's 60 final attempts ended in an error, most likely turns that no longer fit, so its baseline is weaker than the earlier returns desk's. It ran under one seed on hosted Glimmer, and BaseTen's serving rests on probes and a no-fallback pin, not on a record per call.",
-    from: 'open',
+    title: 'The returns desks.',
+    text: `On the first returns desk, held to two rounds, the engineered harness passed ${firstReturns.engineered.passed} of ${TEST_SIZE} against ${firstReturns.base.passed}, with an interval that includes zero. Meeting the 95% target does not prove 95% reliability (${tab('returnsArms')}).`,
+    from: ['first', 'second'],
   },
   {
-    title: 'Two desks of one kind.',
-    text: 'Both returns desks are for a made-up shop from the same generator, so they test one kind of job, not other businesses.',
-    from: 'plan',
+    title: 'Not yet measured.',
+    text: "Sweep desk's adapter has not taken a sealed final test, the local build has neither a certificate nor the adapter's test, cluster bundles are checked only against simulated schedulers, and counterexample repair only on stand-ins and practice data.",
+    from: ['qlora2', 'adapterEval', 'cert2', 'scale'],
   },
   {
-    title: 'Unequal budgets on the returns desks.',
-    text: 'In both returns comparisons the arms had different budgets, so each row compares a harness together with what it was allowed to spend.',
-    from: 'second',
+    title: 'Other desks.',
+    text: `A budget stop or the counterexample check left Assay desk and Sweep desk on Spark's first draft, so their refinements are unmeasured. Assay desk's first run tied the base harness at 7 of 48 at Corvid Hill, and its second passed 14 against 5, and 16 against 8 under a second seed; Sweep desk passed ${SWEEP_RUN.taught} of ${SWEEP_RUN.tasks} against ${SWEEP_RUN.bare}. In an agent-team run, Assay desk's plate tool overflowed Glimmer's context, so no answer carried the plate list.`,
+    from: ['assay', 'assay2', 'sweep2', 'team2'],
   },
   {
-    title: 'One seed for the returns desks.',
-    text: 'Each returns desk final test ran under one seed with a second declared seed not run, and the student refining its own harness was not one of the harnesses compared.',
-    from: 'second',
-  },
-  {
-    title: 'Glimmer served online.',
-    text: 'The returns desk figures come from Glimmer served online, not the build on your computer, and none of these agents has trained weights.',
-    from: 'second',
-  },
-  {
-    title: 'A target met is not proof.',
-    text: `Meeting the 95% target on the final test does not prove 95% reliability, since its interval reaches well below that (${tab('returnsArms')}), and only the final test is claimed because gains seen while teaching lean upward.`,
-    from: 'second',
-  },
-  {
-    title: 'The certificate covers three skills, on generated academies.',
-    text: 'It covers diagnose, history and assign, the skills that can be built from records, and the real academy was not checked. With no errors, 60 calibration tasks can certify no lower than 4.87%. Its five attempts at temperature 0 differ only through the provider, and it ran on hosted Glimmer without a forced provider pin.',
-    from: 'cert2',
-  },
-  {
-    title: 'Calibration on known files.',
-    text: `The certificate's calibration tasks are new student and topic pairs on files the run already knew, and leaving out the pairs it had used may tilt the draw. Its $${CERT2.usd.toFixed(2)} is the engine's own count, and the local build was not certified.`,
-    from: 'cert2',
-  },
-  {
-    title: 'The earlier certificate attempt.',
-    text: 'Its five attempts ran with no randomness, which makes agreement a weak signal, a counting flaw was fixed only after it, and counterexample repair is tested only on stand-ins and practice data.',
-    from: 'cert',
-  },
-  {
-    title: 'Assay desk measured its draft.',
-    text: "Its first run's Spark-engineered arm never ran a refinement, because its budget stopped the round, so it measured the one-shot draft. At Corvid Hill that arm and the base harness each passed 7 of 48, on labs that are all generated.",
-    from: 'assay',
-  },
-  {
-    title: "Assay desk's gain came from its first harness.",
-    text: 'Its second run passed 14 of 48 at Corvid Hill against 5 for the base harness, and 16 against 8 under a second seed; its one refinement was refused by the counterexample check, so refinement on this field is still unmeasured.',
-    from: 'assay2',
-  },
-  {
-    title: "The team's plate list did not reach the lead.",
-    text: "Told which files each teammate holds, the lead asked Assay desk in 18 of 20 replies. Assay desk's plate tool overflows Glimmer's context on these plates, so no answer carried the plate list.",
-    from: 'team2',
-  },
-  {
-    title: "Sweep desk's rounds were not measured.",
-    text: `The teacher's budget stopped its refinement rounds after one call, so its taught arm ran on the one-shot draft. On all ${SWEEP_RUN.tasks} tasks, a secondary outcome, it passed ${SWEEP_RUN.taught} against ${SWEEP_RUN.bare} for the base harness.`,
-    from: 'sweep2',
-  },
-  {
-    title: 'The fine-tune took its test once, without its reasoning.',
-    text: `Inventory desk's adapter took the final test under one seed, after training on ${ADAPTERS[0]?.examples} of Glimmer's own successful attempts in ${ADAPTERS[0]?.steps} optimizer steps. Those examples held no reasoning, so the adapter answers without writing any, and part of its gain may come from that. Both arms ran in bf16, not the 4-bit base the adapter was trained on, and the build that runs on your computer has not taken the test with it.`,
-    from: 'adapterEval',
-  },
-  {
-    title: "Sweep desk's adapter and the cluster bundles.",
-    text: `Sweep desk's adapter, trained on ${ADAPTERS[1]?.examples} examples, has not taken a sealed final test. Cluster launch bundles are checked only for structure and against simulated schedulers.`,
-    from: 'qlora2',
-  },
-  {
-    title: 'The repair shop ran once.',
-    text: "It was the film's demo run, a single run rather than a planned comparison, and a rule graded it. It has no report in docs/comparisons.",
-    from: 'hackathon',
+    title: 'The repair shop.',
+    text: "It was the film's demo run, graded by a rule, with no report in docs/comparisons.",
+    from: ['hackathon'],
   },
 ];
 
@@ -1088,45 +1016,38 @@ const HEADLINE: readonly { figure: string; text: string }[] = [
     text: 'at Corvid Hill Discovery with a LoRA adapter, against 22 of 30 without it',
   },
   {
-    figure: `${CERT2.stated}% at most`,
+    figure: `At most ${CERT2.stated}%`,
     text: `wrong when it answers, at ${CERT2.confidence}% confidence, on the first risk certificate`,
   },
 ];
-
-const ENGINEERED = 'Glimmer on the Spark-engineered harness';
-const BASE = 'Glimmer on the base harness';
 
 export function ResultsPage() {
   const second = {
     engineered: arm(SECOND, ENGINEERED),
     base: arm(SECOND, BASE),
   };
-  const first = {
-    engineered: arm(FIRST, ENGINEERED),
-    base: arm(FIRST, BASE),
-  };
   const open = {
     engineered: arm(OPEN, 'Glimmer on the Spark Open-engineered harness'),
     base: arm(OPEN, BASE),
     draft: arm(OPEN, "Spark Open's one-shot harness"),
   };
+  const openOverDraft = found(OPEN.pairs[2], "Spark Open's rounds against its draft");
+  const harborview = {
+    academyDesk: found(FIELD_ARMS[2]?.groups[1], "Academy desk's Harborview result"),
+    base: found(FIELD_ARMS[0]?.groups[1], "the base harness's Harborview result"),
+    n: found(GROUPS[1], 'Harborview group').n,
+  };
   const local = found(LOCAL_ROWS[3], 'local row for all groups');
-  const juniper = found(THIRD_ROWS[1], 'third-run row for Juniper Study House');
   const corvid = {
     engineered: found(LAB_ARMS[2]?.groups[1], "Inventory desk's Corvid Hill result"),
     base: found(LAB_ARMS[0]?.groups[1], "the base harness's Corvid Hill result"),
+    n: found(LAB_GROUPS[1], 'Corvid Hill group').n,
   };
-  const corvidSize = found(LAB_GROUPS[1], 'Corvid Hill group').n;
-  const inventoryAdapter = found(ADAPTERS[0], "Inventory desk's adapter");
-  const sweepAdapter = found(ADAPTERS[1], "Sweep desk's adapter");
   const tunedArm = found(ADAPTER_ARMS[3], 'Inventory desk with the adapter');
   const untunedArm = found(ADAPTER_ARMS[2], 'Inventory desk without the adapter');
-  const tuned = { corvid: found(tunedArm.groups[1], "the adapter's Corvid Hill result") };
-  const untuned = {
-    corvid: found(untunedArm.groups[1], 'the Corvid Hill result without the adapter'),
-  };
+  const tuned = found(tunedArm.groups[1], "the adapter's Corvid Hill result");
+  const untuned = found(untunedArm.groups[1], 'the Corvid Hill result without the adapter');
   const adapterPrimary = found(ADAPTER_PAIRS[0], "the adapter's primary comparison");
-  const adapterAll = found(ADAPTER_PAIRS[2], "the adapter's comparison on all tasks");
   return (
     <div id="top">
       <a
@@ -1144,61 +1065,78 @@ export function ResultsPage() {
           <p className="m-0 mt-4">Jake Kang, November 2026</p>
           <h2 className="t-h2 mt-16">Abstract</h2>
           <p className="t-read mt-4">
-            Architect is an R&amp;D platform that turns an organization&apos;s own material into a
-            specialist that runs on-premise. A large model, Spark, engineers the harness of a small
-            one, Glimmer: its instructions and small tools, with a change kept only when it helps on
-            held-out checks Spark never sees. On organizations neither model had seen, the
+            Architect turns an organization&apos;s own material into a specialist that runs
+            on-premise. A large model, Spark, engineers the harness of a small one, Glimmer: its
+            instructions and small tools. A change is kept only when it helps on held-out checks
+            whose tasks Spark never sees. On organizations neither model had seen, the
             Spark-engineered harness took Glimmer from 24 to 43 of 48 tasks at a test-prep academy
-            and from 4 to 27 of 32 at a screening lab. With the screening lab&apos;s harness held
-            fixed, a LoRA adapter trained on 22 of Glimmer&apos;s own checker-passed attempts took
-            it to 32 of 32 at that lab, against 22 of 30 without the adapter. The same pipeline runs
-            on Meta&apos;s open weights, and its first risk certificate held at an academy the
-            specialist never trained on.
+            and from 4 to 27 of 32 at a screening lab. On top of that lab&apos;s harness, a LoRA
+            adapter trained on 22 of Glimmer&apos;s own checker-passed attempts took it to 32 of 32,
+            against 22 of 30 without the adapter. Architect&apos;s first risk certificate held at an
+            academy the specialist never trained on, and the whole pipeline also runs with both
+            models on open weights.
           </p>
           <ul className="m-0 mt-16 grid list-none gap-x-8 gap-y-10 border-y border-line p-0 py-10 sm:grid-cols-2">
             {HEADLINE.map((item) => (
               <li key={item.figure} className="flex flex-col gap-3">
                 <span className="t-title leading-none tabular-nums">{item.figure}</span>
-                <span className="t-small text-pretty tabular-nums">{item.text}</span>
+                <span className="t-body text-pretty tabular-nums">{item.text}</span>
               </li>
             ))}
           </ul>
         </section>
 
-        <Section
-          id="field"
-          number={sec('field')}
-          title="An operations agent for test-prep academies"
-        >
-          <Subsection number="1.1" title="The run" />
+        <Section id="method" number={sec('method')} title="How it works">
           <Text>
-            Academy desk is Glimmer on the harness Spark engineered for it: instructions and small
-            tools. When a student misses a practice question, staff ask it what to do. It answers
-            from the academy&apos;s own files: topic labels, question bank, practice tests, answers,
-            hints, videos and tutoring policy. A program checks the facts and file changes, never
-            the wording
-            <Cite to={['academyDesk']} />.
+            A large model, Spark, teaches a small one, Glimmer, to do a job. Glimmer attempts
+            practice tasks, Spark reads where the attempts went wrong, and Spark changes
+            Glimmer&apos;s harness: the instructions and small tools it works with. A change is kept
+            only if Glimmer then passes more held-out checks, whose tasks Spark never sees (
+            {fig('round')}).
           </Text>
           <Text>
-            Spark engineered the harness over three rounds on three generated academies. Each one
-            differs in labels, id formats, wording and policy numbers. Then everything was frozen,
-            and a sealed final test was opened once. It held new tasks from the taught academies,
-            tasks from Harborview Prep, a generated academy neither model had seen, and tasks from a
-            real tutoring academy, anonymized. The real academy&apos;s records have no question
-            text, so only diagnose, history and assign could be checked there. Three harnesses took
-            the test: the base harness Glimmer starts from, Spark&apos;s one-shot harness (written
-            once and kept without a check), and the Spark-engineered harness, which is Academy desk
-            <Cite to={['academyDesk']} />.
+            Each comparison ends on a sealed final test. It stays closed until every harness is
+            frozen, opens once, and is graded by a program rather than a model. Most comparisons set
+            three harnesses side by side: the base harness Glimmer starts with, Spark&apos;s
+            one-shot harness, written once and kept without a check, and the Spark-engineered
+            harness, built over rounds of teaching.
           </Text>
-
-          <Subsection number="1.2" title="Final-test results" />
           <Text>
-            Across all {FIELD_TEST_SIZE} tasks, Academy desk passed {FIELD_ARMS[2]?.all.passed},
-            against {FIELD_ARMS[0]?.all.passed} for the base harness ({fig('fieldGroups')}).
+            Once a harness works, Architect can also fine-tune Glimmer on its own verified attempts,
+            and it can issue a risk certificate: a bound on how often the specialist is wrong when
+            it answers.
           </Text>
           <Exhibit
+            label={fig('round')}
+            caption={
+              <>
+                A job&apos;s tasks, cut once into four sets, and the five steps of a round of
+                teaching, with the counts of the returns desk in section {sec('returns')}
+                <Cite to={['plan']} />. Learning from failures, and checking an agent by the state
+                it leaves, both have published precedent
+                <Cite to={['gepa', 'ace', 'taubench']} />.
+              </>
+            }
+          >
+            <RoundDiagram />
+          </Exhibit>
+        </Section>
+
+        <Section id="field" number={sec('field')} title="Academy desk, at test-prep academies">
+          <Text>
+            When a student misses a practice question, staff ask Academy desk what to do, and it
+            answers from the academy&apos;s own files. Spark taught it on three generated academies,
+            and the test asks whether that teaching carries over to academies it never saw (
+            {fig('fieldGroups')})
+            <Cite to={['academyDesk']} />.
+          </Text>
+          <Headline figure={`${harborview.academyDesk.passed} of ${harborview.n}`}>
+            tasks passed at Harborview Prep, an academy neither model had seen, against{' '}
+            {harborview.base.passed} on the base harness
+          </Headline>
+          <Exhibit
             label={fig('fieldGroups')}
-            caption={`Sealed final-test passes by harness in each group of organizations, with 95% intervals. The one-shot harness passed ${FIELD_ARMS[1]?.all.passed} of ${FIELD_TEST_SIZE} in all.`}
+            caption={`Sealed final-test passes by harness in each group, with 95% intervals. The Real academy is a real tutoring academy's records, anonymized. Across all ${FIELD_TEST_SIZE} tasks Academy desk passed ${FIELD_ARMS[2]?.all.passed}, the base harness ${FIELD_ARMS[0]?.all.passed} and the one-shot harness ${FIELD_ARMS[1]?.all.passed}.`}
           >
             <div className="flex flex-col gap-8">
               {GROUPS.map((group, index) => (
@@ -1207,29 +1145,46 @@ export function ResultsPage() {
             </div>
           </Exhibit>
           <Text>
-            On Harborview Prep, an academy neither model had seen, Academy desk passed 43 of 48,
-            against 24 for the base harness. Most of the gain came from assign and the tutoring turn
-            ({tab('fieldSkills')}). On the real academy, a small sample, it also passed more.
-            Spark&apos;s one-shot harness, written once without seeing Glimmer try, stayed level
-            with the base harness in every group ({fig('fieldPairs')})
+            The rounds of teaching made the difference. Spark&apos;s one-shot harness, written once
+            without seeing Glimmer try, stayed level with the base harness in every group, while
+            Academy desk pulled far ahead of both on the taught academies and Harborview Prep (
+            {fig('fieldPairs')})
             <Cite to={['academyDesk']} />.
           </Text>
           <Exhibit
             label={fig('fieldPairs')}
-            caption="How many more tasks Academy desk passed than each other harness, in percentage points, with 95% intervals."
+            caption={`How many more tasks Academy desk passed than each other harness at the taught academies and Harborview Prep, in percentage points, with 95% intervals. Every pairing, the Real academy's included, is in ${tab('fieldPairs')}.`}
           >
             <FieldPairForest />
           </Exhibit>
-          <Tables label="Tables for the final test">
-            <TableExhibit
-              label={tab('fieldSkills')}
-              caption="Passes by skill and organization, out of the tasks in each cell. The Real academy, a snapshot of 16 students, had no tasks for solve, hint and the tutoring turn. There, 6 of 8 diagnose tasks ended at the step limit, as 11 of its 19 practice tests list the section as Full, and history lost 1 task to wording and 3 to the date (section 1.4)."
-            >
-              <SkillTable />
-            </TableExhibit>
+          <Text>
+            At Harborview Prep, most of the gain came from assigning practice and the tutoring turn
+            ({tab('fieldSkills')}). Spark kept two of its three changes: a question lookup tool, and
+            a policy lookup tool that returns the numbers every skill needs ({tab('fieldRounds')})
+            <Cite to={['academyDesk']} />.
+          </Text>
+          <Text>
+            Academy desk also runs on-premise. Frozen as it was, it took the same test on the small
+            Glimmer build that runs on one graphics card through Ollama, and passed {local.local} of{' '}
+            {FIELD_TEST_SIZE}, against {local.hosted} hosted ({tab('local')})
+            <Cite to={['local']} />.
+          </Text>
+          <Details
+            method={
+              <Text>
+                The taught academies differ in topic labels, id formats, wording and policy numbers,
+                and Harborview Prep uses a practice count, difficulty band and escalation rule that
+                none of them uses. The sealed final test held 48 new tasks from the taught
+                academies, 48 from Harborview Prep and 24 from the Real academy, whose records have
+                no question text, so only diagnose, history and assign could be checked there. A
+                program checks the facts and file changes, never the wording
+                <Cite to={['academyDesk']} />.
+              </Text>
+            }
+          >
             <TableExhibit
               label={tab('fieldPairs')}
-              caption="Tasks the first harness passed and the second failed (won), the reverse (lost), and where they agreed. The two comparisons planned as primary are Academy desk against the base harness on Harborview Prep and on the Real academy. The base harness ran at temperature 1 with a 16-turn limit and low reasoning; the one-shot harness and Academy desk at temperature 0 with 30 turns and medium reasoning."
+              caption="Tasks the first harness passed and the second failed (won), the reverse (lost), and where they agreed. The two comparisons planned as primary are Academy desk against the base harness at Harborview Prep and at the Real academy. The base harness ran at temperature 1 with a 16-turn limit and low reasoning; the one-shot harness and Academy desk at temperature 0 with 30 turns and medium reasoning."
             >
               <GroupPairTable
                 pairs={FIELD_PAIRS}
@@ -1237,109 +1192,103 @@ export function ResultsPage() {
                 label="Task by task, the field run"
               />
             </TableExhibit>
-          </Tables>
-
-          <Subsection number="1.3" title="The three rounds" />
-          <Text>
-            Spark kept two of its three changes to the harness ({tab('fieldRounds')})
-            <Cite to={['academyDesk']} />.
-          </Text>
-          <Tables label="Table for the rounds">
+            <TableExhibit
+              label={tab('fieldSkills')}
+              caption="Passes by skill and organization, out of the tasks in each cell. The Real academy, a snapshot of 16 students, had no tasks for solve, hint and the tutoring turn."
+            >
+              <SkillTable />
+            </TableExhibit>
             <TableExhibit
               label={tab('fieldRounds')}
               caption={`Each round of teaching for Academy desk: the change, held-out checks before and after, the same change measured again on new seeds, and the result. Teaching took about 15 minutes and cost 31 cents of Spark. The whole run cost about ${dollars(FIELD_MONEY.spark)} of Spark, including about 8 cents of estimates, and ${dollars(FIELD_MONEY.glimmer)} of hosted Glimmer.`}
             >
               <RoundList rounds={ROUNDS_FIELD} label="Rounds of teaching for Academy desk" />
             </TableExhibit>
-          </Tables>
-
-          <Subsection number="1.4" title="Where Academy desk missed on the real academy" />
-          <Text>
-            The records keep pass or fail, not replies. So after the test, Academy desk&apos;s tools
-            were replayed on the real academy&apos;s files, with no model. Most diagnose tasks ended
-            at the step limit. The question lookup tool finds a test by its section, and most of the
-            academy&apos;s practice tests list the section as Full. History lost tasks to answers
-            the academy marks right in other wording, and to the date: the agent was told it was Nov
-            16, and the requests said Oct 30. That last cause fits the records, but they do not
-            confirm it ({tab('fieldSkills')})
-            <Cite to={['academyDesk']} />.
-          </Text>
-
-          <Subsection number="1.5" title="On this computer" />
-          <Text>
-            Frozen as it was, Academy desk took the same test again on-premise, on the small Glimmer
-            build that runs on one graphics card through Ollama. It passed {local.local} of{' '}
-            {FIELD_TEST_SIZE} here against {local.hosted} hosted, with no group showing a
-            difference, and ran slower ({tab('local')})
-            <Cite to={['local']} />.
-          </Text>
-          <Tables label="Table for this computer">
             <TableExhibit
               label={tab('local')}
               caption={`Academy desk's final-test passes on the 2-bit build on this computer's 12 GB graphics card and hosted, with the tasks won and lost on this computer, and the difference with its 95% interval. The median task took ${LOCAL_SPEED.medianLocal} s here and ${LOCAL_SPEED.medianHosted} s hosted, the slowest 5% over ${LOCAL_SPEED.slowestLocal} s against ${LOCAL_SPEED.slowestHosted} s, and ${LOCAL_SPEED.stepLimitLocal} tasks reached the step limit here against ${LOCAL_SPEED.stepLimitHosted} hosted.`}
             >
               <LocalTable />
             </TableExhibit>
-          </Tables>
-
-          <Subsection number="1.6" title="A third run" />
-          <Text>
-            A second run stopped twice before any result was read, so a third replaced it. Spark
-            engineered the harness on three other generated academies over two rounds and kept both
-            changes. The sealed final test held tasks from those academies, from Juniper Study
-            House, which neither model had seen, and from a second snapshot of the real academy. The
-            one-shot harness&apos;s test was held back
-            <Cite to={['third']} />.
-          </Text>
-          <Text>
-            On Juniper Study House, Academy desk passed {juniper.academyDesk.passed} of {juniper.n},
-            against {juniper.bare.passed} for the base harness ({tab('third')})
-            <Cite to={['third']} />.
-          </Text>
-          <Tables label="Table for the third run">
-            <TableExhibit
-              label={tab('third')}
-              caption={`The third run, a sealed final test of ${THIRD_TEST_SIZE} tasks: passes for the base harness and Academy desk in each group, with 95% intervals, and Academy desk against the base harness task by task, with the difference in points and its 95% interval. The primary comparisons are Juniper Study House and the Real academy, here a snapshot of 17 students. On the Real academy none of the 10 diagnose requests matched, every history attempt ran to the 30-step limit, and assign was 0 of 10 for both harnesses. The run cost ${dollars(THIRD_MONEY.spark)} of Spark and ${dollars(THIRD_MONEY.glimmer)} of hosted Glimmer; Academy desk ran with high reasoning at about three times the base harness's spend.`}
-            >
-              <ThirdTable />
-            </TableExhibit>
-          </Tables>
-
-          <Subsection number="1.7" title="Direction" />
-          <Text>
-            The larger idea: run the same loop over many organizations in one field, and it gives
-            the verified lessons and checkable rewards that a model built for that field needs.
-            These runs are a first step, and they show a gain on academies neither model saw.
-            Section {sec('inventory')} takes the same loop to a second field
-            <Cite to={['academyDesk', 'third']} />.
-          </Text>
+          </Details>
         </Section>
 
-        <Section id="inventory" number={sec('inventory')} title="A screening lab: Inventory desk">
+        <Section id="edge" number={sec('edge')} title="A real run, recorded: an offshore wind farm">
           <Text>
-            Inventory desk runs a screening lab&apos;s compound store. Scientists ask it how much of
-            a compound is usable, which lot a re-test should draw from, how to allocate stock for
-            the compounds Assay desk sent back for re-testing, and to put holds on that stock. It
-            works only from the lab&apos;s own files and policy, and a program checks the volumes,
-            lots and rows it writes, never the wording
+            Taught and tested in the app in {EDGE.minutes} minutes, for {dollars(EDGE.runUsd)}. The
+            other runs here were measured with scripts; this agent was made the way anyone would
+            make one, in the app, and the screen was recorded as it ran ({fig('edgeFilm')})
+            <Cite to={['edge']} />.
+          </Text>
+          <Headline figure={`${EDGE.alone.passed} to ${EDGE.harness.passed} of ${EDGE.test}`}>
+            on the sealed final test, against Glimmer alone
+          </Headline>
+          <Exhibit
+            label={fig('edgeFilm')}
+            caption="The run as it was recorded: the records attached, Spark drafting the job, the training screen, the sealed final test and the agent's home, cut to music, with the waits shown faster."
+          >
+            <HeroFilm film={EDGE_FILM} />
+          </Exhibit>
+          <Text>
+            The job is a fictional offshore wind farm&apos;s maintenance desk. Its link to shore is
+            a slow satellite connection, so the agent has to work offline on the substation
+            computer. For each turbine alarm it decides between shutting the turbine down, sending a
+            crew and keeping watch, and it books the crew&apos;s boat around the weather and their
+            certificates, all by the site&apos;s written policy. Spark turned that policy into three
+            small tools. With them Glimmer passed all {EDGE.test} sealed tasks; on its own it passed{' '}
+            {EDGE.alone.passed} ({fig('edge')})
+            <Cite to={['edge']} />.
+          </Text>
+          <Details
+            method={
+              <Text>
+                The site&apos;s records are generated: 40 turbines, a log of 171 alarms, 30
+                technicians, 7 boats, a 96-hour forecast and the written policy, with 96 worked
+                cases whose answers come from the policy. A program checks each decision, booking
+                and certificate check, never the wording. Spark drafted the job in one call; its
+                first harness took the held-out checks from {EDGE.checks.before} to{' '}
+                {EDGE.checks.after} of {EDGE.checks.of}, and training stopped at the target. Glimmer
+                on its own took the same {EDGE.test} sealed tasks in a preregistered experiment in
+                the app, written after this run&apos;s result was read. Both ran on the hosted copy
+                of Glimmer, not the build on the substation computer
+                <Cite to={['edge']} />.
+              </Text>
+            }
+          >
+            <Panel
+              label={fig('edge')}
+              caption={`Sealed final-test passes, with 95% intervals, on the same ${EDGE.test} tasks under one seed. Task by task, the harness won ${EDGE.pair.wins} and lost ${EDGE.pair.losses}: ${signed(EDGE.pair.diff)} points (${signed(EDGE.pair.low)} to ${signed(EDGE.pair.high)}).`}
+            >
+              <EdgePassRates />
+            </Panel>
+            <TableExhibit
+              label={tab('edgeSkills')}
+              caption={`Sealed final-test passes by kind of request, out of the tasks of each kind. The run and its experiment cost ${dollars(EDGE.allUsd)} in all.`}
+            >
+              <EdgeSkillTable />
+            </TableExhibit>
+          </Details>
+        </Section>
+
+        <Section
+          id="inventory"
+          number={sec('inventory')}
+          title="Inventory desk, at a screening lab"
+        >
+          <Text>
+            The same loop works in another field. Inventory desk runs a screening lab&apos;s
+            compound store: scientists ask it how much of a compound is usable, which lot a re-test
+            should draw from, and how to allocate and hold stock, and it works only from the
+            lab&apos;s own files and policy ({fig('lab')})
             <Cite to={['inventory']} />.
           </Text>
-          <Text>
-            Spark studied three generated labs, each with its own units, date formats, lot names and
-            policy numbers, and engineered Glimmer&apos;s harness on them: a one-shot draft, then
-            two refinement rounds. Then every harness was frozen and a sealed final test opened
-            once. It held new tasks from the taught labs and from Corvid Hill Discovery, a lab
-            sealed away from both models, whose stock rules no taught lab shares
-            <Cite to={['inventory']} />.
-          </Text>
-          <Text>
-            On Corvid Hill Discovery, the Spark-engineered harness passed {corvid.engineered.passed}{' '}
-            of {corvidSize}, against {corvid.base.passed} for the base harness ({fig('lab')})
-            <Cite to={['inventory']} />.
-          </Text>
+          <Headline figure={`${corvid.engineered.passed} of ${corvid.n}`}>
+            tasks passed at Corvid Hill Discovery, a lab sealed from both models whose stock rules
+            no taught lab shares, against {corvid.base.passed} on the base harness
+          </Headline>
           <Exhibit
             label={fig('lab')}
-            caption={`Sealed final-test passes by harness at the taught labs and at Corvid Hill Discovery, with 95% intervals. Across all ${LAB_TEST_SIZE} tasks the base harness passed ${LAB_ARMS[0]?.all.passed}, Spark's one-shot harness ${LAB_ARMS[1]?.all.passed} and Inventory desk ${LAB_ARMS[2]?.all.passed}.`}
+            caption={`Sealed final-test passes by harness at the taught labs and at Corvid Hill Discovery, with 95% intervals. Across all ${LAB_TEST_SIZE} tasks Inventory desk passed ${LAB_ARMS[2]?.all.passed}, Spark's one-shot harness ${LAB_ARMS[1]?.all.passed} and the base harness ${LAB_ARMS[0]?.all.passed}.`}
           >
             <div className="flex flex-col gap-8">
               {LAB_GROUPS.map((group, index) => (
@@ -1353,13 +1302,23 @@ export function ResultsPage() {
             </div>
           </Exhibit>
           <Text>
-            Spark&apos;s draft wrote a stock-planning tool that reads each lab&apos;s own policy
-            numbers, so it worked at a lab whose numbers it had never met. Most of the gain was in
-            place with that one-shot harness, and the two refinement rounds added a guard on
-            tool-call format ({tab('labPairs')})
+            Here Spark&apos;s first draft carried most of the gain. It wrote a stock-planning tool
+            that reads each lab&apos;s own policy numbers, so it worked at a lab whose numbers it
+            had never met, and the refinement rounds added a guard on tool-call format (
+            {tab('labPairs')})
             <Cite to={['inventory']} />.
           </Text>
-          <Tables label="Tables for the screening lab">
+          <Details
+            method={
+              <Text>
+                Spark studied three generated labs, each with its own units, date formats, lot names
+                and policy numbers, and engineered the harness on them: a one-shot draft, then two
+                refinement rounds. Then every harness was frozen, and the sealed final test opened
+                once, with new tasks from the taught labs and from Corvid Hill Discovery
+                <Cite to={['inventory']} />.
+              </Text>
+            }
+          >
             <TableExhibit
               label={tab('labPairs')}
               caption="Tasks the first harness passed and the second failed (won), the reverse (lost), and where they agreed, with the difference in points and its 95% interval. The primary comparison is Inventory desk against the base harness at Corvid Hill Discovery. The base harness ran at temperature 1 with a 16-turn limit and low reasoning; the one-shot harness and Inventory desk at temperature 0 with 30 turns and high reasoning."
@@ -1376,75 +1335,184 @@ export function ResultsPage() {
             >
               <LabSkillTable />
             </TableExhibit>
-          </Tables>
+          </Details>
         </Section>
 
-        <Section id="edge" number={sec('edge')} title="A real run, recorded: an offshore wind farm">
+        <Section id="finetune" number={sec('finetune')} title="Fine-tuning Glimmer on its own work">
           <Text>
-            The sections above measure runs made with the comparisons runner. This one was made in
-            the app itself, the way a person would use it, and recorded as it ran. The job is a
-            fictional offshore wind farm&apos;s maintenance desk, whose link to shore is a slow
-            satellite connection, so its agent has to run offline on the substation computer. It
-            triages SCADA alarms, books crew transfers against the weather, the vessels and the
-            crew&apos;s certificates, and follows the site&apos;s written policy. Its records are
-            generated, and a program checks its decisions and bookings, never the wording
-            <Cite to={['edge']} />.
+            A harness changes what Glimmer works with, and a fine-tune changes Glimmer itself.
+            Architect trained a LoRA adapter on the work Inventory desk got right, then tested it at
+            the same sealed lab with the harness held fixed ({fig('adapter')})
+            <Cite to={['qlora1', 'adapterEval']} />.
           </Text>
+          <Headline figure={`${tuned.passed} of ${tuned.of}`}>
+            tasks passed at Corvid Hill Discovery with the adapter, against {untuned.passed} of the{' '}
+            {untuned.of} it took without it
+          </Headline>
           <Exhibit
-            label={fig('edgeFilm')}
-            caption={`The run as it was recorded in the app, cut to music, with the waits shown faster. Spark drafted the job from the records in one call; its first harness took the held-out checks from ${EDGE.checks.before} to ${EDGE.checks.after} of ${EDGE.checks.of}, and training stopped at the target.`}
+            label={fig('adapter')}
+            caption={`Sealed final-test passes with the adapter and without it, on Inventory desk's harness and on the base harness, out of the tasks each arm took, with 95% intervals. Across all tasks, Inventory desk passed ${tunedArm.all.passed} of ${tunedArm.all.of} with the adapter and ${untunedArm.all.passed} of ${untunedArm.all.of} without it.`}
           >
-            <HeroFilm film={EDGE_FILM} />
+            <div className="flex flex-col gap-8">
+              {LAB_GROUPS.map((group, index) => (
+                <AdapterPassRates key={group.short} index={index} />
+              ))}
+            </div>
           </Exhibit>
           <Text>
-            Spark wrote three small tools that work out the policy&apos;s rules from the site&apos;s
-            own files, and the agent was taught and tested in {EDGE.minutes} minutes, for{' '}
-            {dollars(EDGE.runUsd)}. On its sealed final test, the harness Spark wrote passed{' '}
-            {EDGE.harness.passed} of {EDGE.test}, and Glimmer on its own passed {EDGE.alone.passed}{' '}
-            of the same tasks ({fig('edge')})
-            <Cite to={['edge']} />.
+            Task by task at Corvid Hill, the adapter won {adapterPrimary.wins} and lost none (
+            {tab('adapterPairs')})
+            <Cite to={['adapterEval']} />.
           </Text>
-          <Exhibit
-            label={fig('edge')}
-            caption={`Sealed final-test passes, with 95% intervals, measured with the Lab's Experiments on the same ${EDGE.test} tasks under one seed. Task by task, the harness won ${EDGE.pair.wins} and lost ${EDGE.pair.losses}: ${signed(EDGE.pair.diff)} points (${signed(EDGE.pair.low)} to ${signed(EDGE.pair.high)}). It was tested on the hosted copy of Glimmer, not the build that runs on the substation computer.`}
+          <Text>
+            With the adapter, Glimmer also answered faster: its median attempt took{' '}
+            {tunedArm.p50.toFixed(1)} seconds, against {untunedArm.p50.toFixed(1)} without it (
+            {tab('adapterArms')})
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Text>
+            Training cost {dollars(inventoryAdapter.usd)} on one rented A100 ({fig('loss')},{' '}
+            {tab('adapters')}). The examples were Glimmer&apos;s own attempts at training tasks that
+            the checker passed, and the export scanned every one for the sealed test and the sealed
+            lab, so nothing sealed went in
+            <Cite to={['qlora1']} />.
+          </Text>
+          <Details
+            method={
+              <Text>
+                One deployment of Glimmer served each harness with the adapter and without it, on
+                one A100 80 GB on a Hugging Face Inference Endpoint, by vLLM in bf16, for at most{' '}
+                {dollars(ADAPTER_RUN.gpuUsd)} of GPU. Two of the base arm&apos;s Corvid Hill tasks
+                never ran, because the endpoint paused when the account&apos;s prepaid credit ran
+                out. The adapter passed both, so the interval stays above zero whichever way they
+                are counted ({tab('adapterPairs')})
+                <Cite to={['adapterEval']} />.
+              </Text>
+            }
           >
-            <EdgePassRates />
-          </Exhibit>
-          <Tables label="Tables for the wind farm desk">
             <TableExhibit
-              label={tab('edgeSkills')}
-              caption={`Sealed final-test passes by kind of request, out of the tasks of each kind. The training run and its experiment cost ${dollars(EDGE.allUsd)} in all.`}
+              label={tab('adapterPairs')}
+              caption={`Tasks the arm with the adapter passed and the arm without it failed (won), the reverse (lost), and where they agreed, with the difference in points and its 95% interval. The primary comparison is Inventory desk at Corvid Hill Discovery. With the two tasks the base arm never took counted, the difference there is ${signed(ADAPTER_RUN.ifPassed.diff)} (${interval(ADAPTER_RUN.ifPassed)}) if it had passed both and ${signed(ADAPTER_RUN.ifFailed.diff)} (${interval(ADAPTER_RUN.ifFailed)}) if it had failed both.`}
             >
-              <EdgeSkillTable />
+              <GroupPairTable
+                pairs={ADAPTER_PAIRS}
+                name={labGroupName}
+                label="Task by task, with the adapter against without it"
+              />
             </TableExhibit>
-          </Tables>
+            <TableExhibit
+              label={tab('adapterArms')}
+              caption={`Each arm's passes out of the tasks it took, its output tokens a call, reasoning included, and its median seconds an attempt, with the 95th percentile. Each lab's intervals are in ${fig('adapter')}. The four arms shared one GPU, so the seconds compare them with each other only.`}
+            >
+              <AdapterArmTable />
+            </TableExhibit>
+            <Panel
+              label={fig('loss')}
+              caption={`Training loss at each optimizer step of Inventory desk's QLoRA run, on ${inventoryAdapter.examples} examples. The examples are Glimmer's own successes, so the loss starts low. Five of the six steps were warmup, so the learning rate reached its peak, 1e-4, only at the last.`}
+            >
+              <LossFigure />
+            </Panel>
+            <TableExhibit
+              label={tab('adapters')}
+              caption={`Both QLoRA adapters of Glimmer, each trained in 4 bits on one A100 80 GB on Hugging Face Jobs. Sweep desk's had ${sweepAdapter.examples} examples, so it took ${sweepAdapter.steps} optimizer steps. The checks are at the file level; no model was loaded.`}
+            >
+              <AdapterTable />
+            </TableExhibit>
+          </Details>
         </Section>
 
-        <Section id="open" number={sec('open')} title="An open-weight teacher: Muse Spark Open">
+        <Section id="certified" number={sec('certified')} title="A risk certificate">
           <Text>
-            The whole pipeline also runs on Meta&apos;s open weights. Muse Spark Open, served by
-            BaseTen, engineered Glimmer&apos;s harness for the returns desk of section{' '}
-            {sec('results')}, with the same split and the same sealed final test
-            <Cite to={['open']} />.
+            A specialist should know when not to answer. Academy desk tries each request{' '}
+            {CERT2.attempts} times and answers only when enough attempts agree, handing the rest to
+            staff, and its certificate bounds how often it is wrong when it does answer (
+            {fig('certificate')})
+            <Cite to={['cert2']} />.
+          </Text>
+          <Headline figure={`At most ${CERT2.stated}%`}>
+            of the requests it answers are wrong, with {CERT2.confidence}% confidence, as
+            Architect&apos;s first certificate states
+          </Headline>
+          <Exhibit
+            label={fig('certificate')}
+            caption={`The certificate as the app states it, and its check at Harborview Prep. The bound is the one-sided ${CERT2.confidence}% upper bound on 0 wrong of ${CERT2.calibration} calibration tasks answered, ${CERT2.bound}%, against a ${CERT2.target}% target.`}
+          >
+            <CertificateFigure />
+          </Exhibit>
+          <Text>
+            It held at Harborview Prep, which it never trained on: it answered {CERT2.checkAnswered}{' '}
+            of {CERT2.checkTasks} sealed requests there and got none wrong ({tab('certCheck')})
+            <Cite to={['cert2']} />.
           </Text>
           <Text>
-            Spark Open&apos;s engineered harness took Glimmer from {open.base.passed} to{' '}
-            {open.engineered.passed} of {TEST_SIZE} on the sealed final test ({fig('open')})
+            When a tool Spark wrote fails on practice data, Architect shrinks the failing case by
+            delta debugging
+            <Cite to={['zeller']} /> and keeps it as a regression test
+            <Cite to={['certify']} />. On one generated academy, a question lookup&apos;s failing
+            case shrank from 2,312 rows to 4
+            <Cite to={['decisions']} />.
+          </Text>
+          <Details
+            method={
+              <Text>
+                Architect picks the loosest agreement level whose exact upper bound on error, at{' '}
+                {CERT2.confidence}% confidence, stays under the {CERT2.target}% target, following
+                conformal risk control, Learn-then-Test and conformal abstention
+                <Cite to={['crc', 'ltt', 'abstention']} />. If no level qualifies, no certificate is
+                issued. Calibration used {CERT2.calibration} tasks from the taught academies; with
+                no error, {CERT2.calibration} tasks can certify no lower than {CERT2.bound}%. On its
+                own, {CERT2.checkWrong} wrong of {CERT2.checkAnswered} at Harborview Prep has a
+                bound of {CERT2.checkBound}%.
+              </Text>
+            }
+          >
+            <TableExhibit
+              label={tab('certCalibration')}
+              caption={`The certificate run on ${CERT2.calibration} calibration tasks from the taught academies, ${CERT2.attempts} attempts each. For each agreement threshold: the tasks Academy desk would answer, how many were wrong, the share handed to staff, and the one-sided ${CERT2.confidence}% upper bound on the error rate among answered tasks. The run made ${CERT2.runs} attempts for ${dollars(CERT2.usd)} of hosted Glimmer, by the engine's own count.`}
+            >
+              <CertCalibrationTable />
+            </TableExhibit>
+            <TableExhibit
+              label={tab('certCheck')}
+              caption={`The check at Harborview Prep, ${CERT2.checkTasks} sealed tasks: answered, wrong and handed off at each threshold. The certified threshold answers when 1 or more of ${CERT2.attempts} attempts give an answer.`}
+            >
+              <CertCheckTable />
+            </TableExhibit>
+          </Details>
+        </Section>
+
+        <Section id="open" number={sec('open')} title="An open-weight teacher">
+          <Text>
+            The teacher can be an open-weight model. Muse Spark Open, served by BaseTen, engineered
+            Glimmer&apos;s harness for the returns desk of section {sec('returns')}, with the same
+            split and the same sealed final test ({fig('open')})
             <Cite to={['open']} />.
           </Text>
+          <Headline figure={`${open.base.passed} to ${open.engineered.passed}`}>
+            of {TEST_SIZE} requests passed on the sealed final test, with the harness Spark Open
+            engineered
+          </Headline>
           <Exhibit
             label={fig('open')}
-            caption={`Sealed final-test passes by harness on the returns desk taught by Spark Open, with 95% intervals. Spark Open's one-shot harness passed ${open.draft.passed} of ${TEST_SIZE}. The dashed line is the job's target.`}
+            caption={`Sealed final-test passes by harness on the returns desk taught by Spark Open, with 95% intervals. Spark Open's one-shot harness passed ${open.draft.passed} of ${TEST_SIZE}.`}
           >
-            <PassRates comparison={OPEN} />
+            <PassRates comparison={OPEN} target={false} />
           </Exhibit>
           <Text>
-            Every arm here ran under Glimmer&apos;s on-device context of 16,384 tokens, the limit of
-            the build that runs on-premise, so this run stands on its own and is not set against the
-            earlier returns desk runs
+            Its rounds built on its own first draft: the engineered harness won {openOverDraft.wins}{' '}
+            requests against Spark Open&apos;s one-shot harness and lost none ({tab('openPairs')})
             <Cite to={['open']} />.
           </Text>
-          <Tables label="Tables for the open-weight teacher">
+          <Details
+            method={
+              <Text>
+                Every arm ran under Glimmer&apos;s on-device context of 16,384 tokens, the limit of
+                the build that runs on-premise, so this run stands on its own and is not set against
+                the earlier returns desk runs
+                <Cite to={['open']} />.
+              </Text>
+            }
+          >
             <TableExhibit
               label={tab('openArms')}
               caption={`Passes by kind of request, of ${PER_TYPE} each, and in all, of ${TEST_SIZE}, with 95% intervals. Spark Open made a one-shot draft and one refinement round, "Fix email normalization and stop wasteful CSV reads".`}
@@ -1457,120 +1525,68 @@ export function ResultsPage() {
             >
               <PairTable comparison={OPEN} />
             </TableExhibit>
-          </Tables>
+          </Details>
         </Section>
 
-        <Section id="certified" number={sec('certified')} title="The first risk certificate">
+        <Section id="scale" number={sec('scale')} title="From a specialist to a field model">
           <Text>
-            A specialist should know when not to answer. Academy desk tries each request in a sealed
-            calibration set {CERT2.attempts} times, and answers only when enough attempts agree.
-            Architect picks the loosest agreement level whose exact upper bound on error stays under
-            a target, following conformal risk control, Learn-then-Test and conformal abstention
-            <Cite to={['crc', 'ltt', 'abstention']} />. If no level qualifies, no certificate is
-            issued.
+            Run the same loop over many organizations in one field, and it leaves what a model built
+            for that field needs: verified lessons and checkable rewards
+            <Cite to={['scale']} />.
           </Text>
           <Text>
-            The first certificate went to the Academy desk of section {sec('field')}: wrong on at
-            most {CERT2.stated}% of the requests it answers, at {CERT2.confidence}% confidence (
-            {fig('certificate')})
-            <Cite to={['cert2']} />.
-          </Text>
-          <Exhibit
-            label={fig('certificate')}
-            caption={`The certificate as the app states it, and its check. The bound is the one-sided ${CERT2.confidence}% upper bound on 0 wrong of ${CERT2.calibration} calibration tasks answered, ${CERT2.bound}%, against a ${CERT2.target}% target; with no error, ${CERT2.calibration} tasks can certify no lower. On its own, ${CERT2.checkWrong} wrong of ${CERT2.checkAnswered} at Harborview Prep has a bound of ${CERT2.checkBound}%.`}
-          >
-            <CertificateFigure />
-          </Exhibit>
-          <Text>
-            It held at Harborview Prep, which it never trained on: it answered {CERT2.checkAnswered}{' '}
-            of {CERT2.checkTasks} sealed requests there and got none wrong ({tab('certCheck')})
-            <Cite to={['cert2']} />.
+            A field&apos;s work leaves three things besides the specialist. Verified demonstrations
+            are worked examples from training tasks that the checker confirmed. An outcome scorer
+            lets an outside training framework ask for a score. Sealed evaluations are organizations
+            a model never trained on, opened once for a frozen candidate
+            <Cite to={['scale']} />.
           </Text>
           <Text>
-            An earlier attempt, on the third run&apos;s Academy desk, issued none: its attempts ran
-            with no randomness, so a wrong answer repeated as reliably as a right one (
-            {tab('certFirst')})
-            <Cite to={['cert']} />.
+            From a model&apos;s configuration on Hugging Face, Architect sizes a LoRA or QLoRA
+            fine-tuning job and writes a launch bundle for a Slurm or Kubernetes cluster, for you to
+            run with your own tools. It never holds cluster credentials ({tab('scale')})
+            <Cite to={['scale']} />.
           </Text>
-          <Text>
-            When a tool Spark wrote fails on practice data, the failing case is shrunk by delta
-            debugging
-            <Cite to={['zeller']} /> and kept as a regression test
-            <Cite to={['certify']} />. On a generated academy&apos;s practice data, one question
-            lookup&apos;s case shrank from 2,312 rows to 4
-            <Cite to={['decisions']} />.
-          </Text>
-          <Tables label="Tables for the certificate">
+          <Details>
             <TableExhibit
-              label={tab('certCalibration')}
-              caption={`The certificate run on ${CERT2.calibration} calibration tasks from the taught academies, ${CERT2.attempts} attempts each. For each agreement threshold: the tasks Academy desk would answer, how many were wrong, the share handed to staff, and the one-sided ${CERT2.confidence}% upper bound on the error rate among answered tasks. The run made ${CERT2.runs} attempts for ${dollars(CERT2.usd)} of hosted Glimmer.`}
+              label={tab('scale')}
+              caption="Each part of the path from a specialist to a field model, by whether it is measured, built or unverified."
             >
-              <CertCalibrationTable />
+              <Table
+                label="What is measured, built and unverified on the path to a field model"
+                left={[0, 1, 2]}
+                columns={['Part', 'Status', 'What backs it']}
+                rows={SCALE_STATUS.map(([part, status, backing]) => [part, status, backing])}
+              />
             </TableExhibit>
-            <TableExhibit
-              label={tab('certCheck')}
-              caption={`The check at Harborview Prep, ${CERT2.checkTasks} sealed tasks: answered, wrong and handed off at each threshold. The certified threshold answers when 1 or more of ${CERT2.attempts} attempts give an answer.`}
-            >
-              <CertCheckTable />
-            </TableExhibit>
-            <TableExhibit
-              label={tab('certFirst')}
-              caption={`The earlier attempt, at temperature 0. For each agreement threshold: the calibration tasks Academy desk would answer, of ${CERT.calibration}, how many of those were wrong, the share handed to staff, and the one-sided ${CERT.confidence}% upper bound on the error rate among answered tasks, against a ${CERT.target}% target; then the same thresholds on the Real academy's ${CERT.checkTasks} check tasks. No threshold met the target, so no certificate was issued. The run cost ${dollars(CERT.usd)} of hosted Glimmer.`}
-            >
-              <CertTable />
-            </TableExhibit>
-          </Tables>
+          </Details>
         </Section>
 
-        <Section
-          id="results"
-          number={sec('results')}
-          title="An earlier run: one job, a returns desk"
-        >
+        <Section id="returns" number={sec('returns')} title="An earlier run: a returns desk">
           <Text>
-            Before the academies, Architect was tried on one job with no organizations: a returns
-            desk for a made-up shop. Glimmer took a sealed final test of refunds, order questions
-            and pickups on three harnesses: the base harness, a one-shot harness Spark wrote, and a
-            Spark-engineered harness built over rounds ({fig('round')}). A change was kept only if
-            it clearly raised passes on held-out checks, measured twice, and cost no kind of task
-            more than one pass
-            <Cite to={['plan', 'second']} />. Learning from failures, and checking an agent by the
-            state it leaves, both have published precedent
-            <Cite to={['gepa', 'ace', 'taubench']} />.
-          </Text>
-          <Exhibit
-            label={fig('round')}
-            caption="The job's tasks, cut once into four sets, and the five steps of a round of teaching. The sealed final test stays closed until every harness is frozen."
-          >
-            <RoundDiagram />
-          </Exhibit>
-          <Text>
-            On a new returns desk, after four rounds, the Spark-engineered harness took Glimmer from{' '}
-            {second.base.passed} to {second.engineered.passed} of {TEST_SIZE} ({fig('returns')}).
-            This is the returns desk that ships with the app
+            Before the fields, Architect was tried on one job: a returns desk for a made-up shop,
+            handling refunds, order questions and pickups ({fig('returns')})
             <Cite to={['second']} />.
           </Text>
+          <Headline figure={`${second.base.passed} to ${second.engineered.passed}`}>
+            of {TEST_SIZE} requests passed on the sealed final test after four rounds, meeting the
+            job&apos;s 95% target
+          </Headline>
           <Exhibit
             label={fig('returns')}
-            caption="Sealed final-test passes by harness on the new returns desk, with 95% intervals. The dashed line is the job's target."
+            caption="Sealed final-test passes by harness on the returns desk that ships with the app, with 95% intervals. The dashed line is the job's target."
           >
             <PassRates comparison={SECOND} />
           </Exhibit>
           <Text>
-            On the first returns desk, with teaching held to two rounds, the Spark-engineered
-            harness passed {first.engineered.passed} of {TEST_SIZE}, against {first.base.passed} for
-            the base harness ({tab('firstPairs')}). The second comparison was designed after that
-            one, and its plan was published before it ran
-            <Cite to={['first', 'plan']} />.
-          </Text>
-          <Text>
-            On the new returns desk, the Spark-engineered harness also answered much faster (
-            {fig('speed')})
+            The engineered harness also answered faster, with a median of{' '}
+            {second.engineered.p50.toFixed(1)} seconds against {second.base.p50.toFixed(1)} on the
+            base harness ({fig('speed')})
             <Cite to={['second']} />.
           </Text>
           <Exhibit
             label={fig('speed')}
-            caption="Time to answer on the new returns desk. The dot is the median answer; the line runs to the slowest 5%."
+            caption="Time to answer on the returns desk. The dot is the median answer; the line runs to the slowest 5%."
           >
             <Forest
               name="Median and slowest 5% of answer times, by harness"
@@ -1603,56 +1619,41 @@ export function ResultsPage() {
             tasks ({tab('costs')})
             <Cite to={['hackathon']} />.
           </Text>
-          <Tables label="Tables for the returns desks">
+          <Details
+            method={
+              <Text>
+                A change was kept only if it clearly raised passes on held-out checks, measured
+                twice, and cost no kind of task more than one pass. The comparison&apos;s plan was
+                published before it ran
+                <Cite to={['plan', 'second']} />.
+              </Text>
+            }
+          >
             <TableExhibit
               label={tab('returnsArms')}
-              caption={`Passes by kind of request on the new returns desk, of ${PER_TYPE} each, and in all, of ${TEST_SIZE}, with 95% intervals.`}
+              caption={`Passes by kind of request, of ${PER_TYPE} each, and in all, of ${TEST_SIZE}, with 95% intervals.`}
             >
               <ArmTable comparison={SECOND} />
             </TableExhibit>
             <TableExhibit
               label={tab('returnsPairs')}
-              caption="Requests each harness passed and the other failed (won), the reverse (lost), where they agreed, and the difference in points with its 95% interval, on the new returns desk."
+              caption="Requests each harness passed and the other failed (won), the reverse (lost), where they agreed, and the difference in points with its 95% interval."
             >
               <PairTable comparison={SECOND} />
             </TableExhibit>
             <TableExhibit
-              label={tab('firstArms')}
-              caption={`Passes by kind of request on the first returns desk, as in ${tab('returnsArms')}, with Spark answering the requests itself as a fourth arm.`}
-            >
-              <ArmTable comparison={FIRST} />
-            </TableExhibit>
-            <TableExhibit
-              label={tab('firstPairs')}
-              caption={`Requests won and lost in each pairing on the first returns desk, as in ${tab('returnsPairs')}. The Spark-engineered harness passed ${first.engineered.passed} against ${first.base.passed} for the base harness, and the interval includes zero.`}
-            >
-              <PairTable comparison={FIRST} />
-            </TableExhibit>
-            <TableExhibit
               label={tab('returnsRounds')}
-              caption="Each round on the new returns desk: the change, held-out checks before and after, the same change measured again on new seeds, and the result. Teaching stopped when the target was reached."
+              caption="Each round: the change, held-out checks before and after, the same change measured again on new seeds, and the result. Teaching stopped when the target was reached."
             >
-              <RoundList
-                rounds={ROUNDS_SECOND}
-                label="Rounds of teaching on the new returns desk"
-              />
-            </TableExhibit>
-            <TableExhibit
-              label={tab('firstRounds')}
-              caption={`Each round on the first returns desk, as in ${tab('returnsRounds')}, held to 2 rounds after the draft.`}
-            >
-              <RoundList
-                rounds={ROUNDS_FIRST}
-                label="Rounds of teaching on the first returns desk"
-              />
+              <RoundList rounds={ROUNDS_SECOND} label="Rounds of teaching on the returns desk" />
             </TableExhibit>
             <TableExhibit
               label={tab('costs')}
-              caption={`What each harness cost on the new returns desk. On the repair shop's demo run, one round took Glimmer from ${REPAIR.checkBefore} to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} held-out checks, and it passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test for ${REPAIR.cents} cents in all.`}
+              caption={`What each harness cost on the returns desk. On the repair shop's demo run, one round took Glimmer from ${REPAIR.checkBefore} to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} held-out checks, and it passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test for ${REPAIR.cents} cents in all.`}
             >
               <Table
                 fit
-                label="What each harness cost on the new returns desk"
+                label="What each harness cost on the returns desk"
                 columns={['', 'Spark', 'Glimmer, hosted']}
                 rows={SECOND.arms.map((each) => [
                   armLabel(each),
@@ -1661,172 +1662,14 @@ export function ResultsPage() {
                 ])}
               />
             </TableExhibit>
-          </Tables>
-        </Section>
-
-        <Section id="scale" number={sec('scale')} title="From a specialist to a field model">
-          <Text>
-            A field&apos;s work leaves three things besides the specialist. Verified demonstrations
-            are worked examples from training tasks that the checker confirmed. An outcome scorer
-            lets an outside training framework ask for a score. Sealed evaluations are organizations
-            a model never trained on, opened once for a frozen candidate
-            <Cite to={['scale']} />.
-          </Text>
-          <Text>
-            From a model&apos;s configuration on Hugging Face, Architect sizes a LoRA or QLoRA
-            fine-tuning job. It writes a cluster launch bundle for Slurm or Kubernetes for you to
-            run with your own tools, and it never holds cluster credentials ({tab('scale')})
-            <Cite to={['scale']} />.
-          </Text>
-          <Tables label="Table for the path to a field model">
-            <TableExhibit
-              label={tab('scale')}
-              caption="Each part of the path from a specialist to a field model, by whether it is measured, built or unverified."
-            >
-              <Table
-                label="What is measured, built and unverified on the path to a field model"
-                left={[0, 1, 2]}
-                columns={['Part', 'Status', 'What backs it']}
-                rows={SCALE_STATUS.map(([part, status, backing]) => [part, status, backing])}
-              />
-            </TableExhibit>
-          </Tables>
-        </Section>
-
-        <Section id="finetune" number={sec('finetune')} title="Fine-tuning Glimmer's open weights">
-          <Subsection number={`${sec('finetune')}.1`} title="Training the adapter" />
-          <Text>
-            Architect fine-tuned Glimmer&apos;s open weights on a screening lab&apos;s
-            checker-verified work, as a QLoRA adapter trained on one A100 in about{' '}
-            {Math.round(inventoryAdapter.gpuMinutes)} minutes, for {dollars(inventoryAdapter.usd)}
-            <Cite to={['qlora1']} />.
-          </Text>
-          <Text>
-            The training data were the {inventoryAdapter.examples} practice attempts at Inventory
-            desk&apos;s training tasks that the checker passed, made by Glimmer on its engineered
-            harness. The export takes training tasks only and scans every example for the sealed
-            final test and the sealed lab, so nothing sealed went in
-            <Cite to={['qlora1']} />.
-          </Text>
-          <Text>
-            Over {FINETUNE_LOSS.length} optimizer steps the training loss fell from{' '}
-            {found(FINETUNE_LOSS[0], 'first loss').loss.toFixed(4)} to{' '}
-            {found(FINETUNE_LOSS.at(-1), 'last loss').loss.toFixed(4)} ({fig('loss')}). The examples
-            are Glimmer&apos;s own successes, so the loss starts low. What the adapter changes is
-            measured on the sealed final test, in section {sec('finetune')}.2
-            <Cite to={['qlora1']} />.
-          </Text>
-          <Exhibit
-            label={fig('loss')}
-            caption="Training loss at each optimizer step of Inventory desk's QLoRA run. Five of the six steps were warmup, so the learning rate reached its peak, 1e-4, only at the last."
-          >
-            <LossFigure />
-          </Exhibit>
-          <Text>
-            The adapter holds {inventoryAdapter.pairs} LoRA pairs at rank {inventoryAdapter.rank},
-            and it passes the product&apos;s file-level checks against the base model it was trained
-            on ({tab('adapters')})
-            <Cite to={['qlora1']} />.
-          </Text>
-          <Text>
-            The runs also fixed the product: the converter&apos;s targets, which now leave out the
-            projections the pinned converter can&apos;t convert, the trained weights, now uploaded
-            before conversion so a failed conversion can&apos;t lose them, and the memory planner,
-            which now counts the fp32 weights and fp32 logits it had left out
-            <Cite to={['qlora1']} />.
-          </Text>
-          <Tables label="Table for the adapters">
-            <TableExhibit
-              label={tab('adapters')}
-              caption={`Both QLoRA adapters of Glimmer, each trained in 4 bits on one A100 80 GB on Hugging Face Jobs. Sweep desk's had ${sweepAdapter.examples} examples, so it took ${sweepAdapter.steps} optimizer steps, the first at learning rate 0, and is not expected to change anything. The checks are at the file level; no model was loaded.`}
-            >
-              <AdapterTable />
-            </TableExhibit>
-          </Tables>
-
-          <Subsection
-            number={`${sec('finetune')}.2`}
-            title="The adapter on the sealed final test"
-          />
-          <Text>
-            Inventory desk&apos;s harness was then held fixed, and one deployment of Glimmer served
-            it with the adapter and without it. At Corvid Hill Discovery, the lab neither the
-            harness nor the adapter ever saw, Glimmer passed {tuned.corvid.passed} of{' '}
-            {tuned.corvid.of} with the adapter, against {untuned.corvid.passed} of the{' '}
-            {untuned.corvid.of} it took without it ({fig('adapter')})
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Exhibit
-            label={fig('adapter')}
-            caption={`Sealed final-test passes with the adapter and without it, on Inventory desk's harness and on the base harness, out of the tasks each arm took, with 95% intervals. Across all tasks, Inventory desk passed ${tunedArm.all.passed} of ${tunedArm.all.of} with the adapter and ${untunedArm.all.passed} of ${untunedArm.all.of} without it.`}
-          >
-            <div className="flex flex-col gap-8">
-              {LAB_GROUPS.map((group, index) => (
-                <AdapterPassRates key={group.short} index={index} />
-              ))}
-            </div>
-          </Exhibit>
-          <Text>
-            Task by task at Corvid Hill, the adapter won {adapterPrimary.wins} and lost none, a gain
-            of {adapterPrimary.diff.toFixed(1)} points with a 95% interval of{' '}
-            {adapterPrimary.low.toFixed(1)} to {adapterPrimary.high.toFixed(1)} (
-            {tab('adapterPairs')})
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Text>
-            Over all {adapterAll.n} tasks both arms took, it won {adapterAll.wins} and lost none, a
-            gain of {adapterAll.diff.toFixed(1)} points
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Text>
-            With the adapter, Glimmer wrote {tunedArm.tokens} output tokens a call against{' '}
-            {untunedArm.tokens}, and its median attempt took {tunedArm.p50.toFixed(1)} seconds
-            against {untunedArm.p50.toFixed(1)} ({tab('adapterArms')})
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Text>
-            The adapter also stopped Glimmer writing out its reasoning, because its training
-            examples held none, so part of the gain may come from answering without it. A base arm
-            told to reason less, or an adapter trained on examples that keep their reasoning, would
-            separate the two
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Text>
-            Two of the base arm&apos;s Corvid Hill tasks never ran, because Hugging Face paused the
-            endpoint when the account&apos;s prepaid credit ran out. The adapter passed both, so the
-            interval stays above zero whichever way they are counted ({tab('adapterPairs')})
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Text>
-            Both arms ran on one A100 80 GB on a Hugging Face Inference Endpoint, served by vLLM in
-            bf16, for at most {dollars(ADAPTER_RUN.gpuUsd)} of GPU
-            <Cite to={['adapterEval']} />.
-          </Text>
-          <Tables label="Tables for the adapter's final test">
-            <TableExhibit
-              label={tab('adapterPairs')}
-              caption={`Tasks the arm with the adapter passed and the arm without it failed (won), the reverse (lost), and where they agreed, with the difference in points and its 95% interval. The primary comparison is Inventory desk at Corvid Hill Discovery. With the two tasks the base arm never took counted, the difference there is ${signed(ADAPTER_RUN.ifPassed.diff)} (${interval(ADAPTER_RUN.ifPassed)}) if it had passed both and ${signed(ADAPTER_RUN.ifFailed.diff)} (${interval(ADAPTER_RUN.ifFailed)}) if it had failed both. On the base harness every interval includes zero.`}
-            >
-              <GroupPairTable
-                pairs={ADAPTER_PAIRS}
-                name={labGroupName}
-                label="Task by task, with the adapter against without it"
-              />
-            </TableExhibit>
-            <TableExhibit
-              label={tab('adapterArms')}
-              caption={`Each arm's passes out of the tasks it took, its output tokens a call, reasoning included, and its median seconds an attempt, with the 95th percentile. Each lab's intervals are in ${fig('adapter')}. The four arms shared one GPU, so the seconds compare them with each other only.`}
-            >
-              <AdapterArmTable />
-            </TableExhibit>
-          </Tables>
+          </Details>
         </Section>
 
         <Section id="limits" number={sec('limits')} title="Limitations">
           {LIMITS.map((limit) => (
             <Text key={limit.title}>
               <span className="font-semibold">{limit.title}</span> {limit.text.replace(/\.$/, '')}
-              <Cite to={[limit.from]} />.
+              <Cite to={limit.from} />.
             </Text>
           ))}
         </Section>
