@@ -100,7 +100,7 @@ const MOVES: readonly Move[] = [
     ease: (p) => p,
   },
   // To the Lab's window beside its name, where the walkthrough takes it over.
-  { at: T.toLab - 0.15, dur: T.labWide - T.toLab + 0.15, to: () => LAB_WIDE, ease: outQuart },
+  { at: T.toLab - 0.15, dur: T.labWide - T.toLab + 0.15, to: () => LAB_WIDE, ease: inOutCubic },
 ];
 
 function cameraAt(measured: Measured, t: number): Point {
@@ -171,13 +171,20 @@ function Placed({
 /** The founder clip's last frames (intro/tail.mjs), played from where the clip is cut. */
 const FOUNDER_FRAMES = 116;
 
+/**
+ * The founder's clip as the film shows it: an inset window on the ground, this share of the frame's
+ * width, its corners as the app's windows round theirs (intro/inset.mjs draws the same window for
+ * the clip's part before the page).
+ */
+const INSET = { scale: 0.76, radius: 20 } as const;
+
 /** The training screen pushes up into the founder's window, and his picture goes up out of it. */
 const pushUp = (t: number) => inOutCubic(span(t, T.trainRises, 0.6));
 
 /**
- * The founder's frame: full until his last line, captioned as the clip is, then it recedes into
- * the slot beside the claim, onto exactly the window the training screen is drawn in as the camera
- * sees it, and the training screen pushes his picture up and out of it.
+ * The founder's window: inset on the ground as the clip before it shows him, captioned as the clip
+ * is, then it moves into the slot, onto exactly the window the training screen is drawn in as the
+ * camera sees it, and the training screen pushes his picture up and out of it.
  */
 function Founder({ t, camera }: { t: number; camera: Point }) {
   if (t > T.trainRises + 0.6) return null;
@@ -188,12 +195,12 @@ function Founder({ t, camera }: { t: number; camera: Point }) {
   const slotX = FRAME.width / 2 + (TRAIN.x - camera.x) * k;
   const slotY = FRAME.height / 2 + (TRAIN.y - camera.y) * k;
   const slotScale = (SLOT.w * k) / FRAME.width;
-  const scale = mix(1, slotScale, p);
+  const scale = mix(INSET.scale, slotScale, p);
   const cx = mix(FRAME.width / 2, slotX, p);
   const cy = mix(FRAME.height / 2, slotY, p);
   // The picture is cropped to the window's shape as it becomes one.
   const height = mix(FRAME.height, (FRAME.width * WINDOW.height) / WINDOW.width, p);
-  const radius = (14 * TRAIN_BASE * k * p) / scale;
+  const radius = mix(INSET.radius, 14 * TRAIN_BASE * k, p) / scale;
   const caption = Math.min(
     outQuart(span(t, T.founder + 0.15, 0.12)),
     1 - outQuart(span(t, T.founder + 1.18, 0.12)),
@@ -222,23 +229,20 @@ function Founder({ t, camera }: { t: number; camera: Point }) {
             transform: `translateY(${(height - FRAME.height) / 2 - pushUp(t) * height}px)`,
           }}
         />
+        {/* His last line, captioned as the clip's others are (intro/caps.mjs), in his window. */}
+        {caption > 0 && (
+          <img
+            src="./founder/caption.png"
+            width={FRAME.width}
+            height={FRAME.height}
+            alt=""
+            className="absolute left-0 top-0 block"
+            style={{ opacity: caption, transform: `translateY(${(height - FRAME.height) / 2}px)` }}
+          />
+        )}
         {/* The window's rim, over the picture. */}
-        <div
-          className="absolute inset-0"
-          style={{ borderRadius: radius, boxShadow: p > 0 ? RIM : undefined }}
-        />
+        <div className="absolute inset-0" style={{ borderRadius: radius, boxShadow: RIM }} />
       </div>
-      {/* His last line, captioned as the clip's others are (intro/caps.mjs), on the whole frame. */}
-      {caption > 0 && (
-        <img
-          src="./founder/caption.png"
-          width={FRAME.width}
-          height={FRAME.height}
-          alt=""
-          className="absolute left-0 top-0 block"
-          style={{ opacity: caption, zIndex: 6 }}
-        />
-      )}
     </>
   );
 }

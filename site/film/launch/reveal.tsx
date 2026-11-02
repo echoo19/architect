@@ -21,7 +21,7 @@ import { riseIn, Words } from './words';
 /**
  * The film's figures as type on their own ground. The sealed final test at Harborview Prep and the
  * real academy fill the frame, growing out of the sealed card's title; every other figure rises on
- * the ground beside the window, which stays in frame under the app's backdrop, so it is always
+ * the ground beside the window, which stays in frame at full brightness, so it is always
  * plain where the number comes from.
  */
 
@@ -112,6 +112,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             </span>
             <FigureRow
               value={String(counted)}
+              final={String(HARBORVIEW.taught)}
               unit={`of ${HARBORVIEW.of}`}
               color={tone(1)}
               style={(delay) => riseIn(t, T.fortyThreeRises + delay, Infinity, 0.6)}
@@ -160,11 +161,14 @@ const CARD_TITLE = 15;
 /** A figure's row: its number large, what follows it smaller, each rising into place. */
 function FigureRow({
   value,
+  final,
   unit,
   color,
   style,
 }: {
   value: string;
+  /** What a counting value lands on, whose width the row keeps from the start. */
+  final?: string;
   unit: string;
   color?: string;
   style: (delay: number) => CSSProperties;
@@ -172,11 +176,10 @@ function FigureRow({
   return (
     <span className="flex items-baseline gap-10 whitespace-nowrap font-display font-semibold leading-[0.9] tabular-nums">
       <span className="inline-block pt-[0.06em]">
-        <span
-          className="inline-block text-[420px] tracking-[-0.05em]"
-          style={{ ...style(0), color }}
-        >
-          {value}
+        <span className="grid text-[420px] tracking-[-0.05em]" style={{ ...style(0), color }}>
+          {/* The final value holds the row's room, so the unit never moves while it counts. */}
+          <span className="invisible [grid-area:1/1]">{final ?? value}</span>
+          <span className="[grid-area:1/1]">{value}</span>
         </span>
       </span>
       <span className="inline-block">
@@ -276,7 +279,10 @@ function GroundFigure({
           until={until}
           className={`${TYPE} text-[340px] leading-[0.9] tracking-[-0.05em] tabular-nums ${student ? 'text-student' : ''}`}
         >
-          {shown}
+          <span className="grid">
+            <span className="invisible [grid-area:1/1]">{value}</span>
+            <span className="[grid-area:1/1]">{shown}</span>
+          </span>
         </Rising>
         {unit && (
           <Rising
@@ -427,12 +433,13 @@ export function CounterFigure({ t }: { t: number }) {
         until={until}
         className={`${TYPE} text-[72px] leading-none`}
       />
+      {/* The count stacked over its unit, so nothing beside it moves as its digits drop. */}
       <span
-        className={`flex items-baseline gap-6 whitespace-nowrap ${TYPE} leading-[0.9] tabular-nums`}
+        className={`flex flex-col whitespace-nowrap ${TYPE} leading-[0.9] tabular-nums`}
         style={riseIn(t, T.drawer + 1.0, until)}
       >
         <span className="text-[220px] tracking-[-0.05em]">{rows.toLocaleString('en-US')}</span>
-        <span className="text-[96px]">{rows === 1 ? 'row' : 'rows'}</span>
+        <span className="text-[84px] leading-none">rows</span>
       </span>
       <span
         className={`flex items-center gap-5 text-student ${TYPE} text-[84px] leading-none`}

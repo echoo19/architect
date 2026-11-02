@@ -1,13 +1,13 @@
-import { outQuart, span } from '../lab/time';
+import { inOutCubic, span } from '../lab/time';
 import { T } from './timeline';
 import { Words } from './words';
 
 /**
- * The film's segments. At each whip the window flies out of the frame to the left, gathering
- * speed; where a section opens, its first line rises big on the ground in the narration's own
- * words as the window goes; then the window flies back in from the right at full speed, settling
- * on the section's first moment with its page already changed, and carries the line out to the
- * left. Nothing walks from one screen to the next.
+ * The film's segments. At each one the window glides out of the frame to the left; where a section
+ * opens, its first line rises big on the ground in the narration's own words once the window has
+ * gone; then the window glides back in from the right onto the section's first moment, its page
+ * already changed, carrying the line out to the left. Every glide eases in and out; nothing walks
+ * from one screen to the next.
  */
 export interface Whip {
   /** The window starts out. */
@@ -19,11 +19,11 @@ export interface Whip {
 }
 
 /** How long the window takes to go, and to come back. */
-export const OUT = 0.45;
-export const IN = 0.6;
-/** Going, it gathers speed; coming back, it arrives at speed and settles. */
-export const outEase = (p: number) => p * p * p;
-export const inEase = outQuart;
+export const OUT = 0.7;
+export const IN = 0.8;
+/** Both ways the window eases in and out, so no glide starts or stops abruptly. */
+export const outEase = inOutCubic;
+export const inEase = inOutCubic;
 
 export const WHIPS = {
   field: { out: T.fields - 0.5, in: T.fieldIn, line: 'Give it a field.' },
@@ -33,7 +33,7 @@ export const WHIPS = {
 } as const satisfies Record<string, Whip>;
 
 /** When a whip's line starts to rise: as the window clears the frame, so the two never overlap. */
-export const lineAt = (whip: Whip) => whip.out + 0.42;
+export const lineAt = (whip: Whip) => whip.out + OUT * 0.8;
 
 /** How far the line is carried across the frame, in pixels, as the window comes back. */
 const ACROSS = 2200;

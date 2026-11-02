@@ -174,7 +174,7 @@ const PAGES: readonly PageSpan[] = [
     ),
   },
   {
-    // In under the backdrop beside the certificate's bound, on Compute's own clock.
+    // In beside the certificate's bound, before the camera turns to it, on Compute's own clock.
     key: 'finetune',
     at: COMPUTE_AT,
     mode: 'place',
@@ -251,10 +251,11 @@ const PAGES: readonly PageSpan[] = [
 const CLOCKS = new Map(PAGES.map((page) => [page.key, page.clock ? local(page.clock) : null]));
 
 /**
- * The guided flow's steps, and the editions after the chat, come in as the app's stepper brings
- * them: pushed in whole from the right, the page before going out to the left.
+ * The guided flow's steps, Compute beside the certificate's bound, and the editions after the chat
+ * come in as the app's stepper brings them: pushed in whole from the right, the page before going
+ * out to the left.
  */
-const PUSHED = new Set(['define', 'train', 'welcome']);
+const PUSHED = new Set(['define', 'train', 'finetune', 'welcome']);
 const PUSH = 0.4;
 const pushed = (page: PageSpan | undefined, t: number) =>
   page && PUSHED.has(page.key) ? inOutCubic(span(t, page.at, PUSH)) : null;
@@ -375,23 +376,8 @@ export function walkView(t: number): ScreenView {
       step: mix(1, 2, ui(t, T.train, 0.32)),
     },
     drawer: drawer(t),
-    dim: dim(t),
   };
 }
-
-/** While a figure stands beside the window, the window under the app's backdrop. */
-const DIMS: readonly (readonly [number, number])[] = [
-  [T.source - 0.6, T.confirm - 0.9],
-  [T.harness - 0.1, T.harnessOut],
-  [T.drawer - 0.1, T.drawerOut - 0.05],
-  [T.certHero - 1.0, T.compute - 0.3],
-  [T.gpuDive - 0.1, SHOW_OPEN_TEACHER ? T.beyond - 0.5 : T.openBeat],
-  [T.scienceDive - 0.1, T.scienceResolve],
-];
-
-const dim = (t: number) =>
-  0.75 *
-  Math.max(0, ...DIMS.map(([from, to]) => Math.min(ui(t, from + 0.2, 0.5), 1 - ui(t, to, 0.4))));
 
 /** Every page at its finished state, laid over each other, so their parts can be measured. */
 export function measuringView(): ScreenView {
@@ -440,7 +426,7 @@ export function frameOf(measured: Measured, name: string, pad = 44, max = 2.4, d
 }
 
 /**
- * The whole window at the frame's left, under the app's backdrop, a figure on the ground at its
+ * The whole window at the frame's left, at full brightness, a figure on the ground at its
  * right: the window stays in frame, so the figure is always seen beside where it comes from.
  */
 const SIDE: Framing = { cx: 1180, cy: WINDOW.height / 2, s: 0.78 };
@@ -565,13 +551,13 @@ const SHOTS: readonly Shot[] = [
   // 11. Offline: its line, then Academy desk's On-premise card whole, its Offline row turning as
   // the network goes, its GPU, model and memory; a whip across to its chat for the approval.
   ...whip(WHIPS.offline, (m) => onPremise(m, 'home-premise', 'home-offline')),
-  { at: T.intoChat - 0.85, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
+  { at: CHAT_AT - OUT, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
   { at: CHAT_AT, dur: 0, to: AWAY_RIGHT, still: true },
   { at: CHAT_AT, dur: IN, to: CHAT_VIEW, ease: inEase },
   // 12. The two editions, large, then the window flies out for the lockup.
   { at: T.welcome - 0.4, dur: 0.6, to: FULL, ease: inOutQuint },
   { at: T.welcome + 0.3, dur: 1.0, to: editions },
-  { at: T.ownAI - 0.5, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
+  { at: T.ownAI - OUT - 0.05, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
 ];
 
 export function camera(measured: Measured, t: number): Framing {
