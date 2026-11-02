@@ -40,6 +40,7 @@ import {
   finished,
   FLOW,
   FLOW_LOCAL,
+  laterRounds,
   roundFourKept,
   startedRun,
   stubByKey,
@@ -439,16 +440,20 @@ async function runEvidence(app: ElectronApplication, details: Record<string, Run
 }
 
 /**
- * Start training plays the story's run in the Lab: round 4 kept, the final test, then the agent.
- * Whichever job it is started from, the run is the service desk's.
+ * Start training plays the story's run in the Lab, in about 25 seconds: round 4 kept, rounds 5
+ * to 7 practiced, diagnosed, scored and decided, the final test, then the agent. Whichever job it
+ * is started from, the run is the service desk's.
  */
 async function liveTraining(app: ElectronApplication, details: Record<string, RunDetail>) {
+  const later = laterRounds().map(([ms, events]): [number, RunEvent[]] => [3_000 + ms, events]);
+  const trained = (later.at(-1)?.[0] ?? 3_000) + 1_000;
   const steps: [number, RunEvent[]][] = [
     [3_000, roundFourKept()],
-    [8_000, finalTest(20)],
-    [12_000, finalTest(40)],
-    [16_000, finalTest(60)],
-    [20_000, finished()],
+    ...later,
+    [trained, finalTest(20)],
+    [trained + 2_000, finalTest(40)],
+    [trained + 4_000, finalTest(60)],
+    [trained + 6_000, finished()],
   ];
   await runEvidence(app, { ...details, [FLOW.runId]: detail });
   await app.evaluate(

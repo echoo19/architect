@@ -239,6 +239,13 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   under a name, faint guides at the ticks, figures at the right. A value not measured shows a dash
   and draws nothing. Each row reads out as its label, value and interval. A tall plot shows its
   scale above its rows as well as under them.
+- **LineChart.** Drawn at its real width, never stretched: a main series in steps in the
+  student's blue with a flat fill under it, a quieter series as a thin line with small dots, a dot
+  for each value that counts and a ring on a dashed stem for one that didn't, a dashed reference
+  level labelled at its right end, and the x being worked on as a faint amber band with the main
+  line carried to it dashed. A key under it names the series. Pointing reads out one x on a float;
+  clicking opens it. The training screen's curve is one (held-out checks against practice tasks,
+  round by round to the round budget).
 - **RiskCoveragePlot.** A certificate's curve (decision 077): the share answered across, the error
   up; the bound as a white line, the error measured as small dots, the target as a stronger
   hairline, the certified point in the student's blue, with a three-item key under it.
