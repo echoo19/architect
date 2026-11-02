@@ -36,7 +36,7 @@ const SEED_LIMIT = 2 ** 31;
  * A tool call the model wrote out as text, such as `<atem:invoke name="read">` or a stray
  * `<atem:parameter name="path">`, which no runtime ran. It is not an answer for the lead to read.
  */
-const WRITTEN_CALL = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)\b/i;
+const WRITTEN_CALL = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)(?=[\s/>])/i;
 
 /** What a team's lead is told about when to ask, in its system prompt, in team replies only. */
 export const TEAM_INSTRUCTION = `You work in a team. When a request names something your files don't have, or needs work your teammates' files cover, ask that teammate with ${ASK_TEAMMATE} first, and say exactly what you need back from it, such as the list or the records you will work from.`;

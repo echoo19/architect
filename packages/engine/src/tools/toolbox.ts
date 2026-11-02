@@ -37,6 +37,8 @@ export interface Toolbox {
   readonly specs: readonly ToolSpec[];
   /** Runs one call. Mistakes come back as error outcomes; only bugs throw. */
   run(call: ToolCall, signal?: AbortSignal): Promise<ToolOutcome>;
+  /** Helpers' results too long to show, by the path `run` code reads each one at. */
+  kept(): Record<string, string>;
 }
 
 export interface ToolboxOptions {
@@ -48,6 +50,8 @@ export interface ToolboxOptions {
   approveWrite?: ApproveWrite;
   /** Characters a result may take; longer results are cut with a note. */
   resultBudget?: number;
+  /** Helpers' results kept whole earlier in the attempt, for a run that continues it. */
+  kept?: Readonly<Record<string, string>>;
   /**
    * Tools this run offers besides the built-in and harness ones, such as `ask_teammate` in a
    * team reply (decision 100). None may share a name with another tool.
@@ -111,7 +115,7 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
 
   // A harness tool can't be asked for less, so a result too long to show is kept whole for
   // `run` code, which can pick out what it needs, until a later call of that tool fits.
-  const kept: Record<string, string> = {};
+  const kept: Record<string, string> = { ...options.kept };
   const builtins = builtinExecutors({
     files,
     sandbox,
@@ -174,6 +178,7 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
 
   return {
     specs,
+    kept: () => ({ ...kept }),
     async run(call, signal) {
       try {
         const { value, ...extra } = await execute(call, signal);

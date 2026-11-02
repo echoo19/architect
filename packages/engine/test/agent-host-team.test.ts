@@ -508,12 +508,26 @@ describe('a team reply (decision 100)', () => {
   });
 
   it('tells the lead when its teammate wrote a tool call as text instead of running it', async () => {
+    const asking = (request: string) => ({
+      name: ASK_TEAMMATE,
+      arguments: { member: 'Sweep desk', request },
+    });
+    const config = 'The schedule is set in <cfg:parameter-set>daily</cfg:parameter-set>.';
+    const answered = 'I read it. <atem:invoke name="read"> was not needed.\nANSWER: {"ok": true}';
     const world = await setup([
-      asks('Read the policy.'),
+      {
+        toolCalls: [
+          asking('Read the policy.'),
+          asking('Which schedule?'),
+          asking('Answer in JSON.'),
+        ],
+      },
       {
         text: '<atem:parameter name="path">data/policy.md</atem:parameter> </atem:invoke> </atem:function_calls>',
       },
-      { text: 'It gave no answer.' },
+      { text: config },
+      { text: answered },
+      { text: 'Done.' },
     ]);
     const { reply } = await ask(world, 'What does the policy say?');
     expect(reply.consultations?.map((each) => [each.outcome, each.text])).toEqual([
@@ -521,9 +535,10 @@ describe('a team reply (decision 100)', () => {
         'no_answer',
         'Sweep desk wrote a tool call as text instead of running it, so it gave no answer. Ask it again.',
       ],
+      ['answered', config],
+      ['answered', answered],
     ]);
-    expect(consultOf(reply)?.view).toMatchObject({ outcome: 'no_answer' });
-    expect(world.model.chats()[2]?.messages.at(-1)?.content).toContain('Ask it again.');
+    expect(world.model.chats()[4]?.messages.at(-3)?.content).toContain('Ask it again.');
   });
 
   it('answers once as a team, though its lead is certified', async () => {

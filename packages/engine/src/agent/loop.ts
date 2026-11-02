@@ -87,6 +87,8 @@ export interface ContinueAgentOptions extends Omit<RunAgentOptions, 'request' | 
   replay: ReplaySetup;
   /** Every file's text when the attempt began, so the trace's changes run from there. */
   startTexts: Readonly<Record<string, string>>;
+  /** Helpers' results the attempt kept whole for `run` before the turns already taken. */
+  kept?: Readonly<Record<string, string>>;
 }
 
 /** One attempt's trace as it grows: its steps, usage and clock, and how it ends. */
@@ -206,6 +208,7 @@ export async function continueAgent(options: ContinueAgentOptions): Promise<Trac
     today,
     decoding,
     turnsTaken: options.turnsTaken,
+    ...(options.kept === undefined ? {} : { kept: options.kept }),
   });
 }
 
@@ -214,7 +217,12 @@ async function takeTurns(
   options: Omit<RunAgentOptions, 'request' | 'history'>,
   trace: TraceBuilder,
   messages: ChatMessage[],
-  at: { today: string; decoding: Decoding; turnsTaken: number },
+  at: {
+    today: string;
+    decoding: Decoding;
+    turnsTaken: number;
+    kept?: Readonly<Record<string, string>>;
+  },
 ): Promise<Trace> {
   const { harness, student, files, sandbox, seed, signal } = options;
   const { today, decoding } = at;
@@ -225,6 +233,7 @@ async function takeTurns(
     today,
     approveWrite: options.approveWrite,
     ...(options.extraTools === undefined ? {} : { extraTools: options.extraTools }),
+    ...(at.kept === undefined ? {} : { kept: at.kept }),
   });
   const tools = [...toolbox.specs];
   // Every prompt stays inside the student's context, on every backend (decision 057).
