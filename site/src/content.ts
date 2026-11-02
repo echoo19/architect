@@ -53,50 +53,13 @@ export const EDGE_FILM = {
   play: 'Play the recorded run, 1 minute 11 seconds, with music',
 } as const satisfies FilmSource;
 
-/**
- * Why Architect exists, under the film: our reason, then the three requests from Y Combinator that
- * came out after the build began and ask for the same thing. Each quote is one sentence, verbatim,
- * linked to its request, and each answer is a line or two.
- */
+/** Why Architect exists, under the film: when the build began and our reason. */
 export const WHY = {
   title: 'Why we made this',
   reason:
     "Most teams rent their AI, and every request sends their data to someone else's model. With Architect, a large model teaches a small one the work and leaves. What's left is the team's own.",
-  /** One line under the title: when the build began, against when the requests came out. */
-  started: 'Started Oct 27, 2026, before these requests came out.',
-  /** Where the requests come from, shown above them with its mark. */
-  source: {
-    title: 'Y Combinator Requests for Startups',
-    season: 'Winter 2027',
-    href: 'https://www.ycombinator.com/rfs',
-  },
-  requests: [
-    {
-      title: 'Own Your Intelligence',
-      author: 'Jon Xu',
-      href: 'https://www.ycombinator.com/rfs#own-your-intelligence',
-      quote:
-        'Someone has to turn workflows into evals, expertise into training data, production failures into improvements, and carry all of it forward with each new base model.',
-      answer:
-        "A field's checks come from its workflow, Spark keeps the changes that measurably help and logs every one, and the field can be taught again on a new base model.",
-    },
-    {
-      title: 'AI for the Air-Gapped Economy',
-      author: 'Brad Flora',
-      href: 'https://www.ycombinator.com/rfs#ai-for-the-air-gapped-economy',
-      quote: "The most valuable data in the world isn't in the cloud.",
-      answer:
-        'What Architect makes runs on your own computer and calls nothing but the model beside it. A test checks that.',
-    },
-    {
-      title: 'Vertical Foundation Models',
-      author: 'Diana Hu',
-      href: 'https://www.ycombinator.com/rfs#vertical-foundation-models',
-      quote: 'The hard part is getting high-quality, vertical-specific, verifiable rewards.',
-      answer:
-        'Every field ends with a checker that exports as a reward a training framework can call. No large model has been trained with them yet.',
-    },
-  ],
+  /** One line under the title: when the build began. */
+  started: 'Started Oct 27, 2026.',
 } as const;
 
 export const FOOTER = {

@@ -1,19 +1,11 @@
-import { ArrowUpRight } from 'lucide-react';
 import { WHY } from '../content';
 import { Others } from './Others';
-import { Unbroken } from './Unbroken';
 import { Reveal } from './Reveal';
 
-/** Y Combinator's mark, a white Y on its orange square, kept as the file in public/. */
-function YcMark() {
-  return <img src="./yc-mark.svg" width={32} height={32} alt="" className="shrink-0" />;
-}
-
 /**
- * Why we made Architect: the title and when the build began, our reason beside them, then the
- * requests that later asked for the same thing, under the list they came from, side by side:
- * each quote, then who asked and our answer, on one line across the three. Under them, published
- * work from others pointing the same way, one at a time.
+ * Why we made Architect: the title and when the build began, our reason beside them, then
+ * published work from others pointing the same way, Y Combinator's requests among it, one at a
+ * time.
  */
 export function Why() {
   return (
@@ -27,45 +19,6 @@ export function Why() {
         </div>
         <p className="t-lead max-w-[36rem]">{WHY.reason}</p>
       </Reveal>
-      <Reveal className="mt-16 lg:mt-24">
-        <a
-          className="link-quiet inline-flex items-center gap-3"
-          href={WHY.source.href}
-          aria-label={`${WHY.source.title}, ${WHY.source.season}`}
-        >
-          <YcMark />
-          <span className="flex flex-col">
-            <span className="t-body font-semibold">{WHY.source.title}</span>
-            <span className="t-small">{WHY.source.season}</span>
-          </span>
-        </a>
-      </Reveal>
-      <ol className="m-0 mt-10 grid list-none gap-12 p-0 lg:mt-12 lg:grid-cols-3 lg:gap-12">
-        {WHY.requests.map((request) => (
-          <li key={request.href} className="grid lg:row-span-2 lg:grid-rows-subgrid">
-            <Reveal className="grid gap-8 border-t border-line pt-8 lg:row-span-2 lg:grid-rows-subgrid">
-              <blockquote cite={request.href} className="m-0">
-                <p className="why-quote">
-                  <Unbroken text={request.quote} />
-                </p>
-              </blockquote>
-              <div className="flex flex-col gap-3">
-                <p className="m-0 flex flex-wrap items-baseline gap-x-2">
-                  <a
-                    className="link-quiet t-body inline-flex items-center gap-1 font-semibold"
-                    href={request.href}
-                  >
-                    {request.title}
-                    <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
-                  </a>
-                  <span className="t-small">{request.author}</span>
-                </p>
-                <p className="t-small m-0 text-pretty">{request.answer}</p>
-              </div>
-            </Reveal>
-          </li>
-        ))}
-      </ol>
       <Others />
     </section>
   );
