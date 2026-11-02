@@ -19,8 +19,8 @@ export const FINE_TUNE_AT = {
   figures: T.weights - T.compute,
   lora: T.lora - T.compute,
   fit: T.fit - T.compute,
-  toFit: T.gpuDive - T.compute - 0.6,
-  toBundle: T.gpuResolve - T.compute + 0.3,
+  toFit: T.gpuResolve - T.compute - 0.4,
+  toBundle: T.slurm - T.compute - 0.5,
   slurm: T.slurm - T.compute,
   kubernetes: T.kubernetes - T.compute,
 } as const;

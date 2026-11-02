@@ -20,6 +20,9 @@ export const REAL_ACADEMY = { taught: 12, alone: 9, of: 24 } as const;
  */
 export const CORVID = { taught: 27, alone: 4, of: 32, name: 'Corvid Hill Discovery' } as const;
 
+/** Inventory desk's best final tests on the Fields page: 21 of 24 taught on, 27 of 32 never seen. */
+export const INVENTORY_SCORES = ['88%', '84%', '-'] as const;
+
 /**
  * The harness changes of the academy field's first run (tutor-1, its lineage and harness folder):
  * round 1's files with their lines added and removed, v0001 to v0002; round 2's change to the
@@ -186,7 +189,7 @@ export const CERTIFICATE: Certificate = {
 /** The certificate's check where the specialist never trained, as the film sets it large. */
 export const CERTIFICATE_CHECK = {
   name: 'An academy it never trained on',
-  answered: 'Answered 53 of 54',
+  answered: '53 of 54',
   wrong: 'none wrong',
 };
 

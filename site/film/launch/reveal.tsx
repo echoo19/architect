@@ -21,7 +21,7 @@ import { riseIn, Words } from './words';
 /**
  * The film's figures as type on their own ground. The sealed final test at Harborview Prep and the
  * real academy fill the frame, growing out of the sealed card's title; every other figure rises on
- * the ground beside the window, which stays in frame under the app's backdrop, so it is always
+ * the ground beside the window, which stays in frame at full brightness, so it is always
  * plain where the number comes from.
  */
 
@@ -49,7 +49,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
   if (t < T.grows - 0.05 || t > away + IN) return null;
   const sx = FRAME.width / 2;
   const sy = FRAME.height / 2;
-  const counted = Math.round(mix(0, HARBORVIEW.taught, outQuart(span(t, T.fortyThreeRises, 0.5))));
+  const counted = Math.round(mix(0, HARBORVIEW.taught, outQuart(span(t, T.fortyThree - 0.8, 0.8))));
   // The ground is lifted while the window is out of frame, just before it flies back in.
   const ground = t < away ? outQuart(span(t, T.grows + 0.1, 0.5)) : 0;
   const exit = -2200 * inEase(span(t, away, IN));
@@ -65,14 +65,15 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
     : { x: sx + HERO_BLOCK.left, y: sy + HERO_BLOCK.top + HERO_TITLE / 2, k: 1 };
   const to = { x: sx + HERO_BLOCK.left, y: sy + HERO_BLOCK.top + HERO_TITLE / 2 };
   // Alone, the title holds the frame's middle; it goes up to its place as the count rises.
-  const alone = (1 - outQuart(span(t, T.fortyThreeRises - 0.05, 0.45))) * (FRAME.height / 2 - to.y);
+  // It goes up to its place first, and the count rises under it once it is there.
+  const alone = (1 - inOutCubic(span(t, T.fortyThree - 1.35, 0.55))) * (FRAME.height / 2 - to.y);
   const titleX = mix(from.x - to.x, 0, grow);
   const titleY = mix(from.y - to.y - alone, 0, grow) + alone;
   const titleK = mix(from.k, 1, grow);
   // The real academy's figure takes the sealed one's place, the whole of each moving as one.
   const swap = T.realAcademy;
-  const gone = inOutCubic(span(t, swap, 0.4));
-  const real = outExpo(span(t, swap + 0.2, 0.8));
+  const gone = inOutCubic(span(t, swap, 0.6));
+  const real = inOutCubic(span(t, swap + 0.15, 0.8));
   const type = 'whitespace-nowrap font-display font-semibold leading-none tracking-[-0.03em]';
   const block = 'absolute left-0 top-0 flex flex-col items-start gap-4';
   return (
@@ -90,7 +91,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
         {gone < 1 && (
           <div
             className={block}
-            style={{ opacity: 1 - gone, transform: `translateY(${gone * -40}px)` }}
+            style={{ opacity: 1 - gone, transform: `translateY(${gone * -220}px)` }}
           >
             <span
               className={`flex items-baseline pb-[0.12em] text-[76px] ${type}`}
@@ -112,9 +113,10 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             </span>
             <FigureRow
               value={String(counted)}
+              final={String(HARBORVIEW.taught)}
               unit={`of ${HARBORVIEW.of}`}
               color={tone(1)}
-              style={(delay) => riseIn(t, T.fortyThreeRises + delay, Infinity, 0.6)}
+              style={(delay) => riseIn(t, T.fortyThree - 0.8 + delay, Infinity, 0.8)}
             />
             <span
               className={`inline-block pb-[0.12em] text-[76px] ${type}`}
@@ -129,7 +131,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             className={block}
             style={{
               opacity: Math.min(1, real * 1.4),
-              transform: `translateY(${(1 - real) * 40}px)`,
+              transform: `translateY(${(1 - real) * 220}px)`,
             }}
           >
             <span
@@ -160,11 +162,14 @@ const CARD_TITLE = 15;
 /** A figure's row: its number large, what follows it smaller, each rising into place. */
 function FigureRow({
   value,
+  final,
   unit,
   color,
   style,
 }: {
   value: string;
+  /** What a counting value lands on, whose width the row keeps from the start. */
+  final?: string;
   unit: string;
   color?: string;
   style: (delay: number) => CSSProperties;
@@ -172,11 +177,10 @@ function FigureRow({
   return (
     <span className="flex items-baseline gap-10 whitespace-nowrap font-display font-semibold leading-[0.9] tabular-nums">
       <span className="inline-block pt-[0.06em]">
-        <span
-          className="inline-block text-[420px] tracking-[-0.05em]"
-          style={{ ...style(0), color }}
-        >
-          {value}
+        <span className="grid text-[420px] tracking-[-0.05em]" style={{ ...style(0), color }}>
+          {/* The final value holds the row's room, so the unit never moves while it counts. */}
+          <span className="invisible [grid-area:1/1]">{final ?? value}</span>
+          <span className="[grid-area:1/1]">{value}</span>
         </span>
       </span>
       <span className="inline-block">
@@ -241,7 +245,7 @@ function GroundFigure({
   heading: readonly string[];
   headingAt: number;
   value: number;
-  /** The number counts up from nothing as it rises, landing 0.5 s after `valueAt`. */
+  /** The number counts up from nothing as it rises, landing 1 s after `valueAt`. */
   count?: boolean;
   valueAt: number;
   unit?: string;
@@ -251,7 +255,7 @@ function GroundFigure({
   student?: boolean;
 }) {
   if (t < headingAt - 0.05 || t > until + 0.9) return null;
-  const shown = count ? Math.round(mix(0, value, outQuart(span(t, valueAt, 0.5)))) : value;
+  const shown = count ? Math.round(mix(0, value, outQuart(span(t, valueAt, 1.0)))) : value;
   return (
     <div
       className="absolute flex flex-col gap-5"
@@ -276,7 +280,10 @@ function GroundFigure({
           until={until}
           className={`${TYPE} text-[340px] leading-[0.9] tracking-[-0.05em] tabular-nums ${student ? 'text-student' : ''}`}
         >
-          {shown}
+          <span className="grid">
+            <span className="invisible [grid-area:1/1]">{value}</span>
+            <span className="[grid-area:1/1]">{shown}</span>
+          </span>
         </Rising>
         {unit && (
           <Rising
@@ -312,7 +319,7 @@ export function ScienceFigure({ t }: { t: number }) {
       headingAt={T.scienceHero}
       value={CORVID.taught}
       count
-      valueAt={T.twentySevenRises}
+      valueAt={T.twentySeven - 1.0}
       unit={`of ${CORVID.of}`}
       under={`Glimmer alone: ${CORVID.alone}`}
       underAt={T.scienceAlone}
@@ -323,8 +330,8 @@ export function ScienceFigure({ t }: { t: number }) {
 }
 
 /**
- * The fine-tune's two jobs, at the window's right, each named for what it is: the plan sized for a
- * large model across 16 GPUs, then this specialist, actually trained on one GPU in eight minutes.
+ * The fine-tune's two jobs, at the window's right in the narration's order: this specialist,
+ * trained on one GPU in eight minutes, then a large model's run, planned across 16 GPUs.
  */
 export function GpuFigures({ t }: { t: number }) {
   return (
@@ -332,25 +339,25 @@ export function GpuFigures({ t }: { t: number }) {
       <GroundFigure
         t={t}
         x={RIGHT}
-        heading={['A large model,', 'planned across']}
-        headingAt={T.gpuHero}
-        value={PLAN.fit.gpus}
-        valueAt={T.gpuHero + 0.25}
-        unit="GPUs"
-        until={T.gpuTrained - 0.45}
-      />
-      <GroundFigure
-        t={t}
-        x={RIGHT}
         heading={['This specialist,', 'trained on']}
-        headingAt={T.gpuTrained}
+        headingAt={T.gpuTrained - 0.2}
         value={TRAINED.gpus}
         valueAt={T.gpuTrained + 0.1}
         unit="GPU"
         under={`in ${TRAINED.minutes} minutes`}
         underAt={T.gpuTrained + 0.35}
-        until={T.openBeat - 0.4}
+        until={T.gpuResolve - 0.45}
         student
+      />
+      <GroundFigure
+        t={t}
+        x={RIGHT}
+        heading={['A large model,', 'planned across']}
+        headingAt={T.gpuResolve}
+        value={PLAN.fit.gpus}
+        valueAt={T.gpuResolve + 0.25}
+        unit="GPUs"
+        until={T.openBeat - 0.4}
       />
     </>
   );
@@ -427,12 +434,13 @@ export function CounterFigure({ t }: { t: number }) {
         until={until}
         className={`${TYPE} text-[72px] leading-none`}
       />
+      {/* The count stacked over its unit, so nothing beside it moves as its digits drop. */}
       <span
-        className={`flex items-baseline gap-6 whitespace-nowrap ${TYPE} leading-[0.9] tabular-nums`}
+        className={`flex flex-col whitespace-nowrap ${TYPE} leading-[0.9] tabular-nums`}
         style={riseIn(t, T.drawer + 1.0, until)}
       >
         <span className="text-[220px] tracking-[-0.05em]">{rows.toLocaleString('en-US')}</span>
-        <span className="text-[96px]">{rows === 1 ? 'row' : 'rows'}</span>
+        <span className="text-[84px] leading-none">rows</span>
       </span>
       <span
         className={`flex items-center gap-5 text-student ${TYPE} text-[84px] leading-none`}
@@ -561,8 +569,8 @@ function StepMark({ mark, color }: { mark: string; color: 'mentor' | 'student' }
  * teaching Glimmer, the small model that fits a PC.
  */
 export function LabModels({ t }: { t: number }) {
-  // Gone once the window has whipped out to the field, so the camera never passes them again.
-  if (t < T.how - 0.1 || t > T.fields + 0.2) return null;
+  // They go out with the window as it glides to the field, and are gone before it comes back.
+  if (t < T.how - 0.1 || t > T.fieldIn) return null;
   const rows = [
     { name: 'Spark', color: 'mentor' as const, role: "Meta's frontier model", at: T.how },
     { name: 'Glimmer', color: 'student' as const, role: '30B, fits on a PC', at: T.labHover + 0.2 },
