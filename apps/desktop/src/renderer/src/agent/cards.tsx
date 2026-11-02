@@ -27,6 +27,7 @@ import {
   CircleAlert,
   CircleCheck,
   Cpu,
+  Equal,
   FlaskConical,
   Gauge,
   HardDrive,
@@ -35,6 +36,8 @@ import {
   MessageSquareDashed,
   ShieldCheck,
   Square,
+  TrendingDown,
+  TrendingUp,
   Users,
   WifiOff,
 } from 'lucide-react';
@@ -224,7 +227,7 @@ export function ActivityCard({
       <div className="@container flex flex-col gap-7">
         <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-5 @xl:grid-cols-4">
           <Figure label={countLabel} value={String(requests)} />
-          <Figure label="Median answer" value={figure(times.median)} />
+          <Figure label="Median answer in use" value={figure(times.median)} />
           <Figure label="95th percentile" value={figure(times.p95)} />
           <Figure
             label="Tokens per second"
@@ -239,7 +242,7 @@ export function ActivityCard({
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex min-w-0 flex-col justify-between gap-1">
       <dt className="text-ui">{label}</dt>
       <dd className="m-0 font-display text-h1 font-semibold tabular-nums">{value}</dd>
     </div>
@@ -405,6 +408,8 @@ export function DeploymentCard({
       : null;
   const checks = installation.data.checks;
   const passed = checks.filter((check) => check.status === 'passed').length;
+  const skipped = checks.filter((check) => check.status === 'skipped').length;
+  const failed = checks.length - passed - skipped;
   const firstReply = figures?.coldStartMs ?? installation.data.measurements.firstReplyMs ?? null;
   const build = [
     agentModelName(student),
@@ -501,11 +506,14 @@ export function DeploymentCard({
           label={CHECK_WORDS[installation.data.status]}
           detail={
             checks.length > 0
-              ? `${passed} of ${plural(checks.length, 'installation check')} passed${
-                  installation.data.checkedAt
-                    ? `, ${shortDate(installation.data.checkedAt) ?? ''}`
-                    : ''
-                }`
+              ? [
+                  `${plural(passed, 'installation check')} passed`,
+                  skipped > 0 && `${skipped} skipped`,
+                  failed > 0 && `${failed} failed`,
+                  installation.data.checkedAt && shortDate(installation.data.checkedAt),
+                ]
+                  .filter(Boolean)
+                  .join(', ')
               : 'Its installation checks haven’t run'
           }
         />
@@ -542,25 +550,73 @@ const cell = (score: Score | null) => (score ? formatPercent(score) : null);
 
 type Column = { key: keyof OrgScores; label: string };
 
+/** Where a test ran, in a sentence. */
+const PLACE_WORDS = { hosted: 'the hosted copy', local: 'this computer' } as const;
+
+interface Drift {
+  points: number;
+  /** The kind of organization it moved on, with its score at graduation and in the latest test. */
+  moved: { column: Column; before: Score; after: Score } | null;
+  /** Where the test at graduation and the latest one ran, in a sentence. */
+  from: string;
+  to: string;
+}
+
 /**
  * How far the latest test moved from the one at graduation, in points, on the first kind of
  * organization where it moved at all; null with no test since.
  */
-function driftOf(
-  rows: readonly { scores: OrgScores }[],
-  columns: readonly Column[],
-): { points: number; where: string } | null {
+function driftOf(rows: readonly TestRow[], columns: readonly Column[]): Drift | null {
   const first = rows[0];
   const latest = rows.at(-1);
   if (rows.length < 2 || !first || !latest) return null;
+  const places = { from: PLACE_WORDS[first.card.testedOn], to: PLACE_WORDS[latest.card.testedOn] };
+  const [before, after] = [reportScores(first.card), reportScores(latest.card)];
   for (const column of columns) {
-    const before = first.scores[column.key];
-    const after = latest.scores[column.key];
-    if (!before || !after) continue;
-    const points = percentOf(after) - percentOf(before);
-    if (points !== 0) return { points, where: column.label };
+    const was = before[column.key];
+    const is = after[column.key];
+    if (!was || !is) continue;
+    const points = percentOf(is) - percentOf(was);
+    if (points !== 0) return { points, moved: { column, before: was, after: is }, ...places };
   }
-  return { points: 0, where: '' };
+  return { points: 0, moved: null, ...places };
+}
+
+/**
+ * The drift as a row: how many points the latest test moved and on what, with both scores and
+ * where each ran, so the figure explains itself; a drop is in red.
+ */
+function DriftFact({ drift, lab }: { drift: Drift; lab: boolean }) {
+  const { moved } = drift;
+  if (!moved) {
+    return (
+      <Fact
+        icon={<Equal strokeWidth={1.8} aria-hidden />}
+        label="No drift"
+        detail={`The same on ${drift.to} as on ${drift.from}`}
+      />
+    );
+  }
+  const down = drift.points < 0;
+  // The personal edition's one column is the score itself, so it isn't named.
+  const on = lab || moved.column.key !== 'seen' ? `, ${moved.column.label.toLowerCase()}` : '';
+  return (
+    <Fact
+      icon={
+        down ? (
+          <TrendingDown strokeWidth={1.8} aria-hidden className="text-danger" />
+        ) : (
+          <TrendingUp strokeWidth={1.8} aria-hidden />
+        )
+      }
+      label={
+        <span className={down ? 'text-danger' : undefined}>
+          {`${down ? '−' : '+'}${Math.abs(drift.points)} points${on}`}
+        </span>
+      }
+      detail={`${formatPercent(moved.after)} on ${drift.to}, against ${formatPercent(moved.before)} on ${drift.from}`}
+    />
+  );
 }
 
 /**
@@ -596,32 +652,15 @@ export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report
   ).filter(
     (column) => column.key === 'seen' || scored.some((row) => row.scores[column.key] !== null),
   );
-  const drift = driftOf(scored, columns);
+  const drift = driftOf(rows, columns);
   const certificate = graduated.certificate;
   const notHeld = notHeldLine(certificate, words.finalTest);
   const figure = certificateFigure(certificate);
+  const { passRate } = agent.manifest.requirements;
+  const { score } = agent.manifest.test;
 
   return (
-    <Card
-      title={words.FinalTest}
-      icon={<ShieldCheck strokeWidth={1.8} aria-hidden />}
-      flush
-      action={
-        drift !== null ? (
-          <span
-            className={
-              drift.points < 0
-                ? 'pr-2 text-ui tabular-nums text-danger'
-                : 'pr-2 text-ui tabular-nums'
-            }
-          >
-            {drift.points === 0
-              ? 'No drift'
-              : `${drift.points > 0 ? '+' : '−'}${Math.abs(drift.points)} points ${drift.where.toLowerCase()}`}
-          </span>
-        ) : undefined
-      }
-    >
+    <Card title={words.FinalTest} icon={<ShieldCheck strokeWidth={1.8} aria-hidden />} flush>
       <div
         role="table"
         aria-label={`${words.FinalTest} at graduation and since`}
@@ -663,6 +702,14 @@ export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report
         ))}
       </div>
       <ul className="m-0 list-none p-0">
+        {drift && <DriftFact drift={drift} lab={words.lab} />}
+        {!passRate.met && (
+          <Fact
+            icon={<CircleAlert strokeWidth={1.8} aria-hidden />}
+            label={`Needs ${Math.round(passRate.target * 100)}%`}
+            detail={`It passed ${score.pass} of ${score.total}; check its answers before relying on them.`}
+          />
+        )}
         <Fact
           icon={<ShieldCheck strokeWidth={1.8} aria-hidden />}
           label={words.lab ? 'Risk certificate' : 'Certified answers'}
