@@ -136,7 +136,7 @@ export function manifestFor(options: ManifestOptions): PackageManifest {
           target: 'local',
         },
       ],
-      measured: score ? { latencyMs: { p50: 150_000, p95: 222_000 } } : {},
+      measured: score ? { latencyMs: { p50: 38_000, p95: 174_000 } } : {},
       minimum: { memoryBytes: 20 * 1024 ** 3, diskBytes: GLIMMER_BYTES },
       limitations: [],
     },
@@ -321,7 +321,7 @@ export const READY_CHECKS: InstallCheck[] = [
     ),
     sameBuild: true,
   },
-  passed('model-responds', 'model_responds', 'Answered in 2.8 s, loading included.', 2_800),
+  passed('model-responds', 'model_responds', 'Answered in 14 s, loading included.', 13_900),
 ];
 
 export function installation(graduateId: string, fields: Partial<Installation> = {}): Installation {
@@ -338,7 +338,7 @@ export function installation(graduateId: string, fields: Partial<Installation> =
     reasons: [],
     checks: READY_CHECKS,
     machine: MACHINE,
-    measurements: { firstReplyMs: 2_800 },
+    measurements: { firstReplyMs: 13_900 },
     checkedAt: at(200),
     ...fields,
   };

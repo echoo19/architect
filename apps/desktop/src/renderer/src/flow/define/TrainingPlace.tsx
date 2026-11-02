@@ -26,6 +26,7 @@ import {
   mentorRoundsLine,
   formatAboutUsd,
   limitText,
+  limitedLine,
   finalTestAfter,
   minutesForOneRound,
   planBills,
@@ -132,6 +133,8 @@ export function TrainingPlace(props: TrainingPlaceProps) {
     };
   }
   const roomy = fits ? null : minutesForOneRound(job, job.student.trainOn);
+  // The place chosen says too when the time limit stops training before its last round.
+  const limited = limitedLine(job, chosen);
   return (
     <div className="flex flex-col gap-3">
       <RadioCardGroup
@@ -150,6 +153,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           <span>Free</span>
           {/* The callout says it for the place chosen, so the card does not say it again. */}
           {localSlow && onHost && <span>{localSlow}</span>}
+          {limited && !onHost && <span>{limited}</span>}
         </RadioCard>
         <RadioCard
           value="hosted"
@@ -165,6 +169,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           ) : (
             <span>{hosted.reason}</span>
           )}
+          {limited && onHost && <span>{limited}</span>}
         </RadioCard>
       </RadioCardGroup>
       <Collapse open={!fits}>
@@ -186,7 +191,7 @@ export function TrainingPlace(props: TrainingPlaceProps) {
           />
         )}
       </Collapse>
-      {fits && (localSlow || remoteSlow) && (
+      {fits && (localSlow || remoteSlow || limited) && (
         <Button variant="ghost" size="xs" className="-ml-3 self-start" onClick={onRaiseLimit}>
           Allow more time
           <ChevronRight size={13} strokeWidth={1.8} aria-hidden />

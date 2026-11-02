@@ -159,11 +159,11 @@ export function Sidebar({ route }: { route: Route }) {
         </div>
 
         {/*
-          The runs keep their own place under the agents, so one that ends while the person is
-          elsewhere stays in view however many agents and teams there are.
+          The runs keep their own place under the agents, whole, so one that ends while the person
+          is elsewhere stays in view however many agents and teams there are; the agents scroll.
         */}
         {graduates.data && (
-          <div className="-m-1 flex max-h-[25vh] shrink-0 flex-col overflow-y-auto p-1 scroll-quiet">
+          <div className="flex shrink-0 flex-col">
             {jobs.data ? (
               <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
             ) : (
@@ -293,7 +293,15 @@ function NewChatButton({
  * row's whole width until the group is pointed at or reached with the keyboard.
  */
 const GROUP_ACTIONS =
-  'absolute inset-y-0 right-0.5 flex items-center bg-ground pl-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
+  'absolute inset-y-0 right-0.5 flex items-center rounded-r-control bg-ground pl-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/agent:opacity-100';
+
+/*
+ * Over a row with a fill, the actions carry the same fill on the ground beneath them, so the
+ * row reads as one piece: an inset shadow lays the translucent fill over the opaque ground.
+ */
+const ON_SELECTED = 'shadow-[inset_0_0_0_999px_var(--ui-selected)]';
+const ON_HOVER = 'group-hover/row:shadow-[inset_0_0_0_999px_var(--ui-hover)]';
+const ON_IN_CHAT = 'shadow-[inset_0_0_0_999px_var(--ui-hover)]';
 
 function AgentGroup({
   graduate,
@@ -308,22 +316,27 @@ function AgentGroup({
   const chats = useAgentChats(graduate.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const { creating, start } = useStartChat(graduate.name, () => createChat(graduate.id));
-  // The open agent, at its home or in one of its chats, scrolls into view with its chats.
-  const open =
-    (route.name === 'agent' || route.name === 'chat') && route.graduateId === graduate.id;
+  const home = route.name === 'agent' && route.graduateId === graduate.id;
+  // In one of its chats, the agent's row keeps a lighter fill, so the open chat has its place.
+  const openChat = route.name === 'chat' && route.graduateId === graduate.id ? route.chatId : null;
+  // The open agent, at its home or in one of its chats, scrolls into view with its chats, and
+  // the open chat with it, however far down the list it is.
   const group = useRef<HTMLDivElement>(null);
   const loaded = chats.entry.data !== undefined;
   useEffect(() => {
-    if (open && loaded) group.current?.scrollIntoView({ block: 'nearest' });
-  }, [open, loaded]);
+    if (!(home || openChat) || !loaded) return;
+    group.current?.scrollIntoView({ block: 'nearest' });
+    group.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
+  }, [home, openChat, loaded]);
 
   return (
     <div ref={group} className="group/agent flex flex-col gap-0.5">
-      <div className="relative">
+      <div className="group/row relative">
         <NavItem
           icon={<AgentAvatar name={graduate.name} />}
-          current={route.name === 'agent' && route.graduateId === graduate.id}
+          current={home}
           indicator={INDICATOR}
+          className={home ? undefined : openChat ? 'bg-hover' : 'group-hover/row:bg-hover'}
           onClick={() => navigate(paths.agent(graduate.id))}
           end={
             showVersion && graduate.activeVersion !== null ? (
@@ -333,7 +346,7 @@ function AgentGroup({
         >
           <span className="font-medium">{graduate.name}</span>
         </NavItem>
-        <div className={GROUP_ACTIONS}>
+        <div className={cn(GROUP_ACTIONS, home ? ON_SELECTED : openChat ? ON_IN_CHAT : ON_HOVER)}>
           <NewChatButton name={graduate.name} creating={creating} onClick={start} />
           <Tooltip content="Agent settings" side="right">
             <IconButton
@@ -403,11 +416,13 @@ const RECENT_CHATS = 5;
 
 /**
  * An agent's or a team's most recent chats, nested under it, with the open one among them
- * however old it is.
+ * however old it is: an older one takes the last place, so the group keeps its height.
  */
 function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route: Route }) {
   const open = route.name === 'chat' || route.name === 'team-chat' ? route.chatId : null;
-  const list = chats.entry.data?.filter((chat, index) => index < RECENT_CHATS || chat.id === open);
+  const openAt = chats.entry.data?.findIndex((chat) => chat.id === open) ?? -1;
+  const recent = openAt >= RECENT_CHATS ? RECENT_CHATS - 1 : RECENT_CHATS;
+  const list = chats.entry.data?.filter((chat, index) => index < recent || index === openAt);
   return (
     <>
       {!list && chats.entry.status === 'loading' && (
@@ -454,7 +469,7 @@ function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route
                 ) : undefined
               }
             >
-              {chat.title}
+              <span className="block truncate">{chat.title}</span>
             </NavItem>
           </StaggerItem>
         );

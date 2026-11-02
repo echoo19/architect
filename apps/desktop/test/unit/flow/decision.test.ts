@@ -5,7 +5,9 @@ import {
   harmSentence,
   outcomeNote,
   refusalSentence,
+  roundShortfall,
 } from '../../../src/renderer/src/flow/train/decision';
+import { WORDS } from '@architect/ui';
 import { AT, decided, makeJob, makeRound } from './factories';
 
 const job = makeJob();
@@ -140,14 +142,41 @@ describe('harmSentence', () => {
   });
 });
 
+describe('roundShortfall', () => {
+  it('says how far a round with no gain fell short, and nothing for any other', () => {
+    expect(roundShortfall(decided(6, 34, 35), job, WORDS.lab)).toBe(
+      '+1 held-out check, needs +2 to stay',
+    );
+    expect(roundShortfall(decided(2, 23, 22), job)).toBe('−1 check task, needs +2 to stay');
+    expect(roundShortfall(decided(3, 23, 31), job)).toBeNull();
+    // Measured again on new seeds, it is held to the margin for both runs.
+    const twice: Round = {
+      ...decided(5, 62, 64),
+      decision: 'reverted',
+      firstMeasurement: {
+        devBefore: { pass: 31, total: 40 },
+        devAfter: { pass: 33, total: 40 },
+      },
+    };
+    expect(roundShortfall(twice, job)).toBe('+2 check tasks, needs +4 to stay');
+  });
+});
+
 describe('outcomeNote', () => {
   const ended = (disposition: Experiment['disposition']) =>
     ({ ...rejected([], 7, 7), disposition }) as Experiment;
 
   it('adds nothing where the outcome says it all', () => {
-    for (const disposition of ['kept', 'reverted', 'invalid', 'stopped'] as const) {
+    for (const disposition of ['kept', 'invalid', 'stopped'] as const) {
       expect(outcomeNote(ended(disposition), job)).toBeNull();
     }
+  });
+
+  it('says how far a change with no gain fell short of the keep rule', () => {
+    const reverted = (before: number, after: number) =>
+      ({ ...rejected([], before, after), disposition: 'reverted' }) as Experiment;
+    expect(outcomeNote(reverted(7, 7), job)).toBe('0 check tasks, needs +2 to stay');
+    expect(outcomeNote(reverted(7, 8), job, WORDS.lab)).toBe('+1 held-out check, needs +2 to stay');
   });
 
   it('names what a rejected change harmed, or the check it failed', () => {

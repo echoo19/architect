@@ -287,7 +287,10 @@ interface Practice {
   reason: string;
 }
 
-/** Round 5's practice tasks after its first, in the order they are answered. */
+/**
+ * Round 5's practice tasks after its first, in the order they are answered. Each one it misses
+ * books a technician without the license the call needs, the cause round 5's change is made from.
+ */
 const PRACTICE: Practice[] = [
   {
     type: 'invoice',
@@ -320,10 +323,11 @@ const PRACTICE: Practice[] = [
     reason: 'Feasible, and the earliest start.',
   },
   {
-    type: 'overdue',
+    type: 'scheduling',
     pass: false,
-    prompt: 'Which accounts went overdue this week?',
-    reason: 'Counts the Oct 3 payment against the wrong invoice, so Linden Cafe is missed.',
+    prompt: 'Book an electrician for a sparking outlet at 5 Pine St, zone A.',
+    reason:
+      'Omar K. holds no electrical license; Marcus O. is the earliest licensed one, at 10:30.',
   },
   {
     type: 'invoice',
@@ -352,8 +356,8 @@ const PRACTICE: Practice[] = [
   {
     type: 'scheduling',
     pass: false,
-    prompt: 'Book a heating technician for a cold radiator at 8 Oak Pl, zone C, before noon.',
-    reason: 'Nobody licensed can reach zone C before noon; the answer should say so.',
+    prompt: "Book a gas technician for a boiler that won't light at 8 Oak Pl, zone C.",
+    reason: 'Marcus O. holds no gas license; Omar K. is the earliest licensed one, at 14:00.',
   },
 ];
 

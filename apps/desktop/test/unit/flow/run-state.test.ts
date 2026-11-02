@@ -171,6 +171,53 @@ describe('liveRunReducer', () => {
     expect(finished.progress).toBeNull();
   });
 
+  it('keeps a finished count where it ended until the run moves on, then counts the next step from none', () => {
+    const base = { runId: 'run_1', at: AT, harnessVersion: 2 } as const;
+    const scoring = runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(1) }));
+    const counted: RunEvent = {
+      ...base,
+      type: 'eval.progress',
+      split: 'dev',
+      done: 40,
+      total: 40,
+      pass: 5,
+    };
+    const finished: RunEvent = {
+      ...base,
+      type: 'eval.finished',
+      split: 'dev',
+      score: { pass: 20, total: 40 },
+      perType: [],
+    };
+    const ended = loaded(scoring, counted, finished);
+    expect(activeProgress(ended)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    // A round measures both versions as one count: the first version's end is half way.
+    const half: RunEvent = { ...counted, done: 20 };
+    expect(activeProgress(loaded(scoring, half, finished))).toEqual({
+      split: 'dev',
+      done: 20,
+      total: 40,
+    });
+
+    const decided = loaded(
+      scoring,
+      counted,
+      finished,
+      runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(2) })),
+    );
+    expect(activeProgress(decided)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    const next = loaded(
+      scoring,
+      counted,
+      finished,
+      runUpdated(makeRun({ phase: 'attempting', updatedAt: at(2) })),
+      runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(3) })),
+    );
+    expect(activeProgress(next)).toBeNull();
+  });
+
   it('shows the latest warning until the phase changes', () => {
     const base = { runId: 'run_1', at: AT } as const;
     const warned = loaded(
