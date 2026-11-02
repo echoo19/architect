@@ -7,14 +7,14 @@ import { SHOW_OPEN_TEACHER } from './data';
  */
 
 // 0. The founder's last line, "Here's how it works.", before the film's own clock starts: his frame
-// recedes into a window as the claim rises beside it, and the training screen pushes into it.
+// recedes into a window, and on the score's first drop the training screen pushes into it.
 const founder = -1.3;
 
 // 1. Hook: "Every frontier model knows a little about everything. Your work needs a specialist
 // that knows it inside out. Architect builds it." The training screen takes the founder's place,
-// the camera goes onto its score as it climbs past the target, and on "Architect builds it" it
-// dives through the score and past two screens on the music's hits.
-const hits = [8.8, 10.1, 10.75] as const;
+// the camera goes onto its score as it climbs past the target, and holds it on "Architect builds
+// it" before one move across to the requests.
+const builds = 8.8;
 
 // 2. Why: the line, then the three requests, a camera move between each.
 const asked = 10.85;
@@ -58,7 +58,7 @@ const hero = vaultPage + 2.05;
 const fortyThree = hero + 3.35;
 const resolve = fortyThree + 2.9;
 const side = resolve + 0.8;
-const twelve = side + 2.9;
+const twelve = side + 2.0;
 
 // 9. "Architect certifies its specialists. This one is wrong on at most five percent of what it
 // answers, with ninety-five percent confidence, and it held on an academy it never trained on.
@@ -105,11 +105,12 @@ const architect = morph + 3.0;
 export const T = {
   founder,
   recede: founder + 0.4,
-  claim: -0.3,
   trainRises: 0.6,
   trainShown: 1.6,
   trainPush: 4.3,
-  hits,
+  /** The score lands on its target. */
+  scoreLands: builds - 0.64,
+  builds,
   asked,
   requests,
   toLab,
@@ -141,19 +142,23 @@ export const T = {
   four: drawer + 5.8,
   fixed,
   regression,
-  drawerOut: regression + 0.5,
+  drawerOut: regression + 1.0,
   vaultPage,
   opens: vaultPage + 1.1,
   grows: vaultPage + 1.5,
   hero,
   vaultCut: hero + 0.95,
   fortyThree,
+  /** 43 of 48 rises on the score's drop, landing on its word. */
+  fortyThreeRises: fortyThree - 0.4,
   alone: fortyThree + 1.3,
   resolve,
   side,
   twelve,
   nine: twelve + 1.2,
   models,
+  /** The window flies back in from the right onto the certificate as the figure goes. */
+  toModels: models - 0.5,
   panel,
   certHero,
   certificate,
@@ -178,6 +183,8 @@ export const T = {
   scienceDive,
   scienceHero: scienceDive + 0.6,
   twentySeven,
+  /** 27 of 32 rises on the score's drop, landing on its word. */
+  twentySevenRises: twentySeven - 0.45,
   scienceAlone: twentySeven + 1.3,
   scienceResolve,
   teamScroll,
@@ -189,7 +196,7 @@ export const T = {
   workspace,
   network: workspace + 1.2,
   /** The Offline row turns as the window lands back from the line. */
-  offline: workspace + 1.5,
+  offline: workspace + 1.35,
   machine: workspace + 2.3,
   memory: workspace + 3.2,
   intoChat: saves - 1.0,
