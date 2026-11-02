@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import type { Round } from '@architect/shared';
-import { cn, StepTransition, type Words } from '@architect/ui';
+import type { Probe, Round } from '@architect/shared';
+import { cn, Spinner, StepTransition, type Words } from '@architect/ui';
 import { CircleAlert } from 'lucide-react';
 import { useWords } from '../../shell/edition';
-import { formatRange } from '../format';
+import { formatRange, signed } from '../format';
 import { draftRoundOf } from './draft';
 import { failureLine } from './failure-line';
 import type { ModelNames } from './phase';
@@ -49,6 +49,10 @@ function mentorLine(
   w: Words,
 ): string {
   if (round.diagnosis) return round.diagnosis;
+  const probes = round.probes?.length ?? 0;
+  if (round.status === 'probing')
+    return `Waits while ${names.student} tries each of the ${probes} changes.`;
+  if (round.status === 'composing') return `Making one change from what the ${probes} tries did.`;
   if (draft) {
     return `Writing ${names.student}'s first full ${w.setup} from the job and its example tasks.`;
   }
@@ -97,6 +101,7 @@ export function CurrentRound({
   const answered = question?.state === 'ready' ? question.intervention : undefined;
   const unanswered = hasEnded(live.run) && answered?.answer === undefined ? answered : undefined;
   const practice = draft ? [] : practiceCells(live, round);
+  const probes = round.probes ?? [];
   const showDiagnosis = question === null && (active || round.diagnosis !== undefined);
 
   return (
@@ -142,11 +147,16 @@ export function CurrentRound({
           {live.notice.message}
         </p>
       )}
-      {(practice.length > 0 || (question === null && predicted)) && (
+      {(practice.length > 0 || probes.length > 0 || (question === null && predicted)) && (
         <dl className="m-0 flex flex-col gap-3">
           {practice.length > 0 && (
             <Fact label="Practice">
               <PracticeCells cells={practice} />
+            </Fact>
+          )}
+          {probes.length > 0 && (
+            <Fact label={w.lab ? 'Probes' : 'Tries'}>
+              <Probes probes={probes} measuring={active && round.status === 'probing'} w={w} />
             </Fact>
           )}
           {question === null && predicted && (
@@ -159,6 +169,65 @@ export function CurrentRound({
         </dl>
       )}
     </section>
+  );
+}
+
+/**
+ * A propose-probe-compose round's tries (decision 108), one line each: what it did to the check
+ * tasks beside the current version, and its name. The round's own change, made from them, is the
+ * round's line.
+ */
+export function Probes({
+  probes,
+  measuring,
+  w,
+}: {
+  probes: readonly Probe[];
+  measuring: boolean;
+  w: Words;
+}) {
+  return (
+    <ol className="m-0 flex list-none flex-col gap-1.5 p-0">
+      {probes.map((probe) => (
+        <li
+          key={probe.index}
+          className="grid grid-cols-[40px_minmax(0,1fr)] items-baseline gap-x-3"
+        >
+          <ProbeResult probe={probe} measuring={measuring} w={w} />
+          <span className="truncate" title={probe.refused ?? probe.diagnosis}>
+            {probe.title}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ProbeResult({ probe, measuring, w }: { probe: Probe; measuring: boolean; w: Words }) {
+  if (probe.refused !== undefined) {
+    return (
+      <span
+        role="img"
+        aria-label="Refused"
+        title={probe.refused}
+        className="flex items-center text-danger"
+      >
+        <CircleAlert size={13} aria-hidden />
+      </span>
+    );
+  }
+  const { devBefore, devAfter } = probe;
+  if (devBefore === undefined || devAfter === undefined) {
+    return measuring ? <Spinner tone="student" size={13} label="Scoring" /> : <span />;
+  }
+  const delta = devAfter.pass - devBefore.pass;
+  return (
+    <span
+      className="font-mono text-small tabular-nums"
+      title={`${devAfter.pass} of ${devAfter.total} ${w.checks}, against ${devBefore.pass} of ${devBefore.total}`}
+    >
+      {signed(delta)}
+    </span>
   );
 }
 

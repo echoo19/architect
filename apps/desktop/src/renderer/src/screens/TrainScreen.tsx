@@ -368,7 +368,7 @@ function TrainBoard({
   const draft = draftRoundOf(live);
   const round = currentRound(live);
   const drafting = draft !== null && round?.index === draft;
-  const view = phaseView(run, names, drafting, improves !== null, words);
+  const view = phaseView(run, names, drafting, improves !== null, words, round?.status);
   const score = run.devCurrent ?? run.devBaseline;
   const evidence = records.data ?? null;
   const failure =

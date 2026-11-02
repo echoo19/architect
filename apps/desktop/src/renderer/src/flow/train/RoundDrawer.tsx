@@ -46,6 +46,7 @@ import {
 } from './ExperimentSections';
 import type { ModelNames } from './phase';
 import { RoundCounterexamples } from './Counterexamples';
+import { Probes } from './CurrentRound';
 import { answerEffect } from './questions';
 
 function statusText(status: Round['status'], w: Words): string {
@@ -173,6 +174,12 @@ export function RoundDrawerContent({
                 </Effect>
               )}
             </dl>
+          </DrawerSection>
+        )}
+
+        {round.probes !== undefined && round.probes.length > 0 && (
+          <DrawerSection title={w.lab ? 'Probes' : 'Tries'}>
+            <Probes probes={round.probes} measuring={round.status === 'probing'} w={w} />
           </DrawerSection>
         )}
 

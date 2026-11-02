@@ -134,7 +134,28 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
   await expect(
     inspector.getByRole('textbox', { name: 'Measured again on new seeds' }),
   ).toBeVisible();
+  // Each round: one change, or propose, probe and compose, with a line saying what that means.
+  const mode = inspector.getByRole('radiogroup', { name: 'Each round' });
+  await expect(mode.getByRole('radio', { name: 'One change' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await expect(inspector).toContainText(
+    'Spark makes one change a round, kept only if the check tasks gain.',
+  );
   await capture(page, 'define-inspector-teaching-dark');
+  await mode.getByRole('radio', { name: 'Propose, probe, compose' }).click();
+  await expect
+    .poll(async () => (await lastSaved())?.evaluation.roundMode)
+    .toBe('propose_probe_compose');
+  await expect(inspector).toContainText(
+    'Spark tries 3 changes on the check tasks, then makes one from what they did and keeps it only if it gains.',
+  );
+  await expect(inspector.getByRole('textbox', { name: 'Changes tried a round' })).toHaveValue('3');
+  // Back as it was, so every later capture prices the same job.
+  await mode.getByRole('radio', { name: 'One change' }).click();
+  await expect.poll(async () => (await lastSaved())?.evaluation.roundMode).toBe('one_change');
+  await expect(inspector.getByRole('textbox', { name: 'Changes tried a round' })).toHaveCount(0);
   await kinds.getByRole('switch', { name: 'Small tools' }).click();
   await expect(page.getByText('Small tools saved', { exact: true })).toBeVisible();
   expect((await lastSaved())?.interventions).toEqual([

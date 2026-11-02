@@ -18,6 +18,8 @@ import {
   answerTakenUp,
   askingEngine,
   beforeAskingEngine,
+  COMPOSED_ROUND,
+  probingEngine,
   endedAskingEngine,
   flipSwitch,
   HOME_ENGINE,
@@ -532,4 +534,36 @@ test('says so, and keeps what was typed, when the answer cannot be sent', async 
   await expect(page.getByText("Round 4 isn't waiting for an answer.")).toBeVisible();
   await expect(form.getByRole('textbox', { name: 'Your answer' })).toHaveValue(ANSWER);
   await expect(form.getByRole('button', { name: 'Send answer', exact: true })).toBeEnabled();
+});
+
+test('shows the tries of a round that proposes, probes and composes, and the change made from them', async () => {
+  const { app, page } = launched;
+  await stubEngine(app, probingEngine());
+  await applySettings(page, { onboarded: true });
+  await resize(TRAIN_HEIGHT);
+  await goTo(page, `/runs/${STORY.runId}/train`);
+  await expect(page.getByText('Spark is making one change from the tries')).toBeVisible();
+  const round = page.getByRole('region', { name: 'Current round' });
+  await expect(round).toContainText('Making one change from what the 3 tries did.');
+  // Each try with what it did to the check tasks beside the current version, or why it was refused.
+  const tries = round.getByRole('listitem');
+  await expect(tries).toHaveCount(3);
+  await expect(tries.nth(0)).toContainText('+2');
+  await expect(tries.nth(0)).toContainText('Add travel time to the booking skill');
+  await expect(tries.nth(1)).toContainText('\u22121');
+  await expect(tries.nth(2).getByRole('img', { name: 'Refused' })).toBeVisible();
+  await expect(round).not.toContainText('\u00b7');
+  await capture(page, 'train-probes-dark');
+
+  // Once Spark has made its change, the round's line names it and the round says why.
+  await emitRunEvents(app, [
+    { type: 'round.updated', runId: STORY.runId, at: at(121), round: COMPOSED_ROUND },
+  ]);
+  await expect(round).toContainText('The booking skill alone helped');
+  const rounds = page.getByRole('region', { name: 'Rounds' });
+  await rounds.getByRole('button', { name: /Travel time in the booking skill/ }).click();
+  const drawer = page.getByRole('dialog', { name: 'Round 4: Travel time in the booking skill' });
+  await expect(drawer.getByRole('region', { name: 'Tries' })).toContainText(
+    'A rule in AGENTS.md about zones',
+  );
 });

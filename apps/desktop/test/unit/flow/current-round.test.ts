@@ -38,6 +38,66 @@ function panel(run: LiveRun, round = makeRound(2, { status: 'attempting' })): st
 }
 
 describe('the newest round, open under its line', () => {
+  it('lists the tries of a round that probes, each with what it did to the check tasks', () => {
+    const predicted = { devDeltaMin: 1, devDeltaMax: 2, rationale: 'Two types.' };
+    const round = makeRound(2, {
+      status: 'composing',
+      train: { pass: 0, total: 12 },
+      probes: [
+        {
+          index: 1,
+          title: 'Add the invoice rule',
+          diagnosis: 'Totals skip labor.',
+          files: ['AGENTS.md'],
+          predicted,
+          version: 3,
+          devBefore: { pass: 4, total: 10 },
+          devAfter: { pass: 6, total: 10 },
+          train: { pass: 4, total: 12 },
+        },
+        {
+          index: 2,
+          title: 'Add the overdue rule',
+          diagnosis: 'Balances miss the grace days.',
+          files: ['skills/overdue/SKILL.md'],
+          predicted,
+          version: 4,
+          devBefore: { pass: 4, total: 10 },
+          devAfter: { pass: 3, total: 10 },
+          train: { pass: 2, total: 12 },
+        },
+        {
+          index: 3,
+          title: 'A helper for totals',
+          diagnosis: 'Sums by hand go wrong.',
+          files: ['tools/total.js'],
+          predicted,
+          refused: "tools/total.js doesn't load",
+        },
+      ],
+    });
+    // A try's practice attempts are its own, not the round's.
+    const own = makeAttempt('att_1', { round: 2, split: 'train', harnessVersion: 2 });
+    const tried = makeAttempt('att_2', {
+      round: 2,
+      split: 'train',
+      harnessVersion: 3,
+      check: { pass: false, reason: 'Wrong total.' },
+    });
+    const html = panel(
+      live({ status: 'running', phase: 'diagnosing' }, { attempts: [tried, own] }),
+      round,
+    );
+    expect(html).toContain('Making one change from what the 3 tries did.');
+    expect(html).toMatch(/Tries<\/dt>/);
+    expect(html).toContain('>+2</span>');
+    expect(html).toContain('>\u22121</span>');
+    expect(html).toContain('Add the overdue rule');
+    expect(html).toContain('aria-label="Refused"');
+    expect(html).not.toContain('Wrong total.');
+    expect(html).not.toContain('\u00b7');
+  });
+
   it('says what the student is working through and what the mentor waits for', () => {
     const html = panel(live({ status: 'running', phase: 'attempting' }));
     expect(html).toContain('aria-label="Current round"');

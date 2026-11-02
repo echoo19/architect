@@ -229,6 +229,9 @@ export function measurementLabel(
 ): string {
   if (w.lab && measurement.label === 'H1/A0') return 'Harness only';
   if (w.lab && measurement.label === 'H0/A1') return 'LoRA only';
+  // A propose-probe-compose round's tries, measured beside its change (decision 108).
+  const probe = /^probe (\d+)$/.exec(measurement.label);
+  if (probe) return `${w.lab ? 'Probe' : 'Try'} ${probe[1]}`;
   return MEASUREMENT_LABELS[measurement.label] ?? measurement.label;
 }
 
