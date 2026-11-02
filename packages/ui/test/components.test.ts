@@ -2,6 +2,7 @@ import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
+  BarChart,
   ChoiceTiles,
   cn,
   Combobox,
@@ -13,6 +14,7 @@ import {
   Field,
   IntervalPlot,
   Meter,
+  niceCeiling,
   PageTabs,
   ProgressStepper,
   ProviderMark,
@@ -451,5 +453,39 @@ describe('DataTable', () => {
     expect(rows[0]).toContain('bg-selected');
     expect(rows[0]).not.toContain('hover:bg-hover');
     expect(rows[1]).toContain('hover:bg-hover');
+  });
+});
+
+describe('BarChart', () => {
+  it('reads out each bar and draws an empty one as a mark on the baseline', () => {
+    const html = renderToStaticMarkup(
+      createElement(BarChart, {
+        'aria-label': 'Requests per day',
+        data: [
+          { key: 'a', label: '30', description: 'October 30: 3 requests', value: 3 },
+          { key: 'b', label: '31', description: 'October 31: no requests', value: 0 },
+          {
+            key: 'c',
+            label: '1',
+            description: 'November 1: 7 requests, 1 failed',
+            value: 7,
+            alert: 1,
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('aria-label="Requests per day"');
+    expect(html).toContain('<li>October 30: 3 requests</li>');
+    expect(html).toContain('<li>November 1: 7 requests, 1 failed</li>');
+    // The scale tops out at 10, so the tallest bar fills 70% of it and its failure a seventh.
+    expect(html).toContain('height:70%');
+    expect(html).toContain('bg-danger');
+    expect(html).toContain('h-0.5');
+  });
+
+  it('tops its scale at a round number', () => {
+    expect([0, 1, 3, 7, 10, 11, 24, 51, 180].map(niceCeiling)).toEqual([
+      1, 1, 5, 10, 10, 20, 50, 100, 200,
+    ]);
   });
 });
