@@ -70,18 +70,18 @@ How it works:
 
 - **A field, not a prompt.** You describe a kind of work done across several organizations, such as test-prep academies or screening labs, each with its own files and policy. Spark studies all of it (recordings too, through Muse Voice Transcribe) and writes a brief where every rule is traced to its source.
 - **Harness engineering.** Spark drafts the harness, then reads Glimmer's failed attempts, finds the step that went wrong, and refines it. A refinement stays only if it beats held-out checks; otherwise it is rolled back. Every change is logged with the failure that caused it, the predicted effect and the measured one.
-- **Counterexample-guided repair.** When a tool Spark wrote gives a wrong result, Architect shrinks the failing case (2,312 rows down to 4 in one repair), Spark fixes the tool against it, and the case joins the field's regression suite.
-- **Fine-tuning.** Architect exports checker-verified training data, sizes a LoRA, QLoRA or full fine-tune from the model's own config, trains on Hugging Face Jobs, and writes launch bundles for Slurm, Kubernetes and SkyPilot clusters.
+- **Counterexample-guided repair.** When a tool Spark wrote gives a wrong result, Architect shrinks the failing case (2,312 rows down to 4 in one repair on a generated academy's practice data, recorded in `docs/DECISIONS.md`, decision 078), Spark fixes the tool against it, and the case joins the field's regression suite.
+- **Fine-tuning.** Architect exports checker-verified training data, sizes a LoRA, QLoRA or full fine-tune from the model's own config, trains on Hugging Face Jobs, and writes experimental launch bundles for Slurm, Kubernetes and SkyPilot clusters. The bundles are built and checked by tests against stand-in schedulers, but none has run on a real cluster yet (`docs/SCALE.md`).
 - **Risk certificates.** A sealed calibration set sets when the specialist answers and when it hands off to a person, with a stated bound and confidence, then the bound is checked on organizations it never trained on.
 - **Agent teams.** Specialists work together: a lead asks a teammate when the answer is in the teammate's files. Each still reads only its own files and asks before it writes.
 - **Two editions in one app.** Architect teaches one job, for anyone. Architect Lab is the R&D workbench: fields, preregistered experiments, a registry of model versions with their scores, and compute plans.
 
-**Results:** from the reports in `docs/comparisons`. The organizations are generated, except the anonymized real academy.
+**Results:** each figure below is from a report in `docs/comparisons`. The organizations are generated, except the anonymized real academy.
 
 - **Test-prep academies:** on Harborview Prep, an academy neither model saw, the Spark-engineered harness passed 43 of 48 tasks, against 24 for Glimmer alone.
 - **A screening lab:** Inventory desk, which reserves compound stock for re-tests, passed 27 of 32 at Corvid Hill Discovery, a lab neither model saw, against 4 for Glimmer alone.
-- **LoRA fine-tuning:** with Inventory desk's harness held fixed, a QLoRA adapter trained on 22 of Glimmer's checker-passed attempts took it from 22 of 30 to 32 of 32 at Corvid Hill Discovery. Task by task that is 8 wins and no losses, +26.7 points (95% interval +9.8 to +44.4), for $4.42 of GPU. It is one seed, and the adapter also stopped Glimmer writing its reasoning, so part of the gain may come from that.
-- **The first risk certificate:** when Academy desk answers, it is wrong on at most 5% of requests like these, at 95% confidence, and the bound held at Harborview Prep: 53 of 54 answered, none wrong.
+- **LoRA fine-tuning:** with Inventory desk's harness held fixed, a QLoRA adapter trained on 22 of Glimmer's checker-passed attempts took it from 22 of 30 to 32 of 32 at Corvid Hill Discovery. Task by task that is 8 wins and no losses, +26.7 points (95% interval +9.8 to +44.4), for at most $4.42 of GPU. It is one seed, and the adapter also stopped Glimmer writing its reasoning, so part of the gain may come from that.
+- **The first risk certificate:** it covers three skills that can be built from an academy's records (diagnose, history and assign), on hosted Glimmer at generated academies. When Academy desk answers one of them, it is wrong on at most 5% of requests like these, at 95% confidence. The bound held at Harborview Prep: 53 of 54 answered, none wrong.
 - **An open-weight teacher:** with Muse Spark Open as the teacher, served by Baseten, the whole pipeline runs on Meta's open weights. Its engineered harness took Glimmer from 18 to 39 of 60 requests on a returns desk's sealed final test.
 - **On-premise:** the same Academy desk passed 103 of 120 on one 12 GB graphics card, against 99 of 120 hosted.
 
@@ -99,7 +99,9 @@ How it works:
 
 **Track:** indie developer. **Problem statement:** Build for Your World.
 
-**Links:** https://github.com/echoo19/architect, https://echoo19.github.io/architect/, the latest release for Windows and macOS, and the video (to add).
+**Contributors:** Jake Kang (representative). [Owner: add any other contributor on the form before submitting.]
+
+**Links:** https://github.com/echoo19/architect, https://echoo19.github.io/architect/, the latest release for Windows and macOS, and the video: [video link, added at submission].
 
 **X post (draft):** I built Architect: an R&D platform that trains specialist AI on your own work. A frontier model engineers a small model's harness and fine-tunes it with LoRA, every refinement tested on held-out checks and the result judged on a sealed test. On a lab it never saw: 27 of 32, up from 4, and 32 of 32 with a LoRA adapter. Open source: github.com/echoo19/architect
 

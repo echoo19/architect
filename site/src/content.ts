@@ -58,7 +58,7 @@ export const WHY = {
       quote:
         'Someone has to turn workflows into evals, expertise into training data, production failures into improvements, and carry all of it forward with each new base model.',
       answer:
-        "A field's checks come from its workflow, every failure becomes a logged change, and the field can be taught again on a new base model.",
+        "A field's checks come from its workflow, Spark keeps the changes that measurably help and logs every one, and the field can be taught again on a new base model.",
     },
     {
       title: 'AI for the Air-Gapped Economy',
@@ -86,5 +86,5 @@ export const FOOTER = {
   note: 'The shops, labs and academies in the film are generated, except the anonymized Real academy. Every measured figure is from a real run.',
   /** The results page's note. */
   resultsNote:
-    'The generated academies, the screening labs, the returns desks and the repair shop are made up. The Real academy is a real one, anonymized, and its records are not published. The figures are from real runs, and the reports they come from are in docs/comparisons.',
+    "The generated academies, the screening labs, the returns desks and the repair shop are made up. The Real academy is a real one, anonymized, and its records are not published. The figures are from real runs. Each comparison has its report in docs/comparisons. The repair shop was the film's demo run, recorded in HACKATHON.md, and the 2,312-row repair is in DECISIONS.md.",
 } as const;

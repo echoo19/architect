@@ -27,7 +27,7 @@ Academy desk answers from each academy's own files: its topics, question bank, l
 - **A field, not a prompt.** You describe a kind of work done across several organizations, such as test-prep academies or screening labs, each with its own files and policy. Spark studies all of it (recordings too, through Muse Voice Transcribe) and writes a brief where every rule is traced to its source. You confirm it.
 - **Harness engineering.** Spark drafts the harness, then reads Glimmer's failed attempts, finds the step that went wrong, and refines it. A refinement stays only if it beats the held-out checks; otherwise it is rolled back. Every change is logged with the failure that caused it, the predicted effect and the measured one.
 - **Counterexample-guided repair.** When a tool Spark wrote gives a wrong result, Architect shrinks the failing case, Spark fixes the tool against it, and the case joins the field's regression suite.
-- **Fine-tuning.** Architect exports checker-verified training data, sizes a LoRA, QLoRA or full fine-tune from the model's own config, trains on Hugging Face Jobs, and writes launch bundles for Slurm, Kubernetes and SkyPilot clusters.
+- **Fine-tuning.** Architect exports checker-verified training data, sizes a LoRA, QLoRA or full fine-tune from the model's own config, trains on Hugging Face Jobs, and writes experimental launch bundles for Slurm, Kubernetes and SkyPilot clusters. The bundles are checked by tests against stand-in schedulers; none has run on a real cluster yet.
 - **A sealed final test.** Some organizations are kept away from both models. The final test runs once, after everything is frozen, and a program scores it for each skill at each organization, never the wording.
 - **Risk certificates.** A sealed calibration set decides when the specialist answers and when it hands off to a person, with a stated bound and confidence, and the bound is then checked on organizations it never trained on.
 - **Agent teams.** Specialists work together: a lead asks a teammate when the answer is in the teammate's files. Each still reads only its own files and asks before it writes.
@@ -56,7 +56,7 @@ A small calibration set gives a wide bound, and the report shows it wide.
 
 ## Counterexample-guided repair
 
-When a helper that Spark wrote gives a wrong result on practice data, Architect shrinks the failing case until little is left. On a generated academy's practice data, a question lookup that crashed on tests laid out as "Full" went from 2,312 rows to 4. Spark repairs the helper against that small case, the repair must also pass the original case and every earlier one, and the case stays in the field's regression suite so a later change can't break the helper again.
+When a helper that Spark wrote gives a wrong result on practice data, Architect shrinks the failing case until little is left. On a generated academy's practice data, a question lookup that crashed on tests laid out as "Full" went from 2,312 rows to 4 ([decision 078](docs/DECISIONS.md)). Spark repairs the helper against that small case, the repair must also pass the original case and every earlier one, and the case stays in the field's regression suite so a later change can't break the helper again.
 
 <img alt="A counterexample in the round's drawer, on stand-in data: the failing helper's input reduced from 1,212 rows to 1 row, the failure in plain words, and the repair" src="docs/screenshots/counterexample-dark.png">
 
@@ -75,13 +75,13 @@ Architect is one app in two editions. You choose one on the first screen and can
 
 ## Teams
 
-In Architect Lab, specialists can work as a team. You pick a lead and up to three teammates. When a request needs another desk's work, the lead asks that teammate. The teammate works in its own folder on what it was asked, and only its answer comes back. Each agent still asks before it changes a file, and the question names the agent that wants to. In the science set, Inventory desk asks Assay desk which compounds on a plate need a re-test, then reserves stock for exactly those. The lead is told which files each teammate holds, and to ask first when a request names something its own files lack. A team isn't certified as a team.
+In Architect Lab, specialists can work as a team. You pick a lead and up to three teammates. When a request needs another desk's work, the lead asks that teammate. The teammate works in its own folder on what it was asked, and only its answer comes back. Each agent still asks before it changes a file, and the question names the agent that wants to. The science set is built around this: Inventory desk asks Assay desk which compounds on a plate need a re-test, so it can reserve stock for those. Told which files each teammate holds, the lead asked Assay desk in 18 of 20 replies, and in the latest run Assay desk read a whole plate and found exactly the two compounds the lead needed. The team runs are reported in [docs/comparisons](docs/comparisons). The lead is told which files each teammate holds, and to ask first when a request names something its own files lack. A team isn't certified as a team.
 
 <img alt="A team chat on stand-in data: Inventory desk asked Assay desk about plate FW-0418, and the step opens to Assay desk's own work and its answer" src="docs/screenshots/team-consultation-dark.png">
 
 ## Results
 
-Every number below comes from a real run, with the plan written before it started, and from the reports in [docs/comparisons](docs/comparisons). The organizations are generated, except the anonymized real academy. "Unseen" means sealed away from both models until the final test.
+Every run below had its plan written before it started, and each one's figures come from the report linked under it, in [docs/comparisons](docs/comparisons). The organizations are generated, except the anonymized real academy. "Unseen" means sealed away from both models until the final test.
 
 | Run | Where | Glimmer alone | Taught |
 | --- | --- | --- | --- |
@@ -139,7 +139,7 @@ With Muse Spark Open as the teacher, served by Baseten, both models in the pipel
 
 - Request by request, teaching won 28 and lost 7: +35.0 points, with a 95% interval of +16.8 to +50.2. Its one refinement won 8 requests over the first harness and lost none.
 - Spark Open cost $0.19 for 4 calls, and hosted Glimmer $3.13.
-- Glimmer on its own passed 18 here and 44 in the earlier Spark run on the same tasks. This engine refuses a turn that no longer fits the 16,384-token context of the build on your computer, and 12 of its 60 final attempts ended that way, so the 18 is a lower baseline than the 44.
+- Glimmer on its own passed 18 here and 44 in the earlier Spark run on the same tasks. Twelve of its 60 final attempts ended in an error. Final-test traces aren't kept, but all 19 errored practice and check attempts whose traces were kept were this engine refusing a turn that no longer fit the 16,384-token context of the build on your computer, so that is most likely the cause. The 18 is a lower baseline than the 44.
 
 Limits: 2 rounds of teaching of the 3 planned, because the arm's Glimmer cap stopped it; one seed; hosted Glimmer. The report is [docs/comparisons/returns-desk-open-1.md](docs/comparisons/returns-desk-open-1.md).
 
@@ -190,11 +190,9 @@ A second field run stopped twice before any result was read: first its budget ra
 
 - On Juniper Study House, Academy desk passed 31 of 48 and a blank setup 15. Task by task it won 18 and lost 2, a difference of +33.3 points with a 95% interval of +16.2 to +47.5. That is a gain, and it came from assign, history and hint.
 - On the taught academies the difference was +18.8 points, with an interval of +2.0 to +33.9.
-- On the Real academy, Academy desk passed 3 of 30 and a blank setup 13, a difference of -33.3 points (-50.3 to -14.2), on history and diagnose.
-- Why, from replaying Academy desk's own tools on the Real academy's files and checking its rules against the requests' wording, offline and after the test: its diagnose instructions load on phrases like "what topic", and the Real academy asks "Which topic was that, and what was the right answer?", so they never loaded. Its history tool gives the right result on all 10 tasks, but every attempt ran to the 30-step limit. The likely cause is that the instructions ask for a number of days the Real academy's policy doesn't have, while the second round allowed one tool call per turn. No replies are kept, so that is not confirmed. Assign was 0 of 10 for both setups, because the Real academy's assignments file is empty and its drafted policy never says how to number the first row. The task builder was fixed afterwards, and this run's numbers stand as measured.
 - The run cost $0.44 of Spark and $7.35 of hosted Glimmer. No local GPU was used.
 
-Limits: hosted Glimmer under one seed. The blank setup ran at temperature 1 with 16 turns and low reasoning, Academy desk at temperature 0 with 30 turns and high reasoning, and Academy desk used about three times the blank setup's spend. Without the one-shot setup's result, the run can't say how much of the gain came from the draft and how much from the rounds. A script confirmed the study, not a person. The reports are [docs/comparisons/academy-desk-3.md](docs/comparisons/academy-desk-3.md) and [academy-desk-3-misses.md](docs/comparisons/academy-desk-3-misses.md).
+Limits: on the Real academy's second snapshot Academy desk passed 3 of 30, against 13 for a blank setup. Replaying its tools offline after the test traced this to three causes: its diagnose instructions load on phrases like "what topic", which that academy doesn't use; every history attempt ran to the 30-step limit, most likely because the instructions ask for a number of days its policy doesn't have; and its assignments file is empty, so neither setup could number the first row. The task builder was fixed afterwards. The run used hosted Glimmer under one seed. The blank setup ran at temperature 1 with 16 turns and low reasoning, Academy desk at temperature 0 with 30 turns and high reasoning, and Academy desk used about three times the blank setup's spend. Without the one-shot setup's result, the run can't say how much of the gain came from the draft and how much from the rounds. A script confirmed the study, not a person. The reports are [docs/comparisons/academy-desk-3.md](docs/comparisons/academy-desk-3.md) and [academy-desk-3-misses.md](docs/comparisons/academy-desk-3-misses.md).
 
 ### A first live certificate
 
@@ -278,16 +276,19 @@ This run came before Academy desk's. It is the simpler case: one job and one bus
 - On a new returns desk, teaching took Glimmer from 44 to 58 of 60 on requests it had never seen. Request by request it fixed 15 and broke 1, so it's 23 points better, with a 95% interval of 11 to 36. The plan was [published before the run](docs/comparisons/returns-desk-2-plan.md).
 - Its typical answer dropped from 17.7 seconds to 3.5.
 - The teaching cost 42 cents of Spark.
-- A run before it, with teaching held to two rounds, went from 43 to 45 of 60, within its interval.
 
-Those numbers were measured on full-precision Glimmer, hosted through OpenRouter. The gain came from changes to Glimmer's instructions and tools; no weights were trained. The smaller 4-bit build that runs on your computer has not been measured on this test. The numbers come from 1,956 real attempts. Glimmer read 78 million tokens and wrote 2.7 million through OpenRouter ($7.92), and Spark used 4.7 million ($3.06). The full reports are in [docs/comparisons](docs/comparisons).
+Those numbers were measured on full-precision Glimmer, hosted through OpenRouter. The gain came from changes to Glimmer's instructions and tools; no weights were trained. The smaller 4-bit build that runs on your computer has not been measured on this test. An earlier run, with teaching held to two rounds, went from 43 to 45 of 60. Across the two reports, hosted Glimmer made 1,752 attempts through OpenRouter, $7.19 as the provider settled it. Spark used about 4.7 million tokens for $3.00, most of it answering the first desk's 60 final-test requests itself as a reference. The full reports are in [docs/comparisons](docs/comparisons).
+
+### Other fields in progress
+
+- **Sweep desk**, for ML research groups' training sweeps: Spark's first harness passed 23 of 48 at Fennick Research, a group neither model saw, against 15 for Glimmer alone. That is a secondary arm of its run; the report is [sweep-desk-2.md](docs/comparisons/sweep-desk-2.md).
 
 ### Limits of these runs
 
 Each run above lists its own limits. Across them, the numbers are hosted Glimmer, mostly under one seed, and the organizations are generated except the anonymized real academy. Two more runs are in their reports:
 
-- **Agent teams.** In the first live team run the lead asked its teammate in 2 of 20 replies. Told which files each teammate holds, it asked in 18 of 20 in the second, but no answer carried the plate's list: Assay desk's plate tool overflows Glimmer's context on these plates. Both runs passed 0 of 20, team and alone ([team-1.md](docs/comparisons/team-1.md), [team-2.md](docs/comparisons/team-2.md)).
-- **Sweep desk.** Spark's first harness passed 23 of 48 at Fennick Research, the unseen group, against 15 for Glimmer alone; its refinement round stopped at the Spark cap, so what refinement adds there is unmeasured ([sweep-desk-2.md](docs/comparisons/sweep-desk-2.md)).
+- **Agent teams.** The plate list has not yet reached the lead. In the second run Assay desk's plate tool overflowed Glimmer's context on these plates. In the third, a helper's long result could be read whole and Assay desk found the list, but its reply stopped at a write that needs a person's approval ([team-1.md](docs/comparisons/team-1.md), [team-2.md](docs/comparisons/team-2.md), [team-3.md](docs/comparisons/team-3.md)).
+- **Sweep desk.** Its refinement round stopped at the Spark cap, so the taught arm ran on Spark's first harness, and what refinement adds on this field is unmeasured ([sweep-desk-2.md](docs/comparisons/sweep-desk-2.md)).
 
 ## From a specialist to a field model
 
@@ -299,15 +300,15 @@ Each field Architect works on leaves behind three things besides the specialist:
 
 From a chosen model's own configuration on Hugging Face, Architect also sizes a training job: the memory for weights, gradients, optimizer state and activations, then the GPUs and nodes, with the arithmetic shown as an estimate. For a Slurm cluster or Kubernetes it writes an experimental launch bundle and the command to submit it with your own tools. Architect never holds cluster credentials.
 
-<img alt="A training plan in Architect Lab for a 235-billion-parameter mixture-of-experts model: 16 GPUs on 2 nodes of 8, with each memory term and its arithmetic" src="docs/screenshots/compute-plan-dark.png">
+<img alt="An illustrative training plan in Architect Lab, on stand-in data, for a 235-billion-parameter mixture-of-experts model: 16 GPUs on 2 nodes of 8, with each memory term and its arithmetic" src="docs/screenshots/compute-plan-dark.png">
 
-Architect develops and evaluates field-specific agent harnesses and exports checker-verified training data. The single-GPU path has run for real: the QLoRA fine-tune above trained an adapter on one A100, and with the harness held fixed it took Glimmer to 32 of 32 at the unseen lab, against 22 of 30 without it. The experimental cluster templates are validated structurally and against simulated schedulers; running them on a real cluster and with large models is still ahead. A model trained on a whole field is the direction. The plan is [docs/SCALE.md](docs/SCALE.md).
+Architect develops and evaluates field-specific agent harnesses and exports checker-verified training data. The single-GPU path has run for real: the QLoRA fine-tune above trained an adapter on one A100, and with the harness held fixed it took Glimmer to 32 of 32 at the unseen lab, against 22 of 30 without it. The experimental cluster templates are validated structurally and against simulated schedulers; running them on a real cluster and with large models is still ahead. A model trained on a whole field is the direction. The plan is [docs/SCALE.md](docs/SCALE.md), and the bundle tests are in [packages/engine/test/training-bundle.test.ts](packages/engine/test/training-bundle.test.ts).
 
 ## Where it fits
 
 <img align="right" width="64" alt="Y Combinator" src="docs/images/yc-logo.svg">
 
-Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. This is our reading of that request, and Architect does not claim to meet it. We see it as a small step in that direction. The idea is direction, not result: if the same loop ran over many organizations of one field, it would produce verified curricula and checkable rewards, and field-specific models need both. Academy desk shows one field in two runs: six taught academies, two unseen generated academies and two snapshots of one real academy, with 24 and 30 tasks. That is a first step, and the second snapshot, where Academy desk passed 3 of 30 with rules and tools built on generated files, shows how much a real organization adds. What Architect does today is turn one organization's own records and policy into tasks with exact answers, and a large model teaches a small one until it passes them on its own, on the organization's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
+Y Combinator's [Requests for Startups for Winter 2027](https://www.ycombinator.com/rfs) asks for vertical models: specialized ones "matching or beating general-purpose models at orders of magnitude less inference compute". It names the hard part as high-quality rewards that are specific to the field and can be verified. This is our reading of that request, and Architect does not claim to meet it. We see it as a small step in that direction. The idea is direction, not result: if the same loop ran over many organizations of one field, it would produce verified curricula and checkable rewards, and field-specific models need both. Academy desk shows one field in two runs: six taught academies, two unseen generated academies and two snapshots of one real academy, with 24 and 30 tasks. That is a first step, and the real academy's snapshots show what a real organization's files add to tools built on generated ones. What Architect does today is turn one organization's own records and policy into tasks with exact answers. A large model then teaches a small one to do them on its own, keeping only the changes that measurably help, and a sealed test the teacher never saw decides whether it passes. The specialist that comes out runs on the organization's own computer. For people building vertical models, it's a way to find out whether a small model can do the work, and to make it better at it.
 
 ## Related work
 
@@ -322,10 +323,17 @@ Then describe a job of your own, try the sample job, or open the returns desk ag
 ## More
 
 - Spark and Glimmer are the defaults, not requirements. The teacher can be a model from OpenAI, Anthropic, Google or OpenRouter, or a local one in Ollama or LM Studio, and the training settings sit under Advanced, including what the teacher may change: instructions, what the agent reads, small tools, its weights, or questions for you. See [docs/MODELS.md](docs/MODELS.md).
-- If your files include a policy with prices, discounts or rounding, Architect shows you the rule it made from it, with worked examples, and trains only after you confirm it. On a repair shop's pricing, one round of teaching took Glimmer from 22 of 30 check tasks to 40 of 40 on its final test (a single run, not a planned comparison).
+- If your files include a policy with prices, discounts or rounding, Architect shows you the rule it made from it, with worked examples, and trains only after you confirm it. On a repair shop's pricing, one round of teaching took Glimmer from 22 of 30 check tasks to 40 of 40 on its final test. That was the film's demo run, a single run rather than a planned comparison, and it is recorded in [docs/HACKATHON.md](docs/HACKATHON.md), not in a report.
 - An agent exports as one file, or publishes to Hugging Face, private by default.
 - The `architect` command does the same from a terminal: [docs/CLI.md](docs/CLI.md).
 - A job you write yourself is a folder: a job file, its tasks, each organization's files and maybe a checker. The format, with a worked example: [docs/JOB_FORMAT.md](docs/JOB_FORMAT.md). In Architect Lab you can skip writing it: describe the job once and add each organization's folder.
+- The capabilities no run report measures are covered by tests:
+  - the study's brief, where each passage must be found in the file it names: [packages/engine/test/study.test.ts](packages/engine/test/study.test.ts)
+  - recordings turned into study material: [packages/engine/test/recordings.test.ts](packages/engine/test/recordings.test.ts)
+  - the outcome scorer: [packages/engine/test/field-export.test.ts](packages/engine/test/field-export.test.ts)
+  - a lead with up to three teammates: [packages/shared/test/teams.test.ts](packages/shared/test/teams.test.ts)
+  - publishing to Hugging Face, private by default: [apps/desktop/test/unit/main/graduate-handlers.test.ts](apps/desktop/test/unit/main/graduate-handlers.test.ts)
+  - a specialist that reaches nothing but the local model: [packages/engine/test/agent-host-offline.test.ts](packages/engine/test/agent-host-offline.test.ts)
 - How it fits together, and why: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Built during the Meta Global AI Developer Hackathon
