@@ -160,6 +160,10 @@ describe('roundShortfall', () => {
     };
     expect(roundShortfall(twice, job)).toBe('+2 check tasks, needs +4 to stay');
   });
+
+  it("says nothing of a gain for an improvement's round, which needs none to stay", () => {
+    expect(roundShortfall(decided(2, 20, 20), job, WORDS.personal, true)).toBeNull();
+  });
 });
 
 describe('outcomeNote', () => {
@@ -177,6 +181,17 @@ describe('outcomeNote', () => {
       ({ ...rejected([], before, after), disposition: 'reverted' }) as Experiment;
     expect(outcomeNote(reverted(7, 7), job)).toBe('0 check tasks, needs +2 to stay');
     expect(outcomeNote(reverted(7, 8), job, WORDS.lab)).toBe('+1 held-out check, needs +2 to stay');
+  });
+
+  it("says what an improvement's change didn't learn, never a gain it needn't make", () => {
+    const unlearned = (learned: NonNullable<Experiment['learned']>) =>
+      ({ ...rejected([], 20, 20), disposition: 'reverted', learned }) as Experiment;
+    const task = (pass: boolean) => ({ taskId: 'task_1', type: 'invoice', pass });
+    expect(outcomeNote(unlearned([task(false)]), job)).toBe('Passed 0 of 1 task it had failed');
+    expect(outcomeNote(unlearned([task(true), task(false)]), job)).toBe(
+      'Passed 1 of 2 tasks it had failed',
+    );
+    expect(outcomeNote(unlearned([]), job)).toBe('Not verified, no failed task to try again');
   });
 
   it('names what a rejected change harmed, or the check it failed', () => {

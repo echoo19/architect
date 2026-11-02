@@ -455,6 +455,7 @@ function TrainBoard({
             records={evidence}
             failure={failure}
             stopReason={run.stopReason}
+            improving={improves !== null}
             onOpen={onOpenRound}
             current={
               round && <CurrentRound live={live} round={round} names={names} question={question} />

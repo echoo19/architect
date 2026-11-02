@@ -112,6 +112,7 @@ export function TaskSuccess({
         input={input}
         rounds={rounds}
         ended={hasEnded(run)}
+        improving={live.improves !== null}
         mentor={names.mentor}
         onOpenRound={onOpenRound}
       />
@@ -181,6 +182,7 @@ function ProgressCurve({
   input,
   rounds,
   ended,
+  improving,
   mentor,
   onOpenRound,
 }: {
@@ -189,6 +191,8 @@ function ProgressCurve({
   rounds: readonly Round[];
   /** The run is over, so a curve with no score will never get one. */
   ended: boolean;
+  /** Improve agent's run, whose changes need no gain to stay. */
+  improving: boolean;
   mentor: string;
   onOpenRound: (round: Round) => void;
 }) {
@@ -239,7 +243,15 @@ function ProgressCurve({
       empty={data.head ? undefined : ended ? 'Not scored' : 'Not scored yet'}
       legend={legend}
       readout={(x) => (
-        <Readout x={x} data={data} round={roundAt(x)} job={job} input={input} mentor={mentor} />
+        <Readout
+          x={x}
+          data={data}
+          round={roundAt(x)}
+          job={job}
+          input={input}
+          improving={improving}
+          mentor={mentor}
+        />
       )}
       onPick={(x) => {
         const round = roundAt(x);
@@ -257,6 +269,7 @@ function Readout({
   round,
   job,
   input,
+  improving,
   mentor,
 }: {
   x: number;
@@ -264,6 +277,7 @@ function Readout({
   round: Round | undefined;
   job: Job;
   input: CurveInput;
+  improving: boolean;
   mentor: string;
 }) {
   const w = useWords();
@@ -281,7 +295,7 @@ function Readout({
     );
   }
   const draft = round.index === input.draftRound;
-  const shortfall = draft ? null : roundShortfall(round, job, w);
+  const shortfall = draft ? null : roundShortfall(round, job, w, improving);
   const outcome = round.decision
     ? draft
       ? FIRST_DRAFT.label

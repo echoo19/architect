@@ -231,13 +231,29 @@ function shortfallNote(
 /**
  * Why a decided round's change was undone for gaining too little, in a few words, from the round's
  * own scores: a change measured again on new seeds is held to the margin for both runs. Null for
- * any other round.
+ * any other round, and for an improvement's, which needs no gain to stay (decision 066).
  */
-export function roundShortfall(round: Round, job: Job, w: Words = WORDS.personal): string | null {
+export function roundShortfall(
+  round: Round,
+  job: Job,
+  w: Words = WORDS.personal,
+  improving = false,
+): string | null {
   const { devBefore: before, devAfter: after, decision, firstMeasurement } = round;
-  if (decision !== 'reverted' || !before || !after) return null;
+  if (improving || decision !== 'reverted' || !before || !after) return null;
   const runs = job.evaluation.devRepeats * (firstMeasurement ? 2 : 1);
   return shortfallNote(before, after, runs, job, w);
+}
+
+/**
+ * Why an improvement's change was undone, in a few words: the student didn't pass every task of
+ * its lessons' types it had failed, or had failed none to check it on (decision 066).
+ */
+function unlearnedNote(learned: NonNullable<Experiment['learned']>): string | null {
+  const passed = learned.filter((task) => task.pass).length;
+  if (learned.length === 0) return 'Not verified, no failed task to try again';
+  if (passed === learned.length) return null;
+  return `Passed ${passed} of ${learned.length} ${learned.length === 1 ? 'task' : 'tasks'} it had failed`;
 }
 
 /**
@@ -253,6 +269,7 @@ export function outcomeNote(
 ): string | null {
   switch (experiment.disposition) {
     case 'reverted': {
+      if (experiment.learned !== undefined) return unlearnedNote(experiment.learned);
       const { devBefore: before, devAfter: after } = experiment;
       if (!before || !after) return null;
       const runs = Math.max(1, experiment.seeds.dev.length);
