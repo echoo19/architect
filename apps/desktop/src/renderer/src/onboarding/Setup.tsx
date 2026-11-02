@@ -17,6 +17,7 @@ import { attempt } from '../lib/notify';
 import { navigate, paths } from '../lib/router';
 import { useConnections } from '../settings/models/hooks';
 import { isInstalled } from '../settings/models/StudentRows';
+import { suggestBuild } from './builds';
 import { DoneStep } from './DoneStep';
 import { EditionStep } from './EditionStep';
 import { HostedStep } from './HostedStep';
@@ -61,15 +62,17 @@ export function Setup({ settings, update }: SetupProps) {
     isInstalled(ollama, student.model);
 
   // Until the user picks, the Glimmer build suggested for this computer's GPU is the choice,
-  // unless the default build is already downloaded.
+  // unless the default build is already downloaded and the suggested one isn't.
   const recommended = useRef(false);
   useEffect(() => {
     if (!local.data || recommended.current) return;
     recommended.current = true;
     const best = recommendedBuild(local.data.gpu);
-    const untouched =
-      student.model === DEFAULT_STUDENT.model && !isInstalled(local.data.ollama, student.model);
-    if (untouched && best.model !== student.model) {
+    const installed = (model: string) => isInstalled(local.data?.ollama, model);
+    if (
+      student.model === DEFAULT_STUDENT.model &&
+      suggestBuild(student.model, best.model, installed)
+    ) {
       void attempt("Couldn't choose the agent's model", () =>
         update({ defaultStudent: { ...student, model: best.model } }),
       );
