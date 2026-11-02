@@ -619,7 +619,9 @@ export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report
         role="table"
         aria-label={`${words.FinalTest} at graduation and since`}
         className="grid px-6 pb-3 text-ui tabular-nums"
-        style={{ gridTemplateColumns: `minmax(0,1fr) repeat(${columns.length}, 72px)` }}
+        style={{
+          gridTemplateColumns: `minmax(0,1fr) repeat(${columns.length}, minmax(56px, auto))`,
+        }}
       >
         <div role="row" className="contents">
           <span role="columnheader" className="py-2 text-small font-medium">
@@ -629,7 +631,7 @@ export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report
             <span
               key={column.key}
               role="columnheader"
-              className="py-2 text-right text-small font-medium"
+              className="self-end py-2 pl-3 text-right text-small font-medium"
             >
               {column.label}
             </span>
@@ -645,7 +647,7 @@ export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report
               <span
                 key={column.key}
                 role="cell"
-                className="flex h-14 items-center justify-end border-t border-line font-display text-body font-semibold"
+                className="flex h-14 items-center justify-end border-t border-line pl-3 font-display text-body font-semibold"
               >
                 {cell(row.scores[column.key]) ?? '–'}
               </span>
