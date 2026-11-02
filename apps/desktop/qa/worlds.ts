@@ -107,12 +107,13 @@ import {
 } from '../e2e/story';
 
 /*
- * The worlds a tester walks through: the built app on a throwaway profile, the e2e suite's
- * stand-ins on 127.0.0.1 and its IPC stubs. No remote model, no Hugging Face, no GPU and none of
- * this computer's Ollama or llama-server is ever reached.
+ * The worlds a tester walks through: the built app on a throwaway profile. The mock worlds run
+ * the e2e suite's stand-ins on 127.0.0.1 and its IPC stubs: no remote model, no Hugging Face, no
+ * GPU and none of this computer's Ollama or llama-server is ever reached. The live world runs the
+ * real engine with real keys and spends real money.
  */
 
-export const WORLDS = ['first-run', 'personal', 'lab'] as const;
+export const WORLDS = ['first-run', 'personal', 'lab', 'live'] as const;
 export type WorldName = (typeof WORLDS)[number];
 
 export interface World {
@@ -863,6 +864,39 @@ async function lab(out: string): Promise<World> {
   };
 }
 
+/** The keys the live world passes through from the tester's environment: Spark's and OpenRouter's. */
+const LIVE_KEYS = ['META_API_TOKEN', 'OPENROUTER_API_KEY'] as const;
+
+/**
+ * A brand-new profile on the real engine, with no stand-in and no IPC stub: the teacher and the
+ * hosted student are really called with the keys the tester's environment holds, read by name
+ * (ARCHITECT_KEYS_FROM_ENV), never typed and never saved. The window is recorded to
+ * `<out>/video`, and on quit the profile's data is copied to `<out>/profile` before it is deleted.
+ */
+async function live(out: string): Promise<World> {
+  const video = join(out, 'video');
+  const keep = join(out, 'profile');
+  const passed = Object.fromEntries(
+    LIVE_KEYS.flatMap((name) => {
+      const value = process.env[name];
+      return value ? [[name, value]] : [];
+    }),
+  );
+  const launched = await launch({
+    env: { ...passed, ARCHITECT_KEYS_FROM_ENV: '1' },
+    recordVideo: { dir: video, size: { width: 1440, height: 900 } },
+  });
+  return {
+    launched,
+    notes: [
+      `Keys from the environment: ${Object.keys(passed).join(', ') || 'none'}`,
+      `Video: ${video}`,
+      `On quit, the profile is kept in ${keep}`,
+    ],
+    close: () => launched.close(keep),
+  };
+}
+
 export function startWorld(name: WorldName, out: string): Promise<World> {
   switch (name) {
     case 'first-run':
@@ -871,5 +905,7 @@ export function startWorld(name: WorldName, out: string): Promise<World> {
       return personal(out);
     case 'lab':
       return lab(out);
+    case 'live':
+      return live(out);
   }
 }

@@ -53,6 +53,8 @@ export interface LaunchOptions {
   comparison?: string;
   /** Fills the throwaway profile before the app starts, such as with a graduate. */
   prepare?: (userData: string) => Promise<void>;
+  /** Records the window to a video in `dir`, written when the app closes. */
+  recordVideo?: { dir: string; size?: { width: number; height: number } };
 }
 
 /**
@@ -89,6 +91,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   const executablePath = packagedExecutable();
   const app = await electron.launch({
     ...(executablePath ? { executablePath } : { args: [APP_DIR] }),
+    ...(options.recordVideo ? { recordVideo: options.recordVideo } : {}),
     env: {
       ...process.env,
       ...noHub(userData),
