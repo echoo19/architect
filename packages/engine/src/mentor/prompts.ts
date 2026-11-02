@@ -371,7 +371,7 @@ function renderLineageItem(item: MentorView['lineage'][number]): string {
   const probes =
     item.probes === undefined
       ? ''
-      : ` Composed from probes: ${item.probes
+      : ` Its probes: ${item.probes
           .map((probe) =>
             probe.devDelta === undefined
               ? `"${probe.title}" (refused)`

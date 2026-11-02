@@ -1,7 +1,7 @@
 import type { Job, MentorCompletionRequest, RunEvent } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LineageLog } from '../src/loop/lineage';
-import { planNextStep, type PlanInput } from '../src/loop/plan';
+import { OUT_OF_TIME_ROUND, planNextStep, type PlanInput } from '../src/loop/plan';
 import { devSeeds, fanOutSeeds, probeSeeds } from '../src/loop/seeds';
 import { parseProposals } from '../src/mentor/reply';
 import { diagnosis, hypothesis } from './fakes/adapters';
@@ -274,6 +274,14 @@ describe('a propose-probe-compose round', () => {
       'diagnosis',
     ]);
     expect(engine.store.rounds.get(started.id, 1)?.round.decision).toBe('kept');
+    // The count goes on where it was after the restart, out of the same total.
+    const counted = engine.events.flatMap((event) =>
+      event.type === 'eval.progress' && event.split === 'dev' && event.total > 18 ? [event] : [],
+    );
+    expect(new Set(counted.map((event) => event.total))).toEqual(new Set([45]));
+    const done = counted.map((event) => event.done);
+    expect(done).toEqual([...done].sort((a, b) => a - b));
+    expect(done.at(-1)).toBe(45);
   });
 
   it('composes a harness change only, even where a question is on the menu', async () => {
@@ -294,6 +302,123 @@ describe('a propose-probe-compose round', () => {
     expect(compose?.system).toContain(
       'clarification is off the menu this round: A change composed from probes changes the harness, as its probes did.',
     );
+  });
+
+  it('keeps each probe it measured, in lineage and its experiment, when a stop cuts the round', async () => {
+    const job = await setUp();
+    const reached = deferred();
+    const release = deferred();
+    let held = false;
+    world.runtime.beforeAttempt = async (task, ctx) => {
+      if (held || ctx.harness.meta.version !== 3 || !task.id.startsWith('dev-')) return;
+      held = true;
+      reached.resolve();
+      await release.promise;
+    };
+    const started = await engine.controller.start(job.id, 'architect', 7);
+    await reached.promise;
+    const stopping = engine.controller.stop(started.id);
+    release.resolve();
+    await stopping;
+    await engine.controller.idle();
+    const record = engine.store.runs.get(started.id);
+    if (!record) throw new Error('The run vanished.');
+    expect(record.run).toMatchObject({ status: 'stopped', currentVersion: 1 });
+    const [experiment] = engine.store.experiments.list(started.id);
+    expect(experiment?.disposition).toBe('stopped');
+    expect(experiment?.measurements.map((item) => item.label)).toEqual(['probe 1']);
+    const [entry] = await lineageOf(record);
+    expect(entry).toMatchObject({
+      round: 1,
+      title: 'Probes, with no change decided',
+      decision: 'reverted',
+      versionFrom: 1,
+      versionTo: 1,
+      measured: { delta: 0 },
+    });
+    expect(entry?.probes?.map((probe) => [probe.index, probe.devAfter])).toEqual([
+      [1, { pass: 3, total: 9 }],
+      [2, undefined],
+      [3, undefined],
+    ]);
+    expect(engine.store.lineage.list(started.id).map((row) => row.round)).toEqual([1]);
+  });
+
+  it('logs the probes of a round whose composed change was refused twice', async () => {
+    const record = await run(
+      await setUp({
+        script: (request) =>
+          request.json?.name === 'proposals'
+            ? proposals()
+            : {
+                ...diagnosis('Drop the prompt'),
+                edits: [{ op: 'delete', path: 'AGENTS.md', content: '' }],
+              },
+      }),
+    );
+    expect(world.mentor.requests.map((request) => request.json?.name)).toEqual([
+      'proposals',
+      'diagnosis',
+      'diagnosis',
+    ]);
+    expect(engine.store.rounds.get(record.run.id, 1)?.rejected).toBe(true);
+    const [entry] = await lineageOf(record);
+    expect(entry).toMatchObject({ decision: 'reverted', versionTo: 1 });
+    expect(entry?.probes?.every((probe) => probe.devAfter !== undefined)).toBe(true);
+  });
+
+  it('asks for no fix once the time limit has run out during the call', async () => {
+    const record = await run(
+      await setUp({
+        job: { budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 30 } },
+        script: () => {
+          world.clock.advance(31 * MINUTE);
+          return { proposals: [hypothesis('Only one idea', 'Service desk.\nfix:invoice')] };
+        },
+      }),
+    );
+    expect(world.mentor.requests).toHaveLength(1);
+    expect(engine.store.rounds.get(record.run.id, 1)?.round).toMatchObject({
+      status: 'failed',
+      error: OUT_OF_TIME_ROUND,
+    });
+    expect(record.run.stopReason).toBe('wall_clock');
+  });
+
+  it('saves no proposal twice when saving them fails part way and the run resumes', async () => {
+    const job = await setUp();
+    const { harness } = world.deps;
+    const versionsOf = harness.versions;
+    let saves = 0;
+    // The third save, the second probe's after the starting version and the first probe's, fails.
+    harness.versions = (dir) => {
+      const store = versionsOf(dir);
+      return new Proxy(store, {
+        get(target, key) {
+          if (key !== 'save') {
+            const value: unknown = Reflect.get(target, key, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+          }
+          return async (...args: Parameters<typeof store.save>) => {
+            saves += 1;
+            if (saves === 3) throw new Error('The disk went away.');
+            return target.save(...args);
+          };
+        },
+      });
+    };
+    const started = await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+    expect(engine.store.runs.get(started.id)?.run.status).toBe('paused');
+    await engine.controller.resume(started.id);
+    await engine.controller.idle();
+    const round = engine.store.rounds.get(started.id, 1)?.round;
+    expect(round?.probes?.map((probe) => probe.version)).toEqual([2, 3, 4]);
+    expect(round).toMatchObject({ decision: 'kept', candidateVersion: 5 });
+    expect(world.mentor.requests.map((request) => request.json?.name)).toEqual([
+      'proposals',
+      'diagnosis',
+    ]);
   });
 
   it('refuses a probe that repeats another and measures the rest', async () => {
@@ -333,7 +458,7 @@ describe('a propose-probe-compose round', () => {
     );
   });
 
-  it('abandons a round whose time runs out while it probes, and keeps nothing from it', async () => {
+  it('abandons a round whose time runs out while it probes, keeping nothing but its record', async () => {
     const job = await setUp({
       job: { budget: { maxRounds: 1, maxMentorUsd: 5, maxWallMinutes: 30 } },
     });
@@ -345,7 +470,9 @@ describe('a propose-probe-compose round', () => {
     expect(stored?.round.status).toBe('failed');
     expect(record.run).toMatchObject({ stopReason: 'wall_clock', currentVersion: 1 });
     expect(world.mentor.requests).toHaveLength(1);
-    expect(await lineageOf(record)).toEqual([]);
+    const [entry] = await lineageOf(record);
+    expect(entry).toMatchObject({ decision: 'reverted', versionFrom: 1, versionTo: 1 });
+    expect(entry?.probes?.filter((probe) => probe.devAfter !== undefined)).toHaveLength(3);
     expect(engine.store.experiments.list(record.run.id)[0]?.disposition).toBe('stopped');
   });
 });

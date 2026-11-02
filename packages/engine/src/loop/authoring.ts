@@ -107,7 +107,7 @@ const COMPOSED_HARNESS = 'A change composed from probes changes the harness, as 
  * changes measured as such, so it is a harness change too: weights and a question are off it.
  */
 function composedMenu(menu: Menu, stored: StoredRound): Menu {
-  if (stored.round.probes === undefined) return menu;
+  if (stored.round.status !== 'composing') return menu;
   const refused: Menu['refused'] = { ...menu.refused };
   for (const type of ['weights', 'clarification'] as const) refused[type] ??= COMPOSED_HARNESS;
   const allowed = menu.allowed.filter((type) => HARNESS_INTERVENTIONS.includes(type));
@@ -184,7 +184,7 @@ async function roundView(state: RunState, stored: StoredRound): Promise<MentorVi
           counterexamples: counterexampleView(state, counterexamples),
         }
       : {}),
-    ...(stored.round.probes === undefined ? {} : { probes: await probeEvidence(state, stored) }),
+    ...(stored.round.status === 'composing' ? { probes: await probeEvidence(state, stored) } : {}),
   });
 }
 
@@ -320,7 +320,8 @@ async function buildRequest(state: RunState, index: number): Promise<AuthorReque
 
 /**
  * Sends a request to the round's author through the gate, and records and charges the reply.
- * Null when the round ended instead: out of budget, refused for a leak, or an unusable reply.
+ * Null when the round ended instead: out of budget, refused for a leak, or an unusable reply, or
+ * when a stop or the time limit came first and nothing was sent.
  */
 async function callAuthor(
   state: RunState,
@@ -329,6 +330,9 @@ async function callAuthor(
   fix: number,
   stage?: 'propose',
 ): Promise<AuthorReply | null> {
+  // A stop or a spent clock ends the round before another call is paid for; the planner then
+  // closes it, as it does any open round.
+  if (state.record.stopRequested || state.budget.wallClockSpent()) return null;
   const author = await authorFor(state, index);
   const gate = await state.resources.gate();
 
@@ -606,6 +610,8 @@ async function adoptProposals(
     return { reason: error.message, proposal: {} };
   }
   const menu = await roundMenu(state);
+  // The versions a restart left on the round, read before this pass writes over them.
+  const earlier = stored.round.probes ?? [];
   const seen = new Map<string, number>();
   const probes: Probe[] = [];
   for (const [position, hypothesis] of proposals.entries()) {
@@ -625,9 +631,12 @@ async function adoptProposals(
     if (refusal === null) {
       const candidate = await candidateOf(state, stored, hypothesis);
       if (!('reason' in candidate)) {
-        const saved = await state.versions.save(candidate.harness, stored.baseVersion);
+        const version = await probeVersion(state, stored, earlier, probe.index, candidate.harness);
         seen.set(key, probe.index);
-        probes.push({ ...probe, version: saved.meta.version });
+        probes.push({ ...probe, version });
+        // Each version is on the round as soon as it is saved, so a restart reuses it.
+        const current = state.round(index);
+        state.saveRound({ ...current, round: { ...current.round, probes: [...probes] } });
         continue;
       }
       refusal = candidate.reason;
@@ -638,8 +647,29 @@ async function adoptProposals(
     const reasons = probes.map((probe) => `Proposal ${probe.index}: ${probe.refused ?? ''}`);
     return { reason: `No proposal could be measured. ${reasons.join(' ')}`, proposal: {} };
   }
-  state.saveRound({ ...stored, round: { ...stored.round, status: 'probing', probes } });
+  const current = state.round(index);
+  state.saveRound({ ...current, round: { ...current.round, status: 'probing', probes } });
   return null;
+}
+
+/**
+ * The version a probe is saved as: the one a restart left on the round for this proposal when it
+ * holds the same files, so a proposal is never saved twice, or else a new one from the incumbent.
+ */
+async function probeVersion(
+  state: RunState,
+  stored: StoredRound,
+  earlier: readonly Probe[],
+  position: number,
+  harness: Harness,
+): Promise<number> {
+  const saved = earlier.find((probe) => probe.index === position)?.version;
+  if (saved !== undefined) {
+    const { harnessToFiles } = state.ctx.deps.harness;
+    const files = harnessToFiles(await state.resources.harness(saved));
+    if (JSON.stringify(files) === JSON.stringify(harnessToFiles(harness))) return saved;
+  }
+  return (await state.versions.save(harness, stored.baseVersion)).meta.version;
 }
 
 /**
@@ -680,7 +710,7 @@ async function propose(state: RunState, index: number, count: number): Promise<v
 export async function author(state: RunState, index: number): Promise<void> {
   state.setPhase('diagnosing');
   const count = state.probeCount(index);
-  if (count !== null && state.round(index).round.probes === undefined) {
+  if (count !== null && state.round(index).round.status !== 'composing') {
     await propose(state, index, count);
     return;
   }

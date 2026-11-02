@@ -2,10 +2,11 @@ import type { FileEdit, MentorView, Probe } from '@architect/shared';
 import type { StoredRound } from '../store/records';
 import { resultOf } from './attempts';
 import { configurationKey } from './configuration';
-import { attemptsLeft, evaluate, type EvaluationSpec } from './evaluation';
+import { must } from './errors';
+import { attemptsMade, evaluate, type EvaluationSpec } from './evaluation';
 import type { RunState } from './run-state';
-import { devSeeds, probeSeeds, roundSeed } from './seeds';
-import { devEvaluation } from './training';
+import { devSeeds, roundSeed } from './seeds';
+import { probingSpecs } from './training';
 
 /*
  * Propose, probe, compose (decision 108). A round in this mode asks the mentor for several
@@ -43,48 +44,51 @@ async function practiceSpec(
   };
 }
 
+/** Writes what one probe measured on the round as soon as it is known. */
+function recordProbe(state: RunState, index: number, position: number, scores: Partial<Probe>) {
+  const current = state.round(index);
+  const probes = (current.round.probes ?? []).map((probe) =>
+    probe.index === position ? { ...probe, ...scores } : probe,
+  );
+  state.saveRound({ ...current, round: { ...current.round, probes } });
+}
+
 /**
  * The probe step: the incumbent on dev under the round's seeds, each probe on dev under the
  * round's probe seeds, then each probe on the round's train tasks. The dev attempts are one count
- * with the composed change still to come, so the score doesn't start over. The incumbent's
- * attempts are the ones the round's decision reuses; the probes' seeds are apart from them, so
- * the composed change is decided on draws no probe was scored on. Each probe's scores are then
- * written on the round, and the mentor composes.
+ * with the composed change still to come, every attempt counted, so the score neither starts over
+ * nor changes its total after a restart. The incumbent's attempts are the ones the round's
+ * decision reuses; the probes' seeds are apart from them, so the composed change is decided on
+ * draws no probe was scored on. Each probe's score is written on the round as soon as it is
+ * measured, so a round cut short keeps it, and the mentor composes once all are in.
  */
 export async function probeRound(state: RunState, index: number): Promise<void> {
   state.setPhase('evaluating');
   const stored = state.round(index);
-  const probes = stored.round.probes ?? [];
   const runs = state.job.evaluation.devRepeats;
   const config = state.incumbentConfig();
   const { devPanel } = state.record.seeds;
-  const own = probeSeeds(devPanel, index, runs);
-  const incumbent = await devEvaluation(state, stored.baseVersion, index, runs, config);
-  const specs = [incumbent];
-  for (const probe of built(probes)) {
-    specs.push(await devEvaluation(state, probe.version, index, runs, config, own));
-  }
-  const left = specs.map((spec) => attemptsLeft(state, spec));
+  const specs = await probingSpecs(state, index);
+  const incumbent = must(specs[0], "The probe step's incumbent");
   const composed = incumbent.tasks.length * incumbent.seeds.length;
-  const total = left.reduce((sum, count) => sum + count, 0) + composed;
-  let before = 0;
-  for (const [i, spec] of specs.entries()) {
+  const total = specs.reduce((sum, spec) => sum + spec.tasks.length * spec.seeds.length, composed);
+  const roundSeeds = devSeeds(devPanel, index, runs);
+  for (const spec of specs) {
+    const before = specs.reduce((sum, item) => sum + attemptsMade(state, item), 0);
     if (!(await evaluate(state, { ...spec, of: { before, total } }))) return;
-    before += left[i]!;
     const result = state.devResult(spec.version, index, spec.seeds, config);
     state.emit({ type: 'eval.finished', split: 'dev', harnessVersion: spec.version, ...result });
+    const probe = built(state.round(index).round.probes ?? []).find(
+      (item) => item.version === spec.version,
+    );
+    if (probe === undefined) continue;
+    recordProbe(state, index, probe.index, {
+      devBefore: state.devResult(stored.baseVersion, index, roundSeeds, config).score,
+      devAfter: result.score,
+    });
   }
-  for (const probe of built(probes)) {
+  for (const probe of built(state.round(index).round.probes ?? [])) {
     if (!(await evaluate(state, await practiceSpec(state, index, probe.version)))) return;
-  }
-  const devBefore = state.devResult(
-    stored.baseVersion,
-    index,
-    devSeeds(devPanel, index, runs),
-    config,
-  ).score;
-  const measured = probes.map((probe): Probe => {
-    if (probe.version === undefined) return probe;
     const practice = state.attempts({
       split: 'train',
       round: index,
@@ -92,28 +96,17 @@ export async function probeRound(state: RunState, index: number): Promise<void> 
       target: state.targetOf(config),
       config: configurationKey(config),
     });
-    return {
-      ...probe,
-      devBefore,
-      devAfter: state.devResult(probe.version, index, own, config).score,
-      train: resultOf(practice, state.job).score,
-    };
-  });
+    recordProbe(state, index, probe.index, { train: resultOf(practice, state.job).score });
+  }
   const current = state.round(index);
-  state.saveRound({
-    ...current,
-    round: { ...current.round, status: 'composing', probes: measured },
-  });
+  state.saveRound({ ...current, round: { ...current.round, status: 'composing' } });
+  const devBefore = state.devResult(stored.baseVersion, index, roundSeeds, config).score;
+  const scores = built(current.round.probes ?? []).map(
+    (probe) => `probe ${probe.index} ${probe.devAfter?.pass ?? 0}/${probe.devAfter?.total ?? 0}`,
+  );
   state.log(
     'info',
-    `Round ${index}: ${built(measured)
-      .map(
-        (probe) =>
-          `probe ${probe.index} ${probe.devAfter?.pass ?? 0}/${probe.devAfter?.total ?? 0}`,
-      )
-      .join(
-        ', ',
-      )} on the check tasks, against ${devBefore.pass}/${devBefore.total}; composing one change.`,
+    `Round ${index}: ${scores.join(', ')} on the check tasks, against ${devBefore.pass}/${devBefore.total}; composing one change.`,
   );
 }
 
