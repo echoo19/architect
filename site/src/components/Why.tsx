@@ -15,20 +15,9 @@ function Unbroken({ text }: { text: string }) {
   );
 }
 
-/** Y Combinator's mark: a white Y on its orange square. */
+/** Y Combinator's mark, a white Y on its orange square, kept as the file in public/. */
 function YcMark() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden className="shrink-0">
-      <rect width="32" height="32" fill="#F26625" />
-      <path
-        d="M9.5 8 16 18.5 22.5 8M16 18.5V25"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="3.2"
-        strokeLinecap="square"
-      />
-    </svg>
-  );
+  return <img src="./yc-mark.svg" width={32} height={32} alt="" className="shrink-0" />;
 }
 
 /**
