@@ -9,7 +9,6 @@ import {
   LayoutGrid,
   ListChecks,
   Lock,
-  LockOpen,
   MessageCircleQuestion,
   Package,
   Boxes,
@@ -499,20 +498,26 @@ export function FieldPage({
               <div className="flex flex-1 items-center justify-center border-t border-line">
                 <EmptyState
                   icon={
-                    <span data-frame="vault" className="relative size-5">
-                      <Lock
-                        className="absolute inset-0"
-                        strokeWidth={1.8}
-                        style={{ opacity: 1 - unlock }}
-                        aria-hidden
+                    // Lucide's lock, its shackle lifting clear of the body as the lock opens,
+                    // the lock swelling a little as it goes.
+                    <svg
+                      data-frame="vault"
+                      viewBox="0 0 24 24"
+                      className="size-5"
+                      style={{ transform: `scale(${1 + 0.35 * Math.sin(Math.PI * unlock)})` }}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path
+                        d="M7 11V7a5 5 0 0 1 10 0v4"
+                        transform={`translate(0 ${-5 * unlock})`}
                       />
-                      <LockOpen
-                        className="absolute inset-0"
-                        strokeWidth={1.8}
-                        style={{ opacity: unlock }}
-                        aria-hidden
-                      />
-                    </span>
+                    </svg>
                   }
                   title="Sealed until the final test"
                   description="Spark and Glimmer never see its files, its tasks or its scores."

@@ -1,5 +1,6 @@
 import type { Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
+import { Chapters } from './chapters';
 import { Ending, Wordmark } from './ending';
 import {
   CertFigure,
@@ -18,10 +19,11 @@ import { LabelsContext } from '../lab/labels';
 import { LAUNCH_LABELS, SHOW_OPEN_TEACHER } from './data';
 
 /**
- * Architect's launch film: one continuous take. It opens in depth (the claim, the app's screens,
- * the requests), lands on the Lab's window and follows it through the field, the study, the
- * teaching, the reveal and the platform to the team, Offline and the two editions, and ends as
- * the window becomes the mark. Every frame is drawn from the film's authored time alone.
+ * Architect's launch film, in segments. It opens in depth (the claim, the app's screens, the
+ * requests) and lands on the Lab's window; each section after is one moment of the app, opened by
+ * a whip and, where a section starts, its line on the ground: the field, the study, the teaching,
+ * the reveal, the platform, the team, Offline and the two editions. It ends as the window becomes
+ * the mark. Every frame is drawn from the film's authored time alone.
  */
 
 const FRAME = { width: 1920, height: 1080 } as const;
@@ -53,6 +55,7 @@ function Walk({ t, measured }: { t: number; measured: Measured }) {
         </div>
       </div>
       <Hero t={t} view={view} measured={measured} />
+      <Chapters t={t} />
     </>
   );
 }

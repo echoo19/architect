@@ -79,21 +79,29 @@ function measure(): Measured {
   // The plot's never-seen groups, and the track Harborview's taught arm lands on.
   const groups = document.querySelectorAll('[data-page="experiment"] figure [role="group"]');
   put('plot', groups[0]?.closest('section'));
-  put('vault-card', document.querySelector('[data-frame="vault"]')?.closest('section'));
+  // The sealed academy's card title, which grows into Harborview Prep's figure.
+  put(
+    'vault-title',
+    document.querySelector('[data-frame="vault"]')?.closest('section')?.querySelector('h2'),
+  );
   put('hv-group', groups[1]);
   put('real-group', groups[2]);
   put('hv-track', groups[1]?.lastElementChild?.children[1]);
   return found;
 }
 
-/** The founder clip's frames (intro/tail.mjs), decoded before the first frame is drawn. */
+/** The founder clip's frames and his last line's caption (intro/tail.mjs), decoded before the first frame is drawn. */
 const FOUNDER_FRAMES = 116;
 
 async function founder() {
+  const files = [
+    ...Array.from({ length: FOUNDER_FRAMES }, (_, k) => `${String(k).padStart(4, '0')}.jpg`),
+    'caption.png',
+  ];
   await Promise.all(
-    Array.from({ length: FOUNDER_FRAMES }, (_, k) => {
+    files.map((file) => {
       const image = new Image();
-      image.src = `./founder/${String(k).padStart(4, '0')}.jpg`;
+      image.src = `./founder/${file}`;
       return image.decode();
     }),
   );

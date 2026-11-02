@@ -18,6 +18,8 @@ export interface Layer {
   /** How far the page has come in and gone, from 0 to 1 each. */
   enter: number;
   leave: number;
+  /** How far it is pushed sideways, in window pixels, as a step of the flow comes in. */
+  x?: number;
 }
 
 export interface ScreenView {
@@ -63,7 +65,7 @@ export function Screen({
               right: 0,
               bottom: 0,
               opacity: layer.enter * (1 - layer.leave),
-              transform: `translateY(${(1 - layer.enter) * 10}px)`,
+              transform: `translate(${layer.x ?? 0}px, ${(1 - layer.enter) * 10}px)`,
             }}
           >
             {layer.node}

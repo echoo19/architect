@@ -7,7 +7,7 @@ import { SHOW_OPEN_TEACHER } from './data';
  */
 
 // 0. The founder's last line, "Here's how it works.", before the film's own clock starts: his frame
-// recedes into a window as the claim rises beside it.
+// recedes into a window as the claim rises beside it, and the training screen pushes into it.
 const founder = -1.3;
 
 // 1. Hook: "Every frontier model knows a little about everything. Your work needs a specialist
@@ -105,7 +105,7 @@ const architect = morph + 3.0;
 export const T = {
   founder,
   recede: founder + 0.4,
-  claim: 0.35,
+  claim: -0.3,
   trainRises: 0.6,
   trainShown: 1.6,
   trainPush: 4.3,
@@ -118,7 +118,8 @@ export const T = {
   pushRunning: how + 0.8,
   labHover: how + 2.1,
   fields,
-  academyLit: fields + 2.1,
+  /** The window whips back in onto the field, landing on "academies". */
+  fieldIn: field - 1.5,
   field,
   vault,
   real,
@@ -143,7 +144,7 @@ export const T = {
   drawerOut: regression + 0.5,
   vaultPage,
   opens: vaultPage + 1.1,
-  dive: vaultPage + 1.5,
+  grows: vaultPage + 1.5,
   hero,
   vaultCut: hero + 0.95,
   fortyThree,
@@ -187,6 +188,8 @@ export const T = {
   backScroll: workspace - 0.8,
   workspace,
   network: workspace + 1.2,
+  /** The Offline row turns as the window lands back from the line. */
+  offline: workspace + 1.5,
   machine: workspace + 2.3,
   memory: workspace + 3.2,
   intoChat: saves - 1.0,

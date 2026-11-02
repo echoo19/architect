@@ -152,16 +152,16 @@ function OnPremise({ t }: { t: number }) {
           icon={
             <Turn
               t={t}
-              at={T.network}
+              at={T.offline}
               from={<Wifi size={16} strokeWidth={1.8} aria-hidden />}
               to={<WifiOff size={16} strokeWidth={1.8} aria-hidden />}
             />
           }
-          label={<Turn t={t} at={T.network} from="Online" to="Offline" />}
+          label={<Turn t={t} at={T.offline} from="Online" to="Offline" />}
           detail={
             <Turn
               t={t}
-              at={T.network}
+              at={T.offline}
               from={<>The network is up; it reaches only {host}</>}
               to={<>Reaches only {host}; no call stopped since Architect started</>}
             />

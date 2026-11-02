@@ -11,12 +11,12 @@ import { trainScore, walkView } from './walk';
 import { Words, wordsShown } from './words';
 
 /**
- * The film's opening, in depth. The founder's last frame recedes into a window beside the claim;
- * the training screen rises in its place, the camera goes onto its score as it climbs past the
- * target, and on "Architect builds it" dives through the score and past two of the app's screens
- * onto the requests that asked for Architect. Those build as one list of titles, each on its
- * words, and the camera moves on to the Lab's window beside them, which the walkthrough takes over
- * from exactly where this leaves it.
+ * The film's opening, in depth. The founder's last frame recedes into a window beside the claim
+ * and the training screen pushes up into that same window; the camera goes onto its score as it
+ * climbs past the target, and on "Architect builds it" dives through the score and past two of
+ * the app's screens onto the requests that asked for Architect. Those build as one list of titles,
+ * each on its words, the list staying centered as it grows, and the camera moves on to the Lab's
+ * window beside them, which the walkthrough takes over from exactly where this leaves it.
  *
  * A point (x, y, z) is seen by a camera at (cx, cy, cz) looking down -z, at P pixels from the
  * plane it sees at full size: scale k = P / (cz - z), so nothing here is ever blurred to fake depth.
@@ -112,8 +112,8 @@ const LAB: Point = {
   z: STATION.z,
 };
 
-/** The Lab's window at the frame's right, its name on the ground at its left. */
-const WIDE = { s: 0.95, cx: 1336, name: 410 } as const;
+/** The Lab's window at the frame's right, most of the frame wide, its name on the ground at its left. */
+const WIDE = { s: 1.04, cx: 1274, name: 384 } as const;
 const LAB_K = WIDE.s / LAB_SCALE;
 const LAB_WIDE: Point = {
   x: LAB.x - (WIDE.cx - FRAME.width / 2) / LAB_K,
@@ -161,7 +161,7 @@ const MOVES: readonly Move[] = [
   // To the Lab's window beside its name, then onto the window, to rest exactly where the
   // walkthrough starts.
   { at: T.toLab - 0.15, dur: T.labWide - T.toLab + 0.15, to: () => LAB_WIDE, ease: outQuart },
-  { at: T.how - 1.5, dur: 1.5, to: () => seen(LAB), ease: inOutCubic },
+  { at: T.how - 2.4, dur: 2.4, to: () => seen(LAB), ease: inOutCubic },
 ];
 
 function cameraAt(measured: Measured, t: number): Point {
@@ -190,6 +190,7 @@ function Placed({
   h,
   base = 1,
   opacity = 1,
+  fade = 360,
   children,
 }: {
   camera: Point;
@@ -198,6 +199,8 @@ function Placed({
   h: number;
   base?: number;
   opacity?: number;
+  /** How far before it the camera starts to see through it: a screen flown through stays solid. */
+  fade?: number;
   children: ReactNode;
 }) {
   const d = camera.z - at.z;
@@ -209,7 +212,7 @@ function Placed({
   // Off the frame entirely: nothing to draw.
   if (sx + (w * scale) / 2 < 0 || sx - (w * scale) / 2 > FRAME.width) return null;
   if (sy + (h * scale) / 2 < 0 || sy - (h * scale) / 2 > FRAME.height) return null;
-  const near = clamp((d - 160) / 360);
+  const near = clamp((d - 140) / fade);
   return (
     <div
       className="absolute left-0 top-0"
@@ -229,46 +232,75 @@ function Placed({
 /** The founder clip's last frames (intro/tail.mjs), played from where the clip is cut. */
 const FOUNDER_FRAMES = 116;
 
+/** The training screen pushes up into the founder's window, and his picture goes up out of it. */
+const pushUp = (t: number) => inOutCubic(span(t, T.trainRises, 0.6));
+
 /**
- * The founder's frame: full until his last line, then it recedes into a window in the slot beside
- * the claim, and goes out to the right as the training screen rises in its place.
+ * The founder's frame: full until his last line, captioned as the clip is, then it recedes into
+ * the slot beside the claim, onto exactly the window the training screen is drawn in as the camera
+ * sees it, and the training screen pushes his picture up and out of it.
  */
-function Founder({ t }: { t: number }) {
-  if (t > T.trainRises + 0.8) return null;
+function Founder({ t, camera }: { t: number; camera: Point }) {
+  if (t > T.trainRises + 0.6) return null;
   const frame = clamp(Math.round((t - T.founder) * 60), 0, FOUNDER_FRAMES - 1);
   const p = inOutCubic(span(t, T.recede, 1.2));
-  const leave = outQuart(span(t, T.trainRises, 0.7));
-  const scale = mix(1, SLOT.w / FRAME.width, p);
-  const cx = mix(FRAME.width / 2, SLOT.cx, p) + leave * 1300;
-  const cy = mix(FRAME.height / 2, SLOT.cy, p);
-  const radius = mix(0, 14 / scale, p) * Math.min(1, p * 4);
+  // The slot as the camera sees it now.
+  const k = P / (camera.z - TRAIN.z);
+  const slotX = FRAME.width / 2 + (TRAIN.x - camera.x) * k;
+  const slotY = FRAME.height / 2 + (TRAIN.y - camera.y) * k;
+  const slotScale = (SLOT.w * k) / FRAME.width;
+  const scale = mix(1, slotScale, p);
+  const cx = mix(FRAME.width / 2, slotX, p);
+  const cy = mix(FRAME.height / 2, slotY, p);
+  // The picture is cropped to the window's shape as it becomes one.
+  const height = mix(FRAME.height, (FRAME.width * WINDOW.height) / WINDOW.width, p);
+  const radius = (14 * TRAIN_BASE * k * p) / scale;
+  const caption = Math.min(
+    outQuart(span(t, T.founder + 0.15, 0.12)),
+    1 - outQuart(span(t, T.founder + 1.18, 0.12)),
+  );
   return (
-    <div
-      className="absolute left-0 top-0 overflow-hidden"
-      style={{
-        width: FRAME.width,
-        height: FRAME.height,
-        transformOrigin: '0 0',
-        transform: `translate(${cx - (FRAME.width / 2) * scale}px, ${cy - (FRAME.height / 2) * scale}px) scale(${scale})`,
-        borderRadius: radius,
-        boxShadow: p > 0 ? RIM : undefined,
-        zIndex: 5,
-      }}
-    >
-      <img
-        data-founder
-        src={`./founder/${String(frame).padStart(4, '0')}.jpg`}
-        width={FRAME.width}
-        height={FRAME.height}
-        alt=""
-        className="block"
-      />
-      {/* The window's rim, over the picture. */}
+    <>
       <div
-        className="absolute inset-0"
-        style={{ borderRadius: radius, boxShadow: p > 0 ? RIM : undefined }}
-      />
-    </div>
+        className="absolute left-0 top-0 overflow-hidden"
+        style={{
+          width: FRAME.width,
+          height,
+          transformOrigin: '0 0',
+          transform: `translate(${cx - (FRAME.width / 2) * scale}px, ${cy - (height / 2) * scale}px) scale(${scale})`,
+          borderRadius: radius,
+          zIndex: 5,
+        }}
+      >
+        <img
+          data-founder
+          src={`./founder/${String(frame).padStart(4, '0')}.jpg`}
+          width={FRAME.width}
+          height={FRAME.height}
+          alt=""
+          className="block"
+          style={{
+            transform: `translateY(${(height - FRAME.height) / 2 - pushUp(t) * height}px)`,
+          }}
+        />
+        {/* The window's rim, over the picture. */}
+        <div
+          className="absolute inset-0"
+          style={{ borderRadius: radius, boxShadow: p > 0 ? RIM : undefined }}
+        />
+      </div>
+      {/* His last line, captioned as the clip's others are (intro/caps.mjs), on the whole frame. */}
+      {caption > 0 && (
+        <img
+          src="./founder/caption.png"
+          width={FRAME.width}
+          height={FRAME.height}
+          alt=""
+          className="absolute left-0 top-0 block"
+          style={{ opacity: caption, zIndex: 6 }}
+        />
+      )}
+    </>
   );
 }
 
@@ -297,27 +329,25 @@ const trainView = (t: number): ScreenView => ({
   flow: { shown: 1, step: 2 },
 });
 
-/** The training screen: it rises into the slot from under the frame, settling from a tilt. */
+/** The training screen, in the founder's window: it pushes up into it, then the camera takes it. */
 function Train({ t, camera }: { t: number; camera: Point }) {
-  if (t < T.trainRises || t > T.hits[0] + 0.6) return null;
-  const rise = outExpo(span(t, T.trainRises, 1.0));
-  const at: Point = { ...TRAIN, y: TRAIN.y + ((1 - rise) * 760) / restScale(TRAIN.z) };
+  if (t < T.trainRises - 0.01 || t > T.hits[0] + 0.6) return null;
   return (
     <Placed
       camera={camera}
-      at={at}
+      at={TRAIN}
       w={WINDOW.width}
       h={WINDOW.height}
       base={TRAIN_BASE}
-      opacity={clamp(rise * 3)}
+      fade={60}
     >
       <div
-        style={{
-          transform: `perspective(2600px) rotateX(${(1 - rise) * 12}deg)`,
-          transformOrigin: '50% 100%',
-        }}
+        className="overflow-hidden rounded-[14px]"
+        style={{ width: WINDOW.width, height: WINDOW.height }}
       >
-        <Screen view={trainView(t)} style={{ left: 0, top: 0 }} />
+        <div style={{ transform: `translateY(${(1 - pushUp(t)) * WINDOW.height}px)` }}>
+          <Screen view={trainView(t)} style={{ left: 0, top: 0 }} />
+        </div>
       </div>
     </Placed>
   );
@@ -382,12 +412,34 @@ function Passes({ t, camera }: { t: number; camera: Point }) {
 
 const TITLE = 'font-display font-semibold tracking-[-0.035em]';
 
-/** The three requests, in the narration's own words, each rising on them. */
+/** The three requests, in the narration's own words, each rising on them, the last on two lines. */
 const REQUESTS = [
-  'Own your intelligence.',
-  'AI for the air-gapped economy.',
-  'Vertical models, built on rewards you can check.',
+  ['Own your intelligence.'],
+  ['AI for the air-gapped economy.'],
+  ['Vertical models,', 'built on rewards you can check.'],
 ] as const;
+
+/** A line of the list making its room as it comes in, so the list stays centered as it builds. */
+function Opening({
+  t,
+  at,
+  gap,
+  children,
+}: {
+  t: number;
+  at: number;
+  gap: number;
+  children: ReactNode;
+}) {
+  const open = inOutCubic(span(t, at - 0.3, 0.7));
+  return (
+    <div className="grid" style={{ gridTemplateRows: `${open}fr` }}>
+      <div className="min-h-0 overflow-hidden" style={{ paddingTop: gap }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /** Y Combinator's line, then its three requests building beneath it as one list. */
 function Requests({ t, camera }: { t: number; camera: Point }) {
@@ -395,7 +447,7 @@ function Requests({ t, camera }: { t: number; camera: Point }) {
   if (!wordsShown(t, T.asked, until)) return null;
   return (
     <Placed camera={camera} at={STATION} w={LIST.w} h={LIST.h}>
-      <div className="flex h-full flex-col justify-center gap-12">
+      <div className="flex h-full flex-col justify-center">
         <Words
           t={t}
           text="Y Combinator asked for this three times."
@@ -403,18 +455,23 @@ function Requests({ t, camera }: { t: number; camera: Point }) {
           until={until}
           className={`${TITLE} text-[72px] leading-[1.04]`}
         />
-        <div className="flex flex-col gap-7">
-          {REQUESTS.map((request, index) => (
-            <Words
-              key={request}
-              t={t}
-              text={request}
-              at={T.requests[index]! + 0.35}
-              until={until + 0.06 * (index + 1)}
-              className={`${TITLE} text-[100px] leading-[1.04]`}
-            />
-          ))}
-        </div>
+        {REQUESTS.map((lines, index) => {
+          const at = T.requests[index]! + 0.35;
+          return (
+            <Opening key={lines[0]} t={t} at={at} gap={index === 0 ? 48 : 24}>
+              {lines.map((line, part) => (
+                <Words
+                  key={line}
+                  t={t}
+                  text={line}
+                  at={at + part * 0.14}
+                  until={until + 0.06 * (index + 1)}
+                  className={`${TITLE} text-[100px] leading-[1.04]`}
+                />
+              ))}
+            </Opening>
+          );
+        })}
       </div>
     </Placed>
   );
@@ -453,7 +510,7 @@ function LabName({ t, camera }: { t: number; camera: Point }) {
           t={t}
           text="Architect Lab"
           at={T.labWide - 0.2}
-          className={`${TITLE} text-[104px] leading-none`}
+          className={`${TITLE} text-[96px] leading-none`}
         />
       </div>
     </Placed>
@@ -474,7 +531,7 @@ export function SpaceScene({ t, measured }: { t: number; measured: Measured }) {
       <Passes t={t} camera={camera} />
       <Train t={t} camera={camera} />
       {t < T.trainPush + 1.0 && <Claim t={t} camera={camera} />}
-      <Founder t={t} />
+      <Founder t={t} camera={camera} />
     </div>
   );
 }

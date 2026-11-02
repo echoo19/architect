@@ -14,12 +14,13 @@ import {
   REAL_ACADEMY,
 } from './data';
 import { T } from './timeline';
-import { DIVE, harborviewPoint, vaultPoint } from './walk';
+import { DIVE, harborviewPoint } from './walk';
 import { Words } from './words';
 
 /**
  * The film's figures as type on their own ground. The sealed final test at Harborview Prep is the
- * one that fills the frame, opening out of a point in the window and going back into it; every
+ * one that fills the frame, growing out of the sealed card's title and going back into a point of
+ * the plot; every
  * other figure rises on the ground beside the window, which stays in frame under the app's
  * backdrop, so it is always plain where the number comes from.
  */
@@ -33,37 +34,62 @@ const tone = (p: number) =>
 
 /** The final test at the academy neither model saw, counting up to the score it reached. */
 const HARBORVIEW_HERO = {
-  title: `${HARBORVIEW.name}, never seen`,
   to: HARBORVIEW.taught,
   unit: `of ${HARBORVIEW.of}`,
   under: `Glimmer alone: ${HARBORVIEW.alone}`,
 } as const;
 
+/** The hero's title size, and where its title starts from the figure's center, in its own pixels. */
+const HERO_TITLE = 76;
+const HERO_BLOCK = { left: -440, top: -300 } as const;
+/** How far right of the block's left edge the number's middle sits, roughly: it shrinks onto it. */
+const HERO_NUMBER = 230;
+
 /**
- * Harborview Prep's figure, full frame. It lives at a point in the window, at a size the camera's
- * dive brings up to full: the count rises and lands on its word, Glimmer alone's under it, and as
- * the camera comes back out it goes back into the point the taught arm lands on.
+ * Harborview Prep's figure, full frame. The sealed card's own title grows out of the window into
+ * the figure's title as the frame settles to the film's ground, and the count rises under it to
+ * land on its word, Glimmer alone's under that. Under the ground the window cuts to the plot,
+ * close on the point the taught arm lands on; as the camera comes back out the figure shrinks
+ * onto that point, its number last, into the arm's own dot.
  */
 export function Hero({ t, view, measured }: { t: number; view: Framing; measured: Measured }) {
-  // The title starts rising as the dive ends, so the frame is never left empty.
-  const titleAt = T.hero - 0.15;
-  if (t < titleAt - 0.05 || t > T.resolve + 1.1) return null;
-  const [x, y] = t < T.vaultCut ? vaultPoint(measured) : harborviewPoint(measured);
-  const shrink = mix(1, 0.3, inOutCubic(span(t, T.resolve, 1.0)));
-  const scale = (view.s / DIVE) * shrink;
-  const sx = FRAME.width / 2 + (x - view.cx) * view.s;
-  const sy = FRAME.height / 2 + (y - view.cy) * view.s;
+  if (t < T.grows - 0.05 || t > T.resolve + 1.1) return null;
+  // Before the cut the figure is the frame's own, centered; after it, it lives at the point the
+  // camera is on, at a size the camera's distance brings to exactly the same.
+  const cut = t >= T.vaultCut;
+  const [x, y] = harborviewPoint(measured);
+  const scale = cut ? (view.s / DIVE) * mix(1, 0.3, inOutCubic(span(t, T.resolve, 1.0))) : 1;
+  const sx = cut ? FRAME.width / 2 + (x - view.cx) * view.s : FRAME.width / 2;
+  const sy = cut ? FRAME.height / 2 + (y - view.cy) * view.s : FRAME.height / 2;
+  // Going back in, the block slides so its number is on the point, and everything else goes first.
+  const onto = inOutCubic(span(t, T.resolve, 0.5));
+  const rest = 1 - outQuart(span(t, T.resolve, 0.3));
+  const gone = outQuart(span(t, T.resolve + 0.75, 0.2));
   const counted = Math.round(
-    mix(0, HARBORVIEW_HERO.to, outQuart(span(t, T.fortyThree - 0.95, 0.95))),
+    mix(0, HARBORVIEW_HERO.to, outQuart(span(t, T.fortyThree - 1.6, 1.6))),
   );
-  // The frame is the window's card up close: it settles to the film's ground under the figure.
   const ground = Math.min(
-    outQuart(span(t, titleAt - 0.2, 0.4)),
+    outQuart(span(t, T.grows + 0.1, 0.5)),
     1 - outQuart(span(t, T.resolve, 0.45)),
   );
-  const gone = outQuart(span(t, T.resolve + 0.62, 0.3));
-  const rise = (at: number) => ({
-    transform: `translateY(${(1 - outExpo(span(t, at, 0.9))) * 110}%)`,
+  // The card's title, where the camera sees it, grows into the figure's title.
+  const card = measured.get('vault-title');
+  const grow = inOutCubic(span(t, T.grows, 0.85));
+  const from = card
+    ? {
+        x: FRAME.width / 2 + (card.x - view.cx) * view.s,
+        y: FRAME.height / 2 + (card.y + card.h / 2 - view.cy) * view.s,
+        k: (CARD_TITLE * view.s) / HERO_TITLE,
+      }
+    : { x: sx + HERO_BLOCK.left, y: sy + HERO_BLOCK.top + HERO_TITLE / 2, k: 1 };
+  const to = { x: sx + HERO_BLOCK.left, y: sy + HERO_BLOCK.top + HERO_TITLE / 2 };
+  // Alone, the title holds the frame's middle; it goes up to its place as the count rises.
+  const alone = (1 - inOutCubic(span(t, T.fortyThree - 1.85, 0.6))) * (FRAME.height / 2 - to.y);
+  const titleX = cut ? 0 : mix(from.x - to.x, 0, grow);
+  const titleY = (cut ? 0 : mix(from.y - to.y - alone, 0, grow)) + alone;
+  const titleK = cut ? 1 : mix(from.k, 1, grow);
+  const rise = (at: number, dur = 0.9) => ({
+    transform: `translateY(${(1 - outExpo(span(t, at, dur))) * 110}%)`,
   });
   const type = 'whitespace-nowrap font-display font-semibold leading-none tracking-[-0.03em]';
   return (
@@ -78,20 +104,45 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
           zIndex: 30,
         }}
       >
-        {/* The figure's row is centered on the point; the academy's name sits above it. */}
-        <div className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-start">
-          <span className="absolute bottom-full left-0 inline-block overflow-hidden pb-[0.1em]">
-            <span className={`inline-block text-[76px] ${type}`} style={rise(titleAt)}>
-              {HARBORVIEW_HERO.title}
+        <div
+          className="absolute flex flex-col items-start gap-4"
+          style={{
+            left: HERO_BLOCK.left,
+            top: HERO_BLOCK.top,
+            transform: `translateX(${onto * (-HERO_BLOCK.left - HERO_NUMBER)}px)`,
+          }}
+        >
+          <span
+            className={`flex items-baseline text-[76px] ${type}`}
+            style={{
+              height: HERO_TITLE,
+              opacity: rest,
+              // Spaced as the card's title is as it leaves the card, tightening as it grows.
+              letterSpacing: `${mix(0, -0.03, cut ? 1 : grow)}em`,
+              transformOrigin: '0 50%',
+              transform: `translate(${titleX / scale}px, ${titleY / scale}px) scale(${titleK})`,
+            }}
+          >
+            {HARBORVIEW.name}
+            <span className="inline-block overflow-hidden pb-[0.12em]">
+              <span className="inline-block" style={rise(T.hero)}>
+                ,
+              </span>
+            </span>
+            <span className="ml-[0.26em] inline-block overflow-hidden pb-[0.12em]">
+              <span className="inline-block" style={rise(T.hero + 0.06)}>
+                never seen
+              </span>
             </span>
           </span>
           <FigureRow
             value={String(counted)}
             unit={HARBORVIEW_HERO.unit}
             color={tone(1)}
-            style={(delay) => rise(T.fortyThree - 0.95 + delay)}
+            unitOpacity={rest}
+            style={(delay) => rise(T.fortyThree - 1.6 + delay, 0.7)}
           />
-          <span className="absolute left-0 top-full inline-block overflow-hidden pt-4">
+          <span className="inline-block overflow-hidden pb-[0.12em]" style={{ opacity: rest }}>
             <span className={`inline-block text-[76px] ${type}`} style={rise(T.alone)}>
               {HARBORVIEW_HERO.under}
             </span>
@@ -102,16 +153,21 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
   );
 }
 
+/** The size of a card's title in the window (packages/ui's `text-body`). */
+const CARD_TITLE = 15;
+
 /** A figure's row: its number large, what follows it smaller, each rising in its own mask. */
 function FigureRow({
   value,
   unit,
   color,
+  unitOpacity = 1,
   style,
 }: {
   value: string;
   unit: string;
   color?: string;
+  unitOpacity?: number;
   style: (delay: number) => CSSProperties;
 }) {
   return (
@@ -124,7 +180,7 @@ function FigureRow({
           {value}
         </span>
       </span>
-      <span className="inline-block overflow-hidden">
+      <span className="inline-block overflow-hidden" style={{ opacity: unitOpacity }}>
         <span className="inline-block text-[150px] tracking-[-0.035em]" style={style(0.12)}>
           {unit}
         </span>

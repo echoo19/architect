@@ -51,11 +51,9 @@ const AT = {
   /** Round 3's step: along to round 3, then up to 35 of 36 on the word. */
   scored3: T.pushScore,
   rise3: T.pushScore + 0.35,
-  /** Training is over; the sealed final test starts without Spark. */
-  final: T.thirtyFive + 1.0,
 } as const;
 
-type Stage = 'attempting' | 'diagnosing' | 'evaluating' | 'testing';
+type Stage = 'attempting' | 'diagnosing' | 'evaluating';
 
 export interface Phase {
   at: number;
@@ -73,7 +71,6 @@ const PHASES: readonly Phase[] = [
   { at: AT.round3, stage: 'attempting', count: { of: 12, from: 0, to: 12, dur: 1.1 } },
   // Round 3's checks are all scored before its step rises to the score they make.
   { at: AT.score3, stage: 'evaluating', count: { of: 36, from: 0, to: 36, dur: 0.65 } },
-  { at: AT.final, stage: 'testing', count: { of: 120, from: 0, to: 120, dur: 60 } },
 ];
 
 /**
@@ -91,7 +88,6 @@ const STAGE_LABELS: Record<Stage, string> = {
   attempting: 'Practice',
   diagnosing: 'Diagnose',
   evaluating: 'Score',
-  testing: 'Sealed final test',
 };
 
 function phaseAt(phases: readonly Phase[], t: number): number {
@@ -135,12 +131,6 @@ function Named({ stage }: { stage: Stage }) {
       );
     case 'evaluating':
       return <>Scoring the change on the held-out checks</>;
-    case 'testing':
-      return (
-        <>
-          Sealed final test, <span className="text-mentor">Spark</span> disconnected
-        </>
-      );
   }
 }
 
@@ -247,8 +237,6 @@ function LiveStatus({ t, score, phases }: { t: number; score: number; phases: re
   const settle = outQuart(span(t, phase.at, 0.36));
   const now = shares(phase, t);
   const was = shares(before, phase.at);
-  const testing = phase.stage === 'testing';
-  const count = counted(phase, t);
   const tally = (of: Phase, at: number) => {
     const done = counted(of, at)?.done;
     return done === undefined ? null : `${done} of ${of.count?.of}`;
@@ -288,40 +276,24 @@ function LiveStatus({ t, score, phases }: { t: number; score: number; phases: re
           className="justify-items-end"
         />
       </span>
-      <span className="grid">
-        <ol
-          className="m-0 flex list-none items-end gap-2 p-0 text-small [grid-area:1/1]"
-          style={{ opacity: testing ? 1 - span(t, phase.at, 0.1) : 1 }}
-        >
-          {ROUND_STAGES.map((stage, i) => {
-            const current = !testing && stage === phase.stage;
-            const share = mix(was[i]!, now[i]!, settle);
-            return (
-              <li key={stage} className="flex min-w-24 flex-col gap-2">
-                <span className={current ? 'whitespace-nowrap font-medium' : 'whitespace-nowrap'}>
-                  {STAGE_LABELS[stage]}
-                </span>
-                <Meter
-                  label={STAGE_LABELS[stage]}
-                  value={share}
-                  tone={current ? (stage === 'diagnosing' ? 'mentor' : 'student') : 'fg'}
-                />
-              </li>
-            );
-          })}
-        </ol>
-        {testing && (
-          <ol
-            className="m-0 flex list-none items-end justify-end p-0 text-small [grid-area:1/1]"
-            style={{ opacity: outQuart(span(t, phase.at + 0.1, 0.36)) }}
-          >
-            <li className="flex min-w-24 flex-col gap-2">
-              <span className="whitespace-nowrap font-medium">{STAGE_LABELS.testing}</span>
-              <Meter label={STAGE_LABELS.testing} value={count?.share ?? 0} tone="student" />
+      <ol className="m-0 flex list-none items-end gap-2 p-0 text-small">
+        {ROUND_STAGES.map((stage, i) => {
+          const current = stage === phase.stage;
+          const share = mix(was[i]!, now[i]!, settle);
+          return (
+            <li key={stage} className="flex min-w-24 flex-col gap-2">
+              <span className={current ? 'whitespace-nowrap font-medium' : 'whitespace-nowrap'}>
+                {STAGE_LABELS[stage]}
+              </span>
+              <Meter
+                label={STAGE_LABELS[stage]}
+                value={share}
+                tone={current ? (stage === 'diagnosing' ? 'mentor' : 'student') : 'fg'}
+              />
             </li>
-          </ol>
-        )}
-      </span>
+          );
+        })}
+      </ol>
       <span className="flex size-6 items-center justify-center">
         <Cloud size={16} strokeWidth={1.8} aria-hidden />
       </span>
