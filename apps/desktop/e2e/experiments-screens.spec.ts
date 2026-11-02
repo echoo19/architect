@@ -278,6 +278,9 @@ test('preregisters, saying what freezes, then starts and runs without a locked r
 
   await page.getByRole('button', { name: 'Pause' }).click();
   await expect(page.getByText('Paused', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'It stopped short' })).toContainText(
+    'Paused by you.',
+  );
   await page.getByRole('button', { name: 'Resume' }).click();
   await expect(page.getByText('Running', { exact: true }).first()).toBeVisible();
 });

@@ -63,6 +63,25 @@ export function armStatusWord(arm: ArmReport, experiment: ExperimentStatus): str
 }
 
 /**
+ * Why a paused, stopped or unfinished experiment stopped, in its words: its own reason, or else
+ * what holds each arm still teaching, such as the error that paused its run. Null when nothing
+ * says.
+ */
+export function stopReason(
+  detail: Pick<ExperimentDetail, 'experiment' | 'report'>,
+  arms: Record<ArmId, string>,
+): string | null {
+  const { experiment, report } = detail;
+  if (experiment.reason !== undefined) return experiment.reason;
+  // Only the person pauses it without a reason: closing Architect gives one.
+  if (experiment.status === 'paused') return 'Paused by you.';
+  const held = (report?.arms ?? []).filter(
+    (arm) => arm.status === 'incomplete' && arm.frozen === null && arm.reason !== null,
+  );
+  return held.length === 0 ? null : held.map((arm) => `${arms[arm.arm]}: ${arm.reason}`).join(' ');
+}
+
+/**
  * The short names of the models an experiment runs, as every line names them: the field's own
  * teacher and student (decision 094), "Spark" and "Glimmer" by default.
  */
