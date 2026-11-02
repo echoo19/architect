@@ -18,7 +18,8 @@ import {
 import { Screen } from './screen';
 import { SpaceScene } from './space';
 import { T } from './timeline';
-import { camera, Cursor, measuringView, walkView } from './walk';
+import { camera, Cursor, LOCKUP_OUT, measuringView, walkView } from './walk';
+import { OUT } from './chapters';
 import { LabelsContext } from '../lab/labels';
 import { LAUNCH_LABELS, SHOW_OPEN_TEACHER } from './data';
 
@@ -73,10 +74,12 @@ export function LaunchFilm({ t, measured }: { t: number; measured: Measured }) {
     <LabelsContext.Provider value={LAUNCH_LABELS}>
       {t < T.how ? (
         <SpaceScene t={t} measured={measured} />
-      ) : t < T.ownAI - 0.02 ? (
-        <Walk t={t} measured={measured} />
       ) : (
-        <Ending t={t} measured={measured} />
+        <>
+          {/* The window glides out as the end's line rises: the two share a moment. */}
+          {t < LOCKUP_OUT + OUT && <Walk t={t} measured={measured} />}
+          {t >= LOCKUP_OUT && <Ending t={t} measured={measured} />}
+        </>
       )}
     </LabelsContext.Provider>
   );

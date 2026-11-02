@@ -89,8 +89,11 @@ const COMPUTE_AT = T.compute - 0.4;
 /** Models comes in under the figures' ground; its panel opens as the window flies back in onto it. */
 const MODELS_AT = T.models - 0.7;
 
-/** The chat comes in while the window is away between the home and it. */
-const CHAT_AT = T.intoChat - 0.4;
+/** The chat pushes in over the home as the camera moves onto it. */
+const CHAT_AT = T.intoChat - 0.9;
+
+/** The window glides out for the lockup, its line rising as it goes (ending.tsx). */
+export const LOCKUP_OUT = T.ownAI - 0.95;
 
 const PAGES: readonly PageSpan[] = [
   {
@@ -229,7 +232,6 @@ const PAGES: readonly PageSpan[] = [
     at: CHAT_AT,
     mode: 'place',
     fill: ACADEMY_CHAT,
-    cut: true,
     draw: (lt) => <WorkspacePage lt={lt} allowAt={ALLOW_AT} />,
     // It opens on the reply already waiting for approval, and Allow once is pressed on its word.
     clock: [
@@ -255,10 +257,18 @@ const CLOCKS = new Map(PAGES.map((page) => [page.key, page.clock ? local(page.cl
  * come in as the app's stepper brings them: pushed in whole from the right, the page before going
  * out to the left.
  */
-const PUSHED = new Set(['define', 'train', 'finetune', 'welcome']);
-const PUSH = 0.4;
-const pushed = (page: PageSpan | undefined, t: number) =>
-  page && PUSHED.has(page.key) ? inOutCubic(span(t, page.at, PUSH)) : null;
+/** How long each pushed page takes to come in; the chat's while the camera holds the whole window. */
+const PUSHED: Readonly<Record<string, number>> = {
+  define: 0.6,
+  train: 0.6,
+  finetune: 0.6,
+  workspace: 0.9,
+  welcome: 0.6,
+};
+const pushed = (page: PageSpan | undefined, t: number) => {
+  const dur = page && PUSHED[page.key];
+  return page && dur ? inOutCubic(span(t, page.at, dur)) : null;
+};
 
 function pageIndex(t: number): number {
   let found = 0;
@@ -549,15 +559,15 @@ const SHOTS: readonly Shot[] = [
   { at: T.scienceDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
   ...whip(WHIPS.team, LAB_SIDE_VIEW),
   // 11. Offline: its line, then Academy desk's On-premise card whole, its Offline row turning as
-  // the network goes, its GPU, model and memory; a whip across to its chat for the approval.
+  // the network goes, its GPU, model and memory; then back to the whole window as its chat pushes
+  // in, and onto the chat.
   ...whip(WHIPS.offline, (m) => onPremise(m, 'home-premise', 'home-offline')),
-  { at: CHAT_AT - OUT, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
-  { at: CHAT_AT, dur: 0, to: AWAY_RIGHT, still: true },
-  { at: CHAT_AT, dur: IN, to: CHAT_VIEW, ease: inEase },
-  // 12. The two editions, large, then the window flies out for the lockup.
+  { at: CHAT_AT - 0.5, dur: 0.7, to: FULL, ease: inOutCubic },
+  { at: CHAT_AT + 0.5, dur: 0.9, to: CHAT_VIEW, ease: inOutCubic },
+  // 12. The two editions, large, then the window glides out as the line rises for the lockup.
   { at: T.welcome - 0.4, dur: 0.6, to: FULL, ease: inOutQuint },
   { at: T.welcome + 0.3, dur: 1.0, to: editions },
-  { at: T.ownAI - OUT - 0.05, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
+  { at: LOCKUP_OUT, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
 ];
 
 export function camera(measured: Measured, t: number): Framing {
