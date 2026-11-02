@@ -266,9 +266,11 @@ export const TEAM: Team = {
 
 /*
  * The examples' team demo at Fenwick (examples/inventory-desk/README.md). Assay desk writes up
- * plate FW-0418 and queues the re-tests its policy calls for (`fenwick-plate_report-01`);
- * Inventory desk reserves stock for exactly those compounds (`fenwick-reserve-01`). Every value
- * on screen is read from those tasks' expected answers and the labs' own files.
+ * plate FW-0418 and says which re-tests its policy calls for (`fenwick-plate_report-01`); in a
+ * consult a teammate can't write (decision 107), so Inventory desk proposes both writes: the
+ * re-tests queued in retests.csv, and stock held for exactly those compounds
+ * (`fenwick-reserve-01`). Every value on screen is read from those tasks' expected answers and
+ * the labs' own files.
  */
 interface PlateReport {
   plate: string;
@@ -319,7 +321,7 @@ function policySetting(name: string): string {
 const header = (rows: string[][]) => rows[0] ?? [];
 const plain = (rows: string[][]) => rows.slice(1);
 
-/** The rows Assay desk adds to retests.csv, one per compound of the plate it queues. */
+/** The rows Assay desk says to add to retests.csv, one per compound of the plate to re-test. */
 const RETEST_ROWS: string[][] = (() => {
   const ids = [...REPORT.retests.ids];
   return REPORT.retests.plates.flatMap((plate) =>
@@ -376,13 +378,13 @@ export const TEAM_CHAT: WorkspaceChat = {
 };
 
 const REQUEST = `${TODAY} Reserve stock for ${PLATE}'s re-tests.`;
-const ASKED = `${TODAY} Which compounds on plate ${PLATE} need a re-test, and why? Queue them in retests.csv.`;
+const ASKED = `${TODAY} Which compounds on plate ${PLATE} need a re-test, and why?`;
 
 const reasonWord = (reason: string) => reason.toLowerCase();
 const ANSWER = [
   `${PLATE} ${REPORT.qc === 'pass' ? 'passes' : 'fails'} QC (Z′ ${REPORT.z_prime}). ${CANDIDATES.length} compounds need a re-test: ${CANDIDATES.map(
     (candidate) => `${candidate.compound} is ${reasonWord(candidate.reason)}`,
-  ).join(' and ')}. I queued them as ${REPORT.retests.ids.join(' and ')}.`,
+  ).join(' and ')}. They should be queued in retests.csv as ${REPORT.retests.ids.join(' and ')}.`,
   `ANSWER: ${JSON.stringify({
     plate: PLATE,
     z_prime: REPORT.z_prime,
@@ -406,7 +408,7 @@ const expiryOf = (lot: string) => LOTS.find((row) => row[1] === lot)?.[6] ?? '';
 const lotsOf = (compound: string) => LOTS.filter((row) => row[0] === compound).length;
 
 const REPLY_TEXT = [
-  `${PLATE} passed QC, and Assay desk queued its ${RETEST_ROWS.length} re-tests.`,
+  `${PLATE} passed QC, and Assay desk named ${RETEST_ROWS.length} re-tests. The first change below queues them in retests.csv as ${REPORT.retests.ids.join(' and ')}, and the second holds their stock.`,
   '',
   ...DRAWN.flatMap((allocation) =>
     allocation.draws.map(
@@ -508,15 +510,6 @@ export const TEAM_MESSAGES: WorkspaceMessage[] = [
               status: 'done',
               ms: 400,
             },
-            {
-              id: 'step-5',
-              kind: 'tool',
-              name: 'append',
-              detail: 'data/retests.csv',
-              meta: `${RETEST_ROWS.length} rows`,
-              status: 'done',
-              ms: 1_200,
-            },
           ],
         },
       },
@@ -543,6 +536,13 @@ export const TEAM_MESSAGES: WorkspaceMessage[] = [
         id: 'step-5',
         kind: 'tool',
         name: 'append',
+        detail: 'data/retests.csv',
+        status: 'running',
+      },
+      {
+        id: 'step-6',
+        kind: 'tool',
+        name: 'append',
         detail: 'data/reservations.csv',
         status: 'running',
       },
@@ -555,8 +555,7 @@ export const TEAM_MESSAGES: WorkspaceMessage[] = [
         file: 'data/retests.csv',
         summary: `Add ${RETEST_ROWS.length} rows to data/retests.csv`,
         diff: { columns: header(RETESTS), added: RETEST_ROWS, removed: [], changed: [] },
-        status: 'approved',
-        agent: { graduateId: TEAMMATE_ID, name: TEAMMATE.summary.name },
+        status: 'pending',
       },
       {
         kind: 'approval',
@@ -594,10 +593,10 @@ function proposed(
     ...(request.wanted === undefined ? {} : { wanted: request.wanted }),
     proposal: {
       kind: 'procedure',
-      lesson: 'Name each compound it queues with the re-test id it gave it.',
+      lesson: 'Name each compound to re-test with the re-test id it should be queued as.',
       reason: 'You state a rule it should follow every time, and its instructions never say it.',
       instruction:
-        'When you queue re-tests, list each row you added as its retest_id, the compound or plate, and the reason code, in the order you added them.',
+        'When you say which re-tests to queue, list each row to add as its retest_id, the compound or plate, and the reason code, in the order they should be added.',
       taskType: 'plate_report',
     },
     status: 'proposed',
