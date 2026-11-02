@@ -12,7 +12,7 @@ import {
   type LaunchedApp,
 } from './app';
 import { stubEngine } from './fixtures';
-import { FIELDS, ACADEMY_DESK_ASSETS, ACADEMY_DESK_FIELD, stubFields } from './fixtures-fields';
+import { ACADEMY_DESK_ASSETS, ACADEMY_DESK_FIELD, stubFields } from './fixtures-fields';
 import { recordedCalls, stubByKey, stubRecorded } from './fixtures-flow';
 import { LAB } from './fixtures-lab';
 
@@ -73,14 +73,14 @@ test('lists each field with its organizations, best candidate and last activity'
   await expect(table.getByRole('row')).toHaveCount(9);
 
   // Academy desk: taught on three academies, one never seen and one real; its best candidate's
-  // final test on each kind.
+  // final test on each kind, Academy desk Mini's.
   const academyDesk = table.getByRole('row', { name: /^Academy desk/ });
   const cells = academyDesk.getByRole('cell');
   await expect(cells.nth(1)).toHaveText('3');
   await expect(cells.nth(2)).toHaveText('1');
   await expect(cells.nth(3)).toHaveText('1');
-  await expect(cells.nth(4)).toHaveText('93%');
-  await expect(cells.nth(5)).toHaveText('83%');
+  await expect(cells.nth(4)).toHaveText('94%');
+  await expect(cells.nth(5)).toHaveText('86%');
   await expect(cells.nth(6)).toHaveText('90%');
 
   // A one-organization job is a field of its own records: nothing sealed, and what it never
@@ -131,7 +131,7 @@ test("shows the best candidate's skill by organization grid, the skills and the 
   await capture('field-overview-dark.png');
 
   await page.getByRole('button', { name: 'Open report' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.academyDeskRun}/report$`));
+  await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.academyMiniRun}/report$`));
   await goTo(page, `/fields/${LAB.academyDeskJob}`);
   await study.getByRole('button', { name: 'Open' }).click();
   await expect(page).toHaveURL(new RegExp(`#/jobs/${LAB.academyDeskJob}/define$`));
@@ -196,7 +196,7 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
   await expect(maple).toHaveAttribute('aria-pressed', 'true');
   await expect(orgs.getByText('Never seen', { exact: true })).toHaveCount(2);
   const qualify = card('Maple Grove Academy');
-  await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(2);
+  await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(3);
 
   await stubRecorded(launched.app, 'runs:qualifyAdded', null);
   await stubByKey(launched.app, 'jobs:field', {
@@ -222,21 +222,30 @@ test('adds a never-seen organization later and qualifies a candidate on it', asy
     [LAB.academyDeskRun, 'Maple Grove Academy'],
   ]);
   await expect(qualify.getByLabel(/at Maple Grove Academy: 25 of 30$/)).toBeVisible();
-  await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(1);
+  await expect(qualify.getByRole('button', { name: /^Qualify / })).toHaveCount(2);
   await capture('field-add-org-dark.png');
   await stubFields(launched.app);
 });
 
-test('lists every version with its scores, the best marked, one no agent holds opening its report', async () => {
+test('lists every version with its scores and agent, the best marked, one no agent holds opening its report', async () => {
   await openAt(`/fields/${LAB.academyDeskJob}`);
   await tab('Versions').click();
   const table = page.getByRole('table', { name: 'Versions' });
-  await expect(table.getByRole('row')).toHaveCount(3);
+  // Newest first: the run of version 2, Academy desk Mini's, then the run of version 1.
+  await expect(table.getByRole('row')).toHaveCount(4);
+  await expect(table.getByRole('row').nth(1)).toContainText('Academy desk v2');
   const best = table.getByRole('row', { name: /Best/ });
-  await expect(best.getByRole('cell').nth(3)).toHaveText('v9');
-  await expect(best).toContainText('Academy desk');
-  await table.getByRole('row').nth(2).click();
-  await expect(page).toHaveURL(new RegExp(`#/runs/${FIELDS.earlierRun}/report$`));
+  await expect(best.getByRole('cell').nth(3)).toHaveText('v6');
+  await expect(best).toContainText('Academy desk Mini v1');
+  const first = table.getByRole('row').nth(3);
+  await expect(first).toContainText('Academy desk v1');
+  await first.click();
+  await expect(page).toHaveURL(/#\/models\/.+/);
+
+  await openAt('/fields/job_clinic');
+  await tab('Versions').click();
+  await page.getByRole('table', { name: 'Versions' }).getByRole('row').nth(1).click();
+  await expect(page).toHaveURL(/#\/runs\/run_clinic\/report$/);
 });
 
 test("counts the field's assets and exports them to a folder the person picks", async () => {

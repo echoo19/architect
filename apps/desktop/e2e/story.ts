@@ -11,6 +11,7 @@ import type {
   Round,
   Run,
   RunDetail,
+  Score,
   Trace,
   TypeResult,
 } from '@architect/shared';
@@ -703,3 +704,535 @@ export const storyProgress: MentoringProgress = {
     maxWallMinutes: trainedJob.budget.maxWallMinutes,
   },
 };
+
+/*
+ * Academy desk's story, the field's own: a desk for a test-prep academy's staff, taught on three
+ * generated academies with Spark and hosted Glimmer, each run scored on 48 check tasks (8 of each
+ * skill) and given a 72-task sealed final test there (fixtures-field.ts holds those results).
+ * Three runs: the first (version 1), the one its active version 2 came from, and Academy desk
+ * Mini's on Glimmer's 8-bit build. A change that clears the first check is checked again on new
+ * seeds and kept on both checks added up, out of 96, as the service desk's are.
+ */
+
+export const ACADEMY_SKILLS = [
+  'diagnose',
+  'solve',
+  'hint',
+  'history',
+  'assign',
+  'after_wrong',
+] as const;
+type AcademySkill = (typeof ACADEMY_SKILLS)[number];
+
+const ACADEMY_DEV = 48;
+
+/** One round of an academy run: the change Spark made and what the check tasks said of it. */
+interface AcademyChange {
+  title: string;
+  diagnosis: string;
+  files: string[];
+  /** The skill it was made for, where its gain shows. */
+  skill: AcademySkill;
+  predicted: [number, number];
+  /** Passes of the 48 check tasks before and after. */
+  first: [number, number];
+  /** Both versions measured again on new seeds, added to the first check: kept. */
+  again?: [number, number];
+  draft?: true;
+}
+
+export interface AcademyRunStory {
+  runId: string;
+  createdAt: string;
+  endedAt: string;
+  /** When its final test was taken and its version made. */
+  testedAt: string;
+  baseline: number;
+  changes: AcademyChange[];
+  mentorUsd: number;
+  studentUsd: number;
+  minutes: number;
+}
+
+const DRAFT: AcademyChange = {
+  title: "Work from the academy's own files",
+  diagnosis:
+    'A first full setup from the job and its example tasks: read policy.md before answering, ' +
+    'name errors from errors.csv, and a skill for assigning practice from the question bank.',
+  files: ['AGENTS.md', 'skills/assign/SKILL.md', 'skills/diagnose/SKILL.md'],
+  skill: 'diagnose',
+  predicted: [6, 12],
+  first: [22, 32],
+  draft: true,
+};
+
+const HINTS: AcademyChange = {
+  title: 'Pick hints from the catalog, never write them',
+  diagnosis:
+    "It writes its own first hint, and the checker wants the approved one's hint_id from " +
+    'hints.csv, for the error the student made.',
+  files: ['AGENTS.md', 'skills/hint/SKILL.md'],
+  skill: 'hint',
+  predicted: [3, 6],
+  first: [32, 37],
+  again: [64, 73],
+};
+
+const HISTORY: AcademyChange = {
+  title: 'Count history over the policy window',
+  diagnosis:
+    "It counts every miss on a topic, but the policy's escalation counts only the last 30 " +
+    'days, so it flags students who have since caught up.',
+  files: ['skills/history/SKILL.md'],
+  skill: 'history',
+  predicted: [2, 4],
+  first: [37, 40],
+  again: [73, 79],
+};
+
+const ESCALATE: AcademyChange = {
+  title: 'Escalate after three misses in a row',
+  diagnosis:
+    'It leaves a staff note after any three misses on a topic, where the policy asks for three ' +
+    'in a row.',
+  files: ['skills/history/SKILL.md'],
+  skill: 'after_wrong',
+  predicted: [1, 3],
+  first: [40, 39],
+};
+
+const BAND: AcademyChange = {
+  title: "Assign inside the policy's difficulty band",
+  diagnosis:
+    'It assigns the next unattempted questions of the topic, ignoring the band the policy sets ' +
+    "around the student's target score.",
+  files: ['skills/assign/SKILL.md'],
+  skill: 'assign',
+  predicted: [3, 5],
+  first: [40, 44],
+  again: [79, 87],
+};
+
+/** The run Academy desk's active version 2 came from: six rounds, four changes kept. */
+export const ACADEMY_RUN: AcademyRunStory = {
+  runId: 'run_academy_desk',
+  createdAt: at(-50),
+  endedAt: at(114),
+  testedAt: at(120),
+  baseline: 22,
+  changes: [
+    DRAFT,
+    {
+      title: 'Name the error from errors.csv first',
+      diagnosis:
+        'It names the topic before the error, and on questions that span two topics picks the ' +
+        "wrong one; the error's row names the topic.",
+      files: ['skills/diagnose/SKILL.md'],
+      skill: 'diagnose',
+      predicted: [1, 3],
+      first: [32, 31],
+    },
+    HINTS,
+    HISTORY,
+    ESCALATE,
+    BAND,
+  ],
+  mentorUsd: 2.84,
+  studentUsd: 0.61,
+  minutes: 164,
+};
+
+/** Academy desk's first run, version 1: four rounds, three changes kept. */
+export const ACADEMY_EARLIER_RUN: AcademyRunStory = {
+  runId: 'run_academy_desk_earlier',
+  createdAt: at(-1_570),
+  endedAt: at(-1_452),
+  testedAt: at(-1_440),
+  baseline: 22,
+  changes: [
+    { ...DRAFT, first: [22, 31] },
+    {
+      title: 'Read the policy before assigning',
+      diagnosis:
+        'It assigns five questions every time; each academy sets its own number in policy.md.',
+      files: ['AGENTS.md', 'skills/assign/SKILL.md'],
+      skill: 'assign',
+      predicted: [2, 5],
+      first: [31, 36],
+      again: [62, 71],
+    },
+    {
+      title: "Write the first hint in the academy's voice",
+      diagnosis: 'Its hints give the answer away; the policy asks for a question back.',
+      files: ['skills/hint/SKILL.md'],
+      skill: 'hint',
+      predicted: [1, 3],
+      first: [36, 34],
+    },
+    { ...HISTORY, first: [36, 39], again: [71, 77] },
+  ],
+  mentorUsd: 1.52,
+  studentUsd: 0.38,
+  minutes: 118,
+};
+
+/** Academy desk Mini's run, on Glimmer's 8-bit build: five rounds, four changes kept. */
+export const ACADEMY_MINI_RUN: AcademyRunStory = {
+  runId: 'run_academy_desk_mini',
+  createdAt: at(-720),
+  endedAt: at(-569),
+  testedAt: at(-560),
+  baseline: 24,
+  changes: [
+    { ...DRAFT, first: [24, 33] },
+    { ...HINTS, first: [33, 38], again: [66, 75] },
+    { ...HISTORY, first: [38, 41], again: [75, 81] },
+    { ...ESCALATE, first: [41, 40] },
+    { ...BAND, first: [41, 45], again: [81, 89] },
+  ],
+  mentorUsd: 2.31,
+  studentUsd: 0.88,
+  minutes: 151,
+};
+
+const devScore = (pass: number, total = ACADEMY_DEV): Score => ({ pass, total });
+const isKept = (change: AcademyChange) => change.draft === true || change.again !== undefined;
+
+/** What a change measured on the check tasks: both checks added up when it was kept on them. */
+function measuredOf(change: AcademyChange): { before: Score; after: Score } {
+  return change.again
+    ? {
+        before: devScore(change.again[0], 2 * ACADEMY_DEV),
+        after: devScore(change.again[1], 2 * ACADEMY_DEV),
+      }
+    : { before: devScore(change.first[0]), after: devScore(change.first[1]) };
+}
+
+function reasonOf(change: AcademyChange): string {
+  const [before, after] = change.first;
+  const first = `Dev ${before}/${ACADEMY_DEV} → ${after}/${ACADEMY_DEV}`;
+  if (change.draft) {
+    return `${first}; the first draft is kept as the starting point, and later rounds keep only measured gains`;
+  }
+  if (change.again) {
+    const [b, a] = change.again;
+    return `${first}, measured again on new seeds: ${b}/${2 * ACADEMY_DEV} → ${a}/${2 * ACADEMY_DEV} over 2 runs, no skill lost more than one`;
+  }
+  return after < before ? `${first}, down ${before - after}` : `${first}, no gain to keep`;
+}
+
+/** The harness version each round built on: the last one kept before it, 1 at the blank start. */
+function versionsBefore(story: AcademyRunStory): number[] {
+  let current = 1;
+  return story.changes.map((change, index) => {
+    const from = current;
+    if (isKept(change)) current = index + 2;
+    return from;
+  });
+}
+
+/** The harness version a run ended on: the last change it kept, each round's candidate numbered on. */
+export function academyVersion(story: AcademyRunStory): number {
+  const last = story.changes.length - 1;
+  const from = versionsBefore(story)[last] ?? 1;
+  const change = story.changes[last];
+  return change && isKept(change) ? last + 2 : from;
+}
+
+/** Spark's spend, round by round, adding up to the run's. */
+function roundCosts(story: AcademyRunStory): number[] {
+  const count = story.changes.length;
+  const each = Math.floor((story.mentorUsd / count) * 100) / 100;
+  const last = Math.round((story.mentorUsd - each * (count - 1)) * 100) / 100;
+  return story.changes.map((_, index) => (index === count - 1 ? last : each));
+}
+
+export function academyRounds(story: AcademyRunStory): Round[] {
+  const costs = roundCosts(story);
+  const minutes = story.minutes / story.changes.length;
+  return story.changes.map((change, index) => {
+    const measured = measuredOf(change);
+    return {
+      runId: story.runId,
+      index: index + 1,
+      status: 'decided',
+      ...(change.draft ? { draft: true as const } : {}),
+      train: change.draft ? { pass: 0, total: 0 } : { pass: 5 + (index % 4), total: 12 },
+      title: change.title,
+      diagnosis: change.diagnosis,
+      predicted: {
+        devDeltaMin: change.predicted[0],
+        devDeltaMax: change.predicted[1],
+        rationale: 'The failures it was made from share this cause.',
+      },
+      files: change.files,
+      candidateVersion: index + 2,
+      devBefore: measured.before,
+      devAfter: measured.after,
+      ...(change.again
+        ? {
+            firstMeasurement: {
+              devBefore: devScore(change.first[0]),
+              devAfter: devScore(change.first[1]),
+            },
+          }
+        : {}),
+      decision: isKept(change) ? 'kept' : 'reverted',
+      decisionReason: reasonOf(change),
+      costUsd: costs[index] ?? 0,
+      startedAt: new Date(Date.parse(story.createdAt) + index * minutes * 60_000).toISOString(),
+    };
+  });
+}
+
+/** The check-task curve its report card holds: each round's decision, kept ones measured twice. */
+export function academyDev(story: AcademyRunStory): ReportCard['dev'] {
+  const curve: ReportCard['dev']['curve'] = [
+    { round: 0, score: devScore(story.baseline), decision: 'baseline' },
+    ...story.changes.map((change, index) => ({
+      round: index + 1,
+      score: measuredOf(change).after,
+      decision: isKept(change) ? ('kept' as const) : ('reverted' as const),
+    })),
+  ];
+  const kept = curve.filter((point) => point.decision === 'kept');
+  return {
+    baseline: devScore(story.baseline),
+    final: kept.at(-1)?.score ?? devScore(story.baseline),
+    curve,
+  };
+}
+
+/** The three kept changes that gained most, in the order they were made. */
+export function academyInterventions(story: AcademyRunStory): ReportCard['topInterventions'] {
+  return story.changes
+    .flatMap((change, index) => {
+      if (!isKept(change)) return [];
+      const measured = measuredOf(change);
+      return [
+        {
+          round: index + 1,
+          title: change.title,
+          delta: measured.after.pass - measured.before.pass,
+          ...(change.again ? { runs: 2 } : {}),
+        },
+      ];
+    })
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 3)
+    .sort((a, b) => a.round - b.round);
+}
+
+/** What the run cost, as its report card holds it. */
+export function academyCost(story: AcademyRunStory): ReportCard['cost'] {
+  return {
+    mentorUsd: story.mentorUsd,
+    studentUsd: story.studentUsd,
+    mentorInputTokens: Math.round(story.mentorUsd * 98_000),
+    mentorOutputTokens: Math.round(story.mentorUsd * 18_500),
+    rounds: story.changes.length,
+    wallMs: story.minutes * 60_000,
+  };
+}
+
+/** Passes of a check, skill by skill, adding up to `total`: the same share of each. */
+function bySkill(total: number): number[] {
+  const base = Math.floor(total / ACADEMY_SKILLS.length);
+  const extra = total - base * ACADEMY_SKILLS.length;
+  return ACADEMY_SKILLS.map((_, index) => base + (index < extra ? 1 : 0));
+}
+
+function academyLineage(story: AcademyRunStory, rounds: Round[]): LineageEntry[] {
+  const from = versionsBefore(story);
+  return story.changes.map((change, index) => {
+    const source = rounds[index] as Round;
+    const measured = measuredOf(change);
+    const delta = measured.after.pass - measured.before.pass;
+    const before = bySkill(measured.before.pass);
+    const target = ACADEMY_SKILLS.indexOf(change.skill);
+    return {
+      id: `lin_${story.runId}_${index + 1}`,
+      runId: story.runId,
+      round: index + 1,
+      title: change.title,
+      diagnosis: change.diagnosis,
+      files: change.files,
+      causeTaskIds: [`task_${change.skill}_northside_03`, `task_${change.skill}_lakeview_05`],
+      predicted: source.predicted ?? { devDeltaMin: 0, devDeltaMax: 0, rationale: '' },
+      measured: {
+        devBefore: measured.before,
+        devAfter: measured.after,
+        delta,
+        perType: ACADEMY_SKILLS.map((type, skill) => ({
+          type,
+          before: before[skill] ?? 0,
+          after: (before[skill] ?? 0) + (skill === target ? delta : 0),
+        })),
+        ...(source.firstMeasurement ? { firstMeasurement: source.firstMeasurement } : {}),
+      },
+      decision: isKept(change) ? 'kept' : 'reverted',
+      decisionReason: source.decisionReason ?? '',
+      versionFrom: from[index] ?? 1,
+      versionTo: index + 2,
+      mentor: {
+        model: 'muse-spark-1.3',
+        costUsd: source.costUsd,
+        inputTokens: 46_000,
+        outputTokens: 8_700,
+      },
+      at: source.startedAt,
+    };
+  });
+}
+
+/** The student's last tries, from the run's final round: the band round was made from the first. */
+function academyAttempts(story: AcademyRunStory): (Attempt & { prompt: string })[] {
+  const round = story.changes.length;
+  const version = versionsBefore(story)[round - 1] ?? 1;
+  const make = (
+    id: string,
+    taskType: AcademySkill,
+    check: Attempt['check'],
+    prompt: string,
+    answer: string,
+    expected?: string,
+  ): Attempt & { prompt: string } => ({
+    id: `${story.runId}_${id}`,
+    runId: story.runId,
+    round,
+    taskId: `task_${taskType}_${id}`,
+    taskType,
+    split: 'train',
+    harnessVersion: version,
+    check,
+    answerSummary: answer,
+    ...(expected ? { expectedSummary: expected } : {}),
+    latencyMs: 9_400,
+    usage: { inputTokens: 7_200, outputTokens: 310 },
+    prompt,
+  });
+  return [
+    make(
+      'att_1',
+      'assign',
+      {
+        pass: false,
+        reason: "Q-231 is outside Maya's band: Lakeview assigns 55-75% questions for her target.",
+      },
+      'Maya T. missed question 14 on the linear equations set. Assign her follow-up practice.',
+      'Q-212, Q-219, Q-231',
+      'Q-212, Q-219, Q-224',
+    ),
+    make(
+      'att_2',
+      'hint',
+      { pass: true, reason: 'The approved hint for error E-07.' },
+      'Jonah P. chose B on question 9 of Math module 1. Which first hint do we give?',
+      'H-ALG2-07',
+    ),
+    make(
+      'att_3',
+      'diagnose',
+      { pass: true, reason: 'Topic, right choice and error match.' },
+      'Ana R. got question 3 of the reading module wrong and chose C. What went wrong?',
+      'RW-4, B, E-12',
+    ),
+  ];
+}
+
+/** An academy run as its training screen reads it, finished. */
+export function academyDetail(story: AcademyRunStory, trained: Job): RunDetail {
+  const rounds = academyRounds(story);
+  const dev = academyDev(story);
+  const cost = academyCost(story);
+  return {
+    run: makeRun({
+      id: story.runId,
+      jobId: trained.id,
+      status: 'finished',
+      phase: 'done',
+      createdAt: story.createdAt,
+      updatedAt: story.endedAt,
+      endedAt: story.endedAt,
+      currentVersion: academyVersion(story),
+      devBaseline: dev.baseline,
+      devCurrent: dev.final,
+      totals: {
+        mentorUsd: story.mentorUsd,
+        mentorInputTokens: cost.mentorInputTokens,
+        mentorOutputTokens: cost.mentorOutputTokens,
+        studentInputTokens: 2_400_000,
+        studentOutputTokens: 260_000,
+        rounds: story.changes.length,
+        attempts: 96 * story.changes.length,
+        wallMs: cost.wallMs,
+      },
+    }),
+    job: trained,
+    rounds,
+    recentAttempts: academyAttempts(story),
+    lineage: academyLineage(story, rounds),
+  };
+}
+
+/** The try the band round was made from: it took the next questions, outside Maya's band. */
+export function academyTrace(story: AcademyRunStory): Trace {
+  const [failed] = academyAttempts(story);
+  if (!failed) throw new Error('An academy run lists its tries.');
+  return {
+    taskId: failed.taskId,
+    harnessVersion: failed.harnessVersion,
+    studentModel: 'meta/muse-glimmer-30b',
+    messages: [{ role: 'user', content: failed.prompt }],
+    steps: [
+      { kind: 'skill', slug: 'assign', via: 'rule' },
+      {
+        kind: 'model',
+        text: "I need Lakeview's policy on practice and the ALG-2 questions Maya hasn't tried.",
+        toolCalls: [{ id: 'call_1', name: 'read', arguments: { path: 'data/policy.md' } }],
+        usage: { inputTokens: 2_900, outputTokens: 84 },
+        latencyMs: 2_100,
+      },
+      {
+        kind: 'tool',
+        callId: 'call_1',
+        name: 'read',
+        arguments: { path: 'data/policy.md' },
+        result:
+          '14\tAssign three follow-up questions on the topic, inside the band around the ' +
+          "student's target: 55-75% for targets under 1300.",
+        latencyMs: 24,
+      },
+      {
+        kind: 'model',
+        text: 'The next three ALG-2 questions in the bank are Q-212, Q-219 and Q-231.',
+        toolCalls: [],
+        usage: { inputTokens: 3_400, outputTokens: 120 },
+        latencyMs: 2_600,
+      },
+    ],
+    finalText: 'Three more on ALG-2 for Maya.\nANSWER: {"questions":["Q-212","Q-219","Q-231"]}',
+    stopReason: 'answer',
+    usage: { inputTokens: 6_300, outputTokens: 204 },
+    latencyMs: failed.latencyMs,
+  };
+}
+
+/** What the band round changed. */
+export const ACADEMY_ROUND_DIFF: FileDiff[] = [
+  {
+    path: 'skills/assign/SKILL.md',
+    status: 'modified',
+    patch: [
+      '--- a/skills/assign/SKILL.md',
+      '+++ b/skills/assign/SKILL.md',
+      '@@ -1,5 +1,6 @@ description: Assign follow-up practice from the question bank.',
+      ' 1. Read the policy: how many questions, which difficulty band.',
+      " 2. List the topic's questions the student hasn't attempted.",
+      "-3. Take them in the bank's order.",
+      "+3. Keep those whose difficulty_pct is inside the band for the student's target.",
+      "+4. Take them in the bank's order.",
+      ' 4. Write that many rows to assignments.csv; nothing else.',
+    ].join('\n'),
+  },
+];

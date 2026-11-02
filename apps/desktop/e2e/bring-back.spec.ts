@@ -98,7 +98,7 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
         id: 'qlf_1',
         runId: request.runId,
         jobId: 'job_academy_desk',
-        harnessVersion: 2,
+        harnessVersion: 6,
         model: request.endpoint['model'],
         baseUrl: request.endpoint['baseUrl'],
         status: 'testing',
@@ -142,7 +142,8 @@ test('Compute qualifies a trained model on a field, labeled as trained elsewhere
   const calls = await launched.app.evaluate(
     () => (globalThis as typeof globalThis & { qualifyCalls?: unknown[] }).qualifyCalls,
   );
-  expect(calls).toMatchObject([{ runId: LAB.academyDeskRun, endpoint: ENDPOINT }]);
+  // The harness offered first is the field's best version's, Academy desk Mini's.
+  expect(calls).toMatchObject([{ runId: LAB.academyMiniRun, endpoint: ENDPOINT }]);
 
   await page.mouse.move(0, 0);
   await card.evaluate((element) => element.scrollIntoView({ block: 'start' }));

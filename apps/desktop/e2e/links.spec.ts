@@ -236,10 +236,11 @@ test("a field's page goes back to Fields, and its versions open in Models", asyn
   await goTo(page, `/fields/${LAB.academyDeskJob}`);
   await page.getByRole('tab', { name: 'Versions' }).click();
   const versions = page.getByRole('table', { name: 'Versions' });
-  const best = versions.getByRole('row', { name: /Best/ });
-  await expect(best).toContainText('Academy desk v2');
+  // The best is Academy desk Mini's; version 2 of Academy desk is the one opened.
+  await expect(versions.getByRole('row', { name: /Best/ })).toContainText('Academy desk Mini v1');
+  const active = versions.getByRole('row', { name: /Academy desk v2/ });
   await capture('links-field-versions-dark.png');
-  await best.click();
+  await active.click();
   await expectVersionOpen();
 });
 

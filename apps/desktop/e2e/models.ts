@@ -23,8 +23,8 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
   return text === '' ? {} : JSON.parse(text);
 }
 
-function sendJson(response: ServerResponse, value: object): void {
-  response.writeHead(200, { 'content-type': 'application/json' });
+function sendJson(response: ServerResponse, value: object, status = 200): void {
+  response.writeHead(status, { 'content-type': 'application/json' });
   response.end(JSON.stringify(value));
 }
 
@@ -116,6 +116,7 @@ export async function startFakeOllama(
   async function answer(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const body = (await readBody(request)) as {
       model?: string;
+      name?: string;
       messages?: ChatRequestMessage[];
       options?: Record<string, unknown>;
       keep_alive?: number;
@@ -140,6 +141,12 @@ export async function startFakeOllama(
       return;
     }
     if (request.url === '/api/show') {
+      // A model it doesn't list is one it doesn't have, as Ollama answers.
+      const asked = body.model ?? body.name;
+      if (options.models && !options.models.some((model) => model.name === asked)) {
+        sendJson(response, { error: `model '${asked ?? ''}' not found` }, 404);
+        return;
+      }
       sendJson(response, { capabilities: ['completion', 'tools', 'thinking'] });
       return;
     }
