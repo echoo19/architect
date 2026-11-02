@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import type { WorkspaceChat, WorkspaceMessage } from '@architect/shared';
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { api, architect } from '../api/client';
 import { toError } from '../api/query';
 import { onWorkspaceEvent, workspaceApi } from './api';
@@ -109,6 +110,52 @@ export function useChatMessages(chatId: string): ListState<WorkspaceMessage[]> {
   return { entry: entry ?? { status: 'loading' }, reload };
 }
 
+/**
+ * The chats of each of these teams, newest first across them, for the home of the agent that
+ * leads them. Teams whose chats can't be read yet are left out until they are.
+ */
+export function useTeamsChats(teamIds: readonly string[]): WorkspaceChat[] {
+  const entries = useWorkspace(useShallow((state) => teamIds.map((id) => state.chats[id])));
+  const key = teamIds.join(' ');
+  useEffect(() => {
+    const { chats } = useWorkspace.getState();
+    for (const id of key === '' ? [] : key.split(' ')) {
+      if (!chats[id]) void loadTeamChats(id);
+    }
+  }, [key]);
+  return entries.flatMap((entry) => entry?.data ?? []);
+}
+
+/**
+ * The messages of every one of these chats, each read once and kept in step with the host like an
+ * open chat's: what an agent's home counts. Ready once every chat's messages are read, the first
+ * failure otherwise.
+ */
+export function useChatsMessages(chatIds: readonly string[]): {
+  entry: Loadable<Record<string, WorkspaceMessage[]>>;
+  reload: () => void;
+} {
+  const entries = useWorkspace(useShallow((state) => chatIds.map((id) => state.messages[id])));
+  const key = chatIds.join(' ');
+  useEffect(() => {
+    const { messages } = useWorkspace.getState();
+    for (const id of key === '' ? [] : key.split(' ')) {
+      if (!messages[id]) void loadMessages(id);
+    }
+  }, [key]);
+  const reload = useCallback(() => {
+    for (const id of key === '' ? [] : key.split(' ')) void loadMessages(id);
+  }, [key]);
+  const failure = entries.find((entry) => entry?.status === 'error');
+  if (failure?.status === 'error')
+    return { entry: { status: 'error', error: failure.error }, reload };
+  if (entries.some((entry) => entry?.data === undefined)) {
+    return { entry: { status: 'loading' }, reload };
+  }
+  const data = Object.fromEntries(chatIds.map((id, index) => [id, entries[index]?.data ?? []]));
+  return { entry: { status: 'ready', data }, reload };
+}
+
 let finding: Promise<WorkspaceChat> | undefined;
 
 /**
@@ -134,6 +181,19 @@ async function findLatestChat(graduateIds: string[]): Promise<WorkspaceChat> {
   if (latest) return latest;
   if (!first) throw new Error('There are no agents to open.');
   return createChat(first);
+}
+
+/** The agent among these that was used last, or the first when none has a chat yet. */
+export async function latestAgent(graduateIds: string[]): Promise<string> {
+  await Promise.all(graduateIds.map((id) => loadChats(id)));
+  const entries = graduateIds.map((id) => useWorkspace.getState().chats[id]);
+  for (const entry of entries) {
+    if (entry?.status === 'error') throw entry.error;
+  }
+  const first = graduateIds[0];
+  const id = newest(entries.flatMap((entry) => entry?.data ?? []))?.graduateId ?? first;
+  if (id === undefined) throw new Error('There are no agents to open.');
+  return id;
 }
 
 function newest(chats: readonly WorkspaceChat[]): WorkspaceChat | undefined {

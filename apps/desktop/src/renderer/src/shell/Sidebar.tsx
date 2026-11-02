@@ -311,12 +311,20 @@ function AgentGroup({
 
   return (
     <div className="group/agent flex flex-col gap-0.5">
-      <div className="relative flex min-h-9 items-center gap-2.5 py-1.5 pl-2.5 pr-2.5">
-        <AgentAvatar name={graduate.name} />
-        <span className="line-clamp-2 min-w-0 flex-1 break-words font-medium">{graduate.name}</span>
-        {showVersion && graduate.activeVersion !== null && (
-          <span className="shrink-0 font-mono text-small">v{graduate.activeVersion}</span>
-        )}
+      <div className="relative">
+        <NavItem
+          icon={<AgentAvatar name={graduate.name} />}
+          current={route.name === 'agent' && route.graduateId === graduate.id}
+          indicator={INDICATOR}
+          onClick={() => navigate(paths.agent(graduate.id))}
+          end={
+            showVersion && graduate.activeVersion !== null ? (
+              <span className="font-mono">v{graduate.activeVersion}</span>
+            ) : undefined
+          }
+        >
+          <span className="font-medium">{graduate.name}</span>
+        </NavItem>
         <div className={GROUP_ACTIONS}>
           <NewChatButton name={graduate.name} creating={creating} onClick={start} />
           <Tooltip content="Agent settings" side="right">
@@ -382,10 +390,16 @@ function TeamGroup({ team, route }: { team: Team; route: Route }) {
   );
 }
 
-/** An agent's or a team's chats, nested under it. */
+/** How many of a group's chats the sidebar lists; its home lists them all. */
+const RECENT_CHATS = 5;
+
+/**
+ * An agent's or a team's most recent chats, nested under it, with the open one among them
+ * however old it is.
+ */
 function GroupChats({ chats, route }: { chats: ListState<WorkspaceChat[]>; route: Route }) {
-  const list = chats.entry.data;
   const open = route.name === 'chat' || route.name === 'team-chat' ? route.chatId : null;
+  const list = chats.entry.data?.filter((chat, index) => index < RECENT_CHATS || chat.id === open);
   return (
     <>
       {!list && chats.entry.status === 'loading' && (

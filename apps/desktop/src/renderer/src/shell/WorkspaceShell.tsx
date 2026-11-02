@@ -12,6 +12,8 @@ function transitionKey(route: Route): string {
     case 'chat':
     case 'team-chat':
       return route.chatId;
+    case 'agent':
+      return `agent:${route.graduateId}`;
     case 'field':
       return `field:${route.jobId}`;
     case 'experiment':
