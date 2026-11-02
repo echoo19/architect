@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GraduateSummary, JobSummary, Team, WorkspaceChat } from '@architect/shared';
 import {
   AgentAvatar,
@@ -308,9 +308,17 @@ function AgentGroup({
   const chats = useAgentChats(graduate.id);
   const showSettings = useAgentSettingsUi((state) => state.show);
   const { creating, start } = useStartChat(graduate.name, () => createChat(graduate.id));
+  // The open agent, at its home or in one of its chats, scrolls into view with its chats.
+  const open =
+    (route.name === 'agent' || route.name === 'chat') && route.graduateId === graduate.id;
+  const group = useRef<HTMLDivElement>(null);
+  const loaded = chats.entry.data !== undefined;
+  useEffect(() => {
+    if (open && loaded) group.current?.scrollIntoView({ block: 'nearest' });
+  }, [open, loaded]);
 
   return (
-    <div className="group/agent flex flex-col gap-0.5">
+    <div ref={group} className="group/agent flex flex-col gap-0.5">
       <div className="relative">
         <NavItem
           icon={<AgentAvatar name={graduate.name} />}

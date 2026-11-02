@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
-import { answerTimes, toolUse } from '../src/renderer/src/agent/activity';
+import { activitySpan, answerTimes, toolUse } from '../src/renderer/src/agent/activity';
 import { formatAnswerTime } from '../src/renderer/src/flow/format';
-import { ACTIVITY_PLANS, agentHistory } from './fixtures-activity';
+import { ACTIVITY_PLANS, activityOf, agentHistory } from './fixtures-activity';
 import { GPU_12GB, stubEngine } from './fixtures';
 import { FIELD_MEASUREMENT } from './fixtures-field';
 import { AGENT, callsTo, engineSeed, installFakeEngine } from './fixtures-workspace';
@@ -14,22 +14,16 @@ import { AGENT, callsTo, engineSeed, installFakeEngine } from './fixtures-worksp
  */
 
 const SIZE = { width: 1440, height: 900 };
-const DAY = 24 * 60 * 60 * 1000;
 
 test.describe.configure({ mode: 'serial' });
 
 let launched: LaunchedApp;
 let page: Page;
 
-/** Ten days of the service desk's work, ending now. */
-const history = agentHistory([
-  {
-    graduateId: AGENT.id,
-    version: 1,
-    since: new Date(Date.now() - 10 * DAY).toISOString(),
-    sessions: ACTIVITY_PLANS.serviceDesk,
-  },
-]);
+/** The service desk's work since its version was accepted, ending now. */
+const history = agentHistory([activityOf(AGENT, ACTIVITY_PLANS.serviceDesk)]);
+/** The days the chart covers: from the version's acceptance, a week at least. */
+const span = activitySpan(AGENT.manifest.acceptedAt ?? AGENT.manifest.createdAt, new Date());
 const exchanges = ACTIVITY_PLANS.serviceDesk.flatMap((session) => session.exchanges);
 
 test.beforeAll(async () => {
@@ -73,14 +67,16 @@ test('opening the app lands on the home of the agent used last', async () => {
 
 test("counts the agent's requests, answer times and tools from its chats", async () => {
   const activity = home().getByRole('region', { name: 'Activity' });
-  await expect(activity.getByText('Requests, 14 days')).toBeVisible();
+  await expect(
+    activity.getByText(span.fromAcceptance ? /^Requests since / : `Requests, ${span.days} days`),
+  ).toBeVisible();
   await expect(activity).toContainText(String(exchanges.length));
   const times = answerTimes(history.messages);
   await expect(activity).toContainText(formatAnswerTime(times.median ?? 0));
   await expect(activity).toContainText(formatAnswerTime(times.p95 ?? 0));
   // Every bar reads out as its day and its count.
   await expect(activity.getByRole('figure', { name: 'Requests per day' })).toBeVisible();
-  await expect(activity.getByRole('listitem')).toHaveCount(14);
+  await expect(activity.getByRole('listitem')).toHaveCount(span.days);
 
   const work = home().getByRole('region', { name: 'Tools and decisions' });
   const [most] = toolUse(history.messages);
@@ -98,6 +94,14 @@ test('says where it runs, what it took at its peak, and that it reaches only thi
   await expect(here).toContainText('Memory at its peak');
   await expect(here).toContainText('11 GB of 12 GB');
   await expect(here).toContainText('Reaches only 127.0.0.1:11434; no call stopped');
+});
+
+test('the sidebar shows the open agent, selected', async () => {
+  const row = page
+    .getByRole('navigation', { name: 'Agents' })
+    .getByRole('button', { name: 'Service desk', exact: true });
+  await expect(row).toHaveAttribute('aria-current', 'page');
+  await expect(row).toBeInViewport();
 });
 
 test('a session opens its chat, and the sidebar brings the home back', async () => {

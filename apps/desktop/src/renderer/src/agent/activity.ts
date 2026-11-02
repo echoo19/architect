@@ -229,3 +229,23 @@ export function activityEnd(messages: readonly WorkspaceMessage[], now: Date): D
   );
   return newest > now.getTime() ? new Date(newest) : now;
 }
+
+/** The fewest and the most days the activity chart covers. */
+export const SPAN_DAYS = { least: 7, most: 14 } as const;
+
+/**
+ * How many days the activity chart covers, ending on `end`'s day: from the day the version was
+ * accepted, but never fewer than 7 days or more than 14. `fromAcceptance` says whether the span
+ * starts on that day, so the count can be named by it.
+ */
+export function activitySpan(
+  acceptedAt: string,
+  end: Date,
+): { days: number; fromAcceptance: boolean } {
+  const accepted = new Date(acceptedAt);
+  const first = Date.UTC(accepted.getFullYear(), accepted.getMonth(), accepted.getDate());
+  const last = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  const since = Math.round((last - first) / DAY_MS) + 1;
+  const days = Math.min(SPAN_DAYS.most, Math.max(SPAN_DAYS.least, since));
+  return { days, fromAcceptance: days === since };
+}

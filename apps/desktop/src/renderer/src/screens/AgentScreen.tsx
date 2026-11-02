@@ -177,7 +177,11 @@ function AgentHome({ agent, teamIds }: { agent: GraduateSummary; teamIds: readon
             />
           ) : loaded ? (
             <>
-              <ActivityCard messages={everything} end={activityEnd(everything, now)} />
+              <ActivityCard
+                messages={everything}
+                end={activityEnd(everything, now)}
+                acceptedAt={agent.manifest.acceptedAt ?? agent.manifest.createdAt}
+              />
               <SessionsCard rows={sessionRows(sessions)} now={now} />
             </>
           ) : (

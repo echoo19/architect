@@ -58,6 +58,7 @@ import { chatPath, navigate } from '../lib/router';
 import { runtimeName } from '../models/registry';
 import { useWords } from '../shell/edition';
 import {
+  activitySpan,
   answerTimes,
   oversight,
   requestsByDay,
@@ -66,9 +67,6 @@ import {
   type SessionRow,
   type SessionState,
 } from './activity';
-
-/** How many days the activity chart covers, ending today. */
-export const ACTIVITY_DAYS = 14;
 
 const chevron = <ChevronRight size={16} strokeWidth={1.8} aria-hidden />;
 
@@ -192,11 +190,20 @@ const DAY_WORDS: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', 
 export function ActivityCard({
   messages,
   end,
+  acceptedAt,
 }: {
   messages: readonly WorkspaceMessage[];
   end: Date;
+  /** When the version answering was accepted: the chart starts no earlier than that day. */
+  acceptedAt: string;
 }) {
-  const days = requestsByDay(messages, end, ACTIVITY_DAYS);
+  const span = activitySpan(acceptedAt, end);
+  const days = requestsByDay(messages, end, span.days);
+  const first = days[0]?.day;
+  const countLabel =
+    span.fromAcceptance && first
+      ? `Requests since ${shortDate(`${first}T12:00:00`) ?? first}`
+      : `Requests, ${span.days} days`;
   const requests = days.reduce((sum, day) => sum + day.requests, 0);
   const times = answerTimes(messages);
   const speed = tokensPerSecond(messages);
@@ -216,7 +223,7 @@ export function ActivityCard({
     <Card title="Activity" icon={<Gauge strokeWidth={1.8} aria-hidden />}>
       <div className="@container flex flex-col gap-7">
         <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-5 @xl:grid-cols-4">
-          <Figure label={`Requests, ${ACTIVITY_DAYS} days`} value={String(requests)} />
+          <Figure label={countLabel} value={String(requests)} />
           <Figure label="Median answer" value={figure(times.median)} />
           <Figure label="95th percentile" value={figure(times.p95)} />
           <Figure

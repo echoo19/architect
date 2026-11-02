@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AgentBlock, WorkspaceChat, WorkspaceMessage } from '@architect/shared';
 import {
   activityEnd,
+  activitySpan,
   answerTimes,
   dayKey,
   oversight,
@@ -228,5 +229,30 @@ describe('activityEnd', () => {
     expect(activityEnd([message({ createdAt: '2026-11-24T12:00:00.000Z' })], now)).toEqual(
       new Date('2026-11-24T12:00:00.000Z'),
     );
+  });
+});
+
+describe('activitySpan', () => {
+  const end = new Date(2026, 10, 1, 15);
+  const at = (month: number, day: number, hour = 17) =>
+    new Date(2026, month, day, hour).toISOString();
+
+  it('starts on the day the version was accepted', () => {
+    expect(activitySpan(at(9, 24), end)).toEqual({ days: 9, fromAcceptance: true });
+  });
+
+  it('covers at least a week', () => {
+    expect(activitySpan(at(9, 30), end)).toEqual({ days: 7, fromAcceptance: false });
+    // Accepted after the clock's today, as a recording dated later can be.
+    expect(activitySpan(at(10, 24), end)).toEqual({ days: 7, fromAcceptance: false });
+  });
+
+  it('covers at most two weeks', () => {
+    expect(activitySpan(at(9, 19), end)).toEqual({ days: 14, fromAcceptance: true });
+    expect(activitySpan(at(8, 1), end)).toEqual({ days: 14, fromAcceptance: false });
+  });
+
+  it('counts the week exactly when it was accepted a week ago', () => {
+    expect(activitySpan(at(9, 26, 23), end)).toEqual({ days: 7, fromAcceptance: true });
   });
 });
