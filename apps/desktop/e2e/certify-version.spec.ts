@@ -233,7 +233,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
 
   // The newest job of its field is offered first: its tasks are new to version 2.
   await expect(dialog().getByRole('combobox', { name: 'Tasks from' })).toContainText(
-    'Academy desk ·',
+    'Academy desk,',
   );
   await expect(dialog().getByRole('textbox', { name: 'Calibration tasks' })).toHaveValue('60');
   await expect(dialog().getByRole('textbox', { name: 'Attempts per task' })).toHaveValue('5');
@@ -257,7 +257,7 @@ test('certifies a version from its panel: settings, cost, progress, then its cer
     'Checked at Summit Tutoring (12 tasks), Brookfield Academy (24 tasks)',
   );
   await expect(plan).toContainText('480 attempts, 5 per task');
-  await expect(plan).toContainText('Free');
+  await expect(plan).toContainText(', free');
   const asked = await launched.app.evaluate(() =>
     (globalThis as typeof globalThis & { certifyCalls?: unknown[] }).certifyCalls?.at(-1),
   );

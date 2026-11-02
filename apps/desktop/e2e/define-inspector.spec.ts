@@ -189,6 +189,13 @@ test('opens from the footer, keeps its tab, and saves each change with Undo', as
   await expect(inspector).toContainText(/Training time\s*[\d.]+ h of 20 h/);
   await expect(inspector.getByRole('textbox', { name: 'Training time' })).toHaveValue('20');
   await capture(page, 'define-inspector-budget-dark');
+  // A limit still being fixed feeds no figure: the meter keeps the last limit set.
+  const limit = inspector.getByRole('textbox', { name: 'Training time' });
+  await limit.fill('99999999');
+  await expect(inspector.getByText('Use from a minute up to a week (168 hours).')).toBeVisible();
+  await expect(inspector).toContainText(/Training time\s*[\d.]+ h of 20 h/);
+  await limit.fill('20');
+  await expect(inspector.getByRole('alert')).toHaveCount(0);
 
   // Closed and opened again, it is on the tab it was left on.
   await toggle.click();

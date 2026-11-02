@@ -53,16 +53,17 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
     onError: (error) => console.error('[engine] The GPU lease:', error),
   });
   gpu = lease;
+  const localRuntime = () => ({
+    ...(followed.llamaServerPath === undefined
+      ? {}
+      : { llamaServerPath: followed.llamaServerPath }),
+    ...(followed.localThreads === undefined ? {} : { threads: followed.localThreads }),
+    ...(followed.ollamaUrl === undefined ? {} : { ollamaUrl: followed.ollamaUrl }),
+  });
   // One llama-server for the whole engine: its runs' adapter students and its install checks.
   const adapterRuntime = hostAdapterRuntime({
     runtimeDir: new DataPaths(message.dataDir).runtimeDir('engine'),
-    settings: () => ({
-      ...(followed.llamaServerPath === undefined
-        ? {}
-        : { llamaServerPath: followed.llamaServerPath }),
-      ...(followed.localThreads === undefined ? {} : { threads: followed.localThreads }),
-      ...(followed.ollamaUrl === undefined ? {} : { ollamaUrl: followed.ollamaUrl }),
-    }),
+    settings: localRuntime,
     gpu: lease,
     purpose: RUN_PURPOSE,
     ...(message.llamaServerCommand === undefined ? {} : { command: message.llamaServerCommand }),
@@ -93,6 +94,8 @@ async function start(message: EngineStart, ports: readonly PortMain[]): Promise<
       adapterRuntime,
     }),
     adapterRuntime,
+    // Imports serve their model on the Ollama the settings name, as the runtime does.
+    localRuntime,
     gpu: lease,
     trainerDir: message.trainerDir,
     // An experiment runs the comparisons runner on a data folder of its own, with the app's keys;

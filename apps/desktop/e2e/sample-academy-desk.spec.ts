@@ -106,9 +106,10 @@ test('starts Academy desk from a fresh install and reaches the brief to confirm'
   const section = page.getByRole('region', { name: 'What Spark understood' });
   await expect(section).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-  expect(await startHeldBy(page)).toBe('Confirm the brief first');
+  expect(await startHeldBy(page)).toBe('Study the material first');
   await section.getByRole('button', { name: 'Study the material' }).click();
   await expect(section.getByRole('article', { name: 'The brief' })).toBeVisible();
+  expect(await startHeldBy(page)).toBe('Confirm the brief first');
   // Nothing of the academy kept for the final test is on the page.
   await expect(page.getByText(/Juniper/)).toHaveCount(0);
 

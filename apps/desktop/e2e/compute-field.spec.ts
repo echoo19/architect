@@ -14,6 +14,7 @@ import {
 } from '@architect/shared';
 import { goTo, heldBy, infoTipText, launchApp, settle, type LaunchedApp } from './app';
 import { GPU_12GB, LLAMA_SERVER_READY, OLLAMA_READY, stubEngine } from './fixtures';
+import { GLIMMER_STAND_IN_CONFIG } from './fixtures-compute';
 import { FIELD_JOB } from './fixtures-field';
 import { FLOW, FLOW_ENGINE } from './fixtures-flow';
 
@@ -29,22 +30,6 @@ import { FLOW, FLOW_ENGINE } from './fixtures-flow';
 const OUT_DIR = fileURLToPath(new URL('../../../docs/screenshots/', import.meta.url));
 const SIZE = { width: 1440, height: 900 };
 const REPO = GLIMMER_TRAINING_BASE.repo;
-/** A stand-in, not Glimmer's real config.json, which no test reads. */
-const STAND_IN = {
-  model_type: 'muse_glimmer',
-  hidden_size: 2048,
-  intermediate_size: 6144,
-  moe_intermediate_size: 768,
-  num_hidden_layers: 48,
-  num_attention_heads: 32,
-  num_key_value_heads: 4,
-  head_dim: 128,
-  num_experts: 128,
-  num_experts_per_tok: 8,
-  vocab_size: 151936,
-  tie_word_embeddings: false,
-  torch_dtype: 'bfloat16',
-};
 const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 
 test.describe.configure({ mode: 'serial' });
@@ -89,7 +74,9 @@ async function writeExport(dir: string): Promise<void> {
 test.beforeAll(async () => {
   hub = await startFakeHub();
   hub.repos.set(REPO, { private: false, commits: [] });
-  commit = hub.commit(REPO, { 'config.json': Buffer.from(JSON.stringify(STAND_IN)) });
+  commit = hub.commit(REPO, {
+    'config.json': Buffer.from(JSON.stringify(GLIMMER_STAND_IN_CONFIG)),
+  });
   folders = await mkdtemp(join(tmpdir(), 'architect-e2e-compute-field-'));
   // Folders named as a person's would be, so the screen reads as it would for them.
   exported = join(folders, 'Architect', 'exports', 'academy-desk');

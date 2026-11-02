@@ -147,7 +147,7 @@ function modelNeed(
     id: 'model-missing',
     title: `${student} isn't on ${device} yet`,
     detail,
-    label: bytes === undefined ? 'Download' : `Download · ${formatBytes(bytes)}`,
+    label: bytes === undefined ? 'Download' : `Download (${formatBytes(bytes)})`,
     action: { kind: 'download', model: endpoint.model },
   };
 }

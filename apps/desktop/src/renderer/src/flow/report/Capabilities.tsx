@@ -11,7 +11,7 @@ import {
 import type { QueryState } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { CheckRows } from '../../install/InstallChecks';
-import { STATUS_LABELS, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
+import { statusLine, statusMark, WORKS_HERE_TITLE } from '../../install/labels';
 import { useWords } from '../../shell/edition';
 import { rate } from '../format';
 import { Section } from '../ledger';
@@ -49,7 +49,9 @@ const COLUMNS: {
 
 /** A category's line under its task type, said only where teaching gave up on it. */
 function stoppedLine(category: Capability['categories'][number], mentor: string): string | null {
-  return category.stopped ? `${mentor} stopped teaching ${category.label}: no gain` : null;
+  return category.stopped
+    ? `${mentor} stopped teaching ${category.label}: its changes didn't help`
+    : null;
 }
 
 /** Spark's own score on a type, only from a reference measured on that same split. */
@@ -191,7 +193,7 @@ function InstallLine({ installation }: { installation: Installation }) {
       <EvidenceMark kind="install">{WORKS_HERE_TITLE}</EvidenceMark>
       <span className="flex items-center gap-2 font-normal">
         <StatusMark state={statusMark(installation.status)} size={14} />
-        {STATUS_LABELS[installation.status]}
+        {statusLine(installation)}
       </span>
     </span>
   );
@@ -224,11 +226,12 @@ function ScoreBar({
         className="min-w-16 flex-1"
         {...(spark ? { marker: spark.total === 0 ? 0 : rate(spark) / 100 } : {})}
       />
-      <span className="shrink-0 whitespace-nowrap font-mono text-small tabular-nums">
+      {/* Counts take the same room in every row, so the bars beside them end together. */}
+      <span className="min-w-[8ch] shrink-0 whitespace-nowrap text-right text-small tabular-nums">
         {score.pass} of {score.total}
         {spark && (
-          <span className="font-sans text-mentor">
-            {' · '}
+          <span className="text-mentor">
+            {', '}
             {mentor} {spark.pass} of {spark.total}
           </span>
         )}

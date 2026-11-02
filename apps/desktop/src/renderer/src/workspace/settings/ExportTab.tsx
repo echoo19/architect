@@ -17,7 +17,6 @@ import {
   Skeleton,
   StatusMark,
   Switch,
-  toast,
 } from '@architect/ui';
 import {
   CircleAlert,
@@ -34,7 +33,7 @@ import { graduatesApi } from '../../api/graduates';
 import { toError } from '../../api/query';
 import { ProblemState } from '../../components/ProblemState';
 import { formatBytes } from '../../lib/format';
-import { attempt } from '../../lib/notify';
+import { attempt, toastWritten } from '../../lib/notify';
 import { useAgentSettingsUi } from './agentSettingsUi';
 import { PublishPanel } from './PublishPanel';
 import { usePublishing } from './publishing';
@@ -188,7 +187,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
       });
     });
     setBusy(null);
-    if (written) toast({ title: `Exported ${agent.name}`, description: written.archive });
+    if (written) toastWritten(`Exported ${agent.name}`, written.archive);
   };
 
   const exportPart = async (part: ExportPart) => {
@@ -204,7 +203,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
       });
     });
     setBusy(null);
-    if (written) toast({ title: `Exported the ${noun}`, description: written.path });
+    if (written) toastWritten(`Exported the ${noun}`, written.path);
   };
 
   return (
@@ -217,7 +216,6 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
               icon={<StatusMark state={item.included ? 'ok' : 'off'} />}
               label={itemLabel(item)}
               meta={item.files.join(', ')}
-              metaFont="code"
             >
               <div className="flex items-center gap-4">
                 <SettingsValue>{formatBytes(item.bytes)}</SettingsValue>
@@ -315,8 +313,7 @@ function PackageExport({ agent }: { agent: GraduateSummary }) {
                 </span>
               }
               label={label}
-              meta={`${partFile(review, part.part)} · ${formatBytes(part.bytes)}`}
-              metaFont="code"
+              meta={`${partFile(review, part.part)}, ${formatBytes(part.bytes)}`}
             >
               <Button
                 size="xs"

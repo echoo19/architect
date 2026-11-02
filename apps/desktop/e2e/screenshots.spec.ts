@@ -128,10 +128,10 @@ test('captures every screen', async () => {
   // The teacher, the agent's model and who it is connected to come first; the runtimes on this
   // computer and the Hugging Face token wait under Advanced.
   await expect(page.getByRole('button', { name: 'Teacher', exact: true })).toBeVisible();
-  await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeHidden();
+  await expect(page.getByText('Running version 0.12.6, 1 model')).toBeHidden();
   await capture(page, 'settings-models-dark.png');
   await page.getByRole('button', { name: 'Advanced' }).click();
-  await expect(page.getByText('Running · 0.12.6 · 1 model')).toBeVisible();
+  await expect(page.getByText('Running version 0.12.6, 1 model')).toBeVisible();
   // What opened is at the end of the tab, so it is scrolled into the picture.
   await page
     .getByRole('tabpanel', { name: 'Models' })
@@ -159,7 +159,7 @@ test('captures the empty workspace and a failed action', async () => {
   });
   await reload(page);
   await goTo(page, '/');
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teach your first agent' })).toBeVisible();
   await capture(page, 'workspace-empty-dark.png');
 
   // With creating the sample job made to fail, the app says why in a toast.
@@ -399,9 +399,10 @@ test.describe('the evidence screens of a recorded run', () => {
     await expect(page.getByRole('table', { name: 'Comparisons' })).toBeVisible();
     await expect(page.getByText('Works on this computer')).toBeVisible();
     // The agent the dry run made was checked here by the real engine, and its fake setup does
-    // not load: the one verdict says it can't run, and offers the way to put it right.
+    // not load: the one verdict says it can't run, and offers the way to put it right. Each arm
+    // made an agent of the same name, so this one carries a number.
     await expect(
-      page.getByRole('heading', { name: "Returns desk can't run on this computer" }),
+      page.getByRole('heading', { name: /^Returns desk( \d+)? can't run on this computer$/ }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: "See what's wrong" })).toBeVisible();
     await expect(page.getByRole('heading', { name: / is ready$/ })).toHaveCount(0);
@@ -415,7 +416,9 @@ test.describe('the evidence screens of a recorded run', () => {
     await stubEngine(app, { 'graduates:installation': installation(agent.id) });
     await page.reload();
     await goTo(page, `/runs/${targeted.runId}/report`);
-    await expect(page.getByRole('heading', { name: 'Returns desk is ready' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /^Returns desk( \d+)? is ready$/ }),
+    ).toBeVisible();
     await expect(page.getByText('Dry run on fakes')).toHaveCount(0);
     await shoot('evidence-report-comparison-dark.png');
 

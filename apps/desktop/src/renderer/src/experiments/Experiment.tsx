@@ -7,6 +7,7 @@ import {
   type ExperimentInput,
   type ExperimentRecord,
   type ExperimentStart,
+  type FundingPause,
 } from '@architect/shared';
 import {
   Badge,
@@ -15,6 +16,7 @@ import {
   Card,
   CardRow,
   DataTable,
+  defineTerm,
   DetailList,
   ErrorState,
   Meter,
@@ -34,6 +36,7 @@ import {
 } from 'lucide-react';
 import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery } from '../api/query';
+import { CopyButton } from '../components/CopyButton';
 import { formatCost } from '../flow/format';
 import { shortPath } from '../lib/format';
 import { attempt } from '../lib/notify';
@@ -96,6 +99,20 @@ function liveArms(detail: ExperimentDetail): LiveArm[] {
   });
 }
 
+/**
+ * What stands between the arms and the results, from where the arms are: their teaching, or once
+ * every arm is done teaching, their tests. Nothing before the start, or once it stopped or failed
+ * and can't go on.
+ */
+function resultsLine(detail: ExperimentDetail): string | null {
+  const { status } = detail.experiment;
+  if (status === 'preregistered' || status === 'stopped' || status === 'failed') return null;
+  const arms = liveArms(detail).filter((arm) => arm.status !== 'Not run');
+  return arms.length > 0 && arms.every((arm) => arm.status === DONE_TEACHING)
+    ? 'Every arm is done teaching. Results open here once each has been tested.'
+    : 'Results open here once every arm is done teaching.';
+}
+
 /** An amount against its cap, in figures over a thin meter; absent before anything was spent. */
 function Spent({
   amount,
@@ -110,7 +127,7 @@ function Spent({
       ? formatCost(amount.used)
       : `${formatCost(amount.used)} of ${formatCost(amount.cap)}`;
   return (
-    <span className="ml-auto flex w-36 flex-col items-end gap-1.5">
+    <span className="ml-auto flex w-28 flex-col items-end gap-1.5 whitespace-nowrap">
       <span className={amount.cap !== null && amount.used > amount.cap ? 'text-danger' : undefined}>
         {reading}
       </span>
@@ -136,6 +153,7 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
         {
           key: 'arm',
           header: 'Arm',
+          hint: defineTerm('arm'),
           cell: (row) => (
             <span className="flex items-center gap-3">
               <ArmTile arm={row.arm} />
@@ -146,9 +164,11 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
         {
           key: 'status',
           header: 'Status',
-          width: '176px',
           cell: (row) => (
-            <span className="flex items-center gap-2" title={row.reason ?? undefined}>
+            <span
+              className="flex items-center gap-2 whitespace-nowrap"
+              title={row.reason ?? undefined}
+            >
               {row.status === DONE_TEACHING && <Lock size={13} aria-hidden />}
               {row.status}
             </span>
@@ -158,26 +178,25 @@ function ArmsTable({ detail }: { detail: ExperimentDetail }) {
           key: 'rounds',
           header: 'Rounds',
           align: 'end',
-          width: '104px',
           cell: (row) =>
-            row.rounds === null
-              ? null
-              : row.rounds.cap === null
-                ? row.rounds.used
-                : `${row.rounds.used} of ${row.rounds.cap}`,
+            row.rounds === null ? null : (
+              <span className="whitespace-nowrap">
+                {row.rounds.cap === null
+                  ? row.rounds.used
+                  : `${row.rounds.used} of ${row.rounds.cap}`}
+              </span>
+            ),
         },
         {
           key: 'spark',
           header: names.mentor,
           align: 'end',
-          width: '176px',
           cell: (row) => <Spent amount={row.spark} tone="mentor" />,
         },
         {
           key: 'student',
           header: names.student,
           align: 'end',
-          width: '176px',
           cell: (row) => <Spent amount={row.student} tone="student" />,
         },
       ]}
@@ -280,12 +299,31 @@ function PreregistrationCard({ experiment }: { experiment: ExperimentRecord }) {
   return (
     <Card title="Preregistration" icon={<Lock size={16} strokeWidth={1.7} aria-hidden />}>
       <DetailList
+        valueFont="text"
         items={[
           {
             label: 'Preregistered on',
-            value: new Date(preregistration.at).toLocaleString('en-US'),
+            value: new Date(preregistration.at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            }),
           },
-          { label: 'Plan hash', value: preregistration.sha256 },
+          {
+            label: 'Plan hash',
+            value: (
+              <span className="flex items-start gap-1">
+                <span className="min-w-0 break-all font-mono">{preregistration.sha256}</span>
+                <CopyButton
+                  text={preregistration.sha256}
+                  label="Copy plan hash"
+                  className="-my-1"
+                />
+              </span>
+            ),
+          },
           {
             label: 'Field',
             value:
@@ -365,6 +403,17 @@ function WaitingCard({
 }
 
 /**
+ * Why the arm waits, by the name the arms table gives it: its start, or once it is done teaching
+ * its sealed final test, at what an attempt has really cost against what is left under the cap.
+ */
+function fundingLine(funding: FundingPause, arm: string, student: string): string {
+  const what =
+    funding.stage === 'start' ? `${arm} can't start` : `${arm}'s sealed final test can't run`;
+  const left = formatCost(Math.max(0, funding.leftUsd));
+  return `${what}: at what an attempt has really cost, it needs ${formatCost(funding.needUsd)} of ${student}'s budget, and ${left} is left under the ${formatCost(funding.capUsd)} cap.`;
+}
+
+/**
  * An arm the student's cap can't pay for at what an attempt has really cost: nothing is released
  * until the person raises the cap or drops the arm (decision 081).
  */
@@ -376,7 +425,7 @@ function FundingCard({
   onAnswer: (options: ExperimentStart) => Promise<boolean>;
 }) {
   const [asking, setAsking] = useState<'raise' | 'drop' | null>(null);
-  const { funding, experiment } = detail;
+  const { funding } = detail;
   if (funding === null) return null;
   const names = experimentNames(detail);
   const arm = armNames(names)[funding.arm];
@@ -398,9 +447,7 @@ function FundingCard({
           </div>
         }
       >
-        <p className="m-0 text-body text-pretty">
-          {experiment.reason ?? `${arm} needs more than the ${names.student} cap has left.`}
-        </p>
+        <p className="m-0 text-body text-pretty">{fundingLine(funding, arm, names.student)}</p>
       </Card>
       <ConfirmDialog
         open={asking === 'raise'}
@@ -445,6 +492,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
   const [confirming, setConfirming] = useState<'start' | 'stop' | null>(null);
   const [acting, setActing] = useState(false);
   const names = experimentNames(detail);
+  const waiting = resultsLine(detail);
 
   const act = async (title: string, run: () => Promise<unknown>) => {
     setActing(true);
@@ -540,9 +588,7 @@ export function ExperimentView({ detail }: { detail: ExperimentDetail }) {
           <>
             <SpendCard detail={detail} />
             <ArmsTable detail={detail} />
-            {status !== 'preregistered' && (
-              <p className="m-0 px-1 text-ui">Results open here once every arm is done teaching.</p>
-            )}
+            {waiting && <p className="m-0 px-1 text-ui">{waiting}</p>}
           </>
         )}
         <PreregistrationCard experiment={experiment} />

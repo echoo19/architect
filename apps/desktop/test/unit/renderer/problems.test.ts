@@ -1,5 +1,8 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { CodedError, ERROR_CODES } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
+import { ProblemState } from '../../../src/renderer/src/components/ProblemState';
 import { isFinal, problemOf } from '../../../src/renderer/src/lib/problems';
 
 /** The words that lead a screen must never carry what only the precise message may. */
@@ -35,6 +38,14 @@ describe('a failure in plain words', () => {
     expect(problemOf(new CodedError('draft_not_found', 'x'))?.cause).toBe(
       'This conversation is gone.',
     );
+  });
+
+  it('names nothing gone by its id, not even under Details', () => {
+    const gone = new CodedError('job_not_found', 'There is no job "job_assay_desk".');
+    const html = renderToStaticMarkup(createElement(ProblemState, { error: gone, title: 'x' }));
+    expect(html).toContain('This job is gone.');
+    expect(html).not.toContain('job_assay_desk');
+    expect(html).not.toContain('Details');
   });
 
   it('offers another try only for what may pass', () => {

@@ -38,7 +38,7 @@ export function HostedStep({ student, connected }: HostedStepProps) {
       </StepIntro>
       <Panel
         aria-label={`${host} connection`}
-        className="w-full max-w-[620px] px-7 py-1 [&>*:first-child]:border-t-0"
+        className="w-full max-w-[720px] px-7 py-1 [&>*:first-child]:border-t-0"
       >
         <SettingsRow
           icon={<ProviderMark name={host} />}
@@ -56,11 +56,11 @@ export function HostedStep({ student, connected }: HostedStepProps) {
                 </Button>
               ) : (
                 <Button size="xs" onClick={() => setAdding(true)}>
+                  <KeyRound size={13} aria-hidden />
                   Use a key
                 </Button>
               )}
               <Button size="xs" loading={waiting} onClick={() => void signIn.start()}>
-                {!waiting && <KeyRound size={13} aria-hidden />}
                 {waiting ? 'Waiting for your browser' : 'Sign in'}
               </Button>
             </span>

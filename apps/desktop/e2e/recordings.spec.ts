@@ -140,7 +140,7 @@ test('adds a taught academy’s recordings, with the cost and consent before any
   const dialog = page.getByRole('dialog', { name: 'Transcribe 2 recordings' });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText('Front desk call.wav')).toBeVisible();
-  await expect(dialog.getByText('4:12 · $0.01')).toBeVisible();
+  await expect(dialog.getByText('4:12, $0.01')).toBeVisible();
   await expect(dialog.getByText(/sent to Meta to be transcribed by Muse Voice/)).toBeVisible();
   await expect(dialog.getByText(/\$0\.08 of Meta credit/)).toBeVisible();
   const send = dialog.getByRole('button', { name: 'Send and transcribe' });
@@ -155,6 +155,6 @@ test('adds a taught academy’s recordings, with the cost and consent before any
   const listed = section.getByRole('list', { name: 'Transcripts' });
   await expect(listed.getByRole('listitem')).toHaveCount(3);
   await expect(listed.getByText('Staff meeting, October.wav')).toBeVisible();
-  await expect(listed.getByText('23:08 · $0.07')).toBeVisible();
+  await expect(listed.getByText('23:08, $0.07')).toBeVisible();
   await capture(page, OUT_DIR, 'study-recordings-dark');
 });

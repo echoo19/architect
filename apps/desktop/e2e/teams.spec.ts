@@ -83,6 +83,11 @@ test('a team is made in Models, from a lead and a teammate', async () => {
 
   await page.getByRole('button', { name: 'New team' }).first().click();
   const dialog = page.getByRole('dialog', { name: 'New team' });
+  // Blank, the held button says why, as it does for anything else that holds the team back.
+  await expect(dialog.getByRole('status')).toHaveText('Name the team');
+  await expect(dialog.getByRole('button', { name: 'Make team' })).toHaveAccessibleDescription(
+    'Name the team',
+  );
   await dialog.getByLabel('Name').fill(TEAM.name);
   await dialog.getByRole('combobox', { name: 'Lead' }).click();
   await page.getByRole('option', { name: lead.name }).click();
@@ -92,7 +97,7 @@ test('a team is made in Models, from a lead and a teammate', async () => {
   await expect(make).toBeDisabled();
   await expect(make).toHaveAccessibleDescription('Choose a teammate');
   await dialog.getByRole('checkbox', { name: teammate.name }).click();
-  const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks it for` });
+  const role = dialog.getByRole('textbox', { name: `What ${lead.name} asks ${teammate.name} for` });
   await expect(role).toHaveValue("Reads a screening lab's plate exports by the lab's own rules.");
   await capture('team-new-dark.png');
 
@@ -106,6 +111,8 @@ test('a team is made in Models, from a lead and a teammate', async () => {
 
   await dialog.getByRole('button', { name: 'Make team' }).click();
   await expect(dialog).toHaveCount(0);
+  // Closed, it gives focus back to the button that opened it.
+  await expect(page.getByRole('button', { name: 'New team' }).first()).toBeFocused();
   // A role left at the contract's summary isn't saved, so the teammate keeps following it.
   expect(await teamCallsTo(launched.app, 'teams:create')).toEqual([
     [{ name: TEAM.name, members: [{ graduateId: lead.id }, { graduateId: teammate.id }] }],
@@ -117,16 +124,13 @@ test('a team is made in Models, from a lead and a teammate', async () => {
   await expect(sidebar().getByRole('group', { name: 'Teams' })).toContainText(TEAM.name);
   await capture('models-teams-dark.png');
 
-  // The Lab names the team among the agents, and its chat that waits for an approval.
+  // The Lab names the team's chat that waits for an approval.
   await goTo(page, '/');
   await expect(
     page
       .getByRole('region', { name: 'Needs you' })
       .getByRole('button', { name: new RegExp(`${TEAM_CHAT.title}.*${TEAM.name}.*Approve$`) }),
   ).toBeVisible();
-  await expect(
-    page.getByRole('region', { name: 'Agents' }).getByRole('button', { name: `Open ${TEAM.name}` }),
-  ).toContainText(`${lead.name} asks ${teammate.name}`);
 });
 
 test('in the team’s chat the lead asks its teammate, whose own work opens under it', async () => {
@@ -146,12 +150,30 @@ test('in the team’s chat the lead asks its teammate, whose own work opens unde
   await page.keyboard.press('Escape');
   // Each agent asks before writing as its own setting says, so the team's composer has none.
   await expect(page.getByRole('button', { name: /^Saving files/ })).toHaveCount(0);
+  // The header's icon says what the team is, in place.
+  await header.getByRole('button', { name: `About ${TEAM.name}` }).click();
+  const about = page.getByRole('dialog', { name: TEAM.name });
+  await expect(about).toContainText('A teammate sees only what it is asked, never this chat');
+  await expect(about).toContainText(`${teammate.name}, version 1`);
+  await page.keyboard.press('Escape');
+  await expect(about).toHaveCount(0);
+
+  // The reply names who answered and whom it asked before its steps are opened, and the ask
+  // itself, with the first line of the answer, shows while the lead's own steps are folded.
+  await expect(reply()).toContainText(`${lead.name} asked ${teammate.name}`);
+  const consult = reply().getByRole('button', { name: new RegExp(`^Asked ${teammate.name}`) });
+  await expect(consult).toContainText('FW-0418 passes QC (Z′ 0.7689)');
+  // The reply waits on an approval, so nothing runs: the composer says what it waits for.
+  await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: `Message ${TEAM.name}` })).toHaveAttribute(
+    'placeholder',
+    'Allow or deny the change above',
+  );
 
   await reply()
     .getByRole('button', { name: /so far/ })
     .click();
-  const consult = reply().getByRole('button', { name: new RegExp(`^Asked ${teammate.name}`) });
-  await expect(consult).toContainText('FW-0418 passes QC (Z′ 0.7689)');
+  await expect(reply().getByRole('list', { name: 'Steps' })).toBeVisible();
   // The reply names the version that answered, and that no certificate covers the team.
   expect(await infoTipText(page, reply(), 'version 1')).toBe('Not certified as a team');
   await consult.click();
@@ -169,7 +191,7 @@ test('each agent asks for its own files', async () => {
     name: `${teammate.name}: write to data/retests.csv`,
   });
   await expect(theirs).toContainText('Allowed');
-  await expect(theirs).toContainText(`${teammate.name} · 2 new rows`);
+  await expect(theirs).toContainText(`${teammate.name}: 2 new rows`);
   const ours = reply().getByRole('group', { name: `${lead.name}: write to data/reservations.csv` });
   await expect(ours).toContainText('HOLD-0163');
   await expect(ours).toContainText('FL-04159');

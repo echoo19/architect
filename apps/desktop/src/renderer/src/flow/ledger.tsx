@@ -14,20 +14,25 @@ export interface SectionProps {
   id?: string;
   /** What goes with the title on the right: a count, a legend, a control. */
   actions?: ReactNode;
+  /** Right beside the title, what a title that is a term means: an `InfoTip`. */
+  tip?: ReactNode;
   className?: string;
   children: ReactNode;
 }
 
 /** A titled part of a screen. */
-export function Section({ title, id, actions, className, children }: SectionProps) {
+export function Section({ title, id, actions, tip, className, children }: SectionProps) {
   const own = useId();
   const headingId = id ?? own;
   return (
     <section aria-labelledby={headingId} className={cn('flex min-w-0 flex-col', className)}>
       <header className="flex min-h-10 items-center justify-between gap-4 pb-3">
-        <h2 id={headingId} className="m-0 font-display text-h2 font-semibold">
-          {title}
-        </h2>
+        <div className="flex min-w-0 items-center gap-1">
+          <h2 id={headingId} className="m-0 font-display text-h2 font-semibold">
+            {title}
+          </h2>
+          {tip}
+        </div>
         {actions}
       </header>
       {children}

@@ -110,7 +110,7 @@ test("browses a field's practice and check tasks, with the sealed splits counted
   await expect(check.getByRole('row')).toHaveCount(2);
   await check.getByRole('row').nth(1).click();
   const panel = page.getByRole('dialog');
-  await expect(panel).toContainText('First hint · Lakeview Academy · Held-out task');
+  await expect(panel).toContainText('First hint, Lakeview Academy, held-out task');
   await expect(panel.getByRole('region', { name: 'Request' })).toContainText(
     "Which first hint does Lakeview Academy's catalog give for that error?",
   );

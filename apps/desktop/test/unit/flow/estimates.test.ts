@@ -20,6 +20,7 @@ import {
   minutesForOneRound,
   mentorPriceOf,
   mentorRounds,
+  mentorRoundsLine,
   mentorUsdFor,
   placePhrase,
   planBills,
@@ -38,6 +39,8 @@ import {
   trainsTooSlow,
   wontTeachBody,
   wontTeachTitle,
+  allowLabel,
+  finalTestAfter,
   type Bills,
 } from '../../../src/renderer/src/flow/define/estimates';
 import { makeJob } from './factories';
@@ -261,6 +264,18 @@ describe('what each part of a run takes', () => {
     );
   });
 
+  it('names training in the button and says the final test that runs after it, so the estimate adds up', () => {
+    const job = makeJob();
+    // The limit is training's; the final test is outside it, and the estimate adds the two.
+    expect(allowLabel(540)).toBe('Allow 9 hours of training');
+    expect(finalTestAfter(job, 'local', 'final test')).toBe(
+      'The final test adds about 2.5 h after training.',
+    );
+    expect(finalTestAfter(job, 'hosted', 'sealed final test')).toBe(
+      'The sealed final test adds about 15 min after training.',
+    );
+  });
+
   it("says a round's range, so the limit the button names adds up from what is said", () => {
     /** A time as the callout writes it: "1 h 40 min", "23 min" or "9 h". */
     const time = String.raw`\d+ h(?: \d+ min)?|\d+ min`;
@@ -371,6 +386,11 @@ describe('the plan in all', () => {
       6,
     );
     expect(expectedMentorUsd(codingAgent, estimateTime(codingAgent, 'local'))).toBeNull();
+    // The figure says which rounds it counts, so a longer limit that lowers it says why.
+    expect(mentorRoundsLine(hosted, estimateTime(hosted, 'hosted'))).toBe('7 rounds');
+    expect(mentorRoundsLine(local, estimateTime(local, 'local'))).toBe(
+      'All 12 rounds, as none fits the limit yet',
+    );
   });
 
   it('adds training and the final test, and the comparison when asked for', () => {

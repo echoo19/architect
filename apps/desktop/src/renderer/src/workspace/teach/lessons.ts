@@ -109,13 +109,13 @@ export function openCorrections(corrections: readonly Correction[]): Correction[
   );
 }
 
-/** "3 flagged answers · 1 to review", or null when nothing is open. */
+/** "3 flagged answers, 1 to review", or null when nothing is open. */
 export function flaggedSummary(corrections: readonly Correction[]): string | null {
   const open = openCorrections(corrections).length;
   if (open === 0) return null;
   const waiting = corrections.filter((correction) => correction.status === 'proposed').length;
   const count = `${open} flagged ${open === 1 ? 'answer' : 'answers'}`;
-  return waiting > 0 ? `${count} · ${waiting} to review` : count;
+  return waiting > 0 ? `${count}, ${waiting} to review` : count;
 }
 
 const ACTIVE: ReadonlySet<RunStatus> = new Set([
@@ -188,7 +188,8 @@ export interface ProposeFailure {
  * Why a lesson couldn't be proposed, in the app's words, from the guard that refused it. The
  * leak check refuses the same exchange however it is described, so it reads as a refusal and
  * isn't offered again; a cost over the cap says what to shorten; any other reason reads as it
- * is, with the note kept to send again. The engine's own message always goes with it.
+ * is, with the note kept and a way to share it again as it is. The engine's own message always
+ * goes with it.
  */
 export function proposeFailure(error: Error, mentor: string, capUsd: number): ProposeFailure {
   const code = error instanceof CodedError ? error.code : undefined;
@@ -208,5 +209,9 @@ export function proposeFailure(error: Error, mentor: string, capUsd: number): Pr
       retry: true,
     };
   }
-  return { title: "Couldn't propose a lesson", text: error.message, retry: true };
+  return {
+    title: `${mentor} couldn't propose a lesson`,
+    text: error.message,
+    retry: true,
+  };
 }

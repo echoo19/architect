@@ -18,10 +18,11 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { flowApi } from '../../api/client';
-import { queryKeys } from '../../api/hooks';
+import { queryKeys, useJobs } from '../../api/hooks';
 import { setQueryData } from '../../api/query';
 import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
+import { withFittingDefaults } from '../define/new-job';
 
 const OFFERS = {
   'home-services': {
@@ -61,9 +62,17 @@ const SCIENCE_LAB = [
 /** Makes a sample job and opens its Define, saying so if it can't. */
 function useStartSample() {
   const [creating, setCreating] = useState(false);
+  const jobs = useJobs();
   const start = async (sample: SampleJob) => {
     setCreating(true);
-    const job = await attempt("Couldn't create the sample job", () => flowApi.createSample(sample));
+    // A sample already here opens as the person left it. A new one is made as it ships, and the
+    // defaults that fit this computer are saved over it.
+    const job = await attempt("Couldn't create the sample job", async () => {
+      const made = await flowApi.createSample(sample);
+      const existed = jobs.data?.some((summary) => summary.id === made.id) === true;
+      const fitted = existed ? made : withFittingDefaults(made);
+      return fitted === made ? made : flowApi.saveJob(fitted);
+    });
     setCreating(false);
     if (!job) return;
     setQueryData(queryKeys.job(job.id), job);

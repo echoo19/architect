@@ -70,6 +70,29 @@ describe('previewing an import, before anything is installed', () => {
     expect(await readdir(recipient.paths.stagingDir())).toEqual([]);
   });
 
+  it("serves a new agent's model on the Ollama the settings name, never on another computer", async () => {
+    const author = await computer();
+    const { archive } = await exported(author);
+    const recipient = await computer();
+    const here = 'http://127.0.0.1:11500';
+    let configured: string | undefined = here;
+    const ctx = { library: recipient.library, ollamaUrl: () => configured };
+
+    const preview = await previewImport(ctx, archive);
+    expect(preview).toMatchObject({ ok: true, model: { runtime: 'ollama', baseUrl: here } });
+
+    // An address off this computer is never used: Ollama's own address stands in.
+    configured = 'http://10.0.0.5:11434';
+    expect(await previewImport(ctx, archive)).toMatchObject({
+      ok: true,
+      model: { baseUrl: 'http://127.0.0.1:11434' },
+    });
+
+    configured = here;
+    const { graduate } = await importPackage(ctx, archive);
+    expect(recipient.store.installations.get(graduate.id)?.model.baseUrl).toBe(here);
+  });
+
   it('says it would be the next version of an agent this computer has, as a candidate', async () => {
     const author = await computer();
     const first = await exported(author);
@@ -95,6 +118,23 @@ describe('previewing an import, before anything is installed', () => {
       ok: true,
       place: { kind: 'installed', graduateId: 'grd_desk', version: 1 },
     });
+  });
+
+  it('names a new agent apart from one here that already has its name, and lists it so', async () => {
+    const author = await computer();
+    const { archive } = await exported(author);
+    const recipient = await computer();
+    await addVersion(recipient, { graduateId: 'grd_local' });
+    expect(recipient.store.graduates.get('grd_local')?.name).toBe('Service desk');
+
+    const preview = await previewImport({ library: recipient.library }, archive);
+    expect(preview).toMatchObject({ ok: true, place: { kind: 'new', name: 'Service desk 2' } });
+    const { graduate } = await importPackage({ library: recipient.library }, archive);
+    expect(graduate.name).toBe('Service desk 2');
+    // The package itself keeps the name its author gave it.
+    expect(recipient.store.versions.get(graduate.id, 1)?.manifest.identity.name).toBe(
+      'Service desk',
+    );
   });
 
   it("reports a computer that can't run it as blocked, and never asks its runtime", async () => {

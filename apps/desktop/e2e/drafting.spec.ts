@@ -4,8 +4,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import type { MentorConfig, StudentEndpoint, Task } from '@architect/shared';
-import { allowMoreTime, goTo, infoTipText, launchApp, settle, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, type LaunchedApp } from './app';
 import { stubEngine } from './fixtures';
+import { ASK, DESCRIPTION, draftReply, ROUND_DRAFT } from './fixtures-drafting';
 import { FLOW_LOCAL } from './fixtures-flow';
 import {
   startFakeStudent,
@@ -41,135 +42,16 @@ let records: Shop;
 let drafting = 0;
 let path: 'answer' | 'now' = 'answer';
 
-const DESCRIPTION =
-  'Answer questions about the orders and customers of our small online shop: who a customer is, ' +
-  'which of their orders are still pending, and what a region ordered in a stretch of time.';
 const OPEN_RULE = 'Whether cancelled orders count in the totals.';
-
-const EMPTY_JOB = {
-  name: '',
-  summary: '',
-  description: '',
-  does: [],
-  doesNot: [],
-  businessDate: '',
-  passRate: 0,
-  files: [],
-  unresolved: [],
-  taskTypes: [],
-};
-
-const NO_TYPE = {
-  id: '',
-  label: '',
-  description: '',
-  template: '',
-  table: '',
-  keyColumn: '',
-  columns: [],
-  filters: [],
-  groupColumn: '',
-  measure: '',
-  valueColumn: '',
-  dateColumn: '',
-  dateOrder: '',
-  unit: '',
-  request: '',
-};
-
-/** What the teacher drafts: three kinds of request, one for each template Architect has. */
-function draftReply(unresolved: string[]) {
-  return {
-    action: 'draft',
-    message: '',
-    options: [],
-    job: {
-      name: 'Shop desk',
-      summary: "Answers questions about the shop's customers and orders.",
-      description:
-        'Shop desk answers questions about the orders and customers of a small online shop, from its exported records.',
-      does: [
-        'Looks up what the records say about a customer',
-        "Lists a customer's pending orders",
-        'Adds up what a region ordered between two dates',
-      ],
-      doesNot: ['Changes any record', 'Answers from anything but the records'],
-      businessDate: '2026-11-24',
-      passRate: 0.9,
-      files: [
-        { name: 'customers.csv', description: 'One row per customer.', access: 'read' },
-        { name: 'orders.csv', description: 'One row per order.', access: 'read' },
-        { name: 'policy.md', description: "The shop's rules.", access: 'read' },
-      ],
-      unresolved,
-      taskTypes: [
-        {
-          ...NO_TYPE,
-          id: 'email',
-          label: 'Customer emails',
-          description: 'Look up the email of a customer.',
-          template: 'lookup',
-          table: 'customers.csv',
-          keyColumn: 'customer_id',
-          columns: ['email'],
-          request: 'What is the email of customer {key}?',
-        },
-        {
-          ...NO_TYPE,
-          id: 'pending',
-          label: 'Pending orders',
-          description: 'List the pending orders of a customer.',
-          template: 'filtered_list',
-          table: 'orders.csv',
-          keyColumn: 'order_id',
-          filters: [
-            { column: 'status', op: 'equals', value: 'Pending', varies: false },
-            { column: 'customer_id', op: 'equals', value: '', varies: true },
-          ],
-          request: 'Which orders of customer {customer_id} are still pending?',
-        },
-        {
-          ...NO_TYPE,
-          id: 'totals',
-          label: 'Region totals',
-          description: 'Add up the orders of a region between two dates.',
-          template: 'group_total',
-          table: 'orders.csv',
-          groupColumn: 'region',
-          measure: 'sum',
-          valueColumn: 'amount',
-          dateColumn: 'order_date',
-          unit: 'as_written',
-          request: 'What is the total of orders in the {group} region from {from} to {to}?',
-        },
-      ],
-    },
-  };
-}
 
 /** One reply of the scripted teacher: drafting turns follow the script, the rest are a harness. */
 function reply(request: MentorChatBody): unknown {
   if (request.response_format?.json_schema?.name === 'job_draft') {
     drafting += 1;
-    if (drafting === 1) {
-      return {
-        action: 'ask',
-        message: 'Should cancelled orders count in what a region ordered?',
-        options: ['Yes, count them', 'No, leave them out'],
-        job: EMPTY_JOB,
-      };
-    }
+    if (drafting === 1) return ASK;
     return draftReply(path === 'now' ? [OPEN_RULE] : []);
   }
-  // A training round's request: a plain whole-harness draft, so training has something to measure.
-  return {
-    title: 'Answer from the records',
-    diagnosis: 'A first setup that reads the records before it answers.',
-    causeTaskIds: [],
-    edits: [{ op: 'write', path: 'AGENTS.md', content: 'Read the records, then answer.' }],
-    predicted: { devDeltaMin: 0, devDeltaMax: 1, rationale: 'A first draft.' },
-    readyClaim: false,
-  };
+  return ROUND_DRAFT;
 }
 
 test.beforeAll(async () => {
@@ -408,10 +290,12 @@ test('describes a job, answers a question and trains on the tasks it made', asyn
   expect(job.student.trainOn).toBe('local');
   expect(job.student.hosted).toBeUndefined();
 
-  // This computer can't fit a round in the four hours a drafted job allows, so Start training
-  // waits and says why, with more time one button away.
-  await expect(page.getByRole('button', { name: 'Start training' })).toBeDisabled();
-  await allowMoreTime(page);
+  // A drafted job comes with a time limit this computer fits its rounds in, past the four hours
+  // a draft has, so Start training is ready and no callout asks for more time.
+  expect(job.budget.maxWallMinutes).toBeGreaterThan(240);
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Not even one round of teaching' }),
+  ).toHaveCount(0);
 
   // Start training: the run works on the tasks Architect made, and the checker grades them.
   await page.getByRole('button', { name: 'Start training' }).click();

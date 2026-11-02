@@ -130,7 +130,7 @@ export function StudentRows({ student, ollama, gpu, onUse }: StudentRowsProps) {
           ) : (
             <DownloadButton
               model={better.model}
-              label={`Download · ${formatBytes(better.downloadBytes)}`}
+              label={`Download (${formatBytes(better.downloadBytes)})`}
               onReady={() => onUse(better.model)}
             />
           )}

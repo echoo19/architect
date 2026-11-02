@@ -60,9 +60,22 @@ export interface NewVersion {
 }
 
 /**
- * Records a written version, and its agent when this is the agent's first: the agent's first
- * version is its active one from the start, since nothing else could be; any later version waits
- * apart until it is accepted and promoted. Synchronous, so a caller can fold it into the same
+ * The name a new agent is listed under: its own, or, when another agent here already goes by it,
+ * the same name with the first free number after it ("Service desk 2"), so no two agents in the
+ * sidebar, a chat or a dialog read the same.
+ */
+export function freeAgentName(store: EngineStore, name: string): string {
+  const taken = new Set(store.graduates.list().map((agent) => agent.name));
+  if (!taken.has(name)) return name;
+  let number = 2;
+  while (taken.has(`${name} ${number}`)) number += 1;
+  return `${name} ${number}`;
+}
+
+/**
+ * Records a written version, and its agent when this is the agent's first, under a name no other
+ * agent here has: the agent's first version is its active one from the start, since nothing else
+ * could be; any later version waits apart until it is accepted and promoted. Synchronous, so a caller can fold it into the same
  * transaction as whatever else made the version (graduation files its run there too).
  */
 export function registerVersion(
@@ -77,7 +90,7 @@ export function registerVersion(
     store.graduates.insert({
       id: graduateId,
       runId: input.runId ?? null,
-      name: input.name,
+      name: freeAgentName(store, input.name),
       path: paths.toStored(paths.graduateDir(graduateId)),
       manifest: null,
       settings: null,

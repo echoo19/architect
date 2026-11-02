@@ -278,9 +278,9 @@ test("shows each organization and skill before and after on the new version's re
   });
   await openAt(`/runs/${V2_RUN}/report`);
   const table = page.getByRole('table', { name: 'Each organization before and after' });
-  await expect(table.getByRole('columnheader', { name: 'Academy desk · Glimmer' })).toBeVisible();
+  await expect(table.getByRole('columnheader', { name: 'Academy desk on Glimmer' })).toBeVisible();
   await expect(
-    table.getByRole('columnheader', { name: `Academy desk v2 · ${QWEN}` }),
+    table.getByRole('columnheader', { name: `Academy desk v2 on ${QWEN}` }),
   ).toBeVisible();
   const sealed = ACADEMY_DESK_FIELD.sealed[0]?.name ?? '';
   await expect(table.getByRole('rowheader', { name: sealed })).toBeVisible();

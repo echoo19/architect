@@ -127,10 +127,41 @@ export async function respond(input: ReplyRequest): Promise<void> {
     return;
   }
   if (trace.stopReason === 'max_steps') {
-    const steps = graduate.harness.decoding.maxSteps;
-    reply.addBlock({ kind: 'note', text: `Stopped after ${steps} steps without an answer.` });
+    reply.addBlock({
+      kind: 'note',
+      text: outOfStepsNote(trace.steps ?? [], graduate.harness.decoding.maxSteps),
+    });
   }
   reply.finish(outcomeOf(trace));
+}
+
+/**
+ * What a reply that ran out of steps tried, its most used tools first, and what to do next:
+ * "Stopped after 24 steps without an answer. It used read_file 12 times and lookup_order once. …"
+ */
+export function outOfStepsNote(steps: readonly TraceStep[], maxSteps: number): string {
+  return `Stopped after ${maxSteps} steps without an answer. ${toolsTried(steps)} Ask again with more detail, or flag this reply to show it what you wanted.`;
+}
+
+/**
+ * The tools a run used, its three most used first:
+ * "It used read_file 12 times and lookup_order once."
+ */
+export function toolsTried(steps: readonly TraceStep[]): string {
+  const calls = new Map<string, number>();
+  for (const step of steps) {
+    if (step.kind === 'tool') calls.set(step.name, (calls.get(step.name) ?? 0) + 1);
+  }
+  const used = [...calls]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(
+      ([name, count]) =>
+        `${name} ${count === 1 ? 'once' : count === 2 ? 'twice' : `${count} times`}`,
+    );
+  return used.length === 0
+    ? 'It never used its tools.'
+    : `It used ${used.length === 1 ? used[0] : `${used.slice(0, -1).join(', ')} and ${used.at(-1)}`}.`;
 }
 
 /** Ends a reply that needed an approval no one could give, with the change it wanted as data. */
@@ -151,8 +182,11 @@ function record(reply: LiveReply, harness: Harness, step: TraceStep, teammates?:
   showStep(reply, harness, step, teammates);
 }
 
-/** How a reply's work ended: one attempt's trace, or what a certified reply settled on. */
-type Settled = Pick<Trace, 'stopReason' | 'error'>;
+/**
+ * How a reply's work ended: one attempt's trace, or what a certified reply settled on, with the
+ * steps it took when one attempt's work is the answer.
+ */
+type Settled = Pick<Trace, 'stopReason' | 'error'> & Partial<Pick<Trace, 'steps'>>;
 
 /** One attempt of a certified reply, on its own copy of the files. */
 interface Attempt {

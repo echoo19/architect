@@ -79,7 +79,7 @@ function say(
       return {
         mark: <StatusMark state={passed ? 'ok' : 'attention'} size={18} />,
         title: passed ? `Passed on ${device}` : `Below the target on ${device}`,
-        lines: `${formatRate(score)} · ${score.pass} of ${score.total}. Typical answer time ${formatAnswerTime(latencyMs.p50)}, 95% within ${formatAnswerTime(latencyMs.p95)}. Online it got ${formatRate(report.test.score)} · ${report.test.score.pass} of ${report.test.score.total}.`,
+        lines: `${formatRate(score)} (${score.pass} of ${score.total}). Typical answer time ${formatAnswerTime(latencyMs.p50)}, 95% within ${formatAnswerTime(latencyMs.p95)}. Online it got ${formatRate(report.test.score)} (${report.test.score.pass} of ${report.test.score.total}).`,
       };
     }
   }

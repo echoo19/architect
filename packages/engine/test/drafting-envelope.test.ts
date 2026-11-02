@@ -200,7 +200,7 @@ describe('a draft', () => {
       'Task type "email" needs a template: lookup, filtered_list, group_total or rule.',
     ]);
     expect(problems([{ ...EMAIL_TYPE, table: 'policy.md' }])[0]).toContain(
-      'names the table "policy.md", which isn\'t one of the attached CSV files (customers.csv, orders.csv)',
+      'The email tasks read "policy.md", which isn\'t one of the attached CSV files (customers.csv, orders.csv)',
     );
     expect(problems([{ ...EMAIL_TYPE, columns: [] }])).toEqual([
       'Task type "email" is a lookup: it needs a keyColumn and 1 to 3 columns.',

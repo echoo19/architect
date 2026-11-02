@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { GraduateSummary, ReportCard } from '@architect/shared';
-import { Heading, Meter, SettingsRow, Skeleton } from '@architect/ui';
+import { Button, Heading, Meter, SettingsRow, Skeleton } from '@architect/ui';
+import { FileText, RotateCw } from 'lucide-react';
 import { useVersionReport, useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
 import { formatAnswerTime } from '../../flow/format';
@@ -9,6 +10,7 @@ import { AUTHOR_RESULT_TITLE } from '../../install/labels';
 import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
+import { navigate, paths } from '../../lib/router';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
 /**
@@ -57,6 +59,12 @@ function Figure({ label, value, children }: { label: string; value: string; chil
   );
 }
 
+/** Closes the settings and opens a screen of the run or the job. */
+function leaveFor(path: string): void {
+  useAgentSettingsUi.getState().close();
+  navigate(path);
+}
+
 function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
@@ -64,14 +72,14 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
     ? "on the author's computer"
     : test.ranOffline
       ? `on ${deviceInSentence(currentPlatform())}`
-      : 'on the online copy';
+      : 'on a hosted copy of the model';
 
   return (
     <div className="flex flex-col gap-8 pt-1">
       {imported && <span className="-mb-5 text-small text-fg">{AUTHOR_RESULT_TITLE}</span>}
       <div>
         <Figure label="Of new tasks right" value={formatPercent(test.score)}>
-          {test.score.pass} of {test.score.total} · target{' '}
+          {test.score.pass} of {test.score.total}, target{' '}
           {Math.round(requirements.passRate.target * 100)}%
         </Figure>
         <Figure label={`Typical answer, ${place}`} value={formatAnswerTime(test.latencyMs.p50)}>
@@ -87,6 +95,20 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
         </Figure>
       </div>
 
+      {/* The run that made it is on this computer: its whole report, and its job to train again. */}
+      {!imported && (
+        <div className="-mt-3 flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => leaveFor(paths.report(report.runId))}>
+            <FileText size={14} strokeWidth={1.8} aria-hidden />
+            Open the full report
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => leaveFor(paths.define(report.jobId))}>
+            <RotateCw size={14} strokeWidth={1.8} aria-hidden />
+            Train again
+          </Button>
+        </div>
+      )}
+
       {!imported && report.testedOn === 'hosted' && <LocalTest report={report} />}
 
       <section className="flex flex-col gap-4">
@@ -95,11 +117,11 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
           <div key={type.type} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
               <span>{type.label}</span>
-              <span className="font-mono text-fg">
+              <span className="text-fg tabular-nums">
                 {formatPercent(type)}
                 <span className="text-fg">
                   {' '}
-                  · {type.pass} of {type.total}
+                  ({type.pass} of {type.total})
                 </span>
               </span>
             </div>
@@ -128,7 +150,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
                   <span className="flex items-baseline justify-between gap-3 text-fg">
                     {type.label}
                     {result && (
-                      <span className="font-mono text-fg">
+                      <span className="text-fg tabular-nums">
                         {result.pass} of {result.total}
                       </span>
                     )}

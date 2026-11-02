@@ -52,7 +52,7 @@ describe('the newest round, open under its line', () => {
       live({ status: 'running', phase: 'attempting' }, { attempts: [attempt] }),
       round,
     );
-    expect(html).toContain('Got all 1 practice task right so far this round.');
+    expect(html).toContain('Got its first practice task right this round.');
   });
 
   it("gives the mentor's diagnosis and what it expects once it has one", () => {

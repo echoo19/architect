@@ -4,6 +4,7 @@ import type {
   FieldView,
   ReportCard,
   Run,
+  RunDetail,
   StudyBrief,
   TaskPlan,
 } from '@architect/shared';
@@ -11,8 +12,17 @@ import type { ElectronApplication } from '@playwright/test';
 import { ACADEMY_DESK_COUNTEREXAMPLES } from './fixtures-counterexamples';
 import { FIELD_ORGS, FIELD_REPORT } from './fixtures-field';
 import { stubByKey, taskPlan } from './fixtures-flow';
-import { LAB, LAB_AGENTS, LAB_JOBS, ACADEMY_DESK_ID, stubLab } from './fixtures-lab';
-import { MODEL_VERSIONS } from './fixtures-models';
+import {
+  ACADEMY_DESK_ID,
+  DETAILS,
+  LAB,
+  LAB_AGENTS,
+  LAB_JOBS,
+  LAB_REPORTS,
+  MINI_ID,
+  stubLab,
+} from './fixtures-lab';
+import { DESK_RUNS, MODEL_REPORTS, MODEL_VERSIONS } from './fixtures-models';
 import {
   ASSAY_FIELD,
   ASSAY_PLAN,
@@ -23,14 +33,15 @@ import {
   SWEEP_REPORT,
   SWEEP_RUNS,
 } from './fixtures-science';
-import { at, makeRun, storyReport } from './story';
+import { at, makeRun, STORY } from './story';
 
 /*
  * The Fields place against the stand-in engine, on the Lab's jobs: Academy desk's field, taught on three
- * generated academies and sealed from a generated one and a real one, with two candidates; the
- * science lab's Sweep desk with two candidates and Assay desk not taught yet (fixtures-science);
- * and the one-organization jobs, each a field of its own records. Every score is one the Lab's
- * screens already show.
+ * generated academies and sealed from a generated one and a real one, with a candidate from each
+ * of its three runs (versions 1 and 2, and Academy desk Mini); the science lab's Sweep desk with
+ * two candidates and Assay desk not taught yet (fixtures-science); the service desk with the runs
+ * its versions came from beside the one training; and the other one-organization jobs, each a
+ * field of its own records. Every score is one the Lab's and Models' screens already show.
  */
 
 /** An academy's files as the engine reads them: each table with its rows. */
@@ -91,20 +102,6 @@ const oneOrg = (jobId: string): FieldView => ({
   lockedTestTasks: 60,
 });
 
-/** Academy desk's earlier candidate: one fewer pass on each skill it was tested on anywhere. */
-const EARLIER_RUN = 'run_academy_desk_earlier';
-const EARLIER_REPORT: ReportCard = {
-  ...FIELD_REPORT,
-  jobId: LAB.academyDeskJob,
-  runId: EARLIER_RUN,
-  createdAt: at(-1_440),
-  test: {
-    ...FIELD_REPORT.test,
-    score: { pass: FIELD_REPORT.test.score.pass - 6, total: FIELD_REPORT.test.score.total },
-    perOrg: FIELD_REPORT.test.perOrg?.map((row) => ({ ...row, pass: Math.max(0, row.pass - 1) })),
-  },
-};
-
 const runOf = (key: string, overrides: Partial<Run>): Run =>
   makeRun({ id: `run_${key}`, jobId: `job_${key}`, updatedAt: at(120), ...overrides });
 
@@ -114,31 +111,27 @@ const SCIENCE_RUNS: Record<string, Run[]> = {
   [LAB.assayDeskJob]: [],
 };
 
+/** Academy desk's runs, newest first, each with the agent that holds its version. */
+const ACADEMY_RUNS: Run[] = [
+  [LAB.academyDeskRun, ACADEMY_DESK_ID],
+  [LAB.academyMiniRun, MINI_ID],
+  [LAB.academyEarlierRun, ACADEMY_DESK_ID],
+].map(([id, graduateId]) => ({ ...(DETAILS[id as string] as RunDetail).run, graduateId }));
+
 export const RUNS: Record<string, Run[]> = Object.fromEntries(
   LAB_JOBS.map((summary) => {
     const science = SCIENCE_RUNS[summary.id];
     if (science) return [summary.id, science];
+    if (summary.id === LAB.academyDeskJob) return [summary.id, ACADEMY_RUNS];
     const key = summary.id.replace(/^job_/, '');
     const latest = summary.latestRun;
     const run = runOf(key, {
+      ...(latest ? { id: latest.id } : {}),
       status: latest?.status ?? 'finished',
       phase: latest?.phase ?? 'done',
-      ...(key === 'academy_desk' ? { graduateId: ACADEMY_DESK_ID, currentVersion: 9 } : {}),
     });
-    const earlier =
-      key === 'academy_desk'
-        ? [
-            makeRun({
-              id: EARLIER_RUN,
-              jobId: summary.id,
-              status: 'finished',
-              phase: 'done',
-              currentVersion: 6,
-              updatedAt: at(-1_440),
-            }),
-          ]
-        : [];
-    return [summary.id, [run, ...earlier]];
+    // The service desk's versions came from runs of its job before the one training now.
+    return [summary.id, summary.id === STORY.jobId ? [run, ...DESK_RUNS.toReversed()] : [run]];
   }),
 );
 
@@ -189,7 +182,7 @@ export const ACADEMY_DESK_PLAN: TaskPlan = {
     state: 'confirmed',
     token: 'f0e1d2c3b4a59687',
     brief: BRIEF,
-    confirmedAt: at(30),
+    confirmedAt: at(-2_880),
   },
 };
 
@@ -251,18 +244,20 @@ export const FIELD_VIEWS: Record<string, FieldView> = Object.fromEntries(
   ]),
 );
 
-/** The cards the Fields place reads, by run. */
+/** The cards the Fields place reads, by run: the Lab's, and each version's in Models. */
 export const FIELD_REPORTS: Record<string, ReportCard> = {
-  [LAB.academyDeskRun]: {
-    ...FIELD_REPORT,
-    jobId: LAB.academyDeskJob,
-    runId: LAB.academyDeskRun,
-    name: 'Academy desk',
-  },
-  [EARLIER_RUN]: EARLIER_REPORT,
+  ...Object.fromEntries(Object.values(MODEL_REPORTS).map((report) => [report.runId, report])),
+  ...LAB_REPORTS,
   [SWEEP.run]: SWEEP_REPORT,
   [SWEEP.earlierRun]: SWEEP_EARLIER_REPORT,
-  run_clinic: { ...storyReport, runId: 'run_clinic', name: 'Clinic intake' },
+};
+
+/** Each Lab job's task plan, by its id: the study confirmed where one was made. */
+export const TASK_PLANS: Record<string, TaskPlan> = {
+  ...Object.fromEntries(LAB_JOBS.map((job) => [job.id, taskPlan])),
+  [LAB.academyDeskJob]: ACADEMY_DESK_PLAN,
+  [SWEEP.job]: SWEEP_PLAN,
+  [LAB.assayDeskJob]: ASSAY_PLAN,
 };
 
 /** Every read the Fields place makes, on the Lab's records. */
@@ -272,12 +267,7 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
   await stubByKey(app, 'runs:list', RUNS);
   await stubByKey(app, 'reports:list', REPORT_TARGETS);
   await stubByKey(app, 'reports:get', FIELD_REPORTS);
-  await stubByKey(app, 'jobs:taskPlan', {
-    ...Object.fromEntries(LAB_JOBS.map((job) => [job.id, taskPlan])),
-    [LAB.academyDeskJob]: ACADEMY_DESK_PLAN,
-    [SWEEP.job]: SWEEP_PLAN,
-    [LAB.assayDeskJob]: ASSAY_PLAN,
-  });
+  await stubByKey(app, 'jobs:taskPlan', TASK_PLANS);
   await stubByKey(app, 'jobs:fieldAssets', { [LAB.academyDeskJob]: ACADEMY_DESK_ASSETS });
   // The timeline's reads: each agent's versions, none certified after the fact, and no model
   // trained elsewhere qualified on any field.
@@ -304,4 +294,4 @@ export async function stubFields(app: ElectronApplication): Promise<void> {
   );
 }
 
-export const FIELDS = { earlierRun: EARLIER_RUN };
+export const FIELDS = { earlierRun: LAB.academyEarlierRun, miniRun: LAB.academyMiniRun };

@@ -2,14 +2,12 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
-import { goTo, launchApp, settle, updateSettings, type LaunchedApp } from './app';
+import { goTo, infoTipText, launchApp, settle, updateSettings, type LaunchedApp } from './app';
 import { EMPTY_ENGINE, stubEngine } from './fixtures';
 import { FIELD_VIEWS, stubFields } from './fixtures-fields';
 import { stubByKey } from './fixtures-flow';
 import { LAB, stubLab } from './fixtures-lab';
 import { installModelsFake } from './fixtures-models';
-import { CHATS } from './fixtures-workspace';
-import { STORY } from './story';
 
 /*
  * The Lab and Architect's places against the stand-in engine (decision 073): a fresh install's
@@ -101,17 +99,29 @@ test('shows what needs the person and what runs, then what finished, spent and s
 
   const running = card('Running');
   await expect(running.getByRole('button', { name: /Service desk/ })).toContainText(
-    'Diagnosing, round 5 of 12',
+    'Diagnosing, round 4 of 12',
   );
-  await expect(running.getByRole('button', { name: /Parts counter/ })).toContainText('53%');
+  const parts = running.getByRole('button', { name: /Parts counter/ });
+  await expect(parts).toContainText('Held-out checks');
+  await expect(parts).toContainText('53%');
 
-  // Academy desk was tested on the academies it trained on, on one it never saw and on a real one.
+  // The Lab says what Architect does, naming the two models by role where they first appear.
+  await expect(
+    page.getByText(/^Spark, a frontier model, engineers the harness of Glimmer/),
+  ).toBeVisible();
+  // It leads with the newest result, Academy desk's, by the organizations it never saw, the real
+  // one and its risk bound, with the ones it was taught on beside them.
+  const hero = page.getByRole('region', { name: /^Academy desk, / });
+  await expect(hero).toContainText('Never seen');
+  await expect(hero).toContainText('83%');
+  await expect(hero).toContainText('Real');
+  await expect(hero).toContainText('90%');
+  await expect(hero).toContainText('Taught on');
+  await expect(hero).toContainText('93%');
+  expect(await infoTipText(page, hero, 'Never seen')).toContain('kept out of teaching');
+  // The other finished runs are listed below it, without Academy desk again.
   const finished = card('Recently finished');
-  const academyDesk = finished.getByRole('button', { name: /^Academy desk/ });
-  await expect(academyDesk).toContainText('Taught on');
-  await expect(academyDesk).toContainText('Never seen');
-  await expect(academyDesk).toContainText('Real');
-  await expect(academyDesk).toContainText('90%');
+  await expect(finished.getByRole('button', { name: /^Academy desk/ })).toHaveCount(0);
   await expect(finished.getByRole('button', { name: /Clinic intake/ })).toContainText('92%');
 
   // Spark's spending against each run's cap; the part counter's is near its cap.
@@ -124,26 +134,21 @@ test('shows what needs the person and what runs, then what finished, spent and s
 
   await expect(
     card('Fields').getByRole('button', {
-      name: /Academy desk.*3 taught on · 2 never seen, 1 real/,
+      name: /Academy desk.*3 taught on, 1 never seen, 1 real/,
     }),
   ).toBeVisible();
-  // The versions Models lists as active.
-  await expect(
-    card('Agents').getByRole('button', { name: 'Open Academy desk', exact: true }),
-  ).toContainText('Version 2');
   await capture('lab-dark.png');
-  await card('Agents').scrollIntoViewIfNeeded();
+  await card('Fields').scrollIntoViewIfNeeded();
   await capture('lab-lower-dark.png');
+  // The agents are in the sidebar, so the Lab doesn't list them again.
+  await expect(card('Agents')).toHaveCount(0);
 
   // Each row opens what it is about.
   await needs.getByRole('button', { name: /Returns desk/ }).click();
   await expect(page).toHaveURL(/#\/runs\/run_returns\/train$/);
   await goTo(page, '/');
-  await academyDesk.click();
+  await hero.getByRole('button', { name: 'Open report' }).click();
   await expect(page).toHaveURL(new RegExp(`#/runs/${LAB.academyDeskRun}/report$`));
-  await goTo(page, '/');
-  await card('Agents').getByRole('button', { name: 'Open Service desk' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/agents/${STORY.graduateId}/chats/${CHATS.fresh.id}$`));
   await goTo(page, '/');
   await needs.getByRole('button', { name: /^Service desk\s*Review$/ }).click();
   await expect(page.getByRole('dialog')).toContainText('Teaching');

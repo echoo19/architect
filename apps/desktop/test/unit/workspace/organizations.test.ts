@@ -35,15 +35,15 @@ describe('the organization an agent works on', () => {
     const orgs = organizationsOf(PER_ORG);
     const [north, , east] = orgs;
     if (north === undefined || east === undefined) throw new Error('Expected organizations.');
-    expect(folderProblem(orgs, east, '/a/orgs/east/data')).toBeNull();
-    expect(folderProblem(orgs, east, '/a/orgs/north/data')).toBe(
+    expect(folderProblem(orgs, east, '/a/orgs/east/data', 'academy')).toBeNull();
+    expect(folderProblem(orgs, east, '/a/orgs/north/data', 'academy')).toBe(
       "That folder holds North Academy's records, not East Academy's.",
     );
     // North's records kept outside orgs/<id>/data can't be told from East's, so they are refused.
-    expect(folderProblem(orgs, east, '/home/dana/north-records')).toContain(
-      'orgs/east/data folder',
+    expect(folderProblem(orgs, east, '/home/dana/north-records', 'academy')).toBe(
+      "Can't tell that folder holds East Academy's records. For records of your own, choose Another academy… instead.",
     );
-    expect(folderProblem(orgs, east, '/a/orgs/unlisted/data')).toContain("Can't tell");
+    expect(folderProblem(orgs, east, '/a/orgs/unlisted/data', 'academy')).toContain("Can't tell");
   });
 
   it('is the first trained one while unbound, the bound one after, or the folder by its name', () => {

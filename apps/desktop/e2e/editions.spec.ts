@@ -100,7 +100,7 @@ test('switches in Settings without a restart, and the personal edition has no La
   await page.keyboard.press('Escape');
 
   // The pre-pivot home: no agents yet, the agents' sidebar alone, the app's own name.
-  await expect(page.getByRole('heading', { name: 'No agents yet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Teach your first agent' })).toBeVisible();
   await expect(places()).toHaveCount(0);
   await expect(brand()).toHaveText('Architect');
   expect(await page.title()).toBe('Architect');

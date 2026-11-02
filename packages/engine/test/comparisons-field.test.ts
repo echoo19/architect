@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONFIG,
   DEFAULT_MODELS,
+  pairedDifference,
   runComparison,
   type ComparisonConfig,
   type ComparisonRequest,
@@ -120,6 +121,15 @@ describe('a comparison on a job with organizations', () => {
       expect(orgs.get('hillcrest')).toMatchObject({ seen: false, synthetic: false });
       const sealed = (orgs.get('quayside')?.total ?? 0) + (orgs.get('hillcrest')?.total ?? 0);
       expect(sealed).toBe(sealedTasks);
+    }
+    // Each pair is paired again within the organizations taught on and those never seen.
+    const pair = hosted?.paired.find((item) => item.a === 'draft' && item.b === 'bare');
+    expect(pair?.byGroup?.map((group) => [group.group, group.scenarios])).toEqual([
+      ['seen', 36],
+      ['unseen', sealedTasks],
+    ]);
+    for (const group of pair?.byGroup ?? []) {
+      expect(group.difference).toEqual(pairedDifference(group));
     }
     const markdown = readFileSync(join(world.out, 'report.md'), 'utf8');
     expect(markdown).toContain('Hillcrest Outlet (never seen, real)');

@@ -192,7 +192,7 @@ test('training closes back to its field', async () => {
   await openAt('/runs/run_desk/train');
   await expect(page.getByRole('banner')).toContainText('Service desk');
   await button('Close').click();
-  await expect(page).toHaveURL(/#\/fields\/job_desk$/);
+  await expect(page).toHaveURL(/#\/fields\/job_servicedesk$/);
 });
 
 test("a model's panel opens its chat and results and shows every qualification", async () => {
@@ -202,10 +202,10 @@ test("a model's panel opens its chat and results and shows every qualification",
   await expect(qualified).toContainText('Risk certificate');
   await expect(qualified).toContainText('≤ ');
   await expect(qualified).toContainText('At Maple Grove Academy');
-  await expect(qualified).toContainText('83% · 25 of 30');
+  await expect(qualified).toContainText('83% (25 of 30)');
   await expect(qualified).toContainText('academy-desk-sft-8b');
   await expect(qualified).toContainText(
-    `${Math.round((FIELD_REPORT.test.score.pass * 100) / FIELD_REPORT.test.score.total)}% · ${FIELD_REPORT.test.score.pass} of ${FIELD_REPORT.test.score.total}`,
+    `${Math.round((FIELD_REPORT.test.score.pass * 100) / FIELD_REPORT.test.score.total)}% (${FIELD_REPORT.test.score.pass} of ${FIELD_REPORT.test.score.total})`,
   );
   await capture('links-model-panel-dark.png');
 
@@ -236,10 +236,11 @@ test("a field's page goes back to Fields, and its versions open in Models", asyn
   await goTo(page, `/fields/${LAB.academyDeskJob}`);
   await page.getByRole('tab', { name: 'Versions' }).click();
   const versions = page.getByRole('table', { name: 'Versions' });
-  const best = versions.getByRole('row', { name: /Best/ });
-  await expect(best).toContainText('Academy desk v2');
+  // The best is Academy desk Mini's; version 2 of Academy desk is the one opened.
+  await expect(versions.getByRole('row', { name: /Best/ })).toContainText('Academy desk Mini v1');
+  const active = versions.getByRole('row', { name: /Academy desk v2/ });
   await capture('links-field-versions-dark.png');
-  await best.click();
+  await active.click();
   await expectVersionOpen();
 });
 
@@ -302,11 +303,13 @@ test("an experiment's results open each arm's run and the version it froze", asy
   const runs = page.getByRole('table', { name: "Each arm's run" });
   const targeted = runs.getByRole('row', { name: /Spark-engineered harness/ });
   await targeted.scrollIntoViewIfNeeded();
-  await expect(targeted).toContainText(/v\d+ · [0-9a-f]{7}/);
+  await expect(targeted).toContainText(/v\d+ \([0-9a-f]{7}\)/);
   await targeted.click();
   const drawer = page.getByRole('dialog', { name: 'Spark-engineered harness' });
   await expect(drawer.getByRole('region', { name: 'Rounds' })).toBeVisible();
-  await expect(drawer.getByRole('region', { name: 'Version' })).toContainText(/v\d+ · [0-9a-f]{7}/);
+  await expect(drawer.getByRole('region', { name: 'Version' })).toContainText(
+    /v\d+ \([0-9a-f]{7}\)/,
+  );
   await capture('links-experiment-arm-dark.png');
   await page.keyboard.press('Escape');
   await expect(drawer).toHaveCount(0);

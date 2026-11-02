@@ -172,7 +172,7 @@ function ExampleRow({
       <span className="truncate text-small">{lessonOrigin(lesson)}</span>
       <span className="truncate text-right text-small">
         {type}
-        {lesson.round !== null && ` · Round ${lesson.round}${kept ? '' : ', not kept'}`}
+        {lesson.round !== null && `, round ${lesson.round}${kept ? '' : ', not kept'}`}
       </span>
       <ChevronRight size={14} strokeWidth={1.8} aria-hidden className={ROW_CHEVRON} />
     </RowButton>

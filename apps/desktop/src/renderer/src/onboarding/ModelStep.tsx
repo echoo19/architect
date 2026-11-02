@@ -21,9 +21,9 @@ import { architect } from '../api/client';
 import type { QueryState } from '../api/query';
 import { errorOf, RetryButton } from '../components/QueryValue';
 import { formatBytes } from '../lib/format';
-import { baseModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
 import { currentPlatform, deviceInSentence } from '../lib/platform';
+import { useEdition } from '../shell/edition';
 import { localModelName, studentFromChoice } from '../settings/models/connections';
 import { ModelPicker } from '../settings/models/ModelPicker';
 import { isInstalled } from '../settings/models/StudentRows';
@@ -31,6 +31,11 @@ import { sizeWord, tradeoff } from './builds';
 import { pullBytes, pullPercent, pullStage, type PullState } from './pull';
 import { StepIntro } from './SetupShell';
 import { StatusValue } from './StatusValue';
+
+/** A build by the name its card gives it after Glimmer's: "4-bit", "2-bit". */
+function buildName(build: StudentBuild): string {
+  return build.label.split(',')[0] ?? build.label;
+}
 
 /** Where a build runs here: entirely on the graphics card, partly on the processor, or unknown. */
 function fitLine(build: StudentBuild, gpu: GpuInfo | null): string | null {
@@ -58,6 +63,7 @@ export interface ModelStepProps {
  */
 export function ModelStep({ student, names, local, onChoose, pull }: ModelStepProps) {
   const device = deviceInSentence(currentPlatform());
+  const lab = useEdition() === 'lab';
   const ollama = local.data?.ollama;
   const gpu = local.data?.gpu ?? null;
   const recommended = recommendedBuild(gpu);
@@ -83,7 +89,8 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
   return (
     <>
       <StepIntro title="Your agent's model">
-        {names.student} runs your agents on {device}, so they work offline.
+        {names.student}
+        {lab ? ', a small open model,' : ''} runs your agents on {device}, so they work offline.
       </StepIntro>
       <div className="flex w-full max-w-[720px] flex-col gap-3.5">
         {local.status === 'error' && !local.data && (
@@ -130,20 +137,33 @@ export function ModelStep({ student, names, local, onChoose, pull }: ModelStepPr
             <RadioCard
               key={option.key}
               value={option.model}
-              title={`${baseModelName(option.model)} · ${sizeWord(option, recommended)}`}
+              title={localModelName(option.model)}
               disabled={downloading && option.model !== student.model}
             >
+              <span>{sizeWord(option, recommended)}</span>
               <span>
                 {downloaded(option.model)
                   ? 'Downloaded'
                   : `${formatBytes(option.downloadBytes)} download`}
-                {' · '}
-                {tradeoff(option)}
               </span>
+              <span>{tradeoff(option)}</span>
               {fitLine(option, gpu) && <span>{fitLine(option, gpu)}</span>}
             </RadioCard>
           ))}
         </RadioCardGroup>
+        {/* A larger build already here stays chosen, so say what the recommended one offers. */}
+        {build &&
+          gpu &&
+          build.key !== recommended.key &&
+          !fitsOnGpu(build.gpuBytes, gpu) &&
+          downloaded(build.model) &&
+          !downloaded(recommended.model) && (
+            <p className="m-0 px-1 text-fg text-pretty">
+              The {buildName(build)} build is already on this computer. The recommended{' '}
+              {buildName(recommended)} build runs faster here, after a{' '}
+              {formatBytes(recommended.downloadBytes)} download.
+            </p>
+          )}
         {downloading && (
           <div className="flex flex-col gap-2.5 px-1">
             <Progress

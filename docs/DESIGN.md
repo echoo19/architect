@@ -119,7 +119,9 @@ Two materials, and nothing else makes depth (`surface-card` and `surface-float` 
   cards. The light is fixed; it never moves, animates or brightens.
 - **What floats** (menus, popovers, selects, tooltips, toasts, dialogs, the drawer, the palette and
   the inspector) is `float`: slightly see-through with a light blur, the same rims, and the one
-  soft shadow, `0 24px 60px -12px rgb(0 0 0 / 0.6)`. Nothing else casts a shadow.
+  soft shadow, `0 24px 60px -12px rgb(0 0 0 / 0.6)`. Nothing else casts a shadow. The drawer is
+  the one exception to the see-through fill: it runs the window's height over the header's bright
+  buttons, which its frost would smear, so it takes the solid `raised` fill.
 - **Hover brightens a rim only** (`rim-hover`, or the `hover` fill of a row inside a card).
   Nothing grows, moves or changes size under the pointer, so hover never shifts the layout.
 
@@ -175,9 +177,12 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   a figure, a status word or a chevron at the right. A grid holds one column on a narrow
   window and two or three on a wide one; rows of cards on one page share their columns so their
   edges line up. The cards rise in one after another on first mount.
-- **The Lab** has one focal point: Needs you and Running side by side at the top of two columns,
-  each column a stack of cards at its own height, so a short card never stretches into an empty
-  one. Needs you groups what waits by kind (questions, results, approvals, lessons, versions). What
+- **The Lab** says what Architect does in one quiet line under its title, naming Spark and
+  Glimmer by role, then leads with the newest result: its never-seen and real scores and its risk
+  bound, each term explained behind an info icon, with its taught-on score a step smaller beside
+  them. Under it, Needs you and Running sit side by side at the top of two columns, each column a
+  stack of cards at its own height, so a short card never stretches into an empty one. The agents
+  are in the sidebar and aren't listed again. Needs you groups what waits by kind (questions, results, approvals, lessons, versions). What
   a card lacks is said in a few words on a quiet line ("Nothing is running"), never with a
   placeholder illustration.
 - **One word per concept.** Organizations are "Taught on" or "Never seen" ("sealed" only where a
@@ -198,8 +203,9 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   Every column header and status word whose meaning isn't plain carries its hint, and a header
   that heads counts in one group and scores in another says which it is. The risk certificate
   leads with its plain sentence, as the personal edition's does, then names its three figures.
-- **Disabled controls** say why in their tooltip, on the span around them (a disabled control
-  takes no pointer). A step that goes ahead despite a failed check says so beside its button
+- **Disabled controls** say why. A form's or a page's primary action says it in a short line
+  beside it ("Choose a teammate"), which also describes the button; smaller controls say it in
+  their tooltip, on the span around them (a disabled control takes no pointer). A step that goes ahead despite a failed check says so beside its button
   ("Not held at Real academy"), and the button stays usable.
 - **Sidebar.** Rows are `NavItem`s: 40px, a 16px icon, the label, and a status word or spinner at
   the right. The current page's row takes the selected fill, which slides between the places. An
@@ -207,20 +213,23 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   has the row's width; agents that share a name show the version each answers with.
 - **Inspector.** The panel at a screen's right with the settings of what the screen shows (the
   teacher, the student, teaching, evaluation, budget). It floats: the float material at radius
-  20, 8px in from the window's right edge, the strip above and the edge below. Its tabs are the
-  same pill strip as every other, lined up with its content 16px in, whose selected fill slides
-  between them; a button folds it to a 48px rail of the tabs' icons, and opening it there lands
-  on that tab. It is 400px wide, room for up to five tabs by name, so no
-  name is cut and none is reduced to an icon. A screen may head it with what it is about (a
-  model's name) and may open it on a tab, such as Budget from a line that sends the person there.
-  It remembers its tab and whether it was folded, per screen.
+  20, 8px in from the window's right edge and from the page beside it, the strip above and the
+  edge below. Its tabs are the same pill strip as every other, lined up with its content 16px in,
+  whose selected fill slides between them; a button folds it to a 48px rail of the tabs' icons,
+  and opening it there lands on that tab. The panel is 392px wide, room for up to five tabs by
+  name, so no name is cut and none is reduced to an icon. A screen may head it with what it is
+  about (a model's name) and may open it on a tab, such as Budget from a line that sends the
+  person there. It remembers its tab and whether it was folded, per screen. Below 1400px a panel
+  beside a page that needs its width (a draft's settings, Compute's plan, a model's panel) floats
+  over the page instead of squeezing it; a settings panel folds again when the page is pointed at.
   Width changes with the `smooth` spring. It never holds a control that would break an invariant.
 - **PageTabs.** A place's page in sections: a segmented strip under the title, an icon and a word
   each, whose selected fill slides between them; the open tab's content below. A click opens a
   tab without drawing the keyboard ring; arrow keys move between tabs.
 - **ChoiceTiles.** A choice among a few things shown as icon tiles (an icon at the top left, the
   name under it), three to a row in an inspector. One or several may be chosen; the chosen tile
-  takes the selected fill and a light edge. Arrow keys move between tiles.
+  takes the selected fill, a light edge and a check at its top right. Arrow keys move between
+  tiles.
 - **ToggleRow.** A switch, its label, and at the far right the kind of value it governs ("Text",
   "USD", "Rounds"). The label flips the switch too.
 - **Meter and CapMeter.** A meter fills to its share and springs to a new value; past its cap it

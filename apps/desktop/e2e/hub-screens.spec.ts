@@ -142,7 +142,7 @@ test('publishes to Hugging Face: the review, its progress, the link and its comm
     'Only accounts you allow on Hugging Face can see it',
   );
   await expect(dialog.getByRole('list', { name: 'Publications' })).toContainText(
-    `Version 1 · commit ${HUB.earlierCommit.slice(0, 7)}`,
+    `Version 1, commit ${HUB.earlierCommit.slice(0, 7)}`,
   );
   await capture('agent-publish-dark.png');
   // Below the files: the scan, and where this agent was published before.
@@ -181,7 +181,7 @@ test('publishes to Hugging Face: the review, its progress, the link and its comm
 
   await settlePublish(app, 'complete');
   await expect(dialog.getByText('Version 2 is on Hugging Face')).toBeVisible();
-  await expect(dialog.getByText(`Commit ${HUB.commit.slice(0, 7)} · Private`)).toBeVisible();
+  await expect(dialog.getByText(`Commit ${HUB.commit.slice(0, 7)}, private`)).toBeVisible();
   await expect(
     dialog.getByRole('button', { name: `huggingface.co/${HUB.repository}` }),
   ).toBeVisible();
@@ -290,7 +290,7 @@ test('installs from Hugging Face by commit, through the steps a package file tak
   await page.getByRole('button', { name: 'Download' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Returns desk' })).toBeVisible();
   await expect(
-    page.getByText(`${HUB.returns} · commit ${HUB.returnsCommit.slice(0, 7)}`),
+    page.getByText(`${HUB.returns} at commit ${HUB.returnsCommit.slice(0, 7)}`),
   ).toBeVisible();
   await expect(page.getByText('Tested by its author')).toBeVisible();
   await capture('import-hub-check-dark.png');
@@ -379,7 +379,7 @@ test("changes the agent's model, the fix for a base of another build", async () 
   await picker.getByRole('option', { name: /muse-glimmer-trained:30b/ }).click();
   // Exactly the toast's title: its live region announces the same words for a moment.
   await expect(page.getByText('Changed the model of Service desk', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('All checks passed')).toBeVisible();
+  await expect(dialog.getByText(/install checks passed/)).toBeVisible();
   await expect(page.getByText("Can't run on this computer")).toHaveCount(0);
   await capture('agent-model-changed-dark.png');
   expect(await callsTo(app, 'graduates:bind')).toEqual([

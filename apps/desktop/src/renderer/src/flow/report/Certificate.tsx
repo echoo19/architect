@@ -37,7 +37,7 @@ export function Certificate({
     <Section
       title={lab ? 'Risk certificate' : 'Certified answers'}
       id="certificate"
-      actions={lab && <InfoTip about="risk certificates">{defineTerm('riskCertificate')}</InfoTip>}
+      tip={lab && <InfoTip about="risk certificates">{defineTerm('riskCertificate')}</InfoTip>}
     >
       <div className="flex flex-col gap-6 border-t border-line pt-5">
         <div className="flex max-w-[660px] flex-col gap-2">
@@ -73,31 +73,32 @@ export function Certificate({
             points={points}
             target={certificate.epsilon}
             {...(chosen < 0 ? {} : { chosen })}
-            className="max-w-[620px]"
           />
         )}
         {certificate.issued && certificate.checks.length > 0 && (
           <ul
             aria-label="Where the bound was checked"
-            className="m-0 max-w-[820px] list-none border-b border-line p-0"
+            className="m-0 list-none border-b border-line p-0"
           >
             {certificate.checks.map((check) => (
               <li
                 key={check.org ?? 'taught'}
-                className="grid min-h-12 grid-cols-[16px_minmax(0,1fr)_auto] items-center gap-x-4 border-t border-line py-3 sm:grid-cols-[16px_minmax(0,280px)_minmax(0,1fr)_auto]"
+                className="grid min-h-12 grid-cols-[16px_minmax(0,1fr)_auto] items-center gap-x-6 border-t border-line py-3 sm:grid-cols-[16px_minmax(0,1fr)_auto_auto]"
               >
                 {check.held ? (
                   <CircleCheck size={16} strokeWidth={1.8} className="text-student" aria-hidden />
                 ) : (
                   <CircleX size={16} strokeWidth={1.8} className="text-danger" aria-hidden />
                 )}
-                <span className="truncate">
+                <span className="text-pretty">
                   {checkPlace(check, lab ? 'Sealed final test' : 'Final test')}
                 </span>
-                <span className="hidden text-small tabular-nums sm:block">
+                <span className="hidden whitespace-nowrap text-small tabular-nums sm:block">
                   {checkCounts(check)}
                 </span>
-                <span className="font-medium">{check.held ? 'Held' : 'Not held'}</span>
+                <span className="whitespace-nowrap font-medium">
+                  {check.held ? 'Held' : 'Not held'}
+                </span>
               </li>
             ))}
           </ul>

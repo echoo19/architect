@@ -6,6 +6,7 @@ import { toError } from '../api/query';
 import { onWorkspaceEvent, workspaceApi } from './api';
 import {
   emptyWorkspace,
+  unusedChat,
   workspaceReducer,
   type Loadable,
   type WorkspaceAction,
@@ -135,14 +136,6 @@ async function findLatestChat(graduateIds: string[]): Promise<WorkspaceChat> {
   return createChat(first);
 }
 
-/** The team chat used last, or a new one when the team has none yet. */
-export async function latestTeamChat(teamId: string): Promise<WorkspaceChat> {
-  await loadTeamChats(teamId);
-  const entry = useWorkspace.getState().chats[teamId];
-  if (entry?.status === 'error') throw entry.error;
-  return newest(entry?.data ?? []) ?? createTeamChat(teamId);
-}
-
 function newest(chats: readonly WorkspaceChat[]): WorkspaceChat | undefined {
   return chats.reduce<WorkspaceChat | undefined>(
     (best, chat) => (!best || chat.updatedAt > best.updatedAt ? chat : best),
@@ -150,14 +143,19 @@ function newest(chats: readonly WorkspaceChat[]): WorkspaceChat | undefined {
   );
 }
 
-/** Starts a chat and adds it to its agent's list, ready to open. */
+/**
+ * Starts a chat and adds it to its agent's list, ready to open: or the agent's empty chat, when
+ * it already has one.
+ */
 export async function createChat(graduateId: string): Promise<WorkspaceChat> {
-  return opened(await workspaceApi.createChat(graduateId));
+  const unused = unusedChat(useWorkspace.getState(), graduateId);
+  return unused ?? opened(await workspaceApi.createChat(graduateId));
 }
 
-/** Starts a chat with a team and adds it to the team's list, ready to open. */
+/** Starts a chat with a team, or opens its empty one, as `createChat` does for an agent. */
 export async function createTeamChat(teamId: string): Promise<WorkspaceChat> {
-  return opened(await workspaceApi.createTeamChat(teamId));
+  const unused = unusedChat(useWorkspace.getState(), teamId);
+  return unused ?? opened(await workspaceApi.createTeamChat(teamId));
 }
 
 function opened(chat: WorkspaceChat): WorkspaceChat {

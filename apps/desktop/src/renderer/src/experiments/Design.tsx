@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ArmId, ExperimentDetail, ExperimentGroup, ExperimentInput } from '@architect/shared';
 import {
   Badge,
@@ -7,6 +7,7 @@ import {
   Card,
   CardRow,
   ChoiceTiles,
+  defineTerm,
   ErrorState,
   InfoTip,
   Input,
@@ -36,7 +37,7 @@ import { flowApi } from '../api/client';
 import { useJobs } from '../api/hooks';
 import { experimentKeys, experimentsApi } from '../api/experiments';
 import { fetchQuery, setQueryData, toError } from '../api/query';
-import { fileName, formatCost } from '../flow/format';
+import { formatCost } from '../flow/format';
 import { shortPath } from '../lib/format';
 import { modelTabsFit } from '../lib/names';
 import { attempt } from '../lib/notify';
@@ -65,6 +66,12 @@ import {
 } from './model';
 import { NumberRow } from './NumberRow';
 import type { ModelNames } from '../flow/train/phase';
+
+/** The most a cap may be set to: well past any experiment, short of a typing slip. */
+const MAX_CAP_USD = 10_000;
+
+/** The longest an experiment may run: a week. */
+const MAX_WALL_HOURS = 168;
 
 type Tab = 'teacher' | 'student' | 'teaching' | 'evaluation' | 'budget';
 
@@ -103,6 +110,20 @@ export function ExperimentDesign({
   const [problem, setProblem] = useState<Error | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [confirming, setConfirming] = useState<'preregister' | 'calibrate' | null>(null);
+  // Settings rows whose typed value isn't one they take: what is frozen is what is on screen, so
+  // while one is marked nothing is preregistered.
+  const [unfit, setUnfit] = useState<ReadonlySet<string>>(new Set());
+  const markUnfit = useCallback(
+    (row: string, problem: string | null) =>
+      setUnfit((current) => {
+        if (current.has(row) === (problem !== null)) return current;
+        const next = new Set(current);
+        if (problem === null) next.delete(row);
+        else next.add(row);
+        return next;
+      }),
+    [],
+  );
   const pending = useRef<{ timer: ReturnType<typeof setTimeout>; send: () => Promise<void> }>(
     undefined,
   );
@@ -114,6 +135,19 @@ export function ExperimentDesign({
   const fieldId = input?.jobId;
 
   useEffect(() => () => clearTimeout(pending.current?.timer), []);
+
+  // Opened from a field, it is planned on that field at once; the picker is for choosing one.
+  const jobs = useJobs();
+  const named =
+    detail === null && jobId !== undefined
+      ? jobs.data?.find((job) => job.id === jobId && job.taskCount > 0)
+      : undefined;
+  const planned = useRef(false);
+  useEffect(() => {
+    if (named === undefined || planned.current) return;
+    planned.current = true;
+    void planOn({ jobId: named.id });
+  }, [named]);
 
   const send = async (next: ExperimentInput) => {
     if (id === undefined) return;
@@ -143,16 +177,17 @@ export function ExperimentDesign({
     await waiting.send();
   };
 
-  /** Plans a draft on the field chosen, named after its job, and opens it. */
-  const planOn = async (source: { jobId: string } | { jobDir: string }, name: string) => {
+  /**
+   * Plans a draft on the field chosen and opens it, named by its place among that field's
+   * experiments, so its name never repeats the field's beside it.
+   */
+  const planOn = async (source: { jobId: string } | { jobDir: string }) => {
     setChoosing(true);
     const planned = await attempt("Couldn't plan an experiment on that field", async () => {
-      const first = await experimentsApi.plan(defaultInput(source, name));
-      if (first.experiment.job.name === name) return first;
-      return experimentsApi.revise(first.experiment.id, {
-        ...first.experiment.input,
-        name: first.experiment.job.name,
-      });
+      const onField = (await experimentsApi.list()).filter((item) =>
+        'jobId' in source ? item.input.jobId === source.jobId : item.input.jobDir === source.jobDir,
+      ).length;
+      return experimentsApi.plan(defaultInput(source, `Experiment ${onField + 1}`));
     });
     setChoosing(false);
     if (!planned) return;
@@ -165,7 +200,7 @@ export function ExperimentDesign({
       (await attempt("Couldn't open the folder", () =>
         flowApi.pickFiles({ title: "Choose the field's folder", directory: true }),
       )) ?? [];
-    if (folder !== undefined) await planOn({ jobDir: folder }, fileName(folder));
+    if (folder !== undefined) await planOn({ jobDir: folder });
   };
 
   const preregister = async () => {
@@ -189,7 +224,9 @@ export function ExperimentDesign({
   const blocked =
     input === null || detail === null
       ? null
-      : (inputProblem(input) ?? preregisterProblem(input, detail.groups));
+      : unfit.size > 0
+        ? 'Fix the marked settings first.'
+        : (inputProblem(input) ?? preregisterProblem(input, detail.groups));
   const calibrating = detail?.experiment.status === 'calibrating';
 
   return (
@@ -216,6 +253,7 @@ export function ExperimentDesign({
             aria-label="Experiment settings"
             tabs={tabsFor(names)}
             rememberAs="experiment"
+            foldWhenNarrow
           >
             {(tab) => (
               <Settings
@@ -224,6 +262,7 @@ export function ExperimentDesign({
                 names={names}
                 splitsSeed={detail?.experiment.job.splitsSeed ?? null}
                 onChange={change}
+                onProblem={markUnfit}
               />
             )}
           </Inspector>
@@ -239,19 +278,11 @@ export function ExperimentDesign({
           detail={detail}
           jobId={jobId}
           choosing={choosing}
-          onLibrary={(job) => void planOn({ jobId: job.id }, job.name)}
+          onLibrary={(job) => void planOn({ jobId: job.id })}
           onFolder={() => void chooseFolder()}
           onName={(name) => input && change({ ...input, name })}
         />
-        <Card
-          title="Arms"
-          action={
-            <InfoTip about="arms">
-              Each arm is a harness or a LoRA adapter, engineered and tested on the same tasks and
-              seeds.
-            </InfoTip>
-          }
-        >
+        <Card title="Arms" action={<InfoTip about="arms">{defineTerm('arm')}</InfoTip>}>
           <ChoiceTiles<ArmId>
             multiple
             aria-label="Arms"
@@ -270,7 +301,8 @@ export function ExperimentDesign({
           <div className="mt-4 flex items-center gap-4">
             <p className="m-0 flex min-w-0 flex-1 items-center gap-2 text-small">
               <Lock size={13} aria-hidden />
-              LoRA arms need this computer&apos;s GPU, which experiments never use.
+              LoRA arms are off here: they need a GPU, and experiments never use this
+              computer&apos;s.
             </p>
             {fieldId !== undefined && (
               <Button size="sm" onClick={() => navigate(paths.compute({ jobId: fieldId }))}>
@@ -514,7 +546,7 @@ function FieldCard({
       </Card>
     );
   }
-  const splits = ` · splits seed ${detail.experiment.job.splitsSeed}`;
+  const splits = `, splits seed ${detail.experiment.job.splitsSeed}`;
   return (
     <Card title="Field" flush>
       <CardRow
@@ -640,7 +672,7 @@ function EstimateCard({
             key={arm.arm}
             icon={<ArmTile arm={arm.arm} />}
             title={armNames(names)[arm.arm]}
-            detail={parts.join(' · ')}
+            detail={parts.join(', ')}
             end={
               arm.funded ? undefined : (
                 <Tooltip content={arm.reason ?? 'Not funded'}>
@@ -695,12 +727,14 @@ function Settings({
   names,
   splitsSeed,
   onChange,
+  onProblem,
 }: {
   tab: Tab;
   input: ExperimentInput;
   names: ModelNames;
   splitsSeed: number | null;
   onChange: (next: ExperimentInput) => void;
+  onProblem: (row: string, problem: string | null) => void;
 }) {
   const chosen = input.arms.map((item) => item.arm);
   const capRows = (arms: readonly ArmId[], kind: 'sparkUsd' | 'studentUsd') => {
@@ -716,6 +750,8 @@ function Settings({
         optional
         placeholder="Default"
         unit="USD"
+        max={MAX_CAP_USD}
+        onProblem={onProblem}
         onChange={(value) => onChange(withArmCap(input, arm, kind, value))}
       />
     ));
@@ -744,6 +780,7 @@ function Settings({
             min={1}
             max={10}
             unit="Rounds"
+            onProblem={onProblem}
             onChange={(rounds) => rounds !== undefined && onChange({ ...input, rounds })}
           />
           <NumberRow
@@ -751,6 +788,7 @@ function Settings({
             value={input.seeds.mentoring}
             integer
             unit="Seed"
+            onProblem={onProblem}
             onChange={(mentoring) =>
               mentoring !== undefined &&
               onChange({ ...input, seeds: { ...input.seeds, mentoring } })
@@ -770,6 +808,7 @@ function Settings({
           </div>
           <SeedList
             seeds={input.seeds.lockedTest}
+            onProblem={onProblem}
             onChange={(lockedTest) => onChange({ ...input, seeds: { ...input.seeds, lockedTest } })}
           />
         </Section>
@@ -781,6 +820,8 @@ function Settings({
             label={names.mentor}
             value={input.caps.sparkUsd}
             unit="USD"
+            max={MAX_CAP_USD}
+            onProblem={onProblem}
             onChange={(sparkUsd) =>
               sparkUsd !== undefined && onChange({ ...input, caps: { ...input.caps, sparkUsd } })
             }
@@ -789,6 +830,8 @@ function Settings({
             label={names.student}
             value={input.caps.studentUsd}
             unit="USD"
+            max={MAX_CAP_USD}
+            onProblem={onProblem}
             onChange={(studentUsd) =>
               studentUsd !== undefined &&
               onChange({ ...input, caps: { ...input.caps, studentUsd } })
@@ -798,6 +841,8 @@ function Settings({
             label="Compute"
             value={input.caps.computeUsd}
             unit="USD"
+            max={MAX_CAP_USD}
+            onProblem={onProblem}
             onChange={(computeUsd) =>
               computeUsd !== undefined &&
               onChange({ ...input, caps: { ...input.caps, computeUsd } })
@@ -807,7 +852,9 @@ function Settings({
             label="Wall clock"
             value={input.caps.wallMinutes / 60}
             min={0.1}
+            max={MAX_WALL_HOURS}
             unit="Hours"
+            onProblem={onProblem}
             onChange={(hours) =>
               hours !== undefined &&
               onChange({
@@ -825,14 +872,20 @@ function Settings({
 function SeedList({
   seeds,
   onChange,
+  onProblem,
 }: {
   seeds: readonly number[];
   onChange: (next: number[]) => void;
+  onProblem: (row: string, problem: string | null) => void;
 }) {
   const [text, setText] = useState(seeds.join(', '));
   const parts = text.split(/[\s,]+/).filter(Boolean);
   const numbers = parts.map(Number);
   const valid = parts.length > 0 && numbers.every((seed) => Number.isInteger(seed));
+  useEffect(() => {
+    onProblem('final-test-seeds', valid ? null : 'Use whole numbers, separated by commas');
+  }, [onProblem, valid]);
+  useEffect(() => () => onProblem('final-test-seeds', null), [onProblem]);
   return (
     <div className="flex flex-col gap-2 pt-2">
       <label htmlFor="final-test-seeds" className="text-ui font-medium">
@@ -852,8 +905,13 @@ function SeedList({
           if (next.length > 0 && next.every((seed) => Number.isInteger(seed))) onChange(next);
         }}
       />
-      <span className="text-small">
-        The first for every arm{numbers.length > 1 ? `, ${numbers.length - 1} more as repeats` : ''}
+      <span
+        className={valid ? 'text-small' : 'text-small text-danger'}
+        role={valid ? undefined : 'alert'}
+      >
+        {valid
+          ? `The first for every arm${numbers.length > 1 ? `, ${numbers.length - 1} more as repeats` : ''}`
+          : 'Use whole numbers, separated by commas'}
       </span>
     </div>
   );

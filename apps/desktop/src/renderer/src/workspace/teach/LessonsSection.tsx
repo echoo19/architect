@@ -41,6 +41,7 @@ import { attempt } from '../../lib/notify';
 import { navigate, paths } from '../../lib/router';
 import { useAgentSettingsUi } from '../settings/agentSettingsUi';
 import { Change } from '../settings/MoveDialog';
+import { startedToTeach } from '../drafts';
 import { createChat } from '../store';
 import { FlaggedAnswers } from './FlaggedAnswers';
 import { budgetLine, capsLine, flaggedSummary, lessonCount, runningImprovement } from './lessons';
@@ -118,6 +119,7 @@ function TeachingRows({ agent, overview }: { agent: GraduateSummary; overview: T
     );
     setCreating(false);
     if (!chat) return;
+    startedToTeach(chat.id);
     closeSettings();
     navigate(paths.chat(agent.id, chat.id));
   };
@@ -227,24 +229,24 @@ function ImproveRow({
       </div>
     );
   } else if (made) {
-    meta = [`Made version ${made.candidateVersion}`, devChange(made)].filter(Boolean).join(' · ');
+    meta = [`Made version ${made.candidateVersion}`, devChange(made)].filter(Boolean).join(', ');
     action = (
       <Button size="xs" onClick={() => go(paths.improvement(made.runId))}>
         See what changed
       </Button>
     );
   } else if (queued === 0) {
-    // Nothing to improve from yet: the flagged answers row above says so.
+    meta = 'No lessons saved yet. Flag an answer in a chat to save one.';
   } else if (overview.improve) {
-    const waits = overview.improve.waits ? ' · waits for the training using it' : '';
-    meta = `${lessonCount(queued)} saved · ${budgetLine(overview.improve.budget)}${waits}`;
+    const waits = overview.improve.waits ? ', waits for the training using it' : '';
+    meta = `${lessonCount(queued)} saved, ${budgetLine(overview.improve.budget)}${waits}`;
     action = (
       <Button size="xs" onClick={() => setConfirming(true)}>
         Improve
       </Button>
     );
   } else {
-    meta = `${lessonCount(queued)} saved · no version of it can run here to improve`;
+    meta = `${lessonCount(queued)} saved. No version of it can run here to improve.`;
   }
 
   return (

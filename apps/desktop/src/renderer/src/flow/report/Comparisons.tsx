@@ -1,5 +1,5 @@
 import type { Score } from '@architect/shared';
-import { Disclosure, EvidenceMark } from '@architect/ui';
+import { defineTerm, Disclosure, EvidenceMark, Tooltip } from '@architect/ui';
 import { formatBytes } from '../../lib/format';
 import { formatCost, formatRate } from '../format';
 import { Section } from '../ledger';
@@ -46,6 +46,32 @@ function armLabel(
 }
 
 /**
+ * What wasn't measured, a line each, with what its records lack: "Glimmer, LoRA adapter: not
+ * measured yet, as no round of this run fine-tuned one." The two configurations with trained
+ * weights share one line when neither ran, since one reason covers both.
+ */
+function notMeasuredLines(
+  arms: readonly Arm[],
+  names: ModelNames,
+  blankStart: boolean,
+  lab: boolean,
+): string[] {
+  const keys = arms.map((arm) => arm.key);
+  const shared = keys.includes('weights') && keys.includes('both');
+  return keys.flatMap((key) => {
+    if (shared && key === 'both') return [];
+    const label =
+      shared && key === 'weights'
+        ? lab
+          ? `${names.student}, LoRA adapter alone or with the engineered harness`
+          : `${names.student} with trained weights, alone or with the setup`
+        : armLabel(key, names, blankStart, lab);
+    const reason = notRunReason(key, lab);
+    return [`${label}: not measured yet${reason ? `, as ${reason}` : ''}.`];
+  });
+}
+
+/**
  * "78%" and "14 of 18" on one line: rates compare across rows, the counts say what each rests on.
  * A score over more than one run of the check tasks says how many.
  */
@@ -54,7 +80,7 @@ function ScoreCell({ score, perRun }: { score: Score | null; perRun?: number | u
   const runs = perRun && score.total > perRun ? Math.round(score.total / perRun) : 1;
   return (
     <span className="inline-flex items-baseline justify-end gap-3 whitespace-nowrap tabular-nums">
-      <span className="font-mono font-medium">{formatRate(score)}</span>
+      <span className="tabular-nums font-medium">{formatRate(score)}</span>
       <span className="text-small">
         {score.pass} of {score.total}
         {runs > 1 && `, ${runs} runs`}
@@ -104,14 +130,22 @@ export function Comparisons({
             <tr className="text-small">
               <th className="pb-3" />
               <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
-                <EvidenceMark kind="check" className="justify-end">
-                  {lab ? 'Held-out checks' : 'Check tasks'}
-                </EvidenceMark>
+                <Tooltip content={defineTerm('heldOutChecks', names.mentor)} side="top">
+                  <span tabIndex={0}>
+                    <EvidenceMark kind="check" className="justify-end">
+                      {lab ? 'Held-out checks' : 'Check tasks'}
+                    </EvidenceMark>
+                  </span>
+                </Tooltip>
               </th>
               <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">
-                <EvidenceMark kind="final" className="justify-end">
-                  {lab ? 'Sealed final test' : 'Final test'}
-                </EvidenceMark>
+                <Tooltip content={defineTerm('sealedFinalTest')} side="top">
+                  <span tabIndex={0}>
+                    <EvidenceMark kind="final" className="justify-end">
+                      {lab ? 'Sealed final test' : 'Final test'}
+                    </EvidenceMark>
+                  </span>
+                </Tooltip>
               </th>
               <th className="whitespace-nowrap pb-3 pl-6 text-right font-normal">Cost</th>
             </tr>
@@ -127,7 +161,7 @@ export function Comparisons({
                   <span className={arm.current ? 'font-medium' : undefined}>
                     {armLabel(arm.key, names, blankStart, lab)}
                   </span>
-                  {arm.current && <span className="whitespace-nowrap"> · this agent</span>}
+                  {arm.current && <span className="whitespace-nowrap"> (this agent)</span>}
                 </th>
                 <td className="py-3.5 pl-6 text-right align-middle">
                   <ScoreCell score={arm.check} perRun={checkTasks} />
@@ -135,7 +169,7 @@ export function Comparisons({
                 <td className="py-3.5 pl-6 text-right align-middle">
                   <ScoreCell score={arm.final} />
                 </td>
-                <td className="py-3.5 pl-6 text-right align-middle font-mono tabular-nums">
+                <td className="py-3.5 pl-6 text-right align-middle tabular-nums">
                   {arm.budget ? formatCost(armCost(arm.budget)) : '–'}
                 </td>
               </tr>
@@ -153,12 +187,9 @@ export function Comparisons({
                 in its {w.finalTest}.
               </li>
             ))}
-            {unmeasured.map((arm) => (
-              <li key={arm.key} className="text-pretty">
-                {armLabel(arm.key, names, blankStart, lab)} wasn&apos;t measured
-                {notRunReason(arm.key, names.mentor, w.weights) &&
-                  `: ${notRunReason(arm.key, names.mentor, w.weights)}`}
-                .
+            {notMeasuredLines(unmeasured, names, blankStart, lab).map((line) => (
+              <li key={line} className="text-pretty">
+                {line}
               </li>
             ))}
           </ul>

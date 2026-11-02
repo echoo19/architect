@@ -61,7 +61,9 @@ function stepLine(step: AgentStep): string {
  * The tools and skills an agent used. While it works, the header names the current step;
  * afterwards it says how long the work took. The list opens as the "Tool steps" setting says.
  * A table read shows the rows it read, and code shows what it gave back. In a team reply, each
- * time the lead asked a teammate is one step, which opens to the teammate's own.
+ * time the lead asked a teammate is one step, which opens to the teammate's own; those stay in
+ * view under the header while the lead's own steps are folded, since asking is what the reply
+ * turns on.
  */
 export function Steps({
   message,
@@ -85,20 +87,40 @@ export function Steps({
   else if (step) header = stepLine(step);
 
   const version = message.graduateVersion;
+  const asked = message.steps.filter((item) => item.view?.kind === 'consult');
+  const own = message.steps.filter((item) => item.view?.kind !== 'consult');
+  const consultRow = (item: AgentStep) =>
+    item.view?.kind === 'consult' && (
+      <ConsultRow
+        key={item.id}
+        step={item}
+        view={item.view}
+        consultation={message.consultations?.find((c) => c.stepId === item.id)}
+        onOpenPanel={onOpenPanel}
+        onFlag={onFlag}
+      />
+    );
   return (
     <div className="flex flex-col gap-2">
       <div className="flex h-7 max-w-full items-center gap-2 self-start">
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={listId}
-          onClick={() => setChoice(!open)}
-          className="flex min-w-0 items-center gap-2 rounded-mark text-ui text-fg transition-colors duration-150"
-        >
-          {working && !waiting && <Spinner size={13} />}
-          <span className="truncate">{header}</span>
-          <Chevron open={open} />
-        </button>
+        {own.length > 0 ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={listId}
+            onClick={() => setChoice(!open)}
+            className="flex min-w-0 items-center gap-2 rounded-mark text-ui text-fg transition-colors duration-150"
+          >
+            {working && !waiting && <Spinner size={13} />}
+            <span className="truncate">{header}</span>
+            <Chevron open={open} />
+          </button>
+        ) : (
+          <span className="flex min-w-0 items-center gap-2 text-ui">
+            {working && !waiting && <Spinner size={13} />}
+            <span className="truncate">{header}</span>
+          </span>
+        )}
         {version !== undefined && (
           <span className="flex items-center gap-0.5">
             <VersionTag version={version} className="h-6 min-w-8" />
@@ -110,24 +132,20 @@ export function Steps({
           </span>
         )}
       </div>
-      <Collapse open={open} id={listId}>
-        <ol aria-label="Steps" className={STEP_LIST}>
-          {message.steps.map((item) =>
-            item.view?.kind === 'consult' ? (
-              <ConsultRow
-                key={item.id}
-                step={item}
-                view={item.view}
-                consultation={message.consultations?.find((c) => c.stepId === item.id)}
-                onOpenPanel={onOpenPanel}
-                onFlag={onFlag}
-              />
-            ) : (
-              <StepRow key={item.id} step={item} onOpenPanel={onOpenPanel} />
-            ),
-          )}
+      {asked.length > 0 && (
+        <ol aria-label="Teammates asked" className={STEP_LIST}>
+          {asked.map(consultRow)}
         </ol>
-      </Collapse>
+      )}
+      {own.length > 0 && (
+        <Collapse open={open} id={listId}>
+          <ol aria-label="Steps" className={STEP_LIST}>
+            {own.map((item) => (
+              <StepRow key={item.id} step={item} onOpenPanel={onOpenPanel} />
+            ))}
+          </ol>
+        </Collapse>
+      )}
     </div>
   );
 }
@@ -267,6 +285,7 @@ function ConsultRow({
                 consultation &&
                 onFlag && (
                   <FlagButton
+                    graduateId={consultation.graduateId}
                     label={`Flag ${step.name}'s answer for teaching`}
                     onFlag={() => onFlag(consultation)}
                   />

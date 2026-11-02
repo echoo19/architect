@@ -93,9 +93,9 @@ export function FlaggedAnswers({
                     <span className="line-clamp-2 text-fg text-pretty">
                       {correction.proposal.lesson}
                     </span>
-                    <span className="text-small text-fg">
-                      {KIND_LABELS[correction.proposal.kind]} ·{' '}
-                      {correctionStatus(correction, improving)}
+                    <span className="flex flex-wrap gap-x-3 text-small text-fg">
+                      <span>{KIND_LABELS[correction.proposal.kind]}</span>
+                      <span>{correctionStatus(correction, improving)}</span>
                     </span>
                   </span>
                   <ChevronRight

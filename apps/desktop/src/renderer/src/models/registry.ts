@@ -77,11 +77,11 @@ export function matchesFilter(row: ModelRow, filter: RegistryFilter): boolean {
   }
 }
 
-/** The base model as people know it, with how it is quantized: "Glimmer · 4-bit". */
+/** The base model as people know it, with how it is quantized: "Glimmer, 4-bit". */
 export function baseModelOf(version: GraduateVersion): string {
   const { label, base } = version.manifest.model;
   const name = shortModelName(label);
-  return base.quantization ? `${name} · ${quantizationLabel(base.quantization)}` : name;
+  return base.quantization ? `${name}, ${quantizationLabel(base.quantization)}` : name;
 }
 
 export const fieldOf = (version: GraduateVersion) => version.manifest.contract.name;
@@ -98,7 +98,18 @@ export const runtimeName = (runtime: string | undefined) =>
 
 export const shortHash = (hash: string) => hash.replace(/^sha256:/, '').slice(0, 7);
 
-/** Matches the words typed against the agent, its field, model, harness, status and version. */
+/** How a version was made, in the Method column's word. */
+export const methodOf = (version: GraduateVersion) =>
+  version.manifest.model.adapter ? 'LoRA' : 'Harness';
+
+/**
+ * What the Agent column sorts by: the name, then the version. A tab between them sorts before any
+ * letter or space, so "Academy desk" comes before "Academy desk Mini".
+ */
+export const agentSortKey = (row: ModelRow) =>
+  `${row.agent.name}\t${String(row.version.version).padStart(5, '0')}`;
+
+/** Matches the words typed against the agent, its field, model, method, harness, status and version. */
 export function matchesSearch(row: ModelRow, search: string): boolean {
   const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return true;
@@ -108,6 +119,7 @@ export function matchesSearch(row: ModelRow, search: string): boolean {
     fieldOf(version),
     baseModelOf(version),
     version.manifest.model.base.name,
+    methodOf(version),
     shortHash(version.manifest.harness.hash),
     version.manifest.model.adapter ? shortHash(version.manifest.model.adapter.sha256) : '',
     STATUS_WORDS[statusOf(version)],

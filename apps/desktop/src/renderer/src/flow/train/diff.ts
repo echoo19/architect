@@ -70,7 +70,7 @@ export function createsFile(patch: string): boolean {
   return /^--- \/dev\/null$/m.test(patch);
 }
 
-/** What a change does to a file's lines: "4 lines" for a new file, else "2 new lines · 1 line removed". */
+/** What a change does to a file's lines: "4 lines" for a new file, else "2 new lines, 1 line removed". */
 export function lineCounts(patch: string): string {
   const { added, removed } = countChanges(parseUnifiedDiff(patch));
   const lines = (count: number) => (count === 1 ? 'line' : 'lines');
@@ -80,7 +80,7 @@ export function lineCounts(patch: string): string {
     removed > 0 && `${removed} ${lines(removed)} removed`,
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(', ');
 }
 
 /** The unique names behind a set of paths: `tools/a.json` and `tools/a.js` are one helper. */

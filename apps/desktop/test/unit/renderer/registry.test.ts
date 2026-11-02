@@ -1,6 +1,8 @@
 import type { GraduateVersion, OrgTypeResult, ReportCard } from '@architect/shared';
+import { sortRows } from '@architect/ui';
 import { describe, expect, it } from 'vitest';
 import {
+  agentSortKey,
   comparable,
   compareScores,
   formatPoints,
@@ -113,7 +115,25 @@ describe('the registry of models', () => {
     expect(matchesSearch(mini, '8-bit mini')).toBe(true);
     expect(matchesSearch(mini, 'v1 61b8a9d')).toBe(true);
     expect(matchesSearch(mini, 'adapter')).toBe(false);
+    expect(matchesSearch(mini, 'harness')).toBe(true);
+    expect(matchesSearch(rowOf({ version: 3, adapter: true }), 'lora')).toBe(true);
+    expect(matchesSearch(mini, 'lora')).toBe(false);
     expect(matchesSearch(mini, '   ')).toBe(true);
+  });
+
+  it('sorts an agent before a longer name that begins with it, then by version', () => {
+    const rows = [
+      rowOf({ agent: 'grd_mini', name: 'Academy desk Mini', version: 1 }),
+      rowOf({ version: 10 }),
+      rowOf({ version: 2 }),
+    ];
+    const names = (sorted: ModelRow[]) =>
+      sorted.map((row) => `${row.agent.name} v${row.version.version}`);
+    expect(names(sortRows(rows, { sortValue: agentSortKey }, 'ascending'))).toEqual([
+      'Academy desk v2',
+      'Academy desk v10',
+      'Academy desk Mini v1',
+    ]);
   });
 
   it('reads seen, unseen and real apart, the check tasks on their own, and nothing as zero', () => {

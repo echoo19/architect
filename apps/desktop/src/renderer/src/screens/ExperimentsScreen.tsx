@@ -1,4 +1,4 @@
-import { CodedError } from '@architect/shared';
+import { CodedError, type ExperimentStatus } from '@architect/shared';
 import { Button, EmptyState, Skeleton } from '@architect/ui';
 import { SearchX } from 'lucide-react';
 import { useExperiment } from '../api/experiments';
@@ -15,15 +15,18 @@ export function NewExperimentScreen({ jobId }: { jobId?: string | undefined }) {
   return <ExperimentDesign detail={null} jobId={jobId} />;
 }
 
+/** The states in which an experiment is still a plan, open to change. */
+const DESIGNING: ReadonlySet<ExperimentStatus> = new Set(['draft', 'calibrating']);
+
 /**
- * An experiment by its id: its design until it is preregistered, then its live state and, once
- * released, its results. An id that isn't kept says so and leads back.
+ * An experiment by its id: its design while it is a plan, then its live state, what it waits for
+ * and, once released, its results. An id that isn't kept says so and leads back.
  */
 export function ExperimentScreen({ experimentId }: { experimentId: string }) {
   const detail = useExperiment(experimentId);
   if (detail.data) {
     const { experiment } = detail.data;
-    return experiment.preregistration === null ? (
+    return DESIGNING.has(experiment.status) ? (
       <ExperimentDesign key={experiment.id} detail={detail.data} />
     ) : (
       <ExperimentView detail={detail.data} />

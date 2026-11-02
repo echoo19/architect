@@ -500,7 +500,10 @@ describe('a team reply (decision 100)', () => {
     const { reply } = await ask(world, 'Ask twice.');
     expect(reply.consultations?.map((each) => [each.outcome, each.text])).toEqual([
       ['no_answer', 'Sweep desk finished without an answer.'],
-      ['out_of_steps', 'Sweep desk stopped after 4 steps without an answer.'],
+      [
+        'out_of_steps',
+        'Sweep desk stopped after 4 steps without an answer. It used read 4 times. Ask it again with more detail.',
+      ],
     ]);
   });
 
@@ -538,13 +541,13 @@ describe('a team reply (decision 100)', () => {
     // The send opens Sweep desk again, since its installation changed; it closes meanwhile.
     const sending = world.host.send(chat.id, 'Ask Sweep desk.');
     const closing = world.host.closeGraduate(world.sweep.id);
-    await expect(sending).rejects.toThrow('Open the graduate "grd_sweep"');
+    await expect(sending).rejects.toThrow("Sweep desk isn't ready to chat yet");
     await closing;
     expect(await world.host.messages(chat.id)).toEqual([]);
     expect((await world.host.listTeamChats(world.team.id))[0]).toMatchObject({ running: false });
     expect(world.model.chats()).toEqual([]);
     // It stays closed: the next send is refused the same way.
-    await expect(world.host.send(chat.id, 'Again.')).rejects.toThrow('Open the graduate');
+    await expect(world.host.send(chat.id, 'Again.')).rejects.toThrow("isn't ready to chat yet");
   });
 
   it('opens and runs alone an agent with a helper named ask_teammate from before teams', async () => {
@@ -580,7 +583,7 @@ describe('a team reply (decision 100)', () => {
   it('refuses to answer until every agent in the team is open here', async () => {
     const world = await setup([], { open: ['grd_assay'] });
     const chat = await world.host.createTeamChat(world.team.id);
-    await expect(world.host.send(chat.id, 'Hello?')).rejects.toThrow('grd_sweep');
+    await expect(world.host.send(chat.id, 'Hello?')).rejects.toThrow("Sweep desk isn't ready");
     expect(world.model.chats()).toEqual([]);
   });
 

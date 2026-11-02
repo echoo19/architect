@@ -78,7 +78,8 @@ function readExport(exportDir: string): {
   data: { name: string; bytes: Buffer }[];
 } {
   const manifestPath = join(exportDir, 'MANIFEST.json');
-  const howTo = 'Point --export at a folder written by `architect field export`.';
+  const howTo =
+    "Choose a field export: the folder a field's Export writes, or `architect field export`.";
   if (!existsSync(manifestPath)) {
     throw new BundleError(`${exportDir} has no MANIFEST.json. ${howTo}`);
   }

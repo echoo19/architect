@@ -147,6 +147,8 @@ export { bridge as architect };
 export const flowApi = {
   pickFiles: (options: Parameters<ArchitectApi['files']['pick']>[0]) =>
     read('files.pick', z.array(z.string()), bridge().files.pick(options)),
+  checkFiles: (paths: string[]) =>
+    read('files.check', z.array(z.string().nullable()), bridge().files.check(paths)),
   draftStart: (description: string, files: string[]) =>
     read('jobs.draftStart', DraftTurnSchema, bridge().jobs.draftStart(description, files)),
   draftField: (description: string, organizations: DraftOrganization[]) =>

@@ -118,9 +118,9 @@ function gpusFor(method: TrainMethod, seqLen = 4096): number {
 test('shows each target with what it can do, the clusters as bundles only', async () => {
   await goTo(page, '/compute');
   const computer = region('On-premise');
-  await expect(computer).toContainText('NVIDIA GeForce RTX 4070 · 12 GB');
-  await expect(computer).toContainText('Running · 0.12.6');
-  await expect(computer).toContainText('Ready · build 10472');
+  await expect(computer).toContainText('NVIDIA GeForce RTX 4070, 12 GB');
+  await expect(computer).toContainText('Running version 0.12.6');
+  await expect(computer).toContainText('Ready, build 10472');
   // The token is a status; where it comes from is a hover away, never a variable's name in place.
   const hfJobs = region('Hugging Face Jobs');
   await expect(hfJobs).toContainText('Ready');

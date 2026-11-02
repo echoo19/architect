@@ -17,31 +17,56 @@ import { springs } from '../motion/springs';
 
 const DialogOpen = createContext(false);
 
-/** Where on screen the dialog was opened from: the middle of the control that had focus. */
-type Origin = { x: number; y: number } | null;
-const DialogOrigin = createContext<Origin>(null);
+/**
+ * What a dialog was opened from: the control that had focus, and the middle of it on screen,
+ * which the dialog grows from.
+ */
+interface Opened {
+  opener: HTMLElement | null;
+  origin: { x: number; y: number } | null;
+}
+const DialogOpened = createContext<Opened>({ opener: null, origin: null });
 
-function originOf(element: Element | null): Origin {
-  if (!element || element === document.body) return null;
+function openedFrom(element: Element | null): Opened {
+  if (!(element instanceof HTMLElement) || element === document.body) {
+    return { opener: null, origin: null };
+  }
   const rect = element.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) return null;
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  const origin =
+    rect.width === 0 && rect.height === 0
+      ? null
+      : { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  return { opener: element, origin };
 }
 
 /**
- * The point a dialog grows from, noted as it opens: the control that opened it still has focus
- * then, since focus moves into the dialog only after it mounts. Without one, it grows from its
- * own middle.
+ * Noted as the dialog renders open, before anything inside it mounts and takes focus (such as a
+ * field with `autoFocus`), so it is the control that opened it: a trigger, a button or a row.
  */
-function useOpenedFrom(open: boolean): Origin {
-  const [state, setState] = useState<{ open: boolean; origin: Origin }>({ open, origin: null });
-  if (state.open !== open) {
-    setState({
-      open,
-      origin: open && typeof document !== 'undefined' ? originOf(document.activeElement) : null,
-    });
-  }
-  return state.origin;
+function useOpenedFrom(open: boolean): Opened {
+  const note = (now: boolean): Opened =>
+    now && typeof document !== 'undefined'
+      ? openedFrom(document.activeElement)
+      : { opener: null, origin: null };
+  // A dialog can mount already open, such as one keyed to start afresh each time it opens.
+  const [state, setState] = useState(() => ({ open, opened: note(open) }));
+  if (state.open !== open) setState({ open, opened: note(open) });
+  return state.opened;
+}
+
+/** The control the dialog or drawer around was opened from, to give focus back to. */
+export function useDialogOpener(): HTMLElement | null {
+  return useContext(DialogOpened).opener;
+}
+
+/**
+ * Where focus goes as a dialog or drawer closes: back to what had it when it opened or, when that
+ * is gone (such as a menu item that opened it), to the page's main region, never to nothing.
+ */
+export function returnFocus(opener: HTMLElement | null): void {
+  opener?.focus();
+  if (opener && document.activeElement === opener) return;
+  document.querySelector<HTMLElement>('main')?.focus({ preventScroll: true });
 }
 
 /** Whether the dialog or drawer around is open. Its content stays mounted while it leaves. */
@@ -61,14 +86,14 @@ export function Dialog({
   ...props
 }: ComponentProps<typeof RadixDialog.Root>) {
   const [isOpen, setOpen] = useOpenState({ open, defaultOpen, onOpenChange });
-  const origin = useOpenedFrom(isOpen);
+  const opened = useOpenedFrom(isOpen);
   return (
     <DialogOpen.Provider value={isOpen}>
-      <DialogOrigin.Provider value={origin}>
+      <DialogOpened.Provider value={opened}>
         <RadixDialog.Root {...props} open={isOpen} onOpenChange={setOpen}>
           {children}
         </RadixDialog.Root>
-      </DialogOrigin.Provider>
+      </DialogOpened.Provider>
     </DialogOpen.Provider>
   );
 }
@@ -103,7 +128,7 @@ export interface DialogContentProps {
 }
 
 const sizes = {
-  md: 'max-w-[480px]',
+  md: 'max-h-[calc(100vh-48px)] max-w-[480px]',
   lg: 'h-[min(600px,calc(100vh-48px))] max-w-[800px]',
 } as const;
 
@@ -116,9 +141,11 @@ export function DialogContent({
   className,
 }: DialogContentProps) {
   const open = useDialogOpen();
-  const origin = useContext(DialogOrigin);
+  const { opener, origin } = useContext(DialogOpened);
   const floating = useFloatingMotion();
   const content = useRef<HTMLDivElement>(null);
+  // Once the body scrolls under the title, a hairline divides them.
+  const [scrolled, setScrolled] = useState(false);
   // Grows from the control that opened it: its scale is centred on that point, so the few
   // pixels it travels as it grows lead from there. Set before the first frame is drawn.
   useLayoutEffect(() => {
@@ -139,30 +166,54 @@ export function DialogContent({
             forceMount
             asChild
             {...(description ? {} : { 'aria-describedby': undefined })}
+            // Opened from a menu or a shortcut there may be no opener to go back to; see
+            // `returnFocus`.
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              returnFocus(opener);
+            }}
           >
             <motion.div
               ref={content}
               {...floating}
               className={cn(
-                'fixed left-1/2 top-1/2 z-50 w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2',
-                'overflow-hidden rounded-card surface-float outline-none',
+                'fixed left-1/2 top-1/2 z-50 flex w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2',
+                'flex-col overflow-hidden rounded-card surface-float outline-none',
                 sizes[size],
                 className,
               )}
             >
               <RadixDialog.Title
-                className={hideTitle ? 'sr-only' : 'px-6 pt-6 font-display text-h2 font-semibold'}
+                className={
+                  hideTitle ? 'sr-only' : 'shrink-0 px-6 pt-6 font-display text-h2 font-semibold'
+                }
               >
                 {title}
               </RadixDialog.Title>
               {description && (
                 <RadixDialog.Description
-                  className={hideTitle ? 'sr-only' : 'px-6 pt-2 text-ui text-pretty'}
+                  className={hideTitle ? 'sr-only' : 'shrink-0 px-6 pt-2 text-ui text-pretty'}
                 >
                   {description}
                 </RadixDialog.Description>
               )}
-              {children}
+              {/* On a short window the body scrolls under the title, so nothing falls off screen. */}
+              <div className="relative flex min-h-0 flex-1 flex-col">
+                <span
+                  aria-hidden
+                  className={cn(
+                    'pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-line',
+                    'transition-opacity duration-150',
+                    scrolled ? 'opacity-100' : 'opacity-0',
+                  )}
+                />
+                <div
+                  onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+                  className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-quiet"
+                >
+                  {children}
+                </div>
+              </div>
             </motion.div>
           </RadixDialog.Content>
         )}

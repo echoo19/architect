@@ -79,11 +79,11 @@ test('walks through first-run setup while the model downloads', async () => {
   const recommended = page.getByRole('radio', { name: /Recommended/ });
   const smaller = page.getByRole('radio', { name: /Smaller/ });
   await expect(recommended).toHaveAttribute('aria-checked', 'true');
-  await expect(recommended).toContainText('17 GB download · Most accurate');
-  await expect(smaller).toContainText('14 GB download · Lighter, but less accurate');
+  await expect(recommended).toContainText('17 GB downloadMost accurate');
+  await expect(smaller).toContainText('14 GB downloadLighter, but less accurate');
   await capture('welcome-model-dark.png');
 
-  await page.getByRole('button', { name: /^Download Glimmer ·/ }).click();
+  await page.getByRole('button', { name: /^Download Glimmer \(/ }).click();
   await expect.poll(() => callsTo(app, 'ollama:install')).toEqual([['glimmer-4bit']]);
   await emitPullProgress(app, { model: STUDENT_MODEL, status: 'pulling manifest', done: false });
   await emitPullProgress(app, {
@@ -116,7 +116,7 @@ test('walks through first-run setup while the model downloads', async () => {
   const key = page.getByLabel('Meta API key', { exact: true });
   await key.fill('not-a-real-key');
   await page.getByRole('button', { name: 'Test connection' }).click();
-  await expect(page.getByText('Connected · 640 ms')).toBeVisible();
+  await expect(page.getByText('Connected in 640 ms')).toBeVisible();
   await expect(key).toHaveValue('');
   expect(await callsTo(app, 'secrets:set')).toEqual([['meta']]);
   expect(await callsTo(app, 'connections:testMentor')).toEqual([
@@ -129,7 +129,7 @@ test('walks through first-run setup while the model downloads', async () => {
   await capture('welcome-hosted-dark.png');
   await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await expect(page.getByRole('heading', { name: "You're set up" })).toBeVisible();
-  await expect(page.getByText('Downloading · 24%')).toBeVisible();
+  await expect(page.getByText('Downloading 24%')).toBeVisible();
   await emitPullProgress(app, { model: STUDENT_MODEL, status: 'success', done: true });
   await finishPull(app);
   await expect(page.getByText('Ready', { exact: true })).toBeVisible();
@@ -155,9 +155,10 @@ test('streams steps and an answer with a table', async () => {
   // The version, the model and where it runs are one quiet icon in the header, not a footer.
   await expect(page.getByText('Version 1', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'About Service desk' }).hover();
-  await expect(page.getByRole('tooltip')).toContainText(
-    'Version 1 · Glimmer · Runs on this computer',
-  );
+  // One fact a line.
+  for (const fact of ['Version 1', 'Glimmer', 'Runs on this computer']) {
+    await expect(page.getByRole('tooltip')).toContainText(fact);
+  }
   await expect(page.getByText('Private from Spark')).toHaveCount(0);
   await expect(page.getByText("Can't run on this computer")).toHaveCount(0);
   await capture('workspace-new-chat-dark.png');
@@ -306,15 +307,16 @@ test('changes what the agent may write and opens its settings', async () => {
   // The setup is named by its version, as the Teaching tab and the status line name it, and its
   // final test is the score the Results tab and the versions list give for it.
   await expect(dialog.getByText('Version 1', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('Passed: 92% · 55 of 60')).toBeVisible();
+  await expect(dialog.getByText('Passed: 92% (55 of 60)')).toBeVisible();
   // The model this computer runs it on, in a picker of the models here, with its tag beside.
   await expect(dialog.getByRole('button', { name: "Your agent's model" })).toHaveText(
-    'Muse Glimmer · 4-bit',
+    'Glimmer, 4-bit',
   );
-  await expect(dialog.getByText('4-bit · 17 GB on disk · muse-glimmer:30b')).toBeVisible();
+  // The picker names the build, so the line under it doesn't name it a second time.
+  await expect(dialog.getByText('17 GB on disk, muse-glimmer:30b')).toBeVisible();
   // This computer's checks sit apart from the author's final test.
   await expect(dialog.getByText('Works on this computer', { exact: true })).toBeVisible();
-  await expect(dialog.getByText('All checks passed', { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/^\d+ install checks passed/)).toBeVisible();
   await capture('workspace-agent-general-dark.png');
 
   await dialog.getByRole('button', { name: 'Delete', exact: true }).click();

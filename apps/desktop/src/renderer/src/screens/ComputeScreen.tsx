@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
-import type {
-  ModelConfigRead,
-  ModelConfigSource,
-  TrainingPlan,
-  TrainMethod,
-  TrainPrecision,
+import {
+  GLIMMER_TRAINING_BASE,
+  type ModelConfigRead,
+  type ModelConfigSource,
+  type TrainingPlan,
+  type TrainMethod,
+  type TrainPrecision,
 } from '@architect/shared';
 import {
   Button,
@@ -29,6 +30,7 @@ import { useJob } from '../api/hooks';
 import { toError } from '../api/query';
 import { Breakdown } from '../compute/Breakdown';
 import { BundleCard } from '../compute/BundleCard';
+import { planKey, useKept } from '../compute/kept';
 import {
   DEFAULT_SETTINGS,
   GPU_OPTIONS,
@@ -77,16 +79,21 @@ export function ComputeScreen({
   jobId?: string | undefined;
   model?: string | undefined;
 }) {
-  if (jobId === undefined) return <Compute field={null} fieldError={null} />;
+  if (jobId === undefined)
+    return <Compute kept={planKey(jobId, model)} field={null} fieldError={null} />;
   return <FieldCompute jobId={jobId} model={model} />;
 }
 
 /** Compute for a field: its job is read first, so the plan starts from its student's model. */
 function FieldCompute({ jobId, model }: { jobId: string; model: string | undefined }) {
   const job = useJob(jobId);
-  if (job.status === 'loading') return <Compute field={null} fieldError={null} waiting />;
+  const kept = planKey(jobId, model);
+  if (job.status === 'loading') {
+    return <Compute kept={kept} field={null} fieldError={null} waiting />;
+  }
   return (
     <Compute
+      kept={kept}
       field={planFor(jobId, job.data ?? null, model)}
       fieldError={job.status === 'error' && model === undefined ? job.error : null}
     />
@@ -94,25 +101,31 @@ function FieldCompute({ jobId, model }: { jobId: string; model: string | undefin
 }
 
 function Compute({
+  kept,
   field,
   fieldError,
   waiting = false,
 }: {
+  /** The plan kept for this page (`planKey`), as it was left. */
+  kept: string;
   field: PlanFor | null;
   fieldError: Error | null;
   waiting?: boolean;
 }) {
-  const [settings, setSettings] = useState<PlanSettings>(DEFAULT_SETTINGS);
-  const [read, setRead] = useState<ModelConfigRead | null>(null);
-  const [plan, setPlan] = useState<TrainingPlan | null>(null);
+  const [settings, setSettings] = useKept<'settings'>(kept, 'settings', DEFAULT_SETTINGS);
+  const [read, setRead] = useKept<'read'>(kept, 'read', null);
+  const [plan, setPlan] = useKept<'plan'>(kept, 'plan', null);
   const [refusal, setRefusal] = useState<string | null>(null);
   // Undefined until the plan sends the person to its hardware: the inspector keeps its own.
   const [tab, setTab] = useState<Tab | undefined>(undefined);
-  const onRead = useCallback((next: ModelConfigRead) => {
-    setPlan(null);
-    setRefusal(null);
-    setRead(next);
-  }, []);
+  const onRead = useCallback(
+    (next: ModelConfigRead) => {
+      setPlan(null);
+      setRefusal(null);
+      setRead(next);
+    },
+    [setPlan, setRead],
+  );
 
   useEffect(() => {
     if (read === null) return;
@@ -132,7 +145,7 @@ function Compute({
     return () => {
       live = false;
     };
-  }, [read, settings]);
+  }, [read, settings, setPlan]);
 
   return (
     <PlacePage
@@ -142,6 +155,7 @@ function Compute({
           aria-label="Plan settings"
           tabs={TABS}
           rememberAs="compute"
+          foldWhenNarrow
           {...(tab === undefined ? {} : { tab })}
           onTabChange={setTab}
         >
@@ -153,6 +167,7 @@ function Compute({
         <Targets />
         <PlanCard
           key={waiting ? 'waiting' : 'ready'}
+          kept={kept}
           field={field}
           fieldError={fieldError}
           read={read}
@@ -173,7 +188,7 @@ function Compute({
         {read && (
           <BundleCard read={read} plan={plan} settings={settings} jobId={field?.jobId ?? null} />
         )}
-        <QualifyCard />
+        <QualifyCard key={field?.jobId ?? 'none'} initialJobId={field?.jobId} />
       </div>
     </PlacePage>
   );
@@ -202,6 +217,7 @@ function FieldLine({ field }: { field: PlanFor }) {
 
 /** The model to size, read from the Hub or from a file, and the method it is trained with. */
 function PlanCard({
+  kept,
   field,
   fieldError,
   read,
@@ -210,6 +226,7 @@ function PlanCard({
   onMethod,
   onRead,
 }: {
+  kept: string;
   field: PlanFor | null;
   fieldError: Error | null;
   read: ModelConfigRead | null;
@@ -219,10 +236,10 @@ function PlanCard({
   onRead: (read: ModelConfigRead) => void;
 }) {
   const ids = { repo: useId(), revision: useId() };
-  const [from, setFrom] = useState<ModelConfigSource['kind']>('hub');
-  const [repo, setRepo] = useState(field?.repo ?? '');
-  const [revision, setRevision] = useState('main');
-  const [file, setFile] = useState<string | null>(null);
+  const [from, setFrom] = useKept<'from'>(kept, 'from', 'hub');
+  const [repo, setRepo] = useKept<'repo'>(kept, 'repo', field?.repo ?? '');
+  const [revision, setRevision] = useKept<'revision'>(kept, 'revision', 'main');
+  const [file, setFile] = useKept<'file'>(kept, 'file', null);
   const [reading, setReading] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -238,10 +255,12 @@ function PlanCard({
     }
   };
 
-  // Opened from a field whose model is known, its config is read at once.
+  // Opened from a field whose model is known, its config is read at once, unless it was read
+  // already and kept.
   const known = field?.repo ?? null;
+  const [readBefore] = useState(read !== null);
   useEffect(() => {
-    if (known === null) return;
+    if (known === null || readBefore) return;
     let live = true;
     setReading(true);
     computeApi.readConfig({ kind: 'hub', repo: known, revision: 'main' }).then(
@@ -259,7 +278,7 @@ function PlanCard({
     return () => {
       live = false;
     };
-  }, [known, onRead]);
+  }, [known, onRead, readBefore]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -309,7 +328,7 @@ function PlanCard({
               <Input
                 id={ids.repo}
                 value={repo}
-                placeholder="owner/name"
+                placeholder={GLIMMER_TRAINING_BASE.repo}
                 spellCheck={false}
                 className="font-mono"
                 onChange={(event) => setRepo(event.target.value)}
@@ -393,7 +412,7 @@ function ModelFacts({ read, plan }: { read: ModelConfigRead; plan: TrainingPlan 
         {read.model.revision && (
           <span className="font-mono text-small"> @ {read.model.revision.slice(0, 12)}</span>
         )}
-        <span> · {size.architecture}</span>
+        <span>, {size.architecture}</span>
       </p>
       <div className="grid grid-cols-4 gap-6">
         <Stat value={paramsText(size.totalParams)} label="Parameters" />

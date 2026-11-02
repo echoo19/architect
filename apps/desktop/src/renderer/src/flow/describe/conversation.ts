@@ -126,6 +126,9 @@ function markChosen(entries: Entry[], option: string): Entry[] {
   return [...entries.slice(0, -1), { ...last, chosen: option }];
 }
 
+/** The app's own name, as the conversation shows it when Architect speaks rather than the teacher. */
+export const ARCHITECT = 'Architect';
+
 /**
  * Who is speaking in the mentor's entry at `at`, when the conversation should say so: on the first
  * reply, again when Architect takes over from the mentor, since a question it found in the
@@ -143,8 +146,8 @@ export function speakerOf(
     .slice(0, at)
     .filter((item): item is MentorEntry => item.kind === 'mentor')
     .at(-1);
-  if (before === undefined) return entry.ended || entry.from === 'architect' ? 'Architect' : mentor;
-  if (entry.from === 'architect') return before.from === 'architect' ? undefined : 'Architect';
+  if (before === undefined) return entry.ended || entry.from === 'architect' ? ARCHITECT : mentor;
+  if (entry.from === 'architect') return before.from === 'architect' ? undefined : ARCHITECT;
   // A conversation that ends is Architect's to end, so it carries on from Architect's question.
   return before.from === 'architect' && entry.ended !== true ? mentor : undefined;
 }

@@ -230,12 +230,12 @@ function tooLittle(attached: Attached): string | null {
       : `${attached.tasks.name} has ${count} ${count === 1 ? 'task' : 'tasks'}, and training needs at least ${MIN_TASKS}. Add more tasks to it, or attach the records the tasks are about and Architect will make some.`;
   }
   if (!attached.files.some((file) => file.kind === 'table')) {
-    return 'There is nothing to make practice tasks from yet. Attach the records the agent works from as CSV files, or a tasks.jsonl file with example requests and their answers, and describe the job again.';
+    return 'There is nothing to make practice tasks from yet. Attach the records the agent works from as CSV files, or a file of example requests with their right answers, and describe the job again.';
   }
   const rows = totalRows(attached);
   return rows >= MIN_TASKS
     ? null
-    : `Your files hold only ${rows} ${rows === 1 ? 'row' : 'rows'} between them, too few to make ${MIN_TASKS} different tasks to train and test on. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.`;
+    : `Your files hold only ${rows} ${rows === 1 ? 'row' : 'rows'} between them, too few to make ${MIN_TASKS} different tasks to train and test on. Attach more of the records, or a file of example requests with their right answers, and describe the job again.`;
 }
 
 /**
@@ -855,8 +855,8 @@ export class JobDrafting implements JobDrafter {
         sessionId: session.id,
         message:
           built.tasks.length < MIN_TASKS
-            ? `Your files support only ${built.tasks.length} different tasks I can check, and training needs at least ${MIN_TASKS}. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.`
-            : "I couldn't divide the tasks into practice, check and final-test sets that keep related requests together. Attach more of the records, or a tasks.jsonl file with example requests and their answers, and describe the job again.",
+            ? `Your files support only ${built.tasks.length} different tasks I can check, and training needs at least ${MIN_TASKS}. Attach more of the records, or a file of example requests with their right answers, and describe the job again.`
+            : "I couldn't divide the tasks into practice, check and final-test sets that keep related requests together. Attach more of the records, or a file of example requests with their right answers, and describe the job again.",
         options: [],
         ended: true,
       };

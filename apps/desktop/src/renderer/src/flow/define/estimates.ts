@@ -267,10 +267,19 @@ export function minutesForOneRound(job: Job, place: TrainPlace): number | null {
 }
 
 /**
- * Training with every round at its longest, as if there were no time limit: what the limit is
- * measured against, so a meter can show when the limit cuts training short.
+ * The time limit, in whole hours, that fits half the rounds even at their shortest and one at
+ * its longest: the least that neither the callout nor Budget says is too short. Null past a week.
  */
-export function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
+export function minutesForHalfRounds(job: Job, place: TrainPlace): number | null {
+  const { startSeconds, roundSeconds } = estimateTime(job, place);
+  const half = Math.ceil(job.budget.maxRounds / 2);
+  const seconds = startSeconds + Math.max(half * roundSeconds.least, roundSeconds.most);
+  const minutes = Math.ceil(seconds / 3600) * 60;
+  return minutes <= MOST_MINUTES ? minutes : null;
+}
+
+/** Training with every round at its longest, as if there were no time limit. */
+function fullTrainingSeconds(job: Job, estimate: TimeEstimate): number {
   return estimate.startSeconds + job.budget.maxRounds * estimate.roundSeconds.most;
 }
 
@@ -344,6 +353,23 @@ export function wontTeachTitle(job: Job, place: TrainPlace, device: string): str
  */
 export function allowingLine(minutes: number): string {
   return `Allowing ${capText(minutes)} leaves room for one round of teaching.`;
+}
+
+/**
+ * The button that sets that limit. It names training, since the limit is training's alone: the
+ * final test runs after it, outside the limit, and the estimate adds the two.
+ */
+export function allowLabel(minutes: number): string {
+  return `Allow ${capText(minutes)} of training`;
+}
+
+/**
+ * The final test's time, said in the callout beside the time training needs, so the estimate
+ * (training and the final test) adds up from the two: "The final test adds about 1.5 h after
+ * training."
+ */
+export function finalTestAfter(job: Job, testPlace: TrainPlace, finalTest: string): string {
+  return `The ${finalTest} adds about ${shortDuration(testSeconds(job, testPlace))} after training.`;
 }
 
 /** A length of time to the minute, which the person can add up: "1 h 40 min", "23 min". */
@@ -609,6 +635,17 @@ export function mentorPriceOf(job: Job): TokenPricing | null {
 export function mentorRounds(job: Job, estimate: TimeEstimate): number {
   const { maxRounds } = job.budget;
   return estimate.rounds.most > 0 ? Math.min(estimate.rounds.most, maxRounds) : maxRounds;
+}
+
+/**
+ * The rounds the mentor's figure counts, beside it: those that fit, or all of them while none fits
+ * the time limit, so a longer limit that fits fewer than all lowers the figure for a reason the
+ * page says.
+ */
+export function mentorRoundsLine(job: Job, estimate: TimeEstimate): string {
+  const rounds = mentorRounds(job, estimate);
+  const counted = `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`;
+  return estimate.rounds.most > 0 ? counted : `All ${counted}, as none fits the limit yet`;
 }
 
 /** What the mentor is expected to cost over those rounds, or null if its price is unknown. */

@@ -246,7 +246,7 @@ export async function openGraduateSession(
     const files = resource.files.map((file) => file.name).join(', ');
     if (active.bindings[resource.name] === undefined) {
       throw new Error(
-        `${active.name} needs a folder for ${resource.name}/ before it can run${files ? `: one that holds ${files}` : ''}.`,
+        `${active.name} needs a folder for ${resource.name}/ before it can run${files ? `: one that holds ${files}` : ''}. Choose it in its settings, under Permissions.`,
       );
     }
     if ((active.grants.resources[resource.name] ?? 'none') === 'none') {

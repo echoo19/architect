@@ -92,7 +92,11 @@ export function TeacherTab({ editor, change }: InspectorTabProps) {
           }
           className="w-full"
         >
-          <span className="truncate">{preset ? 'Another model' : mentor.label}</span>
+          {/* A teacher no tile stands for is named here, as setup names it. */}
+          <span className="truncate">{preset ? 'Another model' : name}</span>
+          {!preset && mentor.kind === 'model' && (
+            <span className="shrink-0 text-fg">{mentorProvider(mentor)}</span>
+          )}
         </ModelPicker>
         {note && <p className="m-0 pt-1 text-small text-pretty">{note}</p>}
       </div>

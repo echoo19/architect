@@ -1,12 +1,21 @@
 import { useState } from 'react';
 import type { GraduateSummary, GraduateVersion } from '@architect/shared';
-import { Button, SettingsRow, SettingsSection, SettingsValue, Skeleton } from '@architect/ui';
+import {
+  Button,
+  SettingsRow,
+  SettingsSection,
+  SettingsValue,
+  Skeleton,
+  Tooltip,
+} from '@architect/ui';
 import { ArrowUpRight, Undo2 } from 'lucide-react';
 import { useVersions } from '../../api/graduates';
 import { ProblemState } from '../../components/ProblemState';
 import { shortDate } from '../../flow/format';
 import { formatPercent } from '../../lib/format';
+import { navigate, paths } from '../../lib/router';
 import { LessonsSection } from '../teach/LessonsSection';
+import { useAgentSettingsUi } from './agentSettingsUi';
 import { MoveDialog } from './MoveDialog';
 import {
   evaluationNote,
@@ -103,6 +112,7 @@ function VersionRow({
   onMove: (kind: VersionMove) => void;
 }) {
   const score = versionScore(version);
+  const { runId } = version;
   // Two facts under the title, so the line fits: why its final test fell short, or else what it
   // was made from; then when.
   const meta = capitalized(
@@ -111,7 +121,7 @@ function VersionRow({
       shortDate(version.createdAt),
     ]
       .filter(Boolean)
-      .join(' · '),
+      .join(', '),
   );
   const word = standing(version);
 
@@ -119,19 +129,24 @@ function VersionRow({
     <li aria-label={`Version ${version.version}`}>
       <SettingsRow label={`Version ${version.version}`} meta={meta}>
         <div className="flex items-center gap-4">
-          <span className="whitespace-nowrap tabular-nums">
-            {score ? (
-              <>
-                <span className="font-mono">{formatPercent(score)}</span>
-                <span className="text-small">
-                  {' '}
-                  · {score.pass} of {score.total}
-                </span>
-              </>
-            ) : (
-              'No test'
-            )}
-          </span>
+          {score && runId !== undefined ? (
+            // Made by a run on this computer: its score opens that run's whole report.
+            <Tooltip content="Open its report">
+              <Button
+                size="xs"
+                variant="ghost"
+                aria-label={`Report of version ${version.version}`}
+                onClick={() => openReport(runId)}
+                className="-mr-3 text-ui tabular-nums"
+              >
+                <Score score={score} />
+              </Button>
+            </Tooltip>
+          ) : (
+            <span className="whitespace-nowrap tabular-nums">
+              {score ? <Score score={score} /> : 'No test'}
+            </span>
+          )}
           {/* The same width on every row, so the scores line up whether or not a row has one. */}
           <div className="flex w-[200px] shrink-0 justify-end">
             {move !== null ? (
@@ -151,6 +166,24 @@ function VersionRow({
       </SettingsRow>
     </li>
   );
+}
+
+function Score({ score }: { score: { pass: number; total: number } }) {
+  return (
+    <>
+      <span className="tabular-nums">{formatPercent(score)}</span>
+      <span className="text-small">
+        {' '}
+        ({score.pass} of {score.total})
+      </span>
+    </>
+  );
+}
+
+/** Closes the settings on the report of the run that made a version. */
+function openReport(runId: string): void {
+  useAgentSettingsUi.getState().close();
+  navigate(paths.report(runId));
 }
 
 function capitalized(text: string): string {

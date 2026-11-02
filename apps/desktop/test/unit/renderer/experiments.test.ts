@@ -4,6 +4,7 @@ import type {
   ComparisonReport,
   ExperimentInput,
   OrgTypeResult,
+  Paired,
 } from '@architect/shared';
 import { describe, expect, it } from 'vitest';
 import {
@@ -20,7 +21,9 @@ import {
   inputProblem,
   points,
   preregisterProblem,
+  primaryDifference,
   primaryGroup,
+  primaryResult,
   primaryText,
   rowLabel,
   skillIn,
@@ -115,6 +118,66 @@ describe('experiment results', () => {
     expect(skillIn(row(perOrg), groups[2]!, 'pickup')).toBeNull();
     expect(countIn(row(perOrg), primaryGroup('unseen'))).toMatchObject({ pass: 3, total: 8 });
     expect(countIn(row(perOrg), primaryGroup('seen'))).toMatchObject({ pass: 7, total: 8 });
+  });
+});
+
+describe('the primary comparison', () => {
+  const counts = { aOnly: 9, bOnly: 2, both: 20, neither: 5 };
+  const pair: Paired = {
+    a: 'targeted',
+    b: 'bare',
+    label: 'Targeted mentoring vs Glimmer alone',
+    seed: 101,
+    scenarios: 84,
+    ...counts,
+    difference: { rate: 0.25, low: 0.14, high: 0.35 },
+    byType: [],
+    byGroup: [
+      {
+        group: 'seen',
+        scenarios: 36,
+        ...counts,
+        difference: { rate: 0.31, low: 0.15, high: 0.46 },
+      },
+      {
+        group: 'unseen',
+        scenarios: 48,
+        ...counts,
+        difference: { rate: 0.21, low: -0.02, high: 0.4 },
+      },
+    ],
+  };
+  const report = (paired: Paired[]) =>
+    ({
+      plan: { testSeeds: [101] },
+      backends: [{ backend: 'hosted', label: 'Hosted', rows: [row()], paired, repeats: [] }],
+    }) as unknown as ComparisonReport;
+
+  it('reads the part of the test it names, with its own interval and the gain rule', () => {
+    const unseen = { a: 'targeted', b: 'bare', group: 'unseen' } as const;
+    expect(primaryDifference(report([pair]), unseen)).toEqual({
+      rate: 0.21,
+      low: -0.02,
+      high: 0.4,
+    });
+    expect(primaryResult(report([pair]), unseen)).toBe(
+      '+21 points, 95% interval −2 to +40, so no gain is shown.',
+    );
+    expect(primaryResult(report([pair]), { ...unseen, group: 'all' })).toBe(
+      '+25 points, 95% interval +14 to +35, so a gain is shown.',
+    );
+  });
+
+  it('turns a pairing kept the other way round, and has none where no pairing was kept', () => {
+    const turned = { a: 'bare', b: 'targeted', group: 'seen' } as const;
+    expect(primaryDifference(report([pair]), turned)).toEqual({
+      rate: -0.31,
+      low: -0.46,
+      high: -0.15,
+    });
+    const { byGroup: _byGroup, ...older } = pair;
+    expect(primaryDifference(report([older]), turned)).toBeNull();
+    expect(primaryDifference(report([]), { ...turned, group: 'all' })).toBeNull();
   });
 });
 

@@ -120,7 +120,7 @@ describe('a proposed lesson', () => {
     });
     // Any other failure keeps its own message, and the note to send again.
     expect(proposeFailure(new Error('Spark is busy.'), 'Spark', 0.25)).toEqual({
-      title: "Couldn't propose a lesson",
+      title: "Spark couldn't propose a lesson",
       text: 'Spark is busy.',
       retry: true,
     });
@@ -136,7 +136,7 @@ describe('the flagged answers', () => {
       correction({ id: 'cor_d', status: 'used', candidateVersion: 3 }),
       correction({ id: 'cor_e', status: 'discarded' }),
     ];
-    expect(flaggedSummary(list)).toBe('3 flagged answers · 1 to review');
+    expect(flaggedSummary(list)).toBe('3 flagged answers, 1 to review');
     expect(flaggedSummary([correction({ id: 'cor_f', status: 'queued' })])).toBe(
       '1 flagged answer',
     );

@@ -31,6 +31,20 @@ export const STATUS_LABELS: Record<InstallStatus, string> = {
   unchecked: 'Not checked yet',
 };
 
+/**
+ * How the checks came out, in one line: a ready agent's counted, so it never claims a skipped
+ * check passed ("5 install checks passed, 1 skipped"); any other status its label.
+ */
+export function statusLine(installation: Pick<Installation, 'status' | 'checks'>): string {
+  if (installation.status !== 'ready') return STATUS_LABELS[installation.status];
+  const count = (status: string) =>
+    installation.checks.filter((check) => check.status === status).length;
+  const passed = count('passed');
+  const skipped = count('skipped');
+  const line = `${passed} install ${passed === 1 ? 'check' : 'checks'} passed`;
+  return skipped > 0 ? `${line}, ${skipped} skipped` : line;
+}
+
 export function statusMark(status: InstallStatus): MarkState {
   if (status === 'ready') return 'ok';
   if (status === 'blocked') return 'blocked';
@@ -94,7 +108,7 @@ function asRow(detail: string): string {
 export function checkDetail(check: InstallCheck, context: CheckContext): string {
   if (check.status === 'skipped') {
     if (check.skipped === 'after_failure') return 'Not tried, since a check above failed';
-    if (check.skipped === 'not_asked') return 'Not tried yet';
+    if (check.skipped === 'not_asked') return 'Not tried in these checks';
     return asRow(check.detail);
   }
   if (check.status !== 'passed') return check.detail;
@@ -102,7 +116,7 @@ export function checkDetail(check: InstallCheck, context: CheckContext): string 
   switch (check.kind) {
     case 'compatibility':
       return machine
-        ? `${osName(machine.os)} ${machine.arch} · ${formatBytes(machine.memoryBytes)}`
+        ? `${osName(machine.os)} ${machine.arch}, ${formatBytes(machine.memoryBytes)}`
         : asRow(check.detail);
     case 'harness_valid':
       return 'The same setup that was tested';
