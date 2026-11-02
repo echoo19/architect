@@ -443,6 +443,102 @@ html.motion [data-reveal][data-armed]:not([data-seen]) {
   translate: 0 12px;
 }
 
+/*
+ * Others working on this: the slides share one grid cell, so the block keeps the height of its
+ * tallest and nothing under it moves. Where the page moves, the old slide fades out first and the
+ * new one rises a few pixels into place once it has gone, so two never overlap mid-fade.
+ */
+.others {
+  display: grid;
+}
+
+.others-slide {
+  grid-area: 1 / 1;
+}
+
+.others-slide[data-active='false'] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Leaving: it fades where it stands, and only once it is gone does it drop back to wait. */
+html.motion .others-slide {
+  transition:
+    opacity 360ms ease-in,
+    translate 0s linear 360ms,
+    visibility 0s linear 360ms;
+}
+
+html.motion .others-slide[data-active='false'] {
+  translate: 0 8px;
+}
+
+/* Arriving: once the last has gone, it fades in as it rises into place. */
+html.motion .others-slide[data-active='true'] {
+  transition:
+    opacity 640ms var(--ease-enter) 360ms,
+    translate 800ms var(--ease-enter) 360ms,
+    visibility 0s linear 360ms;
+}
+
+/* A quote set a step larger than the requests above it: it stands alone on its line. */
+.others-quote {
+  margin: 0;
+  max-width: 44rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ui-fg);
+  text-wrap: pretty;
+  quotes: '\201C' '\201D';
+}
+
+.others-quote::before {
+  content: open-quote;
+}
+
+.others-quote::after {
+  content: close-quote;
+}
+
+/* The slide's place: a 24px target around a small dot, the current one filled. */
+.others-dot {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.others-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ui-line-strong);
+  transition: background-color 200ms var(--ease-out-soft);
+}
+
+.others-dot:hover::before {
+  background: color-mix(in srgb, var(--ui-fg) 56%, transparent);
+}
+
+.others-dot[aria-current='true']::before {
+  background: var(--ui-fg);
+}
+
+.others-dot:focus-visible {
+  outline: 2px solid var(--ui-ring);
+  outline-offset: 0;
+}
+
+.others-control {
+  width: 36px;
+  padding: 0;
+}
+
 /* The film's cover leaves once the film is playing, not before, so nothing flashes black. */
 .film-cover {
   transition: opacity 360ms var(--ease-enter);
