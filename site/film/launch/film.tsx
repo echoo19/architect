@@ -2,7 +2,19 @@ import type { Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { Chapters } from './chapters';
 import { Ending, Wordmark } from './ending';
-import { CertFigure, GpuFigures, Hero, MuseWord, OpenTeacher, ScienceFigure } from './reveal';
+import {
+  BriefFigure,
+  CertFigure,
+  CounterFigure,
+  GpuFigures,
+  HarnessFigure,
+  Hero,
+  LabModels,
+  MuseWord,
+  OpenTeacher,
+  ScienceFigure,
+  TeamSteps,
+} from './reveal';
 import { Screen } from './screen';
 import { SpaceScene } from './space';
 import { T } from './timeline';
@@ -11,11 +23,11 @@ import { LabelsContext } from '../lab/labels';
 import { LAUNCH_LABELS, SHOW_OPEN_TEACHER } from './data';
 
 /**
- * Architect's launch film, in segments. It opens in depth (the claim, the app's screens, the
+ * Architect's launch film, in segments. It opens in depth (the training screen and its score, the
  * requests) and lands on the Lab's window; each section after is one moment of the app, opened by
  * a whip and, where a section starts, its line on the ground: the field, the study, the teaching,
- * the reveal, the platform, the team, Offline and the two editions. It ends as the window becomes
- * the mark. Every frame is drawn from the film's authored time alone.
+ * the reveal, the platform, the team, Offline and the two editions. It ends on the full lockup.
+ * Every frame is drawn from the film's authored time alone.
  */
 
 const FRAME = { width: 1920, height: 1080 } as const;
@@ -39,9 +51,14 @@ function Walk({ t, measured }: { t: number; measured: Measured }) {
         >
           <Screen view={walkView(t)} style={{ left: 0, top: 0 }} />
           <Cursor measured={measured} t={t} />
+          <LabModels t={t} />
+          <BriefFigure t={t} />
+          <HarnessFigure t={t} />
+          <CounterFigure t={t} />
           <CertFigure t={t} />
           <GpuFigures t={t} />
           <ScienceFigure t={t} />
+          <TeamSteps t={t} />
           {SHOW_OPEN_TEACHER && <OpenTeacher t={t} measured={measured} />}
         </div>
       </div>
@@ -56,7 +73,7 @@ export function LaunchFilm({ t, measured }: { t: number; measured: Measured }) {
     <LabelsContext.Provider value={LAUNCH_LABELS}>
       {t < T.how ? (
         <SpaceScene t={t} measured={measured} />
-      ) : t < T.morph ? (
+      ) : t < T.ownAI - 0.02 ? (
         <Walk t={t} measured={measured} />
       ) : (
         <Ending t={t} measured={measured} />

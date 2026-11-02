@@ -345,7 +345,7 @@ function curve(t: number) {
 }
 
 /** The score the screen shows: the main line's head, read off the chart. */
-function scoreAt(t: number): number {
+export function scoreAt(t: number): number {
   return valueAt(curve(t).head.y);
 }
 

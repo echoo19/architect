@@ -53,6 +53,7 @@ const FOUND: readonly (readonly [string, string])[] = [
   ['brief-rules', '[data-frame="brief"] > div:nth-child(2)'],
   ['brief-differ', '[data-frame="brief"] > div:nth-child(3)'],
   ['panel', '[data-page="models"] aside'],
+  ['editions-pair', '[data-page="welcome"] [data-frame="editions"] > div.grid'],
 ];
 
 /** Where each named part of the window sits, read once with the camera still. */

@@ -29,11 +29,11 @@ export const WHIPS = {
   field: { out: T.fields - 0.5, in: T.fieldIn, line: 'Give it a field.' },
   beyond: { out: T.beyond - 0.45, in: T.notJust + 1.0, line: 'Not just academies.' },
   team: { out: T.scienceResolve, in: T.teamClick, line: 'Specialists work as a team.' },
-  offline: { out: T.workspace - 0.6, in: T.network - 0.35, line: 'Cut the network.' },
+  offline: { out: T.workspace - 1.0, in: T.network - 0.6, line: 'Cut the network.' },
 } as const satisfies Record<string, Whip>;
 
-/** When a whip's line starts to rise: as the window is on its way out. */
-export const lineAt = (whip: Whip) => whip.out + 0.3;
+/** When a whip's line starts to rise: as the window clears the frame, so the two never overlap. */
+export const lineAt = (whip: Whip) => whip.out + 0.42;
 
 /** How far the line is carried across the frame, in pixels, as the window comes back. */
 const ACROSS = 2200;

@@ -156,6 +156,8 @@ export const T = {
   side,
   twelve,
   nine: twelve + 1.2,
+  /** The real academy's whole figure takes the sealed one's place, on "real academy". */
+  realAcademy: side + 0.1,
   models,
   /** The window flies back in from the right onto the certificate as the figure goes. */
   toModels: models - 0.5,
@@ -196,7 +198,7 @@ export const T = {
   workspace,
   network: workspace + 1.2,
   /** The Offline row turns as the window lands back from the line. */
-  offline: workspace + 1.35,
+  offline: workspace + 1.6,
   machine: workspace + 2.3,
   memory: workspace + 3.2,
   intoChat: saves - 1.0,

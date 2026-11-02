@@ -89,6 +89,9 @@ const COMPUTE_AT = T.compute - 0.4;
 /** Models comes in under the figures' ground; its panel opens as the window flies back in onto it. */
 const MODELS_AT = T.models - 0.7;
 
+/** The chat comes in while the window is away between the home and it. */
+const CHAT_AT = T.intoChat - 0.4;
+
 const PAGES: readonly PageSpan[] = [
   {
     key: 'lab',
@@ -223,15 +226,16 @@ const PAGES: readonly PageSpan[] = [
   },
   {
     key: 'workspace',
-    at: T.intoChat,
+    at: CHAT_AT,
     mode: 'place',
     fill: ACADEMY_CHAT,
+    cut: true,
     draw: (lt) => <WorkspacePage lt={lt} allowAt={ALLOW_AT} />,
     // It opens on the reply already waiting for approval, and Allow once is pressed on its word.
     clock: [
-      [0, 8.9],
-      [T.saves - T.intoChat, ALLOW_AT + 0.15],
-      [T.saves - T.intoChat + 2, ALLOW_AT + 2],
+      [0, 8.6],
+      [T.saves - CHAT_AT, ALLOW_AT + 0.15],
+      [T.saves - CHAT_AT + 2, ALLOW_AT + 2],
     ],
   },
   {
@@ -377,8 +381,11 @@ export function walkView(t: number): ScreenView {
 
 /** While a figure stands beside the window, the window under the app's backdrop. */
 const DIMS: readonly (readonly [number, number])[] = [
+  [T.source - 0.6, T.confirm - 0.9],
+  [T.harness - 0.1, T.harnessOut],
+  [T.drawer - 0.1, T.drawerOut - 0.05],
   [T.certHero - 1.0, T.compute - 0.3],
-  [T.gpuTrained - 0.7, SHOW_OPEN_TEACHER ? T.beyond - 0.5 : T.openBeat],
+  [T.gpuDive - 0.1, SHOW_OPEN_TEACHER ? T.beyond - 0.5 : T.openBeat],
   [T.scienceDive - 0.1, T.scienceResolve],
 ];
 
@@ -442,12 +449,6 @@ const SIDE: Framing = { cx: 1180, cy: WINDOW.height / 2, s: 0.78 };
 const OPEN_VIEW: Framing = { cx: 1154, cy: 641, s: 0.78 };
 
 /**
- * The team's chat, its header whole: the frame's left edge on the sidebar's edge, so the title
- * starts well inside it, and the window's right edge just inside the frame's.
- */
-const TEAM_VIEW: Framing = { cx: 238 + 960 / 2.06, cy: 540 / 2.06 - 10, s: 2.06 };
-
-/**
  * The home's On-premise card, close: whole rows with the card's sides inside the frame. The frame's
  * top and bottom fall on the hairline between two rows, or just past the card's own edge, so no
  * row is ever cut and nothing of the next one shows.
@@ -468,36 +469,30 @@ function onPremise(measured: Measured, top: string, bottom: string): Framing {
   return { cx, cy: (from + to) / 2, s };
 }
 
-/** The academy desk's chat, as the walkthrough frames it. */
-const CHAT_VIEW: Framing = { cx: 258 + 480, cy: 250, s: 2.0 };
+/** The academy desk's chat, its title well inside the frame's left edge. */
+const CHAT_VIEW: Framing = { cx: 232 + FRAME.width / 2 / 1.9, cy: 250, s: 1.9 };
 
-/** The round's drawer over the rounds: the frame's top under the flow's bar. */
-const DRAWER_VIEW: Framing = { cx: 637, cy: 357, s: 1.8 };
-
-/** Compute's page whole, its title in: its left edge in the gutter past the sidebar. */
-const COMPUTE_VIEW: Framing = content(40, 1.8);
-
-/** The Lab's cards with room around them: the sidebar's edge at the left, the window's at the right. */
-const LAB_VIEW: Framing = {
-  cx: 248 + FRAME.width / 2 / 1.85,
-  cy: 108 + FRAME.height / 2 / 1.85,
-  s: 1.85,
-};
+/** Compute's page whole, its title in and its cards inside the frame. */
+const COMPUTE_VIEW: Framing = content(16, 1.62);
 
 /** The whole window at the frame's right, the certificate's bound on the ground at its left. */
 const CERT_VIEW: Framing = { cx: -29, cy: WINDOW.height / 2, s: 0.78 };
 
-/**
- * Where academies differ, as its passages open: the frame's top in the gutter above the row, the
- * brief's card whole across, the window's bottom under it.
- */
-function brief(measured: Measured): Framing {
-  const s = 2.45;
-  const row = measured.get('brief-differ');
-  // Measured with Define scrolled to its end; here it has scrolled only to the passages.
-  const top = (row ? row.y + 860 - BRIEF_SCROLL : 199) - 7;
-  return { cx: WINDOW.width / 2, cy: top + FRAME.height / 2 / s, s };
-}
+/** The Lab's window at the frame's right, most of the frame wide, the ground at its left. */
+export const LAB_SIDE = { s: 1.04, cx: 1274 } as const;
+const LAB_SIDE_VIEW: Framing = {
+  cx: WINDOW.width / 2 - (LAB_SIDE.cx - FRAME.width / 2) / LAB_SIDE.s,
+  cy: WINDOW.height / 2,
+  s: LAB_SIDE.s,
+};
+/** The ground at the Lab's left, in window pixels: from the frame's margin to the window's edge. */
+export const LAB_TYPE = {
+  left: LAB_SIDE_VIEW.cx + (64 - FRAME.width / 2) / LAB_SIDE.s,
+  width: 560 / LAB_SIDE.s,
+} as const;
+
+/** The two editions, whole and large: the pair of cards with room around them. */
+const editions = (measured: Measured) => frameOf(measured, 'editions-pair', 70, 2.6);
 
 /**
  * Closer on the training screen as the score lands: from its status line to the Rounds heading,
@@ -511,9 +506,6 @@ export function trainScore(measured: Measured): Framing {
   const to = bottom.y + bottom.h + 10;
   return { cx: WINDOW.width / 2, cy: (from + to) / 2, s: FRAME.height / (to - from) };
 }
-
-/** The two editions. */
-const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
 
 interface Shot {
   at: number;
@@ -538,55 +530,48 @@ function whip(w: Whip, to: Shot['to']): Shot[] {
 }
 
 const SHOTS: readonly Shot[] = [
-  { at: T.how, dur: 0, to: FULL },
-  // 3. The Lab: a slow push onto what needs you, what is running and what it costs.
-  { at: T.pushRunning, dur: 2.2, to: LAB_VIEW },
-  // 4. A field: its line, then its organizations, the vault, the real one.
-  ...whip(WHIPS.field, content(103, 1.9)),
-  { at: T.vault + 0.1, dur: 1.0, to: content(103, 2.15) },
-  { at: T.real - 0.1, dur: 1.0, to: content(103, 1.9) },
-  // 5. The study.
+  // 3. The Lab, at the frame's right, held while Spark and Glimmer are named beside it.
+  { at: T.how, dur: 0, to: LAB_SIDE_VIEW },
+  // 4. A field: its line, then the field's page whole, its title in, the sealed academy, the real one.
+  ...whip(WHIPS.field, content(40, 1.85)),
+  // 5. The study: the whole flow, then beside the window for where the academies differ.
   { at: T.define - 0.3, dur: 0.6, to: FLOW, ease: inOutQuint },
-  { at: T.source - 0.6, dur: 1.2, to: (m) => brief(m) },
-  { at: T.confirm - 0.9, dur: 0.6, to: FLOW },
-  // 6. The harness: its drawer over the rounds, then one push onto the score as it closes.
-  { at: T.harness - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
+  { at: T.source - 0.6, dur: 0.8, to: SIDE, ease: inOutQuint },
+  { at: T.confirm - 0.9, dur: 0.6, to: FLOW, ease: inOutQuint },
+  // 6. The harness, as three moments: the starting score, close; one change and its test, large
+  // beside the window with the round's drawer open; then one push onto the final score.
+  { at: T.train + 0.4, dur: 0.8, to: (m) => trainScore(m), ease: inOutQuint },
+  { at: T.harness - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
   { at: T.harnessOut, dur: T.thirtyFive - T.harnessOut, to: (m) => trainScore(m) },
-  // 7. The counterexample, and the case locked in on the field's Assets.
-  { at: T.drawer - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
+  // 7. The counterexample, large beside the window with its drawer open, then the whole window.
+  { at: T.drawer - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
   { at: T.drawerOut - 0.05, dur: 0.55, to: FULL, ease: inOutQuint },
   // 8. The vault opens: onto the sealed academy's card, whose lock opens and whose title grows
   // into the figure that fills the frame, the real academy's after it in the same place.
-  { at: T.vaultPage + 0.05, dur: 0.9, to: content(103, 2.15) },
+  { at: T.vaultPage + 0.05, dur: 0.9, to: content(40, 1.85) },
   // 9. The window flies back in onto the certificate as its panel opens; the bound beside it, then
-  // straight onto Compute's plan, and beside the window again for the one GPU.
+  // straight onto Compute's plan, and beside the window for the two jobs it sizes.
   { at: T.toModels, dur: 0, to: AWAY_RIGHT, still: true },
   { at: T.toModels, dur: IN, to: (m) => frameOf(m, 'panel', 40), ease: inEase },
   { at: T.certHero - 1.0, dur: 1.5, to: CERT_VIEW, ease: inOutQuint },
   { at: T.compute - 0.3, dur: 1.0, to: COMPUTE_VIEW, ease: inOutQuint },
-  // As the plan scrolls to its memory, down with it, so its title goes out whole.
-  { at: T.gpuDive - 0.6, dur: 0.9, to: content(58, 1.8) },
-  { at: T.gpuTrained - 0.7, dur: 0.8, to: SIDE, ease: inOutQuint },
+  { at: T.gpuDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
   ...(SHOW_OPEN_TEACHER ? [{ at: T.openBeat, dur: 1.3, to: OPEN_VIEW, ease: inOutQuint }] : []),
   // 10. Beyond academies: its line, then the screening lab's desks and Inventory desk's
-  // never-seen figure beside the window; then the team's line, and its chat.
-  ...whip(WHIPS.beyond, content(108)),
+  // never-seen figure beside the window; then the team's line, and its chat beside its three steps.
+  ...whip(WHIPS.beyond, content(40, 1.9)),
   { at: T.scienceDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
-  ...whip(WHIPS.team, TEAM_VIEW),
-  // 11. Offline: its line, then Academy desk's home, its Offline row as the network goes, then up
-  // its GPU, model and memory, and on into its chat for the approval.
-  ...whip(WHIPS.offline, (m) => onPremise(m, 'home-loaded', 'home-offline')),
-  {
-    at: T.machine,
-    dur: 0.9,
-    to: (m) => onPremise(m, 'home-premise', 'home-memory'),
-    ease: inOutQuint,
-  },
-  { at: T.intoChat - 0.85, dur: 1.0, to: CHAT_VIEW },
-  // 12. The editions, then the whole window again for the end.
+  ...whip(WHIPS.team, LAB_SIDE_VIEW),
+  // 11. Offline: its line, then Academy desk's On-premise card whole, its Offline row turning as
+  // the network goes, its GPU, model and memory; a whip across to its chat for the approval.
+  ...whip(WHIPS.offline, (m) => onPremise(m, 'home-premise', 'home-offline')),
+  { at: T.intoChat - 0.85, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
+  { at: CHAT_AT, dur: 0, to: AWAY_RIGHT, still: true },
+  { at: CHAT_AT, dur: IN, to: CHAT_VIEW, ease: inEase },
+  // 12. The two editions, large, then the window flies out for the lockup.
   { at: T.welcome - 0.4, dur: 0.6, to: FULL, ease: inOutQuint },
-  { at: T.welcome + 0.3, dur: 1.2, to: EDITIONS },
-  { at: T.morph - 0.95, dur: 0.9, to: FULL, still: true },
+  { at: T.welcome + 0.3, dur: 1.0, to: editions },
+  { at: T.ownAI - 0.5, dur: OUT, to: AWAY_LEFT, ease: outEase, still: true },
 ];
 
 export function camera(measured: Measured, t: number): Framing {
@@ -632,7 +617,6 @@ const CLICKS: readonly Click[] = [
   { at: T.vaultPage - 0.1, target: [36, 28] },
   { at: T.compute + FINE_TUNE_AT.read, target: 'ft-read' },
   { at: T.compute + FINE_TUNE_AT.lora, target: 'ft-lora' },
-  { at: T.intoChat - 0.05, target: 'open-session', onward: true },
   { at: T.saves - 0.15, target: 'allow' },
   { at: T.labEdition, target: 'lab-edition' },
 ];
