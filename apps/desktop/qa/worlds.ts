@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,18 +8,32 @@ import { DataPaths } from '@architect/engine';
 import { FAKE_HUB_TOKEN, openEngineStore, startFakeHub } from '@architect/engine/testing';
 import {
   GLIMMER_TRAINING_BASE,
+  glimmerBuild,
   type AppSettings,
+  type JobSummary,
   type MentorConfig,
+  type RunDetail,
   type RunEvent,
   type StudentEndpoint,
+  type WorkspaceChat,
+  type WorkspaceMessage,
 } from '@architect/shared';
 import { launchApp, type LaunchedApp } from '../e2e/app';
 import { LLAMA_SERVER_READY, STORY_EVIDENCE, stubEngine } from '../e2e/fixtures';
 import { ACADEMY_DESK_CERTIFICATE } from '../e2e/fixtures-certify';
 import { GLIMMER_STAND_IN_CONFIG } from '../e2e/fixtures-compute';
+import { ACADEMY_DESK_COUNTEREXAMPLES } from '../e2e/fixtures-counterexamples';
 import { ASK, draftReply, ROUND_DRAFT } from '../e2e/fixtures-drafting';
 import { installExperimentsFake } from '../e2e/fixtures-experiments';
-import { FIELD_REPORTS, stubFields } from '../e2e/fixtures-fields';
+import { FIELD_CAPABILITIES, FIELD_CHAT, FIELD_MESSAGES } from '../e2e/fixtures-field';
+import {
+  FIELD_REPORTS,
+  FIELD_VIEWS,
+  REPORT_TARGETS,
+  RUNS,
+  stubFields,
+  TASK_PLANS,
+} from '../e2e/fixtures-fields';
 import {
   COPY_ANSWERS,
   finalTest,
@@ -29,19 +43,31 @@ import {
   roundFourKept,
   startedRun,
   stubByKey,
+  taskPlan,
 } from '../e2e/fixtures-flow';
-import { DETAILS, LAB, LAB_AGENTS, LAB_EXPERIMENTS } from '../e2e/fixtures-lab';
+import {
+  ACADEMY_DESK_ID,
+  DETAILS,
+  JOBS,
+  LAB,
+  LAB_AGENTS,
+  LAB_EXPERIMENTS,
+  LAB_JOBS,
+} from '../e2e/fixtures-lab';
 import { installModelsFake } from '../e2e/fixtures-models';
+import { exampleField } from '../e2e/fixtures-science';
 import { SWEEP_EXPERIMENT, sweepComparison } from '../e2e/fixtures-science-experiment';
 import {
   installTeamsFake,
   TEAM,
   TEAM_AGENTS,
+  TEAM_CHAT,
+  TEAM_MESSAGES,
   TEAM_RECORDS,
   teamWorld,
 } from '../e2e/fixtures-teams';
 import { installation } from '../e2e/fixtures-versions';
-import { STUDENT_MODEL } from '../e2e/fixtures-workspace';
+import { CHATS, MESSAGES, STUDENT_MODEL } from '../e2e/fixtures-workspace';
 import {
   startFakeOllama,
   startScriptedMentor,
@@ -50,7 +76,21 @@ import {
 } from '../e2e/models';
 import { RECORDED_COMPARISON_ENV, recordedComparisonReport } from '../e2e/recorded';
 import { shop } from '../e2e/shop';
-import { detail, GLIMMER_BYTES, reports, roundDiff, trace } from '../e2e/story';
+import {
+  ACADEMY_EARLIER_RUN,
+  ACADEMY_MINI_RUN,
+  ACADEMY_ROUND_DIFF,
+  ACADEMY_RUN,
+  academyTrace,
+  detail,
+  GLIMMER_BYTES,
+  recentAttempts,
+  reports,
+  roundDiff,
+  storyCapabilities,
+  storyProgress,
+  trace,
+} from '../e2e/story';
 
 /*
  * The worlds a tester walks through: the built app on a throwaway profile, the e2e suite's
@@ -101,6 +141,12 @@ function teacher(request: MentorChatBody): unknown {
   return turns <= 1 ? ASK : draftReply([]);
 }
 
+/** What a Glimmer build weighs on disk, as the catalog says. */
+const sizeOf = (model: string) =>
+  model === glimmerBuild('glimmer-gpu').model
+    ? glimmerBuild('glimmer-gpu').diskBytes
+    : GLIMMER_BYTES;
+
 interface StandIns {
   defaultMentor: MentorConfig;
   defaultStudent: StudentEndpoint;
@@ -113,9 +159,16 @@ interface StandIns {
  * A fake Ollama holding Glimmer, which answers every chat with `chat`, and the scripted teacher,
  * set up as the profile's default model and teacher.
  */
-async function standIns(chat: readonly OllamaTurn[]): Promise<StandIns> {
+async function standIns(
+  chat: readonly OllamaTurn[],
+  downloaded: readonly string[] = [STUDENT_MODEL],
+): Promise<StandIns> {
   const ollama = await startFakeOllama(chat, {
-    models: [{ name: STUDENT_MODEL, sizeBytes: GLIMMER_BYTES, digest: `sha256:${'a'.repeat(64)}` }],
+    models: downloaded.map((name) => ({
+      name,
+      sizeBytes: sizeOf(name),
+      digest: `sha256:${'a'.repeat(64)}`,
+    })),
   });
   const mentor = await startScriptedMentor(teacher);
   const defaultStudent: StudentEndpoint = {
@@ -147,11 +200,19 @@ async function standIns(chat: readonly OllamaTurn[]): Promise<StandIns> {
  * What this computer holds, as a stand-in: Glimmer downloaded in the fake Ollama and a 12 GB card,
  * so neither nvidia-smi nor this computer's runtimes are asked. llama-server is found, never run.
  */
-async function stubComputer(app: ElectronApplication, ollamaUrl: string): Promise<void> {
+async function stubComputer(
+  app: ElectronApplication,
+  ollamaUrl: string,
+  downloaded: readonly string[] = [STUDENT_MODEL],
+): Promise<void> {
   await stubEngine(app, {
     'connections:detectLocal': {
       ...FLOW_LOCAL,
-      ollama: { ...FLOW_LOCAL.ollama, baseUrl: ollamaUrl },
+      ollama: {
+        ...FLOW_LOCAL.ollama,
+        baseUrl: ollamaUrl,
+        models: downloaded.map((id) => ({ id, sizeBytes: sizeOf(id) })),
+      },
     },
     'connections:llamaServer': LLAMA_SERVER_READY,
   });
@@ -254,6 +315,12 @@ async function firstRun(out: string): Promise<World> {
   };
 }
 
+/**
+ * The personal world's Ollama holds both Glimmer builds: the 4-bit one its job trains, and the
+ * 2-bit one the imported sample agent runs on.
+ */
+const PERSONAL_MODELS = [STUDENT_MODEL, glimmerBuild('glimmer-gpu').model];
+
 /** What the returns desk's agent says to anything, after reading the shop's policy once. */
 const RETURNS_DESK_CHAT: readonly OllamaTurn[] = [
   { toolCall: { name: 'read', arguments: { path: 'data/policy.md' } } },
@@ -276,7 +343,7 @@ async function personal(out: string): Promise<World> {
     jobId: string;
     graduateId: string | null;
   };
-  const models = await standIns(RETURNS_DESK_CHAT);
+  const models = await standIns(RETURNS_DESK_CHAT, PERSONAL_MODELS);
   const student = models.defaultStudent;
   const launched = await launch({
     data: recorded,
@@ -298,7 +365,7 @@ async function personal(out: string): Promise<World> {
       }
     },
   });
-  await stubComputer(launched.app, student.baseUrl);
+  await stubComputer(launched.app, student.baseUrl, PERSONAL_MODELS);
   const { page } = launched;
   await page.evaluate(
     async ({ jobId, mentor, local }) => {
@@ -318,11 +385,64 @@ async function personal(out: string): Promise<World> {
   };
 }
 
+/** Academy desk's three runs, each told by its own story. */
+const ACADEMY_STORIES = [ACADEMY_RUN, ACADEMY_EARLIER_RUN, ACADEMY_MINI_RUN];
+
+/**
+ * What each run's screens read of its rounds and evidence: Academy desk's runs their own, every
+ * other run the service desk story's, and the team's runs their cards with no rounds kept.
+ */
+async function runEvidence(app: ElectronApplication, details: Record<string, RunDetail>) {
+  const { 'graduates:installation': _installation, ...evidence } = STORY_EVIDENCE;
+  await stubEngine(app, evidence);
+  const academy = new Set(ACADEMY_STORIES.map((story) => story.runId));
+  const byRun = <T>(own: (runId: string) => T, other: T) =>
+    Object.fromEntries(
+      Object.keys(details).map((runId) => [runId, academy.has(runId) ? own(runId) : other]),
+    );
+  await stubByKey(app, 'runs:get', details);
+  await stubByKey(
+    app,
+    'mentoring:capabilities',
+    byRun((runId) => ({ ...FIELD_CAPABILITIES, runId }), storyCapabilities),
+  );
+  await stubByKey(
+    app,
+    'mentoring:progress',
+    byRun((runId) => {
+      const { run, job } = details[runId] as RunDetail;
+      return {
+        ...storyProgress,
+        runId,
+        dev: { baseline: run.devBaseline, current: run.devCurrent },
+        budget: { ...storyProgress.budget, ...job.budget },
+      };
+    }, storyProgress),
+  );
+  await stubByKey(
+    app,
+    'runs:roundDiff',
+    byRun(() => ACADEMY_ROUND_DIFF, roundDiff),
+  );
+  // A try's steps, by its id: Academy desk's runs show the one their band round came from.
+  await stubByKey(app, 'runs:trace', {
+    ...Object.fromEntries(recentAttempts.map((attempt) => [attempt.id, trace])),
+    ...Object.fromEntries(
+      ACADEMY_STORIES.flatMap((story) =>
+        (details[story.runId] as RunDetail).recentAttempts.map((attempt) => [
+          attempt.id,
+          academyTrace(story),
+        ]),
+      ),
+    ),
+  });
+}
+
 /**
  * Start training plays the story's run in the Lab: round 4 kept, the final test, then the agent.
  * Whichever job it is started from, the run is the service desk's.
  */
-async function liveTraining(app: ElectronApplication): Promise<void> {
+async function liveTraining(app: ElectronApplication, details: Record<string, RunDetail>) {
   const steps: [number, RunEvent[]][] = [
     [3_000, roundFourKept()],
     [8_000, finalTest(20)],
@@ -330,10 +450,7 @@ async function liveTraining(app: ElectronApplication): Promise<void> {
     [16_000, finalTest(60)],
     [20_000, finished()],
   ];
-  await stubByKey(app, 'runs:get', { ...DETAILS, [FLOW.runId]: detail });
-  // What the run's screens read of its rounds and evidence: the story's, for every run.
-  const { 'graduates:installation': _installation, ...evidence } = STORY_EVIDENCE;
-  await stubEngine(app, { ...evidence, 'runs:trace': trace, 'runs:roundDiff': roundDiff });
+  await runEvidence(app, { ...details, [FLOW.runId]: detail });
   await app.evaluate(
     ({ BrowserWindow, ipcMain }, { run, json }) => {
       const timeline = JSON.parse(json) as [number, unknown[]][];
@@ -378,6 +495,170 @@ async function liveExperiments(app: ElectronApplication): Promise<void> {
 }
 
 /**
+ * The Lab's fields with the team's agents' jobs among them: Assay desk's field taught by the run
+ * its agent came from, and Inventory desk's beside it, each with that run's card. Returns the
+ * training screens of every run, the team's two with no rounds kept.
+ */
+async function teamFields(app: ElectronApplication): Promise<Record<string, RunDetail>> {
+  const inventory = TEAM_RECORDS.jobs.find((job) => job.id !== LAB.assayDeskJob);
+  if (!inventory) throw new Error("The team's lead has a job of its own.");
+  const runOf = (jobId: string) => TEAM_RECORDS.runs.find((run) => run.jobId === jobId);
+  const latest = (summary: JobSummary): JobSummary => {
+    const run = runOf(summary.id);
+    if (!run) return summary;
+    const { id, method, status, phase, devCurrent, devBaseline } = run;
+    return {
+      ...summary,
+      latestRun: { id, method, status, phase, devCurrent, devBaseline, accepted: true },
+    };
+  };
+  const tasks = readFileSync(join(REPO, 'examples/inventory-desk/job/tasks.jsonl'), 'utf8');
+  const jobs = [
+    ...LAB_JOBS.map(latest),
+    latest({
+      id: inventory.id,
+      name: inventory.name,
+      createdAt: inventory.createdAt,
+      taskCount: tasks.split('\n').filter((line) => line.trim()).length,
+    }),
+  ];
+  const ids = jobs.map((job) => job.id);
+  const cards = Object.fromEntries(
+    Object.values(TEAM_RECORDS.reports).map((card) => [card.runId, card]),
+  );
+  const lead = cards[runOf(inventory.id)?.id ?? ''];
+  const tested = lead?.test.perOrg?.reduce((sum, row) => sum + row.total, 0) ?? 0;
+  await stubEngine(app, { 'jobs:list': jobs });
+  await stubByKey(app, 'jobs:get', { ...JOBS, [inventory.id]: inventory });
+  await stubByKey(app, 'jobs:field', {
+    ...FIELD_VIEWS,
+    [inventory.id]: exampleField('inventory-desk', inventory.id, tested),
+  });
+  await stubByKey(app, 'jobs:taskPlan', { ...TASK_PLANS, [inventory.id]: taskPlan });
+  await stubByKey(app, 'runs:list', {
+    ...RUNS,
+    ...Object.fromEntries(TEAM_RECORDS.runs.map((run) => [run.jobId, [run]])),
+  });
+  await stubByKey(app, 'reports:list', {
+    ...REPORT_TARGETS,
+    ...Object.fromEntries(TEAM_RECORDS.runs.map((run) => [run.id, ['hosted']])),
+  });
+  await stubByKey(app, 'runs:qualifications', Object.fromEntries(ids.map((id) => [id, []])));
+  await stubByKey(
+    app,
+    'mentoring:fieldCounterexamples',
+    Object.fromEntries(
+      ids.map((id) => [id, id === LAB.academyDeskJob ? ACADEMY_DESK_COUNTEREXAMPLES : []]),
+    ),
+  );
+  await stubByKey(
+    app,
+    'graduates:certifications',
+    Object.fromEntries(
+      [...LAB_AGENTS, TEAM_AGENTS.lead, TEAM_AGENTS.teammate].map((agent) => [agent.id, []]),
+    ),
+  );
+  return {
+    ...DETAILS,
+    ...Object.fromEntries(
+      TEAM_RECORDS.runs.map((run) => [
+        run.id,
+        {
+          run,
+          job: TEAM_RECORDS.jobs.find((job) => job.id === run.jobId) ?? inventory,
+          rounds: [],
+          recentAttempts: [],
+          lineage: [],
+        } satisfies RunDetail,
+      ]),
+    ),
+  };
+}
+
+/**
+ * The agents' chats in the Lab: the service desk's, Academy desk's and the team's, and any chat
+ * started with an agent, where every message gets one fixed reply, since no agent runs here.
+ */
+async function labChats(app: ElectronApplication): Promise<void> {
+  const chats: WorkspaceChat[] = [
+    ...Object.values(CHATS),
+    { ...FIELD_CHAT, graduateId: ACADEMY_DESK_ID },
+    TEAM_CHAT,
+  ];
+  const messages: WorkspaceMessage[] = [...MESSAGES, ...FIELD_MESSAGES, ...TEAM_MESSAGES];
+  await app.evaluate(
+    ({ BrowserWindow, ipcMain }, seed) => {
+      const { chats, messages } = structuredClone(seed);
+      const broadcast = (payload: unknown) => {
+        for (const window of BrowserWindow.getAllWindows()) {
+          window.webContents.send('workspace:onEvent', payload);
+        }
+      };
+      const handle = (channel: string, reply: (...args: never[]) => unknown) => {
+        ipcMain.removeHandler(channel);
+        ipcMain.handle(channel, async (_event, ...args: unknown[]) => {
+          try {
+            return { ok: true, value: await reply(...(args as never[])) };
+          } catch (error) {
+            return { ok: false, error: { message: (error as Error).message } };
+          }
+        });
+      };
+      const chatOf = (id: string) => {
+        const found = chats.find((chat) => chat.id === id);
+        if (!found) throw new Error(`No chat ${id}.`);
+        return found;
+      };
+      handle('workspace:listChats', (graduateId: string) =>
+        chats.filter((chat) => chat.graduateId === graduateId && chat.teamId === undefined),
+      );
+      handle('workspace:messages', (chatId: string) =>
+        messages.filter((message) => message.chatId === chatId),
+      );
+      handle('workspace:createChat', (graduateId: string) => {
+        const now = new Date().toISOString();
+        const chat = {
+          id: `cht_new_${chats.length + 1}`,
+          graduateId,
+          title: 'New chat',
+          createdAt: now,
+          updatedAt: now,
+          running: false,
+          waiting: false,
+        };
+        chats.unshift(chat);
+        return chat;
+      });
+      handle('workspace:send', (chatId: string, text: string) => {
+        const chat = chatOf(chatId);
+        const now = new Date().toISOString();
+        const said = (role: 'user' | 'agent', words: string) => {
+          const message = {
+            id: `msg_new_${messages.length + 1}`,
+            chatId,
+            role,
+            createdAt: now,
+            text: words,
+            steps: [],
+            blocks: [],
+            status: 'done' as const,
+          };
+          messages.push(message);
+          broadcast({ type: 'message.updated', message });
+        };
+        said('user', text);
+        said('agent', 'No agent runs in this world, so every message gets this same reply.');
+        const title =
+          chat.title === 'New chat' ? text.split(' ').slice(0, 6).join(' ') : chat.title;
+        Object.assign(chat, { title, updatedAt: now });
+        broadcast({ type: 'chat.updated', chat });
+      });
+    },
+    { chats, messages },
+  );
+}
+
+/**
  * The Lab edition as the Lab's specs see it: fields with their organizations (the academies, the
  * science desks), experiments with the recorded comparison, the models registry, teams, a
  * certificate on Academy desk's report and its fine-tuning data, and Compute reading Glimmer's
@@ -415,17 +696,27 @@ async function lab(out: string): Promise<World> {
   });
   await stubByKey(app, 'reports:get', {
     ...FIELD_REPORTS,
+    ...Object.fromEntries(Object.values(TEAM_RECORDS.reports).map((card) => [card.runId, card])),
     [FLOW.runId]: reports[FLOW.runId],
     [LAB.academyDeskRun]: {
       ...FIELD_REPORTS[LAB.academyDeskRun],
       certificate: ACADEMY_DESK_CERTIFICATE,
     },
   });
-  await installExperimentsFake(app, sweepComparison(report), undefined, [
-    // Sweep desk's finished experiment is the one with its paper.
-    ...LAB_EXPERIMENTS.filter((item) => item.input.name !== SWEEP_EXPERIMENT.input.name),
-    SWEEP_EXPERIMENT,
-  ]);
+  await installExperimentsFake(
+    app,
+    sweepComparison(report),
+    undefined,
+    [
+      // Sweep desk's finished experiment is the one with its paper.
+      ...LAB_EXPERIMENTS.filter((item) => item.input.name !== SWEEP_EXPERIMENT.input.name),
+      SWEEP_EXPERIMENT,
+    ],
+    // A new experiment is planned on the field chosen for it.
+    [...LAB_JOBS, ...TEAM_RECORDS.jobs].map(({ id, name }) => ({ id, name })),
+  );
+  const details = await teamFields(app);
+  await labChats(app);
   await stubComputer(app, models.defaultStudent.baseUrl);
   await stubEngine(app, {
     // The team's agents beside the Lab's, so the team shows who leads it.
@@ -436,7 +727,7 @@ async function lab(out: string): Promise<World> {
     'connections:testMentor': { ok: true, latencyMs: 640, detail: 'muse-spark-1.3' },
     'connections:testStudent': COPY_ANSWERS,
   });
-  await liveTraining(app);
+  await liveTraining(app, details);
   await liveExperiments(app);
   await reload(launched);
   return {
