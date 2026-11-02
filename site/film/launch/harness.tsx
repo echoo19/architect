@@ -43,21 +43,35 @@ function Section({
   );
 }
 
+/** The height of a line of the drawer's title, and of a row of round 1's changes. */
+const TITLE_LINE = 26;
+const ROW = 56;
+
 export function HarnessDrawer({ lt }: { lt: number }) {
   // Round 1 goes up and out before round 2 rises in, so the two are never seen through each other.
   const first = 1 - ui(lt, HARNESS_AT.second, 0.18);
   const second = ui(lt, HARNESS_AT.second + 0.16, 0.32);
   const back = outQuart(span(lt, HARNESS_AT.rolledBack, 0.7));
-  const banner = outQuart(span(lt, HARNESS_AT.rolledBack + 0.14, 0.4));
+  const banner = outQuart(span(lt, HARNESS_AT.rolledBack, 0.3));
   const [r1, r2] = ROUNDS;
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-line px-6 pb-4 pt-5">
-        <span className="grid font-display text-h2 font-semibold">
-          <span className="[grid-area:1/1]" style={{ opacity: first }}>
+        {/* Round 1's title takes two lines and round 2's one: the header closes up as they swap. */}
+        <span
+          className="grid font-display text-h2 font-semibold"
+          style={{ height: mix(TITLE_LINE * 2, TITLE_LINE, second) }}
+        >
+          <span
+            className="[grid-area:1/1]"
+            style={{ opacity: first, transform: `translateY(${(first - 1) * 8}px)` }}
+          >
             Round 1: {r1!.title}
           </span>
-          <span className="[grid-area:1/1]" style={{ opacity: second }}>
+          <span
+            className="[grid-area:1/1]"
+            style={{ opacity: second, transform: `translateY(${(1 - second) * 8}px)` }}
+          >
             Round 2: {r2!.title}
           </span>
         </span>
@@ -70,14 +84,20 @@ export function HarnessDrawer({ lt }: { lt: number }) {
             style={{ opacity: first, transform: `translateY(${(first - 1) * 8}px)` }}
           >
             <Section title="What changed in the harness">
+              {/* The card opens a row at a time as each change comes in. */}
               <div className="flex flex-col overflow-hidden rounded-control shadow-edge">
                 {HARNESS.first.map((change, index) => {
                   const { Icon, label } = KINDS[change.kind];
+                  const open = outQuart(span(lt, HARNESS_AT.files[index]!, 0.4));
+                  if (open <= 0) return null;
                   return (
                     <div
                       key={change.file}
-                      className="flex h-14 items-center gap-3 border-t border-line px-4 first:border-t-0"
-                      style={rise(lt, HARNESS_AT.files[index]!, 8)}
+                      className="flex shrink-0 items-center gap-3 overflow-hidden border-t border-line px-4 first:border-t-0"
+                      style={{
+                        height: open * ROW,
+                        ...rise(lt, HARNESS_AT.files[index]! + 0.05, 8),
+                      }}
                     >
                       <Icon size={16} strokeWidth={1.8} className="shrink-0" aria-hidden />
                       <span className="flex min-w-0 flex-1 flex-col">

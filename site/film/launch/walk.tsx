@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pointer, type Framing, type Measured } from '../lab/film';
-import { CounterexampleDrawer, DefinePage, TrainPage } from '../lab/pages-flow';
+import { CounterexampleDrawer, DefinePage } from '../lab/pages-flow';
 import { FieldPage, Fields, LabHome } from '../lab/pages-lab';
 import { ExperimentPage, ModelsPage } from '../lab/pages-lab2';
 import { WelcomePage, WorkspacePage } from '../lab/pages-more';
@@ -29,6 +29,7 @@ import { FINE_TUNE_AT, FINE_TUNE_SCROLL, FineTunePage } from './finetune';
 import { HarnessDrawer } from './harness';
 import type { Layer, Mode, ScreenView } from './screen';
 import { DURATION, T } from './timeline';
+import { TrainPage } from './train';
 
 /**
  * The walkthrough part of the launch film: one window of Architect Lab, its pages changing as the
@@ -57,6 +58,11 @@ interface PageSpan {
   clock?: readonly (readonly [number, number])[];
   /** Swapped in at once, out of sight under a figure that fills the frame. */
   cut?: boolean;
+  /**
+   * A quicker hand-off: the page before goes faster and this one follows at once, so no frame is
+   * left empty for long.
+   */
+  swift?: boolean;
 }
 
 const local = (pairs: readonly (readonly [number, number])[]) => smoothMap(pairs);
@@ -141,21 +147,9 @@ const PAGES: readonly PageSpan[] = [
     key: 'train',
     at: T.train,
     mode: 'flow',
+    swift: true,
     fill: place(1),
-    draw: (lt) => <TrainPage lt={lt} />,
-    clock: [
-      [0, 0],
-      [1.4, 1.4],
-      [T.hypothesis - T.train, 4.6],
-      [T.hypothesis - T.train + 1.0, 5.4],
-      [T.rolledBack - T.train - 0.2, 5.5],
-      [T.rolledBack - T.train, 5.8],
-      [T.rolledBack - T.train + 0.4, 6.2],
-      [T.rolledBack - T.train + 0.7, 7.8],
-      [T.thirtyFive - T.train - 1.0, 10.8],
-      [T.thirtyFive - T.train, 11.9],
-      [T.thirtyFive - T.train + 1.6, 13.5],
-    ],
+    draw: (_lt, t) => <TrainPage t={t} />,
   },
   {
     key: 'vault',
@@ -344,8 +338,12 @@ export function walkView(t: number): ScreenView {
     if (next && t > next.at + 0.35) return;
     if (next?.cut && t >= next.at) return;
     // A page leaves before the next arrives, so no two are ever seen through each other.
-    const enter = page.cut ? 1 : outQuart(span(t, page.at + 0.12, 0.45));
-    const leave = next && !next.cut ? outQuart(span(t, next.at, 0.14)) : 0;
+    const enter = page.cut
+      ? 1
+      : page.swift
+        ? outQuart(span(t, page.at + 0.06, 0.3))
+        : outQuart(span(t, page.at + 0.12, 0.45));
+    const leave = next && !next.cut ? outQuart(span(t, next.at, next.swift ? 0.1 : 0.14)) : 0;
     layers.push({
       key: page.key,
       mode: page.mode,
@@ -486,11 +484,21 @@ function brief(measured: Measured): Framing {
   return { cx: WINDOW.width / 2, cy: top + FRAME.height / 2 / s, s };
 }
 
+/**
+ * Closer on the training screen as the score lands: from its status line to the Rounds heading,
+ * so the frame's edges fall in the space above and below them.
+ */
+function trainScore(measured: Measured): Framing {
+  const top = measured.get('train-status');
+  const bottom = measured.get('train-rounds');
+  if (!top || !bottom) return FULL;
+  const from = top.y - 10;
+  const to = bottom.y + bottom.h + 10;
+  return { cx: WINDOW.width / 2, cy: (from + to) / 2, s: FRAME.height / (to - from) };
+}
+
 /** The two editions. */
 const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
-
-/** A little closer on the flow as the score lands, the window's width still whole. */
-const SCORE_VIEW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2 + 2, s: 1.7 };
 
 interface Shot {
   at: number;
@@ -518,7 +526,7 @@ const SHOTS: readonly Shot[] = [
   // 6. The harness: its drawer over the rounds, then the rounds, then into the score.
   { at: T.harness - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
   { at: T.harnessOut, dur: 0.7, to: FLOW, ease: inOutQuint },
-  { at: T.pushScore, dur: 0.9, to: SCORE_VIEW },
+  { at: T.pushScore, dur: 0.9, to: (m) => trainScore(m) },
   // 7. The counterexample, and the case locked in on the field's Assets.
   { at: T.drawer - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
   { at: T.drawerOut - 0.05, dur: 0.55, to: FULL, ease: inOutQuint },

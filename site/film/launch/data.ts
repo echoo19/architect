@@ -76,6 +76,26 @@ export const COUNTEREXAMPLE_TASK = 'copperfield-diagnose-03';
 /** The first field run's check score before and after its first round (academy-desk-1.md): 17 and 25 of 36. */
 export const FIRST_ROUND = [47, 69] as const;
 
+/**
+ * The first field run as its Train screen draws it (academy-desk-1.md, "What the three rounds
+ * changed", and the run's rounds in architect-runs/phil-1): held-out checks passed of 36 at the
+ * start and after each round's first measurement, the practice tasks right of 12 in each round,
+ * and what each round cost of Spark. Round 2 was rolled back. Its caps: 3 rounds, $5 and 4 hours.
+ */
+export const TRAINING = {
+  of: 36,
+  start: 17,
+  rounds: [
+    { after: 25, practice: 7, cost: 0.1018 },
+    { after: 23, practice: 6, cost: 0.1299 },
+    { after: 35, practice: 9, cost: 0.0746 },
+  ],
+  practiceOf: 12,
+  target: 90,
+  minutes: 15,
+  caps: { minutes: 240, usd: 5, rounds: 3 },
+} as const;
+
 /** Inventory desk's run finished on Nov 1 (inventory-desk-1.md). */
 export const FIELD_ACTIVITY = { 'Inventory desk': 'Nov 1' } as const;
 
