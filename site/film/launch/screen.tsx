@@ -18,6 +18,8 @@ export interface Layer {
   /** How far the page has come in and gone, from 0 to 1 each. */
   enter: number;
   leave: number;
+  /** How far it is pushed sideways, in window pixels, as a step of the flow comes in. */
+  x?: number;
 }
 
 export interface ScreenView {
@@ -29,6 +31,8 @@ export interface ScreenView {
   flow: { shown: number; step: number };
   /** The round's drawer: what it shows, and how far it has opened and closed. */
   drawer?: { node: ReactNode; open: number; close: number };
+  /** How far the app's backdrop dims the window, while a figure beside it is the subject. */
+  dim?: number;
 }
 
 export const RIM = 'inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 30px 80px rgb(0 0 0 / 0.5)';
@@ -42,7 +46,7 @@ export function Screen({
   style?: CSSProperties;
   children?: ReactNode;
 }) {
-  const { layers, sidebar, sidebarShown, flow, drawer } = view;
+  const { layers, sidebar, sidebarShown, flow, drawer, dim = 0 } = view;
   return (
     <div
       className="absolute overflow-hidden rounded-[14px] bg-ground"
@@ -61,7 +65,7 @@ export function Screen({
               right: 0,
               bottom: 0,
               opacity: layer.enter * (1 - layer.leave),
-              transform: `translateY(${(1 - layer.enter) * 10}px)`,
+              transform: `translate(${layer.x ?? 0}px, ${(1 - layer.enter) * 10}px)`,
             }}
           >
             {layer.node}
@@ -104,6 +108,13 @@ export function Screen({
         >
           {drawer.node}
         </div>
+      )}
+      {dim > 0 && (
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-backdrop"
+          style={{ opacity: dim, zIndex: 25 }}
+        />
       )}
       {children}
     </div>

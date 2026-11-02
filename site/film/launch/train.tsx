@@ -18,7 +18,7 @@ import { T } from './timeline';
 /**
  * Train, rebuilt from the app's training screen (screens/TrainScreen.tsx, flow/train/LiveStatus.tsx,
  * TaskSuccess.tsx, Budget.tsx and Rounds.tsx, and the LineChart of packages/ui): what the run is
- * doing now, the score on the held-out checks with the time, Spark's cost and the rounds used
+ * doing now, the score on the held-out checks with the time, Spark's teaching and the rounds used
  * under it, the step chart of that score against the target with the practice tasks beside it,
  * and the rounds. The academy field's first run plays out on it, every moment set from the film's
  * clock: round 1 lands before the harness drawer opens, round 2 is rolled back under the drawer
@@ -51,13 +51,11 @@ const AT = {
   /** Round 3's step: along to round 3, then up to 35 of 36 on the word. */
   scored3: T.pushScore,
   rise3: T.pushScore + 0.35,
-  /** Training is over; the sealed final test starts without Spark. */
-  final: T.thirtyFive + 1.0,
 } as const;
 
-type Stage = 'attempting' | 'diagnosing' | 'evaluating' | 'testing';
+type Stage = 'attempting' | 'diagnosing' | 'evaluating';
 
-interface Phase {
+export interface Phase {
   at: number;
   stage: Stage;
   /** Tasks done in the step, counted from `from` to `to` of `of` over `dur` seconds once it starts. */
@@ -73,7 +71,16 @@ const PHASES: readonly Phase[] = [
   { at: AT.round3, stage: 'attempting', count: { of: 12, from: 0, to: 12, dur: 1.1 } },
   // Round 3's checks are all scored before its step rises to the score they make.
   { at: AT.score3, stage: 'evaluating', count: { of: 36, from: 0, to: 36, dur: 0.65 } },
-  { at: AT.final, stage: 'testing', count: { of: 120, from: 0, to: 120, dur: 60 } },
+];
+
+/**
+ * The opening's shorter telling of the same run: Spark reads the failures, then Glimmer practices
+ * and its change is scored, on the same moments of the screen's clock.
+ */
+export const HOOK_PHASES: readonly Phase[] = [
+  { at: -Infinity, stage: 'diagnosing' },
+  PHASES[4]!,
+  PHASES[5]!,
 ];
 
 const ROUND_STAGES = ['attempting', 'diagnosing', 'evaluating'] as const;
@@ -81,12 +88,11 @@ const STAGE_LABELS: Record<Stage, string> = {
   attempting: 'Practice',
   diagnosing: 'Diagnose',
   evaluating: 'Score',
-  testing: 'Sealed final test',
 };
 
-function phaseAt(t: number): number {
+function phaseAt(phases: readonly Phase[], t: number): number {
   let found = 0;
-  PHASES.forEach((phase, index) => {
+  phases.forEach((phase, index) => {
     if (phase.at <= t) found = index;
   });
   return found;
@@ -125,12 +131,6 @@ function Named({ stage }: { stage: Stage }) {
       );
     case 'evaluating':
       return <>Scoring the change on the held-out checks</>;
-    case 'testing':
-      return (
-        <>
-          Sealed final test, <span className="text-mentor">Spark</span> disconnected
-        </>
-      );
   }
 }
 
@@ -228,17 +228,15 @@ function Swap({
 }
 
 /** What the run is doing now: whoever works shows its mark, and the round's steps fill. */
-function LiveStatus({ t, score }: { t: number; score: number }) {
-  const index = phaseAt(t);
-  const phase = PHASES[index]!;
-  const before = PHASES[index - 1] ?? phase;
+function LiveStatus({ t, score, phases }: { t: number; score: number; phases: readonly Phase[] }) {
+  const index = phaseAt(phases, t);
+  const phase = phases[index]!;
+  const before = phases[index - 1] ?? phase;
   const mark = (stage: Stage) =>
     stage === 'diagnosing' ? <MentorMark t={t} /> : <StudentMark t={t} lit={score / 100} />;
   const settle = outQuart(span(t, phase.at, 0.36));
   const now = shares(phase, t);
   const was = shares(before, phase.at);
-  const testing = phase.stage === 'testing';
-  const count = counted(phase, t);
   const tally = (of: Phase, at: number) => {
     const done = counted(of, at)?.done;
     return done === undefined ? null : `${done} of ${of.count?.of}`;
@@ -278,40 +276,24 @@ function LiveStatus({ t, score }: { t: number; score: number }) {
           className="justify-items-end"
         />
       </span>
-      <span className="grid">
-        <ol
-          className="m-0 flex list-none items-end gap-2 p-0 text-small [grid-area:1/1]"
-          style={{ opacity: testing ? 1 - span(t, phase.at, 0.1) : 1 }}
-        >
-          {ROUND_STAGES.map((stage, i) => {
-            const current = !testing && stage === phase.stage;
-            const share = mix(was[i]!, now[i]!, settle);
-            return (
-              <li key={stage} className="flex min-w-24 flex-col gap-2">
-                <span className={current ? 'whitespace-nowrap font-medium' : 'whitespace-nowrap'}>
-                  {STAGE_LABELS[stage]}
-                </span>
-                <Meter
-                  label={STAGE_LABELS[stage]}
-                  value={share}
-                  tone={current ? (stage === 'diagnosing' ? 'mentor' : 'student') : 'fg'}
-                />
-              </li>
-            );
-          })}
-        </ol>
-        {testing && (
-          <ol
-            className="m-0 flex list-none items-end justify-end p-0 text-small [grid-area:1/1]"
-            style={{ opacity: outQuart(span(t, phase.at + 0.1, 0.36)) }}
-          >
-            <li className="flex min-w-24 flex-col gap-2">
-              <span className="whitespace-nowrap font-medium">{STAGE_LABELS.testing}</span>
-              <Meter label={STAGE_LABELS.testing} value={count?.share ?? 0} tone="student" />
+      <ol className="m-0 flex list-none items-end gap-2 p-0 text-small">
+        {ROUND_STAGES.map((stage, i) => {
+          const current = stage === phase.stage;
+          const share = mix(was[i]!, now[i]!, settle);
+          return (
+            <li key={stage} className="flex min-w-24 flex-col gap-2">
+              <span className={current ? 'whitespace-nowrap font-medium' : 'whitespace-nowrap'}>
+                {STAGE_LABELS[stage]}
+              </span>
+              <Meter
+                label={STAGE_LABELS[stage]}
+                value={share}
+                tone={current ? (stage === 'diagnosing' ? 'mentor' : 'student') : 'fg'}
+              />
             </li>
-          </ol>
-        )}
-      </span>
+          );
+        })}
+      </ol>
       <span className="flex size-6 items-center justify-center">
         <Cloud size={16} strokeWidth={1.8} aria-hidden />
       </span>
@@ -705,7 +687,7 @@ function Budget({ t }: { t: number }) {
       />
       <BudgetMeter
         icon={CircleDollarSign}
-        label="Spark's cost"
+        label="Spark teaching"
         used={`$${cost.toFixed(2)}`}
         max={`$${caps.usd}`}
         share={cost / caps.usd}
@@ -730,7 +712,10 @@ function Score({ t }: { t: number }) {
   const passed = Math.round((score / 100) * TRAINING.of);
   return (
     <div className="flex flex-col gap-6">
-      <span className="font-display text-hero font-semibold leading-none tabular-nums">
+      <span
+        className="w-fit font-display text-hero font-semibold leading-none tabular-nums"
+        data-frame="train-score"
+      >
         {shown}%
       </span>
       <div className="flex flex-col gap-2">
@@ -838,11 +823,11 @@ function rise(t: number, at: number): CSSProperties {
   return { opacity: p, transform: `translateY(${(1 - p) * 8}px)` };
 }
 
-/** The training screen at a moment of the film. */
-export function TrainPage({ t }: { t: number }) {
+/** The training screen at a moment of the film, telling its run as `phases` do. */
+export function TrainPage({ t, phases = PHASES }: { t: number; phases?: readonly Phase[] }) {
   return (
     <div className="mx-auto flex w-[860px] flex-col gap-10 pt-8">
-      <LiveStatus t={t} score={scoreAt(t)} />
+      <LiveStatus t={t} score={scoreAt(t)} phases={phases} />
       <section className="grid grid-cols-[264px_minmax(0,1fr)] items-start gap-x-14">
         <Score t={t} />
         <figure className="m-0 flex min-w-0 flex-col gap-3">

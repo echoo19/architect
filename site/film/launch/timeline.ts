@@ -6,10 +6,15 @@ import { SHOW_OPEN_TEACHER } from './data';
  * played film (cues.ts) never has to run a stretch much faster than it was made.
  */
 
+// 0. The founder's last line, "Here's how it works.", before the film's own clock starts: his frame
+// recedes into a window as the claim rises beside it, and the training screen pushes into it.
+const founder = -1.3;
+
 // 1. Hook: "Every frontier model knows a little about everything. Your work needs a specialist
-// that knows it inside out. Architect builds it." The claim, the screens arriving in depth, and
-// the flight through them on "Architect builds it".
-const hits = [8.8, 9.45, 10.1, 10.75] as const;
+// that knows it inside out. Architect builds it." The training screen takes the founder's place,
+// the camera goes onto its score as it climbs past the target, and on "Architect builds it" it
+// dives through the score and past two screens on the music's hits.
+const hits = [8.8, 10.1, 10.75] as const;
 
 // 2. Why: the line, then the three requests, a camera move between each.
 const asked = 10.85;
@@ -98,8 +103,12 @@ const morph = welcome + 5.8;
 const architect = morph + 3.0;
 
 export const T = {
-  claim: 0.35,
-  arrive: [1.6, 2.5, 3.4, 4.3] as const,
+  founder,
+  recede: founder + 0.4,
+  claim: -0.3,
+  trainRises: 0.6,
+  trainShown: 1.6,
+  trainPush: 4.3,
   hits,
   asked,
   requests,
@@ -109,7 +118,8 @@ export const T = {
   pushRunning: how + 0.8,
   labHover: how + 2.1,
   fields,
-  academyLit: fields + 2.1,
+  /** The window whips back in onto the field, landing on "academies". */
+  fieldIn: field - 1.5,
   field,
   vault,
   real,
@@ -134,7 +144,7 @@ export const T = {
   drawerOut: regression + 0.5,
   vaultPage,
   opens: vaultPage + 1.1,
-  dive: vaultPage + 1.5,
+  grows: vaultPage + 1.5,
   hero,
   vaultCut: hero + 0.95,
   fortyThree,
@@ -178,6 +188,8 @@ export const T = {
   backScroll: workspace - 0.8,
   workspace,
   network: workspace + 1.2,
+  /** The Offline row turns as the window lands back from the line. */
+  offline: workspace + 1.5,
   machine: workspace + 2.3,
   memory: workspace + 3.2,
   intoChat: saves - 1.0,

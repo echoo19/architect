@@ -107,16 +107,16 @@ export const ON_PREMISE = {
   gpu: 'NVIDIA GeForce RTX 4070 Ti',
   gpuMemory: '12 GB of GPU memory',
   build: 'Glimmer, 2-bit',
-  model: 'muse-glimmer:30b-iq2, 16K context, Ollama',
+  model: 'muse-glimmer:30b-iq2, Ollama',
   size: '10 GB',
   peak: { gb: 11, of: '12 GB', share: 11604 / 12282 },
   loaded: '11 GB on the GPU',
-  checks: '6 of 6 installation checks passed, Oct 30',
+  checks: '6 installation checks passed, Oct 30',
   host: '127.0.0.1:11434',
   activity: {
     figures: [
       ['Requests, 7 days', '23'],
-      ['Median answer', '38 s'],
+      ['Median answer in use', '38 s'],
       ['95th percentile', '2 min 53 s'],
       ['Tokens per second', '33'],
     ],
@@ -146,7 +146,9 @@ export const FIELD_ACTIVITY = { 'Inventory desk': 'Nov 1' } as const;
  */
 export const PLAN = {
   model: 'lab/moe-235b',
-  config: 'lab/moe-235b @ 00216c179c24 · qwen3_moe',
+  /** Its size, said plainly. */
+  size: '235B',
+  config: 'lab/moe-235b @ 00216c179c24',
   figures: [
     ['235.1B', 'Parameters'],
     ['22.2B', 'Active per token'],
@@ -168,7 +170,7 @@ export const TRAINED = {
   method: 'QLoRA',
   gpus: 1,
   gpu: 'A100',
-  time: '8 min',
+  minutes: 8,
 } as const;
 
 /** The open-weight teacher, as the app names it (packages/shared/src/models.ts). */
@@ -201,7 +203,7 @@ export const CERTIFICATE: Certificate = {
 export const CERTIFICATE_CHECK = {
   name: 'Harborview Prep',
   answered: '53 of 54',
-  wrong: '0 wrong',
+  wrong: 'none wrong',
 };
 
 /** The app's newer words for the screens' concepts (the glossary the app is moving to). */
