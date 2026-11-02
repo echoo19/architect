@@ -141,10 +141,14 @@ async function perform(act: Act): Promise<void> {
       return needTarget(act).hover();
     case 'fill':
       return needTarget(act).fill(text(act.value));
-    case 'type':
+    case 'type': {
+      const typed = text(act.value);
+      // Typing takes its own time on top of a step's: a long text would outlast STEP_MS alone.
+      const timeout = STEP_MS + typed.length * KEY_DELAY_MS;
       if (act.target)
-        return needTarget(act).pressSequentially(text(act.value), { delay: KEY_DELAY_MS });
-      return page.keyboard.type(text(act.value), { delay: KEY_DELAY_MS });
+        return needTarget(act).pressSequentially(typed, { delay: KEY_DELAY_MS, timeout });
+      return page.keyboard.type(typed, { delay: KEY_DELAY_MS });
+    }
     case 'press':
       if (act.target) return needTarget(act).press(text(act.value));
       return page.keyboard.press(text(act.value));
