@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon): live-edge-1, an offshore wind farm's desk run in the app with real models (`qa/live-world`)
+
+- *Done, QA driver:* a `live` world (fresh profile, the real engine, no stub; `META_API_TOKEN` and `OPENROUTER_API_KEY` read by name with `ARCHITECT_KEYS_FROM_ENV`; Playwright's `recordVideo`; the profile kept on quit; `--data` to reopen a kept one). Typing a long text no longer times out. The mock worlds still blank every key.
+- *Done, run:* `architect-runs/live-edge-1` (`RUN.md`, `run.json`). A generated wind farm (40 turbines, a 171-alarm SCADA log, crew, vessels, a 96-hour forecast, a written policy) and 96 worked cases, attached in the Lab. Spark drafted it in one call. Its first harness took the held-out checks from 8 to 24 of 24, and the sealed test was 32 of 32 on the hosted copy, in 5 min 17 s. A preregistered experiment in the app measured Glimmer on its own on the same 32 sealed tasks: 11 of 32 against 32 of 32, +66 points (+45 to +80). Report: `docs/comparisons/edge-1.md`. $0.47 in all; no GPU.
+- *Fixed, with tests:* Lab experiments now run arms that write tools in the app's built sandbox (they paused at once before; the e2e suite fakes experiments); the 2-bit build is no longer called "4-bit" on the agent home and in Models; Models shows a real harness's hash instead of "sha256-".
+- *Open:* see `RUN.md`'s list (the report's "Start using" opens an empty chat; one-site jobs file their sealed score under "Taught on"; an incomplete experiment shows no reason; the Lab home says "No fields yet" while Fields lists one; the export's data switch stayed off). The branch isn't merged.
+
 ## 2026-11-02 (Mon): propose, probe, compose, a second round mode (`engine/propose-probe-compose`)
 
 - *Done (decision 108, after Google Research's Harness², arXiv 2610.14224):* a job can set `evaluation.roundMode: propose_probe_compose` (`probes` 2 to 4, default 3). Each refining round then asks Spark for k change sets for the same failures, measures each as a version of its own on dev under the round's probe seeds and on the round's practice tasks, shows Spark each probe's overall dev score and practice verdicts, and takes one composed change through the usual keep rule, decided on the round's own seeds. Lineage keeps one entry a round with its `probes`; the experiment records each probe's measurement; one progress count runs through the incumbent, the probes and the composed change. Store migration 25.
