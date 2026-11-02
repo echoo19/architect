@@ -84,6 +84,7 @@ export function Rounds({
   records,
   failure,
   stopReason,
+  improving,
   onOpen,
   current,
 }: {
@@ -100,6 +101,8 @@ export function Rounds({
   failure: { error: Error; reload: () => void } | null;
   /** Why training ended, once it has. */
   stopReason: RunStopReason | undefined;
+  /** Improve agent's run, whose changes need no gain to stay. */
+  improving: boolean;
   onOpen: (round: Round) => void;
   /** The newest round, opened: what is happening in it. */
   current: ReactNode;
@@ -171,6 +174,7 @@ export function Rounds({
                   draft={round.index === draftRound}
                   running={running}
                   ended={ended}
+                  improving={improving}
                   experiment={records?.experiments.find((item) => item.round === round.index)}
                   asked={records ? questionOfRound(round, records.interventions) : undefined}
                   open={round.index === newest}
@@ -192,6 +196,7 @@ function RoundRow({
   draft,
   running,
   ended,
+  improving,
   experiment,
   asked,
   open,
@@ -202,6 +207,7 @@ function RoundRow({
   draft: boolean;
   running: boolean;
   ended: boolean;
+  improving: boolean;
   experiment: Experiment | undefined;
   /** The question the round put to the person, when it was one. */
   asked: Intervention | undefined;
@@ -223,7 +229,7 @@ function RoundRow({
       ? null
       : experiment
         ? outcomeNote(experiment, job, w)
-        : roundShortfall(round, job, w);
+        : roundShortfall(round, job, w, improving);
   return (
     <RowButton
       onClick={onOpen}

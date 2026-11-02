@@ -366,8 +366,13 @@ function dispositionReason(
   if (!experiment) return scores;
   switch (experiment.disposition) {
     case 'kept':
-    case 'reverted':
       return scores ?? sentence(experiment.reason);
+    // An improvement's change is undone for what the student didn't learn, never for a gain it
+    // needn't make (decision 066): the runner's own reason says which.
+    case 'reverted':
+      return experiment.learned === undefined
+        ? (scores ?? sentence(experiment.reason))
+        : sentence(experiment.reason);
     case 'rejected': {
       const failed = experiment.gates.find((gate) => !gate.passed);
       if (!failed) return harmSentence(experiment, job, w) ?? sentence(experiment.reason);

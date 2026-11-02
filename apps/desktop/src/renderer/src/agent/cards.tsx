@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   gpuFit,
   reportScores,
+  RunEventSchema,
   type GraduateSummary,
   type OrgScores,
   type ReportCard,
@@ -41,7 +42,7 @@ import {
   Users,
   WifiOff,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, architect } from '../api/client';
 import { useInstallation } from '../api/graduates';
 import { useLocalRuntimes, useReport } from '../api/hooks';
 import { mentoringApi } from '../api/mentoring';
@@ -60,6 +61,7 @@ import { agentModelName, quantizationLabel } from '../lib/names';
 import { chatPath, navigate } from '../lib/router';
 import { runtimeName } from '../models/registry';
 import { useWords } from '../shell/edition';
+import { onWorkspaceEvent } from '../workspace/api';
 import {
   activitySpan,
   answerTimes,
@@ -263,8 +265,9 @@ export function WorkCard({ messages }: { messages: readonly WorkspaceMessage[] }
     { label: 'Writes you allowed', value: counts.approved },
     { label: 'Writes waiting for you', value: counts.waiting },
     { label: 'Writes you declined', value: counts.denied },
+    { label: "Writes that couldn't be saved", value: counts.failed, danger: true },
     { label: 'Left to a person', value: counts.refusals },
-    { label: 'Stopped on an error', value: counts.errors + counts.failed, danger: true },
+    { label: 'Stopped on an error', value: counts.errors, danger: true },
   ];
   return (
     <Card title="Tools and decisions" icon={<FlaskConical strokeWidth={1.8} aria-hidden />}>
@@ -313,6 +316,25 @@ export function WorkCard({ messages }: { messages: readonly WorkspaceMessage[] }
 }
 
 /* On this computer */
+
+/** How often the home reads the runtime and the guard again while it is in view. */
+const POLL_MS = 15_000;
+
+/** Calls `then` each time a test of the run finishes, on this computer or on a hosted copy. */
+function useTestFinished(runId: string | undefined, then: () => void): void {
+  const latest = useRef(then);
+  useEffect(() => {
+    latest.current = then;
+  });
+  useEffect(() => {
+    if (runId === undefined) return;
+    return architect().runs.onEvent((payload) => {
+      const event = RunEventSchema.safeParse(payload);
+      if (!event.success || event.data.runId !== runId) return;
+      if (event.data.type === 'eval.finished' && event.data.split === 'test') latest.current();
+    });
+  }, [runId]);
+}
 
 function Fact({
   icon,
@@ -369,11 +391,37 @@ export function DeploymentCard({
   const installation = useInstallation(agent.id);
   const local = useLocalRuntimes();
   const runId = report?.runId;
-  const measurements = useQuery(`runtime-measurements:${runId ?? ''}`, () =>
-    runId === undefined ? Promise.resolve([]) : api.runtimeMeasurements(runId),
+  const measurements = useQuery(
+    `runtime-measurements:${runId ?? ''}`,
+    () => (runId === undefined ? Promise.resolve([]) : api.runtimeMeasurements(runId)),
+    { refreshOnMount: true },
   );
-  const blocked = useQuery('blocked-connections', api.blockedConnections);
+  const blocked = useQuery('blocked-connections', api.blockedConnections, {
+    refreshOnMount: true,
+  });
   const title = words.lab ? 'On-premise' : 'On this computer';
+  // The model loads and unloads, and the guard can stop a call, while the home is open: both are
+  // read again when it opens, as each reply settles, and now and then while it is in view.
+  const { reload: reloadLocal } = local;
+  const { reload: reloadBlocked } = blocked;
+  useEffect(() => {
+    reloadLocal();
+    const refresh = () => {
+      reloadLocal();
+      reloadBlocked();
+    };
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') refresh();
+    }, POLL_MS);
+    const stop = onWorkspaceEvent((event) => {
+      if (event.type === 'message.updated' && event.message.status !== 'streaming') refresh();
+    });
+    return () => {
+      clearInterval(timer);
+      stop();
+    };
+  }, [reloadLocal, reloadBlocked]);
+  useTestFinished(runId, measurements.reload);
 
   if (installation.status === 'error') {
     return (
@@ -625,16 +673,29 @@ function DriftFact({ drift, lab }: { drift: Drift; lab: boolean }) {
  */
 export function EvidenceCard({ agent, report }: { agent: GraduateSummary; report: ReportCard }) {
   const words = useWords();
-  const targets = useQuery(`report-targets:${report.runId}`, () => api.reportTargets(report.runId));
+  // A retest can finish while the home is closed or open: what was tested is read again on both.
+  const targets = useQuery(
+    `report-targets:${report.runId}`,
+    () => api.reportTargets(report.runId),
+    { refreshOnMount: true },
+  );
   const retargets = (targets.data ?? []).filter((target) => target !== report.testedOn);
-  const retests = useQuery(`retests:${report.runId}:${retargets.join(',')}`, () =>
-    Promise.all(retargets.map((target) => api.report(report.runId, target))),
+  const retests = useQuery(
+    `retests:${report.runId}:${retargets.join(',')}`,
+    () => Promise.all(retargets.map((target) => api.report(report.runId, target))),
+    { refreshOnMount: true },
   );
   const suite = useQuery(`fieldCounterexamples:${agent.manifest.jobId}`, () =>
     mentoringApi.fieldCounterexamples(agent.manifest.jobId),
   );
   // The run's own card carries what was measured on it since, such as its certificate.
-  const graduated = useReport(report.runId).data ?? report;
+  const own = useReport(report.runId);
+  const graduated = own.data ?? report;
+  useTestFinished(report.runId, () => {
+    targets.reload();
+    retests.reload();
+    own.reload();
+  });
   // A retest is another endpoint's card; one that is the graduation's own again isn't.
   const since = (retests.data ?? []).filter((card) => card.testedOn !== graduated.testedOn);
   const rows: TestRow[] = [graduated, ...since].map((card) => ({

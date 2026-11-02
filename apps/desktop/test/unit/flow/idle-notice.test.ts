@@ -36,6 +36,7 @@ function live(
     lockedTestOn: 'local',
     rounds: [],
     attempts: [],
+    practiced: {},
     lineage: [],
     budget: null,
     progress: null,

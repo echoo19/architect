@@ -275,7 +275,8 @@ async function takeTurns(
         toolCalls: reply.toolCalls,
         usage: spent.usage,
         ...(spent.costUsd === undefined ? {} : { costUsd: spent.costUsd }),
-        latencyMs: reply.latencyMs,
+        // The turn took as long as its replies thrown away and the one kept.
+        latencyMs: reply.latencyMs + asked.spent.latencyMs,
       });
       messages.push(
         reply.toolCalls.length > 0

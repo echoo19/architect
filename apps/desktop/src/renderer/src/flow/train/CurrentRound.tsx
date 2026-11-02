@@ -13,6 +13,7 @@ import {
   hasEnded,
   isTesting,
   latestFailure,
+  practiceSoFar,
   roundAttempts,
   type LiveRun,
   type RecentAttempt,
@@ -32,11 +33,11 @@ function studentLine(
       : `No practice this round. It waits for its first ${w.setup}.`;
   }
   if (failure) return failureLine(failure);
-  const attempts = roundAttempts(live, round.index);
-  if (attempts.length > 0 && attempts.every((attempt) => attempt.check.pass)) {
-    return attempts.length === 1
+  const so = practiceSoFar(live, round.index);
+  if (so.total > 0 && so.pass === so.total) {
+    return so.total === 1
       ? 'Got its first practice task right this round.'
-      : `Got all ${attempts.length} practice tasks right so far this round.`;
+      : `Got all ${so.total} practice tasks right so far this round.`;
   }
   return `Working through ${job.evaluation.trainBatch} practice tasks.`;
 }
@@ -166,20 +167,23 @@ type Cell = 'pass' | 'fail' | 'waiting';
 
 /**
  * The round's practice tasks, one cell each: in the order they were answered while every answer
- * is at hand, else right ones first, then wrong ones, then the ones still to answer.
+ * is at hand, else right ones first, then wrong ones, then the ones still to answer. Once practice
+ * is over its recorded score is the count: a lesson's recheck later in the round practices too.
  */
 export function practiceCells(live: LiveRun, round: Round): Cell[] {
   const answered = roundAttempts(live, round.index).reverse();
   const batch = live.job.evaluation.trainBatch;
-  if (round.train.total === 0 && answered.length === 0) return [];
+  const practicing = round.status === 'attempting';
+  const score = practicing ? practiceSoFar(live, round.index) : round.train;
+  if (score.total === 0) return [];
   const cells: Cell[] =
-    answered.length >= round.train.total
+    answered.length === score.total
       ? answered.map((attempt) => (attempt.check.pass ? 'pass' : 'fail'))
       : [
-          ...Array<Cell>(round.train.pass).fill('pass'),
-          ...Array<Cell>(round.train.total - round.train.pass).fill('fail'),
+          ...Array<Cell>(score.pass).fill('pass'),
+          ...Array<Cell>(score.total - score.pass).fill('fail'),
         ];
-  const waiting = round.status === 'attempting' ? Math.max(0, batch - cells.length) : 0;
+  const waiting = practicing ? Math.max(0, batch - cells.length) : 0;
   return [...cells, ...Array<Cell>(waiting).fill('waiting')];
 }
 
