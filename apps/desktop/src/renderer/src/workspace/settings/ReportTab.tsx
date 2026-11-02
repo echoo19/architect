@@ -68,6 +68,9 @@ function leaveFor(path: string): void {
 function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
   const handled = test.perType.filter((type) => !type.refused);
+  const target = Math.round(requirements.passRate.target * 100);
+  // When every type misses the target, the warning is said once, not under each.
+  const allBelow = handled.length > 1 && handled.every((type) => percentOf(type) < target);
   const place = imported
     ? "on the author's computer"
     : test.ranOffline
@@ -79,8 +82,7 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
       {imported && <span className="-mb-5 text-small text-fg">{AUTHOR_RESULT_TITLE}</span>}
       <div>
         <Figure label="Of new tasks right" value={formatPercent(test.score)}>
-          {test.score.pass} of {test.score.total}, target{' '}
-          {Math.round(requirements.passRate.target * 100)}%
+          {test.score.pass} of {test.score.total}, target {target}%
         </Figure>
         <Figure label={`Typical answer, ${place}`} value={formatAnswerTime(test.latencyMs.p50)}>
           95% within {formatAnswerTime(test.latencyMs.p95)}
@@ -113,6 +115,12 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
 
       <section className="flex flex-col gap-4">
         <Heading>Handles</Heading>
+        {allBelow && (
+          <span className="-mt-2 text-small text-fg">
+            Each is below the {target}% target on its own: check these answers before relying on
+            them
+          </span>
+        )}
         {handled.map((type) => (
           <div key={type.type} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
@@ -126,10 +134,9 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
               </span>
             </div>
             <Meter label={type.label} value={percentOf(type) / 100} tone="student" thickness={4} />
-            {percentOf(type) < Math.round(requirements.passRate.target * 100) && (
+            {!allBelow && percentOf(type) < target && (
               <span className="text-small text-fg">
-                Below the {Math.round(requirements.passRate.target * 100)}% target on its own: check
-                these answers before relying on them
+                Below the {target}% target on its own: check these answers before relying on them
               </span>
             )}
           </div>

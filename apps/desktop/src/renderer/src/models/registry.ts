@@ -180,13 +180,13 @@ export function ordered(a: ModelRow, b: ModelRow): [ModelRow, ModelRow] {
   return at(a) <= at(b) ? [a, b] : [b, a];
 }
 
-/** Where an organization stands to the agent: taught on, never seen, or never seen and real. */
+/** Where an organization stands to the agent: taught on, never seen, or the real one, never seen. */
 export type OrgGroup = 'seen' | 'unseen' | 'real';
 
 export const GROUP_LABELS: Record<OrgGroup, string> = {
   seen: 'Taught on',
   unseen: 'Never seen',
-  real: 'Never seen, real',
+  real: 'Real',
 };
 
 const GROUP_ORDER: OrgGroup[] = ['seen', 'unseen', 'real'];

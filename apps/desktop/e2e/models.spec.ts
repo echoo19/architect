@@ -146,9 +146,9 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await expect(panel().getByRole('heading', { name: /Academy desk/ })).toBeVisible();
   const finalTest = panel().getByRole('region', { name: 'Sealed final test' });
   await expect(finalTest).toContainText('Taught on');
-  await expect(finalTest).toContainText('67/72');
+  await expect(finalTest).toContainText('67 of 72');
   await expect(panel()).toContainText('Held-out checks');
-  await expect(panel()).toContainText('87/96');
+  await expect(panel()).toContainText('87 of 96');
   await expect(panel().getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   await expect(panel().getByRole('button', { name: 'Export evidence' })).toBeVisible();
   // The panel pushes the table, which keeps every column in view, Status last.
@@ -207,7 +207,7 @@ test('compares two versions skill by organization, with the harness diff between
 
   await expect(page.getByRole('heading', { name: 'Compare', level: 1 })).toBeVisible();
   const grid = page.getByRole('table', { name: 'Final test by skill and organization' });
-  await expect(grid.getByRole('columnheader', { name: 'Never seen, real' })).toBeVisible();
+  await expect(grid.getByRole('columnheader', { name: 'Real', exact: true })).toBeVisible();
   // First hint at Northside Prep: 2 of 4, then 3 of 4.
   await expect(
     grid.getByLabel('First hint at Northside Prep, 2 of 4 then 3 of 4, +25 points'),
