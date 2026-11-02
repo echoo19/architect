@@ -4,7 +4,7 @@ Written on Nov 2, 2026 from the run's stored records, in `architect-runs/team-3`
 
 ## The result
 
-**Still no pass in either arm: the team passed 0 of 20 and Inventory desk alone 0 of 20.** The prediction was 2 to 8 team passes, so it was wrong. Once, Assay desk found exactly the plate's list. At Fenwick, team attempt 3, it read plate FW-0418 whole through the new path and found FWC-13399 (inconclusive) and FWC-13444 (borderline), the two compounds the lead needed. No ask had done that in team-1 or team-2. It then tried to queue them in `retests.csv`. Without a terminal that write needs an approval no one can give, so the whole reply ended there (`approval_required`), and the lead never got the list. The plan named this risk in advance.
+**Still no pass in either arm: the team passed 0 of 20 and Inventory desk alone 0 of 20.** The prediction was 2 to 8 team passes, so it was wrong. Assay desk found exactly the plate's list in two asks (first reported as one; corrected in [team-4](team-4.md), where the other filled its context two steps later). In one, at Fenwick, team attempt 3, it read plate FW-0418 whole through the new path and found FWC-13399 (inconclusive) and FWC-13444 (borderline), the two compounds the lead needed. No ask had done that in team-1 or team-2. It then tried to queue them in `retests.csv`. Without a terminal that write needs an approval no one can give, so the whole reply ended there (`approval_required`), and the lead never got the list. The plan named this risk in advance.
 
 | Lab | Request's task (split) | Team | Inventory desk alone |
 | --- | --- | --- | --- |
@@ -31,7 +31,7 @@ Decision 106 keeps such a result whole where `run` code can read it. The note no
 | Asks the tool refused at the cap | 79 | 106 |
 | Asks whose plate result was cut, with the new note | - | 47 |
 | Asks whose code read the whole result | - | 5 |
-| Asks in which Assay desk found the plate's whole list | 0 | 1 |
+| Asks in which Assay desk found the plate's whole list | 0 | 2 (corrected in [team-4](team-4.md); first reported as 1) |
 | Teammate answers that named every compound on the plate's list | 0 | 0 |
 | Team replies that ended at a teammate's write (`approval_required`) | 0 | 1 |
 | Team passes / solo passes | 0 / 0 | 0 / 0 |
