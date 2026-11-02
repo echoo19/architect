@@ -133,7 +133,10 @@ export interface Oversight {
   errors: number;
 }
 
-/** What the person was asked to decide, and what went wrong. */
+/**
+ * What the person was asked to decide, and what went wrong. A reply paused on a write is still
+ * streaming, so its writes count while the rest of it waits to settle.
+ */
 export function oversight(messages: readonly WorkspaceMessage[]): Oversight {
   const counts: Oversight = {
     replies: 0,
@@ -144,11 +147,13 @@ export function oversight(messages: readonly WorkspaceMessage[]): Oversight {
     failed: 0,
     errors: 0,
   };
-  for (const message of settledReplies(messages)) {
-    counts.replies += 1;
+  for (const message of messages) {
+    if (message.role !== 'agent') continue;
+    const settled = message.status !== 'streaming';
+    if (settled) counts.replies += 1;
     if (message.status === 'error') counts.errors += 1;
     for (const block of message.blocks) {
-      if (block.kind === 'refusal') counts.refusals += 1;
+      if (block.kind === 'refusal' && settled) counts.refusals += 1;
       if (block.kind !== 'approval') continue;
       if (block.status === 'approved') counts.approved += 1;
       else if (block.status === 'denied') counts.denied += 1;

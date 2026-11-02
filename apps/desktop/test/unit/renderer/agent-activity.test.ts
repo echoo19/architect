@@ -183,6 +183,15 @@ describe('oversight', () => {
       errors: 1,
     });
   });
+
+  it('counts a write waiting on a reply that is still streaming, and not the reply', () => {
+    const counts = oversight([
+      ask(new Date()),
+      message({ status: 'streaming', blocks: [approval('pending')] }),
+    ]);
+    expect(counts.waiting).toBe(1);
+    expect(counts.replies).toBe(0);
+  });
 });
 
 describe('sessionRows', () => {
