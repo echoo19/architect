@@ -1,19 +1,8 @@
 import { ArrowUpRight } from 'lucide-react';
 import { WHY } from '../content';
+import { Others } from './Others';
+import { Unbroken } from './Unbroken';
 import { Reveal } from './Reveal';
-
-/** A quote whose hyphenated words ("high-quality") never break at the hyphen. */
-function Unbroken({ text }: { text: string }) {
-  return text.split(/(\S*\w-\w\S*)/).map((piece, index) =>
-    index % 2 === 1 ? (
-      <span key={index} className="whitespace-nowrap">
-        {piece}
-      </span>
-    ) : (
-      piece
-    ),
-  );
-}
 
 /** Y Combinator's mark, a white Y on its orange square, kept as the file in public/. */
 function YcMark() {
@@ -23,7 +12,8 @@ function YcMark() {
 /**
  * Why we made Architect: the title and when the build began, our reason beside them, then the
  * requests that later asked for the same thing, under the list they came from, side by side:
- * each quote, then who asked and our answer, on one line across the three.
+ * each quote, then who asked and our answer, on one line across the three. Under them, published
+ * work from others pointing the same way, one at a time.
  */
 export function Why() {
   return (
@@ -76,6 +66,7 @@ export function Why() {
           </li>
         ))}
       </ol>
+      <Others />
     </section>
   );
 }

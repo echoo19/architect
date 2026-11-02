@@ -2,6 +2,11 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon): others working on this, under the YC requests (`site/validation-carousel`)
+
+- *Done:* the bottom of "Why we made this" turns through seven published pieces that point the same way: Google Research's Harness², YC's Own Your Intelligence, NVIDIA Research on small models for agents, Anthropic and OpenAI on context and harness engineering, ACE (Stanford, SambaNova, UC Berkeley) and Meta's open-source letter. Each slide shows its mark large beside one sentence quoted word for word, with a dated link. Under them, a row of every organization's mark shows all seven at once and picks a slide (`site/src/validation.ts` keeps the sources and where each mark came from). It changes every 6 s, the old slide fading before the new one rises in. It holds on hover or focus, and has previous, next and stop controls plus arrow keys. With reduced motion it never turns. Its height stays the same across slides, with no horizontal scroll at 390 px. The copy test allows the seven links and checks that every slide has a link, a quote of 30 words or fewer, and a mark file or a name.
+- *Open:* Stanford is set as its name (it licenses its marks only to its own units). Meta's mark is the Commons vector of its brand logo, with the wordmark drawn white. GEPA was left out for overlapping ACE. The branch isn't merged.
+
 ## 2026-11-02 (Mon, 06:00 UTC): team-3, the plate overflow's cause fixed and measured (`team/plate-fits`)
 
 - *Done, diagnosis:* team-2's taught consultations show every one of the 67 `assay_plate` calls was cut at the 8,000-character result budget (FW-0418's result is 16,124). The helper's per-compound summary comes last and was lost, the note said "ask for less", and Assay desk rebuilt the plate from raw files until its context or steps ran out.
