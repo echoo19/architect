@@ -484,12 +484,11 @@ html.motion .others-slide[data-active='true'] {
 /* A quote set a step larger than the requests above it: it stands alone on its line. */
 .others-quote {
   margin: 0;
-  max-width: 44rem;
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  font-size: clamp(1.5rem, 1.05rem + 1.5vw, 2.375rem);
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: 1.18;
+  letter-spacing: -0.022em;
   color: var(--ui-fg);
   text-wrap: pretty;
   quotes: '\201C' '\201D';
@@ -503,35 +502,104 @@ html.motion .others-slide[data-active='true'] {
   content: close-quote;
 }
 
-/* The slide's place: a 24px target around a small dot, the current one filled. */
-.others-dot {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 999px;
+/*
+ * A mark at its own height (--mark-h, in px), scaled per place: large beside its quote, two
+ * thirds of that in the row of all of them, and smaller again on a phone.
+ */
+.others-mark {
+  display: block;
+  width: auto;
+  height: calc(var(--mark-h) * 0.82px);
 }
 
-.others-dot::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--ui-line-strong);
-  transition: background-color 200ms var(--ease-out-soft);
+.others-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.024em;
+  color: var(--ui-fg);
 }
 
-.others-dot:hover::before {
-  background: color-mix(in srgb, var(--ui-fg) 56%, transparent);
+/* The slide's mark sits level with the first line of its quote. */
+.others-lead {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
 }
 
-.others-dot[aria-current='true']::before {
-  background: var(--ui-fg);
+@media (min-width: 1024px) {
+  .others-mark {
+    height: calc(var(--mark-h) * 1px);
+  }
+
+  .others-name {
+    font-size: 2.5rem;
+  }
+
+  .others-lead {
+    align-items: flex-start;
+    padding-top: 4px;
+  }
 }
 
-.others-dot:focus-visible {
+/* Every organization at once: the one shown at full strength, the others dimmed. */
+.others-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+}
+
+@media (min-width: 1024px) {
+  .others-row {
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 24px;
+  }
+}
+
+.others-chip {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  border-radius: 8px;
+  opacity: 0.38;
+  transition: opacity 240ms var(--ease-out-soft);
+}
+
+.others-chip:hover {
+  opacity: 0.72;
+}
+
+.others-chip[aria-current='true'] {
+  opacity: 1;
+}
+
+.others-chip:focus-visible {
   outline: 2px solid var(--ui-ring);
-  outline-offset: 0;
+  outline-offset: 4px;
+}
+
+.others-chip .others-mark {
+  height: calc(var(--mark-h) * 0.5px);
+}
+
+.others-chip .others-name {
+  font-size: 1.125rem;
+  letter-spacing: -0.012em;
+}
+
+@media (min-width: 1024px) {
+  .others-chip .others-mark {
+    height: calc(var(--mark-h) * 0.667px);
+  }
+
+  .others-chip .others-name {
+    font-size: 1.5rem;
+  }
 }
 
 .others-control {

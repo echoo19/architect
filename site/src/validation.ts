@@ -18,18 +18,23 @@
  *                     University, SambaNova Systems and UC Berkeley; last sentence of the abstract.
  *   Meta              Meta Newsroom letter by Mark Zuckerberg, Jul 23, 2024.
  *
- * The marks are each organization's own, as its own site serves them, unaltered but for a
- * one-colour wordmark drawn in white, the reversed form its own dark pages use:
+ * The marks are each organization's own, unaltered but for a one-colour wordmark drawn in
+ * white, the reversed form for a dark ground:
  *   Google      the colour wordmark from gstatic.com's branding folder
  *   NVIDIA      the header logo symbol on nvidia.com (eye in its green, wordmark white)
  *   Anthropic   the header wordmark on anthropic.com
  *   OpenAI      the header wordmark on openai.com
+ *   Meta        "Meta Platforms Inc. logo.svg" on Wikimedia Commons, drawn from Meta's brand
+ *               resources page (symbol in its blues, wordmark white; a viewBox added to scale it)
  *   YC          the mark already in public/ (see Why)
- * Stanford and Meta are set as their names: Stanford licenses its marks only to its own units,
- * and the vector Meta logo on Meta's pages fills its symbol with a picture rather than a shape.
+ * Stanford is set as its name: it licenses its marks only to its own units.
  */
 
-/** A logo file in public/, and the size it is drawn at so every mark has a like weight. */
+/**
+ * A logo file in public/, and the size it is drawn at above its quote, chosen so every mark has a
+ * like weight (a thin wide wordmark is shorter than a square one). The row of all of them draws
+ * each at two thirds of this.
+ */
 export interface Mark {
   src: string;
   width: number;
@@ -55,7 +60,7 @@ export const VALIDATION: { title: string; slides: readonly Validation[] } = {
   slides: [
     {
       org: 'Google Research',
-      mark: { src: './logos/google.svg', width: 108, height: 35 },
+      mark: { src: './logos/google.svg', width: 136, height: 44 },
       title: 'Harness²: Recursive Agent Harnessing for an Open World',
       date: 'Oct 9, 2026',
       href: 'https://arxiv.org/abs/2610.14224',
@@ -64,7 +69,7 @@ export const VALIDATION: { title: string; slides: readonly Validation[] } = {
     },
     {
       org: 'Y Combinator',
-      mark: { src: './yc-mark.svg', width: 40, height: 40 },
+      mark: { src: './yc-mark.svg', width: 46, height: 46 },
       title: 'Own Your Intelligence',
       date: 'Winter 2027',
       href: 'https://www.ycombinator.com/rfs#own-your-intelligence',
@@ -73,7 +78,7 @@ export const VALIDATION: { title: string; slides: readonly Validation[] } = {
     },
     {
       org: 'NVIDIA Research',
-      mark: { src: './logos/nvidia.svg', width: 146, height: 27 },
+      mark: { src: './logos/nvidia.svg', width: 206, height: 38 },
       title: 'Small Language Models are the Future of Agentic AI',
       date: 'Jun 2, 2025',
       href: 'https://arxiv.org/abs/2506.02153',
@@ -82,7 +87,7 @@ export const VALIDATION: { title: string; slides: readonly Validation[] } = {
     },
     {
       org: 'Anthropic',
-      mark: { src: './logos/anthropic.svg', width: 160, height: 18 },
+      mark: { src: './logos/anthropic.svg', width: 232, height: 26 },
       title: 'Effective context engineering for AI agents',
       date: 'Sep 29, 2025',
       href: 'https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents',
@@ -91,7 +96,7 @@ export const VALIDATION: { title: string; slides: readonly Validation[] } = {
     },
     {
       org: 'OpenAI',
-      mark: { src: './logos/openai.svg', width: 112, height: 30 },
+      mark: { src: './logos/openai.svg', width: 165, height: 44 },
       title: 'Harness engineering: leveraging Codex in an agent-first world',
       date: 'Feb 11, 2026',
       href: 'https://openai.com/index/harness-engineering/',
@@ -109,7 +114,7 @@ export const VALIDATION: { title: string; slides: readonly Validation[] } = {
     },
     {
       org: 'Meta',
-      name: 'Meta',
+      mark: { src: './logos/meta.svg', width: 199, height: 40 },
       title: 'Open Source AI is the Path Forward',
       date: 'Jul 23, 2024',
       href: 'https://about.fb.com/news/2024/07/open-source-ai-is-the-path-forward/',
