@@ -326,21 +326,6 @@ export function createAgentHost(options: AgentHostOptions): AgentHost {
               leadUse: use,
               leadHold: () => held,
               watch,
-              approveWrite: ({ session }, pause) =>
-                approveWrites({
-                  agentName: session.name,
-                  agent: { graduateId: session.id, name: session.name },
-                  mode: () => writeMode(session),
-                  allowFromNowOn: () => store.saveWriteMode(session.id, 'allow'),
-                  reply,
-                  pending,
-                  setWaiting: (waiting) => {
-                    updateChat(chat.id, { waiting });
-                    if (waiting) pause();
-                  },
-                  interactive,
-                  approvalRequired,
-                }),
               signal: controller.signal,
             }),
           };

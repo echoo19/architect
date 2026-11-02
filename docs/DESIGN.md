@@ -269,8 +269,8 @@ and the wordmark reads "Architect" instead of "Architect Lab".
   the answer beside it, or how it ended without one ("Doesn't handle this", "Gave no answer",
   "Stopped with an error", "Stopped", "Ran out of steps"). It opens to the request, the
   teammate's own steps indented under a hairline of their own, its whole answer without its
-  ANSWER line, the version that answered and a flag that teaches the teammate. An approval in a
-  team reply names the agent whose files it changes.
+  ANSWER line, the version that answered and a flag that teaches the teammate. A teammate can't
+  write in a consult, so every approval in a team reply is the lead's (decision 107).
 - **Team words.** "Team" for the saved list, "lead" for the agent that answers, "teammate" for the
   others, "Asked" for a consultation. Never "orchestrator", "sub-agent", "delegate" or "swarm".
 - **DataTable.** A table of records on the card surface: sortable headers with an arrow on the
