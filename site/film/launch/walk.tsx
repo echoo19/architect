@@ -60,11 +60,6 @@ interface PageSpan {
   clock?: readonly (readonly [number, number])[];
   /** Swapped in at once, out of sight under a figure that fills the frame. */
   cut?: boolean;
-  /**
-   * A quicker hand-off: the page before goes faster and this one follows at once, so no frame is
-   * left empty for long.
-   */
-  swift?: boolean;
 }
 
 const local = (pairs: readonly (readonly [number, number])[]) => smoothMap(pairs);
@@ -87,13 +82,17 @@ const experimentTime = (t: number) => 6 + Math.max(0, t - T.vaultCut);
 /** When the plot's groups land, in the page's own time: taught on, Harborview, the real academy. */
 const ARMS = [4.7, experimentTime(T.resolve + 0.55), experimentTime(T.side + 1.0)] as const;
 
+/** How far a table page has got by the time it comes in: its rows are already rising. */
+const ROWS_IN = 0.3;
+
 /** Allow once on the academy desk's write, in the workspace page's own time. */
 const ALLOW_AT = 9.4;
 
 const PAGES: readonly PageSpan[] = [
   {
     key: 'lab',
-    at: T.toLab + 0.3,
+    // In before the window comes into view beside the requests, so it never arrives empty.
+    at: T.toLab - 0.6,
     mode: 'place',
     fill: place(0),
     draw: (lt, t) => (
@@ -110,7 +109,11 @@ const PAGES: readonly PageSpan[] = [
     mode: 'place',
     fill: place(1),
     draw: (lt) => (
-      <Fields lt={lt} selected={ui(lt, T.academyLit - T.fields, 0.2)} when={FIELD_ACTIVITY} />
+      <Fields
+        lt={lt + ROWS_IN}
+        selected={ui(lt, T.academyLit - T.fields, 0.2)}
+        when={FIELD_ACTIVITY}
+      />
     ),
   },
   {
@@ -149,7 +152,6 @@ const PAGES: readonly PageSpan[] = [
     key: 'train',
     at: T.train,
     mode: 'flow',
-    swift: true,
     fill: place(1),
     draw: (_lt, t) => <TrainPage t={t} />,
   },
@@ -175,8 +177,8 @@ const PAGES: readonly PageSpan[] = [
     fill: place(3),
     draw: (lt) => (
       <ModelsPage
-        lt={lt}
-        panelAt={T.panel - T.models}
+        lt={lt + ROWS_IN}
+        panelAt={T.panel - T.models + ROWS_IN}
         certificate={CERTIFICATE}
         row={0}
         basisOpen
@@ -197,9 +199,9 @@ const PAGES: readonly PageSpan[] = [
     fill: place(1),
     draw: (lt, t) => (
       <Fields
-        lt={lt}
+        lt={lt + ROWS_IN}
         selected={Math.min(ui(t, T.notJust + 1.2, 0.25), 1 - ui(t, T.labDesks, 0.35))}
-        lab={ui(t, T.labDesks, 0.35) - ui(t, T.scienceDive - 0.1, 0.4)}
+        lab={ui(t, T.labDesks, 0.35) - ui(t, T.scienceResolve, 0.4)}
         when={FIELD_ACTIVITY}
         scores={t >= T.scienceResolve + 0.75 ? { 'Inventory desk': INVENTORY_SCORES } : undefined}
       />
@@ -225,7 +227,6 @@ const PAGES: readonly PageSpan[] = [
     key: 'home',
     at: T.workspace,
     mode: 'place',
-    swift: true,
     fill: ACADEMY_ROW,
     draw: (_lt, t) => <AgentHomePage t={t} />,
   },
@@ -233,7 +234,6 @@ const PAGES: readonly PageSpan[] = [
     key: 'workspace',
     at: T.intoChat,
     mode: 'place',
-    swift: true,
     fill: ACADEMY_CHAT,
     draw: (lt) => <WorkspacePage lt={lt} allowAt={ALLOW_AT} />,
     // It opens on the reply already waiting for approval, and Allow once is pressed on its word.
@@ -329,6 +329,7 @@ function drawer(t: number): ScreenView['drawer'] {
         lt={DRAWER_CLOCK(t - T.drawer)}
         task={COUNTEREXAMPLE_TASK}
         rest={false}
+        large
       />
     ),
     open: outExpo(span(t, T.drawer, 0.75)),
@@ -344,13 +345,9 @@ export function walkView(t: number): ScreenView {
     if (t < page.at - 0.01) return;
     if (next && t > next.at + 0.35) return;
     if (next?.cut && t >= next.at) return;
-    // A page leaves before the next arrives, so no two are ever seen through each other.
-    const enter = page.cut
-      ? 1
-      : page.swift
-        ? outQuart(span(t, page.at + 0.06, 0.3))
-        : outQuart(span(t, page.at + 0.12, 0.45));
-    const leave = next && !next.cut ? outQuart(span(t, next.at, next.swift ? 0.1 : 0.14)) : 0;
+    // A page goes quickly as the next rises, so the window is never left empty between them.
+    const enter = page.cut ? 1 : outQuart(span(t, page.at + 0.06, 0.3));
+    const leave = next && !next.cut ? outQuart(span(t, next.at, 0.1)) : 0;
     layers.push({
       key: page.key,
       mode: page.mode,
@@ -369,8 +366,22 @@ export function walkView(t: number): ScreenView {
       step: mix(1, 2, ui(t, T.train, 0.32)),
     },
     drawer: drawer(t),
+    dim: dim(t),
   };
 }
+
+/** While a figure stands beside the window, the window under the app's backdrop. */
+const DIMS: readonly (readonly [number, number])[] = [
+  [T.side + 1.4, T.models - 0.5],
+  [T.certHero - 0.6, T.compute - 0.3],
+  [T.gpuDive - 0.1, T.gpuResolve],
+  [T.scienceDive - 0.1, T.scienceResolve],
+  ...(SHOW_OPEN_TEACHER ? [[T.openBeat, T.beyond - 0.5] as const] : []),
+];
+
+const dim = (t: number) =>
+  0.75 *
+  Math.max(0, ...DIMS.map(([from, to]) => Math.min(ui(t, from + 0.2, 0.5), 1 - ui(t, to, 0.4))));
 
 /** Every page at its finished state, laid over each other, so their parts can be measured. */
 export function measuringView(): ScreenView {
@@ -393,7 +404,7 @@ export function measuringView(): ScreenView {
     sidebarShown: 1,
     flow: { shown: 1, step: 2 },
     drawer: {
-      node: <CounterexampleDrawer lt={20} task={COUNTEREXAMPLE_TASK} rest={false} />,
+      node: <CounterexampleDrawer lt={20} task={COUNTEREXAMPLE_TASK} rest={false} large />,
       open: 1,
       close: 0,
     },
@@ -432,20 +443,6 @@ export function vaultPoint(measured: Measured): readonly [number, number] {
   return [lock.x + lock.w / 2, lock.y + lock.h / 2 - 54];
 }
 
-/** Between Inventory desk's never-seen final test and the next column, where no figure sits. */
-export function sciencePoint(measured: Measured): readonly [number, number] {
-  const cell = measured.get('Inventory desk-1');
-  if (!cell) return [WINDOW.width / 2, WINDOW.height / 2];
-  return [cell.x + cell.w + 43, cell.y + cell.h / 2];
-}
-
-/** In the memory card, right of its headline, where nothing is written; the page is scrolled to it. */
-export function gpuPoint(measured: Measured): readonly [number, number] {
-  const fit = measured.get('ft-fit');
-  if (!fit) return [WINDOW.width / 2, WINDOW.height / 2];
-  return [fit.x + fit.w - 90, fit.y + 13 - FINE_TUNE_SCROLL.fit];
-}
-
 /** How close a dive goes onto its point: everything readable around it is out of frame. */
 export const DIVE = 34;
 
@@ -455,31 +452,33 @@ const onto = (point: readonly [number, number]): Framing => ({
   s: DIVE,
 });
 
-/** The window to the left, the real academy's figure on the ground at its right. */
-export const SIDE: Framing = { cx: 1590, cy: WINDOW.height / 2, s: 2.4 };
+/**
+ * The whole window at the frame's left, under the app's backdrop, a figure on the ground at its
+ * right: the window stays in frame, so the figure is always seen beside where it comes from.
+ */
+const SIDE: Framing = { cx: 1180, cy: WINDOW.height / 2, s: 0.78 };
 
-/** The window above, the open teacher on the ground under it. */
-export const OPEN_VIEW: Framing = { cx: 446, cy: 976, s: 1.8 };
+/** The whole window at the frame's top left, the open teacher on the ground under and beside it. */
+const OPEN_VIEW: Framing = { cx: 1154, cy: 641, s: 0.78 };
 
 /** A little closer on the whole window, so the sidebar stays in frame while it scrolls. */
 const SIDEBAR_VIEW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 1.62 };
 
-/** The team's chat, the frame's left edge just right of the sidebar. */
-const TEAM_VIEW: Framing = { cx: 695, cy: 56 + 540 / 2.43, s: 2.43 };
+/** The team's chat, the frame's left edge just right of the sidebar, its header in frame. */
+const TEAM_VIEW: Framing = { cx: 695, cy: 540 / 2.43 - 10, s: 2.43 };
 
 /**
- * The home's On-premise card, close: the frame's left edge in the gutter between the page's two
- * columns, its top and bottom just outside two of the card's parts, so it cuts only between rows.
+ * The home's On-premise card, close: whole rows with the card's edges inside the frame, its top
+ * and bottom just outside two of the card's parts, so it cuts only between rows.
  */
 function onPremise(measured: Measured, top: string, bottom: string): Framing {
   const first = measured.get(top);
   const last = measured.get(bottom);
   if (!first || !last) return FULL;
-  const left = first.x - 8;
-  const from = first.y - 8;
-  const to = last.y + last.h + 8;
-  const s = FRAME.height / (to - from);
-  return { cx: left + FRAME.width / 2 / s, cy: (from + to) / 2, s };
+  const from = first.y - 14;
+  const to = last.y + last.h + 14;
+  const s = Math.min(FRAME.height / (to - from), FRAME.width / (first.w + 48));
+  return { cx: first.x + first.w / 2, cy: (from + to) / 2, s };
 }
 
 /** The academy desk's chat, as the walkthrough frames it. */
@@ -491,8 +490,8 @@ const DRAWER_VIEW: Framing = { cx: 637, cy: 357, s: 1.8 };
 /** Compute's page: its left edge in the gutter past the sidebar, its top under the title. */
 const COMPUTE_VIEW: Framing = content(104, 1.95);
 
-/** The window to the right, the certificate's bound on the ground at its left. */
-export const CERT_VIEW: Framing = { cx: -710, cy: WINDOW.height / 2, s: 1.6 };
+/** The whole window at the frame's right, the certificate's bound on the ground at its left. */
+const CERT_VIEW: Framing = { cx: -29, cy: WINDOW.height / 2, s: 0.78 };
 
 /**
  * Where academies differ, as its passages open: the frame's top in the gutter above the row, the
@@ -510,7 +509,7 @@ function brief(measured: Measured): Framing {
  * Closer on the training screen as the score lands: from its status line to the Rounds heading,
  * so the frame's edges fall in the space above and below them.
  */
-function trainScore(measured: Measured): Framing {
+export function trainScore(measured: Measured): Framing {
   const top = measured.get('train-status');
   const bottom = measured.get('train-rounds');
   if (!top || !bottom) return FULL;
@@ -518,6 +517,9 @@ function trainScore(measured: Measured): Framing {
   const to = bottom.y + bottom.h + 10;
   return { cx: WINDOW.width / 2, cy: (from + to) / 2, s: FRAME.height / (to - from) };
 }
+
+/** Define's top, its job and the start of the brief, while the passages are still closed. */
+const DEFINE_TOP: Framing = { cx: WINDOW.width / 2, cy: 316, s: 2.29 };
 
 /** The two editions. */
 const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
@@ -543,6 +545,7 @@ const SHOTS: readonly Shot[] = [
   { at: T.real - 0.1, dur: 1.0, to: content(103, 1.9) },
   // 5. The study.
   { at: T.define - 0.3, dur: 0.6, to: FLOW, ease: inOutQuint },
+  { at: T.define + 0.8, dur: 0.9, to: DEFINE_TOP },
   { at: T.source - 0.6, dur: 1.2, to: (m) => brief(m) },
   { at: T.confirm - 0.9, dur: 0.6, to: FLOW },
   // 6. The harness: its drawer over the rounds, then the rounds, then into the score.
@@ -561,10 +564,11 @@ const SHOTS: readonly Shot[] = [
   { at: T.side + 1.4, dur: 0.8, to: SIDE, ease: inOutQuint },
   // 9. The certificate, then the fine-tune: the plan, the model it read, the GPUs, the cluster.
   { at: T.models - 0.5, dur: 0.8, to: FULL, ease: inOutQuint },
+  { at: T.panel - 0.1, dur: 0.8, to: (m) => frameOf(m, 'panel', 40) },
   { at: T.certHero - 0.6, dur: 1.3, to: CERT_VIEW, ease: inOutQuint },
-  { at: T.compute - 0.75, dur: 0.75, to: FULL, ease: inOutQuint },
-  { at: T.compute + 0.35, dur: 1.0, to: COMPUTE_VIEW },
-  { at: T.gpuDive, dur: 0.85, to: (m) => onto(gpuPoint(m)), ease: inOutCubic, still: true },
+  // Compute opens beside the plain line for what comes next, then the camera goes onto its plan.
+  { at: T.compute + 1.6, dur: 1.0, to: COMPUTE_VIEW, ease: inOutQuint },
+  { at: T.gpuDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
   { at: T.gpuResolve, dur: 0.9, to: COMPUTE_VIEW, ease: inOutQuint },
   ...(SHOW_OPEN_TEACHER
     ? [
@@ -572,11 +576,11 @@ const SHOTS: readonly Shot[] = [
         { at: T.beyond - 0.5, dur: 0.9, to: SIDEBAR_VIEW, ease: inOutQuint },
       ]
     : [{ at: T.beyond - 0.45, dur: 0.6, to: SIDEBAR_VIEW, ease: inOutQuint }]),
-  // 10. Beyond academies: the screening lab's desks, a dive into Inventory desk's never-seen
-  // figure and out, then the sidebar turns to the team and its chat.
-  { at: T.labDesks - 0.3, dur: 1.1, to: content(108), still: true },
-  { at: T.scienceDive, dur: 0.85, to: (m) => onto(sciencePoint(m)), ease: inOutCubic, still: true },
-  { at: T.scienceResolve, dur: 1.25, to: content(108), ease: inOutQuint },
+  // 10. Beyond academies: the screening lab's desks, Inventory desk's never-seen figure beside
+  // the window, then the sidebar turns to the team and its chat.
+  { at: T.beyond + 0.8, dur: 1.0, to: content(108), still: true },
+  { at: T.scienceDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
+  { at: T.scienceResolve, dur: 1.1, to: content(108), ease: inOutQuint },
   { at: T.teamScroll - 0.7, dur: 0.7, to: SIDEBAR_VIEW, ease: inOutQuint },
   { at: T.teamClick + 0.25, dur: 1.1, to: TEAM_VIEW },
   // 11. Offline: back for the sidebar and onto Academy desk's home, its Offline row as the network
@@ -592,7 +596,7 @@ const SHOTS: readonly Shot[] = [
   { at: T.intoChat - 0.85, dur: 1.0, to: CHAT_VIEW },
   // 12. The editions, then the whole window again for the end.
   { at: T.welcome - 0.4, dur: 0.6, to: FULL, ease: inOutQuint },
-  { at: T.welcome + 0.8, dur: 1.2, to: EDITIONS },
+  { at: T.welcome + 0.3, dur: 1.2, to: EDITIONS },
   { at: T.morph - 0.95, dur: 0.9, to: FULL, still: true },
 ];
 

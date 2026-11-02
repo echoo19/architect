@@ -6,10 +6,15 @@ import { SHOW_OPEN_TEACHER } from './data';
  * played film (cues.ts) never has to run a stretch much faster than it was made.
  */
 
+// 0. The founder's last line, "Here's how it works.", before the film's own clock starts: his frame
+// recedes into a window as the claim rises beside it.
+const founder = -1.3;
+
 // 1. Hook: "Every frontier model knows a little about everything. Your work needs a specialist
-// that knows it inside out. Architect builds it." The claim, the screens arriving in depth, and
-// the flight through them on "Architect builds it".
-const hits = [8.8, 9.45, 10.1, 10.75] as const;
+// that knows it inside out. Architect builds it." The training screen takes the founder's place,
+// the camera goes onto its score as it climbs past the target, and on "Architect builds it" it
+// dives through the score and past two screens on the music's hits.
+const hits = [8.8, 10.1, 10.75] as const;
 
 // 2. Why: the line, then the three requests, a camera move between each.
 const asked = 10.85;
@@ -98,8 +103,12 @@ const morph = welcome + 5.8;
 const architect = morph + 3.0;
 
 export const T = {
+  founder,
+  recede: founder + 0.4,
   claim: 0.35,
-  arrive: [1.6, 2.5, 3.4, 4.3] as const,
+  trainRises: 0.6,
+  trainShown: 1.6,
+  trainPush: 4.3,
   hits,
   asked,
   requests,

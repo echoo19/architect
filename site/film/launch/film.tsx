@@ -1,7 +1,15 @@
 import type { Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { Ending, Wordmark } from './ending';
-import { CertFigure, FIGURES, Hero, MuseWord, OpenTeacher, RealFigure } from './reveal';
+import {
+  CertFigure,
+  GpuFigures,
+  Hero,
+  MuseWord,
+  OpenTeacher,
+  RealFigure,
+  ScienceFigure,
+} from './reveal';
 import { Screen } from './screen';
 import { SpaceScene } from './space';
 import { T } from './timeline';
@@ -39,12 +47,12 @@ function Walk({ t, measured }: { t: number; measured: Measured }) {
           <Cursor measured={measured} t={t} />
           <RealFigure t={t} />
           <CertFigure t={t} />
+          <GpuFigures t={t} />
+          <ScienceFigure t={t} />
           {SHOW_OPEN_TEACHER && <OpenTeacher t={t} measured={measured} />}
         </div>
       </div>
-      {FIGURES.map((figure) => (
-        <Hero key={figure.title} t={t} view={view} measured={measured} figure={figure} />
-      ))}
+      <Hero t={t} view={view} measured={measured} />
     </>
   );
 }
@@ -53,7 +61,7 @@ export function LaunchFilm({ t, measured }: { t: number; measured: Measured }) {
   return (
     <LabelsContext.Provider value={LAUNCH_LABELS}>
       {t < T.how ? (
-        <SpaceScene t={t} />
+        <SpaceScene t={t} measured={measured} />
       ) : t < T.morph ? (
         <Walk t={t} measured={measured} />
       ) : (

@@ -18,7 +18,7 @@ import { T } from './timeline';
 /**
  * Train, rebuilt from the app's training screen (screens/TrainScreen.tsx, flow/train/LiveStatus.tsx,
  * TaskSuccess.tsx, Budget.tsx and Rounds.tsx, and the LineChart of packages/ui): what the run is
- * doing now, the score on the held-out checks with the time, Spark's cost and the rounds used
+ * doing now, the score on the held-out checks with the time, Spark's teaching and the rounds used
  * under it, the step chart of that score against the target with the practice tasks beside it,
  * and the rounds. The academy field's first run plays out on it, every moment set from the film's
  * clock: round 1 lands before the harness drawer opens, round 2 is rolled back under the drawer
@@ -57,7 +57,7 @@ const AT = {
 
 type Stage = 'attempting' | 'diagnosing' | 'evaluating' | 'testing';
 
-interface Phase {
+export interface Phase {
   at: number;
   stage: Stage;
   /** Tasks done in the step, counted from `from` to `to` of `of` over `dur` seconds once it starts. */
@@ -76,6 +76,16 @@ const PHASES: readonly Phase[] = [
   { at: AT.final, stage: 'testing', count: { of: 120, from: 0, to: 120, dur: 60 } },
 ];
 
+/**
+ * The opening's shorter telling of the same run: Spark reads the failures, then Glimmer practices
+ * and its change is scored, on the same moments of the screen's clock.
+ */
+export const HOOK_PHASES: readonly Phase[] = [
+  { at: -Infinity, stage: 'diagnosing' },
+  PHASES[4]!,
+  PHASES[5]!,
+];
+
 const ROUND_STAGES = ['attempting', 'diagnosing', 'evaluating'] as const;
 const STAGE_LABELS: Record<Stage, string> = {
   attempting: 'Practice',
@@ -84,9 +94,9 @@ const STAGE_LABELS: Record<Stage, string> = {
   testing: 'Sealed final test',
 };
 
-function phaseAt(t: number): number {
+function phaseAt(phases: readonly Phase[], t: number): number {
   let found = 0;
-  PHASES.forEach((phase, index) => {
+  phases.forEach((phase, index) => {
     if (phase.at <= t) found = index;
   });
   return found;
@@ -228,10 +238,10 @@ function Swap({
 }
 
 /** What the run is doing now: whoever works shows its mark, and the round's steps fill. */
-function LiveStatus({ t, score }: { t: number; score: number }) {
-  const index = phaseAt(t);
-  const phase = PHASES[index]!;
-  const before = PHASES[index - 1] ?? phase;
+function LiveStatus({ t, score, phases }: { t: number; score: number; phases: readonly Phase[] }) {
+  const index = phaseAt(phases, t);
+  const phase = phases[index]!;
+  const before = phases[index - 1] ?? phase;
   const mark = (stage: Stage) =>
     stage === 'diagnosing' ? <MentorMark t={t} /> : <StudentMark t={t} lit={score / 100} />;
   const settle = outQuart(span(t, phase.at, 0.36));
@@ -705,7 +715,7 @@ function Budget({ t }: { t: number }) {
       />
       <BudgetMeter
         icon={CircleDollarSign}
-        label="Spark's cost"
+        label="Spark teaching"
         used={`$${cost.toFixed(2)}`}
         max={`$${caps.usd}`}
         share={cost / caps.usd}
@@ -730,7 +740,10 @@ function Score({ t }: { t: number }) {
   const passed = Math.round((score / 100) * TRAINING.of);
   return (
     <div className="flex flex-col gap-6">
-      <span className="font-display text-hero font-semibold leading-none tabular-nums">
+      <span
+        className="w-fit font-display text-hero font-semibold leading-none tabular-nums"
+        data-frame="train-score"
+      >
         {shown}%
       </span>
       <div className="flex flex-col gap-2">
@@ -838,11 +851,11 @@ function rise(t: number, at: number): CSSProperties {
   return { opacity: p, transform: `translateY(${(1 - p) * 8}px)` };
 }
 
-/** The training screen at a moment of the film. */
-export function TrainPage({ t }: { t: number }) {
+/** The training screen at a moment of the film, telling its run as `phases` do. */
+export function TrainPage({ t, phases = PHASES }: { t: number; phases?: readonly Phase[] }) {
   return (
     <div className="mx-auto flex w-[860px] flex-col gap-10 pt-8">
-      <LiveStatus t={t} score={scoreAt(t)} />
+      <LiveStatus t={t} score={scoreAt(t)} phases={phases} />
       <section className="grid grid-cols-[264px_minmax(0,1fr)] items-start gap-x-14">
         <Score t={t} />
         <figure className="m-0 flex min-w-0 flex-col gap-3">

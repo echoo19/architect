@@ -1,5 +1,5 @@
 /**
- * The launch film's timing, written by architect-runs/film/launch/audio/final5/cues.mts from the
+ * The launch film's timing, written by architect-runs/film/launch/audio/final6/cues.mts from the
  * recorded take's word times (one take, placed on film time). The picture is authored on its own
  * clock (timeline.ts); each beat pairs an authored moment with when its word is said, and the
  * page moves smoothly between them (time.ts, `smoothMap`). Each scene starts as its narration
@@ -12,16 +12,23 @@ export interface Beat {
   at: number;
   /** When it is played: on its word. */
   played: number;
-  /** The script's section (1 to 12), and the word it lands on. */
+  /** The script's section (1 to 12; 0 is the founder's clip), and the word it lands on. */
   section: number;
   word: string;
 }
 
 export const BEATS: readonly Beat[] = [
+  {
+    name: "the founder's frame",
+    at: -1.3,
+    played: -1.3,
+    section: 0,
+    word: "(the founder) Here's how it works.",
+  },
   { name: 'film start', at: 0, played: 0, section: 1, word: '' },
   { name: 'claim rises', at: 0.35, played: 0.35, section: 1, word: 'Every' },
-  { name: 'first screen arrives', at: 1.6, played: 1.68, section: 1, word: 'knows' },
-  { name: 'last screen arrives', at: 4.3, played: 4.2, section: 1, word: 'Your' },
+  { name: 'the training screen, Spark at work', at: 1.6, played: 1.68, section: 1, word: 'knows' },
+  { name: 'onto the score', at: 4.3, played: 4.2, section: 1, word: 'Your' },
   { name: 'flight through the screens', at: 8.8, played: 7.92, section: 1, word: 'Architect' },
   { name: 'YC line', at: 10.85, played: 9.6, section: 2, word: 'Y Combinator' },
   { name: 'first request', at: 14.6, played: 12.98, section: 2, word: 'Own' },
@@ -69,7 +76,7 @@ export const BEATS: readonly Beat[] = [
   { name: 'the vault again', at: 88.9, played: 80.18, section: 8, word: 'Then' },
   { name: 'the lock opens', at: 90, played: 81.44, section: 8, word: 'opens' },
   { name: 'Harborview Prep rises', at: 90.95, played: 82.3, section: 8, word: 'academy' },
-  { name: '43 of 48', at: 94.3, played: 85.48, section: 8, word: 'Forty-three' },
+  { name: '43 of 48, on the drop', at: 94.3, played: 85.97, section: 8, word: 'forty-eight' },
   { name: 'Glimmer alone: 24', at: 95.6, played: 87.12, section: 8, word: 'Glimmer' },
   { name: 'back into the plot', at: 97.2, played: 88.84, section: 8, word: 'twenty-four' },
   { name: 'beside the window', at: 98, played: 89.34, section: 8, word: 'And' },
@@ -137,7 +144,13 @@ export const BEATS: readonly Beat[] = [
   { name: 'the hold', at: 151, played: 142.2, section: 10, word: 'reserves' },
   { name: 'the academy chat', at: 153.2, played: 144.2, section: 11, word: 'Then' },
   { name: 'Offline', at: 154.4, played: 145.28, section: 11, word: 'network' },
-  { name: 'the answer', at: 155.4, played: 146.24, section: 11, word: 'specialist' },
+  {
+    name: 'up to the GPU, the model and its memory',
+    at: 155.4,
+    played: 146.24,
+    section: 11,
+    word: 'specialist',
+  },
   { name: 'Allow once, saved', at: 159.8, played: 150.64, section: 11, word: 'writes' },
   { name: 'the two editions', at: 161.2, played: 151.44, section: 12, word: '(before) Architect' },
   { name: 'Architect Lab chosen', at: 164.6, played: 154.84, section: 12, word: 'Lab' },
@@ -150,11 +163,14 @@ export const BEATS: readonly Beat[] = [
   },
   { name: 'Your own AI.', at: 168, played: 158, section: 12, word: 'Your' },
   { name: 'Architect', at: 170, played: 159.64, section: 12, word: 'Architect' },
-  { name: 'end', at: 174.2, played: 162.27, section: 12, word: '(end of the take)' },
+  { name: 'end', at: 174.2, played: 164.5, section: 12, word: '(the score fades)' },
 ];
 
-/** The film's length as played, in seconds: the take's. */
-export const RUNTIME = 162.27;
+/** The film's length as played, in seconds, from its own start: the lockup held to the score's fade. */
+export const RUNTIME = 164.5;
+
+/** How long before its own start the film's page begins: the founder's last second. */
+export const PREROLL = 1.3;
 
 /** [played, authored]: every beat. */
 export const TIMING: readonly (readonly [number, number])[] = BEATS.map(

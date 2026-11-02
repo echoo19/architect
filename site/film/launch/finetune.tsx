@@ -78,20 +78,19 @@ function Tile({
   );
 }
 
-/** A command typed out from `at`, a character at a time as a person pastes in a run. */
-function typed(text: string, lt: number, at: number) {
-  return text.slice(0, Math.round(mix(0, text.length, clamp((lt - at) / 0.7))));
-}
-
 export function FineTunePage({ lt, still }: { lt: number; still?: boolean }) {
   const read = ui(lt, FINE_TUNE_AT.read, 0.2);
   const lora = ui(lt, FINE_TUNE_AT.lora, 0.25);
   const slurm = ui(lt, FINE_TUNE_AT.slurm, 0.25) - ui(lt, FINE_TUNE_AT.kubernetes, 0.25);
   const kubernetes = ui(lt, FINE_TUNE_AT.kubernetes, 0.25);
-  const command =
-    lt < FINE_TUNE_AT.kubernetes
-      ? typed(PLAN.commands.slurm, lt, FINE_TUNE_AT.slurm + 0.15)
-      : typed(PLAN.commands.kubernetes, lt, FINE_TUNE_AT.kubernetes + 0.1);
+  // Each target's command, whole, as its tab is chosen: the one before goes up as it comes in.
+  const commands = [
+    {
+      text: PLAN.commands.slurm,
+      shown: ui(lt, FINE_TUNE_AT.slurm + 0.1, 0.25) - ui(lt, FINE_TUNE_AT.kubernetes, 0.15),
+    },
+    { text: PLAN.commands.kubernetes, shown: ui(lt, FINE_TUNE_AT.kubernetes + 0.12, 0.25) },
+  ];
   return (
     <div style={{ transform: `translateY(${still ? 0 : -fineTuneScroll(lt)}px)` }}>
       <PlacePage title="Compute">
@@ -199,7 +198,17 @@ export function FineTunePage({ lt, still }: { lt: number; still?: boolean }) {
                 </div>
                 <div className="flex h-11 items-center rounded-control bg-field px-4 font-mono text-ui">
                   <span className="mr-3">$</span>
-                  {command}
+                  <span className="grid">
+                    {commands.map(({ text, shown }) => (
+                      <span
+                        key={text}
+                        className="[grid-area:1/1]"
+                        style={{ opacity: shown, transform: `translateY(${(1 - shown) * 6}px)` }}
+                      >
+                        {text}
+                      </span>
+                    ))}
+                  </span>
                 </div>
               </div>
             </Card>

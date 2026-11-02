@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MotionProvider, TooltipProvider } from '@architect/ui';
 import type { Measured } from '../lab/film';
 import { smoothMap } from '../lab/time';
-import { RUNTIME, TIMING } from './cues';
+import { PREROLL, RUNTIME, TIMING } from './cues';
 import { LaunchFilm, MeasuringFilm } from './film';
 import './launch.css';
 
@@ -11,7 +11,8 @@ import './launch.css';
  * The launch film's page for the renderer. `window.__seek(t)` draws the frame for a time as
  * played: the time goes through TIMING to the film's authored clock, and the film is drawn for
  * that moment at once. The spinners' own animations are set to the time too, so nothing on the
- * page runs on its own clock.
+ * page runs on its own clock. The page starts PREROLL seconds before the film's own start, on the
+ * founder clip's last frames, so a render of it joins the clip at that point.
  */
 
 declare global {
@@ -85,6 +86,19 @@ function measure(): Measured {
   return found;
 }
 
+/** The founder clip's frames (intro/tail.mjs), decoded before the first frame is drawn. */
+const FOUNDER_FRAMES = 116;
+
+async function founder() {
+  await Promise.all(
+    Array.from({ length: FOUNDER_FRAMES }, (_, k) => {
+      const image = new Image();
+      image.src = `./founder/${String(k).padStart(4, '0')}.jpg`;
+      return image.decode();
+    }),
+  );
+}
+
 async function fonts() {
   await Promise.all([
     document.fonts.load('400 16px "Inter Variable"', 'Aa0'),
@@ -98,15 +112,18 @@ async function fonts() {
 }
 
 let measured: Measured = new Map();
-window.__duration = RUNTIME;
+window.__duration = PREROLL + RUNTIME;
 window.__ready = false;
-// The renderer waits for the returned promise: one painted frame after the new state.
-window.__seek = (time: number) => {
-  draw(Math.min(RUNTIME, Math.max(0, time)), measured);
+// The renderer waits for the returned promise: the founder's frame decoded, then one painted
+// frame after the new state.
+window.__seek = async (time: number) => {
+  draw(Math.min(RUNTIME, Math.max(-PREROLL, time - PREROLL)), measured);
+  const frame = document.querySelector<HTMLImageElement>('img[data-founder]');
+  if (frame) await frame.decode();
   return new Promise<void>((done) => requestAnimationFrame(() => done()));
 };
 
-void fonts().then(() => {
+void Promise.all([fonts(), founder()]).then(() => {
   draw(0, measured, true);
   measured = measure();
   draw(0, measured);

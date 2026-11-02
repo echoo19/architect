@@ -1,9 +1,8 @@
 import type { Framing, Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { inOutCubic, mix, outExpo, outQuart, span } from '../lab/time';
-import { Badge } from '@architect/ui';
 import { CircleCheck } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   CERTIFICATE,
   CERTIFICATE_CHECK,
@@ -15,13 +14,14 @@ import {
   REAL_ACADEMY,
 } from './data';
 import { T } from './timeline';
-import { DIVE, gpuPoint, harborviewPoint, sciencePoint, vaultPoint } from './walk';
+import { DIVE, harborviewPoint, vaultPoint } from './walk';
 import { Words } from './words';
 
 /**
- * The film's figures as type on their own ground: the sealed final tests, each opening out of a
- * point in the window and going back into one; the real academy's, on the ground beside the
- * window; and the open-weight teacher, under it.
+ * The film's figures as type on their own ground. The sealed final test at Harborview Prep is the
+ * one that fills the frame, opening out of a point in the window and going back into it; every
+ * other figure rises on the ground beside the window, which stays in frame under the app's
+ * backdrop, so it is always plain where the number comes from.
  */
 
 const FRAME = { width: 1920, height: 1080 } as const;
@@ -31,141 +31,41 @@ const STUDENT = [138, 184, 255] as const;
 const tone = (p: number) =>
   `rgb(${FG.map((value, i) => Math.round(mix(value, STUDENT[i]!, p))).join(' ')})`;
 
-/**
- * A figure that fills the frame: what it is of, its number, and what follows the number. A final
- * test counts from Glimmer alone's score to the one it reached, in the student's blue.
- */
-export interface Figure {
-  title: string;
-  from: number;
-  to: number;
-  /** What follows the number, smaller: "of 48", "GPUs". */
-  unit: string;
-  /** A line under the figure, in its own words, and when it rises. */
-  under?: string;
-  /** The app's marker beside that line, such as "Estimate". */
-  badge?: string;
-  underAt?: number;
-  /** When the number rises, if not with its count or just after the title. */
-  numberAt?: number;
-  /** When the whole figure rises out, giving way to the next figure at the same point. */
-  leaveAt?: number;
-  /** A figure shown first in the same place, which gives way to the number as it rises. */
-  lead?: { value: string; unit: string };
-  /** Glimmer's passed work, in its blue. */
-  student: boolean;
-  /** When it rises, when its count lands on `to`, and when it goes back into its point. */
-  at: number;
-  lands: number;
-  resolve: number;
-  /** The point in the window it lives at, at a moment. */
-  anchor: (measured: Measured, t: number) => readonly [number, number];
-}
-
-export const FIGURES: readonly Figure[] = [
-  {
-    title: HARBORVIEW.name,
-    from: 0,
-    to: HARBORVIEW.taught,
-    unit: `of ${HARBORVIEW.of}`,
-    under: `Glimmer alone: ${HARBORVIEW.alone}`,
-    underAt: T.fortyThree + 1.3,
-    student: true,
-    at: T.hero,
-    lands: T.fortyThree,
-    resolve: T.resolve,
-    // It opens past the vault's lock, and goes back into the point the taught arm lands on.
-    anchor: (measured, t) => (t < T.vaultCut ? vaultPoint(measured) : harborviewPoint(measured)),
-  },
-  {
-    title: CORVID.name,
-    from: 0,
-    to: CORVID.taught,
-    unit: `of ${CORVID.of}`,
-    under: `Glimmer alone: ${CORVID.alone}`,
-    underAt: T.twentySeven + 1.3,
-    student: true,
-    at: T.scienceHero,
-    lands: T.twentySeven,
-    resolve: T.scienceResolve,
-    anchor: (measured) => sciencePoint(measured),
-  },
-  {
-    // The fine-tune's plan for a 235B model, out of its memory card.
-    title: `${PLAN.model}, LoRA`,
-    lead: { value: PLAN.figures[0][0], unit: 'parameters' },
-    from: PLAN.fit.gpus,
-    to: PLAN.fit.gpus,
-    unit: 'GPUs',
-    under: `in ${PLAN.fit.nodes} nodes, ${PLAN.fit.each} each`,
-    underAt: T.gpuNumber + 0.3,
-    badge: 'Estimate',
-    leaveAt: T.gpuTrained - 0.2,
-    numberAt: T.gpuNumber,
-    student: false,
-    at: T.gpuHero,
-    lands: T.gpuHero,
-    resolve: T.gpuResolve,
-    anchor: (measured) => gpuPoint(measured),
-  },
-  {
-    // The real fine-tune: one GPU, trained.
-    title: `${TRAINED.model}, ${TRAINED.method}`,
-    from: TRAINED.gpus,
-    to: TRAINED.gpus,
-    unit: TRAINED.gpu,
-    under: `trained in ${TRAINED.time}`,
-    underAt: T.gpuTrained + 0.3,
-    student: false,
-    at: T.gpuTrained,
-    lands: T.gpuTrained,
-    resolve: T.gpuResolve,
-    anchor: (measured) => gpuPoint(measured),
-  },
-];
+/** The final test at the academy neither model saw, counting up to the score it reached. */
+const HARBORVIEW_HERO = {
+  title: `${HARBORVIEW.name}, never seen`,
+  to: HARBORVIEW.taught,
+  unit: `of ${HARBORVIEW.of}`,
+  under: `Glimmer alone: ${HARBORVIEW.alone}`,
+} as const;
 
 /**
- * A figure, full frame. It lives at a point in the window, at a size the camera's dive brings up
- * to full: Glimmer alone's count first, then the count it reached once taught, landing on the
- * word. As the camera comes back out it goes back to its point.
+ * Harborview Prep's figure, full frame. It lives at a point in the window, at a size the camera's
+ * dive brings up to full: the count rises and lands on its word, Glimmer alone's under it, and as
+ * the camera comes back out it goes back into the point the taught arm lands on.
  */
-export function Hero({
-  t,
-  view,
-  measured,
-  figure,
-}: {
-  t: number;
-  view: Framing;
-  measured: Measured;
-  figure: Figure;
-}) {
-  if (t < figure.at - 0.05 || t > figure.resolve + 1.1) return null;
-  const [x, y] = figure.anchor(measured, t);
-  const shrink = mix(1, 0.3, inOutCubic(span(t, figure.resolve, 1.0)));
-  if (figure.leaveAt !== undefined && t > figure.leaveAt + 0.8) return null;
+export function Hero({ t, view, measured }: { t: number; view: Framing; measured: Measured }) {
+  // The title starts rising as the dive ends, so the frame is never left empty.
+  const titleAt = T.hero - 0.15;
+  if (t < titleAt - 0.05 || t > T.resolve + 1.1) return null;
+  const [x, y] = t < T.vaultCut ? vaultPoint(measured) : harborviewPoint(measured);
+  const shrink = mix(1, 0.3, inOutCubic(span(t, T.resolve, 1.0)));
   const scale = (view.s / DIVE) * shrink;
   const sx = FRAME.width / 2 + (x - view.cx) * view.s;
   const sy = FRAME.height / 2 + (y - view.cy) * view.s;
   const counted = Math.round(
-    mix(figure.from, figure.to, outQuart(span(t, figure.lands - 0.95, 0.95))),
+    mix(0, HARBORVIEW_HERO.to, outQuart(span(t, T.fortyThree - 0.95, 0.95))),
   );
-  const blue = figure.student ? 1 : 0;
-  // A count rises as it starts, so no figure is on screen before it means something.
-  const numberAt =
-    figure.numberAt ?? (figure.from === figure.to ? figure.at + 0.08 : figure.lands - 0.95);
   // The frame is the window's card up close: it settles to the film's ground under the figure.
   const ground = Math.min(
-    outQuart(span(t, figure.at - 0.2, 0.4)),
-    1 - outQuart(span(t, figure.resolve, 0.45)),
+    outQuart(span(t, titleAt - 0.2, 0.4)),
+    1 - outQuart(span(t, T.resolve, 0.45)),
   );
-  const gone = outQuart(span(t, figure.resolve + 0.62, 0.3));
-  // Rises into its mask, and when it gives way to another figure, rises out of it.
-  const rise = (at: number, until = figure.leaveAt ?? Infinity) => {
-    const p = outExpo(span(t, at, 0.9));
-    const out = inOutCubic(span(t, until, 0.4));
-    return { transform: `translateY(${(1 - p) * 110 - out * 140}%)` };
-  };
+  const gone = outQuart(span(t, T.resolve + 0.62, 0.3));
+  const rise = (at: number) => ({
+    transform: `translateY(${(1 - outExpo(span(t, at, 0.9))) * 110}%)`,
+  });
+  const type = 'whitespace-nowrap font-display font-semibold leading-none tracking-[-0.03em]';
   return (
     <>
       <div className="absolute inset-0 bg-ground" style={{ opacity: ground, zIndex: 29 }} />
@@ -178,126 +78,27 @@ export function Hero({
           zIndex: 30,
         }}
       >
-        {/* The figure's row is centered on the point; the organization's name sits above it. */}
+        {/* The figure's row is centered on the point; the academy's name sits above it. */}
         <div className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-start">
           <span className="absolute bottom-full left-0 inline-block overflow-hidden pb-[0.1em]">
-            <span
-              className="inline-block whitespace-nowrap font-display text-[76px] font-semibold leading-none tracking-[-0.03em]"
-              style={rise(figure.at)}
-            >
-              {figure.title}
+            <span className={`inline-block text-[76px] ${type}`} style={rise(titleAt)}>
+              {HARBORVIEW_HERO.title}
             </span>
           </span>
-          <span className="grid">
-            {figure.lead && (
-              <FigureRow
-                value={figure.lead.value}
-                unit={figure.lead.unit}
-                small
-                style={(delay) => rise(figure.at + 0.08 + delay, numberAt - 0.2)}
-              />
-            )}
-            <FigureRow
-              value={String(counted)}
-              unit={figure.unit}
-              color={tone(blue)}
-              style={(delay) => rise(numberAt + delay)}
-            />
-          </span>
-          {figure.under && (
-            <span className="absolute left-0 top-full flex items-center gap-8 pt-4">
-              <span className="inline-block overflow-hidden">
-                <span
-                  className="inline-block whitespace-nowrap font-display text-[76px] font-semibold leading-none tracking-[-0.03em]"
-                  style={rise(figure.underAt ?? figure.at + 0.35)}
-                >
-                  {figure.under}
-                </span>
-              </span>
-              {figure.badge && (
-                // The app's own marker, small, as the plan's card shows it.
-                <span
-                  style={{
-                    zoom: 2,
-                    opacity:
-                      outQuart(span(t, (figure.underAt ?? figure.at) + 0.4, 0.4)) *
-                      (1 - outQuart(span(t, figure.leaveAt ?? Infinity, 0.3))),
-                  }}
-                >
-                  <Badge>{figure.badge}</Badge>
-                </span>
-              )}
+          <FigureRow
+            value={String(counted)}
+            unit={HARBORVIEW_HERO.unit}
+            color={tone(1)}
+            style={(delay) => rise(T.fortyThree - 0.95 + delay)}
+          />
+          <span className="absolute left-0 top-full inline-block overflow-hidden pt-4">
+            <span className={`inline-block text-[76px] ${type}`} style={rise(T.alone)}>
+              {HARBORVIEW_HERO.under}
             </span>
-          )}
+          </span>
         </div>
       </div>
     </>
-  );
-}
-
-/**
- * The risk certificate's bound, on the ground at the window's left: wrong at most 5% when it
- * answers, then the check at the academy it never trained on, landing as held.
- */
-export function CertFigure({ t }: { t: number }) {
-  if (t < T.certHero - 0.05 || t > T.compute + 1.2) return null;
-  const pct = Math.round(CERTIFICATE.wrong * 100);
-  const held = outQuart(span(t, T.certificate + 0.5, 0.35));
-  const type = 'whitespace-nowrap font-display font-semibold tracking-[-0.03em]';
-  return (
-    <div
-      className="absolute flex w-[820px] flex-col gap-10"
-      style={{ left: -1120, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
-    >
-      <span className="flex flex-col">
-        <Words
-          t={t}
-          text="Wrong at most"
-          at={T.certHero}
-          className={`${type} text-[72px] leading-none`}
-        />
-        <span className="inline-block overflow-hidden">
-          <span
-            className={`inline-block ${type} text-[300px] leading-[0.9] tracking-[-0.05em] tabular-nums`}
-            style={{
-              transform: `translateY(${(1 - outExpo(span(t, T.certHero + 1.1, 0.9))) * 110}%)`,
-            }}
-          >
-            {pct}%
-          </span>
-        </span>
-        <Words
-          t={t}
-          text="of requests like these"
-          at={T.certHero + 1.5}
-          className={`${type} text-[56px] leading-none`}
-        />
-      </span>
-      <span className="flex flex-col gap-3">
-        <Words
-          t={t}
-          text={CERTIFICATE_CHECK.name}
-          at={T.certificate}
-          className={`${type} text-[56px] leading-none`}
-        />
-        <span className="flex items-center gap-[0.4em] text-[56px]">
-          <Words
-            t={t}
-            text={`${CERTIFICATE_CHECK.answered} · ${CERTIFICATE_CHECK.wrong}`}
-            at={T.certificate + 0.15}
-            stagger={0.04}
-            className={`${type} leading-none`}
-          />
-          <span
-            className={`flex items-center gap-3 text-student ${type} leading-none`}
-            style={{ opacity: held, transform: `translateX(${(1 - held) * -12}px)` }}
-          >
-            <CircleCheck size={52} strokeWidth={2} aria-hidden />
-            Held
-          </span>
-        </span>
-      </span>
-    </div>
   );
 }
 
@@ -306,31 +107,25 @@ function FigureRow({
   value,
   unit,
   color,
-  small,
   style,
 }: {
   value: string;
   unit: string;
   color?: string;
-  /** Set smaller, for a longer figure that has to fit the frame. */
-  small?: boolean;
   style: (delay: number) => CSSProperties;
 }) {
   return (
-    <span className="flex items-baseline gap-10 whitespace-nowrap font-display font-semibold leading-[0.9] tabular-nums [grid-area:1/1]">
+    <span className="flex items-baseline gap-10 whitespace-nowrap font-display font-semibold leading-[0.9] tabular-nums">
       <span className="inline-block overflow-hidden pt-[0.06em]">
         <span
-          className={`inline-block tracking-[-0.05em] ${small ? 'text-[300px]' : 'text-[420px]'}`}
+          className="inline-block text-[420px] tracking-[-0.05em]"
           style={{ ...style(0), color }}
         >
           {value}
         </span>
       </span>
       <span className="inline-block overflow-hidden">
-        <span
-          className={`inline-block tracking-[-0.035em] ${small ? 'text-[110px]' : 'text-[150px]'}`}
-          style={style(0.12)}
-        >
+        <span className="inline-block text-[150px] tracking-[-0.035em]" style={style(0.12)}>
           {unit}
         </span>
       </span>
@@ -338,29 +133,283 @@ function FigureRow({
   );
 }
 
-/** The real academy's figure, on the ground at the window's right. */
-export function RealFigure({ t }: { t: number }) {
-  if (t < T.twelve - 0.05 || t > T.models + 1.5) return null;
+/** Where a figure stands on the ground, in window pixels: past the window's right edge, or its left. */
+const RIGHT = WINDOW.width + 133;
+const LEFT = -1157;
+/** The ground's width beside the window as the side framings show it. */
+const GROUND = 1050;
+
+const TYPE = 'font-display font-semibold tracking-[-0.03em]';
+
+/** A mask a figure rises into and leaves upward from. */
+function Rising({
+  t,
+  at,
+  until,
+  className,
+  children,
+}: {
+  t: number;
+  at: number;
+  until: number;
+  className: string;
+  children: ReactNode;
+}) {
+  const p = outExpo(span(t, at, 0.9));
+  const out = inOutCubic(span(t, until, 0.45));
+  return (
+    <span className="inline-block overflow-hidden pt-[0.04em]">
+      <span
+        className={`inline-block ${className}`}
+        style={{ transform: `translateY(${(1 - p) * 110 - out * 140}%)` }}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * A figure on the ground beside the window: a plain heading, the number large with what follows
+ * it, and a line under it, each rising on its word and leaving upward together.
+ */
+function GroundFigure({
+  t,
+  x,
+  heading,
+  headingAt,
+  value,
+  count,
+  valueAt,
+  unit,
+  under,
+  underAt,
+  until,
+  student,
+}: {
+  t: number;
+  x: number;
+  /** Its lines, each set where it should break. */
+  heading: readonly string[];
+  headingAt: number;
+  value: number;
+  /** The number counts up from nothing as it rises, landing 0.95 s after `valueAt`. */
+  count?: boolean;
+  valueAt: number;
+  unit?: string;
+  under?: string;
+  underAt?: number;
+  until: number;
+  student?: boolean;
+}) {
+  if (t < headingAt - 0.05 || t > until + 0.9) return null;
+  const shown = count ? Math.round(mix(0, value, outQuart(span(t, valueAt, 0.95)))) : value;
   return (
     <div
-      className="absolute flex w-max flex-col gap-2"
-      style={{ left: WINDOW.width + 300, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
+      className="absolute flex flex-col gap-5"
+      style={{ left: x, width: GROUND, top: WINDOW.height / 2, transform: 'translateY(-50%)' }}
     >
-      <span className="inline-block overflow-hidden">
-        <span
-          className="inline-block font-display text-[200px] font-semibold leading-[0.9] tracking-[-0.05em] text-student tabular-nums"
-          style={{ transform: `translateY(${(1 - outExpo(span(t, T.twelve, 0.9))) * 110}%)` }}
-        >
-          {REAL_ACADEMY.taught}
-        </span>
+      <span className="flex flex-col">
+        {heading.map((line, index) => (
+          <Words
+            key={line}
+            t={t}
+            text={line}
+            at={headingAt + index * 0.12}
+            until={until}
+            className={`${TYPE} whitespace-nowrap text-[84px] leading-[1.04]`}
+          />
+        ))}
       </span>
-      <Words
-        t={t}
-        text={`up from ${REAL_ACADEMY.alone}`}
-        at={T.nine - 0.35}
-        className="whitespace-nowrap font-display text-[64px] font-semibold leading-none tracking-[-0.03em]"
-      />
+      <span className="flex items-baseline gap-8 whitespace-nowrap">
+        <Rising
+          t={t}
+          at={valueAt}
+          until={until}
+          className={`${TYPE} text-[340px] leading-[0.9] tracking-[-0.05em] tabular-nums ${student ? 'text-student' : ''}`}
+        >
+          {shown}
+        </Rising>
+        {unit && (
+          <Rising
+            t={t}
+            at={valueAt + 0.12}
+            until={until}
+            className={`${TYPE} text-[120px] leading-none`}
+          >
+            {unit}
+          </Rising>
+        )}
+      </span>
+      {under && (
+        <Words
+          t={t}
+          text={under}
+          at={underAt ?? valueAt + 0.4}
+          until={until}
+          className={`${TYPE} text-[84px] leading-[1.04]`}
+        />
+      )}
     </div>
+  );
+}
+
+/** The real academy's figure, on the ground at the window's right. */
+export function RealFigure({ t }: { t: number }) {
+  return (
+    <GroundFigure
+      t={t}
+      x={RIGHT}
+      heading={['The real academy']}
+      headingAt={T.side + 1.9}
+      value={REAL_ACADEMY.taught}
+      valueAt={T.twelve}
+      under={`up from ${REAL_ACADEMY.alone}`}
+      underAt={T.nine - 0.35}
+      until={T.models - 0.6}
+      student
+    />
+  );
+}
+
+/** Inventory desk's final test at the screening lab it never saw, at the window's right. */
+export function ScienceFigure({ t }: { t: number }) {
+  return (
+    <GroundFigure
+      t={t}
+      x={RIGHT}
+      heading={[`${CORVID.name},`, 'never seen']}
+      headingAt={T.scienceHero}
+      value={CORVID.taught}
+      count
+      valueAt={T.twentySeven - 0.95}
+      unit={`of ${CORVID.of}`}
+      under={`Glimmer alone: ${CORVID.alone}`}
+      underAt={T.scienceAlone}
+      until={T.scienceResolve - 0.1}
+      student
+    />
+  );
+}
+
+/**
+ * The fine-tune's plan for a 235B model, then the real fine-tune on one GPU. Both at the window's
+ * right, the second rising once the first has gone.
+ */
+export function GpuFigures({ t }: { t: number }) {
+  return (
+    <>
+      <GroundFigure
+        t={t}
+        x={RIGHT}
+        heading={[`A ${PLAN.size} model`]}
+        headingAt={T.gpuHero}
+        value={PLAN.fit.gpus}
+        valueAt={T.gpuNumber}
+        unit="GPUs"
+        until={T.gpuTrained - 0.5}
+      />
+      <GroundFigure
+        t={t}
+        x={RIGHT}
+        heading={[TRAINED.model]}
+        headingAt={T.gpuTrained}
+        value={TRAINED.gpus}
+        valueAt={T.gpuTrained + 0.1}
+        unit="GPU"
+        under={`trained in ${TRAINED.minutes} minutes`}
+        underAt={T.gpuTrained + 0.35}
+        until={T.gpuResolve - 0.3}
+        student
+      />
+    </>
+  );
+}
+
+/**
+ * The risk certificate's bound, on the ground at the window's left: wrong at most 5% when it
+ * answers, then the check at the academy it never trained on, landing as held. As Compute opens it
+ * gives way to the plain line for what comes next.
+ */
+export function CertFigure({ t }: { t: number }) {
+  if (t < T.certHero - 0.05 || t > T.compute + 2.4) return null;
+  const pct = Math.round(CERTIFICATE.wrong * 100);
+  const held = outQuart(span(t, T.certificate + 0.5, 0.35));
+  const until = T.compute - 0.15;
+  const gone = outQuart(span(t, until, 0.3));
+  const place = {
+    left: LEFT,
+    width: GROUND,
+    top: WINDOW.height / 2,
+    transform: 'translateY(-50%)',
+  };
+  return (
+    <>
+      <div className="absolute flex flex-col gap-10" style={place}>
+        <span className="flex flex-col">
+          <Words
+            t={t}
+            text="Wrong at most"
+            at={T.certHero}
+            until={until}
+            className={`${TYPE} whitespace-nowrap text-[84px] leading-none`}
+          />
+          <Rising
+            t={t}
+            at={T.certHero + 1.1}
+            until={until}
+            className={`${TYPE} text-[340px] leading-[0.9] tracking-[-0.05em] tabular-nums`}
+          >
+            {pct}%
+          </Rising>
+          <Words
+            t={t}
+            text="of requests like these"
+            at={T.certHero + 1.5}
+            until={until}
+            className={`${TYPE} text-[64px] leading-none`}
+          />
+        </span>
+        <span className="flex flex-col gap-3">
+          <Words
+            t={t}
+            text={CERTIFICATE_CHECK.name}
+            at={T.certificate}
+            until={until}
+            className={`${TYPE} text-[64px] leading-none`}
+          />
+          <span className="flex items-center gap-[0.4em] text-[64px]">
+            <Words
+              t={t}
+              text={`${CERTIFICATE_CHECK.answered}, ${CERTIFICATE_CHECK.wrong}`}
+              at={T.certificate + 0.15}
+              until={until}
+              stagger={0.04}
+              className={`${TYPE} leading-none`}
+            />
+            <span
+              className={`flex items-center gap-3 whitespace-nowrap text-student ${TYPE} leading-none`}
+              style={{
+                opacity: held * (1 - gone),
+                transform: `translateX(${(1 - held) * -12}px)`,
+              }}
+            >
+              <CircleCheck size={60} strokeWidth={2} aria-hidden />
+              Held
+            </span>
+          </span>
+        </span>
+      </div>
+      <div className="absolute flex flex-col" style={place}>
+        <Words
+          t={t}
+          text="Then it trains the model itself."
+          at={T.compute + 0.2}
+          until={T.compute + 1.9}
+          className={`${TYPE} text-[110px] leading-[1.04]`}
+        />
+      </div>
+    </>
   );
 }
 
@@ -431,6 +480,19 @@ export function OpenTeacher({ t, measured }: { t: number; measured: Measured }) 
           {word('Glimmer', T.openBeat + 0.9)}
         </span>
       </span>
+      {/* What the swap means, in plain words, on the ground at the window's right. */}
+      <div
+        className="absolute flex flex-col"
+        style={{ left: RIGHT + 20, top: -460, width: GROUND }}
+      >
+        <Words
+          t={t}
+          text="Teacher and student, both open models."
+          at={T.openBeat + 0.7}
+          until={T.beyond - 0.6}
+          className={`${TYPE} text-[110px] leading-[1.04]`}
+        />
+      </div>
     </div>
   );
 }
