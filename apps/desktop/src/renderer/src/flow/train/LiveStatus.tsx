@@ -117,9 +117,14 @@ export function LiveStatus({
                 : stage === 'testing'
                   ? w.FinalTest
                   : STAGE_LABELS[stage];
-            // The step under way fills as its tasks are done, in the color of whoever does it;
-            // the steps before it are full.
-            const share = current ? (stepShare ?? 1) : index < reached ? 1 : 0;
+            // The step under way fills as its tasks are done, in the color of whoever does it, from
+            // empty until its first count arrives; the mentor's step has no count, so it shows full.
+            // The steps before it are full.
+            const share = current
+              ? (stepShare ?? (stage === 'diagnosing' ? 1 : 0))
+              : index < reached
+                ? 1
+                : 0;
             return (
               <li
                 key={stage}

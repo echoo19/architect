@@ -171,6 +171,38 @@ describe('liveRunReducer', () => {
     expect(finished.progress).toBeNull();
   });
 
+  it('keeps a finished count full until the run moves on, then counts the next step from none', () => {
+    const base = { runId: 'run_1', at: AT, harnessVersion: 2, pass: 5 } as const;
+    const scoring = runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(1) }));
+    const counted = { ...base, type: 'eval.progress', split: 'dev', done: 30, total: 40 } as const;
+    const finished = {
+      ...base,
+      type: 'eval.finished',
+      split: 'dev',
+      score: { pass: 20, total: 40 },
+      perType: [],
+    } as const;
+    const ended = loaded(scoring, counted, finished);
+    expect(activeProgress(ended)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    const decided = loaded(
+      scoring,
+      counted,
+      finished,
+      runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(2) })),
+    );
+    expect(activeProgress(decided)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    const next = loaded(
+      scoring,
+      counted,
+      finished,
+      runUpdated(makeRun({ phase: 'attempting', updatedAt: at(2) })),
+      runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(3) })),
+    );
+    expect(activeProgress(next)).toBeNull();
+  });
+
   it('shows the latest warning until the phase changes', () => {
     const base = { runId: 'run_1', at: AT } as const;
     const warned = loaded(
