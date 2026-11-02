@@ -146,7 +146,7 @@ test('takes a row away once the person has taken the agent its results were for'
 
   await flipSwitch(app, 'jobs:list', 'after');
   await page.getByRole('button', { name: 'Start using Service desk' }).click();
-  await expect(page).toHaveURL(new RegExp(`#/agents/${STORY.graduateId}/chats/`));
+  await expect(page).toHaveURL(new RegExp(`#/agents/${STORY.graduateId}$`));
   await expect(agents(page).getByRole('button', { name: /Clinic intake/ })).toHaveCount(0);
   await resize(900);
 });

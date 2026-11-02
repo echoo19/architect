@@ -5,7 +5,6 @@ import { ArrowRight, Boxes, Library, RotateCw, TriangleAlert } from 'lucide-reac
 import { flowApi } from '../api/client';
 import { graduateKeys, graduatesApi } from '../api/graduates';
 import {
-  createChat,
   useGraduates,
   useJob,
   useReport,
@@ -30,7 +29,7 @@ import { useLocalCard } from '../flow/report/use-retest';
 import { reportVerdict } from '../flow/report/verdict';
 import { shortModelName } from '../lib/names';
 import { attempt } from '../lib/notify';
-import { chatPath, navigate, paths } from '../lib/router';
+import { navigate, paths } from '../lib/router';
 import { useRegistry, versionOfRun } from '../models/load';
 import { useEdition, useWords } from '../shell/edition';
 import { FlowShell } from '../shell/FlowShell';
@@ -47,10 +46,11 @@ export function ReportScreen({ runId }: { runId: string }) {
       const graduate = await flowApi.acceptGraduate(runId);
       // Its row stops reading "Results ready" now that the agent is the person's.
       await refreshRunLists();
-      return createChat(graduate.id);
+      return graduate;
     });
     setAccepting(false);
-    if (opened) navigate(chatPath(opened));
+    // Its home, where opening an agent lands; a chat starts there when the person asks.
+    if (opened) navigate(paths.agent(opened.id));
   };
 
   return (
