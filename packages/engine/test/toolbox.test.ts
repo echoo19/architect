@@ -454,7 +454,7 @@ unpaid.reduce((sum, row) => sum + Number(row.total_cents), 0)`,
     expect(runTool).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps a harness tool's result too long to show whole for run code, until one fits", async () => {
+  it("keeps a harness tool's result too long to show whole for read and run, until one fits", async () => {
     const wells = Object.fromEntries(Array.from({ length: 200 }, (_, at) => [`W${at}`, at * 1.5]));
     const runTool = vi.fn<Sandbox['runTool']>();
     runTool.mockResolvedValueOnce({ ok: true, value: { plate: 'P-1', wells } });
@@ -481,8 +481,15 @@ unpaid.reduce((sum, row) => sum + Number(row.total_cents), 0)`,
     const cut = await toolbox.run(call('plate_math'));
     expect(cut.content.length).toBeLessThanOrEqual(1000);
     expect(cut.content).toMatch(
-      /; run code has it whole as JSON\.parse\(files\.read\("results\/plate_math\.json"\)\)\]$/,
+      /; read results\/plate_math\.json shows it whole, a page at a time, and run code has it as JSON\.parse\(files\.read\("results\/plate_math\.json"\)\)\]$/,
     );
+    // read pages it like any file, one entry a line, the wells' map opened a level down.
+    const page = await toolbox.run(call('read', { path: 'results/plate_math.json', limit: 4 }));
+    expect(page.content).toBe(
+      '1\t{\n2\t "plate": "P-1",\n3\t "wells": {\n4\t  "W0": 0,\n[Lines 1-4 of 205. 201 more lines: read on with offset 5.]',
+    );
+    const end = await toolbox.run(call('read', { path: 'results/plate_math.json', offset: 203 }));
+    expect(end.content).toBe('203\t  "W199": 298.5\n204\t }\n205\t}');
     const picked = await toolbox.run(
       call('run', {
         code: 'const r = JSON.parse(files.read("results/plate_math.json"));\nr.plate + " " + r.wells.W199',
@@ -494,6 +501,9 @@ unpaid.reduce((sum, row) => sum + Number(row.total_cents), 0)`,
     );
     const gone = await toolbox.run(call('run', { code: 'files.read("results/plate_math.json")' }));
     expect(gone.error).toBeDefined();
+    expect(
+      (await toolbox.run(call('read', { path: 'results/plate_math.json' }))).error,
+    ).toBeDefined();
     expect((await toolbox.run(call('run', { code: 'files.list("")' }))).content).not.toContain(
       'results/',
     );
