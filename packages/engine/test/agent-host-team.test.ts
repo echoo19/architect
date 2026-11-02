@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   ASK_TEAMMATE,
-  type AgentBlock,
   type AgentStep,
   type Team,
   type WorkspaceChat,
@@ -11,9 +10,9 @@ import {
 } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createAgentHost, type AgentHost } from '../src/agent-host/host';
-import { TEAM_INSTRUCTION } from '../src/agent-host/team';
+import { CONSULT_WRITE, TEAM_INSTRUCTION } from '../src/agent-host/team';
 import { workspaceStore } from '../src/agent-host/store';
-import { CHECK_PURPOSE, GpuLease } from '../src/local-runtime';
+import type { GpuLease } from '../src/local-runtime';
 import { DataPaths } from '../src/loop/paths';
 import { openEngineStore, type EngineStore } from '../src/store/engine-store';
 import { startFakeOllama, type FakeOllama, type ScriptedTurn } from './agent-host/fake-ollama';
@@ -21,8 +20,6 @@ import { addGraduate, type GraduateFixture, type GraduateOptions } from './agent
 import { fakeLlamaCommand, standInAdapter, storeBase } from './support/adapter-runtime';
 import { testAdapterRuntime, testGpu } from './support/computer';
 import { SAMPLE_CONTENT } from './support/fixtures';
-
-type Approval = Extract<AgentBlock, { kind: 'approval' }>;
 
 interface World {
   dataDir: string;
@@ -135,14 +132,6 @@ function nextReply(
 
 const settled = (world: World, chatId: string) =>
   nextReply(world, chatId, (message) => message.status !== 'streaming');
-
-const approvalOf = (message: WorkspaceMessage) =>
-  message.blocks.find((block): block is Approval => block.kind === 'approval');
-
-const pendingApproval = (world: World, chatId: string) =>
-  nextReply(world, chatId, (message) => approvalOf(message)?.status === 'pending').then(
-    (message) => approvalOf(message) as Approval,
-  );
 
 async function ask(
   world: World,
@@ -269,7 +258,7 @@ describe('a team reply (decision 100)', () => {
     expect(JSON.stringify(reply)).not.toContain('LEAD-1');
   });
 
-  it("asks before a teammate's write, under the teammate's name, and writes only its file", async () => {
+  it("refuses a teammate's write in a consult at once, with no approval, and the teammate answers", async () => {
     const world = await setup([
       asks('Add the invoice.'),
       {
@@ -277,28 +266,25 @@ describe('a team reply (decision 100)', () => {
           { name: 'append', arguments: { path: 'data/invoices.csv', text: NEW_INVOICE } },
         ],
       },
-      { text: 'Added.\nANSWER: INV-4' },
-      { text: 'Sweep desk added it.' },
+      { text: `Add this row to invoices.csv: ${NEW_INVOICE}` },
+      { text: 'Sweep desk says to add INV-4.' },
     ]);
-    const chat = await world.host.createTeamChat(world.team.id);
-    const waiting = pendingApproval(world, chat.id);
-    const done = settled(world, chat.id);
-    await world.host.send(chat.id, 'Add an invoice to Halden.');
-    const approval = await waiting;
-    expect(approval).toMatchObject({
-      file: 'data/invoices.csv',
-      agent: { graduateId: 'grd_sweep', name: 'Sweep desk' },
+    const { chat, reply } = await ask(world, 'Add an invoice to Halden.');
+    expect(reply).toMatchObject({ status: 'done', text: 'Sweep desk says to add INV-4.' });
+    expect(reply.blocks.filter((block) => block.kind === 'approval')).toEqual([]);
+    expect((await world.host.listTeamChats(world.team.id))[0]).toMatchObject({ waiting: false });
+    expect(reply.consultations?.[0]).toMatchObject({
+      outcome: 'answered',
+      text: `Add this row to invoices.csv: ${NEW_INVOICE}`,
     });
-    expect((await world.host.listTeamChats(world.team.id))[0]?.waiting).toBe(true);
-    // Nothing is written while the person decides: a teammate's writes always ask first.
+    // The teammate read why, and went on to its answer.
+    expect(world.model.chats()[2]?.messages.at(-1)?.content).toBe(`Error: ${CONSULT_WRITE}`);
     expect(await invoices(world.sweep)).toBe(SAMPLE_CONTENT['invoices.csv']);
-    await world.host.decide(approval.changeId, 'approve');
-    expect(await done).toMatchObject({ status: 'done', text: 'Sweep desk added it.' });
-    expect(await invoices(world.sweep)).toContain(NEW_INVOICE);
     expect(await invoices(world.lead)).toBe(LEAD_INVOICES);
+    expect(chat.teamId).toBe('team_lab');
   });
 
-  it("writes nothing when a teammate's write is denied", async () => {
+  it("refuses it the same way when nobody can answer and the teammate's writes are allowed", async () => {
     const world = await setup([
       asks('Add the invoice.'),
       {
@@ -306,68 +292,19 @@ describe('a team reply (decision 100)', () => {
           { name: 'append', arguments: { path: 'data/invoices.csv', text: NEW_INVOICE } },
         ],
       },
-      { text: 'Not added.\nANSWER: none' },
+      { text: 'It should be added.' },
       { text: 'Nothing was added.' },
     ]);
-    const chat = await world.host.createTeamChat(world.team.id);
-    const waiting = pendingApproval(world, chat.id);
-    const done = settled(world, chat.id);
-    await world.host.send(chat.id, 'Add an invoice to Halden.');
-    await world.host.decide((await waiting).changeId, 'deny');
-    const reply = await done;
-    expect(approvalOf(reply)?.status).toBe('denied');
-    expect(consultOf(reply)?.view).toMatchObject({ steps: [{ name: 'append', meta: 'declined' }] });
-    expect(await invoices(world.sweep)).toBe(SAMPLE_CONTENT['invoices.csv']);
-  });
-
-  it('lets the teammate write from now on when the person says always, and not the lead', async () => {
-    const world = await setup([
-      asks('Add the invoice.'),
-      {
-        toolCalls: [
-          { name: 'append', arguments: { path: 'data/invoices.csv', text: NEW_INVOICE } },
-        ],
-      },
-      { text: 'Added.\nANSWER: INV-4' },
-      { text: 'Added.' },
-    ]);
-    const chat = await world.host.createTeamChat(world.team.id);
-    const waiting = pendingApproval(world, chat.id);
-    const done = settled(world, chat.id);
-    await world.host.send(chat.id, 'Add an invoice to Halden.');
-    await world.host.decide((await waiting).changeId, 'always');
-    await done;
-    const store = workspaceStore(world.engine, world.dataDir);
-    expect(store.writeMode(world.sweep.id)).toBe('allow');
-    expect(store.writeMode(world.lead.id)).toBe('ask');
-  });
-
-  it("ends a run nobody can answer with the teammate's write as the approval it needed", async () => {
-    const world = await setup([
-      asks('Add the invoice.'),
-      {
-        toolCalls: [
-          { name: 'append', arguments: { path: 'data/invoices.csv', text: NEW_INVOICE } },
-        ],
-      },
-      { text: 'Added.\nANSWER: INV-4' },
-      { text: 'Added.' },
-    ]);
+    workspaceStore(world.engine, world.dataDir).saveWriteMode(world.sweep.id, 'allow');
     const chat = await world.host.createTeamChat(world.team.id);
     const done = settled(world, chat.id);
     await world.host.send(chat.id, 'Add an invoice to Halden.', { approvals: 'fail' });
     const reply = await done;
-    expect(reply).toMatchObject({
-      status: 'error',
-      failure: {
-        kind: 'approval_required',
-        approval: { file: 'data/invoices.csv', agent: { graduateId: 'grd_sweep' } },
-      },
-    });
-    expect(consultOf(reply)?.view).toMatchObject({ outcome: 'stopped' });
+    expect(reply.status).toBe('done');
+    expect(reply.failure).toBeUndefined();
+    expect(reply.consultations?.[0]?.outcome).toBe('answered');
     expect(await invoices(world.sweep)).toBe(SAMPLE_CONTENT['invoices.csv']);
   });
-
   it('asks teammates at most four times in one reply', async () => {
     const calls = Array.from({ length: 5 }, (_, n) => ({
       name: ASK_TEAMMATE,
@@ -512,7 +449,10 @@ describe('a team reply (decision 100)', () => {
       name: ASK_TEAMMATE,
       arguments: { member: 'Sweep desk', request },
     });
-    const config = 'The schedule is set in <cfg:parameter-set>daily</cfg:parameter-set>.';
+    // Prose that quotes a setting's XML is an answer, even with a namespaced parameter tag in it.
+    const config =
+      'The setting `<cfg:parameter name="timeout">5</cfg:parameter>` means a five-second timeout, set daily by <cfg:parameter-set>.';
+    const reaching = 'Let me read the policy. <atem:invoke name="read">';
     const answered = 'I read it. <atem:invoke name="read"> was not needed.\nANSWER: {"ok": true}';
     const world = await setup([
       {
@@ -520,6 +460,7 @@ describe('a team reply (decision 100)', () => {
           asking('Read the policy.'),
           asking('Which schedule?'),
           asking('Answer in JSON.'),
+          asking('Read it again.'),
         ],
       },
       {
@@ -527,6 +468,7 @@ describe('a team reply (decision 100)', () => {
       },
       { text: config },
       { text: answered },
+      { text: reaching },
       { text: 'Done.' },
     ]);
     const { reply } = await ask(world, 'What does the policy say?');
@@ -537,8 +479,13 @@ describe('a team reply (decision 100)', () => {
       ],
       ['answered', config],
       ['answered', answered],
+      // A call of one of its own tools, though prose comes first, is still no answer.
+      [
+        'no_answer',
+        'Sweep desk wrote a tool call as text instead of running it, so it gave no answer. Ask it again.',
+      ],
     ]);
-    expect(world.model.chats()[4]?.messages.at(-3)?.content).toContain('Ask it again.');
+    expect(world.model.chats()[5]?.messages.at(-4)?.content).toContain('Ask it again.');
   });
 
   it('answers once as a team, though its lead is certified', async () => {
@@ -730,76 +677,6 @@ describe('a team reply (decision 100)', () => {
 });
 
 describe('a team reply at the GPU', () => {
-  function otherProcess(world: World): GpuLease {
-    return new GpuLease({ dataDir: world.dataDir, owner: 'engine', pollMs: 25 });
-  }
-
-  it("lets the GPU go while a teammate's write waits, then takes it back to finish", async () => {
-    const world = await setup([
-      asks('Add the invoice.'),
-      {
-        toolCalls: [
-          { name: 'append', arguments: { path: 'data/invoices.csv', text: NEW_INVOICE } },
-        ],
-      },
-      { text: 'Added.\nANSWER: INV-4' },
-      { text: 'Sweep desk added it.' },
-    ]);
-    const engine = otherProcess(world);
-    try {
-      const chat = await world.host.createTeamChat(world.team.id);
-      const waiting = pendingApproval(world, chat.id);
-      const done = settled(world, chat.id);
-      await world.host.send(chat.id, 'Add an invoice to Halden.');
-      const approval = await waiting;
-      // Both the lead's hold and the teammate's let go, so another process gets the GPU now.
-      const check = await engine.hold('llama-server', CHECK_PURPOSE);
-      const waitingAgain = nextReply(world, chat.id, (message) =>
-        message.steps.some((step) => step.kind === 'wait'),
-      );
-      await world.host.decide(approval.changeId, 'approve');
-      await waitingAgain;
-      expect(world.model.chats()).toHaveLength(2);
-      check.release();
-      expect(await done).toMatchObject({ status: 'done', text: 'Sweep desk added it.' });
-    } finally {
-      await engine.close();
-    }
-  });
-
-  it('stops a teammate still waiting to take the GPU back after an approval', async () => {
-    const world = await setup([
-      asks('Add the invoice.'),
-      {
-        toolCalls: [
-          { name: 'append', arguments: { path: 'data/invoices.csv', text: NEW_INVOICE } },
-        ],
-      },
-    ]);
-    const engine = otherProcess(world);
-    try {
-      const chat = await world.host.createTeamChat(world.team.id);
-      const waiting = pendingApproval(world, chat.id);
-      const done = settled(world, chat.id);
-      await world.host.send(chat.id, 'Add an invoice to Halden.');
-      const approval = await waiting;
-      const check = await engine.hold('llama-server', CHECK_PURPOSE);
-      const waitingAgain = nextReply(world, chat.id, (message) =>
-        message.steps.some((step) => step.kind === 'wait'),
-      );
-      await world.host.decide(approval.changeId, 'approve');
-      await waitingAgain;
-      await world.host.stop(chat.id);
-      const reply = await done;
-      expect(reply.status).toBe('stopped');
-      expect(reply.consultations?.[0]?.outcome).toBe('stopped');
-      expect(world.errors).toEqual([]);
-      check.release();
-    } finally {
-      await engine.close();
-    }
-  });
-
   it('runs a teammate on llama-server while the lead runs on Ollama, and teammates with different adapters in turn', async () => {
     const adapter = (dataDir: string, seed: number, scale: number) => {
       const base = storeBase(join(dataDir, 'ollama-models'));

@@ -1,6 +1,7 @@
 import {
   AdapterError,
   ASK_TEAMMATE,
+  BUILTIN_TOOL_NAMES,
   LeafStepSchema,
   MAX_CONSULTATIONS,
   TEAM_REQUEST_CHARS,
@@ -32,11 +33,34 @@ import { showStep, type NewStep, type StepList, type Teammates } from './steps';
 /** Sampler seeds stay within a signed 32-bit integer, which every runtime accepts. */
 const SEED_LIMIT = 2 ** 31;
 
+/** A parameter of a call written out with its value: `<atem:parameter name="path">x</atem:parameter>`. */
+const CALL_PARAMETER = /<([a-z][\w-]*):parameter(?=[\s/>])[^>]*>[\s\S]*?<\/\1:parameter>/gi;
+/** Any other tag of a call written out, such as `<atem:invoke name="read">` or `</atem:function_calls>`. */
+const CALL_TAG = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)(?=[\s/>])[^>]*>/gi;
+/** The tool a written-out call names: `<atem:invoke name="read">`. */
+const INVOKED = /<[a-z][\w-]*:invoke\s+name="([^"]*)"/gi;
+
 /**
- * A tool call the model wrote out as text, such as `<atem:invoke name="read">` or a stray
- * `<atem:parameter name="path">`, which no runtime ran. It is not an answer for the lead to read.
+ * Whether a reply is a tool call the model wrote out as text, which no runtime ran: nothing is left
+ * of it once its call tags are taken out (a stray `">` included), or it invokes one of the agent's
+ * own tools. Prose that quotes a namespaced tag, such as a setting's XML, is an answer.
  */
-const WRITTEN_CALL = /<\/?[a-z][\w-]*:(?:function_calls|invoke|parameter)(?=[\s/>])/i;
+function writtenCall(text: string, tools: readonly string[]): boolean {
+  if ([...text.matchAll(INVOKED)].some((invoked) => tools.includes(invoked[1] ?? ''))) return true;
+  const rest = text.replace(CALL_PARAMETER, '').replace(CALL_TAG, '');
+  return rest !== text && rest.replace(/[\s">]/g, '') === '';
+}
+
+/** What a teammate's write tool returns in a consult, where it may not write (decision 107). */
+export const CONSULT_WRITE =
+  "In a consult you can't write; say in your answer what should be written.";
+
+/**
+ * A teammate's writes are refused before they are planned (`refuseWrites`), so no approval is
+ * ever asked. This approver is never reached; it is given so that nothing could write straight to
+ * a teammate's file, as a run with no approver would.
+ */
+const neverWrite: ApproveWrite = () => Promise.resolve('deny');
 
 /** What a team's lead is told about when to ask, in its system prompt, in team replies only. */
 export const TEAM_INSTRUCTION = `You work in a team. When a request names something your files don't have, or needs work your teammates' files cover, ask that teammate with ${ASK_TEAMMATE} first, and say exactly what you need back from it, such as the list or the records you will work from.`;
@@ -64,11 +88,6 @@ export interface TeamReplyOptions {
   leadHold(): GpuHold | null;
   /** Hears who a teammate waits for when another process has the GPU. */
   watch: GpuWatch;
-  /**
-   * A teammate's writes, each asked under its own write mode and name; `pause` lets every hold
-   * of the GPU go while the person decides, as a lead's approval does.
-   */
-  approveWrite(teammate: Teammate, pause: () => void): ApproveWrite;
   signal: AbortSignal;
 }
 
@@ -93,8 +112,8 @@ export function teammatesOf(teammates: readonly Teammate[]): Teammates {
 /**
  * The tool a lead asks its teammates with, offered only in a team reply. Each ask runs the
  * teammate once, in task mode, on its own files and the request as the lead wrote it, with no
- * conversation: only text crosses. A teammate can't ask anyone in turn. Its writes are asked
- * under its own name and mode, its steps show inside the consultation as they happen, and its
+ * conversation: only text crosses. A teammate can't ask anyone in turn, nor write: it says in its
+ * answer what should be written. Its steps show inside the consultation as they happen, and its
  * work is kept with the reply as it goes, so a stop or a restart leaves it settled.
  */
 export function askTeammate(options: TeamReplyOptions): ExtraTool {
@@ -140,10 +159,6 @@ export function askTeammate(options: TeamReplyOptions): ExtraTool {
     record();
 
     let hold: GpuHold | null = null;
-    const pause = () => {
-      hold?.pause();
-      options.leadHold()?.pause();
-    };
     const run = () =>
       runAgent({
         harness: session.harness,
@@ -160,8 +175,10 @@ export function askTeammate(options: TeamReplyOptions): ExtraTool {
           showStep(steps, session.harness, step);
           record();
         },
-        // Always given: without it, a write would go straight to the teammate's file.
-        approveWrite: options.approveWrite(teammate, pause),
+        // A consult is the lead asking a question: the teammate says what should be written,
+        // and the lead, with the person's approval, decides any write.
+        refuseWrites: CONSULT_WRITE,
+        approveWrite: neverWrite,
         signal,
       });
     let settled: Settled;
@@ -305,7 +322,8 @@ function settledAs(session: GraduateSession, trace: Trace): Settled {
     case 'answer': {
       const { answer } = parseAnswerLine(trace.finalText);
       const changed = (trace.changes ?? []).length > 0;
-      if (answer === null && !changed && WRITTEN_CALL.test(trace.finalText)) {
+      const tools = [...BUILTIN_TOOL_NAMES, ...session.harness.tools.map((tool) => tool.name)];
+      if (answer === null && !changed && writtenCall(trace.finalText, tools)) {
         return {
           outcome: 'no_answer',
           text: `${session.name} wrote a tool call as text instead of running it, so it gave no answer. Ask it again.`,

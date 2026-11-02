@@ -57,6 +57,11 @@ export interface ToolboxOptions {
    * team reply (decision 100). None may share a name with another tool.
    */
   extraTools?: readonly ExtraTool[];
+  /**
+   * Why every write tool fails at once, before its arguments are read: a teammate's run in a
+   * consult (decision 107). Nothing is planned, asked or written.
+   */
+  refuseWrites?: string;
 }
 
 /** A tool the runner offers one run on its own terms, outside the harness and the sandbox. */
@@ -114,7 +119,8 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
   }
 
   // A harness tool can't be asked for less, so a result too long to show is kept whole for
-  // `run` code, which can pick out what it needs, until a later call of that tool fits.
+  // `read` and `run` code, which can page it or pick out what it needs, until a later call of
+  // that tool fits.
   const kept: Record<string, string> = { ...options.kept };
   const builtins = builtinExecutors({
     files,
@@ -145,6 +151,9 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
   }
 
   async function execute(call: ToolCall, signal?: AbortSignal): Promise<ExecutorResult> {
+    if (options.refuseWrites !== undefined && isWriteTool(call.name)) {
+      throw new ToolError(options.refuseWrites);
+    }
     if (isBuiltinTool(call.name) && (offered as readonly BuiltinToolName[]).includes(call.name)) {
       return builtins[call.name](call.arguments, signal);
     }
@@ -163,16 +172,15 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
   function render(name: string, value: JsonValue) {
     if (!harnessTools.has(name)) return renderResult(value, budget);
     const path = keptResultPath(name);
-    const whole = JSON.stringify(value);
-    if ((typeof value === 'string' ? value : whole).length <= budget) {
+    if ((typeof value === 'string' ? value : JSON.stringify(value)).length <= budget) {
       delete kept[path];
       return renderResult(value, budget);
     }
-    kept[path] = whole;
+    kept[path] = pagedJson(value);
     return renderResult(
       value,
       budget,
-      `run code has it whole as JSON.parse(files.read("${path}"))`,
+      `read ${path} shows it whole, a page at a time, and run code has it as JSON.parse(files.read("${path}"))`,
     );
   }
 
@@ -192,9 +200,27 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
   };
 }
 
-/** Where `run` code reads a harness tool's latest result that was too long to show whole. */
+/** Where `read` and `run` code find a harness tool's latest result that was too long to show. */
 export function keptResultPath(tool: string): string {
   return `results/${tool}.json`;
+}
+
+/**
+ * JSON with each entry of the top level, and of any object or array in it, on a line of its
+ * own, so `read` can page it by lines; anything deeper stays on its entry's line.
+ */
+function pagedJson(value: JsonValue, depth = 0): string {
+  if (depth === 2 || value === null || typeof value !== 'object') return JSON.stringify(value);
+  const entries = Array.isArray(value)
+    ? value.map((item) => pagedJson(item, depth + 1))
+    : Object.entries(value).map(
+        ([key, item]) => `${JSON.stringify(key)}: ${pagedJson(item ?? null, depth + 1)}`,
+      );
+  const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
+  if (entries.length === 0) return `${open}${close}`;
+  const pad = ' '.repeat(depth + 1);
+  const body = entries.map((entry) => `${pad}${entry}`).join(',\n');
+  return `${open}\n${body}\n${' '.repeat(depth)}${close}`;
 }
 
 function requiredKeys(tool: HarnessTool): string[] {

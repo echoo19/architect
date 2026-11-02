@@ -63,7 +63,7 @@ interface BuiltinDeps {
   today: string;
   approveWrite?: ApproveWrite;
   budget: number;
-  /** Harness tools' results too long to show, by the path `run` code reads each one at. */
+  /** Harness tools' results too long to show, by the path `read` and `run` code find each at. */
   kept: () => Readonly<Record<string, string>>;
 }
 
@@ -123,6 +123,10 @@ export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Exe
     async read(args) {
       const { path, offset = 1, limit = DEFAULT_READ_LINES } = parseArguments('read', args);
       const clean = agentPath(path);
+      const results = deps.kept();
+      const kept = Object.hasOwn(results, clean) ? results[clean] : undefined;
+      if (kept !== undefined)
+        return { value: readPage(clean, kept, offset, limit, budget).content };
       const text = files.read(clean);
       const page = readPage(clean, text, offset, limit, budget);
       const skill = SKILL_FILE.exec(clean)?.[1];

@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon, 08:00 UTC): team-4, a teammate can't write in a consult (`team/consult-reads`)
+
+- *Done, engine (decision 107):* in a consult, a teammate's write tools fail at once with "In a consult you can't write; say in your answer what should be written.", with no approval asked; the lead decides any write. `read` opens a kept helper result, written one entry a line. The markup check now counts only an attempted call, so quoted XML in an answer survives (Codex's release review). Codex (Astra) reviewed the branch; its four findings were fixed with tests.
+- *Done, run:* team-4 (`docs/comparisons/team-4.md`), team-2's protocol, $1.01. The key held $1.35, so only 8 of 20 pairs ran: 0 of 8 in both arms. Assay desk read the kept result in 15 of 18 cut asks (team-3: 5 of 47), but every one ran out of steps or filled the context; no teammate reached a write. team-3's report is corrected: two asks, not one, found FW-0418's exact list.
+- *Next:* Assay desk needs more than 30 steps, or fewer, on these asks; the lead calls the plate a compound in 13 of 16 taught asks. A full team-4 needs the OpenRouter key topped up (it has $0.34).
+- *Open:* the desktop's team fixtures and `team-approval` screenshots still show a teammate's approval card. The branch isn't merged.
+
 ## 2026-11-02 (Mon): others working on this, under the YC requests (`site/validation-carousel`)
 
 - *Done:* the bottom of "Why we made this" turns through seven published pieces that point the same way: Google Research's Harness², YC's Own Your Intelligence, NVIDIA Research on small models for agents, Anthropic and OpenAI on context and harness engineering, ACE (Stanford, SambaNova, UC Berkeley) and Meta's open-source letter. Each slide shows its mark large beside one sentence quoted word for word, with a dated link. Under them, a row of every organization's mark shows all seven at once and picks a slide (`site/src/validation.ts` keeps the sources and where each mark came from). It changes every 6 s, the old slide fading before the new one rises in. It holds on hover or focus, and has previous, next and stop controls plus arrow keys. With reduced motion it never turns. Its height stays the same across slides, with no horizontal scroll at 390 px. The copy test allows the seven links and checks that every slide has a link, a quote of 30 words or fewer, and a mark file or a name.

@@ -4,7 +4,6 @@ import {
   newId,
   type ApprovalRequest,
   type PermissionMode,
-  type TeammateRef,
 } from '@architect/shared';
 import type { ApproveWrite, PendingWrite, WriteDecision } from '../tools/builtins';
 import type { LiveReply } from './reply';
@@ -45,8 +44,6 @@ export class PendingWrites {
 export interface WritePolicy {
   /** The graduate's name, as the agent may repeat it to the user. */
   agentName: string;
-  /** In a team reply, the teammate whose writes these are, named on each approval. */
-  agent?: TeammateRef;
   /** The write mode right now: the user can change it while a reply runs. */
   mode(): PermissionMode;
   /** Switches the graduate to allow writes from now on, and saves that. */
@@ -114,7 +111,6 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
     }
     const changeId = newId('chg');
     blocks.set(change, changeId);
-    const agent = policy.agent === undefined ? {} : { agent: policy.agent };
     const block = {
       kind: 'approval' as const,
       changeId,
@@ -122,7 +118,6 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
       file: change.path,
       summary: change.summary,
       ...(change.rows === undefined ? { patch: change.patch } : { diff: change.rows }),
-      ...agent,
     };
     if (mode === 'allow') {
       policy.reply.addBlock({ ...block, status: 'approved' });
@@ -136,7 +131,6 @@ export function approveWrites(policy: WritePolicy): ApproveWrite {
         file: change.path,
         summary: change.summary,
         ...(change.rows === undefined ? { patch: change.patch } : { diff: change.rows }),
-        ...agent,
       };
       policy.approvalRequired(approval);
       throw new ApprovalRequiredError(
