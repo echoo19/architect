@@ -136,7 +136,7 @@ function ReportFooter({
   const notHeldId = useId();
   const belowTarget = verdict.state === 'below_target';
   return (
-    <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-end gap-2">
+    <div className="mx-auto box-content flex max-w-[1120px] flex-wrap items-center justify-end gap-2 px-10">
       {edition === 'lab' && <LabLinks report={report} />}
       <Button onClick={() => navigate(paths.train(report.runId))}>See all rounds</Button>
       {verdict.usable || !graduate ? (
@@ -188,8 +188,9 @@ function ReportFooter({
 function LabLinks({ report }: { report: ReportCard }) {
   const registry = useRegistry();
   const version = registry.data ? versionOfRun(registry.data, report.runId) : undefined;
+  // Pulled out by a button's padding, so the first icon starts on the page's edge.
   return (
-    <div className="mr-auto flex flex-wrap gap-2">
+    <div className="-ml-4 mr-auto flex flex-wrap gap-2">
       <Button variant="ghost" onClick={() => navigate(paths.field(report.jobId))}>
         <Library size={16} strokeWidth={1.8} aria-hidden />
         Open field
