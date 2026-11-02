@@ -2,6 +2,7 @@ import {
   AppInfoSchema,
   AppSettingsSchema,
   AttemptPageSchema,
+  BlockedConnectionSchema,
   ConnectionTestSchema,
   DraftTurnSchema,
   FieldExportManifestSchema,
@@ -21,6 +22,7 @@ import {
   RuleConfirmationStateSchema,
   RunDetailSchema,
   RunSchema,
+  RuntimeMeasurementSchema,
   SecretStatusSchema,
   StudentTargetSchema,
   RecordingQuoteSchema,
@@ -135,6 +137,20 @@ export const api = {
       'workspace.messages',
       z.array(WorkspaceMessageSchema),
       bridge().workspace.messages(chatId),
+    ),
+  /** What the runtime meter read while the run's sealed tests ran on this computer. */
+  runtimeMeasurements: (runId: string) =>
+    read(
+      'runs.runtimeMeasurements',
+      z.array(RuntimeMeasurementSchema),
+      bridge().runs.runtimeMeasurements(runId),
+    ),
+  /** What the agent host's network guard stopped since it started; nothing, as a rule. */
+  blockedConnections: () =>
+    read(
+      'workspace.blockedConnections',
+      z.array(BlockedConnectionSchema),
+      bridge().workspace.blockedConnections(),
     ),
 };
 

@@ -90,7 +90,12 @@ import type {
   VersionPick,
   VersionSource,
 } from './versions';
-import type { WorkspaceChat, WorkspaceEvent, WorkspaceMessage } from './workspace';
+import type {
+  BlockedConnection,
+  WorkspaceChat,
+  WorkspaceEvent,
+  WorkspaceMessage,
+} from './workspace';
 
 export type Unsubscribe = () => void;
 
@@ -945,6 +950,11 @@ export interface ArchitectApi {
     send(chatId: string, text: string): Promise<void>;
     stop(chatId: string): Promise<void>;
     decide(changeId: string, decision: 'approve' | 'deny' | 'always'): Promise<void>;
+    /**
+     * The network calls the agent host's loopback-only guard stopped since it started, oldest
+     * first: everything but this computer is refused before a byte leaves (invariant 3).
+     */
+    blockedConnections(): Promise<BlockedConnection[]>;
     onEvent(listener: (event: WorkspaceEvent) => void): Unsubscribe;
   };
 }

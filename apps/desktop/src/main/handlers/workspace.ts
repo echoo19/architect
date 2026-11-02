@@ -50,5 +50,6 @@ export function registerWorkspaceHandlers(
     send: (chatId, text) => whenOpen((host) => host.send(chatId, text)),
     stop: (chatId) => whenOpen((host) => host.stop(chatId)),
     decide: (changeId, decision) => whenOpen((host) => host.decide(changeId, decision)),
+    blockedConnections: () => call((host) => host.blockedConnections()),
   });
 }

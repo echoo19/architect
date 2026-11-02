@@ -1,4 +1,5 @@
 import {
+  BlockedConnectionSchema,
   WorkspaceChatSchema,
   WorkspaceEventSchema,
   WorkspaceMessageSchema,
@@ -15,6 +16,8 @@ import type { AgentHost, SendOptions } from './host';
  */
 export type AgentHostPort = EnginePort;
 
+export { BlockedConnectionSchema };
+
 /**
  * What the host answers over its port: the workspace API, graduates, guard diagnostics, and the
  * settings its adapter runtime follows.
@@ -25,12 +28,6 @@ export interface AgentHostApi extends Omit<AgentHost, 'onEvent' | 'close'> {
   /** The settings llama-server starts with from now on: its path, the thread cap, which Ollama. */
   configure(settings: LocalRuntimeSettings): Promise<void>;
 }
-
-export const BlockedConnectionSchema = z.object({
-  api: z.string(),
-  target: z.string(),
-  at: z.iso.datetime(),
-}) satisfies z.ZodType<BlockedConnection>;
 
 const id = z.string().min(1);
 
