@@ -56,7 +56,7 @@ curl -X POST localhost:4801/quit # closes the app, deletes its profile, stops th
 
 **live**: a new profile, not set up, on the real engine with no stand-in and no IPC stub. Spark and the hosted Glimmer are really called, so it spends real money; set the job's caps in the app before training. The app reads two keys from the driver's environment by name, `META_API_TOKEN` and `OPENROUTER_API_KEY` (`ARCHITECT_KEYS_FROM_ENV=1`, which an unpackaged build only honours); every other provider key stays blanked, and nothing reaches Hugging Face. Load each key into the one command that starts the driver, never into a file or the shell's history, and never type a key into the app.
 
-The window is recorded to `<out>/video` (Playwright's `recordVideo`, written when the app closes). On `/quit` the profile's data is copied to `<out>/profile` before the throwaway profile is deleted, so the job, its run, its lineage and its agent stay.
+The window is recorded to `<out>/video` (Playwright's `recordVideo`, written when the app closes). On `/quit` the profile's data is copied to `<out>/profile` before the throwaway profile is deleted, so the job, its run, its lineage and its agent stay. To go on from there, such as to resume an experiment after a rebuild, start the live world with `--data <out>/profile` and a new `--out`: the app opens on a copy of that profile, which itself is left as it was.
 
 This computer's Ollama is not stubbed here. Training and the final test on the hosted copy never call it, but a chat with a trained agent, a check that loads its model, or a download does. Leave those alone when the local GPU is not to be used. Run one app at a time, and none while a Playwright run is going.
 

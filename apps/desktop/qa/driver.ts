@@ -12,6 +12,7 @@ import { startWorld, WORLDS, type World, type WorldName } from './worlds';
  * 127.0.0.1. See qa/README.md.
  *
  *   node --import tsx qa/driver.ts --world lab --port 4801 --out <dir>
+ *   node --import tsx qa/driver.ts --world live --port 4804 --out <dir> [--data <kept profile>]
  */
 
 type Target =
@@ -38,11 +39,17 @@ const { values } = parseArgs({
     world: { type: 'string' },
     port: { type: 'string', default: '4801' },
     out: { type: 'string' },
+    data: { type: 'string' },
   },
 });
 const worldName = values.world as WorldName;
 if (!WORLDS.includes(worldName)) {
   throw new Error(`Name a world with --world: ${WORLDS.join(', ')}.`);
+}
+if (values.data !== undefined && worldName !== 'live') {
+  throw new Error(
+    '--data starts the live world on a kept profile; the other worlds make their own.',
+  );
 }
 const port = Number(values.port);
 const out = resolve(values.out ?? join(tmpdir(), `architect-qa-${worldName}-${Date.now()}`));
@@ -50,7 +57,7 @@ const shots = join(out, 'shots');
 const log = join(out, 'actions.log');
 await mkdir(shots, { recursive: true });
 
-const world: World = await startWorld(worldName, out);
+const world: World = await startWorld(worldName, out, values.data && resolve(values.data));
 const { app, page } = world.launched;
 page.setDefaultTimeout(STEP_MS);
 await resize(page, { width: 1440, height: 900 });

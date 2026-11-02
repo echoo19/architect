@@ -872,8 +872,10 @@ const LIVE_KEYS = ['META_API_TOKEN', 'OPENROUTER_API_KEY'] as const;
  * hosted student are really called with the keys the tester's environment holds, read by name
  * (ARCHITECT_KEYS_FROM_ENV), never typed and never saved. The window is recorded to
  * `<out>/video`, and on quit the profile's data is copied to `<out>/profile` before it is deleted.
+ * With `data`, a profile an earlier live world kept, the app starts on a copy of it instead, such
+ * as to resume an experiment after a rebuild; the kept folder itself is never changed.
  */
-async function live(out: string): Promise<World> {
+async function live(out: string, data?: string): Promise<World> {
   const video = join(out, 'video');
   const keep = join(out, 'profile');
   const passed = Object.fromEntries(
@@ -883,6 +885,7 @@ async function live(out: string): Promise<World> {
     }),
   );
   const launched = await launch({
+    ...(data === undefined ? {} : { data }),
     env: { ...passed, ARCHITECT_KEYS_FROM_ENV: '1' },
     recordVideo: { dir: video, size: { width: 1440, height: 900 } },
   });
@@ -891,13 +894,14 @@ async function live(out: string): Promise<World> {
     notes: [
       `Keys from the environment: ${Object.keys(passed).join(', ') || 'none'}`,
       `Video: ${video}`,
+      ...(data === undefined ? [] : [`Started on a copy of ${data}`]),
       `On quit, the profile is kept in ${keep}`,
     ],
     close: () => launched.close(keep),
   };
 }
 
-export function startWorld(name: WorldName, out: string): Promise<World> {
+export function startWorld(name: WorldName, out: string, data?: string): Promise<World> {
   switch (name) {
     case 'first-run':
       return firstRun(out);
@@ -906,6 +910,6 @@ export function startWorld(name: WorldName, out: string): Promise<World> {
     case 'lab':
       return lab(out);
     case 'live':
-      return live(out);
+      return live(out, data);
   }
 }
