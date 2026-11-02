@@ -101,7 +101,6 @@ export const ON_PREMISE = {
   peak: { gb: 11, of: '12 GB', share: 11604 / 12282 },
   loaded: '11 GB on the GPU',
   checks: '6 installation checks passed, Oct 30',
-  host: '127.0.0.1:11434',
 } as const;
 
 /** Inventory desk's run finished on Nov 1 (inventory-desk-1.md). */

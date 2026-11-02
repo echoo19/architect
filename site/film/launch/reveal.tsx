@@ -73,8 +73,8 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
   const titleK = mix(from.k, 1, grow);
   // The real academy's figure takes the sealed one's place, the whole of each moving as one.
   const swap = T.realAcademy;
-  const gone = inOutCubic(span(t, swap, 0.6));
-  const real = inOutCubic(span(t, swap + 0.15, 0.8));
+  const gone = inOutCubic(span(t, swap, 0.5));
+  const real = inOutCubic(span(t, swap + 0.4, 0.8));
   const type = 'whitespace-nowrap font-display font-semibold leading-none tracking-[-0.03em]';
   const block = 'absolute left-0 top-0 flex flex-col items-start gap-4';
   return (
@@ -123,11 +123,11 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
               className={`inline-block pb-[0.12em] text-[76px] ${type}`}
               style={riseIn(t, T.alone)}
             >
-              {`Without Architect: ${HARBORVIEW.alone}`}
+              {`Glimmer before training: ${HARBORVIEW.alone}`}
             </span>
           </div>
         )}
-        {t >= swap + 0.2 && (
+        {t >= swap + 0.4 && (
           <div
             className={block}
             style={{
@@ -148,7 +148,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
               style={() => ({})}
             />
             <span className={`inline-block pb-[0.12em] text-[76px] ${type}`}>
-              {`Without Architect: ${REAL_ACADEMY.alone}`}
+              {`Glimmer before training: ${REAL_ACADEMY.alone}`}
             </span>
           </div>
         )}
@@ -316,13 +316,13 @@ export function ScienceFigure({ t }: { t: number }) {
     <GroundFigure
       t={t}
       x={RIGHT}
-      heading={[`${CORVID.name},`, 'a lab it never saw']}
+      heading={['Inventory desk', 'at a lab it never saw']}
       headingAt={T.scienceHero}
       value={CORVID.taught}
       count
       valueAt={T.twentySeven - 1.0}
       unit={`of ${CORVID.of} right`}
-      under={`Without Architect: ${CORVID.alone}`}
+      under={`Glimmer before training: ${CORVID.alone}`}
       underAt={T.scienceAlone}
       until={T.scienceResolve - 0.1}
       student
@@ -418,6 +418,13 @@ export function HarnessFigure({ t }: { t: number }) {
         <RotateCcw size={80} strokeWidth={2} aria-hidden />
         Rolled back
       </span>
+      <Words
+        t={t}
+        text="it did not win: 24 to 23"
+        at={T.rolledBack + 0.25}
+        until={until}
+        className={`${TYPE} text-[56px] leading-[1.06]`}
+      />
     </div>
   );
 }
@@ -475,8 +482,8 @@ export function CounterFigure({ t }: { t: number }) {
       </span>
       <Words
         t={t}
-        text="the smallest input that still breaks it"
-        at={T.four + 0.1}
+        text="shrunk to the smallest failing input"
+        at={T.four - 1.6}
         until={until}
         className={`${TYPE} text-[56px] leading-[1.06]`}
       />
@@ -725,7 +732,7 @@ export function CertFigure({ t }: { t: number }) {
               }}
             >
               <CircleCheck size={50} strokeWidth={2} aria-hidden />
-              Held
+              Bound held
             </span>
           </span>
         </span>

@@ -1,15 +1,14 @@
 import type { ReactNode } from 'react';
 import { Card, InfoTip, Meter, RowIcon } from '@architect/ui';
 import { CircleCheck, Cpu, HardDrive, MemoryStick, Wifi, WifiOff } from 'lucide-react';
-import { inOutCubic, outQuart, span } from '../lab/time';
+import { outQuart, span } from '../lab/time';
 import { ON_PREMISE } from './data';
 import { T } from './timeline';
 
 /**
  * Academy desk's On-premise card, rebuilt from the app's agent home (agent/cards.tsx): where it
  * runs, this computer's GPU, the model build, the memory it took at its peak, and the guard that
- * keeps it offline. The network goes as it is framed, and the memory meter fills as the camera
- * reaches it.
+ * keeps it offline. The network goes as it is framed.
  */
 
 /** A row of the On-premise card, as agent/cards.tsx sets its facts. */
@@ -68,8 +67,6 @@ function Turn({ t, at, from, to }: { t: number; at: number; from: ReactNode; to:
 }
 
 function OnPremise({ t }: { t: number }) {
-  const memory = inOutCubic(span(t, T.memory, 1.3));
-  const host = <span className="font-mono">{ON_PREMISE.host}</span>;
   return (
     <Card title="On-premise" icon={<Cpu strokeWidth={1.8} aria-hidden />} flush>
       <ul className="m-0 list-none p-0">
@@ -101,11 +98,11 @@ function OnPremise({ t }: { t: number }) {
               </InfoTip>
             </span>
             <span className="tabular-nums">
-              {Math.round(ON_PREMISE.peak.gb * memory)} GB of {ON_PREMISE.peak.of}
+              {ON_PREMISE.peak.gb} GB of {ON_PREMISE.peak.of}
             </span>
           </span>
           <Meter
-            value={ON_PREMISE.peak.share * memory}
+            value={ON_PREMISE.peak.share}
             label="GPU memory at its peak"
             tone="student"
             className="ml-9 w-auto"
@@ -137,8 +134,8 @@ function OnPremise({ t }: { t: number }) {
             <Turn
               t={t}
               at={T.offline}
-              from={<>The network is up; it reaches only {host}</>}
-              to={<>Reaches only {host}; no call stopped since Architect started</>}
+              from={<>The network is up; it reaches only this computer</>}
+              to={<>Reaches only this computer; no call has left it since Architect started</>}
             />
           }
         >

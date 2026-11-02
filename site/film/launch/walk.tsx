@@ -87,7 +87,7 @@ const ALLOW_AT = 9.4;
 const FIELD_AT = T.fields + 0.5;
 const TEAM_AT = T.teamClick - 0.2;
 const COMPUTE_AT = T.compute - 0.4;
-/** Models comes in under the figures' ground; its panel opens as the window flies back in onto it. */
+/** Models comes in under the figures' ground, its certificate already open as the window glides in. */
 const MODELS_AT = T.models - 0.7;
 
 /** The chat pushes in over the home as the camera moves onto it. */
@@ -169,13 +169,7 @@ const PAGES: readonly PageSpan[] = [
     fill: place(3),
     cut: true,
     draw: (lt) => (
-      <ModelsPage
-        lt={lt + ROWS_IN}
-        panelAt={T.models - MODELS_AT + ROWS_IN}
-        certificate={CERTIFICATE}
-        row={0}
-        basisOpen
-      />
+      <ModelsPage lt={lt + ROWS_IN} panelAt={-1} certificate={CERTIFICATE} row={0} basisOpen />
     ),
   },
   {
@@ -470,8 +464,11 @@ const PAGE_MIN = 2.16;
 /** The closest a single card is framed. */
 const PAGE_MAX = 2.4;
 
-/** The chat's column, its header's edge above it: its reply and the two writes it asks to make. */
-const CHAT_VIEW: Framing = { cx: PAGE.center, cy: 45 + FRAME.height / 2 / 2.3, s: 2.3 };
+/**
+ * The chat whole down to its two writes: its header with the question it answers, the reply, and
+ * the writes it asks to make, centered between the sidebar's edge and the window's.
+ */
+const CHAT_VIEW: Framing = { cx: 698, cy: 3 + FRAME.height / 2 / 2.13, s: 2.13 };
 
 /** Compute's title and its fine-tuning plan, centered, the memory card below out of frame. */
 const COMPUTE_VIEW: Framing = { cx: PAGE.center, cy: 255, s: PAGE_MIN };

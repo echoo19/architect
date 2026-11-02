@@ -201,7 +201,6 @@ export const T = {
   /** The Offline row turns as the window lands back from the line. */
   offline: workspace + 1.6,
   machine: workspace + 2.3,
-  memory: workspace + 3.2,
   intoChat: saves - 1.0,
   saves,
   welcome,
