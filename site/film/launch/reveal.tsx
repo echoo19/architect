@@ -316,7 +316,7 @@ export function ScienceFigure({ t }: { t: number }) {
     <GroundFigure
       t={t}
       x={RIGHT}
-      heading={[`${CORVID.name},`, 'never seen']}
+      heading={[`${CORVID.name},`, 'a lab it never saw']}
       headingAt={T.scienceHero}
       value={CORVID.taught}
       count
@@ -388,10 +388,17 @@ export function HarnessFigure({ t }: { t: number }) {
       <span className="flex flex-col gap-3">
         <Words
           t={t}
-          text="Expects +2 to +6 checks"
+          text="Spark predicts"
           at={T.hypothesis}
           until={until}
-          className={`${TYPE} text-[84px] leading-none`}
+          className={`${TYPE} text-[56px] leading-none`}
+        />
+        <Words
+          t={t}
+          text="+2 to +6 checks"
+          at={T.hypothesis + 0.1}
+          until={until}
+          className={`${TYPE} text-[96px] leading-none`}
         />
         <Words
           t={t}
@@ -468,7 +475,7 @@ export function CounterFigure({ t }: { t: number }) {
       </span>
       <Words
         t={t}
-        text="the smallest case that still fails"
+        text="the smallest input that still breaks it"
         at={T.four + 0.1}
         until={until}
         className={`${TYPE} text-[56px] leading-[1.06]`}
@@ -482,7 +489,7 @@ export function CounterFigure({ t }: { t: number }) {
       </span>
       <Words
         t={t}
-        text="and kept as a regression test"
+        text="kept as a test, so it stays fixed"
         at={T.regression - 0.2}
         until={until}
         className={`${TYPE} text-[56px] leading-[1.06]`}
@@ -603,8 +610,18 @@ export function LabModels({ t }: { t: number }) {
   // They go out with the window as it glides to the field, and are gone before it comes back.
   if (t < T.how - 0.1 || t > T.fieldIn) return null;
   const rows = [
-    { name: 'Spark', color: 'mentor' as const, role: "Meta's frontier model", at: T.how },
-    { name: 'Glimmer', color: 'student' as const, role: '30B, fits on a PC', at: T.labHover + 0.2 },
+    {
+      name: 'Spark',
+      color: 'mentor' as const,
+      role: ['The teacher', "Meta's frontier model"],
+      at: T.how,
+    },
+    {
+      name: 'Glimmer',
+      color: 'student' as const,
+      role: ['Your specialist', '30B, fits on a PC'],
+      at: T.labHover + 0.2,
+    },
   ];
   return (
     <div
@@ -625,7 +642,13 @@ export function LabModels({ t }: { t: number }) {
             >
               {row.name}
             </span>
-            <span className={`${TYPE} text-[36px] leading-none`}>{row.role}</span>
+            <span
+              className={`flex flex-col gap-1.5 whitespace-nowrap ${TYPE} text-[34px] leading-none`}
+            >
+              {row.role.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </span>
           </span>
         </span>
       ))}
@@ -685,10 +708,10 @@ export function CertFigure({ t }: { t: number }) {
             until={until}
             className={`${TYPE} text-[64px] leading-none`}
           />
-          <span className="flex items-center gap-[0.4em] text-[64px]">
+          <span className="flex items-center gap-[0.4em] text-[52px]">
             <Words
               t={t}
-              text={`${CERTIFICATE_CHECK.answered}, ${CERTIFICATE_CHECK.wrong}`}
+              text={`Answered ${CERTIFICATE_CHECK.answered}, ${CERTIFICATE_CHECK.wrong}`}
               at={T.certificate + 0.15}
               until={until}
               stagger={0.04}
@@ -701,7 +724,7 @@ export function CertFigure({ t }: { t: number }) {
                 transform: `translateX(${(1 - held) * -12}px)`,
               }}
             >
-              <CircleCheck size={60} strokeWidth={2} aria-hidden />
+              <CircleCheck size={50} strokeWidth={2} aria-hidden />
               Held
             </span>
           </span>
@@ -779,7 +802,7 @@ export function OpenTeacher({ t, measured }: { t: number; measured: Measured }) 
       >
         <Words
           t={t}
-          text="Even the teacher can be open weights."
+          text="Even the teacher can be an open model."
           at={T.openBeat + 0.7}
           until={T.beyond - 0.6}
           className={`${TYPE} text-[84px] leading-[1.04]`}

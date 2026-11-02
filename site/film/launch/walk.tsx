@@ -470,8 +470,8 @@ const PAGE_MIN = 2.16;
 /** The closest a single card is framed. */
 const PAGE_MAX = 2.4;
 
-/** The chat's column, under its header: its reply and the two writes it asks to make. */
-const CHAT_VIEW: Framing = { cx: PAGE.center, cy: 57 + FRAME.height / 2 / 2.3, s: 2.3 };
+/** The chat's column, its header's edge above it: its reply and the two writes it asks to make. */
+const CHAT_VIEW: Framing = { cx: PAGE.center, cy: 45 + FRAME.height / 2 / 2.3, s: 2.3 };
 
 /** Compute's title and its fine-tuning plan, centered, the memory card below out of frame. */
 const COMPUTE_VIEW: Framing = { cx: PAGE.center, cy: 255, s: PAGE_MIN };
