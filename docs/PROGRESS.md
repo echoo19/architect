@@ -2,6 +2,13 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-01 (Sun, evening), `feat/agent-home`: each agent opens on its home
+
+- *Done:* opening an agent (its sidebar row, the palette, the personal edition's start) lands on `/agents/<id>`, its home; the chat stays one click away (the sidebar's chats, the sessions list, the header's last-session button). The home starts a session from a box with the agent's starter requests and stays put while it works; lists every session (waiting ones first) with its last outcome; and shows, from records only: requests per day over 14 days (`BarChart`, new in `packages/ui`), median and 95th-percentile answer time, tokens per second, tool use by tool, writes allowed, waiting and declined, requests left to a person, errors; the GPU, model build, size, context, peak memory from the runtime meter, loaded or not, cold start and installation checks; the sealed final test at graduation beside every retest with its drift, the risk certificate and the regression suite; and the offline guarantee from the agent host's loopback guard (`workspace.blockedConnections`, new IPC, and what it stopped since start).
+- *Done, recording:* each reply now keeps `generated` (the runtime's own output-token count over its model turns, and their time), so tokens per second is measured, not estimated.
+- *Done, fixtures:* weeks of sessions for Service desk, Academy desk, Inventory desk and Assay desk in the Lab world and the returns desk in the personal world (`e2e/fixtures-activity.ts`), laid out from each version's acceptance to now; Academy desk has a hosted retest and a meter record.
+- *Open:* activity can't start before a version was accepted, so on Nov 1 the Lab's history covers the five days since Oct 27, growing to two weeks as days pass. The sidebar lists five chats per agent; the home lists them all.
+
 ## 2026-11-02 (Mon, early hours): measured runs, a real fine-tune, the Lab's language, 0.9.0 and the launch film
 
 - *Done, runs* (reports in `docs/comparisons`, each registered before it ran, keys loaded per process, no local GPU):

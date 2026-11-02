@@ -61,6 +61,10 @@ async function open(
 ): Promise<void> {
   await installFakeEngine(launched.app, options.seed ?? engineSeed());
   await updateSettings(page, { onboarded: options.onboarded ?? true });
+  // Reloaded at the path itself, so home's opening of the agent used last can't land after it.
+  await page.evaluate((hash) => {
+    window.location.hash = hash;
+  }, path);
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await goTo(page, path);
@@ -381,8 +385,8 @@ test('stops a reply and says so', async () => {
   await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
 });
 
-test('opens the chat used last when the workspace opens', async () => {
+test('opens the home of the agent used last when the workspace opens', async () => {
   await open('/');
-  await expect(page).toHaveURL(new RegExp(`#${chatPath(CHATS.fresh.id)}$`));
+  await expect(page).toHaveURL(new RegExp(`#/agents/${AGENT.id}$`));
   await expect(page.getByRole('navigation', { name: 'Agents' })).toContainText('Close out Tuesday');
 });

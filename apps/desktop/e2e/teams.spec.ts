@@ -261,7 +261,8 @@ test('the personal edition has no teams', async () => {
   await expect(sidebar().getByRole('group', { name: 'Teams' })).toHaveCount(0);
   expect((await teamCallsTo(launched.app, 'teams:list')).length).toBe(before);
   await goTo(page, `/teams/${TEAM.id}/chats/${TEAM_CHAT.id}`);
-  await expect(page).toHaveURL(/#\/$/);
+  // Home, which opens the home of the agent used last.
+  await expect(page).toHaveURL(/#\/agents\/[^/]+$/);
 
   // Started at a team's chat, it goes home before anything asks for teams or their chats.
   const asked = async () =>
@@ -273,7 +274,7 @@ test('the personal edition has no teams', async () => {
   }, `/teams/${TEAM.id}/chats/${TEAM_CHAT.id}`);
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  await expect(page).toHaveURL(/#\/$/);
+  await expect(page).toHaveURL(/#\/agents\/[^/]+$/);
   await settle(page);
   expect(await asked()).toBe(earlier);
 });

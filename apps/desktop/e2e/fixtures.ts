@@ -126,6 +126,8 @@ export const SAMPLE_ENGINE: EngineReplies = {
   'graduates:settings': { writeMode: 'ask' },
   'workspace:listChats': Object.values(CHATS),
   'workspace:messages': MESSAGES.filter((message) => message.chatId === CHATS.closeout.id),
+  // The agent host's network guard, which stops nothing in any spec.
+  'workspace:blockedConnections': [],
   'jobs:list': [],
   'jobs:get': job,
   'jobs:taskPlan': SAMPLE_PLAN,

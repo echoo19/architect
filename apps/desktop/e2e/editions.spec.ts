@@ -121,10 +121,10 @@ test('switches in Settings without a restart, and the personal edition has no La
   await expect(palette).toBeHidden();
 });
 
-test('the personal home opens the chat used last, and Describe offers no Academy desk', async () => {
+test('the personal home opens the agent used last, and Describe offers no Academy desk', async () => {
   await stubEngine(launched.app, SAMPLE_ENGINE);
   await reloadAt('/');
-  await expect(page).toHaveURL(/#\/agents\/[^/]+\/chats\/[^/]+$/);
+  await expect(page).toHaveURL(/#\/agents\/[^/]+$/);
   await expect(agents()).toContainText('Close out Tuesday');
   await expect(places()).toHaveCount(0);
   await capture('home-personal-dark.png');

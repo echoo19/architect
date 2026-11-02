@@ -20,12 +20,24 @@ import {
 } from '@architect/shared';
 import { launchApp, type LaunchedApp } from '../e2e/app';
 import { LLAMA_SERVER_READY, STORY_EVIDENCE, stubEngine } from '../e2e/fixtures';
+import {
+  ACTIVITY_PLANS,
+  activityOf,
+  agentHistory,
+  type AgentActivity,
+} from '../e2e/fixtures-activity';
 import { ACADEMY_DESK_CERTIFICATE } from '../e2e/fixtures-certify';
 import { GLIMMER_STAND_IN_CONFIG } from '../e2e/fixtures-compute';
 import { ACADEMY_DESK_COUNTEREXAMPLES } from '../e2e/fixtures-counterexamples';
 import { ASK, draftReply, ROUND_DRAFT } from '../e2e/fixtures-drafting';
 import { installExperimentsFake } from '../e2e/fixtures-experiments';
-import { FIELD_CAPABILITIES, FIELD_CHAT, FIELD_MESSAGES } from '../e2e/fixtures-field';
+import {
+  FIELD_CAPABILITIES,
+  FIELD_CHAT,
+  FIELD_MEASUREMENT,
+  FIELD_MESSAGES,
+  HOSTED_RETEST_REPORT,
+} from '../e2e/fixtures-field';
 import {
   FIELD_REPORTS,
   FIELD_VIEWS,
@@ -46,6 +58,7 @@ import {
   taskPlan,
 } from '../e2e/fixtures-flow';
 import {
+  ACADEMY_DESK_AGENT,
   ACADEMY_DESK_ID,
   DETAILS,
   JOBS,
@@ -66,7 +79,7 @@ import {
   TEAM_RECORDS,
   teamWorld,
 } from '../e2e/fixtures-teams';
-import { installation } from '../e2e/fixtures-versions';
+import { AGENT_WITH_VERSIONS, installation } from '../e2e/fixtures-versions';
 import { CHATS, MESSAGES, STUDENT_MODEL } from '../e2e/fixtures-workspace';
 import {
   startFakeOllama,
@@ -360,6 +373,21 @@ async function personal(out: string): Promise<World> {
             model: { ...installation.model, baseUrl: student.baseUrl },
           });
         }
+        // The returns desk's weeks of work since its version was accepted, for its home.
+        const versions = store.versions.list(summary.graduateId);
+        const active = versions.at(-1);
+        if (active) {
+          const history = agentHistory([
+            {
+              graduateId: summary.graduateId,
+              version: active.version,
+              since: active.acceptedAt ?? active.createdAt,
+              sessions: ACTIVITY_PLANS.returnsDesk,
+            },
+          ]);
+          for (const chat of history.chats) store.chats.insert(chat);
+          for (const message of history.messages) store.messages.insert(message);
+        }
       } finally {
         store.close();
       }
@@ -576,16 +604,79 @@ async function teamFields(app: ElectronApplication): Promise<Record<string, RunD
 }
 
 /**
+ * Academy desk's version 2, tested on this computer when it graduated and again on the hosted
+ * copy since, with what the meter read while its final test ran here.
+ */
+async function academyRetest(app: ElectronApplication): Promise<void> {
+  const cards = {
+    ...FIELD_REPORTS,
+    ...Object.fromEntries(Object.values(TEAM_RECORDS.reports).map((card) => [card.runId, card])),
+    [FLOW.runId]: reports[FLOW.runId],
+    [LAB.academyDeskRun]: {
+      ...FIELD_REPORTS[LAB.academyDeskRun],
+      certificate: ACADEMY_DESK_CERTIFICATE,
+    },
+  };
+  await app.evaluate(
+    ({ ipcMain }, { cards, retest, run }) => {
+      ipcMain.removeHandler('reports:get');
+      ipcMain.handle('reports:get', (_event, runId: string, target?: string) => {
+        if (runId === run && target === 'hosted') return { ok: true, value: retest };
+        return runId in cards
+          ? { ok: true, value: cards[runId] }
+          : { ok: false, error: { message: `Nothing is stored for ${runId}.` } };
+      });
+    },
+    {
+      cards,
+      retest: { ...HOSTED_RETEST_REPORT, certificate: ACADEMY_DESK_CERTIFICATE },
+      run: LAB.academyDeskRun,
+    },
+  );
+  await stubByKey(app, 'reports:list', {
+    ...REPORT_TARGETS,
+    ...Object.fromEntries(TEAM_RECORDS.runs.map((run) => [run.id, ['hosted']])),
+    [LAB.academyDeskRun]: ['local', 'hosted'],
+  });
+  // Every other run's final test ran with no meter.
+  await app.evaluate(
+    ({ ipcMain }, { measured, run }) => {
+      ipcMain.removeHandler('runs:runtimeMeasurements');
+      ipcMain.handle('runs:runtimeMeasurements', (_event, runId: string) => ({
+        ok: true,
+        value: runId === run ? measured : [],
+      }));
+    },
+    { measured: [FIELD_MEASUREMENT], run: LAB.academyDeskRun },
+  );
+}
+
+/** The Lab's agents' weeks of work since their versions were accepted, for their homes. */
+const LAB_ACTIVITY: AgentActivity[] = [
+  activityOf(AGENT_WITH_VERSIONS, ACTIVITY_PLANS.serviceDesk),
+  activityOf(ACADEMY_DESK_AGENT, ACTIVITY_PLANS.academyDesk),
+  activityOf(TEAM_AGENTS.lead, ACTIVITY_PLANS.inventoryDesk),
+  activityOf(TEAM_AGENTS.teammate, ACTIVITY_PLANS.assayDesk),
+];
+
+/**
  * The agents' chats in the Lab: the service desk's, Academy desk's and the team's, and any chat
  * started with an agent, where every message gets one fixed reply, since no agent runs here.
  */
 async function labChats(app: ElectronApplication): Promise<void> {
+  const history = agentHistory(LAB_ACTIVITY);
   const chats: WorkspaceChat[] = [
     ...Object.values(CHATS),
     { ...FIELD_CHAT, graduateId: ACADEMY_DESK_ID },
     TEAM_CHAT,
+    ...history.chats,
   ];
-  const messages: WorkspaceMessage[] = [...MESSAGES, ...FIELD_MESSAGES, ...TEAM_MESSAGES];
+  const messages: WorkspaceMessage[] = [
+    ...MESSAGES,
+    ...FIELD_MESSAGES,
+    ...TEAM_MESSAGES,
+    ...history.messages,
+  ];
   await app.evaluate(
     ({ BrowserWindow, ipcMain }, seed) => {
       const { chats, messages } = structuredClone(seed);
@@ -609,9 +700,13 @@ async function labChats(app: ElectronApplication): Promise<void> {
         if (!found) throw new Error(`No chat ${id}.`);
         return found;
       };
+      // The host lists an agent's chats most recently used first.
       handle('workspace:listChats', (graduateId: string) =>
-        chats.filter((chat) => chat.graduateId === graduateId && chat.teamId === undefined),
+        chats
+          .filter((chat) => chat.graduateId === graduateId && chat.teamId === undefined)
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       );
+      handle('workspace:blockedConnections', () => []);
       handle('workspace:messages', (chatId: string) =>
         messages.filter((message) => message.chatId === chatId),
       );
@@ -729,6 +824,28 @@ async function lab(out: string): Promise<World> {
   });
   await liveTraining(app, details);
   await liveExperiments(app);
+  await academyRetest(app);
+  // Glimmer's 4-bit build stays loaded from the last chat: most of it on the 12 GB card, the
+  // rest in system memory, as the meter read during Academy desk's final test.
+  await stubEngine(app, {
+    'connections:detectLocal': {
+      ...FLOW_LOCAL,
+      ollama: {
+        ...FLOW_LOCAL.ollama,
+        baseUrl: models.defaultStudent.baseUrl,
+        models: [
+          {
+            id: STUDENT_MODEL,
+            sizeBytes: GLIMMER_BYTES,
+            inMemory: {
+              totalBytes: FIELD_MEASUREMENT.peakProcessBytes ?? 0,
+              gpuBytes: FIELD_MEASUREMENT.peakGpuBytes ?? 0,
+            },
+          },
+        ],
+      },
+    },
+  });
   await reload(launched);
   return {
     launched,
