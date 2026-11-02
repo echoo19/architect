@@ -40,10 +40,12 @@ export function Budget({ live, mentor }: { live: LiveRun; mentor: string }) {
           testedPast ? `Training stopped at the limit, then the ${w.finalTest} ran` : undefined
         }
       />
+      {/* Only the mentor's bill has a cap; what an online student costs is billed apart, so the
+          label names the bill it counts, as the estimate's line for it does. */}
       <BudgetMeter
         icon={CircleDollarSign}
         tone="mentor"
-        label={`${mentor}'s cost`}
+        label={`${mentor} teaching`}
         value={roundCents(usd.used)}
         kind="currency"
         used={formatUsd(roundCents(usd.used))}
