@@ -52,7 +52,6 @@ type Rect = { x: number; y: number; w: number; h: number };
 const FOUND: readonly (readonly [string, string])[] = [
   ['brief-rules', '[data-frame="brief"] > div:nth-child(2)'],
   ['brief-differ', '[data-frame="brief"] > div:nth-child(3)'],
-  ['running', '[data-page="lab"] .grid > div:last-child'],
   ['panel', '[data-page="models"] aside'],
 ];
 
@@ -76,17 +75,11 @@ function measure(): Measured {
     if (name) put(name, el);
   }
   for (const [name, selector] of FOUND) put(name, document.querySelector(selector));
-  // The plot's never-seen groups, and the track Harborview's taught arm lands on.
-  const groups = document.querySelectorAll('[data-page="experiment"] figure [role="group"]');
-  put('plot', groups[0]?.closest('section'));
   // The sealed academy's card title, which grows into Harborview Prep's figure.
   put(
     'vault-title',
     document.querySelector('[data-frame="vault"]')?.closest('section')?.querySelector('h2'),
   );
-  put('hv-group', groups[1]);
-  put('real-group', groups[2]);
-  put('hv-track', groups[1]?.lastElementChild?.children[1]);
   return found;
 }
 

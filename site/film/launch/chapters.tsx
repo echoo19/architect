@@ -7,8 +7,7 @@ import { Words } from './words';
  * speed; where a section opens, its first line rises big on the ground in the narration's own
  * words as the window goes; then the window flies back in from the right at full speed, settling
  * on the section's first moment with its page already changed, and carries the line out to the
- * left. A whip with no line cuts between two moments of one section. Nothing walks from one
- * screen to the next.
+ * left. Nothing walks from one screen to the next.
  */
 export interface Whip {
   /** The window starts out. */
@@ -16,7 +15,7 @@ export interface Whip {
   /** It starts back in. */
   in: number;
   /** The section's opening line. */
-  line?: string;
+  line: string;
 }
 
 /** How long the window takes to go, and to come back. */
@@ -29,7 +28,7 @@ export const inEase = outQuart;
 export const WHIPS = {
   field: { out: T.fields - 0.5, in: T.fieldIn, line: 'Give it a field.' },
   beyond: { out: T.beyond - 0.45, in: T.notJust + 1.0, line: 'Not just academies.' },
-  team: { out: T.teamClick - 0.45, in: T.teamClick },
+  team: { out: T.scienceResolve, in: T.teamClick, line: 'Specialists work as a team.' },
   offline: { out: T.workspace - 0.6, in: T.network - 0.35, line: 'Cut the network.' },
 } as const satisfies Record<string, Whip>;
 
@@ -44,7 +43,7 @@ export function Chapters({ t }: { t: number }) {
   return (
     <>
       {Object.values(WHIPS).map((whip: Whip) => {
-        if (!whip.line || t < whip.out || t > whip.in + IN) return null;
+        if (t < whip.out || t > whip.in + IN) return null;
         const x = -ACROSS * inEase(span(t, whip.in, IN));
         return (
           <div

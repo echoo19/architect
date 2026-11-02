@@ -20,9 +20,6 @@ export const REAL_ACADEMY = { taught: 12, alone: 9, of: 24 } as const;
  */
 export const CORVID = { taught: 27, alone: 4, of: 32, name: 'Corvid Hill Discovery' } as const;
 
-/** Inventory desk's best final tests on the Fields page once its run is in: 21 of 24, 27 of 32. */
-export const INVENTORY_SCORES = ['88%', '84%', '-'] as const;
-
 /**
  * The harness changes of the academy field's first run (tutor-1, its lineage and harness folder):
  * round 1's files with their lines added and removed, v0001 to v0002; round 2's change to the
@@ -147,7 +144,6 @@ export const FIELD_ACTIVITY = { 'Inventory desk': 'Nov 1' } as const;
 export const PLAN = {
   model: 'lab/moe-235b',
   /** Its size, said plainly. */
-  size: '235B',
   config: 'lab/moe-235b @ 00216c179c24',
   figures: [
     ['235.1B', 'Parameters'],

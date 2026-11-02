@@ -3,7 +3,7 @@ import { Pointer, type Framing, type Measured } from '../lab/film';
 import { CounterexampleDrawer, DefinePage } from '../lab/pages-flow';
 import { FieldPage, Fields, LabHome } from '../lab/pages-lab';
 import { IN, inEase, OUT, outEase, WHIPS, type Whip } from './chapters';
-import { ExperimentPage, ModelsPage } from '../lab/pages-lab2';
+import { ModelsPage } from '../lab/pages-lab2';
 import { WelcomePage, WorkspacePage } from '../lab/pages-more';
 import { CHAT_AGENT, ROW, TEAM_ROW, WINDOW, type SidebarState } from '../lab/shell';
 import { TeamChatPage } from '../lab/team';
@@ -23,10 +23,9 @@ import {
   COUNTEREXAMPLE_TASK,
   FIELD_ACTIVITY,
   FIRST_ROUND,
-  INVENTORY_SCORES,
   SHOW_OPEN_TEACHER,
 } from './data';
-import { FINE_TUNE_AT, FINE_TUNE_SCROLL, FineTunePage } from './finetune';
+import { FINE_TUNE_AT, FineTunePage } from './finetune';
 import { HarnessDrawer } from './harness';
 import { AgentHomePage } from './home';
 import type { Layer, Mode, ScreenView } from './screen';
@@ -77,12 +76,6 @@ function defineScroll(lt: number): number {
 }
 const BRIEF_SCROLL = 640;
 
-/** The experiment page's own time: it is already finished up to the plot when it is cut in. */
-const experimentTime = (t: number) => 6 + Math.max(0, t - T.vaultCut);
-
-/** When the plot's groups land, in the page's own time: taught on, Harborview, the real academy. */
-const ARMS = [4.7, experimentTime(T.resolve + 0.55), experimentTime(T.side + 1.0)] as const;
-
 /** How far a table page has got by the time it comes in: its rows are already rising. */
 const ROWS_IN = 0.3;
 
@@ -93,7 +86,7 @@ const ALLOW_AT = 9.4;
 const FIELD_AT = T.fields + 0.5;
 const TEAM_AT = T.teamClick - 0.2;
 const COMPUTE_AT = T.compute - 0.4;
-/** Models comes in under the backdrop, beside the real academy's figure; its panel opens as the camera goes onto it. */
+/** Models comes in under the figures' ground; its panel opens as the window flies back in onto it. */
 const MODELS_AT = T.models - 0.7;
 
 const PAGES: readonly PageSpan[] = [
@@ -162,18 +155,11 @@ const PAGES: readonly PageSpan[] = [
     draw: (_lt, t) => <FieldPage lt={21} unlock={ui(t, T.opens, 0.35)} />,
   },
   {
-    key: 'experiment',
-    at: T.vaultCut,
-    mode: 'place',
-    fill: place(2),
-    cut: true,
-    draw: (_lt, t) => <ExperimentPage lt={experimentTime(t)} arms={ARMS} placed={['1-taught']} />,
-  },
-  {
     key: 'models',
     at: MODELS_AT,
     mode: 'place',
     fill: place(3),
+    cut: true,
     draw: (lt) => (
       <ModelsPage
         lt={lt + ROWS_IN}
@@ -206,9 +192,8 @@ const PAGES: readonly PageSpan[] = [
       <Fields
         lt={lt + ROWS_IN}
         selected={Math.min(ui(t, T.notJust + 1.2, 0.25), 1 - ui(t, T.labDesks, 0.35))}
-        lab={ui(t, T.labDesks, 0.35) - ui(t, T.scienceResolve, 0.4)}
+        lab={ui(t, T.labDesks, 0.35)}
         when={FIELD_ACTIVITY}
-        scores={t >= T.scienceResolve + 0.75 ? { 'Inventory desk': INVENTORY_SCORES } : undefined}
       />
     ),
   },
@@ -220,8 +205,7 @@ const PAGES: readonly PageSpan[] = [
     cut: true,
     draw: (lt) => <TeamChatPage t={lt} />,
     clock: [
-      [0, 3.95],
-      [0.52, 4.35],
+      [0, 4.4],
       [T.asks - TEAM_AT, 5.05],
       [T.compounds - TEAM_AT, 6.5],
       [T.holds - 0.98 - TEAM_AT, 8.4],
@@ -393,11 +377,9 @@ export function walkView(t: number): ScreenView {
 
 /** While a figure stands beside the window, the window under the app's backdrop. */
 const DIMS: readonly (readonly [number, number])[] = [
-  [T.side + 1.4, T.models - 0.5],
-  [T.certHero - 0.6, T.compute - 0.3],
-  [T.gpuDive - 0.1, T.gpuResolve],
+  [T.certHero - 1.0, T.compute - 0.3],
+  [T.gpuTrained - 0.7, SHOW_OPEN_TEACHER ? T.beyond - 0.5 : T.openBeat],
   [T.scienceDive - 0.1, T.scienceResolve],
-  ...(SHOW_OPEN_TEACHER ? [[T.openBeat, T.beyond - 0.5] as const] : []),
 ];
 
 const dim = (t: number) =>
@@ -450,22 +432,6 @@ export function frameOf(measured: Measured, name: string, pad = 44, max = 2.4, d
   return { cx: rect.x + rect.w / 2, cy: rect.y + rect.h / 2 - dy, s };
 }
 
-/** Where the taught arm's point lands on Harborview's row, in window pixels. */
-export function harborviewPoint(measured: Measured): readonly [number, number] {
-  const track = measured.get('hv-track');
-  if (!track) return [WINDOW.width / 2, WINDOW.height / 2];
-  return [track.x + track.w * 0.896, track.y + track.h / 2];
-}
-
-/** How close a dive goes onto its point: everything readable around it is out of frame. */
-export const DIVE = 34;
-
-const onto = (point: readonly [number, number]): Framing => ({
-  cx: point[0],
-  cy: point[1],
-  s: DIVE,
-});
-
 /**
  * The whole window at the frame's left, under the app's backdrop, a figure on the ground at its
  * right: the window stays in frame, so the figure is always seen beside where it comes from.
@@ -508,8 +474,15 @@ const CHAT_VIEW: Framing = { cx: 258 + 480, cy: 250, s: 2.0 };
 /** The round's drawer over the rounds: the frame's top under the flow's bar. */
 const DRAWER_VIEW: Framing = { cx: 637, cy: 357, s: 1.8 };
 
-/** Compute's page: its left edge in the gutter past the sidebar, its top under the title. */
-const COMPUTE_VIEW: Framing = content(104, 1.95);
+/** Compute's page whole, its title in: its left edge in the gutter past the sidebar. */
+const COMPUTE_VIEW: Framing = content(40, 1.8);
+
+/** The Lab's cards with room around them: the sidebar's edge at the left, the window's at the right. */
+const LAB_VIEW: Framing = {
+  cx: 248 + FRAME.width / 2 / 1.85,
+  cy: 108 + FRAME.height / 2 / 1.85,
+  s: 1.85,
+};
 
 /** The whole window at the frame's right, the certificate's bound on the ground at its left. */
 const CERT_VIEW: Framing = { cx: -29, cy: WINDOW.height / 2, s: 0.78 };
@@ -539,9 +512,6 @@ export function trainScore(measured: Measured): Framing {
   return { cx: WINDOW.width / 2, cy: (from + to) / 2, s: FRAME.height / (to - from) };
 }
 
-/** Define's top, its job and the start of the brief, while the passages are still closed. */
-const DEFINE_TOP: Framing = { cx: WINDOW.width / 2, cy: 316, s: 2.29 };
-
 /** The two editions. */
 const EDITIONS: Framing = { cx: WINDOW.width / 2, cy: 290, s: 2.2 };
 
@@ -552,8 +522,6 @@ interface Shot {
   ease?: (p: number) => number;
   /** A held framing drifts in a little; one a cut or a dive leaves from exactly does not. */
   still?: boolean;
-  /** A point the move keeps on a straight line across the frame, so what sits on it lands there. */
-  anchor?: (measured: Measured) => readonly [number, number];
 }
 
 /** Where the window is while it is away: just past the frame's left edge, then its right. */
@@ -571,51 +539,39 @@ function whip(w: Whip, to: Shot['to']): Shot[] {
 
 const SHOTS: readonly Shot[] = [
   { at: T.how, dur: 0, to: FULL },
-  // 3. The Lab: a push onto what needs you, what is running and what it costs.
-  { at: T.pushRunning, dur: 1.3, to: content(108, 2.0) },
+  // 3. The Lab: a slow push onto what needs you, what is running and what it costs.
+  { at: T.pushRunning, dur: 2.2, to: LAB_VIEW },
   // 4. A field: its line, then its organizations, the vault, the real one.
   ...whip(WHIPS.field, content(103, 1.9)),
   { at: T.vault + 0.1, dur: 1.0, to: content(103, 2.15) },
   { at: T.real - 0.1, dur: 1.0, to: content(103, 1.9) },
   // 5. The study.
   { at: T.define - 0.3, dur: 0.6, to: FLOW, ease: inOutQuint },
-  { at: T.define + 0.8, dur: 0.9, to: DEFINE_TOP },
   { at: T.source - 0.6, dur: 1.2, to: (m) => brief(m) },
   { at: T.confirm - 0.9, dur: 0.6, to: FLOW },
-  // 6. The harness: its drawer over the rounds, then the rounds, then into the score.
+  // 6. The harness: its drawer over the rounds, then one push onto the score as it closes.
   { at: T.harness - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
-  { at: T.harnessOut, dur: 0.7, to: FLOW, ease: inOutQuint },
-  { at: T.pushScore, dur: 0.9, to: (m) => trainScore(m) },
+  { at: T.harnessOut, dur: T.thirtyFive - T.harnessOut, to: (m) => trainScore(m) },
   // 7. The counterexample, and the case locked in on the field's Assets.
   { at: T.drawer - 0.1, dur: 0.7, to: DRAWER_VIEW, ease: inOutQuint },
   { at: T.drawerOut - 0.05, dur: 0.55, to: FULL, ease: inOutQuint },
   // 8. The vault opens: onto the sealed academy's card, whose lock opens and whose title grows
-  // into the figure; the figure goes back into the plot, then the real academy's figure beside
-  // the window.
+  // into the figure that fills the frame, the real academy's after it in the same place.
   { at: T.vaultPage + 0.05, dur: 0.9, to: content(103, 2.15) },
-  { at: T.vaultCut, dur: 0, to: (m) => onto(harborviewPoint(m)), still: true },
-  {
-    at: T.resolve,
-    dur: 1.25,
-    to: (m) => frameOf(m, 'plot', 30),
-    ease: inOutQuint,
-    anchor: harborviewPoint,
-  },
-  { at: T.side + 1.4, dur: 0.8, to: SIDE, ease: inOutQuint },
-  // 9. From beside the window straight onto the certificate as its panel opens, then the
-  // fine-tune: the plan, the model it read, the GPUs, the cluster.
-  { at: T.models - 0.5, dur: 1.1, to: (m) => frameOf(m, 'panel', 40), ease: inOutQuint },
-  { at: T.certHero - 0.6, dur: 1.3, to: CERT_VIEW, ease: inOutQuint },
-  // Compute opens beside the plain line for what comes next, then the camera goes onto its plan.
-  { at: T.compute + 1.6, dur: 1.0, to: COMPUTE_VIEW, ease: inOutQuint },
-  { at: T.gpuDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
-  { at: T.gpuResolve, dur: 0.9, to: COMPUTE_VIEW, ease: inOutQuint },
+  // 9. The window flies back in onto the certificate as its panel opens; the bound beside it, then
+  // straight onto Compute's plan, and beside the window again for the one GPU.
+  { at: T.toModels, dur: 0, to: AWAY_RIGHT, still: true },
+  { at: T.toModels, dur: IN, to: (m) => frameOf(m, 'panel', 40), ease: inEase },
+  { at: T.certHero - 1.0, dur: 1.5, to: CERT_VIEW, ease: inOutQuint },
+  { at: T.compute - 0.3, dur: 1.0, to: COMPUTE_VIEW, ease: inOutQuint },
+  // As the plan scrolls to its memory, down with it, so its title goes out whole.
+  { at: T.gpuDive - 0.6, dur: 0.9, to: content(58, 1.8) },
+  { at: T.gpuTrained - 0.7, dur: 0.8, to: SIDE, ease: inOutQuint },
   ...(SHOW_OPEN_TEACHER ? [{ at: T.openBeat, dur: 1.3, to: OPEN_VIEW, ease: inOutQuint }] : []),
-  // 10. Beyond academies: its line, then the screening lab's desks, Inventory desk's never-seen
-  // figure beside the window, and a whip to the team's chat.
+  // 10. Beyond academies: its line, then the screening lab's desks and Inventory desk's
+  // never-seen figure beside the window; then the team's line, and its chat.
   ...whip(WHIPS.beyond, content(108)),
   { at: T.scienceDive - 0.1, dur: 0.8, to: SIDE, ease: inOutQuint },
-  { at: T.scienceResolve, dur: 1.1, to: content(108), ease: inOutQuint },
   ...whip(WHIPS.team, TEAM_VIEW),
   // 11. Offline: its line, then Academy desk's home, its Offline row as the network goes, then up
   // its GPU, model and memory, and on into its chat for the approval.
@@ -647,15 +603,11 @@ export function camera(measured: Measured, t: number): Framing {
       shot.still || !next
         ? 1
         : 1 + 0.012 * span(at, shot.at + shot.dur, Math.max(0.1, holdEnd - shot.at - shot.dur));
-    const s = Math.exp(mix(Math.log(from.s), Math.log(target.s), p)) * drift;
-    if (shot.anchor) {
-      const [ax, ay] = shot.anchor(measured);
-      const sx = mix((ax - from.cx) * from.s, (ax - target.cx) * target.s, p);
-      const sy = mix((ay - from.cy) * from.s, (ay - target.cy) * target.s, p);
-      current = { cx: ax - sx / s, cy: ay - sy / s, s };
-    } else {
-      current = { cx: mix(from.cx, target.cx, p), cy: mix(from.cy, target.cy, p), s };
-    }
+    current = {
+      cx: mix(from.cx, target.cx, p),
+      cy: mix(from.cy, target.cy, p),
+      s: Math.exp(mix(Math.log(from.s), Math.log(target.s), p)) * drift,
+    };
   });
   return current;
 }
@@ -674,19 +626,12 @@ interface Click {
 }
 
 const CLICKS: readonly Click[] = [
-  { at: T.labHover, target: [880, 205], hover: 3.4 },
   { at: T.define - 0.15, target: 'open-job' },
   { at: T.confirm, target: 'confirm' },
   { at: T.drawerOut - 0.15, target: [WINDOW.width - 45, 97] },
   { at: T.vaultPage - 0.1, target: [36, 28] },
   { at: T.compute + FINE_TUNE_AT.read, target: 'ft-read' },
   { at: T.compute + FINE_TUNE_AT.lora, target: 'ft-lora' },
-  { at: T.compute + FINE_TUNE_AT.slurm, target: 'ft-slurm', dy: FINE_TUNE_SCROLL.bundle },
-  {
-    at: T.compute + FINE_TUNE_AT.kubernetes,
-    target: 'ft-kubernetes',
-    dy: FINE_TUNE_SCROLL.bundle,
-  },
   { at: T.intoChat - 0.05, target: 'open-session', onward: true },
   { at: T.saves - 0.15, target: 'allow' },
   { at: T.labEdition, target: 'lab-edition' },

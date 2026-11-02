@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Framing, Measured } from '../lab/film';
-import { ExperimentPage } from '../lab/pages-lab2';
-import { CHAT_AGENT, ROW, WINDOW } from '../lab/shell';
-import { clamp, inOutCubic, mix, outExpo, outQuart, smoothMap, span } from '../lab/time';
-import { AgentHomePage } from './home';
+import { ROW, WINDOW } from '../lab/shell';
+import { clamp, inOutCubic, mix, outQuart, smoothMap, span } from '../lab/time';
 import { placeSidebar, RIM, Screen, type ScreenView } from './screen';
 import { T } from './timeline';
 import { HOOK_PHASES, TrainPage } from './train';
@@ -11,12 +9,13 @@ import { trainScore, walkView } from './walk';
 import { Words, wordsShown } from './words';
 
 /**
- * The film's opening, in depth. The founder's last frame recedes into a window beside the claim
- * and the training screen pushes up into that same window; the camera goes onto its score as it
- * climbs past the target, and on "Architect builds it" dives through the score and past two of
- * the app's screens onto the requests that asked for Architect. Those build as one list of titles,
- * each on its words, the list staying centered as it grows, and the camera moves on to the Lab's
- * window beside them, which the walkthrough takes over from exactly where this leaves it.
+ * The film's opening, in depth. The founder's last frame recedes into a window in the middle of
+ * the frame, and on the score's first drop the training screen pushes up into that same window;
+ * the camera goes onto its score as it climbs past the target and holds it through "Architect
+ * builds it", then makes one move across to the requests that asked for Architect. Those build as
+ * one list of titles, each on its words, the list staying centered as it grows, and the camera
+ * moves on to the Lab's window beside them, which the walkthrough takes over from exactly where
+ * this leaves it.
  *
  * A point (x, y, z) is seen by a camera at (cx, cy, cz) looking down -z, at P pixels from the
  * plane it sees at full size: scale k = P / (cz - z), so nothing here is ever blurred to fake depth.
@@ -40,8 +39,8 @@ const fromScreen = (sx: number, sy: number, z: number): Point => ({
 });
 const seen = (p: Point): Point => ({ x: p.x, y: p.y, z: p.z + P });
 
-/** Where the founder's window and the training screen sit beside the claim, on the frame. */
-const SLOT = { cx: 1450, cy: 560, w: 860 } as const;
+/** Where the founder's window and the training screen sit: the middle of the frame, large. */
+const SLOT = { cx: FRAME.width / 2, cy: FRAME.height / 2, w: 1500 } as const;
 
 /** The training screen, in the slot, at its own scale in the world. */
 const TRAIN = fromScreen(SLOT.cx, SLOT.cy, 0);
@@ -60,48 +59,8 @@ function onto(framing: Framing): Point {
   return { x: at.x, y: at.y, z: TRAIN.z + (P * TRAIN_BASE) / framing.s };
 }
 
-/** Just right of the score's figure, on the window's ground: the dive goes past the number. */
-function divePoint(measured: Measured): Point {
-  const score = measured.get('train-score');
-  const at = score ? onTrain(score.x + score.w + 70, score.y + score.h / 2) : TRAIN;
-  return { ...at, z: TRAIN.z + 110 };
-}
-
-/** The screens the camera passes on the hits, behind the training screen, opaque. */
-interface Pass {
-  key: 'experiment' | 'home';
-  at: Point;
-  base: number;
-  hit: number;
-  away: readonly [number, number];
-}
-
-const PASSES: readonly Pass[] = [
-  {
-    key: 'experiment',
-    at: { x: TRAIN.x - 420, y: TRAIN.y - 60, z: -1400 },
-    base: 1,
-    hit: T.hits[1],
-    away: [-1700, 400],
-  },
-  {
-    key: 'home',
-    // Behind the first, hidden by it until it swings away.
-    at: { x: TRAIN.x - 300, y: TRAIN.y - 100, z: -2800 },
-    base: 1,
-    hit: T.hits[2],
-    away: [1700, -500],
-  },
-];
-
-/** Where the camera rests in front of a passing screen: centered, the screen 1,520 px wide. */
-function before(pass: Pass): Point {
-  const d = (P * pass.base * WINDOW.width) / 1520;
-  return { x: pass.at.x, y: pass.at.y, z: pass.at.z + d };
-}
-
-/** The requests' list, at its own station past the screens, seen at full size from P. */
-const STATION: Point = { x: PASSES[1]!.at.x - 100, y: PASSES[1]!.at.y + 40, z: -4400 };
+/** The requests' list, on the same ground well right of the training screen. */
+const STATION: Point = { x: TRAIN.x + 2600, y: TRAIN.y, z: TRAIN.z };
 const LIST = { w: 1600, h: 760 } as const;
 
 /** The Lab's window, beside the list, so the move from one to the other passes nothing empty. */
@@ -126,9 +85,6 @@ const LAB_NAME = {
   at: { x: LAB_WIDE.x + (WIDE.name - FRAME.width / 2) / LAB_K, y: LAB.y, z: LAB.z },
 } as const;
 
-/** The claim's box, left on the ground beside the founder's window. */
-const CLAIM = { w: 900, h: 260, at: fromScreen(120 + 450, 540, 0) } as const;
-
 interface Move {
   at: number;
   dur: number;
@@ -137,24 +93,22 @@ interface Move {
 }
 
 const MOVES: readonly Move[] = [
-  // Still while the founder's frame recedes, then a slow drift in beside the claim.
+  // Still while the founder's frame recedes, then a slow drift in.
   {
     at: 0,
     dur: T.trainPush,
-    to: () => ({ x: 0, y: 0, z: P - 60 }),
+    to: () => ({ x: TRAIN.x, y: TRAIN.y, z: P - 60 }),
     ease: (p) => outQuart(p * 0.8) / outQuart(0.8),
   },
-  // Onto the training screen, from its status line to its rounds.
+  // Onto the training screen, from its status line to its rounds, held while the score climbs
+  // and lands.
   { at: T.trainPush, dur: 0.8, to: (m) => onto(trainScore(m)), ease: inOutCubic },
-  // Through the score, gathering speed, then past the two screens on the hits.
-  { at: T.hits[0], dur: 0.45, to: (m) => divePoint(m), ease: (p) => p * p * p },
-  { at: T.hits[0] + 0.45, dur: 0.6, to: () => before(PASSES[0]!), ease: outExpo },
-  { at: T.hits[1], dur: 0.55, to: () => before(PASSES[1]!), ease: outExpo },
-  { at: T.hits[2], dur: 0.95, to: () => seen(STATION), ease: outExpo },
+  // One move from the score to the requests: back and across, the list rising as it arrives.
+  { at: T.asked - 1.2, dur: 1.5, to: () => seen(STATION), ease: inOutCubic },
   // A slow drift in while the list builds.
   {
-    at: T.hits[2] + 0.95,
-    dur: T.toLab - 0.15 - T.hits[2] - 0.95,
+    at: T.asked + 0.3,
+    dur: T.toLab - 0.15 - T.asked - 0.3,
     to: () => ({ ...seen(STATION), z: STATION.z + P - 70 }),
     ease: (p) => p,
   },
@@ -309,9 +263,9 @@ const HOOK_CLOCK = smoothMap([
   [T.trainRises, 64.8],
   [T.trainPush + 0.2, 66.0],
   [T.trainPush + 0.6, 72.4],
-  [5.39, 72.6],
-  [6.79, 74.4],
-  [8.16, 75.4],
+  [T.trainPush + 1.0, 74.4],
+  [T.trainPush + 1.4, 74.75],
+  [T.scoreLands, 75.4],
 ]);
 
 const trainView = (t: number): ScreenView => ({
@@ -331,7 +285,7 @@ const trainView = (t: number): ScreenView => ({
 
 /** The training screen, in the founder's window: it pushes up into it, then the camera takes it. */
 function Train({ t, camera }: { t: number; camera: Point }) {
-  if (t < T.trainRises - 0.01 || t > T.hits[0] + 0.6) return null;
+  if (t < T.trainRises - 0.01 || t > T.asked + 0.4) return null;
   return (
     <Placed
       camera={camera}
@@ -350,63 +304,6 @@ function Train({ t, camera }: { t: number; camera: Point }) {
         </div>
       </div>
     </Placed>
-  );
-}
-
-const passView = (key: Pass['key']): ScreenView =>
-  key === 'experiment'
-    ? {
-        layers: [
-          {
-            key,
-            mode: 'place',
-            enter: 1,
-            leave: 0,
-            node: <ExperimentPage lt={102.6} arms={[4.7, 999, 999]} />,
-          },
-        ],
-        sidebar: placeSidebar(ROW.place(2)),
-        sidebarShown: 1,
-        flow: { shown: 0, step: 1 },
-      }
-    : {
-        layers: [
-          { key, mode: 'place', enter: 1, leave: 0, node: <AgentHomePage t={T.saves + 1} /> },
-        ],
-        sidebar: placeSidebar(ROW.agent(CHAT_AGENT), ROW.height, { chat: 1 }),
-        sidebarShown: 1,
-        flow: { shown: 0, step: 1 },
-      };
-
-/**
- * The two screens the flight passes: there behind the training screen once it fills the frame,
- * each swinging away on its hit as the camera goes by.
- */
-function Passes({ t, camera }: { t: number; camera: Point }) {
-  if (t < T.trainPush + 1.0 || t > T.hits[2] + 1.0) return null;
-  return (
-    <>
-      {[...PASSES].reverse().map((pass) => {
-        const away = inOutCubic(span(t, pass.hit - 0.04, 0.6));
-        const at: Point = {
-          x: pass.at.x + away * pass.away[0],
-          y: pass.at.y + away * pass.away[1],
-          z: pass.at.z,
-        };
-        return (
-          <Placed
-            key={pass.key}
-            camera={camera}
-            at={at}
-            w={WINDOW.width}
-            h={WINDOW.height}
-            base={pass.base}
-          >
-            <Screen view={passView(pass.key)} style={{ left: 0, top: 0 }} />
-          </Placed>
-        );
-      })}
-    </>
   );
 }
 
@@ -477,29 +374,6 @@ function Requests({ t, camera }: { t: number; camera: Point }) {
   );
 }
 
-function Claim({ t, camera }: { t: number; camera: Point }) {
-  return (
-    <Placed camera={camera} at={CLAIM.at} w={CLAIM.w} h={CLAIM.h}>
-      <div className="flex h-full flex-col justify-center">
-        <Words
-          t={t}
-          text="The training system"
-          at={T.claim}
-          stagger={0.08}
-          className={`${TITLE} text-[92px] leading-[1.04]`}
-        />
-        <Words
-          t={t}
-          text="for your own AI."
-          at={T.claim + 0.3}
-          stagger={0.08}
-          className={`${TITLE} text-[92px] leading-[1.04]`}
-        />
-      </div>
-    </Placed>
-  );
-}
-
 /** The Lab's name, on the ground beside its window. */
 function LabName({ t, camera }: { t: number; camera: Point }) {
   if (t < T.labWide - 0.4) return null;
@@ -528,9 +402,7 @@ export function SpaceScene({ t, measured }: { t: number; measured: Measured }) {
       )}
       <LabName t={t} camera={camera} />
       <Requests t={t} camera={camera} />
-      <Passes t={t} camera={camera} />
       <Train t={t} camera={camera} />
-      {t < T.trainPush + 1.0 && <Claim t={t} camera={camera} />}
       <Founder t={t} camera={camera} />
     </div>
   );
