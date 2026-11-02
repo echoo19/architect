@@ -117,22 +117,30 @@ test('a session opens its chat, and the sidebar brings the home back', async () 
   await expect(page).toHaveURL(new RegExp(`#/agents/${AGENT.id}$`));
 });
 
-test('a request sent from the home starts a session that works while the person stays', async () => {
+test('a request sent from the home opens its new session, and the chat leads back home', async () => {
   const box = page.getByRole('textbox', { name: 'New session with Service desk' });
   await box.fill('Which invoices from October are still open?');
   await box.press('Enter');
   expect(await callsTo(launched.app, 'workspace:createChat')).toEqual([[AGENT.id]]);
   await expect.poll(() => callsTo(launched.app, 'workspace:send')).toHaveLength(1);
+  await expect(page).toHaveURL(new RegExp(`#/agents/${AGENT.id}/chats/`));
+  await expect(home()).toContainText('Which invoices from October are still open?');
+  // The agent's row stays marked in the sidebar, and the header's breadcrumb opens its home.
+  await page
+    .getByRole('navigation', { name: 'Breadcrumb' })
+    .getByRole('button', { name: 'Service desk' })
+    .click();
   await expect(page).toHaveURL(new RegExp(`#/agents/${AGENT.id}$`));
-  await expect(box).toHaveValue('');
   const sessions = home().getByRole('region', { name: 'Sessions' });
   await expect(sessions.getByRole('listitem').first()).toContainText('Which invoices from October');
-  await expect(sessions.getByRole('img', { name: 'Working' }).first()).toBeVisible();
 });
 
-test('a starter request fills the box', async () => {
+test('the starter requests are what people asked it last, and one fills the box', async () => {
   const starters = home().getByRole('group', { name: 'Things to ask Service desk' });
-  const first = starters.getByRole('button').first();
+  await expect(starters.getByRole('button').first()).toHaveText(
+    'Which invoices from October are still open?',
+  );
+  const first = starters.getByRole('button').nth(1);
   const text = (await first.textContent()) ?? '';
   await first.click();
   await expect(page.getByRole('textbox', { name: 'New session with Service desk' })).toHaveValue(

@@ -475,6 +475,7 @@ function Chat({
   return (
     <>
       <WorkspaceHeader
+        crumb={{ label: agent.name, onClick: () => navigate(paths.agent(agent.id)) }}
         title={
           chat?.title ??
           (chats.entry.status === 'loading' ? <Skeleton className="h-3.5 w-44" /> : 'Chat')

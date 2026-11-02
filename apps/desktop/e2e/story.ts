@@ -558,7 +558,7 @@ function report(
         ...type,
         pass: method === 'architect' ? type.pass : Math.round(type.pass * scale),
       })),
-      latencyMs: { p50: 150_000, p95: 222_000 },
+      latencyMs: { p50: 38_000, p95: 174_000 },
       refusals: 0,
       ranOffline: true,
     },

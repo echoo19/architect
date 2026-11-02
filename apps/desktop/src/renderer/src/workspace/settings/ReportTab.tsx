@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { GraduateSummary, ReportCard } from '@architect/shared';
+import { reportScores, type GraduateSummary, type ReportCard } from '@architect/shared';
 import { Button, Heading, Meter, SettingsRow, Skeleton } from '@architect/ui';
 import { FileText, RotateCw } from 'lucide-react';
 import { useVersionReport, useVersions } from '../../api/graduates';
@@ -11,6 +11,7 @@ import { formatPercent, formatUsd, percentOf } from '../../lib/format';
 import { shortModelName } from '../../lib/names';
 import { currentPlatform, deviceInSentence } from '../../lib/platform';
 import { navigate, paths } from '../../lib/router';
+import { useWords } from '../../shell/edition';
 import { useAgentSettingsUi } from './agentSettingsUi';
 
 /**
@@ -65,8 +66,14 @@ function leaveFor(path: string): void {
   navigate(path);
 }
 
+const cents = (amount: number) => formatUsd(Math.round(amount * 100) / 100);
+
 function ReportSummary({ report, imported }: { report: ReportCard; imported: boolean }) {
   const { test, cost, requirements } = report;
+  const words = useWords();
+  const mentor = shortModelName(report.mentor.label);
+  // A field's agent leads with the organizations it never saw; taught-on follows, named as such.
+  const { unseen } = reportScores(report);
   const handled = test.perType.filter((type) => !type.refused);
   const target = Math.round(requirements.passRate.target * 100);
   // When every type misses the target, the warning is said once, not under each.
@@ -81,19 +88,35 @@ function ReportSummary({ report, imported }: { report: ReportCard; imported: boo
     <div className="flex flex-col gap-8 pt-1">
       {imported && <span className="-mb-5 text-small text-fg">{AUTHOR_RESULT_TITLE}</span>}
       <div>
-        <Figure label="Of new tasks right" value={formatPercent(test.score)}>
+        {unseen && (
+          <Figure
+            label="Of new tasks right, never-seen organizations"
+            value={formatPercent(unseen)}
+          >
+            {unseen.pass} of {unseen.total}
+          </Figure>
+        )}
+        <Figure
+          label={
+            unseen ? 'Of new tasks right, organizations it was taught on' : 'Of new tasks right'
+          }
+          value={formatPercent(test.score)}
+        >
           {test.score.pass} of {test.score.total}, target {target}%
         </Figure>
-        <Figure label={`Typical answer, ${place}`} value={formatAnswerTime(test.latencyMs.p50)}>
+        <Figure
+          label={`Per task in the ${words.finalTest}, ${place}`}
+          value={formatAnswerTime(test.latencyMs.p50)}
+        >
           95% within {formatAnswerTime(test.latencyMs.p95)}
         </Figure>
         <Figure
-          label={
-            cost.studentUsd ? 'Training cost' : `${shortModelName(report.mentor.label)} mentoring`
-          }
-          value={formatUsd(Math.round((cost.mentorUsd + (cost.studentUsd ?? 0)) * 100) / 100)}
+          label={cost.studentUsd ? `${mentor} and training online` : `${mentor} mentoring`}
+          value={cents(cost.mentorUsd + (cost.studentUsd ?? 0))}
         >
-          {cost.rounds} rounds
+          {cost.studentUsd
+            ? `${mentor} ${cents(cost.mentorUsd)}, online ${cents(cost.studentUsd)}, ${cost.rounds} rounds`
+            : `${cost.rounds} rounds`}
         </Figure>
       </div>
 
