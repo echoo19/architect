@@ -364,7 +364,7 @@ export function TrainPage({ lt }: { lt: number }) {
           share={mix(0.05, 0.35, clamp(lt / (ROUND_AT[2] + 4.4)))}
         />
         <MeterCell
-          label="Spark's cost"
+          label="Spark teaching"
           value={`$${mix(0, 0.31, clamp(lt / (ROUND_AT[2] + 4.4))).toFixed(2)} / $5`}
           share={mix(0, 0.062, clamp(lt / (ROUND_AT[2] + 4.4)))}
           tone="mentor"
@@ -509,12 +509,18 @@ export function CounterexampleDrawer({
   lt,
   task,
   rest = true,
+  large = false,
 }: {
   lt: number;
   /** The task the case came from, under the title, as the app's drawer names it. */
   task?: string;
   /** The line for the rows of tests.csv not shown. */
   rest?: boolean;
+  /**
+   * The size of the case set large: 2,312 rows gives way to 4 rows in its place as the table
+   * shrinks, and the repair is set as large.
+   */
+  large?: boolean;
 }) {
   const shrink = outQuart(span(lt, 2.0, 2.6));
   const reduced = ui(lt, 3.1, 0.3);
@@ -543,19 +549,40 @@ export function CounterexampleDrawer({
             <span>Counterexample</span>
             <span style={{ opacity: ui(lt, 4.6) }}>1-minimal</span>
           </div>
-          <div className="flex items-baseline gap-3 font-display text-h1 font-semibold tabular-nums">
-            <span>2,312 rows</span>
-            <ArrowRight
-              size={20}
-              strokeWidth={2}
-              className="self-center"
-              style={{ opacity: ui(lt, 3.0, 0.3) }}
-              aria-hidden
-            />
-            <span style={{ opacity: reduced, transform: `translateX(${(1 - reduced) * -8}px)` }}>
-              4 rows
+          {large ? (
+            <span className="grid font-display text-title font-semibold tabular-nums">
+              <span className="inline-block overflow-hidden [grid-area:1/1]">
+                <span
+                  className="inline-block"
+                  style={{ transform: `translateY(${-inOutCubic(span(lt, 2.95, 0.3)) * 110}%)` }}
+                >
+                  2,312 rows
+                </span>
+              </span>
+              <span className="inline-block overflow-hidden [grid-area:1/1]">
+                <span
+                  className="inline-block"
+                  style={{ transform: `translateY(${(1 - outQuart(span(lt, 3.1, 0.45))) * 110}%)` }}
+                >
+                  4 rows
+                </span>
+              </span>
             </span>
-          </div>
+          ) : (
+            <div className="flex items-baseline gap-3 font-display text-h1 font-semibold tabular-nums">
+              <span>2,312 rows</span>
+              <ArrowRight
+                size={20}
+                strokeWidth={2}
+                className="self-center"
+                style={{ opacity: ui(lt, 3.0, 0.3) }}
+                aria-hidden
+              />
+              <span style={{ opacity: reduced, transform: `translateX(${(1 - reduced) * -8}px)` }}>
+                4 rows
+              </span>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <span className="text-body">
               <span className="font-mono">question_lookup</span> stops with the error "test position
@@ -629,8 +656,14 @@ export function CounterexampleDrawer({
             className="flex flex-col gap-3 border-t border-line pt-4"
             style={{ opacity: repaired }}
           >
-            <span className="flex items-center gap-2.5 font-medium">
-              <Check size={17} strokeWidth={2} className="text-student" aria-hidden />
+            <span
+              className={
+                large
+                  ? 'flex items-center gap-3 font-display text-h1 font-semibold'
+                  : 'flex items-center gap-2.5 font-medium'
+              }
+            >
+              <Check size={large ? 26 : 17} strokeWidth={2} className="text-student" aria-hidden />
               Repaired: passed 2 cases
             </span>
             <Grow p={cases} height={132}>

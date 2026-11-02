@@ -372,9 +372,9 @@ export function FieldTabs({ open }: { open: (typeof FIELD_TABS)[number]['label']
 
 /** What an organization's row says under its name: generated or not, and what it holds. */
 function orgDetail(org: (typeof ORGANIZATIONS)[number]): string {
-  const rows = org.rows ? ` · ${org.rows.toLocaleString('en-US')} rows` : '';
+  const rows = org.rows ? `, ${org.rows.toLocaleString('en-US')} rows` : '';
   // A real organization carries its Real chip, so its row doesn't say it again.
-  return org.kind === 'Real' ? `${org.files} files` : `${org.kind} · ${org.files} files${rows}`;
+  return org.kind === 'Real' ? `${org.files} files` : `${org.kind}, ${org.files} files${rows}`;
 }
 
 /** A row's selected fill, fading as the choice moves from one row to another. */

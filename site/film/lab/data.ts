@@ -81,7 +81,7 @@ export const RIDGELINE_FILES: readonly (readonly [string, string])[] = [
 export const LOCKED = {
   groups: [
     {
-      label: 'Academies taught on · 48',
+      label: 'Academies taught on, 48',
       rows: [
         { id: 'bare', label: 'Glimmer alone', estimate: 0.438, low: 0.307, high: 0.577 },
         { id: 'draft', label: 'One-shot setup', estimate: 0.458, low: 0.326, high: 0.597 },
@@ -89,7 +89,7 @@ export const LOCKED = {
       ],
     },
     {
-      label: 'Harborview Prep · never seen · 48',
+      label: 'Harborview Prep, never seen, 48',
       difference: { text: '+39.6 points', tip: '95% interval +22.9 to +53.7: a gain.' },
       rows: [
         { id: 'bare', label: 'Glimmer alone', estimate: 0.5, low: 0.364, high: 0.636 },
@@ -98,7 +98,7 @@ export const LOCKED = {
       ],
     },
     {
-      label: 'Real academy · never seen · 24',
+      label: 'Real academy, never seen, 24',
       difference: {
         text: '+12.5 points',
         tip: '95% interval -17.9 to +40.2.',
