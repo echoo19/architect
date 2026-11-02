@@ -123,7 +123,8 @@ export function builtinExecutors(deps: BuiltinDeps): Record<BuiltinToolName, Exe
     async read(args) {
       const { path, offset = 1, limit = DEFAULT_READ_LINES } = parseArguments('read', args);
       const clean = agentPath(path);
-      const kept = deps.kept()[clean];
+      const results = deps.kept();
+      const kept = Object.hasOwn(results, clean) ? results[clean] : undefined;
       if (kept !== undefined)
         return { value: readPage(clean, kept, offset, limit, budget).content };
       const text = files.read(clean);

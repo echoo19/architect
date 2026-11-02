@@ -41,6 +41,7 @@ async function setup(
     sandbox?: Sandbox;
     harness?: Parameters<typeof makeHarness>[0];
     resultBudget?: number;
+    refuseWrites?: string;
   } = {},
 ): Promise<{ files: AgentFiles; toolbox: Toolbox }> {
   job = makeJobDir(options.content ?? SAMPLE_CONTENT);
@@ -59,6 +60,7 @@ async function setup(
     today: '2026-11-03',
     approveWrite: options.approveWrite,
     resultBudget: options.resultBudget,
+    ...(options.refuseWrites === undefined ? {} : { refuseWrites: options.refuseWrites }),
   });
   return { files, toolbox };
 }
@@ -507,6 +509,36 @@ unpaid.reduce((sum, row) => sum + Number(row.total_cents), 0)`,
     expect((await toolbox.run(call('run', { code: 'files.list("")' }))).content).not.toContain(
       'results/',
     );
+  });
+
+  it('reads no kept result for a path that names an object property', async () => {
+    const { toolbox } = await setup();
+    for (const path of ['constructor', '__proto__', 'toString']) {
+      const outcome = await toolbox.run(call('read', { path }));
+      expect(outcome.error).toBeDefined();
+      expect(outcome.content.startsWith('Error: ')).toBe(true);
+    }
+  });
+
+  it('refuses every write tool at once when the run refuses writes, before reading its arguments', async () => {
+    const approveWrite = vi.fn<ApproveWrite>(async () => 'approve');
+    const { files, toolbox } = await setup({ approveWrite, refuseWrites: 'No writes here.' });
+    const before = files.read('data/invoices.csv');
+    const calls = [
+      call('write', { path: 'data/invoices.csv', content: before }),
+      call('edit', { path: 'data/invoices.csv', old_string: 'no such text', new_string: 'x' }),
+      call('append', { path: 'data/invoices.csv', text: 'INV-4,C-2,1,2026-12-01,' }),
+      call('write', {}),
+    ];
+    for (const each of calls) {
+      expect(await toolbox.run(each)).toMatchObject({
+        error: 'No writes here.',
+        content: 'Error: No writes here.',
+      });
+    }
+    expect(approveWrite).not.toHaveBeenCalled();
+    expect(files.read('data/invoices.csv')).toBe(before);
+    expect((await toolbox.run(call('read', { path: 'data/invoices.csv' }))).error).toBeUndefined();
   });
 
   it('refuses a harness tool that shadows a built-in', async () => {

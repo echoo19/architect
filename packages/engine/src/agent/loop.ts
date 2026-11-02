@@ -69,6 +69,8 @@ export interface RunAgentOptions {
   approveWrite?: ApproveWrite;
   /** Tools offered besides the built-in and harness ones: a team reply's `ask_teammate`. */
   extraTools?: readonly ExtraTool[];
+  /** Why every write tool fails at once in this run, as a teammate's do in a consult. */
+  refuseWrites?: string;
   signal?: AbortSignal;
 }
 
@@ -234,6 +236,7 @@ async function takeTurns(
     approveWrite: options.approveWrite,
     ...(options.extraTools === undefined ? {} : { extraTools: options.extraTools }),
     ...(at.kept === undefined ? {} : { kept: at.kept }),
+    ...(options.refuseWrites === undefined ? {} : { refuseWrites: options.refuseWrites }),
   });
   const tools = [...toolbox.specs];
   // Every prompt stays inside the student's context, on every backend (decision 057).

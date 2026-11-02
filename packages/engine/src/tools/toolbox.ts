@@ -57,6 +57,11 @@ export interface ToolboxOptions {
    * team reply (decision 100). None may share a name with another tool.
    */
   extraTools?: readonly ExtraTool[];
+  /**
+   * Why every write tool fails at once, before its arguments are read: a teammate's run in a
+   * consult (decision 107). Nothing is planned, asked or written.
+   */
+  refuseWrites?: string;
 }
 
 /** A tool the runner offers one run on its own terms, outside the harness and the sandbox. */
@@ -146,6 +151,9 @@ export function createToolbox(options: ToolboxOptions): Toolbox {
   }
 
   async function execute(call: ToolCall, signal?: AbortSignal): Promise<ExecutorResult> {
+    if (options.refuseWrites !== undefined && isWriteTool(call.name)) {
+      throw new ToolError(options.refuseWrites);
+    }
     if (isBuiltinTool(call.name) && (offered as readonly BuiltinToolName[]).includes(call.name)) {
       return builtins[call.name](call.arguments, signal);
     }

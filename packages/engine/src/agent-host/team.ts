@@ -43,10 +43,11 @@ export const CONSULT_WRITE =
   "In a consult you can't write; say in your answer what should be written.";
 
 /**
- * A consult is the lead asking a question, so a teammate's write is refused at once, with no
- * approval asked, and the teammate goes on to its answer. Any write is the lead's to make.
+ * A teammate's writes are refused before they are planned (`refuseWrites`), so no approval is
+ * ever asked. This approver is never reached; it is given so that nothing could write straight to
+ * a teammate's file, as a run with no approver would.
  */
-const refuseWrite: ApproveWrite = () => Promise.reject(new ToolError(CONSULT_WRITE));
+const neverWrite: ApproveWrite = () => Promise.resolve('deny');
 
 /** What a team's lead is told about when to ask, in its system prompt, in team replies only. */
 export const TEAM_INSTRUCTION = `You work in a team. When a request names something your files don't have, or needs work your teammates' files cover, ask that teammate with ${ASK_TEAMMATE} first, and say exactly what you need back from it, such as the list or the records you will work from.`;
@@ -161,8 +162,10 @@ export function askTeammate(options: TeamReplyOptions): ExtraTool {
           showStep(steps, session.harness, step);
           record();
         },
-        // Always given: without it, a write would go straight to the teammate's file.
-        approveWrite: refuseWrite,
+        // A consult is the lead asking a question: the teammate says what should be written,
+        // and the lead, with the person's approval, decides any write.
+        refuseWrites: CONSULT_WRITE,
+        approveWrite: neverWrite,
         signal,
       });
     let settled: Settled;
