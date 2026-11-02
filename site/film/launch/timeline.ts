@@ -18,7 +18,7 @@ const builds = 8.8;
 
 // 2. Why: the line, then the three requests, a camera move between each.
 const asked = 10.85;
-const requests = [14.6, 19.0, 22.8] as const;
+const requests = [15.7, 18.35, 22.2] as const;
 const toLab = 27.6;
 
 // 3. "This is Architect Lab, an R&D platform for specialist models. Spark, Meta's frontier
@@ -40,10 +40,10 @@ const confirm = 60.0;
 // 6. "Then it engineers Glimmer's harness: its prompts, its tools, its lessons. Every change is a
 // hypothesis, tested on tasks Spark never sees. If it doesn't win, it's rolled back.
 // Thirty-five of thirty-six." The harness drawer's moments follow the words one to one.
-const train = 60.3;
+const train = 60.15;
 const harness = 62.4;
 const rolledBack = harness + 10.1;
-const thirtyFive = rolledBack + 2.9;
+const thirtyFive = rolledBack + 2.6;
 
 // 7. "When a tool breaks, Architect hunts down the failure. Two thousand rows, shrunk to four.
 // Repaired, and locked in as a regression test."
