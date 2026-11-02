@@ -3,6 +3,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  ADAPTER_ARMS,
+  ADAPTER_PAIRS,
+  ADAPTER_RUN,
   ADAPTERS,
   CERT,
   CERT_ROWS,
@@ -329,6 +332,38 @@ describe('the results page', () => {
     expect(read('sweep2')).toContain(
       `On all ${SWEEP_RUN.tasks} tasks the taught arm passed ${SWEEP_RUN.taught} against bare's ${SWEEP_RUN.bare}`,
     );
+  });
+
+  it("gives the adapter's final test its report's passes, pairs, speed and spend", () => {
+    const report = readFileSync(join(ROOT, SOURCES.adapterEval.path), 'utf8').replaceAll('**', '');
+    const point = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
+    const bound = (value: number) => (value === 100 ? '100' : value.toFixed(1));
+    for (const arm of ADAPTER_ARMS) {
+      for (const result of [...arm.groups, arm.all]) {
+        expect(result.passed).toBeLessThanOrEqual(result.of);
+        expect(report).toMatch(
+          new RegExp(
+            `${result.passed} of ${result.of}, [0-9.]+% \\(${bound(result.low)} to ${bound(result.high)}\\)`,
+          ),
+        );
+      }
+      expect(arm.groups.reduce((sum, group) => sum + group.passed, 0)).toBe(arm.all.passed);
+      expect(report).toContain(`| ${arm.tokens} | ${arm.p50.toFixed(1)} (${arm.p95.toFixed(1)}) |`);
+    }
+    for (const pair of ADAPTER_PAIRS) {
+      expect(pair.wins + pair.losses + pair.both + pair.neither).toBe(pair.n);
+      expect(report).toContain(
+        `| ${pair.n} | ${pair.wins} / ${pair.losses} | ${pair.both} / ${pair.neither} | ${point(pair.diff)} (${point(pair.low)} to ${point(pair.high)}) |`,
+      );
+    }
+    const { ifPassed, ifFailed } = ADAPTER_RUN;
+    expect(report).toContain(
+      `${point(ifPassed.diff)} (${point(ifPassed.low)} to ${point(ifPassed.high)}) if the base had passed both`,
+    );
+    expect(report).toContain(
+      `${point(ifFailed.diff)} (${point(ifFailed.low)} to ${point(ifFailed.high)}) if it had failed both`,
+    );
+    expect(report).toContain(`GPU: at most $${ADAPTER_RUN.gpuUsd.toFixed(2)}`);
   });
 
   it('cites documents that exist', () => {

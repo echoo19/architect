@@ -2,6 +2,9 @@ import { Fragment, type ReactNode } from 'react';
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import { REPORTS } from './content';
 import {
+  ADAPTER_ARMS,
+  ADAPTER_PAIRS,
+  ADAPTER_RUN,
   ADAPTERS,
   CERT,
   CERT_ROWS,
@@ -114,6 +117,10 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'hackathon', what: "The repair shop's run." },
   { key: 'scale', what: 'The plan for going from a specialist to a field model.' },
   { key: 'qlora1', what: "The first fine-tune: Inventory desk's work as a QLoRA adapter." },
+  {
+    key: 'adapterEval',
+    what: "Inventory desk's QLoRA adapter on Inventory desk's sealed final test.",
+  },
   { key: 'qlora2', what: "The second fine-tune: Sweep desk's work as a QLoRA adapter." },
   { key: 'assay', what: "Assay desk's first run, at a screening lab's plate reader." },
   { key: 'sweep2', what: "Sweep desk's second run, at ML research groups' training runs." },
@@ -143,6 +150,7 @@ const FIGURES = [
   'returns',
   'speed',
   'loss',
+  'adapter',
 ] as const;
 const TABLES = [
   'fieldSkills',
@@ -166,6 +174,8 @@ const TABLES = [
   'costs',
   'scale',
   'adapters',
+  'adapterPairs',
+  'adapterArms',
 ] as const;
 
 const sec = (key: (typeof SECTIONS)[number]) => SECTIONS.indexOf(key) + 1;
@@ -783,6 +793,61 @@ function AdapterTable() {
   );
 }
 
+/** Each arm of the adapter run in one group of labs, out of the tasks it took, with its interval. */
+function AdapterPassRates({ index }: { index: number }) {
+  const group = found(LAB_GROUPS[index], `lab group ${index}`);
+  const rows: ForestRow[] = ADAPTER_ARMS.map((each) => {
+    const result = found(each.groups[index], `${each.name}'s result for ${group.name}`);
+    return {
+      label: armLabel(each),
+      value: (result.passed / result.of) * 100,
+      low: result.low,
+      high: result.high,
+      tone: each.tone,
+      figure: (
+        <CountFigure passed={result.passed} of={result.of} low={result.low} high={result.high} />
+      ),
+      summary: `${group.name}, ${each.name}: ${result.passed} of ${result.of}, 95% interval ${result.low} to ${result.high} percent.`,
+    };
+  });
+  return (
+    <div className="flex flex-col gap-2">
+      <h4 className="t-h2">{group.name}</h4>
+      <Forest
+        name={`Final-test pass rate with the adapter and without it, ${group.name}`}
+        rows={rows}
+        min={0}
+        max={100}
+        ticks={[0, 25, 50, 75, 100]}
+        formatTick={(value) => `${value}%`}
+      />
+    </div>
+  );
+}
+
+/** Each arm of the adapter run: passes by group, how much it wrote a call, and how long it took. */
+function AdapterArmTable() {
+  return (
+    <Table
+      label="Final-test passes, output and time by arm, the adapter run"
+      columns={[
+        '',
+        ...LAB_GROUPS.map((group) => group.name),
+        'All, 95% interval',
+        'Tokens a call',
+        'Median seconds (95th percentile)',
+      ]}
+      rows={ADAPTER_ARMS.map((each) => [
+        armLabel(each),
+        ...each.groups.map((result) => `${result.passed} of ${result.of}`),
+        `${each.all.passed} of ${each.all.of} (${each.all.low.toFixed(1)}% to ${each.all.high.toFixed(1)}%)`,
+        each.tokens,
+        `${each.p50.toFixed(1)} (${each.p95.toFixed(1)})`,
+      ])}
+    />
+  );
+}
+
 /** What is measured, what is built and tested on stand-ins, and what has not been done. */
 const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
@@ -807,14 +872,14 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   ],
   [
     'LoRA and QLoRA fine-tuning on one rented GPU',
-    'Run, effect not measured',
-    `Two QLoRA adapters of Glimmer trained for real on Hugging Face Jobs, each on one A100, and checked against the base (section ${sec('finetune')}).`,
+    'Measured',
+    `Two QLoRA adapters of Glimmer trained for real on Hugging Face Jobs, each on one A100, and checked against the base. Inventory desk's took its sealed final test (section ${sec('finetune')}).`,
   ],
   ['Cluster execution and training gains', 'Unverified', 'No cluster job has run.'],
   [
     'A model trained on a field',
-    'Run, effect not measured',
-    "Glimmer with a QLoRA adapter trained on Inventory desk's verified work. Its effect on the sealed final test is measured next.",
+    'Measured, one seed',
+    "Glimmer with a QLoRA adapter trained on Inventory desk's verified work passed 32 of 32 at Corvid Hill Discovery, against 22 of 30 without it.",
   ],
 ];
 
@@ -935,9 +1000,14 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'sweep2',
   },
   {
-    title: 'The fine-tunes ran on one GPU, and their effect is not measured.',
-    text: "Both QLoRA adapters trained on one A100 and passed their checks against the base at the file level, but neither has been run on a sealed final test, and Inventory desk's 22 examples are Glimmer's own successes, so its low loss is expected, not evidence. Cluster launch bundles are checked only for structure and against simulated schedulers.",
-    from: 'qlora1',
+    title: 'The fine-tune took its test once, without its reasoning.',
+    text: `Inventory desk's adapter took the final test under one seed, after training on ${ADAPTERS[0]?.examples} of Glimmer's own successful attempts in ${ADAPTERS[0]?.steps} optimizer steps. Those examples held no reasoning, so the adapter answers without writing any, and part of its gain may come from that. Both arms ran in bf16, not the 4-bit base the adapter was trained on, and the build that runs on your computer has not taken the test with it.`,
+    from: 'adapterEval',
+  },
+  {
+    title: "Sweep desk's adapter and the cluster bundles.",
+    text: `Sweep desk's adapter, trained on ${ADAPTERS[1]?.examples} examples, has not taken a sealed final test. Cluster launch bundles are checked only for structure and against simulated schedulers.`,
+    from: 'qlora2',
   },
   {
     title: 'The repair shop ran once.',
@@ -950,6 +1020,10 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
 const HEADLINE: readonly { figure: string; text: string }[] = [
   { figure: '24 to 43', text: 'of 48 at Harborview Prep, an academy never seen' },
   { figure: '4 to 27', text: 'of 32 at Corvid Hill Discovery, a lab never seen' },
+  {
+    figure: '32 of 32',
+    text: 'at Corvid Hill Discovery with a LoRA adapter, against 22 of 30 without it',
+  },
   {
     figure: `${CERT2.stated}% at most`,
     text: `wrong when it answers, at ${CERT2.confidence}% confidence, on the first risk certificate`,
@@ -983,6 +1057,14 @@ export function ResultsPage() {
   const corvidSize = found(LAB_GROUPS[1], 'Corvid Hill group').n;
   const inventoryAdapter = found(ADAPTERS[0], "Inventory desk's adapter");
   const sweepAdapter = found(ADAPTERS[1], "Sweep desk's adapter");
+  const tunedArm = found(ADAPTER_ARMS[3], 'Inventory desk with the adapter');
+  const untunedArm = found(ADAPTER_ARMS[2], 'Inventory desk without the adapter');
+  const tuned = { corvid: found(tunedArm.groups[1], "the adapter's Corvid Hill result") };
+  const untuned = {
+    corvid: found(untunedArm.groups[1], 'the Corvid Hill result without the adapter'),
+  };
+  const adapterPrimary = found(ADAPTER_PAIRS[0], "the adapter's primary comparison");
+  const adapterAll = found(ADAPTER_PAIRS[2], "the adapter's comparison on all tasks");
   return (
     <div id="top">
       <a
@@ -1005,11 +1087,13 @@ export function ResultsPage() {
             one, Glimmer: its instructions and small tools, with a change kept only when it helps on
             held-out checks Spark never sees. On organizations neither model had seen, the
             Spark-engineered harness took Glimmer from 24 to 43 of 48 tasks at a test-prep academy
-            and from 4 to 27 of 32 at a screening lab. The same pipeline runs on Meta&apos;s open
-            weights, and its first risk certificate held at an academy the specialist never trained
-            on.
+            and from 4 to 27 of 32 at a screening lab. With the screening lab&apos;s harness held
+            fixed, a LoRA adapter trained on 22 of Glimmer&apos;s own checker-passed attempts took
+            it to 32 of 32 at that lab, against 22 of 30 without the adapter. The same pipeline runs
+            on Meta&apos;s open weights, and its first risk certificate held at an academy the
+            specialist never trained on.
           </p>
-          <ul className="m-0 mt-16 grid list-none gap-x-8 gap-y-10 border-y border-line p-0 py-10 sm:grid-cols-3">
+          <ul className="m-0 mt-16 grid list-none gap-x-8 gap-y-10 border-y border-line p-0 py-10 sm:grid-cols-2">
             {HEADLINE.map((item) => (
               <li key={item.figure} className="flex flex-col gap-3">
                 <span className="t-title leading-none tabular-nums">{item.figure}</span>
@@ -1505,10 +1589,10 @@ export function ResultsPage() {
           <Tables label="Table for the path to a field model">
             <TableExhibit
               label={tab('scale')}
-              caption="Each part of the path from a specialist to a field model, by whether it is measured, run with its effect not yet measured, built or unverified."
+              caption="Each part of the path from a specialist to a field model, by whether it is measured, built or unverified."
             >
               <Table
-                label="What is measured, run, built and unverified on the path to a field model"
+                label="What is measured, built and unverified on the path to a field model"
                 left={[0, 1, 2]}
                 columns={['Part', 'Status', 'What backs it']}
                 rows={SCALE_STATUS.map(([part, status, backing]) => [part, status, backing])}
@@ -1517,7 +1601,8 @@ export function ResultsPage() {
           </Tables>
         </Section>
 
-        <Section id="finetune" number={sec('finetune')} title="Fine-tuning on Hugging Face Jobs">
+        <Section id="finetune" number={sec('finetune')} title="Fine-tuning Glimmer's open weights">
+          <Subsection number={`${sec('finetune')}.1`} title="Training the adapter" />
           <Text>
             Architect fine-tuned Glimmer&apos;s open weights on a screening lab&apos;s
             checker-verified work, as a QLoRA adapter trained on one A100 in about{' '}
@@ -1535,8 +1620,8 @@ export function ResultsPage() {
             Over {FINETUNE_LOSS.length} optimizer steps the training loss fell from{' '}
             {found(FINETUNE_LOSS[0], 'first loss').loss.toFixed(4)} to{' '}
             {found(FINETUNE_LOSS.at(-1), 'last loss').loss.toFixed(4)} ({fig('loss')}). The examples
-            are Glimmer&apos;s own successes, so the loss starts low, and it shows the adapter fits
-            them, not that it helps
+            are Glimmer&apos;s own successes, so the loss starts low. What the adapter changes is
+            measured on the sealed final test, in section {sec('finetune')}.2
             <Cite to={['qlora1']} />.
           </Text>
           <Exhibit
@@ -1552,10 +1637,6 @@ export function ResultsPage() {
             <Cite to={['qlora1']} />.
           </Text>
           <Text>
-            The adapter&apos;s effect on the sealed final test is measured next
-            <Cite to={['qlora1']} />.
-          </Text>
-          <Text>
             The runs also fixed the product: the converter&apos;s targets, which now leave out the
             projections the pinned converter can&apos;t convert, the trained weights, now uploaded
             before conversion so a failed conversion can&apos;t lose them, and the memory planner,
@@ -1568,6 +1649,83 @@ export function ResultsPage() {
               caption={`Both QLoRA adapters of Glimmer, each trained in 4 bits on one A100 80 GB on Hugging Face Jobs. Sweep desk's had ${sweepAdapter.examples} examples, so it took ${sweepAdapter.steps} optimizer steps, the first at learning rate 0, and is not expected to change anything. The checks are at the file level; no model was loaded.`}
             >
               <AdapterTable />
+            </TableExhibit>
+          </Tables>
+
+          <Subsection
+            number={`${sec('finetune')}.2`}
+            title="The adapter on the sealed final test"
+          />
+          <Text>
+            Inventory desk&apos;s harness was then held fixed, and one deployment of Glimmer served
+            it with the adapter and without it. At Corvid Hill Discovery, the lab neither the
+            harness nor the adapter ever saw, Glimmer passed {tuned.corvid.passed} of{' '}
+            {tuned.corvid.of} with the adapter, against {untuned.corvid.passed} of the{' '}
+            {untuned.corvid.of} it took without it ({fig('adapter')})
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Exhibit
+            label={fig('adapter')}
+            caption={`Sealed final-test passes with the adapter and without it, on Inventory desk's harness and on the base harness, out of the tasks each arm took, with 95% intervals. Across all tasks, Inventory desk passed ${tunedArm.all.passed} of ${tunedArm.all.of} with the adapter and ${untunedArm.all.passed} of ${untunedArm.all.of} without it.`}
+          >
+            <div className="flex flex-col gap-8">
+              {LAB_GROUPS.map((group, index) => (
+                <AdapterPassRates key={group.short} index={index} />
+              ))}
+            </div>
+          </Exhibit>
+          <Text>
+            Task by task at Corvid Hill, the adapter won {adapterPrimary.wins} and lost none, a gain
+            of {adapterPrimary.diff.toFixed(1)} points with a 95% interval of{' '}
+            {adapterPrimary.low.toFixed(1)} to {adapterPrimary.high.toFixed(1)} (
+            {tab('adapterPairs')})
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Text>
+            Over all {adapterAll.n} tasks both arms took, it won {adapterAll.wins} and lost none, a
+            gain of {adapterAll.diff.toFixed(1)} points
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Text>
+            With the adapter, Glimmer wrote {tunedArm.tokens} output tokens a call against{' '}
+            {untunedArm.tokens}, and its median attempt took {tunedArm.p50.toFixed(1)} seconds
+            against {untunedArm.p50.toFixed(1)} ({tab('adapterArms')})
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Text>
+            The adapter also stopped Glimmer writing out its reasoning, because its training
+            examples held none, so part of the gain may come from answering without it. A base arm
+            told to reason less, or an adapter trained on examples that keep their reasoning, would
+            separate the two
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Text>
+            Two of the base arm&apos;s Corvid Hill tasks never ran, because Hugging Face paused the
+            endpoint when the account&apos;s prepaid credit ran out. The adapter passed both, so the
+            interval stays above zero whichever way they are counted ({tab('adapterPairs')})
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Text>
+            Both arms ran on one A100 80 GB on a Hugging Face Inference Endpoint, served by vLLM in
+            bf16, for at most {dollars(ADAPTER_RUN.gpuUsd)} of GPU
+            <Cite to={['adapterEval']} />.
+          </Text>
+          <Tables label="Tables for the adapter's final test">
+            <TableExhibit
+              label={tab('adapterPairs')}
+              caption={`Tasks the arm with the adapter passed and the arm without it failed (won), the reverse (lost), and where they agreed, with the difference in points and its 95% interval. The primary comparison is Inventory desk at Corvid Hill Discovery. With the two tasks the base arm never took counted, the difference there is ${signed(ADAPTER_RUN.ifPassed.diff)} (${interval(ADAPTER_RUN.ifPassed)}) if it had passed both and ${signed(ADAPTER_RUN.ifFailed.diff)} (${interval(ADAPTER_RUN.ifFailed)}) if it had failed both. On the base harness every interval includes zero.`}
+            >
+              <GroupPairTable
+                pairs={ADAPTER_PAIRS}
+                name={labGroupName}
+                label="Task by task, with the adapter against without it"
+              />
+            </TableExhibit>
+            <TableExhibit
+              label={tab('adapterArms')}
+              caption={`Each arm's passes out of the tasks it took, its output tokens a call, reasoning included, and its median seconds an attempt, with the 95th percentile. Each lab's intervals are in ${fig('adapter')}. The four arms shared one GPU, so the seconds compare them with each other only.`}
+            >
+              <AdapterArmTable />
             </TableExhibit>
           </Tables>
         </Section>
