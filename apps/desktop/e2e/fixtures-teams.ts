@@ -17,6 +17,7 @@ import {
   type Job,
   type OrgTypeResult,
   type ReportCard,
+  type Run,
   type Team,
   type TypeResult,
   type WorkspaceChat,
@@ -25,14 +26,15 @@ import {
 import type { ElectronApplication } from '@playwright/test';
 import { LLAMA_SERVER_READY, NOTHING_LOCAL } from './fixtures';
 import { installation, manifestFor } from './fixtures-versions';
-import { at, graduate, storyReport } from './story';
+import { at, graduate, makeRun, storyReport } from './story';
 
 /*
  * A team on the stand-in engine (decision 100): its lead answers in a team chat and asks its
  * teammate for part of the request, each working on its own organization's files. The jobs,
  * organizations, files and the values the agents read are the shipped examples' own; the scores
  * are stand-ins, as every capture's are. This world is apart from the science lab's
- * (fixtures-science.ts), so neither spec's counts change the other's.
+ * (fixtures-science.ts), so neither spec's counts change the other's; where both are in one
+ * world, Assay desk's job is the Lab's own field of that name.
  */
 
 const EXAMPLES = fileURLToPath(new URL('../../../examples/', import.meta.url));
@@ -41,7 +43,8 @@ function exampleJob(folder: string, id: string): Job {
   const job = JobSchema.parse(
     JSON.parse(readFileSync(join(EXAMPLES, folder, 'job', 'job.json'), 'utf8')),
   );
-  return { ...job, id };
+  // Kept before its agent's run, so no run predates its job.
+  return { ...job, id, createdAt: at(-3_200) };
 }
 
 /** A task of an example's own, by its id. */
@@ -66,6 +69,8 @@ interface TeamAgent {
   summary: GraduateSummary;
   version: GraduateVersion;
   report: ReportCard;
+  /** The run its version came from, finished and tested. */
+  run: Run;
   installation: Installation;
   job: Job;
 }
@@ -160,13 +165,36 @@ function teamAgent(options: {
     runId,
     name: job.name,
     organizationNoun: job.organizationNoun,
+    createdAt,
     test: { ...storyReport.test, score, perType, perOrg, refusals: 0 },
     refusedTypes: [],
+    topInterventions: [],
+    requirements: summary.manifest.requirements,
   };
+  const run = makeRun({
+    id: runId,
+    jobId: job.id,
+    status: 'finished',
+    phase: 'done',
+    createdAt: at(-2_200),
+    updatedAt: createdAt,
+    endedAt: createdAt,
+    currentVersion: 8,
+    devBaseline: report.dev.baseline,
+    devCurrent: report.dev.final,
+    graduateId: id,
+    totals: {
+      ...makeRun({}).totals,
+      mentorUsd: report.cost.mentorUsd,
+      rounds: report.cost.rounds,
+      wallMs: report.cost.wallMs,
+    },
+  });
   return {
     summary,
     version,
     report,
+    run,
     installation: installation(id, {
       version: options.version,
       bindings: { data: `${options.path}\\orgs\\${options.org}\\data` },
@@ -180,7 +208,7 @@ const LEAD_ID = 'grd_inventory_desk';
 const TEAMMATE_ID = 'grd_assay_desk';
 
 const LEAD_JOB = exampleJob('inventory-desk', 'job_inventory_desk');
-const ASSAY_JOB = exampleJob('assay-desk', 'job_assay_desk_team');
+const ASSAY_JOB = exampleJob('assay-desk', 'job_assay_desk');
 
 /** Both agents work on Fenwick Screening Core's records. */
 const ORG = 'fenwick';
@@ -216,12 +244,15 @@ const TEAMMATE = teamAgent({
 export const TEAM_AGENTS = { lead: LEAD.summary, teammate: TEAMMATE.summary };
 /**
  * The team's agents' versions, report cards and install checks, for a world whose registry lists
- * them beside other agents.
+ * them beside other agents, and their jobs and the runs their versions came from, for one whose
+ * fields hold them.
  */
 export const TEAM_RECORDS = {
   versions: [LEAD.version, TEAMMATE.version],
   reports: { [`${LEAD_ID}:1`]: LEAD.report, [`${TEAMMATE_ID}:1`]: TEAMMATE.report },
   installations: { [LEAD_ID]: LEAD.installation, [TEAMMATE_ID]: TEAMMATE.installation },
+  jobs: [LEAD.job, TEAMMATE.job],
+  runs: [LEAD.run, TEAMMATE.run],
 };
 
 /** The team the person makes in Models: Inventory desk leads, and asks Assay desk. */
@@ -594,8 +625,9 @@ export function teamWorld(patch: Partial<TeamWorld> = {}): TeamWorld {
 /**
  * Answers the channels a team's screens read, from a world of agents, teams and chats: each
  * agent's own versions, report, installation, settings and teaching, the teams, and the chats by
- * agent or by team. A new team takes `TEAM_ID`, so the world's team chats are its. Calls are
- * recorded; removing an agent that is in a team is refused as the engine refuses it.
+ * agent or by team. The first new team takes `TEAM_ID`, so the world's team chats are its, and
+ * any later one an id of its own, with no chats yet. Calls are recorded; removing an agent that
+ * is in a team is refused as the engine refuses it.
  */
 export async function installTeamsFake(app: ElectronApplication, world: TeamWorld): Promise<void> {
   const correction = proposed(TEAMMATE_ID, TEAMMATE.summary.activeVersion ?? 1, CHAT_ID, REPLY_ID, {
@@ -691,7 +723,8 @@ export async function installTeamsFake(app: ElectronApplication, world: TeamWorl
       });
       handle('teams:list', () => teams);
       handle('teams:create', (input: Pick<Team, 'name' | 'members'>) => {
-        const team = { id: teamId, ...input, createdAt: new Date().toISOString() };
+        const id = teams.some((item) => item.id === teamId) ? `team_${teams.length + 1}` : teamId;
+        const team = { id, ...input, createdAt: new Date().toISOString() };
         const made = { ...team, updatedAt: team.createdAt };
         teams.push(made);
         return made;

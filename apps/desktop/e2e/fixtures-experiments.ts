@@ -53,20 +53,23 @@ function experimentsData(report: ComparisonReport, names: ExperimentNames) {
 /**
  * Installs the stand-in; `report` is what a finished experiment reads, such as the recorded one,
  * and `names` the models its field runs, and `kept` the experiments it already holds, such as a
- * finished one.
+ * finished one. A new experiment is planned on the field it names, when `fields` lists it, and
+ * on the report's otherwise.
  */
 export async function installExperimentsFake(
   app: ElectronApplication,
   report: ComparisonReport,
   names: ExperimentNames = DEFAULT_NAMES,
   kept: readonly ExperimentRecord[] = [],
+  fields: readonly { id: string; name: string }[] = [],
 ): Promise<void> {
   // Sent untyped: the report's types are too deep for Playwright to unbox, and it is ours anyway.
-  const sent: unknown = { data: experimentsData(report, names), kept };
+  const sent: unknown = { data: experimentsData(report, names), kept, fields };
   await app.evaluate(({ BrowserWindow, ipcMain }, raw) => {
-    const { data, kept } = raw as {
+    const { data, kept, fields } = raw as {
       data: ReturnType<typeof experimentsData>;
       kept: Record[];
+      fields: { id: string; name: string }[];
     };
     type Record = {
       id: string;
@@ -113,8 +116,8 @@ export async function installExperimentsFake(
       groups: ['all', 'seen', 'unseen'],
       study: null,
       released: released(record),
-      // An arm done teaching whose final test needs $4.20 more of the hosted student than is left
-      // under its cap.
+      // The engineered arm, done teaching, whose final test needs $4.20 more of the hosted student
+      // than is left under its cap.
       funding:
         record.status === 'needs_funding'
           ? {
@@ -148,8 +151,10 @@ export async function installExperimentsFake(
         id: `cmp_${records.length + 1}`,
         input,
         job: {
-          id: data.released.job.id,
-          name: data.released.job.name,
+          ...(fields.find((field) => field.id === input.jobId) ?? {
+            id: data.released.job.id,
+            name: data.released.job.name,
+          }),
           splitsSeed: data.released.job.splitsSeed,
         },
         status: 'draft',

@@ -86,6 +86,16 @@ function passed(arm: Arm, scenario: Scenario): boolean {
   return scenario.index >= offset && scenario.index < pass + offset;
 }
 
+/**
+ * What each arm's attempts took and cost on hosted Glimmer: Glimmer alone reads the bare prompt,
+ * and each harness adds its instructions and skills to every request, the engineered one most.
+ */
+const SERVED: Record<Arm, Pick<ArmRow, 'perThousandUsd' | 'latencyMs'>> = {
+  bare: { perThousandUsd: 6.12, latencyMs: { p50: 24_000, p95: 41_000 } },
+  draft: { perThousandUsd: 8.47, latencyMs: { p50: 29_000, p95: 52_000 } },
+  targeted: { perThousandUsd: 9.96, latencyMs: { p50: 32_000, p95: 57_000 } },
+};
+
 const TAUGHT_TEST = SCENARIOS.filter((scenario) => scenario.org.seen).length;
 const NEEDED = Math.ceil(0.9 * TAUGHT_TEST - 1e-9);
 
@@ -112,6 +122,7 @@ function row(base: ArmRow, arm: Arm): ArmRow {
   );
   return {
     ...base,
+    ...SERVED[arm],
     runId: `run_sweep_${arm}`,
     scenarios: counted(passes(results), results.length),
     passTarget: { passRate: 0.9, needed: NEEDED, of: TAUGHT_TEST, met: taught >= NEEDED },
@@ -287,10 +298,6 @@ export function sweepComparison(recorded: ComparisonReport): ComparisonReport {
     if (!base) throw new Error(`The recorded comparison tested the ${arm} arm.`);
     return row(base, arm);
   });
-  const projection = recorded.projection && {
-    ...recorded.projection,
-    arms: recorded.projection.arms.filter((item) => (ARMS as readonly string[]).includes(item.arm)),
-  };
   const calibration = recorded.calibration && {
     ...recorded.calibration,
     job: 'Sweep desk',
@@ -332,7 +339,6 @@ export function sweepComparison(recorded: ComparisonReport): ComparisonReport {
       computeUsd: 0,
       computeSettled: true,
     },
-    projection,
     arms,
     backends: [
       {

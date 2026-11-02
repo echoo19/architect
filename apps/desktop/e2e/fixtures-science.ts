@@ -33,7 +33,13 @@ function shipped(folder: string, id: string): { job: Job; sealed: Job['organizat
   );
   const organizations = job.organizations ?? [];
   return {
-    job: { ...job, id, organizations: organizations.filter((org) => org.role === 'train') },
+    // Kept in the Lab before its first run here, so no run predates its job.
+    job: {
+      ...job,
+      id,
+      createdAt: at(-3_200),
+      organizations: organizations.filter((org) => org.role === 'train'),
+    },
     sealed: organizations.filter((org) => org.role !== 'train'),
   };
 }
@@ -78,6 +84,10 @@ function fieldOf(folder: string, made: ReturnType<typeof shipped>, testTasks: nu
     lockedTestTasks: testTasks,
   };
 }
+
+/** A shipped job's field under the id the Lab keeps it, with its final test's size. */
+export const exampleField = (folder: string, id: string, testTasks: number): FieldView =>
+  fieldOf(folder, shipped(folder, id), testTasks);
 
 export const SWEEP_DESK_ID = 'grd_sweep_desk';
 

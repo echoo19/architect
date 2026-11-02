@@ -72,7 +72,7 @@ test('lists every agent and version with its scores, and filters and searches th
   await expect(academyDesk).toContainText('93%');
   await expect(academyDesk).toContainText('83%');
   await expect(academyDesk).toContainText('90%');
-  await expect(academyDesk).toContainText('89%');
+  await expect(academyDesk).toContainText('91%');
   await expect(academyDesk).toContainText('Active');
   // Each status word says what it means on hover or focus.
   expect(await tooltipText(page, academyDesk.getByText('Active', { exact: true }))).toBe(
@@ -148,7 +148,7 @@ test("opens a model's panel with its report and lineage, and promotes a candidat
   await expect(finalTest).toContainText('Taught on');
   await expect(finalTest).toContainText('67/72');
   await expect(panel()).toContainText('Held-out checks');
-  await expect(panel()).toContainText('71/80');
+  await expect(panel()).toContainText('87/96');
   await expect(panel().getByRole('button', { name: 'Export', exact: true })).toBeVisible();
   await expect(panel().getByRole('button', { name: 'Export evidence' })).toBeVisible();
   // The panel pushes the table, which keeps every column in view, Status last.
@@ -219,16 +219,14 @@ test('compares two versions skill by organization, with the harness diff between
   // The check tasks stand apart from the final test, with each version's own result.
   const versions = page.getByRole('table', { name: 'Versions' });
   await expect(versions.getByRole('row', { name: /Held-out checks/ })).toContainText(
-    '80% (64 of 80)',
+    '80% (77 of 96)',
   );
   await expect(versions.getByRole('row', { name: /Held-out checks/ })).toContainText(
-    '89% (71 of 80)',
+    '91% (87 of 96)',
   );
   const harness = page.getByRole('region', { name: 'Harness' });
   await expect(harness).toContainText('Changed its instructions and 1 skill.');
-  await expect(
-    harness.getByRole('article', { name: 'skills/assign/SKILL.md, added' }),
-  ).toBeVisible();
+  await expect(harness.getByRole('article', { name: 'skills/hint/SKILL.md, added' })).toBeVisible();
   await capture('models-compare-dark.png');
 
   // Two agents of one field compare too; versions tested elsewhere say they can't.
