@@ -224,6 +224,20 @@ export function sessionRows(sessions: readonly Session[]): SessionRow[] {
 }
 
 /**
+ * The requests that opened the most recent sessions, newest first, each once: what people
+ * actually ask the agent, in their words. A request of several lines is left out.
+ */
+export function recentAsks(sessions: readonly Session[], limit = 3): string[] {
+  const asks = [...sessions]
+    .sort((a, b) => b.chat.createdAt.localeCompare(a.chat.createdAt))
+    .flatMap((session) => {
+      const text = session.messages.find((message) => message.role === 'user')?.text.trim();
+      return text && !text.includes('\n') ? [text] : [];
+    });
+  return [...new Set(asks)].slice(0, limit);
+}
+
+/**
  * The day the activity chart ends on: today, or the newest message's day when a record is dated
  * later than this computer's clock, so nothing recorded falls off its end.
  */

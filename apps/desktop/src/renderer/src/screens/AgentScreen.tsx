@@ -15,7 +15,7 @@ import { Bot, CircleX, Ellipsis, MessageSquare, Plus } from 'lucide-react';
 import { useVersionReport, useVersions } from '../api/graduates';
 import { useGraduates } from '../api/hooks';
 import { useTeams } from '../api/teams';
-import { activityEnd, sessionRows } from '../agent/activity';
+import { activityEnd, recentAsks, sessionRows } from '../agent/activity';
 import { ActivityCard, DeploymentCard, EvidenceCard, SessionsCard, WorkCard } from '../agent/cards';
 import { ProblemState } from '../components/ProblemState';
 import { attempt } from '../lib/notify';
@@ -168,7 +168,7 @@ function AgentHome({ agent, teamIds }: { agent: GraduateSummary; teamIds: readon
     >
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Stagger className={COLUMN}>
-          <Dispatch agent={agent} />
+          <Dispatch agent={agent} asks={loaded && !failure ? recentAsks(sessions) : null} />
           {failure ? (
             <ProblemState
               error={failure.error}
@@ -199,31 +199,45 @@ function AgentHome({ agent, teamIds }: { agent: GraduateSummary; teamIds: readon
 }
 
 /**
- * Starts a session from the home: the request goes to a new chat, which works while the person
- * stays here and shows at the top of the sessions. The agent's starter requests fill the box.
+ * Starts a session from the home: the request goes to a new chat, which opens to show the agent
+ * working on it. The requests that opened its latest sessions fill the box; an agent not asked
+ * anything yet offers what its task types say it does.
  */
-function Dispatch({ agent }: { agent: GraduateSummary }) {
+function Dispatch({
+  agent,
+  asks,
+}: {
+  agent: GraduateSummary;
+  /** The requests that opened its latest sessions; null while they load. */
+  asks: readonly string[] | null;
+}) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const field = useRef<HTMLDivElement>(null);
   const versions = useVersions(agent.id);
   const taskTypes = versions.data?.find((version) => version.active)?.manifest.contract.capabilities
     .taskTypes;
-  // Wait for the version's task types, so the requests don't change under the pointer.
+  // Wait for the sessions and the version's task types, so the requests don't change under the
+  // pointer.
   const starters =
-    versions.data || versions.status === 'error' ? suggestionsFor(agent.manifest, taskTypes) : [];
+    asks === null || !(versions.data || versions.status === 'error')
+      ? []
+      : asks.length > 0
+        ? asks
+        : suggestionsFor(agent.manifest, taskTypes);
   const blocked = agent.status === 'blocked';
 
   const dispatch = async (text: string) => {
     setDraft('');
     setSending(true);
-    const sent = await attempt(`Couldn't start a session with ${agent.name}`, async () => {
-      const chat = await createChat(agent.id);
-      await sendMessage(chat.id, text);
-      return true;
+    const chat = await attempt(`Couldn't start a session with ${agent.name}`, async () => {
+      const created = await createChat(agent.id);
+      await sendMessage(created.id, text);
+      return created;
     });
     setSending(false);
-    if (!sent) setDraft(text);
+    if (chat) navigate(chatPath(chat));
+    else setDraft(text);
   };
 
   const pick = (text: string) => {
@@ -266,9 +280,9 @@ function Dispatch({ agent }: { agent: GraduateSummary }) {
               key={starter}
               type="button"
               onClick={() => pick(starter)}
-              className="h-9 rounded-full px-3.5 text-fg transition-colors duration-150 shadow-edge-strong hover:bg-hover"
+              className="h-9 max-w-full rounded-full px-3.5 text-fg transition-colors duration-150 shadow-edge-strong hover:bg-hover"
             >
-              {starter}
+              <span className="block truncate">{starter}</span>
             </button>
           ))}
         </div>

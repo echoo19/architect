@@ -7,6 +7,7 @@ import {
   dayKey,
   oversight,
   percentile,
+  recentAsks,
   requestsByDay,
   sessionRows,
   tokensPerSecond,
@@ -263,5 +264,26 @@ describe('activitySpan', () => {
 
   it('counts the week exactly when it was accepted a week ago', () => {
     expect(activitySpan(at(9, 26, 23), end)).toEqual({ days: 7, fromAcceptance: true });
+  });
+});
+
+describe('recentAsks', () => {
+  const opened = (id: string, createdAt: string, text: string) => ({
+    chat: chat(id, { createdAt }),
+    messages: [message({ role: 'user', text }), message({ text: 'Done.' })],
+  });
+
+  it('gives the requests that opened the newest sessions, each once, and no request of several lines', () => {
+    const asks = recentAsks(
+      [
+        opened('a', '2026-10-27T09:00:00.000Z', 'Which invoices are open?'),
+        opened('b', '2026-10-29T09:00:00.000Z', 'Price J-4462.'),
+        opened('c', '2026-10-30T09:00:00.000Z', 'Which invoices are open?'),
+        opened('d', '2026-10-31T09:00:00.000Z', 'Book this:\nElm St, Thursday'),
+        { chat: chat('e', { createdAt: '2026-11-01T09:00:00.000Z' }), messages: [] },
+      ],
+      3,
+    );
+    expect(asks).toEqual(['Which invoices are open?', 'Price J-4462.']);
   });
 });
