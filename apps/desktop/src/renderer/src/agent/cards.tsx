@@ -265,8 +265,9 @@ export function WorkCard({ messages }: { messages: readonly WorkspaceMessage[] }
     { label: 'Writes you allowed', value: counts.approved },
     { label: 'Writes waiting for you', value: counts.waiting },
     { label: 'Writes you declined', value: counts.denied },
+    { label: "Writes that couldn't be saved", value: counts.failed, danger: true },
     { label: 'Left to a person', value: counts.refusals },
-    { label: 'Stopped on an error', value: counts.errors + counts.failed, danger: true },
+    { label: 'Stopped on an error', value: counts.errors, danger: true },
   ];
   return (
     <Card title="Tools and decisions" icon={<FlaskConical strokeWidth={1.8} aria-hidden />}>
