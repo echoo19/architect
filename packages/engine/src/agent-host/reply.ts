@@ -31,6 +31,8 @@ export class LiveReply implements StepList {
   /** The reply's work as the model took it, saved with the reply when it settles. */
   private readonly work: ReplyStep[] = [];
   private readonly started = performance.now();
+  /** Tokens written over the reply's model turns, and the time those turns took. */
+  private readonly generated = { tokens: 0, ms: 0 };
   /** The step each running tool call shows as, by call id. */
   private readonly calls = new Map<string, string>();
   private stepCount = 0;
@@ -79,6 +81,16 @@ export class LiveReply implements StepList {
   recordStep(step: TraceStep): void {
     if (this.finished) return;
     this.work.push(replyStep(step));
+  }
+
+  /**
+   * Counts a model turn's written tokens, as the runtime reported them, and how long the turn took,
+   * so the reply keeps how fast it was written. Kept with the reply when it settles.
+   */
+  countTurn(tokens: number, ms: number): void {
+    if (this.finished) return;
+    this.generated.tokens += tokens;
+    this.generated.ms += ms;
   }
 
   /** The model finished a turn; text from its next turn starts a new paragraph. */
@@ -191,6 +203,7 @@ export class LiveReply implements StepList {
       ...settleMessage(this.message, outcome),
       trace: [...this.work],
       workedMs: Math.round(performance.now() - this.started),
+      ...(this.generated.tokens > 0 ? { generated: { ...this.generated } } : {}),
     };
     this.publish(this.message, true);
     return this.message;

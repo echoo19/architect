@@ -175,7 +175,10 @@ function finishApprovalRequired(reply: LiveReply, approval: ApprovalRequest): vo
 
 function record(reply: LiveReply, harness: Harness, step: TraceStep, teammates?: Teammates): void {
   reply.recordStep(step);
-  if (step.kind === 'model') reply.endTurn();
+  if (step.kind === 'model') {
+    reply.countTurn(step.usage.outputTokens, step.latencyMs);
+    reply.endTurn();
+  }
   if (step.kind === 'refusal') {
     reply.addBlock({ kind: 'refusal', taskType: step.taskType, reason: step.reason });
   }
