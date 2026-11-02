@@ -67,7 +67,8 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
   const titleX = mix(from.x - to.x, 0, grow);
   const titleY = mix(from.y - to.y - alone, 0, grow) + alone;
   const titleK = mix(from.k, 1, grow);
-  const grown = t > T.grows + 0.9;
+  // Clipped only as it leaves: before that it travels and holds outside its own box.
+  const leaving = t >= T.side - 0.05;
   /** A line rising into its mask at `at` and, if `until` is given, leaving upward from it. */
   const move = (at: number, until = Infinity, dur = 0.9) => ({
     transform: `translateY(${(1 - outExpo(span(t, at, dur))) * 110 - inOutCubic(span(t, until, 0.4)) * 140}%)`,
@@ -86,10 +87,9 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
         }}
       >
         <span className="grid">
-          {/* Clipped only once it has grown, so it can leave upward behind its own edge. */}
           <span
             className="[grid-area:1/1]"
-            style={{ overflow: grown ? 'hidden' : 'visible', paddingBottom: '0.12em' }}
+            style={{ overflow: leaving ? 'hidden' : 'visible', paddingBottom: '0.12em' }}
           >
             <span
               className={`flex items-baseline text-[76px] ${type}`}

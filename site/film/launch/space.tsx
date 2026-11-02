@@ -341,14 +341,16 @@ function Opening({
 /** Y Combinator's line, then its three requests building beneath it as one list. */
 function Requests({ t, camera }: { t: number; camera: Point }) {
   const until = T.toLab - 0.1;
-  if (!wordsShown(t, T.asked, until)) return null;
+  // Y Combinator's line rises as the move across arrives, so the frame is never empty.
+  const lead = T.asked - 0.6;
+  if (!wordsShown(t, lead, until)) return null;
   return (
     <Placed camera={camera} at={STATION} w={LIST.w} h={LIST.h}>
       <div className="flex h-full flex-col justify-center">
         <Words
           t={t}
           text="Y Combinator asked for this three times."
-          at={T.asked}
+          at={lead}
           until={until}
           className={`${TITLE} text-[72px] leading-[1.04]`}
         />
