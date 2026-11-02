@@ -269,6 +269,28 @@ describe('dev noise', () => {
     ]);
   });
 
+  it("counts a round's measurement of both versions as one, so the score never starts over", async () => {
+    const job = await setUp();
+    world.runtime.passes = (held, harness) => harness.system.includes(`fix:${held.type}`);
+    await engine.controller.start(job.id, 'architect', 7);
+    await engine.controller.idle();
+
+    // A dev count starts over only once it is full, and one count (one total, never going back)
+    // covers both the incumbent and the change: not two counts that each start from none.
+    let last: { done: number; total: number } | null = null;
+    let both = false;
+    const seen = new Set<number>();
+    for (const event of engine.events) {
+      if (event.type !== 'eval.progress' || event.split !== 'dev') continue;
+      if (last && event.done < last.done) expect(last.done).toBe(last.total);
+      if (last && (event.done < last.done || event.total !== last.total)) seen.clear();
+      last = event;
+      seen.add(event.harnessVersion);
+      both ||= seen.size === 2;
+    }
+    expect(both).toBe(true);
+  });
+
   it('measures a change that clears the limits again, and reverts a gain one draw made by luck', async () => {
     const job = await setUp();
     const panel = fanOutSeeds(7).devPanel;

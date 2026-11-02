@@ -143,14 +143,9 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
         progress: { split: event.split, done: event.done, total: event.total },
       };
     case 'eval.finished':
-      // The count stays at its end until the run moves on, so a finished step reads as full.
-      return {
-        ...live,
-        progress:
-          live.progress?.split === event.split
-            ? { ...live.progress, done: live.progress.total }
-            : null,
-      };
+      // The count stays where it ended until the run moves on: full at the end of a step, and
+      // part way when a round has measured one version and goes on to the other.
+      return { ...live, progress: live.progress?.split === event.split ? live.progress : null };
     case 'budget':
       return { ...live, budget: event.state };
     case 'log':

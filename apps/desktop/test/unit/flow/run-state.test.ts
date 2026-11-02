@@ -171,14 +171,14 @@ describe('liveRunReducer', () => {
     expect(finished.progress).toBeNull();
   });
 
-  it('keeps a finished count full until the run moves on, then counts the next step from none', () => {
+  it('keeps a finished count where it ended until the run moves on, then counts the next step from none', () => {
     const base = { runId: 'run_1', at: AT, harnessVersion: 2 } as const;
     const scoring = runUpdated(makeRun({ phase: 'evaluating', updatedAt: at(1) }));
     const counted: RunEvent = {
       ...base,
       type: 'eval.progress',
       split: 'dev',
-      done: 30,
+      done: 40,
       total: 40,
       pass: 5,
     };
@@ -191,6 +191,14 @@ describe('liveRunReducer', () => {
     };
     const ended = loaded(scoring, counted, finished);
     expect(activeProgress(ended)).toEqual({ split: 'dev', done: 40, total: 40 });
+
+    // A round measures both versions as one count: the first version's end is half way.
+    const half: RunEvent = { ...counted, done: 20 };
+    expect(activeProgress(loaded(scoring, half, finished))).toEqual({
+      split: 'dev',
+      done: 20,
+      total: 40,
+    });
 
     const decided = loaded(
       scoring,
