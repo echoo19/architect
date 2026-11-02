@@ -158,6 +158,17 @@ const addInvoice = (invoice = NEW_INVOICE): ScriptedTurn => ({
 });
 
 describe('chatting with a graduate', () => {
+  it('counts the time a reply cut off and asked for again took with its tokens', async () => {
+    const world = await setup([
+      { text: 'The total is', chunk: 4, delayMs: 50, doneReason: 'length' },
+      { text: 'The total is 5000.' },
+    ]);
+    const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.text).toBe('The total is 5000.');
+    expect(reply.generated?.tokens).toBe(60);
+    expect(reply.generated?.ms).toBeGreaterThanOrEqual(140);
+  });
+
   it('streams a reply with its steps and text, and saves the conversation', async () => {
     const world = await setup([
       {
@@ -718,9 +729,16 @@ describe('a certified version (decision 077)', () => {
     expect(world.model.chats()).toHaveLength(3);
   });
 
+  it('counts the tokens every attempt wrote, the chosen one once', async () => {
+    const world = await setup([answer(5000), answer(4000), answer(5000)], { certificate });
+    const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.generated).toEqual({ tokens: 90, ms: expect.any(Number) });
+  });
+
   it('says it is not sure and hands the request to a person when too few agree', async () => {
     const world = await setup([answer(1), answer(2), answer(3)], { certificate });
     const { reply } = await ask(world, 'What does Ruiz, Ben owe?');
+    expect(reply.generated).toEqual({ tokens: 90, ms: expect.any(Number) });
     expect(reply.status).toBe('done');
     expect(reply.text).toContain("I'm not sure about this one");
     expect(reply.text).toContain('hand it to a person');

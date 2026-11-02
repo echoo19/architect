@@ -49,12 +49,15 @@ export class Spent {
   usage = emptyUsage();
   /** How many replies were thrown away. */
   replies = 0;
+  /** How long they took to write. */
+  latencyMs = 0;
   private billed = 0;
   private unbilled = false;
 
   add(reply: Reply): void {
     this.usage = addUsage(this.usage, reply.usage);
     this.replies += 1;
+    this.latencyMs += reply.latencyMs;
     if (reply.costUsd === undefined) this.unbilled = true;
     else this.billed += reply.costUsd;
   }

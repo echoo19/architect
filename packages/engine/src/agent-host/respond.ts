@@ -174,11 +174,14 @@ function finishApprovalRequired(reply: LiveReply, approval: ApprovalRequest): vo
 }
 
 function record(reply: LiveReply, harness: Harness, step: TraceStep, teammates?: Teammates): void {
+  if (step.kind === 'model') reply.countTurn(step.usage.outputTokens, step.latencyMs);
+  show(reply, harness, step, teammates);
+}
+
+/** Shows one step of the agent's work on the reply, without counting what it wrote. */
+function show(reply: LiveReply, harness: Harness, step: TraceStep, teammates?: Teammates): void {
   reply.recordStep(step);
-  if (step.kind === 'model') {
-    reply.countTurn(step.usage.outputTokens, step.latencyMs);
-    reply.endTurn();
-  }
+  if (step.kind === 'model') reply.endTurn();
   if (step.kind === 'refusal') {
     reply.addBlock({ kind: 'refusal', taskType: step.taskType, reason: step.reason });
   }
@@ -229,6 +232,10 @@ async function byAgreement(input: ReplyRequest, agreement: Agreement): Promise<S
       seed,
       signal: input.signal,
     });
+    // Every attempt wrote its tokens, whether or not its work is shown.
+    for (const step of trace.steps) {
+      if (step.kind === 'model') reply.countTurn(step.usage.outputTokens, step.latencyMs);
+    }
     if (trace.stopReason === 'aborted' || trace.stopReason === 'error') return trace;
     const { answer } = parseAnswerLine(trace.finalText);
     const outcome = { answer, stopReason: trace.stopReason };
@@ -260,7 +267,7 @@ async function byAgreement(input: ReplyRequest, agreement: Agreement): Promise<S
     return { stopReason: 'answer' };
   }
   const chosen = best.chosen.trace;
-  for (const step of chosen.steps) record(reply, graduate.harness, step);
+  for (const step of chosen.steps) show(reply, graduate.harness, step);
   reply.appendText(chosen.finalText);
   await proposeChanges(input, best.chosen.files);
   return chosen;
