@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
-import { REPORTS } from './content';
+import { EDGE_FILM, REPORTS } from './content';
 import {
   ADAPTER_ARMS,
   ADAPTER_PAIRS,
@@ -9,6 +9,7 @@ import {
   CERT2,
   CERT2_CHECK,
   CERT2_ROWS,
+  EDGE,
   FIELD_ARMS,
   FIELD_MONEY,
   FIELD_PAIRS,
@@ -55,6 +56,7 @@ import {
 import { Footer } from './components/Footer';
 import { Forest, type ForestRow } from './components/Forest';
 import { Header } from './components/Header';
+import { HeroFilm } from './components/HeroFilm';
 import { Reveal } from './components/Reveal';
 import { RoundDiagram } from './components/RoundDiagram';
 
@@ -89,6 +91,7 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
   { key: 'academyDesk', what: "The Academy desk run's report." },
   { key: 'local', what: "The Academy desk's check on the build that runs on one graphics card." },
+  { key: 'edge', what: "The wind farm desk's run, made and recorded in the app." },
   { key: 'inventory', what: "Inventory desk's run, at a screening lab's compound store." },
   { key: 'qlora1', what: "The first fine-tune: Inventory desk's work as a QLoRA adapter." },
   {
@@ -137,6 +140,7 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
 const SECTIONS = [
   'method',
   'field',
+  'edge',
   'inventory',
   'finetune',
   'certified',
@@ -149,6 +153,8 @@ const FIGURES = [
   'round',
   'fieldGroups',
   'fieldPairs',
+  'edgeFilm',
+  'edge',
   'lab',
   'adapter',
   'loss',
@@ -162,6 +168,7 @@ const TABLES = [
   'fieldSkills',
   'fieldRounds',
   'local',
+  'edgeSkills',
   'labPairs',
   'labSkills',
   'adapterPairs',
@@ -426,6 +433,56 @@ function PassRates({ comparison, target = true }: { comparison: Comparison; targ
           ? { at: 95, label: `The job's target: 95%, which is ${TARGET_PASSES} of ${TEST_SIZE}` }
           : undefined
       }
+    />
+  );
+}
+
+/** The wind farm desk's sealed final test: Glimmer on its own and with the harness Spark wrote. */
+function EdgePassRates() {
+  const arms = [
+    { name: 'Glimmer on its own', result: EDGE.alone, tone: 'plain' as const },
+    { name: 'The harness Spark wrote', result: EDGE.harness, tone: 'student' as const },
+  ];
+  const rows: ForestRow[] = arms.map((arm) => ({
+    label: armLabel(arm),
+    value: (arm.result.passed / EDGE.test) * 100,
+    low: arm.result.low,
+    high: arm.result.high,
+    tone: arm.tone,
+    figure: (
+      <CountFigure
+        passed={arm.result.passed}
+        of={EDGE.test}
+        low={arm.result.low}
+        high={arm.result.high}
+      />
+    ),
+    summary: `${arm.name}: ${arm.result.passed} of ${EDGE.test}, 95% interval ${arm.result.low} to ${arm.result.high} percent.`,
+  }));
+  return (
+    <Forest
+      name="Sealed final-test pass rate, the wind farm desk"
+      rows={rows}
+      min={0}
+      max={100}
+      ticks={[0, 25, 50, 75, 100]}
+      formatTick={(value) => `${value}%`}
+    />
+  );
+}
+
+/** The wind farm desk's sealed final test by kind of request. */
+function EdgeSkillTable() {
+  return (
+    <Table
+      label="Sealed final-test passes by kind of request, the wind farm desk"
+      columns={['Kind of request', 'Glimmer on its own', 'The harness Spark wrote']}
+      rows={EDGE.types.map((type) => [
+        type.name,
+        `${type.alone} of ${type.of}`,
+        `${type.harness} of ${type.of}`,
+      ])}
+      fit
     />
   );
 }
@@ -1156,13 +1213,70 @@ export function ResultsPage() {
           </Details>
         </Section>
 
+        <Section id="edge" number={sec('edge')} title="A real run, recorded: an offshore wind farm">
+          <Text>
+            Taught and tested in the app in {EDGE.minutes} minutes, for {dollars(EDGE.runUsd)}. The
+            other runs here were measured with scripts; this agent was made the way anyone would
+            make one, in the app, and the screen was recorded as it ran ({fig('edgeFilm')})
+            <Cite to={['edge']} />.
+          </Text>
+          <Headline figure={`${EDGE.alone.passed} to ${EDGE.harness.passed} of ${EDGE.test}`}>
+            on the sealed final test, against Glimmer alone
+          </Headline>
+          <Exhibit
+            label={fig('edgeFilm')}
+            caption="The run as it was recorded: the records attached, Spark drafting the job, the training screen, the sealed final test and the agent's home, cut to music, with the waits shown faster."
+          >
+            <HeroFilm film={EDGE_FILM} />
+          </Exhibit>
+          <Text>
+            The job is a fictional offshore wind farm&apos;s maintenance desk. Its link to shore is
+            a slow satellite connection, so the agent has to work offline on the substation
+            computer. For each turbine alarm it decides between shutting the turbine down, sending a
+            crew and keeping watch, and it books the crew&apos;s boat around the weather and their
+            certificates, all by the site&apos;s written policy. Spark turned that policy into three
+            small tools. With them Glimmer passed all {EDGE.test} sealed tasks; on its own it passed{' '}
+            {EDGE.alone.passed} ({fig('edge')})
+            <Cite to={['edge']} />.
+          </Text>
+          <Details
+            method={
+              <Text>
+                The site&apos;s records are generated: 40 turbines, a log of 171 alarms, 30
+                technicians, 7 boats, a 96-hour forecast and the written policy, with 96 worked
+                cases whose answers come from the policy. A program checks each decision, booking
+                and certificate check, never the wording. Spark drafted the job in one call; its
+                first harness took the held-out checks from {EDGE.checks.before} to{' '}
+                {EDGE.checks.after} of {EDGE.checks.of}, and training stopped at the target. Glimmer
+                on its own took the same {EDGE.test} sealed tasks in a preregistered experiment in
+                the app, written after this run&apos;s result was read. Both ran on the hosted copy
+                of Glimmer, not the build on the substation computer
+                <Cite to={['edge']} />.
+              </Text>
+            }
+          >
+            <Panel
+              label={fig('edge')}
+              caption={`Sealed final-test passes, with 95% intervals, on the same ${EDGE.test} tasks under one seed. Task by task, the harness won ${EDGE.pair.wins} and lost ${EDGE.pair.losses}: ${signed(EDGE.pair.diff)} points (${signed(EDGE.pair.low)} to ${signed(EDGE.pair.high)}).`}
+            >
+              <EdgePassRates />
+            </Panel>
+            <TableExhibit
+              label={tab('edgeSkills')}
+              caption={`Sealed final-test passes by kind of request, out of the tasks of each kind. The run and its experiment cost ${dollars(EDGE.allUsd)} in all.`}
+            >
+              <EdgeSkillTable />
+            </TableExhibit>
+          </Details>
+        </Section>
+
         <Section
           id="inventory"
           number={sec('inventory')}
           title="Inventory desk, at a screening lab"
         >
           <Text>
-            The same loop works in a second field. Inventory desk runs a screening lab&apos;s
+            The same loop works in another field. Inventory desk runs a screening lab&apos;s
             compound store: scientists ask it how much of a compound is usable, which lot a re-test
             should draw from, and how to allocate and hold stock, and it works only from the
             lab&apos;s own files and policy ({fig('lab')})

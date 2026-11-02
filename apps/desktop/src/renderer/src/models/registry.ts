@@ -8,7 +8,7 @@ import type {
 import { defineTerm } from '@architect/ui';
 import { orgScores } from '../lab/items';
 import { percentOf } from '../lib/format';
-import { quantizationLabel, shortModelName } from '../lib/names';
+import { buildBits, shortModelName } from '../lib/names';
 
 /** One version of one agent, with the report card its own final test left, when it took one. */
 export interface ModelRow {
@@ -81,7 +81,8 @@ export function matchesFilter(row: ModelRow, filter: RegistryFilter): boolean {
 export function baseModelOf(version: GraduateVersion): string {
   const { label, base } = version.manifest.model;
   const name = shortModelName(label);
-  return base.quantization ? `${name}, ${quantizationLabel(base.quantization)}` : name;
+  const bits = buildBits(base.name, base.quantization);
+  return bits ? `${name}, ${bits}` : name;
 }
 
 export const fieldOf = (version: GraduateVersion) => version.manifest.contract.name;
@@ -96,7 +97,8 @@ const RUNTIMES: Record<string, string> = {
 export const runtimeName = (runtime: string | undefined) =>
   runtime === undefined ? undefined : (RUNTIMES[runtime] ?? runtime);
 
-export const shortHash = (hash: string) => hash.replace(/^sha256:/, '').slice(0, 7);
+/** A hash's first seven hex digits, written sha256:<hex> or sha256-<hex> (a harness folder's). */
+export const shortHash = (hash: string) => hash.replace(/^sha256[:-]/, '').slice(0, 7);
 
 /** How a version was made, in the Method column's word. */
 export const methodOf = (version: GraduateVersion) =>

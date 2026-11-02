@@ -12,6 +12,7 @@ import { startWorld, WORLDS, type World, type WorldName } from './worlds';
  * 127.0.0.1. See qa/README.md.
  *
  *   node --import tsx qa/driver.ts --world lab --port 4801 --out <dir> [--exe <packaged app>]
+ *   node --import tsx qa/driver.ts --world live --port 4804 --out <dir> [--data <kept profile>]
  */
 
 type Target =
@@ -40,12 +41,23 @@ const { values } = parseArgs({
     world: { type: 'string' },
     port: { type: 'string', default: '4801' },
     out: { type: 'string' },
+    data: { type: 'string' },
     exe: { type: 'string' },
   },
 });
 const worldName = values.world as WorldName;
 if (!WORLDS.includes(worldName)) {
   throw new Error(`Name a world with --world: ${WORLDS.join(', ')}.`);
+}
+if (values.data !== undefined && worldName !== 'live') {
+  throw new Error(
+    '--data starts the live world on a kept profile; the other worlds make their own.',
+  );
+}
+if (values.exe !== undefined && worldName === 'live') {
+  throw new Error(
+    'The live world runs the built app: a packaged app never reads keys from the environment.',
+  );
 }
 // The e2e launcher starts the packaged app this names instead of the built one.
 const packaged = values.exe !== undefined;
@@ -56,7 +68,7 @@ const shots = join(out, 'shots');
 const log = join(out, 'actions.log');
 await mkdir(shots, { recursive: true });
 
-const world: World = await startWorld(worldName, out);
+const world: World = await startWorld(worldName, out, values.data && resolve(values.data));
 const { app, page } = world.launched;
 page.setDefaultTimeout(STEP_MS);
 await resize(page, { width: 1440, height: 900 });
@@ -158,10 +170,14 @@ async function perform(act: Act): Promise<void> {
       return needTarget(act).hover();
     case 'fill':
       return needTarget(act).fill(text(act.value));
-    case 'type':
+    case 'type': {
+      const typed = text(act.value);
+      // Typing takes its own time on top of a step's: a long text would outlast STEP_MS alone.
+      const timeout = STEP_MS + typed.length * KEY_DELAY_MS;
       if (act.target)
-        return needTarget(act).pressSequentially(text(act.value), { delay: KEY_DELAY_MS });
-      return page.keyboard.type(text(act.value), { delay: KEY_DELAY_MS });
+        return needTarget(act).pressSequentially(typed, { delay: KEY_DELAY_MS, timeout });
+      return page.keyboard.type(typed, { delay: KEY_DELAY_MS });
+    }
     case 'press':
       if (act.target) return needTarget(act).press(text(act.value));
       return page.keyboard.press(text(act.value));

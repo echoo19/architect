@@ -57,7 +57,7 @@ import {
 } from '../flow/report/certificate-words';
 import { runtimeFigures } from '../flow/report/evidence';
 import { formatBytes, formatPercent, percentOf } from '../lib/format';
-import { agentModelName, quantizationLabel } from '../lib/names';
+import { agentModelName, buildBits } from '../lib/names';
 import { chatPath, navigate } from '../lib/router';
 import { runtimeName } from '../models/registry';
 import { useWords } from '../shell/edition';
@@ -461,7 +461,7 @@ export function DeploymentCard({
   const firstReply = figures?.coldStartMs ?? installation.data.measurements.firstReplyMs ?? null;
   const build = [
     agentModelName(student),
-    student.quantization && quantizationLabel(student.quantization),
+    buildBits(student.model, student.quantization),
     student.adapter && 'LoRA adapter',
   ]
     .filter(Boolean)

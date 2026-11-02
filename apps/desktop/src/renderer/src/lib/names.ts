@@ -104,6 +104,17 @@ export function quantizationLabel(quantization: string): string {
   return quantization;
 }
 
+/**
+ * How many bits a model's weights are written in, from the quantization its runtime reports. The
+ * Glimmer build Architect makes from a GGUF file is named by its own ("2-bit"): Ollama reports
+ * that file's type as Q4_K_M.
+ */
+export function buildBits(model: string, quantization: string | undefined): string | undefined {
+  const build = GLIMMER_BUILDS.find((candidate) => candidate.model === model);
+  if (build?.source.kind === 'gguf') return build.label.split(',')[0];
+  return quantization === undefined ? undefined : quantizationLabel(quantization);
+}
+
 /** The student's display label, from the matching preset when there is one. */
 export function studentLabel(student: StudentEndpoint): string {
   const preset = STUDENT_PRESETS.find(

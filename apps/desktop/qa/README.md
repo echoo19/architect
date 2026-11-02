@@ -1,6 +1,6 @@
 # Persona testing driver
 
-`qa/driver.ts` opens the built app, hidden, in a ready-made world and keeps it open, so a tester (a person or an agent) can use it step by step over a small JSON API on 127.0.0.1. Nothing real runs: the models are the e2e suite's stand-ins on 127.0.0.1 and its IPC stubs. No remote model, Hugging Face, GPU, or this computer's Ollama or llama-server is reached, and every provider key variable is blanked in the app's environment.
+`qa/driver.ts` opens the built app, hidden, in a ready-made world and keeps it open, so a tester (a person or an agent) can use it step by step over a small JSON API on 127.0.0.1. In the three mock worlds (first-run, personal, lab) nothing real runs: the models are the e2e suite's stand-ins on 127.0.0.1 and its IPC stubs. No remote model, Hugging Face, GPU, or this computer's Ollama or llama-server is reached, and every provider key variable is blanked in the app's environment. The live world is the exception, and real: see its section below.
 
 ## Build once
 
@@ -19,6 +19,7 @@ From `apps/desktop`, one app per driver:
 node --import tsx qa/driver.ts --world first-run --port 4801 --out C:\tmp\qa-first-run
 node --import tsx qa/driver.ts --world personal  --port 4802 --out C:\tmp\qa-personal
 node --import tsx qa/driver.ts --world lab       --port 4803 --out C:\tmp\qa-lab
+node --import tsx qa/driver.ts --world live      --port 4804 --out C:\tmp\qa-live
 ```
 
 It prints its address when ready. `--out` defaults to a new temp folder; screenshots go to `<out>/shots` and every act and its result to `<out>/actions.log`.
@@ -61,7 +62,15 @@ curl -X POST localhost:4801/quit # closes the app, deletes its profile, stops th
 | `wait`                                     | milliseconds (30 s at most), or a target to wait for                                 |
 | `file`                                     | path or paths the next file dialog picks; a dialog with no `file` before it cancels  |
 
-## What is stubbed in each world
+## The live world
+
+**live**: a new profile, not set up, on the real engine with no stand-in and no IPC stub. Spark and the hosted Glimmer are really called, so it spends real money; set the job's caps in the app before training. The app reads two keys from the driver's environment by name, `META_API_TOKEN` and `OPENROUTER_API_KEY` (`ARCHITECT_KEYS_FROM_ENV=1`, which an unpackaged build only honours); every other provider key stays blanked, and nothing reaches Hugging Face. Load each key into the one command that starts the driver, never into a file or the shell's history, and never type a key into the app. It runs the built app only: `--exe` is refused here, since a packaged app never reads keys from the environment.
+
+The window is recorded to `<out>/video` (Playwright's `recordVideo`, written when the app closes). On `/quit` the profile's data is copied to `<out>/profile` before the throwaway profile is deleted, so the job, its run, its lineage and its agent stay. To go on from there, such as to resume an experiment after a rebuild, start the live world with `--data <out>/profile` and a new `--out`: the app opens on a copy of that profile, which itself is left as it was.
+
+This computer's Ollama is not stubbed here. Training and the final test on the hosted copy never call it, but a chat with a trained agent, a check that loads its model, or a download does. Leave those alone when the local GPU is not to be used. Run one app at a time, and none while a Playwright run is going.
+
+## What is stubbed in each mock world
 
 Do not report these fixed replies as product bugs.
 

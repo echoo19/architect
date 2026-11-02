@@ -19,6 +19,7 @@ export const SOURCES = {
   cert: { name: 'academy-desk-cert-1.md', path: 'docs/comparisons/academy-desk-cert-1.md' },
   cert2: { name: 'academy-desk-cert-2.md', path: 'docs/comparisons/academy-desk-cert-2.md' },
   inventory: { name: 'inventory-desk-1.md', path: 'docs/comparisons/inventory-desk-1.md' },
+  edge: { name: 'edge-1.md', path: 'docs/comparisons/edge-1.md' },
   open: { name: 'returns-desk-open-1.md', path: 'docs/comparisons/returns-desk-open-1.md' },
   assay: { name: 'assay-desk-1.md', path: 'docs/comparisons/assay-desk-1.md' },
   assay2: { name: 'assay-desk-2.md', path: 'docs/comparisons/assay-desk-2.md' },
@@ -909,6 +910,29 @@ export const CERT2_CHECK: readonly CertCheckRow[] = [
   { when: '2 or more of 5', answered: 52, wrong: 0, handedOff: 2 },
   { when: '1 or more of 5', answered: 53, wrong: 0, handedOff: 1 },
 ];
+
+/**
+ * The wind farm desk, recorded as it ran in the app, from `edge-1.md`: the harness Spark wrote and
+ * Glimmer on its own on the same 32 sealed tasks, under seed 101 in the Lab's Experiments. The
+ * training run's own agent also passed all 32. Intervals are the report's: Wilson for a pass rate,
+ * Newcombe for the paired difference.
+ */
+export const EDGE = {
+  test: 32,
+  alone: { passed: 11, low: 20.4, high: 51.7 },
+  harness: { passed: 32, low: 89.3, high: 100 },
+  pair: { wins: 21, losses: 0, both: 11, neither: 0, diff: 65.6, low: 45.3, high: 79.6 },
+  types: [
+    { name: 'Alarm triage', of: 13, alone: 4, harness: 13 },
+    { name: 'Crew transfers', of: 11, alone: 4, harness: 11 },
+    { name: 'Specialist checks', of: 8, alone: 3, harness: 8 },
+  ],
+  checks: { before: 8, after: 24, of: 24 },
+  /** From the first score to graduation, and what the run and its experiment cost. */
+  minutes: 5,
+  runUsd: 0.18,
+  allUsd: 0.47,
+} as const;
 
 /**
  * Inventory desk, a screening lab's compound store, from `inventory-desk-1.md`: the base harness,

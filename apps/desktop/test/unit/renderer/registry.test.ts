@@ -10,6 +10,7 @@ import {
   matchesSearch,
   ordered,
   scoresOf,
+  shortHash,
   statusOf,
   type ModelRow,
 } from '../../../src/renderer/src/models/registry';
@@ -217,6 +218,14 @@ describe('the registry of models', () => {
       kind: 'apart',
       reason: 'One of them took no final test.',
     });
+  });
+
+  it('shortens a hash to its first seven hex digits, whichever way sha256 is written', () => {
+    const hex = '48cd80189600a63ea33bc9f24ff0c3a64d80bb8938ab035dab6bd908a0a82336';
+    // The harness folder's own hash is written sha256-<hex>.
+    expect(shortHash(`sha256-${hex}`)).toBe('48cd801');
+    expect(shortHash(`sha256:${hex}`)).toBe('48cd801');
+    expect(shortHash(hex)).toBe('48cd801');
   });
 
   it('writes a change in points with a true minus sign', () => {
