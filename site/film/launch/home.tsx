@@ -1,41 +1,16 @@
 import type { ReactNode } from 'react';
-import {
-  BarChart,
-  Card,
-  Composer,
-  IconButton,
-  InfoTip,
-  Meter,
-  RowIcon,
-  VersionTag,
-} from '@architect/ui';
-import {
-  CircleCheck,
-  Cpu,
-  Ellipsis,
-  Gauge,
-  HardDrive,
-  MemoryStick,
-  MessageSquare,
-  Plus,
-  Wifi,
-  WifiOff,
-} from 'lucide-react';
-import { ACADEMY } from '../lab/data';
-import { PlacePage } from '../lab/shell';
+import { Card, InfoTip, Meter, RowIcon } from '@architect/ui';
+import { CircleCheck, Cpu, HardDrive, MemoryStick, Wifi, WifiOff } from 'lucide-react';
 import { inOutCubic, outQuart, span } from '../lab/time';
 import { ON_PREMISE } from './data';
 import { T } from './timeline';
 
 /**
- * Academy desk's home, rebuilt from the app's agent home (screens/AgentScreen.tsx and
- * agent/cards.tsx): the box that starts a session with its starter requests, its activity, and
- * where it runs: this computer's GPU, the model build, the memory it took at its peak, and the
- * guard that keeps it offline. The network goes as it is framed, and the memory meter fills as
- * the camera reaches it.
+ * Academy desk's On-premise card, rebuilt from the app's agent home (agent/cards.tsx): where it
+ * runs, this computer's GPU, the model build, the memory it took at its peak, and the guard that
+ * keeps it offline. The network goes as it is framed, and the memory meter fills as the camera
+ * reaches it.
  */
-
-const noop = () => undefined;
 
 /** A row of the On-premise card, as agent/cards.tsx sets its facts. */
 function Fact({
@@ -177,87 +152,16 @@ function OnPremise({ t }: { t: number }) {
   );
 }
 
-function Activity() {
-  const { figures, days } = ON_PREMISE.activity;
+/**
+ * Academy desk's home as the film shows it: its On-premise card alone, centered in the page, so
+ * the camera frames it centered and whole with nothing else beside it.
+ */
+export function OnPremisePage({ t }: { t: number }) {
   return (
-    <Card title="Activity" icon={<Gauge strokeWidth={1.8} aria-hidden />}>
-      <div className="flex flex-col gap-7">
-        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-5">
-          {figures.map(([label, value]) => (
-            <div key={label} className="flex min-w-0 flex-col gap-1">
-              <dt className="text-ui">{label}</dt>
-              <dd className="m-0 font-display text-h1 font-semibold tabular-nums">{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <BarChart
-          aria-label="Requests per day"
-          data={days.map(([label, value]) => ({
-            key: label,
-            label,
-            description: `November ${label}: ${value} requests`,
-            value,
-          }))}
-        />
+    <div className="flex h-full items-center justify-center">
+      <div className="w-[366px]" data-frame="home-premise">
+        <OnPremise t={t} />
       </div>
-    </Card>
-  );
-}
-
-/** The agent's home at a moment of the film. */
-export function AgentHomePage({ t }: { t: number }) {
-  return (
-    <PlacePage
-      title={ACADEMY}
-      status={<VersionTag version={1} active />}
-      action={
-        <div className="flex items-center gap-1">
-          <span data-click="open-session">
-            <IconButton label="Open the last session">
-              <MessageSquare size={16} strokeWidth={1.8} aria-hidden />
-            </IconButton>
-          </span>
-          <IconButton label={`${ACADEMY} settings`}>
-            <Ellipsis size={16} strokeWidth={1.8} aria-hidden />
-          </IconButton>
-        </div>
-      }
-    >
-      <div className="grid grid-cols-[minmax(0,1fr)_366px] items-start gap-4">
-        <div className="flex min-w-0 flex-col gap-4">
-          <section className="flex flex-col gap-3">
-            <Composer
-              size="hero"
-              className="max-w-none"
-              label={`New session with ${ACADEMY}`}
-              placeholder={`Ask ${ACADEMY}`}
-              value=""
-              onValueChange={noop}
-              onSubmit={noop}
-              leading={
-                <span className="flex items-center gap-1.5 pl-1 text-small">
-                  <Plus size={14} strokeWidth={1.8} aria-hidden />
-                  New session
-                </span>
-              }
-            />
-            <div className="flex flex-wrap gap-2 text-ui">
-              {ON_PREMISE.starters.map((starter) => (
-                <span
-                  key={starter}
-                  className="flex h-9 items-center rounded-full px-3.5 shadow-edge-strong"
-                >
-                  {starter}
-                </span>
-              ))}
-            </div>
-          </section>
-          <Activity />
-        </div>
-        <div className="min-w-0" data-frame="home-premise">
-          <OnPremise t={t} />
-        </div>
-      </div>
-    </PlacePage>
+    </div>
   );
 }

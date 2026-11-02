@@ -7,6 +7,7 @@ import {
   CERTIFICATE,
   CERTIFICATE_CHECK,
   CORVID,
+  TRAINING_FINAL,
   PLAN,
   TRAINED,
   HARBORVIEW,
@@ -114,7 +115,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             <FigureRow
               value={String(counted)}
               final={String(HARBORVIEW.taught)}
-              unit={`of ${HARBORVIEW.of}`}
+              unit={`of ${HARBORVIEW.of} right`}
               color={tone(1)}
               style={(delay) => riseIn(t, T.fortyThree - 0.8 + delay, Infinity, 0.8)}
             />
@@ -122,7 +123,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
               className={`inline-block pb-[0.12em] text-[76px] ${type}`}
               style={riseIn(t, T.alone)}
             >
-              {`Glimmer alone: ${HARBORVIEW.alone}`}
+              {`Without Architect: ${HARBORVIEW.alone}`}
             </span>
           </div>
         )}
@@ -142,12 +143,12 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             </span>
             <FigureRow
               value={String(REAL_ACADEMY.taught)}
-              unit={`of ${REAL_ACADEMY.of}`}
+              unit={`of ${REAL_ACADEMY.of} right`}
               color={tone(1)}
               style={() => ({})}
             />
             <span className={`inline-block pb-[0.12em] text-[76px] ${type}`}>
-              {`up from ${REAL_ACADEMY.alone}`}
+              {`Without Architect: ${REAL_ACADEMY.alone}`}
             </span>
           </div>
         )}
@@ -320,8 +321,8 @@ export function ScienceFigure({ t }: { t: number }) {
       value={CORVID.taught}
       count
       valueAt={T.twentySeven - 1.0}
-      unit={`of ${CORVID.of}`}
-      under={`Glimmer alone: ${CORVID.alone}`}
+      unit={`of ${CORVID.of} right`}
+      under={`Without Architect: ${CORVID.alone}`}
       underAt={T.scienceAlone}
       until={T.scienceResolve - 0.1}
       student
@@ -387,10 +388,10 @@ export function HarnessFigure({ t }: { t: number }) {
       <span className="flex flex-col gap-3">
         <Words
           t={t}
-          text="Expects +2 to +6"
+          text="Expects +2 to +6 checks"
           at={T.hypothesis}
           until={until}
-          className={`${TYPE} text-[96px] leading-none`}
+          className={`${TYPE} text-[84px] leading-none`}
         />
         <Words
           t={t}
@@ -411,6 +412,29 @@ export function HarnessFigure({ t }: { t: number }) {
         Rolled back
       </span>
     </div>
+  );
+}
+
+/**
+ * The run's final score, on the ground at the window's right once the rolled-back change has gone:
+ * the held-out checks it passes, which Spark never sees.
+ */
+export function ScoreFigure({ t }: { t: number }) {
+  return (
+    <GroundFigure
+      t={t}
+      x={RIGHT}
+      heading={['Held-out checks passed']}
+      headingAt={T.harnessOut + 0.3}
+      value={TRAINING_FINAL.passed}
+      count
+      valueAt={T.thirtyFive - 1.0}
+      unit={`of ${TRAINING_FINAL.of}`}
+      under="tasks Spark never sees"
+      underAt={T.thirtyFive + 0.2}
+      until={T.drawer - 0.45}
+      student
+    />
   );
 }
 
@@ -442,6 +466,13 @@ export function CounterFigure({ t }: { t: number }) {
         <span className="text-[220px] tracking-[-0.05em]">{rows.toLocaleString('en-US')}</span>
         <span className="text-[84px] leading-none">rows</span>
       </span>
+      <Words
+        t={t}
+        text="the smallest case that still fails"
+        at={T.four + 0.1}
+        until={until}
+        className={`${TYPE} text-[56px] leading-[1.06]`}
+      />
       <span
         className={`flex items-center gap-5 text-student ${TYPE} text-[84px] leading-none`}
         style={riseIn(t, T.fixed, until)}
