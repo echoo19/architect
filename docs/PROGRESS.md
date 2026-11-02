@@ -2,6 +2,14 @@
 
 Dated log, newest first. Each entry: what was done, what's next, open issues, risks. The next session starts here.
 
+## 2026-11-02 (Mon): propose, probe, compose, a second round mode (`engine/propose-probe-compose`)
+
+- *Done (decision 108, after Google Research's Harness², arXiv 2610.14224):* a job can set `evaluation.roundMode: propose_probe_compose` (`probes` 2 to 4, default 3). Each refining round then asks Spark for k change sets for the same failures, measures each as a version of its own on dev under the round's probe seeds and on the round's practice tasks, shows Spark each probe's overall dev score and practice verdicts, and takes one composed change through the usual keep rule, decided on the round's own seeds. Lineage keeps one entry a round with its `probes`; the experiment records each probe's measurement; one progress count runs through the incumbent, the probes and the composed change. Store migration 25.
+- *Done, app:* Define's Teaching tab has "Each round" (One change, or Propose, probe, compose) with one line under it, and "Changes tried a round"; the estimate counts the probes and a second Spark call. The training view's round lists its tries with their gain on the check tasks, refused ones marked, and the headline says when the round scores its tries or composes. The comparisons runner has a `composed` arm, the targeted arm in this mode.
+- *Tests:* engine `probe-rounds.test.ts`, the arm's projection, the desktop's estimate, round and headline tests, and `define-inspector.spec.ts` and `runs.spec.ts`. No real model has run in this mode.
+- *Next:* a comparison of `targeted` against `composed` on one field, within its caps.
+- *Open:* decision 107 is on `team/consult-reads`, not merged here, so this branch skips to 108.
+
 ## 2026-11-02 (Mon, 06:00 UTC): team-3, the plate overflow's cause fixed and measured (`team/plate-fits`)
 
 - *Done, diagnosis:* team-2's taught consultations show every one of the 67 `assay_plate` calls was cut at the 8,000-character result budget (FW-0418's result is 16,124). The helper's per-compound summary comes last and was lost, the note said "ask for less", and Assay desk rebuilt the plate from raw files until its context or steps ran out.
