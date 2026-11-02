@@ -68,10 +68,10 @@ describe('a closed network', () => {
       'Contacted 2 hosts, both on this computer',
     );
     expect(contactsLine([at('127.0.0.1:11434', false), at('api.llama.com', false)])).toBe(
-      'Contacted 2 hosts: api.llama.com online, and 1 on this computer',
+      'Contacted 2 hosts: 1 online (api.llama.com) and 1 on this computer',
     );
     expect(contactsLine([at('a.example', false), at('b.example', false)])).toBe(
-      'Contacted 2 hosts: a.example, b.example online',
+      'Contacted 2 hosts online: a.example, b.example',
     );
     expect(contactsLine([at('a', true), at('b', false), at('c', true)])).toBe(
       'Contacted 3 hosts, 2 of them inside the network',
