@@ -355,16 +355,13 @@ export async function armStart(arm: ArmId, context: StagingContext): Promise<Arm
             maxMentorUsd: Math.max(0, cap - (shared ? spent : 0)),
           }),
           ...(shared ? { startingHarness: { kind: 'import' as const, path: 'draft' } } : {}),
-          // The one difference from the targeted arm: each round proposes, probes and composes
-          // (decision 108).
-          ...(arm === 'composed'
-            ? {
-                evaluation: {
-                  ...base.evaluation,
-                  roundMode: 'propose_probe_compose' as const,
-                },
-              }
-            : {}),
+          // The one difference between the composed arm and the targeted and fixed arms: each of
+          // its rounds proposes, probes and composes (decision 108). Set for every one of them,
+          // whatever the source job chose, so the arms compare the two round modes.
+          evaluation: {
+            ...base.evaluation,
+            roundMode: arm === 'composed' ? 'propose_probe_compose' : 'one_change',
+          },
         }),
         method: 'architect',
         lockedTestOn: 'hosted',

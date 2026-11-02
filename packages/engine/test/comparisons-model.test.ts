@@ -21,7 +21,10 @@ import {
   wilson,
   type ComparisonConfig,
 } from '../src/comparisons';
-import { modelKeys } from '../src/comparisons/arms';
+import { armStart, modelKeys, type StagingContext } from '../src/comparisons/arms';
+import type { ComparisonEngine } from '../src/comparisons/engine';
+import type { ComparisonFiles } from '../src/comparisons/records';
+import type { LoopDeps } from '../src/loop/deps';
 import type { SweepAttempt } from '../src/comparisons/records';
 import { RETURNS_DESK } from './support/comparison-world';
 
@@ -529,5 +532,30 @@ describe('Spark caps set from the command line', () => {
   ])('refuses %s', (entry, says) => {
     expect(() => sparkCapsWith([entry])).toThrow(SparkCapError);
     expect(() => sparkCapsWith([entry])).toThrow(says);
+  });
+});
+
+describe('the composed arm', () => {
+  it('alone proposes, probes and composes, whatever round mode the field chose', async () => {
+    const probing: Job = {
+      ...source,
+      evaluation: { ...source.evaluation, roundMode: 'propose_probe_compose' },
+    };
+    const context: StagingContext = {
+      base: probing,
+      config: config({}),
+      engine: {} as ComparisonEngine,
+      deps: {} as LoopDeps,
+      files: {} as ComparisonFiles,
+      runOf: () => null,
+      sparkSpent: () => 0,
+      wallMinutes: 60,
+      writeHarness: async () => undefined,
+    };
+    const modes = [];
+    for (const arm of ['targeted', 'fixed', 'composed'] as const) {
+      modes.push((await armStart(arm, context)).job.evaluation.roundMode);
+    }
+    expect(modes).toEqual(['one_change', 'one_change', 'propose_probe_compose']);
   });
 });

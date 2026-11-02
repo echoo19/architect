@@ -51,6 +51,7 @@ import {
   modelInputs,
   needsConfirmation,
   project,
+  refinementRound,
   studentCapOf,
   type ComparisonConfig,
 } from './projection';
@@ -1202,7 +1203,6 @@ function watchRounds(
   decide: Decide,
 ): () => void {
   const stopped = new Set<string>();
-  const dev = base.splits.dev * base.evaluation.devRepeats;
   return engine.controller.onEvent((event) => {
     if (event.type !== 'round.updated') return;
     const { round } = event;
@@ -1223,7 +1223,7 @@ function watchRounds(
         ? record.run.currentAdapter === undefined
           ? base.evaluation.trainBatch
           : 0
-        : base.evaluation.trainBatch + 4 * dev;
+        : refinementRound(base, arm);
     const test = record.lockedTestOn === 'hosted' ? finalTestAttemptsOf(base, config) : 0;
     const spent = credit.development(record.run.id);
     const ahead = (hostedRound + test) * price;

@@ -362,13 +362,25 @@ interface Need {
   sparkCap: number;
 }
 
+/**
+ * A refinement round's hosted attempts at its most: the train batch, then the incumbent and the
+ * change on dev, both again for a confirmation. A composed arm's round adds each probe's train
+ * batch and dev run (decision 108).
+ */
+export function refinementRound(job: Job, arm: ArmId): number {
+  const dev = job.splits.dev * job.evaluation.devRepeats;
+  const { trainBatch } = job.evaluation;
+  if (arm !== 'composed') return trainBatch + 4 * dev;
+  const probes = job.evaluation.probes ?? DEFAULT_PROBES;
+  return (1 + probes) * trainBatch + (probes + 4) * dev;
+}
+
 function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: ReadonlySet<ArmId>): Need {
   const dev = job.splits.dev * job.evaluation.devRepeats;
   // A certified locked test attempts each calibration and test task k times (decision 077).
   const test = lockedTestsOf(job, config) + (config.certifyAttempts ?? 0);
   const trainBatch = job.evaluation.trainBatch;
-  // A refinement round at its most: the train batch, then both versions twice for a confirmation.
-  const round = trainBatch + 4 * dev;
+  const round = refinementRound(job, 'targeted');
   const none: Need = {
     hosted: 0,
     oneAtATime: 0,
@@ -411,22 +423,17 @@ function needOf(arm: ArmId, job: Job, config: ComparisonConfig, funded: Readonly
         sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
         sparkCap: config.sparkCaps.fixed,
       };
-    case 'composed': {
-      // A round of its own (decision 108): the train batch, the incumbent and each probe on dev,
-      // each probe on the train batch, then the composed change, measured twice at most. Two
-      // calls to Spark a round, each with its fix.
-      const probes = job.evaluation.probes ?? DEFAULT_PROBES;
-      const probed = (1 + probes) * trainBatch + (probes + 4) * dev;
+    case 'composed':
+      // Two calls to Spark a round, each with its fix (decision 108).
       return {
         ...none,
-        hosted: dev + config.rounds * probed + test,
+        hosted: dev + config.rounds * refinementRound(job, arm) + test,
         oneAtATime: test,
         local: localTest,
         sparkCalls: 4 * config.rounds,
         sparkAttempts: CORRECTIONS_PER_ROUND * config.rounds,
         sparkCap: config.sparkCaps.composed,
       };
-    }
     case 'reference':
       return { ...none, sparkAttempts: test, sparkCap: config.sparkCaps.reference };
     case 'reference-targeted':
