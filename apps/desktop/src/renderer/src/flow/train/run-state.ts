@@ -9,6 +9,7 @@ import type {
   RunDetail,
   RunEvent,
   RunImprovement,
+  Score,
   StudentTarget,
 } from '@architect/shared';
 
@@ -42,6 +43,11 @@ export interface LiveRun {
   rounds: Round[];
   /** Newest first, practice (train) and check (dev) attempts only. */
   attempts: RecentAttempt[];
+  /**
+   * Each round's practice answers counted in full, by round number: the attempts list keeps only
+   * the newest, and a batch can be longer than it.
+   */
+  practiced: Record<number, Score>;
   lineage: LineageEntry[];
   budget: BudgetState | null;
   progress: EvalProgress | null;
@@ -100,6 +106,7 @@ function fromDetail(detail: RunDetail): LiveRun {
     lockedTestOn: detail.lockedTestOn ?? 'local',
     rounds: [...detail.rounds].sort((a, b) => a.index - b.index),
     attempts: keepRecent(detail.recentAttempts.filter(isListed)),
+    practiced: detail.recentAttempts.reduce(countPractice, {}),
     lineage: detail.lineage,
     budget: null,
     progress: null,
@@ -131,7 +138,11 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
       const attempt: RecentAttempt =
         event.prompt === undefined ? event.attempt : { ...event.attempt, prompt: event.prompt };
       if (!isListed(attempt) || live.attempts.some((a) => a.id === attempt.id)) return live;
-      return { ...live, attempts: keepRecent([attempt, ...live.attempts]) };
+      return {
+        ...live,
+        attempts: keepRecent([attempt, ...live.attempts]),
+        practiced: countPractice(live.practiced, attempt),
+      };
     }
     case 'mentor.started':
       return { ...live, mentorBusy: true };
@@ -163,6 +174,15 @@ function applyRunEvent(live: LiveRun, event: RunEvent): LiveRun {
 /** The locked test's attempts never appear in the list, and neither do calibration runs. */
 function isListed(attempt: Attempt): boolean {
   return attempt.split === 'train' || attempt.split === 'dev';
+}
+
+function countPractice(practiced: Record<number, Score>, attempt: Attempt): Record<number, Score> {
+  if (attempt.split !== 'train' || attempt.round === null) return practiced;
+  const so = practiced[attempt.round] ?? { pass: 0, total: 0 };
+  return {
+    ...practiced,
+    [attempt.round]: { pass: so.pass + (attempt.check.pass ? 1 : 0), total: so.total + 1 },
+  };
 }
 
 function keepRecent(attempts: RecentAttempt[]): RecentAttempt[] {
@@ -205,6 +225,11 @@ export function latestFailure(live: LiveRun, round: number): RecentAttempt | nul
       (attempt) => attempt.split === 'train' && attempt.round === round && !attempt.check.pass,
     ) ?? null
   );
+}
+
+/** A round's practice answers so far, every one counted, the list's older ones included. */
+export function practiceSoFar(live: LiveRun, round: number): Score {
+  return live.practiced[round] ?? { pass: 0, total: 0 };
 }
 
 export function roundAttempts(live: LiveRun, round: number): RecentAttempt[] {

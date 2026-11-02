@@ -33,7 +33,7 @@ import {
   currentRound,
   hasEnded,
   hasKeptChange,
-  roundAttempts,
+  practiceSoFar,
   type LiveRun,
 } from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
@@ -424,7 +424,7 @@ function TrainBoard({
               round?.status === 'attempting' && !drafting
                 ? {
                     done: Math.min(
-                      roundAttempts(live, round.index).length,
+                      practiceSoFar(live, round.index).total,
                       job.evaluation.trainBatch,
                     ),
                     total: job.evaluation.trainBatch,

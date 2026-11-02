@@ -13,6 +13,7 @@ import {
   latestFailure,
   liveRunReducer,
   medianLatencyMs,
+  practiceSoFar,
   RECENT_ATTEMPT_LIMIT,
   type LiveRun,
   type LiveRunState,
@@ -119,6 +120,31 @@ describe('liveRunReducer', () => {
     const result = loaded(...events);
     expect(result.attempts).toHaveLength(RECENT_ATTEMPT_LIMIT);
     expect(result.attempts[0]?.id).toBe(`att_${RECENT_ATTEMPT_LIMIT + 4}`);
+  });
+
+  it("counts each round's practice answers in full, past the attempts the list keeps", () => {
+    const events = Array.from({ length: RECENT_ATTEMPT_LIMIT + 10 }, (_, index) =>
+      attemptFinished(
+        makeAttempt(`att_${index}`, {
+          round: 2,
+          check: { pass: index % 5 !== 0, reason: 'Checked.' },
+        }),
+      ),
+    );
+    const result = loaded(...events, events.at(-1) as RunEvent);
+    expect(practiceSoFar(result, 2)).toEqual({ pass: 40, total: 50 });
+    expect(practiceSoFar(result, 3)).toEqual({ pass: 0, total: 0 });
+  });
+
+  it('counts the practice answers of a snapshot, older than the list keeps', () => {
+    const recentAttempts = Array.from({ length: RECENT_ATTEMPT_LIMIT + 10 }, (_, index) =>
+      makeAttempt(`att_${index}`, { round: 2 }),
+    );
+    const state = liveRunReducer(initialLiveRunState, {
+      type: 'snapshot',
+      detail: makeDetail({ recentAttempts }),
+    });
+    expect(practiceSoFar(live(state), 2)).toEqual({ pass: 50, total: 50 });
   });
 
   it('tracks the mentor, evaluation progress, budget and the graduate', () => {

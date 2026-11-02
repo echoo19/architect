@@ -14,6 +14,7 @@ function live(overrides: Partial<LiveRun['run']>, extra: Partial<LiveRun> = {}):
     lockedTestOn: 'local',
     rounds: [],
     attempts: [],
+    practiced: {},
     lineage: [],
     budget: null,
     progress: null,
@@ -49,7 +50,10 @@ describe('the newest round, open under its line', () => {
     const round = makeRound(2, { status: 'attempting' });
     const attempt = makeAttempt('att_1', { round: 2, split: 'train' });
     const html = panel(
-      live({ status: 'running', phase: 'attempting' }, { attempts: [attempt] }),
+      live(
+        { status: 'running', phase: 'attempting' },
+        { attempts: [attempt], practiced: { 2: { pass: 1, total: 1 } } },
+      ),
       round,
     );
     expect(html).toContain('Got its first practice task right this round.');
@@ -96,7 +100,8 @@ describe("the round's practice tasks, one cell each", () => {
       makeAttempt('att_1', { round: 2, check: { pass: true, reason: 'Matches.' } }),
       makeAttempt('att_0', { round: 1, check: { pass: false, reason: 'Another round.' } }),
     ];
-    const cells = practiceCells(live({}, { attempts }), attempting);
+    const practiced = { 1: { pass: 0, total: 1 }, 2: { pass: 2, total: 3 } };
+    const cells = practiceCells(live({}, { attempts, practiced }), attempting);
     expect(cells.slice(0, 3)).toEqual(['pass', 'fail', 'pass']);
     expect(cells).toHaveLength(12);
     expect(cells.slice(3).every((cell) => cell === 'waiting')).toBe(true);
@@ -117,7 +122,38 @@ describe("the round's practice tasks, one cell each", () => {
 
   it('reads out how many are right, and how many are left', () => {
     const attempts = [makeAttempt('att_1', { round: 2, check: { pass: true, reason: 'Yes.' } })];
-    const html = panel(live({ status: 'running', phase: 'attempting' }, { attempts }), attempting);
+    const practiced = { 2: { pass: 1, total: 1 } };
+    const html = panel(
+      live({ status: 'running', phase: 'attempting' }, { attempts, practiced }),
+      attempting,
+    );
     expect(html).toContain('aria-label="1 of 1 right, 11 to go"');
+  });
+
+  it('counts every answer of a batch longer than the attempts list keeps', () => {
+    const attempts = Array.from({ length: 40 }, (_, index) =>
+      makeAttempt(`att_${index}`, { round: 2 }),
+    );
+    const practiced = { 2: { pass: 45, total: 50 } };
+    const job = makeJob();
+    const run = live(
+      {},
+      { attempts, practiced, job: { ...job, evaluation: { ...job.evaluation, trainBatch: 60 } } },
+    );
+    const cells = practiceCells(run, attempting);
+    expect(cells.filter((cell) => cell === 'pass')).toHaveLength(45);
+    expect(cells.filter((cell) => cell === 'fail')).toHaveLength(5);
+    expect(cells.filter((cell) => cell === 'waiting')).toHaveLength(10);
+  });
+
+  it("keeps practice's own score once a lesson's recheck has practiced again", () => {
+    const round = makeRound(2, { status: 'evaluating', train: { pass: 1, total: 2 } });
+    const attempts = [
+      makeAttempt('att_3', { round: 2, harnessVersion: 2 }),
+      makeAttempt('att_2', { round: 2, check: { pass: false, reason: 'No.' } }),
+      makeAttempt('att_1', { round: 2 }),
+    ];
+    const practiced = { 2: { pass: 2, total: 3 } };
+    expect(practiceCells(live({}, { attempts, practiced }), round)).toEqual(['pass', 'fail']);
   });
 });
