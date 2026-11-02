@@ -1,25 +1,41 @@
-import { Fragment } from 'react';
-import { cn, EvidenceMark, NumberTicker, Tooltip } from '@architect/ui';
+import type { ReactNode } from 'react';
+import type { Round } from '@architect/shared';
+import {
+  cn,
+  EvidenceMark,
+  LineChart,
+  NumberTicker,
+  Tooltip,
+  type ChartMark,
+  type LegendItem,
+} from '@architect/ui';
+import { TrendingDown, TrendingUp } from 'lucide-react';
+import { formatUsd } from '../../lib/format';
 import { useWords } from '../../shell/edition';
 import { Counted } from '../counted';
-import { percent } from '../format';
-import {
-  CURVE_BOX,
-  curveGeometry,
-  describeCurve,
-  PLOT,
-  type CurveGeometry,
-  type CurveInput,
-} from './curve';
+import { percent, signed } from '../format';
+import { curveData, describeCurve, type CurveData, type CurveInput } from './curve';
 import { draftRoundOf } from './draft';
+import { DISPOSITIONS, FIRST_DRAFT } from './evidence-words';
 import type { ModelNames } from './phase';
 import { hasEnded, type LiveRun } from './run-state';
 
 /**
  * The share of check tasks right, round by round, against the target: the number the run is
- * working toward. The student never practices on these tasks.
+ * working toward, with the practice tasks beside it. The student never practices on check tasks.
  */
-export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames }) {
+export function TaskSuccess({
+  live,
+  names,
+  onOpenRound,
+  aside,
+}: {
+  live: LiveRun;
+  names: ModelNames;
+  onOpenRound: (round: Round) => void;
+  /** What goes under the score: the budget. */
+  aside?: ReactNode;
+}) {
   const { run, job, rounds } = live;
   const w = useWords();
   const score = run.devCurrent ?? run.devBaseline;
@@ -32,16 +48,17 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
     maxRounds: job.budget.maxRounds,
     draftRound: draftRoundOf(live),
   };
-  const geometry = curveGeometry(input);
-  const ended = hasEnded(run);
   // Two runs are counted as they were run, "62 of 80, 2 runs", never as an average of one.
   const repeated = runs > 1 ? `, ${runs} runs` : '';
+  const gain =
+    run.devCurrent && run.devBaseline ? percent(run.devCurrent) - percent(run.devBaseline) : 0;
+  const Trend = gain < 0 ? TrendingDown : TrendingUp;
   return (
     <section
       aria-label={`Score on the ${w.checks}`}
-      className="grid grid-cols-1 items-center gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_700px]"
+      className="grid grid-cols-1 items-start gap-x-14 gap-y-8 lg:grid-cols-[264px_minmax(0,1fr)]"
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <span
           className={cn(
             'font-display text-hero font-semibold leading-none tabular-nums',
@@ -56,13 +73,13 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
             '–'
           )}
         </span>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <div className="flex flex-col gap-2">
           <Tooltip
             content={`${names.mentor} never teaches from these. It sees only the score, and a change stays only if the score goes up.`}
           >
-            <span tabIndex={0} className="cursor-help rounded-mark">
-              <EvidenceMark kind="check" className="text-ui">
-                {w.checks}
+            <span tabIndex={0} className="w-fit cursor-help rounded-mark">
+              <EvidenceMark kind="check" className="text-ui font-medium">
+                {w.Checks}
               </EvidenceMark>
             </span>
           </Tooltip>
@@ -74,10 +91,28 @@ export function TaskSuccess({ live, names }: { live: LiveRun; names: ModelNames 
               </Counted>
             </span>
           )}
+          {gain !== 0 && run.devBaseline && (
+            <span className="flex items-center gap-2 text-ui tabular-nums">
+              <Trend
+                size={16}
+                strokeWidth={1.8}
+                aria-hidden
+                className={gain > 0 ? 'text-student' : 'text-danger'}
+              />
+              {signed(gain)} points from {percent(run.devBaseline)}%
+            </span>
+          )}
         </div>
         <ByOrganization live={live} />
+        {aside}
       </div>
-      <CurveChart input={input} geometry={geometry} ended={ended} />
+      <ProgressCurve
+        input={input}
+        rounds={rounds}
+        ended={hasEnded(run)}
+        mentor={names.mentor}
+        onOpenRound={onOpenRound}
+      />
     </section>
   );
 }
@@ -101,10 +136,10 @@ function ByOrganization({ live }: { live: LiveRun }) {
         <li
           key={org.id}
           aria-label={`${org.name}: ${score.pass} of ${score.total}`}
-          className="flex max-w-80 items-baseline justify-between gap-6 border-t border-line py-1.5 text-ui first:border-t-0"
+          className="flex items-baseline justify-between gap-6 border-t border-line py-2 text-ui"
         >
           <span className="truncate">{org.name}</span>
-          <span className="tabular-nums">
+          <span className="shrink-0 tabular-nums">
             {percent(score)}% ({score.pass} of {score.total})
           </span>
         </li>
@@ -113,144 +148,161 @@ function ByOrganization({ live }: { live: LiveRun }) {
   );
 }
 
-function CurveChart({
+/** The curve's marks: a dot where the kept harness was measured, a ring for a change undone. */
+function marksOf(data: CurveData): ChartMark[] {
+  return [
+    ...data.kept.map((point): ChartMark => ({
+      key: `kept-${point.round}`,
+      x: point.round,
+      y: point.value,
+      kind: 'dot',
+      tone: 'student',
+      title:
+        point.round === 0
+          ? `Start: ${Math.round(point.value)}%`
+          : `Round ${point.round}, kept: ${Math.round(point.value)}%`,
+    })),
+    ...data.branches.map((branch): ChartMark => ({
+      key: `undone-${branch.round}`,
+      x: branch.round,
+      y: branch.to,
+      from: branch.from,
+      kind: 'ring',
+      tone: 'fg',
+      title: `Round ${branch.round}, not kept: ${Math.round(branch.to)}%`,
+    })),
+  ];
+}
+
+function ProgressCurve({
   input,
-  geometry,
+  rounds,
   ended,
+  mentor,
+  onOpenRound,
 }: {
   input: CurveInput;
-  geometry: CurveGeometry;
+  rounds: readonly Round[];
   /** The run is over, so a curve with no score will never get one. */
   ended: boolean;
+  mentor: string;
+  onOpenRound: (round: Round) => void;
 }) {
   const w = useWords();
-  const { ticks, valueTicks, line, branches, head, pending, targetY } = geometry;
-  const points = line.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
-  const target = Math.round(input.target * 100);
+  const data = curveData(input);
+  const legend: LegendItem[] = [
+    { label: w.Checks, tone: 'student', kind: 'main' },
+    ...(data.practice.length > 0
+      ? [{ label: 'Practice tasks', tone: 'fg' as const, kind: 'line' as const }]
+      : []),
+    ...(data.branches.length > 0
+      ? [{ label: 'Not kept', tone: 'fg' as const, kind: 'ring' as const }]
+      : []),
+  ];
+  const roundAt = (x: number) => rounds.find((round) => round.index === x);
   return (
-    <svg
-      viewBox={`0 0 ${CURVE_BOX.width} ${CURVE_BOX.height}`}
-      width="100%"
-      role="img"
-      aria-label={describeCurve(input, w.checks)}
-      className="block overflow-visible"
-    >
-      {valueTicks.map((tick) => (
-        <Fragment key={tick.value}>
-          <line x1={PLOT.left} x2={PLOT.right} y1={tick.y} y2={tick.y} className="stroke-line" />
-          <text
-            x={PLOT.left - 10}
-            y={tick.y + 4.4}
-            textAnchor="end"
-            className="fill-fg tabular-nums text-small"
-          >
-            {tick.value}%
-          </text>
-        </Fragment>
-      ))}
-      <line
-        x1={PLOT.left}
-        x2={PLOT.right}
-        y1={targetY}
-        y2={targetY}
-        className="stroke-fg/40"
-        strokeDasharray="2 4"
-      />
-      <text
-        x={CURVE_BOX.width}
-        y={targetY + 4.4}
-        textAnchor="end"
-        className="fill-fg tabular-nums text-small"
-      >
-        Target {target}%
-      </text>
-      <line
-        x1={PLOT.left}
-        x2={PLOT.right}
-        y1={PLOT.bottom}
-        y2={PLOT.bottom}
-        className="stroke-line-strong"
-      />
-      {ticks.map((tick) => (
-        <Fragment key={tick.round}>
-          <line
-            x1={tick.x}
-            x2={tick.x}
-            y1={PLOT.gridTop}
-            y2={PLOT.bottom}
-            className="stroke-line"
-          />
-          <text
-            x={tick.x}
-            y={PLOT.labelY}
-            textAnchor="middle"
-            className={cn(
-              'tabular-nums text-small',
-              tick.round === pending?.round && 'fill-mentor',
-              tick.round !== pending?.round && 'fill-fg',
-              tick.reached && 'font-medium',
-            )}
-          >
-            {tick.round === 0 ? 'Start' : tick.round}
-          </text>
-        </Fragment>
-      ))}
-      {branches.map((branch) => (
-        <Fragment key={branch.round}>
-          <polyline
-            points={`${branch.from.x},${branch.from.y} ${branch.to.x},${branch.to.y}`}
-            fill="none"
-            className="stroke-line-strong"
-            strokeWidth={1.5}
-            strokeDasharray="3 4"
-          />
-          <circle
-            cx={branch.to.x}
-            cy={branch.to.y}
-            r={4}
-            className="fill-card stroke-fg"
-            strokeWidth={1.5}
-          >
-            <title>{`Round ${branch.round}, not kept: ${Math.round(branch.to.value)}%`}</title>
-          </circle>
-        </Fragment>
-      ))}
-      {pending && (
-        <>
-          <line
-            x1={pending.x}
-            x2={pending.x}
-            y1={PLOT.gridTop}
-            y2={PLOT.bottom}
-            className="stroke-mentor"
-            strokeWidth={1.5}
-            strokeDasharray="2 4"
-          >
-            <title>{`Round ${pending.round} in progress`}</title>
-          </line>
-        </>
+    <LineChart
+      label={describeCurve(input, w.checks)}
+      xMax={data.span}
+      xTicks={data.ticks.map((tick) => ({
+        value: tick.round,
+        label: tick.round === 0 ? 'Start' : String(tick.round),
+        reached: tick.reached,
+      }))}
+      yRange={data.range}
+      yTicks={data.valueTicks.map((value) => ({ value, label: `${value}%` }))}
+      series={[
+        {
+          id: 'checks',
+          tone: 'student',
+          main: true,
+          points: data.line.map((point) => ({ x: point.round, y: point.value })),
+        },
+        {
+          id: 'practice',
+          tone: 'fg',
+          points: data.practice.map((point) => ({ x: point.round, y: point.value })),
+        },
+      ]}
+      marks={marksOf(data)}
+      reference={{ y: data.target, label: `Target ${Math.round(data.target)}%` }}
+      head={data.head && { x: data.head.round, y: data.head.value }}
+      live={
+        data.pending === null
+          ? null
+          : { x: data.pending, title: `Round ${data.pending} in progress` }
+      }
+      empty={data.head ? undefined : ended ? 'Not scored' : 'Not scored yet'}
+      legend={legend}
+      readout={(x) => (
+        <Readout x={x} data={data} round={roundAt(x)} input={input} mentor={mentor} />
       )}
-      {line.length > 1 && (
-        <polyline
-          points={points}
-          fill="none"
-          className="stroke-student"
-          strokeWidth={2.25}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+      onPick={(x) => {
+        const round = roundAt(x);
+        if (round) onOpenRound(round);
+      }}
+      height={300}
+    />
+  );
+}
+
+/** What the chart says about one round while the pointer is over it. */
+function Readout({
+  x,
+  data,
+  round,
+  input,
+  mentor,
+}: {
+  x: number;
+  data: CurveData;
+  round: Round | undefined;
+  input: CurveInput;
+  mentor: string;
+}) {
+  const w = useWords();
+  if (x === 0 || !round) {
+    const start = data.line[0];
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-medium">Start</span>
+        {start && (
+          <span className="tabular-nums">
+            {Math.round(start.value)}% {w.checks}
+          </span>
+        )}
+      </div>
+    );
+  }
+  const draft = round.index === input.draftRound;
+  const outcome = round.decision
+    ? draft
+      ? FIRST_DRAFT.label
+      : DISPOSITIONS[round.decision].label
+    : round.status === 'failed'
+      ? 'Failed'
+      : 'In progress';
+  return (
+    <div className="flex max-w-72 flex-col gap-0.5">
+      <span className="truncate font-medium">
+        Round {round.index}
+        {round.title ? `, ${round.title}` : ''}
+      </span>
+      <span className="tabular-nums">
+        {round.devBefore && round.devAfter
+          ? `${percent(round.devBefore)}% → ${percent(round.devAfter)}%, ${outcome}`
+          : outcome}
+      </span>
+      {round.train.total > 0 && (
+        <span className="tabular-nums">
+          Practice {round.train.pass} of {round.train.total}
+        </span>
       )}
-      {head && <circle cx={head.x} cy={head.y} r={4.5} className="fill-student" />}
-      {!head && (
-        <text
-          x={(PLOT.left + PLOT.right) / 2}
-          y={(PLOT.gridTop + PLOT.bottom) / 2}
-          textAnchor="middle"
-          className="fill-fg text-ui"
-        >
-          {ended ? 'Not scored' : 'Not scored yet'}
-        </text>
+      {round.costUsd > 0 && (
+        <span className="tabular-nums">
+          {mentor} {formatUsd(round.costUsd)}
+        </span>
       )}
-    </svg>
+    </div>
   );
 }

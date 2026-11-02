@@ -33,6 +33,7 @@ import {
   currentRound,
   hasEnded,
   hasKeptChange,
+  roundAttempts,
   type LiveRun,
 } from '../flow/train/run-state';
 import { TaskSuccess } from '../flow/train/TaskSuccess';
@@ -416,19 +417,31 @@ function TrainBoard({
             status={run.status}
             view={view}
             drafting={drafting}
+            inRound={round !== null}
             passRate={score ? rate(score) / 100 : null}
             progress={activeProgress(live)}
+            practice={
+              round?.status === 'attempting' && !drafting
+                ? {
+                    done: Math.min(
+                      roundAttempts(live, round.index).length,
+                      job.evaluation.trainBatch,
+                    ),
+                    total: job.evaluation.trainBatch,
+                  }
+                : null
+            }
           />
         </StaggerItem>
       )}
       {!nothingRan && (
         <StaggerItem>
-          <TaskSuccess live={live} names={names} />
-        </StaggerItem>
-      )}
-      {!nothingRan && (
-        <StaggerItem>
-          <Budget live={live} mentor={names.mentor} />
+          <TaskSuccess
+            live={live}
+            names={names}
+            onOpenRound={onOpenRound}
+            aside={<Budget live={live} mentor={names.mentor} />}
+          />
         </StaggerItem>
       )}
       {!nothingRan && (

@@ -96,6 +96,7 @@ export function CurrentRound({
     (question.state !== 'ready' || isOpen(round, question.intervention));
   const answered = question?.state === 'ready' ? question.intervention : undefined;
   const unanswered = hasEnded(live.run) && answered?.answer === undefined ? answered : undefined;
+  const practice = draft ? [] : practiceCells(live, round);
   const showDiagnosis = question === null && (active || round.diagnosis !== undefined);
 
   return (
@@ -141,16 +142,71 @@ export function CurrentRound({
           {live.notice.message}
         </p>
       )}
-      {question === null && predicted && (
-        <dl className="m-0">
-          <Fact label={over ? 'Expected' : 'Expects'}>
-            <span className="tabular-nums">
-              {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)} {w.checks}
-            </span>
-          </Fact>
+      {(practice.length > 0 || (question === null && predicted)) && (
+        <dl className="m-0 flex flex-col gap-3">
+          {practice.length > 0 && (
+            <Fact label="Practice">
+              <PracticeCells cells={practice} />
+            </Fact>
+          )}
+          {question === null && predicted && (
+            <Fact label={over ? 'Expected' : 'Expects'}>
+              <span className="tabular-nums">
+                {formatRange(predicted.devDeltaMin, predicted.devDeltaMax)} {w.checks}
+              </span>
+            </Fact>
+          )}
         </dl>
       )}
     </section>
+  );
+}
+
+type Cell = 'pass' | 'fail' | 'waiting';
+
+/**
+ * The round's practice tasks, one cell each: in the order they were answered while every answer
+ * is at hand, else right ones first, then wrong ones, then the ones still to answer.
+ */
+export function practiceCells(live: LiveRun, round: Round): Cell[] {
+  const answered = roundAttempts(live, round.index).reverse();
+  const batch = live.job.evaluation.trainBatch;
+  if (round.train.total === 0 && answered.length === 0) return [];
+  const cells: Cell[] =
+    answered.length >= round.train.total
+      ? answered.map((attempt) => (attempt.check.pass ? 'pass' : 'fail'))
+      : [
+          ...Array<Cell>(round.train.pass).fill('pass'),
+          ...Array<Cell>(round.train.total - round.train.pass).fill('fail'),
+        ];
+  const waiting = round.status === 'attempting' ? Math.max(0, batch - cells.length) : 0;
+  return [...cells, ...Array<Cell>(waiting).fill('waiting')];
+}
+
+const CELL_TONE: Record<Cell, string> = {
+  pass: 'bg-student',
+  fail: 'bg-danger',
+  waiting: 'bg-line-strong',
+};
+
+function PracticeCells({ cells }: { cells: readonly Cell[] }) {
+  const right = cells.filter((cell) => cell === 'pass').length;
+  const done = cells.filter((cell) => cell !== 'waiting').length;
+  const said = `${right} of ${done} right${done < cells.length ? `, ${cells.length - done} to go` : ''}`;
+  return (
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <span role="img" aria-label={said} className="flex flex-wrap gap-[3px]">
+        {cells.map((cell, index) => (
+          <span
+            key={index}
+            className={cn('size-2.5 rounded-[3px] transition-colors duration-300', CELL_TONE[cell])}
+          />
+        ))}
+      </span>
+      <span aria-hidden className="tabular-nums">
+        {said}
+      </span>
+    </span>
   );
 }
 

@@ -338,8 +338,24 @@ test('walks from a description to a graduate', async () => {
   await expect(success.getByRole('img')).toHaveAttribute(
     'aria-label',
     'Score on the check tasks by round: 40% at the start, 65% after the first draft, round 2 undone at 63%, ' +
-      '78% after round 3, round 4 in progress. Target 90%.',
+      '78% after round 3, round 4 in progress. Target 90%. Practice tasks right: 58% in round 2, ' +
+      '58% in round 3, 67% in round 4.',
   );
+  // Pointing at a round on the curve reads it out; clicking it opens the round.
+  // The plot starts 48px in and ends 12px short of the figure's edge.
+  const box = await success.locator('figure').boundingBox();
+  if (!box) throw new Error('The curve has no box.');
+  const roundX = (round: number) => box.x + 48 + (round * (box.width - 60)) / 12;
+  await page.mouse.move(roundX(3), box.y + 150);
+  await expect(success.locator('figure')).toContainText('Round 3, Cents, not dollars');
+  await expect(success.locator('figure')).toContainText('65% → 78%, Kept');
+  await expect(success.locator('figure')).toContainText('Practice 7 of 12');
+  await page.mouse.click(roundX(3), box.y + 150);
+  const picked = page.getByRole('dialog', { name: 'Round 3: Cents, not dollars' });
+  await expect(picked).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(picked).toBeHidden();
+  await page.mouse.move(0, 0);
   const budget = page.getByRole('region', { name: 'Budget' });
   await expect(budget).toContainText('/ 4 h');
   await expect(budget.getByRole('meter', { name: 'Time' })).toHaveAttribute(
