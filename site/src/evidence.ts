@@ -33,6 +33,7 @@ export const SOURCES = {
   first: { name: 'returns-desk-1.md', path: 'docs/comparisons/returns-desk-1.md' },
   certify: { name: 'CERTIFY.md', path: 'docs/CERTIFY.md' },
   hackathon: { name: 'HACKATHON.md', path: 'docs/HACKATHON.md' },
+  decisions: { name: 'DECISIONS.md', path: 'docs/DECISIONS.md' },
 } as const;
 
 export type SourceKey = keyof typeof SOURCES;
@@ -429,7 +430,7 @@ export const ROUNDS_FIRST: readonly Round[] = [
   },
 ];
 
-/** The repair shop's job, from one real run: a single run, not a planned comparison. */
+/** The repair shop's job, from the film's demo run: a single run, not a planned comparison. */
 export const REPAIR = {
   checkBefore: 22,
   checkAfter: 30,
@@ -1236,7 +1237,10 @@ export const ADAPTERS: readonly Adapter[] = [
   },
 ];
 
-/** Sweep desk's second run on all 84 final-test tasks: the draft-based taught arm against bare. */
+/**
+ * Sweep desk's second run on all 84 final-test tasks, a secondary outcome: the draft-based taught
+ * arm against bare.
+ */
 export const SWEEP_RUN = { tasks: 84, taught: 37, bare: 26 } as const;
 
 /**

@@ -306,7 +306,7 @@ describe('the results page', () => {
   });
 
   it('gives the fine-tuning reports their loss curve and their adapters', () => {
-    const read = (key: 'qlora1' | 'qlora2' | 'sweep2') =>
+    const read = (key: 'qlora1' | 'qlora2' | 'sweep2' | 'decisions') =>
       readFileSync(join(ROOT, SOURCES[key].path), 'utf8').replaceAll('**', '');
     const first = read('qlora1');
     expect(FINETUNE_LOSS.map((row) => row.step)).toEqual([1, 2, 3, 4, 5, 6]);
@@ -332,6 +332,8 @@ describe('the results page', () => {
     expect(read('sweep2')).toContain(
       `On all ${SWEEP_RUN.tasks} tasks the taught arm passed ${SWEEP_RUN.taught} against bare's ${SWEEP_RUN.bare}`,
     );
+    expect(read('sweep2')).toContain('a gain by the same rule, on a secondary outcome');
+    expect(read('decisions')).toContain('from 2,312 rows to 4');
   });
 
   it("gives the adapter's final test its report's passes, pairs, speed and spend", () => {

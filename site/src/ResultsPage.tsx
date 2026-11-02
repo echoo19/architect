@@ -108,13 +108,17 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'cert', what: "The first live certificate run, on the third run's Academy desk." },
   { key: 'zeller', what: 'Simplifying and isolating failure-inducing input (delta debugging).' },
   { key: 'certify', what: 'The plan for certified answers and counterexample-guided repair.' },
+  {
+    key: 'decisions',
+    what: 'The decision on counterexample-guided repair, with its first real reduction.',
+  },
   { key: 'plan', what: "The second comparison's plan, published before it ran." },
   { key: 'second', what: "The second comparison's report." },
   { key: 'gepa', what: 'GEPA: improving prompts from failures by reflection.' },
   { key: 'ace', what: 'ACE: agents that grow their own context from experience.' },
   { key: 'taubench', what: 'tau-bench: checking an agent by the final state of its work.' },
   { key: 'first', what: "The first comparison's report." },
-  { key: 'hackathon', what: "The repair shop's run." },
+  { key: 'hackathon', what: "The repair shop's demo run, recorded with the film." },
   { key: 'scale', what: 'The plan for going from a specialist to a field model.' },
   { key: 'qlora1', what: "The first fine-tune: Inventory desk's work as a QLoRA adapter." },
   {
@@ -124,6 +128,8 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'qlora2', what: "The second fine-tune: Sweep desk's work as a QLoRA adapter." },
   { key: 'assay', what: "Assay desk's first run, at a screening lab's plate reader." },
   { key: 'sweep2', what: "Sweep desk's second run, at ML research groups' training runs." },
+  { key: 'assay2', what: "Assay desk's second run, under two seeds." },
+  { key: 'team2', what: 'The second agent-team run, Inventory desk asking Assay desk.' },
 ];
 
 /**
@@ -858,7 +864,7 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
     'Export of verified demonstrations and an outcome scorer',
     'Built',
-    'The export fed both fine-tunes. Nothing from a sealed organization goes in.',
+    'The export fed both fine-tunes, and field-export.test.ts tests the scorer. Nothing from a sealed organization goes in.',
   ],
   [
     "Training plans sized from a model's configuration",
@@ -868,7 +874,7 @@ const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
     'Cluster launch bundles for Slurm and Kubernetes',
     'Built, experimental',
-    'Checked structurally and against simulated schedulers. Run by you, with your own tools.',
+    'Checked structurally and against simulated schedulers in training-bundle.test.ts, and not yet run on a real cluster. Run by you, with your own tools.',
   ],
   [
     'LoRA and QLoRA fine-tuning on one rented GPU',
@@ -900,9 +906,9 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'academyDesk',
   },
   {
-    title: "The third run's real academy assign tasks could not be passed.",
-    text: 'The empty assignments file never said how to number the first row, so both harnesses failed every one, and in the same run the one-shot harness was not tested and Academy desk spent about three times what the base harness did.',
-    from: 'third',
+    title: "The third run's tools met a different real snapshot.",
+    text: `On the real academy's second snapshot Academy desk passed ${THIRD_ROWS[2]?.academyDesk.passed} of ${THIRD_ROWS[2]?.n}, against ${THIRD_ROWS[2]?.bare.passed} for the base harness. Replaying its tools after the test traced this to three causes: its diagnose instructions load on phrases that academy doesn't use, every history attempt ran to the step limit, and the empty assignments file gave no way to number the first row. The task builder was fixed afterwards. In the same run the one-shot harness was not tested and Academy desk spent about three times what the base harness did.`,
+    from: 'thirdMisses',
   },
   {
     title: 'The third run reused its tasks.',
@@ -990,13 +996,13 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
     from: 'assay2',
   },
   {
-    title: 'A live team has not yet passed a task.',
-    text: "Told which files each teammate holds, the lead asked Assay desk in 18 of 20 replies, but no answer carried the plate list, because Assay desk's plate tool overflows Glimmer's context on these plates; team and lead alone each passed 0 of 20.",
+    title: "The team's plate list did not reach the lead.",
+    text: "Told which files each teammate holds, the lead asked Assay desk in 18 of 20 replies. Assay desk's plate tool overflows Glimmer's context on these plates, so no answer carried the plate list.",
     from: 'team2',
   },
   {
     title: "Sweep desk's rounds were not measured.",
-    text: `The teacher's budget stopped its refinement rounds after one call, so its taught arm ran on the one-shot draft; on all ${SWEEP_RUN.tasks} tasks it passed ${SWEEP_RUN.taught} against ${SWEEP_RUN.bare} for the base harness.`,
+    text: `The teacher's budget stopped its refinement rounds after one call, so its taught arm ran on the one-shot draft. On all ${SWEEP_RUN.tasks} tasks, a secondary outcome, it passed ${SWEEP_RUN.taught} against ${SWEEP_RUN.bare} for the base harness.`,
     from: 'sweep2',
   },
   {
@@ -1011,7 +1017,7 @@ const LIMITS: readonly { title: string; text: string; from: SourceKey }[] = [
   },
   {
     title: 'The repair shop ran once.',
-    text: 'It was a single run, not a planned comparison, and a rule graded it.',
+    text: "It was the film's demo run, a single run rather than a planned comparison, and a rule graded it. It has no report in docs/comparisons.",
     from: 'hackathon',
   },
 ];
@@ -1049,7 +1055,6 @@ export function ResultsPage() {
   };
   const local = found(LOCAL_ROWS[3], 'local row for all groups');
   const juniper = found(THIRD_ROWS[1], 'third-run row for Juniper Study House');
-  const real = found(THIRD_ROWS[2], 'third-run row for the Real academy');
   const corvid = {
     engineered: found(LAB_ARMS[2]?.groups[1], "Inventory desk's Corvid Hill result"),
     base: found(LAB_ARMS[0]?.groups[1], "the base harness's Corvid Hill result"),
@@ -1234,19 +1239,6 @@ export function ResultsPage() {
             against {juniper.bare.passed} for the base harness ({tab('third')})
             <Cite to={['third']} />.
           </Text>
-          <Text>
-            On the second snapshot of the real academy it passed {real.academyDesk.passed} of{' '}
-            {real.n}, against {real.bare.passed} for the base harness. Replaying its tools after the
-            test, with no model, traced that to three causes. First, the diagnose instructions load
-            on phrases like &quot;what topic&quot;, but the real academy asks &quot;Which topic was
-            that&quot;, so none of its requests matched. Second, every history attempt ran to the
-            step limit. The instructions ask for a number of days this policy doesn&apos;t have, and
-            the second round allowed one tool call per turn; that fits the records but is not
-            confirmed. Third, assign failed for both harnesses, because the empty assignments file
-            gave no way to number the first row. The task builder was fixed afterwards, and the
-            numbers stand as measured
-            <Cite to={['thirdMisses']} />.
-          </Text>
           <Tables label="Table for the third run">
             <TableExhibit
               label={tab('third')}
@@ -1405,9 +1397,10 @@ export function ResultsPage() {
           <Text>
             When a tool Spark wrote fails on practice data, the failing case is shrunk by delta
             debugging
-            <Cite to={['zeller']} /> and kept as a regression test. One question lookup&apos;s case
-            shrank from 2,312 rows to 4
-            <Cite to={['certify']} />.
+            <Cite to={['zeller']} /> and kept as a regression test
+            <Cite to={['certify']} />. On a generated academy&apos;s practice data, one question
+            lookup&apos;s case shrank from 2,312 rows to 4
+            <Cite to={['decisions']} />.
           </Text>
           <Tables label="Tables for the certificate">
             <TableExhibit
@@ -1507,8 +1500,9 @@ export function ResultsPage() {
             />
           </Exhibit>
           <Text>
-            On a second kind of job, a repair shop&apos;s ticket costs, one round was enough, and
-            Glimmer then passed all {REPAIR.finalTotal} of its final-test tasks ({tab('costs')})
+            On a second kind of job, a repair shop&apos;s ticket costs, the film&apos;s demo run
+            needed one round, and Glimmer then passed all {REPAIR.finalTotal} of its final-test
+            tasks ({tab('costs')})
             <Cite to={['hackathon']} />.
           </Text>
           <Tables label="Tables for the returns desks">
@@ -1556,7 +1550,7 @@ export function ResultsPage() {
             </TableExhibit>
             <TableExhibit
               label={tab('costs')}
-              caption={`What each harness cost on the new returns desk. On the repair shop, one round took Glimmer from ${REPAIR.checkBefore} to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} held-out checks, and it passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test for ${REPAIR.cents} cents in all.`}
+              caption={`What each harness cost on the new returns desk. On the repair shop's demo run, one round took Glimmer from ${REPAIR.checkBefore} to ${REPAIR.checkAfter} of ${REPAIR.checkTotal} held-out checks, and it passed ${REPAIR.finalPassed} of ${REPAIR.finalTotal} on its final test for ${REPAIR.cents} cents in all.`}
             >
               <Table
                 fit
