@@ -44,11 +44,11 @@ Read in the owner's signed-in browser on Nov 1. What it adds to the notes above:
 ## Submission checklist
 
 - [x] Repository public, README complete, licence present
-- [ ] CI green on the final commit (green on 0.8.0's, Nov 1; check again on the last one)
-- [x] Installers attached to a GitHub release (0.8.0, Nov 1: Windows, Mac on Apple silicon and Intel; the Mac app signed and notarized, the Windows installer not signed)
+- [x] CI green on the final commit (0.9.1 and the site's last deploy, Nov 2)
+- [x] Installers attached to a GitHub release (0.9.1, Nov 2: Windows, Mac on Apple silicon and Intel; the Mac app signed and notarized, the Windows installer not signed)
 - [x] Sample job and one shipped graduate in the repo
 - [x] README results filled from real runs
-- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 41 s, is `renders/lab-walkthrough-final-3.mp4` in the film folder outside the repo (its record is that folder's `BRIEF.md`) and plays on the site's home page; it still needs uploading where the platform can link to it (the owner's account)
+- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 50 s with the founder's intro, is `renders/launch-final-10.mp4` in the launch film's folder outside the repo (its record is that folder's `BRIEF.md`) and plays on the site's home page; it still needs uploading where the platform can link to it (the owner's account)
 - [ ] Submission made on the Cerebral Valley platform by Wed Nov 4, 9:00 PM ET, with the problem statement, the track (indie), the repository and video links, and everyone who contributed listed
 - [ ] Optional: the demo posted on X, its link added on the platform
 
