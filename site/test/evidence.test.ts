@@ -67,8 +67,14 @@ describe('the results page', () => {
 
   it('gives the figures the README gives', () => {
     const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
-    expect(readme).toContain('from 44 to 58 of 60');
-    expect(readme).toContain('23 points better');
+    for (const row of [
+      '| 24 of 48 | 43 of 48 |',
+      '| 4 of 32 | 27 of 32 |',
+      '| 22 of 30 | 32 of 32 |',
+      '| 11 of 32 | 32 of 32 |',
+    ]) {
+      expect(readme).toContain(row);
+    }
     expect(SECOND.arms.map((arm) => arm.passed)).toEqual([44, 38, 58]);
     expect(FIRST.arms.map((arm) => arm.passed)).toEqual([43, 47, 45, 60]);
     expect(`${REPAIR.checkBefore} of ${REPAIR.checkTotal}`).toBe('22 of 30');

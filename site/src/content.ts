@@ -64,7 +64,8 @@ export const WHY = {
 
 export const FOOTER = {
   licence: 'Open source under the MIT licence.',
-  author: 'Made by Jake Kang.',
+  author:
+    'Idea and orchestration by Jake Kang, with Claude Code on Claude Opus 5.5 and Codex on GPT-6 Astra as the dev team.',
   /** The home page's note: which parts of the film are real. */
   note: 'The shops, labs and academies in the film are generated, except the anonymized Real academy. Every measured figure is from a real run.',
   /** The results page's note. */
