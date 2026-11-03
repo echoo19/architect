@@ -1,6 +1,6 @@
 # Fine-tuning: qlora-2, Sweep desk's work distilled into a LoRA adapter
 
-Written on Nov 1, 2026 from the run's records. Run folder: `architect-runs/qlora-2` (PLAN.md written before the job, SPEND.md, the job's record and log, the adapter and its integrity record). The first fine-tune, on Inventory desk, is [qlora-1.md](qlora-1.md); it found and fixed the faults this one ran without.
+Written on Nov 1, 2026 from the run's records. Run folder: `runs/qlora-2` (PLAN.md written before the job, SPEND.md, the job's record and log, the adapter and its integrity record). The first fine-tune, on Inventory desk, is [qlora-1.md](qlora-1.md); it found and fixed the faults this one ran without.
 
 ## The result
 

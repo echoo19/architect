@@ -1,6 +1,6 @@
 # Comparisons: an offshore wind farm's maintenance desk, offline at the edge
 
-Written on Nov 2, 2026 from the run's stored records (`architect-runs/live-edge-1`, with `run.json` and `RUN.md`). Code: branch `qa/live-world` from `field/main` at `5d166650`, the app built with electron-vite and driven hidden through the QA driver's live world. The student was hosted Glimmer and the teacher Muse Spark 1.3 on Meta's API. The keys came from the environment by name; none was typed or saved.
+Written on Nov 2, 2026 from the run's stored records (`runs/live-edge-1`, with `run.json` and `RUN.md`). Code: branch `qa/live-world` from `field/main` at `5d166650`, the app built with electron-vite and driven hidden through the QA driver's live world. The student was hosted Glimmer and the teacher Muse Spark 1.3 on Meta's API. The keys came from the environment by name; none was typed or saved.
 
 ## The result
 

@@ -1,6 +1,6 @@
 # Comparisons: the third agent-team run
 
-Written on Nov 2, 2026 from the run's stored records, in `architect-runs/team-3`. Code: a pinned checkout of Architect at `57fa006e` (`team/plate-fits`), unchanged, with no patches. It holds decision 106, the change made after [team-2](team-2.md). When a harness helper's result is too long to show, the agent still sees it cut, but `run` code can now read the whole of it. A teammate's run that ends on a tool call written as text now comes back to the lead as no answer. The student was hosted Glimmer in both arms. The plan (`team-3/PLAN.md`) was written before any model was called, with one amendment for the provider's rate limit.
+Written on Nov 2, 2026 from the run's stored records, in `runs/team-3`. Code: a pinned checkout of Architect at `57fa006e` (`team/plate-fits`), unchanged, with no patches. It holds decision 106, the change made after [team-2](team-2.md). When a harness helper's result is too long to show, the agent still sees it cut, but `run` code can now read the whole of it. A teammate's run that ends on a tool call written as text now comes back to the lead as no answer. The student was hosted Glimmer in both arms. The plan (`team-3/PLAN.md`) was written before any model was called, with one amendment for the provider's rate limit.
 
 ## The result
 
@@ -116,4 +116,4 @@ From 05:04:59 to 05:06:01 UTC, OpenRouter answered 18 requests with 429 (rate li
 
 ## Where the records are
 
-`C:/JakeOS/projects/architect-runs/team-3`: `PLAN.md` (with amendment 1 and the run record), `SPEND.md`, `spend.jsonl`, `requests.jsonl` (identical to team-2's), `attempts.jsonl` (the counted attempts) and `attempts-set-aside.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `asks-taught.jsonl`, `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/` (with `diagnose-team-2.mts`, which read team-2's taught consultations, and `plate-fits.mts`, the check with no model), `run.sh` and `run3.sh`, and both packages in `packages/`.
+`C:/JakeOS/projects/architect/runs/team-3`: `PLAN.md` (with amendment 1 and the run record), `SPEND.md`, `spend.jsonl`, `requests.jsonl` (identical to team-2's), `attempts.jsonl` (the counted attempts) and `attempts-set-aside.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `asks-taught.jsonl`, `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/` (with `diagnose-team-2.mts`, which read team-2's taught consultations, and `plate-fits.mts`, the check with no model), `run.sh` and `run3.sh`, and both packages in `packages/`.

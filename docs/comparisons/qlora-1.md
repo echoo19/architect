@@ -1,6 +1,6 @@
 # Fine-tuning: qlora-1, Inventory desk's work distilled into a LoRA adapter
 
-Written on Nov 1, 2026 from the run's records. Run folder: `architect-runs/qlora-1` (PLAN.md written before the first job and amended before each one after, SPEND.md, every job's record and log, the adapter and its integrity record).
+Written on Nov 1, 2026 from the run's records. Run folder: `runs/qlora-1` (PLAN.md written before the first job and amended before each one after, SPEND.md, every job's record and log, the adapter and its integrity record).
 
 ## The result
 

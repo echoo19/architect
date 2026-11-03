@@ -16,7 +16,7 @@ Inventory desk runs a screening lab's compound store. A scientist asks how much 
 
 The question: does a harness that Spark builds for Glimmer, then refines on Glimmer's own failed practice attempts, pass more tasks than Glimmer on a blank harness? Does that hold at a lab it never saw?
 
-The plan was written before anything ran and kept in the run folder (`architect-runs/inventory-1/PLAN.md`), with two dated amendments, both written before any arm started. It is not in a public registry, so its times are file times.
+The plan was written before anything ran and kept in the run folder (`runs/inventory-1/PLAN.md`), with two dated amendments, both written before any arm started. It is not in a public registry, so its times are file times.
 
 - **Primary.** Taught minus bare at Corvid Hill (32 tasks), paired task by task: wins, losses, and the difference in pass rate with a 95% interval for paired proportions (Newcombe, method 10). A gain counts only if the interval is above zero.
 - **Secondary.** The same on the taught labs' test split (24, "seen") and on all 56. The draft against bare and the taught arm against the draft. Each skill in each group, what each round changed, latency and spend.
@@ -149,7 +149,7 @@ These results are for hosted Glimmer under one seed. They don't describe the loc
 
 ## For the team with Assay desk
 
-The frozen Inventory desk is graduate **`grd_mvxet7nj59cab32f6c`** (agent version 1, harness version 3, `sha256-27b46e7cbde4`), named "Inventory desk" (`inventory-desk` in the CLI). It is kept in the run's data folder, `architect-runs/inventory-1/cmp/data`, at `graduates/grd_mvxet7nj59cab32f6c/versions/v0001`. The CLI opens it with `ARCHITECT_USER_DATA` set to that folder. `architect verify` passed there: harness version 3, its one tool loaded, its folders bound, and `muse-glimmer:30b-iq2` on Ollama, the build it was made for. Its allocate and reserve skills were 13 of 14 and 12 of 14 on the locked test. Those are the two skills that take the Assay desk's re-test lists.
+The frozen Inventory desk is graduate **`grd_mvxet7nj59cab32f6c`** (agent version 1, harness version 3, `sha256-27b46e7cbde4`), named "Inventory desk" (`inventory-desk` in the CLI). It is kept in the run's data folder, `runs/inventory-1/cmp/data`, at `graduates/grd_mvxet7nj59cab32f6c/versions/v0001`. The CLI opens it with `ARCHITECT_USER_DATA` set to that folder. `architect verify` passed there: harness version 3, its one tool loaded, its folders bound, and `muse-glimmer:30b-iq2` on Ollama, the build it was made for. Its allocate and reserve skills were 13 of 14 and 12 of 14 on the locked test. Those are the two skills that take the Assay desk's re-test lists.
 
 ## Limitations
 
