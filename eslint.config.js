@@ -7,6 +7,7 @@ export default tseslint.config(
   {
     ignores: [
       '.claude/**',
+      'runs/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/dist-film/**',

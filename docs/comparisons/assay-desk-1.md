@@ -159,4 +159,4 @@ These results are for hosted Glimmer under one seed. They don't describe the loc
 
 ## Records
 
-Run folder `architect-runs/assay-1`: `PLAN.md` (the registration and its amendments, each written before the result it could affect), `run.sh`, `plan.sh`, the logs, `SPEND.md`, `FROZEN.md`, `analysis.json`, and the runner's own `cmp-2/report.md`. The taught agent is graduate `grd_mvxf15ff9903be0d43`, version 1, in `assay-1/agent-data`, a copy of the run's data folder that the app or CLI can open (`ARCHITECT_USER_DATA`). The draft's graduate, `grd_mvxeounob7d293e110`, holds the same harness with the draft's change in its lineage.
+Run folder `runs/assay-1`: `PLAN.md` (the registration and its amendments, each written before the result it could affect), `run.sh`, `plan.sh`, the logs, `SPEND.md`, `FROZEN.md`, `analysis.json`, and the runner's own `cmp-2/report.md`. The taught agent is graduate `grd_mvxf15ff9903be0d43`, version 1, in `assay-1/agent-data`, a copy of the run's data folder that the app or CLI can open (`ARCHITECT_USER_DATA`). The draft's graduate, `grd_mvxeounob7d293e110`, holds the same harness with the draft's change in its lineage.

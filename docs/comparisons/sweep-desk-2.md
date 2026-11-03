@@ -1,6 +1,6 @@
 # Comparisons: Sweep desk, second run
 
-Written on Nov 1, 2026 from the run's stored records. Code: a pinned checkout of Architect at `field/main` `3b29a8e4`, unchanged and with no patch; one setting by flag, listed under Method. The student in every arm was hosted Glimmer. Splits seed 20261103, mentoring seed 1, locked-test seed 101, one seed per arm. Run folder: `architect-runs/sweep-2` (PLAN.md written before anything ran, SPEND.md, analysis.json).
+Written on Nov 1, 2026 from the run's stored records. Code: a pinned checkout of Architect at `field/main` `3b29a8e4`, unchanged and with no patch; one setting by flag, listed under Method. The student in every arm was hosted Glimmer. Splits seed 20261103, mentoring seed 1, locked-test seed 101, one seed per arm. Run folder: `runs/sweep-2` (PLAN.md written before anything ran, SPEND.md, analysis.json).
 
 ## Why there is a second run
 
@@ -132,4 +132,4 @@ Bare ran out of its 16 turns on 33 tasks. With the draft's tool, the arms almost
 
 ## What came next
 
-This run's taught job exported cleanly, which sweep-1's couldn't: its 6 checker-passed practice attempts went to a QLoRA job on an A100 (`architect-runs/qlora-2`). Its report is written separately.
+This run's taught job exported cleanly, which sweep-1's couldn't: its 6 checker-passed practice attempts went to a QLoRA job on an A100 (`runs/qlora-2`). Its report is written separately.

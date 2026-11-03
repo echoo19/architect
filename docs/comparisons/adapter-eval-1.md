@@ -1,6 +1,6 @@
 # Fine-tuning measured: qlora-1's adapter on Inventory desk's sealed final test
 
-Written on Nov 2, 2026 from the run's stored records. Run folder: `architect-runs/adapter-eval-1` (PLAN.md written before anything was spent, with three amendments written before any locked test was released and a run record after; SPEND.md; both comparisons' folders; the endpoint's logs; the analysis scripts and their output). Code: a pinned checkout of branch `runs/adapter-eval-1` at `b5204eab`, which adds three options to the comparisons runner (decision 105). The adapter is the one [qlora-1.md](qlora-1.md) reports.
+Written on Nov 2, 2026 from the run's stored records. Run folder: `runs/adapter-eval-1` (PLAN.md written before anything was spent, with three amendments written before any locked test was released and a run record after; SPEND.md; both comparisons' folders; the endpoint's logs; the analysis scripts and their output). Code: a pinned checkout of branch `runs/adapter-eval-1` at `b5204eab`, which adds three options to the comparisons runner (decision 105). The adapter is the one [qlora-1.md](qlora-1.md) reports.
 
 ## The result
 

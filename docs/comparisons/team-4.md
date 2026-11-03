@@ -1,6 +1,6 @@
 # Comparisons: the fourth agent-team run
 
-Written on Nov 2, 2026 from the run's stored records, in `architect-runs/team-4`. Code: a pinned checkout of Architect at `e59b4e25` (`team/consult-reads`), unchanged, with no patches. It holds decision 107, the two changes [team-3](team-3.md) pointed to. A teammate can no longer write while the lead asks it something: its write tools fail at once, it says in its answer what should be written, and the lead decides. And `read` now opens a helper's result too long to show, a page at a time, as well as `run` code. The student was hosted Glimmer in both arms. The plan (`team-4/PLAN.md`) was written before any model was called.
+Written on Nov 2, 2026 from the run's stored records, in `runs/team-4`. Code: a pinned checkout of Architect at `e59b4e25` (`team/consult-reads`), unchanged, with no patches. It holds decision 107, the two changes [team-3](team-3.md) pointed to. A teammate can no longer write while the lead asks it something: its write tools fail at once, it says in its answer what should be written, and the lead decides. And `read` now opens a helper's result too long to show, a page at a time, as well as `run` code. The student was hosted Glimmer in both arms. The plan (`team-4/PLAN.md`) was written before any model was called.
 
 ## The result
 
@@ -115,4 +115,4 @@ While the run went on, Codex's release review found that decision 106's markup c
 
 ## Where the records are
 
-`C:/JakeOS/projects/architect-runs/team-4`: `PLAN.md` (with the run record), `SPEND.md`, `spend.jsonl`, `requests.jsonl` (identical to team-2's), `attempts.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `asks-taught.jsonl`, `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/`, `run.sh`, and both packages in `packages/`.
+`C:/JakeOS/projects/architect/runs/team-4`: `PLAN.md` (with the run record), `SPEND.md`, `spend.jsonl`, `requests.jsonl` (identical to team-2's), `attempts.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `asks-taught.jsonl`, `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/`, `run.sh`, and both packages in `packages/`.

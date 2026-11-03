@@ -1,6 +1,6 @@
 # Comparisons: the first agent-team run
 
-Written on Nov 1, 2026 from the run's stored records, in `architect-runs/team-1`. Code: a pinned checkout of Architect at `3b29a8e4` (field/main), unchanged, with no patches. The student was hosted Glimmer in both arms. The plan (`team-1/PLAN.md`) was written before any model was called.
+Written on Nov 1, 2026 from the run's stored records, in `runs/team-1`. Code: a pinned checkout of Architect at `3b29a8e4` (field/main), unchanged, with no patches. The student was hosted Glimmer in both arms. The plan (`team-1/PLAN.md`) was written before any model was called.
 
 ## The result
 
@@ -87,4 +87,4 @@ Hosted Glimmer, `meta/muse-glimmer-30b` on OpenRouter, pinned to DeepInfra with 
 
 ## Where the records are
 
-`C:/JakeOS/projects/architect-runs/team-1`: `PLAN.md` (with its run record), `SPEND.md`, `requests.jsonl`, `attempts.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/`, and both packages in `packages/`.
+`C:/JakeOS/projects/architect/runs/team-1`: `PLAN.md` (with its run record), `SPEND.md`, `requests.jsonl`, `attempts.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/`, and both packages in `packages/`.

@@ -20,7 +20,7 @@ export const HERO = {
   /** Two sentences, each on its own line where there is room. */
   line: [
     'A frontier model trains a specialist on your work through harness engineering and LoRA fine-tuning, and judges it on tests sealed from both.',
-    'It runs on-premise and offline, and can carry a risk certificate: a statistical bound on how often it is wrong.',
+    'Then it runs on your own hardware, fully offline. Your data stays yours, and so does the AI.',
   ],
 } as const;
 
