@@ -13,6 +13,7 @@ import {
   MuseWord,
   OpenTeacher,
   ScienceFigure,
+  ScoreFigure,
   TeamSteps,
 } from './reveal';
 import { Screen } from './screen';
@@ -55,6 +56,7 @@ function Walk({ t, measured }: { t: number; measured: Measured }) {
           <LabModels t={t} />
           <BriefFigure t={t} />
           <HarnessFigure t={t} />
+          <ScoreFigure t={t} />
           <CounterFigure t={t} />
           <CertFigure t={t} />
           <GpuFigures t={t} />

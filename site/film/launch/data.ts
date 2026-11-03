@@ -18,6 +18,9 @@ export const REAL_ACADEMY = { taught: 12, alone: 9, of: 24 } as const;
  * (docs/comparisons/inventory-desk-1.md, branch runs/inventory-1): 27 of 32 against Glimmer
  * alone's 4. On the taught labs' test split it passed 21 of 24.
  */
+/** The academy field's first run ends at 35 of its 36 held-out checks (academy-desk-1.md). */
+export const TRAINING_FINAL = { passed: 35, of: 36 } as const;
+
 export const CORVID = { taught: 27, alone: 4, of: 32, name: 'Corvid Hill Discovery' } as const;
 
 /** Inventory desk's best final tests on the Fields page: 21 of 24 taught on, 27 of 32 never seen. */
@@ -87,9 +90,7 @@ export const TRAINING = {
 /**
  * Academy desk on this computer, as its home shows it (academy-desk-1-local.md and its records in
  * architect-runs/phil-1-local): the 2-bit Glimmer through Ollama on an RTX 4070 Ti with 12 GB, the
- * most GPU memory it held over the 120 locked tasks (11,604 of 12,282 MiB, logs/gpu.csv), and its
- * answer times and speed there (median 38 s, the slowest 5% from 173 s, 33 tokens a second). The
- * week of requests is the film's own.
+ * most GPU memory it held over the 120 locked tasks (11,604 of 12,282 MiB, logs/gpu.csv).
  */
 export const ON_PREMISE = {
   gpu: 'NVIDIA GeForce RTX 4070 Ti',
@@ -100,29 +101,6 @@ export const ON_PREMISE = {
   peak: { gb: 11, of: '12 GB', share: 11604 / 12282 },
   loaded: '11 GB on the GPU',
   checks: '6 installation checks passed, Oct 30',
-  host: '127.0.0.1:11434',
-  activity: {
-    figures: [
-      ['Requests, 7 days', '23'],
-      ['Median answer in use', '38 s'],
-      ['95th percentile', '2 min 53 s'],
-      ['Tokens per second', '33'],
-    ],
-    days: [
-      ['8', 3],
-      ['9', 5],
-      ['10', 2],
-      ['11', 0],
-      ['12', 4],
-      ['13', 6],
-      ['14', 3],
-    ],
-  },
-  starters: [
-    'Name the topic, right choice and error behind a wrong answer.',
-    'Work a question given in the request.',
-    'Choose the approved first hint.',
-  ],
 } as const;
 
 /** Inventory desk's run finished on Nov 1 (inventory-desk-1.md). */

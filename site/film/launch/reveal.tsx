@@ -7,6 +7,7 @@ import {
   CERTIFICATE,
   CERTIFICATE_CHECK,
   CORVID,
+  TRAINING_FINAL,
   PLAN,
   TRAINED,
   HARBORVIEW,
@@ -72,8 +73,8 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
   const titleK = mix(from.k, 1, grow);
   // The real academy's figure takes the sealed one's place, the whole of each moving as one.
   const swap = T.realAcademy;
-  const gone = inOutCubic(span(t, swap, 0.6));
-  const real = inOutCubic(span(t, swap + 0.15, 0.8));
+  const gone = inOutCubic(span(t, swap, 0.5));
+  const real = inOutCubic(span(t, swap + 0.4, 0.8));
   const type = 'whitespace-nowrap font-display font-semibold leading-none tracking-[-0.03em]';
   const block = 'absolute left-0 top-0 flex flex-col items-start gap-4';
   return (
@@ -114,7 +115,7 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             <FigureRow
               value={String(counted)}
               final={String(HARBORVIEW.taught)}
-              unit={`of ${HARBORVIEW.of}`}
+              unit={`of ${HARBORVIEW.of} right`}
               color={tone(1)}
               style={(delay) => riseIn(t, T.fortyThree - 0.8 + delay, Infinity, 0.8)}
             />
@@ -122,11 +123,11 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
               className={`inline-block pb-[0.12em] text-[76px] ${type}`}
               style={riseIn(t, T.alone)}
             >
-              {`Glimmer alone: ${HARBORVIEW.alone}`}
+              {`Glimmer before training: ${HARBORVIEW.alone}`}
             </span>
           </div>
         )}
-        {t >= swap + 0.2 && (
+        {t >= swap + 0.4 && (
           <div
             className={block}
             style={{
@@ -142,12 +143,12 @@ export function Hero({ t, view, measured }: { t: number; view: Framing; measured
             </span>
             <FigureRow
               value={String(REAL_ACADEMY.taught)}
-              unit={`of ${REAL_ACADEMY.of}`}
+              unit={`of ${REAL_ACADEMY.of} right`}
               color={tone(1)}
               style={() => ({})}
             />
             <span className={`inline-block pb-[0.12em] text-[76px] ${type}`}>
-              {`up from ${REAL_ACADEMY.alone}`}
+              {`Glimmer before training: ${REAL_ACADEMY.alone}`}
             </span>
           </div>
         )}
@@ -315,13 +316,13 @@ export function ScienceFigure({ t }: { t: number }) {
     <GroundFigure
       t={t}
       x={RIGHT}
-      heading={[`${CORVID.name},`, 'never seen']}
+      heading={['Inventory desk', 'at a lab it never saw']}
       headingAt={T.scienceHero}
       value={CORVID.taught}
       count
       valueAt={T.twentySeven - 1.0}
-      unit={`of ${CORVID.of}`}
-      under={`Glimmer alone: ${CORVID.alone}`}
+      unit={`of ${CORVID.of} right`}
+      under={`Glimmer before training: ${CORVID.alone}`}
       underAt={T.scienceAlone}
       until={T.scienceResolve - 0.1}
       student
@@ -387,8 +388,15 @@ export function HarnessFigure({ t }: { t: number }) {
       <span className="flex flex-col gap-3">
         <Words
           t={t}
-          text="Expects +2 to +6"
+          text="Spark predicts"
           at={T.hypothesis}
+          until={until}
+          className={`${TYPE} text-[56px] leading-none`}
+        />
+        <Words
+          t={t}
+          text="+2 to +6 checks"
+          at={T.hypothesis + 0.1}
           until={until}
           className={`${TYPE} text-[96px] leading-none`}
         />
@@ -410,7 +418,37 @@ export function HarnessFigure({ t }: { t: number }) {
         <RotateCcw size={80} strokeWidth={2} aria-hidden />
         Rolled back
       </span>
+      <Words
+        t={t}
+        text="it did not win: 24 to 23"
+        at={T.rolledBack + 0.25}
+        until={until}
+        className={`${TYPE} text-[56px] leading-[1.06]`}
+      />
     </div>
+  );
+}
+
+/**
+ * The run's final score, on the ground at the window's right once the rolled-back change has gone:
+ * the held-out checks it passes, which Spark never sees.
+ */
+export function ScoreFigure({ t }: { t: number }) {
+  return (
+    <GroundFigure
+      t={t}
+      x={RIGHT}
+      heading={['Held-out checks passed']}
+      headingAt={T.harnessOut + 0.3}
+      value={TRAINING_FINAL.passed}
+      count
+      valueAt={T.thirtyFive - 1.0}
+      unit={`of ${TRAINING_FINAL.of}`}
+      under="tasks Spark never sees"
+      underAt={T.thirtyFive + 0.2}
+      until={T.drawer - 0.45}
+      student
+    />
   );
 }
 
@@ -442,6 +480,13 @@ export function CounterFigure({ t }: { t: number }) {
         <span className="text-[220px] tracking-[-0.05em]">{rows.toLocaleString('en-US')}</span>
         <span className="text-[84px] leading-none">rows</span>
       </span>
+      <Words
+        t={t}
+        text="shrunk to the smallest failing input"
+        at={T.four - 1.6}
+        until={until}
+        className={`${TYPE} text-[56px] leading-[1.06]`}
+      />
       <span
         className={`flex items-center gap-5 text-student ${TYPE} text-[84px] leading-none`}
         style={riseIn(t, T.fixed, until)}
@@ -451,7 +496,7 @@ export function CounterFigure({ t }: { t: number }) {
       </span>
       <Words
         t={t}
-        text="and kept as a regression test"
+        text="kept as a test, so it stays fixed"
         at={T.regression - 0.2}
         until={until}
         className={`${TYPE} text-[56px] leading-[1.06]`}
@@ -572,8 +617,18 @@ export function LabModels({ t }: { t: number }) {
   // They go out with the window as it glides to the field, and are gone before it comes back.
   if (t < T.how - 0.1 || t > T.fieldIn) return null;
   const rows = [
-    { name: 'Spark', color: 'mentor' as const, role: "Meta's frontier model", at: T.how },
-    { name: 'Glimmer', color: 'student' as const, role: '30B, fits on a PC', at: T.labHover + 0.2 },
+    {
+      name: 'Spark',
+      color: 'mentor' as const,
+      role: ['The teacher', "Meta's frontier model"],
+      at: T.how,
+    },
+    {
+      name: 'Glimmer',
+      color: 'student' as const,
+      role: ['Your specialist', '30B, fits on a PC'],
+      at: T.labHover + 0.2,
+    },
   ];
   return (
     <div
@@ -594,7 +649,13 @@ export function LabModels({ t }: { t: number }) {
             >
               {row.name}
             </span>
-            <span className={`${TYPE} text-[36px] leading-none`}>{row.role}</span>
+            <span
+              className={`flex flex-col gap-1.5 whitespace-nowrap ${TYPE} text-[34px] leading-none`}
+            >
+              {row.role.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </span>
           </span>
         </span>
       ))}
@@ -654,10 +715,10 @@ export function CertFigure({ t }: { t: number }) {
             until={until}
             className={`${TYPE} text-[64px] leading-none`}
           />
-          <span className="flex items-center gap-[0.4em] text-[64px]">
+          <span className="flex items-center gap-[0.4em] text-[52px]">
             <Words
               t={t}
-              text={`${CERTIFICATE_CHECK.answered}, ${CERTIFICATE_CHECK.wrong}`}
+              text={`Answered ${CERTIFICATE_CHECK.answered}, ${CERTIFICATE_CHECK.wrong}`}
               at={T.certificate + 0.15}
               until={until}
               stagger={0.04}
@@ -670,8 +731,8 @@ export function CertFigure({ t }: { t: number }) {
                 transform: `translateX(${(1 - held) * -12}px)`,
               }}
             >
-              <CircleCheck size={60} strokeWidth={2} aria-hidden />
-              Held
+              <CircleCheck size={50} strokeWidth={2} aria-hidden />
+              Bound held
             </span>
           </span>
         </span>
@@ -748,7 +809,7 @@ export function OpenTeacher({ t, measured }: { t: number; measured: Measured }) 
       >
         <Words
           t={t}
-          text="Even the teacher can be open weights."
+          text="Even the teacher can be an open model."
           at={T.openBeat + 0.7}
           until={T.beyond - 0.6}
           className={`${TYPE} text-[84px] leading-[1.04]`}

@@ -312,7 +312,7 @@ function ScoreLine({ t, camera }: { t: number; camera: Point }) {
           className={`${TITLE} whitespace-nowrap text-[76px] leading-none tabular-nums`}
           style={riseIn(t, T.trainPush + 0.6)}
         >
-          Right on {score}% of tasks it never trained on.
+          Glimmer is right on {score}% of tasks it never trained on.
         </span>
       </div>
     </Placed>

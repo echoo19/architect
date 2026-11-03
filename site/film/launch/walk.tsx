@@ -28,7 +28,7 @@ import {
 } from './data';
 import { FINE_TUNE_AT, FineTunePage } from './finetune';
 import { HarnessDrawer } from './harness';
-import { AgentHomePage } from './home';
+import { OnPremisePage } from './home';
 import type { Layer, Mode, ScreenView } from './screen';
 import { DURATION, T } from './timeline';
 import { TrainPage } from './train';
@@ -87,7 +87,7 @@ const ALLOW_AT = 9.4;
 const FIELD_AT = T.fields + 0.5;
 const TEAM_AT = T.teamClick - 0.2;
 const COMPUTE_AT = T.compute - 0.4;
-/** Models comes in under the figures' ground; its panel opens as the window flies back in onto it. */
+/** Models comes in under the figures' ground, its certificate already open as the window glides in. */
 const MODELS_AT = T.models - 0.7;
 
 /** The chat pushes in over the home as the camera moves onto it. */
@@ -169,13 +169,7 @@ const PAGES: readonly PageSpan[] = [
     fill: place(3),
     cut: true,
     draw: (lt) => (
-      <ModelsPage
-        lt={lt + ROWS_IN}
-        panelAt={T.models - MODELS_AT + ROWS_IN}
-        certificate={CERTIFICATE}
-        row={0}
-        basisOpen
-      />
+      <ModelsPage lt={lt + ROWS_IN} panelAt={-1} certificate={CERTIFICATE} row={0} basisOpen />
     ),
   },
   {
@@ -228,7 +222,7 @@ const PAGES: readonly PageSpan[] = [
     mode: 'place',
     fill: ACADEMY_ROW,
     cut: true,
-    draw: (_lt, t) => <AgentHomePage t={t} />,
+    draw: (_lt, t) => <OnPremisePage t={t} />,
   },
   {
     key: 'workspace',
@@ -426,11 +420,6 @@ export function measuringView(): ScreenView {
 export const FULL: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2, s: 1.53 };
 const FLOW: Framing = { cx: WINDOW.width / 2, cy: WINDOW.height / 2 + 2, s: 1.61 };
 
-/** A push onto a place page's content, its left edge in the gutter right of the sidebar. */
-function content(top: number, s = 2.197): Framing {
-  return { cx: 244 + FRAME.width / 2 / s, cy: top + FRAME.height / 2 / s, s };
-}
-
 /** A part of the window, framed whole with room around it; `dy` for a page scrolled since. */
 export function frameOf(measured: Measured, name: string, pad = 44, max = 2.4, dy = 0): Framing {
   const rect = measured.get(name);
@@ -458,22 +447,37 @@ function onPremise(measured: Measured, top: string, bottom: string): Framing {
   const first = measured.get(top);
   const last = measured.get(bottom);
   if (!card || !first || !last) return FULL;
-  const margin = (y: number, edge: number) => (Math.abs(y - edge) < 1 ? 14 : 2);
+  const margin = (y: number, edge: number) => (Math.abs(y - edge) < 1 ? 20 : 2);
   const from = first.y - margin(first.y, card.y);
   const end = last.y + last.h;
   const to = end + margin(end, card.y + card.h);
-  const s = Math.min(FRAME.height / (to - from), FRAME.width / (card.w + 48));
-  // Its left edge never further left than the gap before the card, so the column beside it is
-  // never cut: a wider frame shows more past the window's right edge instead.
-  const cx = Math.max(card.x + card.w / 2, card.x - 8 + FRAME.width / 2 / s);
-  return { cx, cy: (from + to) / 2, s };
+  const s = Math.min(FRAME.height / (to - from), PAGE_MAX);
+  return { cx: card.x + card.w / 2, cy: (from + to) / 2, s };
 }
 
-/** The academy desk's chat, its title well inside the frame's left edge. */
-const CHAT_VIEW: Framing = { cx: 248 + FRAME.width / 2 / 1.72, cy: 320, s: 1.72 };
+/**
+ * A place page's own area, between the sidebar's edge and the window's: framed at this scale or
+ * closer, the frame holds only the page, its content centered with even margins.
+ */
+const PAGE = { left: 240, right: WINDOW.width, center: (240 + WINDOW.width) / 2 } as const;
+const PAGE_MIN = 2.16;
+/** The closest a single card is framed. */
+const PAGE_MAX = 2.4;
 
-/** Compute's page whole, its title in and its cards inside the frame. */
-const COMPUTE_VIEW: Framing = content(16, 1.62);
+/**
+ * The chat whole down to its two writes: its header with the question it answers, the reply, and
+ * the writes it asks to make, centered between the sidebar's edge and the window's.
+ */
+const CHAT_VIEW: Framing = { cx: 698, cy: 3 + FRAME.height / 2 / 2.13, s: 2.13 };
+
+/** Compute's title and its fine-tuning plan, centered, the memory card below out of frame. */
+const COMPUTE_VIEW: Framing = { cx: PAGE.center, cy: 255, s: PAGE_MIN };
+
+/** The field's two cards, its organizations and the chosen academy's, centered, under its tabs. */
+const FIELD_VIEW: Framing = { cx: PAGE.center, cy: 395, s: 2.26 };
+
+/** Fields' table, centered, its title above out of frame. */
+const FIELDS_VIEW: Framing = { cx: PAGE.center, cy: 344, s: PAGE_MIN };
 
 /** The whole window at the frame's right, the certificate's bound on the ground at its left. */
 const CERT_VIEW: Framing = { cx: -29, cy: WINDOW.height / 2, s: 0.78 };
@@ -533,38 +537,30 @@ const SHOTS: readonly Shot[] = [
   // 3. The Lab, at the frame's right, held while Spark and Glimmer are named beside it.
   { at: T.how, dur: 0, to: LAB_SIDE_VIEW },
   // 4. A field: its line, then the field's page whole, its title in, the sealed academy, the real one.
-  ...whip(WHIPS.field, content(40, 1.85)),
+  ...whip(WHIPS.field, FIELD_VIEW),
   // 5. The study: the whole flow, then beside the window for where the academies differ.
   { at: T.define - 0.3, dur: 1.1, to: FLOW, ease: inOutCubic },
   { at: T.source - 0.8, dur: 1.1, to: SIDE, ease: inOutCubic },
   { at: T.confirm - 1.1, dur: 1.0, to: FLOW, ease: inOutCubic },
-  // 6. The harness, as three moments: the starting score, close; one change and its test, large
-  // beside the window with the round's drawer open; then one push onto the final score.
+  // 6. The harness: the starting score, close; then beside the window, held through the
+  // counterexample, one change and its test with the round's drawer open, then the final score.
   { at: T.train + 0.4, dur: 1.0, to: (m) => trainScore(m), ease: inOutCubic },
   { at: T.harness - 0.9, dur: 1.0, to: SIDE, ease: inOutCubic },
-  { at: T.harnessOut, dur: T.thirtyFive - T.harnessOut, to: (m) => trainScore(m) },
-  // 7. The counterexample, large beside the window with its drawer open, then the whole window.
-  { at: T.drawer - 0.9, dur: 1.0, to: SIDE, ease: inOutCubic },
+  // 7. The counterexample beside the window with its drawer open, then onto the field's cards.
   // 8. The vault opens: onto the sealed academy's card, whose lock opens and whose title grows
   // into the figure that fills the frame, the real academy's after it in the same place.
-  { at: T.drawerOut, dur: 1.2, to: content(40, 1.85), ease: inOutCubic },
+  { at: T.drawerOut, dur: 1.2, to: FIELD_VIEW, ease: inOutCubic },
   // 9. The window flies back in onto the certificate as its panel opens; the bound beside it, then
   // straight onto Compute's plan, and beside the window for the two jobs it sizes.
   { at: T.toModels, dur: 0, to: AWAY_RIGHT, still: true },
-  { at: T.toModels, dur: IN, to: content(40, 1.7), ease: inEase },
+  { at: T.toModels, dur: IN, to: FULL, ease: inEase },
   { at: T.certHero - 1.0, dur: 1.5, to: CERT_VIEW, ease: inOutQuint },
   { at: T.compute - 0.3, dur: 1.0, to: COMPUTE_VIEW, ease: inOutQuint },
   { at: T.gpuTrained - 0.9, dur: 1.0, to: SIDE, ease: inOutCubic },
   ...(SHOW_OPEN_TEACHER ? [{ at: T.openBeat, dur: 1.3, to: OPEN_VIEW, ease: inOutQuint }] : []),
   // 10. Beyond academies: its line, then the screening lab's desks and Inventory desk's
   // never-seen figure beside the window; then the team's line, and its chat beside its three steps.
-  ...whip(WHIPS.beyond, content(40, 1.9)),
-  // A slow push toward the screening lab's desks while the line is said.
-  {
-    at: WHIPS.beyond.in + IN,
-    dur: T.scienceDive - 0.9 - WHIPS.beyond.in - IN,
-    to: content(150, 2.15),
-  },
+  ...whip(WHIPS.beyond, FIELDS_VIEW),
   { at: T.scienceDive - 0.9, dur: 1.0, to: SIDE, ease: inOutCubic },
   ...whip(WHIPS.team, LAB_SIDE_VIEW),
   // 11. Offline: its line, then Academy desk's On-premise card whole, its Offline row turning as
