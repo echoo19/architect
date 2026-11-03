@@ -1,6 +1,6 @@
 # Comparisons: Sweep desk, first run
 
-Written on Nov 1, 2026 from the run's stored records. Code: a pinned checkout of Architect at `field/main` `71ac222e`, unchanged and with no patch; one setting by flag, listed under Method. The student in every arm was hosted Glimmer. Splits seed 20261103, mentoring seed 1, locked-test seed 101, one seed per arm. Run folder: `architect-runs/sweep-1` (PLAN.md written before anything ran, SPEND.md, analysis.json).
+Written on Nov 1, 2026 from the run's stored records. Code: a pinned checkout of Architect at `field/main` `71ac222e`, unchanged and with no patch; one setting by flag, listed under Method. The student in every arm was hosted Glimmer. Splits seed 20261103, mentoring seed 1, locked-test seed 101, one seed per arm. Run folder: `runs/sweep-1` (PLAN.md written before anything ran, SPEND.md, analysis.json).
 
 ## The result
 
@@ -129,4 +129,4 @@ About half the failures in every arm ran out of turns before answering. Median t
 
 ## What it means for the next run
 
-The leak check did its job, and it stopped the experiment. Before Sweep desk is taught again, its task generator needs to keep next_runs prompts in the train split apart from those in the test split, so that a practice attempt can be shown to the mentor. The same matching attempts also keep Sweep desk's demonstrations from being exported for fine-tuning (`docs/comparisons/qlora-1.md` is not written yet for this reason; see `architect-runs/qlora-1/PLAN.md`).
+The leak check did its job, and it stopped the experiment. Before Sweep desk is taught again, its task generator needs to keep next_runs prompts in the train split apart from those in the test split, so that a practice attempt can be shown to the mentor. The same matching attempts also keep Sweep desk's demonstrations from being exported for fine-tuning (`docs/comparisons/qlora-1.md` is not written yet for this reason; see `runs/qlora-1/PLAN.md`).

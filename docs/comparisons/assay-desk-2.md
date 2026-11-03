@@ -181,4 +181,4 @@ These results are for hosted Glimmer. They don't describe the local 2-bit build.
 
 ## Records
 
-Run folder `architect-runs/assay-2`: `PLAN.md` (the registration and the dated facts), `plan.sh`, `run.sh`, the logs, `SPEND.md`, `FROZEN.md`, `analysis-101.json` and `analysis-102.json`, and the runner's own `cmp/report.md`. The taught agent is graduate `grd_mvxiq84u45d329855b`, version 1 (harness version 2, `sha256-ce56e882de5d`), in `assay-2/agent-data`, a copy of the run's data folder that the app or CLI can open (`ARCHITECT_USER_DATA`).
+Run folder `runs/assay-2`: `PLAN.md` (the registration and the dated facts), `plan.sh`, `run.sh`, the logs, `SPEND.md`, `FROZEN.md`, `analysis-101.json` and `analysis-102.json`, and the runner's own `cmp/report.md`. The taught agent is graduate `grd_mvxiq84u45d329855b`, version 1 (harness version 2, `sha256-ce56e882de5d`), in `assay-2/agent-data`, a copy of the run's data folder that the app or CLI can open (`ARCHITECT_USER_DATA`).

@@ -1,6 +1,6 @@
 # Comparisons: the second agent-team run
 
-Written on Nov 1, 2026 from the run's stored records, in `architect-runs/team-2`. Code: a pinned checkout of Architect at `53b52a38` (field/main), unchanged, with no patches. It holds `team/ask-when`, the change made after [team-1](team-1.md): the lead's system prompt in a team reply now says when to ask a teammate, and `ask_teammate` names each teammate's files (decision 100, amendment). The student was hosted Glimmer in both arms. The plan (`team-2/PLAN.md`) was written before any model was called, with one amendment after the first two attempts.
+Written on Nov 1, 2026 from the run's stored records, in `runs/team-2`. Code: a pinned checkout of Architect at `53b52a38` (field/main), unchanged, with no patches. It holds `team/ask-when`, the change made after [team-1](team-1.md): the lead's system prompt in a team reply now says when to ask a teammate, and `ask_teammate` names each teammate's files (decision 100, amendment). The student was hosted Glimmer in both arms. The plan (`team-2/PLAN.md`) was written before any model was called, with one amendment after the first two attempts.
 
 ## The result
 
@@ -103,4 +103,4 @@ The first team attempt (Fenwick) asked five times and cost $0.163, about twelve 
 
 ## Where the records are
 
-`C:/JakeOS/projects/architect-runs/team-2`: `PLAN.md` (with amendment 1 and the run record), `SPEND.md`, `spend.jsonl`, `requests.jsonl` (identical to team-1's), `attempts.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `asks-taught.jsonl`, `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/`, `run.sh` and `run2.sh`, and both packages in `packages/`.
+`C:/JakeOS/projects/architect/runs/team-2`: `PLAN.md` (with amendment 1 and the run record), `SPEND.md`, `spend.jsonl`, `requests.jsonl` (identical to team-1's), `attempts.jsonl`, `results.jsonl` (one line per attempt; a locked-test lab's has no reason and no quoted text), `asks-taught.jsonl`, `hashes/`, the taught labs' stdout and stderr in `attempts/`, the saved chats in `data/`, the scripts in `scripts/`, `run.sh` and `run2.sh`, and both packages in `packages/`.
