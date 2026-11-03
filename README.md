@@ -35,7 +35,7 @@ In 7 days, from an empty repository:
 | Measured runs | 22, each planned before it ran |
 | Model API spend | about $65 in all: $57 of hosted Glimmer, $7.50 of Spark, $0.21 of Spark Open |
 | GPU compute | under $6, about 2.3 GPU-hours on Hugging Face |
-| Hosted model requests | about 47,000 |
+| Hosted model requests | over 47,000 |
 | Tests | 4,341 unit and 264 end-to-end |
 | Design decisions recorded | 108, in [docs/DECISIONS.md](docs/DECISIONS.md) |
 | Film narration | 32,374 characters of ElevenLabs voice across 8 takes |
