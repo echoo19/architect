@@ -16,6 +16,9 @@ const MARK = 176;
 const NAME = { size: 184, gap: 44 } as const;
 const LINE = { size: 64 } as const;
 
+/** The line rises as the window gliding out clears the middle of the frame, a little before its word. */
+const LINE_AT = T.ownAI - 0.7;
+
 /** Where the lockup sits: the mark's box at the left, the name after it, the two centered. */
 function lockup(measured: Measured) {
   const name = measured.get('wordmark')?.w ?? 880;
@@ -76,7 +79,7 @@ export function Ending({ t, measured }: { t: number; measured: Measured }) {
           className="whitespace-nowrap font-display text-[184px] font-semibold leading-none tracking-[-0.03em]"
         />
       </div>
-      {t >= T.ownAI - 0.05 && (
+      {t >= LINE_AT - 0.05 && (
         <div
           className="absolute"
           style={{
@@ -89,7 +92,7 @@ export function Ending({ t, measured }: { t: number; measured: Measured }) {
           <Words
             t={t}
             text="Your own AI."
-            at={T.ownAI}
+            at={LINE_AT}
             className="whitespace-nowrap font-display text-[184px] font-semibold leading-none tracking-[-0.03em]"
           />
         </div>

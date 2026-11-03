@@ -31,8 +31,6 @@ export interface ScreenView {
   flow: { shown: number; step: number };
   /** The round's drawer: what it shows, and how far it has opened and closed. */
   drawer?: { node: ReactNode; open: number; close: number };
-  /** How far the app's backdrop dims the window, while a figure beside it is the subject. */
-  dim?: number;
 }
 
 export const RIM = 'inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 30px 80px rgb(0 0 0 / 0.5)';
@@ -46,7 +44,7 @@ export function Screen({
   style?: CSSProperties;
   children?: ReactNode;
 }) {
-  const { layers, sidebar, sidebarShown, flow, drawer, dim = 0 } = view;
+  const { layers, sidebar, sidebarShown, flow, drawer } = view;
   return (
     <div
       className="absolute overflow-hidden rounded-[14px] bg-ground"
@@ -89,14 +87,6 @@ export function Screen({
         />
       )}
       {drawer && drawer.open > 0 && drawer.close < 1 && (
-        // The app's drawer darkens what it opens over, so the drawer is the one thing in view.
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-backdrop"
-          style={{ opacity: clamp(drawer.open * 1.5) * (1 - drawer.close), zIndex: 15 }}
-        />
-      )}
-      {drawer && drawer.open > 0 && drawer.close < 1 && (
         <div
           data-frame="drawer"
           className="absolute bottom-3 right-3 top-[68px] w-[500px] overflow-hidden rounded-card bg-raised shadow-float"
@@ -108,13 +98,6 @@ export function Screen({
         >
           {drawer.node}
         </div>
-      )}
-      {dim > 0 && (
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-backdrop"
-          style={{ opacity: dim, zIndex: 25 }}
-        />
       )}
       {children}
     </div>
