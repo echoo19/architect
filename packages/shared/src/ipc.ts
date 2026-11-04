@@ -64,6 +64,17 @@ import type {
 } from './training-plan';
 import type { Qualification, QualifyRequest } from './qualification';
 import type { ReportCard } from './report';
+import type {
+  WspBrief,
+  WspComputeTarget,
+  WspDraftInput,
+  WspEvent,
+  WspExperiment,
+  WspExport,
+  WspMentorStatus,
+  WspModel,
+  WspWorkerStatus,
+} from './wsp';
 import type { Method, Round, Run } from './run';
 import type { Attempt, Trace } from './trace';
 import type {
@@ -100,10 +111,11 @@ import type {
 export type Unsubscribe = () => void;
 
 /**
- * Which app Architect is: the personal one that teaches an agent one job, or Architect Lab with
- * fields, experiments, models and compute (decision 076).
+ * Which app Architect is: the personal one that teaches an agent one job, Architect Lab with
+ * fields, experiments, models and compute (decision 076), or Architect WSP, the experimental
+ * weight-space programming section (decision 109).
  */
-export type Edition = 'personal' | 'lab';
+export type Edition = 'personal' | 'lab' | 'wsp';
 
 export interface AppSettings {
   /** The personal app or the Lab; an install from before the Lab is the personal one. */
@@ -820,6 +832,45 @@ export interface ArchitectApi {
     plan(request: TrainingPlanRequest): Promise<TrainingPlan>;
     /** Sizes the plan again and writes its bundle, with the command that submits it. */
     bundle(request: TrainBundleRequest): Promise<WrittenTrainBundle>;
+  };
+  /**
+   * Architect WSP (decision 109): Astra edits a base model's weights through programs the runner
+   * executes in an isolated worker, and every candidate is measured against the base and simpler
+   * controls. Experimental. Nothing here touches a graduate or the ordinary mentor's menu.
+   */
+  wsp: {
+    /** Models on this computer an experiment can start from, each with its compatibility. */
+    models(): Promise<WspModel[]>;
+    /** A model folder the person picked. */
+    inspectModel(folder: string): Promise<WspModel>;
+    computeTargets(): Promise<WspComputeTarget[]>;
+    /** The worker's Python environment on this computer. */
+    worker(): Promise<WspWorkerStatus>;
+    /** Installs the worker's pinned packages; returns at once, and an event says when it ends. */
+    setupWorker(): Promise<WspWorkerStatus>;
+    /** Whether Astra can be reached, and what to do if not. */
+    mentor(): Promise<WspMentorStatus>;
+    /** Makes an experiment and has Astra draft its brief; returns at once with status briefing. */
+    draft(input: WspDraftInput): Promise<WspExperiment>;
+    /** Has Astra draft the brief again, after a failed draft. */
+    redraft(experimentId: string): Promise<WspExperiment>;
+    /** Saves the person's edits to a brief not yet approved. */
+    revise(experimentId: string, brief: WspBrief, title: string): Promise<WspExperiment>;
+    /** Approves the brief as it stands and starts the experiment. */
+    start(experimentId: string): Promise<WspExperiment>;
+    cancel(experimentId: string): Promise<WspExperiment>;
+    /** Continues an interrupted experiment from its last finished program. */
+    resume(experimentId: string): Promise<WspExperiment>;
+    /** Opens the sealed examples once for the frozen candidate and the controls. */
+    qualify(experimentId: string): Promise<WspExperiment>;
+    /** Writes the frozen candidate as a whole checkpoint, with its provenance, into a new folder. */
+    exportCandidate(experimentId: string, parentDir: string): Promise<WspExport>;
+    /** A program Astra wrote, as it ran. */
+    program(experimentId: string, n: number): Promise<string>;
+    /** Newest first. */
+    list(): Promise<WspExperiment[]>;
+    get(experimentId: string): Promise<WspExperiment>;
+    onEvent(listener: (event: WspEvent) => void): Unsubscribe;
   };
   graduates: {
     list(): Promise<GraduateSummary[]>;
