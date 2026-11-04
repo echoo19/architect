@@ -432,6 +432,45 @@ describe('A07: export and import keep the graduate, and the new computer binds i
     expect(recipient.library.settings('grd_desk')).toEqual({ writeMode: 'ask' });
   });
 
+  it('installs simultaneous copies of the same package only once', async () => {
+    const { author, exportsDir } = await authored();
+    const exported = await exportPackage(exporter(author), 'grd_desk', { directory: exportsDir });
+    const recipient = await computer();
+    const imported = await Promise.all([
+      importPackage({ library: recipient.library }, exported.folder, { loadModel: false }),
+      importPackage({ library: recipient.library }, exported.folder, { loadModel: false }),
+    ]);
+
+    expect(imported.map((result) => result.version)).toEqual([1, 1]);
+    expect(imported.filter((result) => result.alreadyInstalled)).toHaveLength(1);
+    expect(recipient.library.versions('grd_desk')).toHaveLength(1);
+  });
+
+  it('keeps simultaneous unrelated packages with the same claimed id in separate agents', async () => {
+    const firstAuthor = await computer();
+    const secondAuthor = await computer();
+    await addVersion(firstAuthor, { graduateId: 'grd_desk' });
+    await addVersion(secondAuthor, {
+      graduateId: 'grd_desk',
+      harness: harnessWith('Another desk', { system: 'An unrelated author and harness.' }),
+    });
+    const first = await exportPackage(exporter(firstAuthor), 'grd_desk', {
+      directory: join(firstAuthor.dataDir, 'exports'),
+    });
+    const second = await exportPackage(exporter(secondAuthor), 'grd_desk', {
+      directory: join(secondAuthor.dataDir, 'exports'),
+    });
+    const recipient = await computer();
+    const imported = await Promise.all([
+      importPackage({ library: recipient.library }, first.folder, { loadModel: false }),
+      importPackage({ library: recipient.library }, second.folder, { loadModel: false }),
+    ]);
+
+    expect(new Set(imported.map((result) => result.graduate.id)).size).toBe(2);
+    expect(imported.map((result) => result.version)).toEqual([1, 1]);
+    expect(recipient.library.list()).toHaveLength(2);
+  });
+
   it('exports an adapter byte for byte, and installs it for llama.cpp to serve', async () => {
     const author = await computer();
     const exportsDir = join(author.dataDir, 'exports');

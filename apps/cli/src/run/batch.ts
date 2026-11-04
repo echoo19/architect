@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { statSync } from 'node:fs';
 import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { Readable } from 'node:stream';
+import { addAbortSignal, type Readable } from 'node:stream';
 import {
   RUN_REQUEST_FORMAT,
   RunRequestSchema,
@@ -17,21 +17,22 @@ import { approvalPrompter } from './approvals';
 import { outcomeOf, runResult, type Outcome } from './result';
 import { ask, openSession, type AgentSession } from './session';
 
-async function readAll(stream: Readable): Promise<string> {
+async function readAll(stream: Readable, signal: AbortSignal): Promise<string> {
+  addAbortSignal(signal, stream);
   const parts: Buffer[] = [];
   for await (const part of stream) parts.push(Buffer.from(part as Uint8Array));
   return Buffer.concat(parts).toString('utf8');
 }
 
 /** The request file, read and checked against the request format before anything runs. */
-async function readRequest(ctx: CliContext, source: string) {
+async function readRequest(ctx: CliContext, source: string, signal: AbortSignal) {
   let text: string;
   if (source === '-') {
-    text = await readAll(ctx.io.stdin);
+    text = await readAll(ctx.io.stdin, signal);
   } else {
     const path = ctx.path(source);
     try {
-      text = await readFile(path, 'utf8');
+      text = await readFile(path, { encoding: 'utf8', signal });
     } catch (error) {
       throw new CliError(
         'invalid_input',
@@ -177,7 +178,8 @@ export async function runBatch(
         }, timeoutSeconds * 1000);
   const ended = AbortSignal.any([signal, stop.signal, cancel.signal]);
   try {
-    const request = await readRequest(ctx, source);
+    const request = await readRequest(ctx, source, ended);
+    ended.throwIfAborted();
     inputs = request.inputs;
     session = await openSession(ctx, parsed.args[0] ?? '', { save });
     if (request.version !== undefined && request.version !== session.version.version) {

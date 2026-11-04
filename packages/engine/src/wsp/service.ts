@@ -1,5 +1,13 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, copyFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  copyFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import {
   CodedError,
@@ -128,6 +136,7 @@ const REAL_PROCESSES: WspProcesses = {
 interface Active {
   abort: AbortController;
   evaluator: WspEvaluator | null;
+  shuttingDown?: boolean;
 }
 
 function canonical(value: unknown): string {
@@ -565,6 +574,7 @@ export class WspService {
     try {
       const start = this.store.get(id);
       const changed = await baseChanges(start.base);
+      active.abort.signal.throwIfAborted();
       if (changed.length > 0) {
         throw new Error(
           `The base checkpoint changed since the experiment was made (${changed.join(', ')}); start a new experiment.`,
@@ -596,8 +606,11 @@ export class WspService {
           this.clock(
             {
               ...latest,
-              status: 'cancelled',
-              activity: 'Cancelled',
+              status: active.shuttingDown ? 'interrupted' : 'cancelled',
+              activity: active.shuttingDown ? 'Stopped when Architect closed' : 'Cancelled',
+              iterations: active.shuttingDown
+                ? latest.iterations.filter((item) => item.endedAt !== undefined)
+                : latest.iterations,
               endedAt: this.now().toISOString(),
             },
             since,
@@ -713,7 +726,9 @@ export class WspService {
     }
     for (const [arm, split, examples, activity] of plan) {
       if (active.abort.signal.aborted) throw new Error('Cancelled.');
-      if (this.evaluated(this.store.get(id), arm, split) !== undefined) continue;
+      const latest = this.store.get(id);
+      if (this.evaluated(latest, arm, split) !== undefined) continue;
+      if (latest.costs.forwardPasses >= latest.limits.forwardPasses) return;
       update((experiment) => ({ ...experiment, stage: 'baseline', activity }));
       await this.evaluate(id, active, arm, split, examples);
     }
@@ -917,8 +932,10 @@ export class WspService {
       outcome: result.reads.length > 0 ? 'read' : 'inspected',
     };
     for (const read of result.reads) {
-      if (this.store.get(id).costs.forwardPasses + 1 > experiment.limits.forwardPasses) {
-        return { ...current, reason: 'A read was left out: the forward passes were used up.' };
+      const reserved = result.edits === null ? 0 : 2;
+      if (this.store.get(id).costs.forwardPasses + 1 + reserved > experiment.limits.forwardPasses) {
+        current = { ...current, reason: 'A read was left out: the forward passes were used up.' };
+        break;
       }
       this.updateActivity(id, `Reading hidden states for "${read.name}"`);
       const reply = await active.evaluator!.request(
@@ -956,6 +973,7 @@ export class WspService {
         ComposeSchema,
       );
     } catch (error) {
+      active.abort.signal.throwIfAborted();
       return { ...current, outcome: 'refused', reason: (error as Error).message };
     }
     const changed = composed.edits.reduce((sum, edit) => sum + edit.changed, 0);
@@ -1091,6 +1109,33 @@ export class WspService {
 
   /* Qualification and export */
 
+  private async verifyFrozen(experiment: WspExperiment): Promise<WspCandidate> {
+    const changed = await baseChanges(experiment.base);
+    if (changed.length > 0) {
+      throw new Error(
+        `The base checkpoint changed since the experiment was made (${changed.join(', ')}); start a new experiment.`,
+      );
+    }
+    const frozen = experiment.frozen!;
+    const candidate = this.candidate(experiment.id, frozen.candidateId);
+    const { id: candidateId, digest, ...body } = candidate;
+    if (
+      candidateId !== frozen.candidateId ||
+      digest !== frozen.digest ||
+      sha256(canonical(body)) !== digest ||
+      candidate.baseDigest !== experiment.base.digest
+    ) {
+      throw new Error('The frozen candidate changed after it was frozen.');
+    }
+    if (
+      (await sha256File(this.candidatePath(experiment.id, frozen.candidateId))) !==
+      candidate.tensorsSha256
+    ) {
+      throw new Error(`Candidate ${frozen.candidateId}'s tensors changed after it was made.`);
+    }
+    return candidate;
+  }
+
   async qualify(id: string): Promise<WspExperiment> {
     const experiment = this.store.get(id);
     if (experiment.status !== 'evaluated' || experiment.frozen === null) {
@@ -1100,9 +1145,11 @@ export class WspService {
       );
     }
     this.oneAtATime();
-    const candidate = this.candidate(id, experiment.frozen.candidateId);
-    if (candidate.digest !== experiment.frozen.digest) {
-      throw new Error('The frozen candidate changed after it was frozen.');
+    await this.verifyFrozen(experiment);
+    // Hashing yields: another action may have started or cancelled this experiment meanwhile.
+    this.oneAtATime();
+    if (this.store.get(id).status !== 'evaluated') {
+      throw new CodedError('experiment_state', 'This experiment is no longer ready to qualify.');
     }
     const saved = this.save({
       ...experiment,
@@ -1168,6 +1215,7 @@ export class WspService {
     const experiment = this.store.get(id);
     if (experiment.frozen === null)
       throw new CodedError('experiment_state', 'There is no frozen candidate to export.');
+    const candidate = await this.verifyFrozen(experiment);
     const folder = join(
       parentDir,
       `${experiment.base.name.split('/').pop()}-${experiment.frozen.candidateId}`,
@@ -1179,11 +1227,14 @@ export class WspService {
       this.store.dir(id),
       experiment.limits.memoryGb * GB,
     );
+    mkdirSync(parentDir, { recursive: true });
+    const staging = mkdtempSync(join(parentDir, '.wsp-export-'));
+    const checkpoint = join(staging, 'checkpoint');
     try {
       await evaluator.start();
       const written = await evaluator.request(
         'materialize',
-        { candidate: this.candidatePath(id, experiment.frozen.candidateId), out: folder },
+        { candidate: this.candidatePath(id, experiment.frozen.candidateId), out: checkpoint },
         MaterializeSchema,
       );
       const provenance = {
@@ -1191,7 +1242,7 @@ export class WspService {
         experiment: experiment.id,
         method: 'weight_program',
         base: experiment.base,
-        candidate: this.candidate(id, experiment.frozen.candidateId),
+        candidate,
         mentor: experiment.mentor,
         approval: experiment.approval,
         worker: experiment.worker,
@@ -1204,20 +1255,24 @@ export class WspService {
         result: experiment.result,
         costs: experiment.costs,
       };
-      writeFileAtomic(join(folder, 'architect-wsp.json'), JSON.stringify(provenance, null, 2));
-      return {
+      writeFileAtomic(join(checkpoint, 'architect-wsp.json'), JSON.stringify(provenance, null, 2));
+      const exported = {
         folder,
         files: [
           ...written.files,
           {
             name: 'architect-wsp.json',
             bytes: Buffer.byteLength(JSON.stringify(provenance, null, 2)),
-            sha256: await sha256File(join(folder, 'architect-wsp.json')),
+            sha256: await sha256File(join(checkpoint, 'architect-wsp.json')),
           },
         ],
       };
+      if (existsSync(folder)) throw new Error(`${folder} already exists.`);
+      renameSync(checkpoint, folder);
+      return exported;
     } finally {
       evaluator.close();
+      rmSync(staging, { recursive: true, force: true });
     }
   }
 
@@ -1235,6 +1290,10 @@ export class WspService {
 
   /** Stops whatever runs; it resumes as interrupted on the next start. */
   close(): void {
-    for (const active of this.active.values()) active.evaluator?.close();
+    for (const active of this.active.values()) {
+      if (!active.abort.signal.aborted) active.shuttingDown = true;
+      active.abort.abort();
+      active.evaluator?.close();
+    }
   }
 }

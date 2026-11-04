@@ -1,6 +1,13 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
@@ -15,7 +22,7 @@ import { releaseMentor } from '../src/vault/gate';
 import { Vault } from '../src/vault/vault';
 import { stepRequest } from '../src/wsp/mentor';
 import { compare, measure, passes, repeats } from '../src/wsp/metrics';
-import { inspectModelFolder, safetensorsHeader } from '../src/wsp/models';
+import { baseChanges, inspectModelFolder, pinBase, safetensorsHeader } from '../src/wsp/models';
 import { wspResult } from '../src/wsp/result';
 import { WspService, type WspProcesses } from '../src/wsp/service';
 import { standInMentor } from '../src/wsp/stand-in';
@@ -205,6 +212,33 @@ describe('model folders', () => {
     );
     expect(inspectModelFolder(dir, {}, 64).parameters).toBe(32 + 24);
   });
+
+  it('detects files added to a pinned checkpoint', async () => {
+    const dir = tinyModel(join(temp(), 'tiny'));
+    const base = await pinBase(inspectModelFolder(dir, {}, 64));
+    writeFileSync(join(dir, 'additional.safetensors'), 'unexpected shard');
+    expect(await baseChanges(base)).toEqual(['additional.safetensors']);
+  });
+
+  it.each([
+    { architecture: 'TinyMLP', shape: [3, 4], parameters: 12 },
+    { architecture: 'TinyCNN', shape: [4, 3, 3, 3], parameters: 108 },
+  ])(
+    'reads $architecture tensor metadata without claiming network support',
+    ({ architecture, shape, parameters }) => {
+      const dir = temp();
+      const file = join(dir, 'model.safetensors');
+      writeSafetensors(file, {
+        'layer.weight': { shape, values: Array<number>(parameters).fill(1) },
+      });
+      writeFileSync(join(dir, 'config.json'), JSON.stringify({ architectures: [architecture] }));
+      expect(safetensorsHeader(file)['layer.weight']?.shape).toEqual(shape);
+      const inspected = inspectModelFolder(dir, {}, 64);
+      expect(inspected.parameters).toBe(parameters);
+      expect(inspected.compatibility.supported).toBe(false);
+      expect(inspected.compatibility.reasons.join(' ')).toMatch(/ForCausalLM/);
+    },
+  );
 
   it('names a cache snapshot by its repository and revision', () => {
     const revision = 'c1899de289a04d12100db370d81485cdf75e47ca';
@@ -441,6 +475,16 @@ function fakeProcesses(): WspProcesses & { requests: string[] } {
         schema: { parse(value: unknown): T },
       ) {
         requests.push(op);
+        if (op === 'read') {
+          return Promise.resolve(
+            schema.parse({ file: payload['out'], sha256: 'a'.repeat(64), seconds: 0.1 }),
+          );
+        }
+        if (op === 'materialize') {
+          mkdirSync(String(payload['out']), { recursive: true });
+          writeFileSync(join(String(payload['out']), 'model.safetensors'), 'checkpoint');
+          return Promise.resolve(schema.parse({ files: [] }));
+        }
         if (op === 'compose') {
           const bytes = Buffer.from('candidate tensors');
           writeFileSync(String(payload['out']), bytes);
@@ -553,6 +597,279 @@ describe('a run on stand-in processes', () => {
       true,
     );
     expect(qualified.costs.forwardPasses).toBe(evaluated.costs.forwardPasses);
+  });
+});
+
+describe('frozen checkpoint integrity', () => {
+  async function frozen(
+    configure?: (processes: ReturnType<typeof fakeProcesses>) => void,
+    forwardPasses = WSP_DEFAULT_LIMITS.forwardPasses,
+  ) {
+    const dir = temp();
+    const model = tinyModel(join(dir, 'tiny'));
+    const processes = fakeProcesses();
+    configure?.(processes);
+    const wsp = new WspService({
+      dir: join(dir, 'wsp'),
+      sourceDir: SOURCE,
+      vault: new Vault(dir),
+      processes,
+      connectMentor: () => Promise.resolve(standInMentor()),
+      mentorStatus: () =>
+        Promise.resolve({
+          mentor: {
+            label: 'Stand-in mentor',
+            provider: 'openai',
+            model: 'scripted',
+            reasoningEffort: 'high',
+            standIn: true,
+          },
+          status: 'ready',
+        }),
+    });
+    const drafted = await wsp.draft({
+      modelPath: model,
+      goal: { task: 'Add two numbers.', examples: examples(30) },
+      compute: 'local-cpu',
+      limits: { ...WSP_DEFAULT_LIMITS, forwardPasses },
+      reasoningEffort: 'high',
+    });
+    const wait = async (busy: string[]) => {
+      for (let i = 0; i < 300 && busy.includes(wsp.get(drafted.id).status); i += 1) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+    };
+    await wait(['briefing']);
+    wsp.start(drafted.id);
+    await wait(['running']);
+    const experiment = wsp.get(drafted.id);
+    expect(experiment.status).toBe('evaluated');
+    return { dir, model, processes, wsp, experiment };
+  }
+
+  it('refuses qualification against a changed base before measuring sealed examples', async () => {
+    const { model, processes, wsp, experiment } = await frozen();
+    writeFileSync(join(model, 'config.json'), '{}');
+    const before = processes.requests.length;
+    await expect(wsp.qualify(experiment.id)).rejects.toThrow(/base checkpoint changed/);
+    expect(processes.requests.length).toBe(before);
+    expect(wsp.get(experiment.id).status).toBe('evaluated');
+  });
+
+  it('reserves the candidate evaluations when a program also asks for hidden states', async () => {
+    const { experiment, processes } = await frozen((processes) => {
+      const kernel = processes.kernel;
+      processes.kernel = async (...args) => {
+        const result = await kernel(...args);
+        if (result.kind === 'done')
+          result.result.reads = [{ name: 'probe', texts: ['unsealed practice'], layers: [0] }];
+        return result;
+      };
+    }, 6);
+    expect(experiment.costs.forwardPasses).toBe(6);
+    expect(experiment.iterations[0]?.decision).toBe('kept');
+    expect(processes.requests).not.toContain('read');
+  });
+
+  it('stops baseline measurements at a two-pass cap without inventing control results', async () => {
+    const { experiment, processes } = await frozen(undefined, 2);
+    expect(experiment.costs.forwardPasses).toBe(2);
+    expect(processes.requests).toEqual(['generate', 'generate']);
+    expect(experiment.measurements.map((item) => [item.arm, item.split])).toEqual([
+      ['base', 'practice'],
+      ['base', 'dev'],
+    ]);
+    expect(experiment.frozen).toBeNull();
+    expect(experiment.result?.verdict).toBe('no-candidate');
+    expect(experiment.activity).toMatch(/forward passes/);
+  });
+
+  it.each([false, true])(
+    'aborts the kernel on shutdown, preserving prior cancellation: %s',
+    async (cancelled) => {
+      const { dir, wsp, experiment, processes } = await frozen();
+      const path = join(dir, 'wsp', 'experiments', experiment.id, 'experiment.json');
+      writeFileSync(
+        path,
+        JSON.stringify({
+          ...experiment,
+          status: 'interrupted',
+          iterations: [],
+          incumbent: null,
+          frozen: null,
+        }),
+      );
+      let signal: AbortSignal | undefined;
+      let entered!: () => void;
+      const running = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      processes.kernel = (_paths, _request, _file, options) =>
+        new Promise((_resolve, reject) => {
+          signal = options.signal;
+          options.signal!.addEventListener('abort', () => reject(new Error('Cancelled.')), {
+            once: true,
+          });
+          entered();
+        });
+      wsp.resume(experiment.id);
+      await running;
+      if (cancelled) wsp.cancel(experiment.id);
+      wsp.close();
+      expect(signal?.aborted).toBe(true);
+      for (
+        let i = 0;
+        i < 100 && ['running', 'cancelling'].includes(wsp.get(experiment.id).status);
+        i += 1
+      ) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      expect(wsp.get(experiment.id).status).toBe(cancelled ? 'cancelled' : 'interrupted');
+      expect(wsp.get(experiment.id).iterations).toHaveLength(cancelled ? 1 : 0);
+    },
+  );
+
+  it('resumes an unfinished program after shutdown interrupts composition', async () => {
+    const { dir, wsp, experiment, processes } = await frozen();
+    const path = join(dir, 'wsp', 'experiments', experiment.id, 'experiment.json');
+    writeFileSync(
+      path,
+      JSON.stringify({
+        ...experiment,
+        status: 'interrupted',
+        iterations: [],
+        incumbent: null,
+        frozen: null,
+      }),
+    );
+    let entered!: () => void;
+    const composing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const original = processes.evaluator;
+    processes.evaluator = (...args) => {
+      const evaluator = original(...args);
+      const request = evaluator.request.bind(evaluator);
+      let stopCompose: (() => void) | undefined;
+      evaluator.request = (op, payload, schema) => {
+        if (op !== 'compose') return request(op, payload, schema);
+        return new Promise((_resolve, reject) => {
+          stopCompose = () => reject(new Error('Evaluator closed.'));
+          entered();
+        });
+      };
+      evaluator.close = () => stopCompose?.();
+      return evaluator;
+    };
+    wsp.resume(experiment.id);
+    await composing;
+    wsp.close();
+    await expect.poll(() => wsp.get(experiment.id).status).toBe('interrupted');
+    expect(wsp.get(experiment.id).iterations).toHaveLength(0);
+
+    processes.evaluator = original;
+    wsp.resume(experiment.id);
+    await expect.poll(() => wsp.get(experiment.id).status).toBe('evaluated');
+    const resumed = wsp.get(experiment.id);
+    expect(resumed.iterations).toHaveLength(1);
+    expect(resumed.iterations[0]?.n).toBe(1);
+    expect(resumed.iterations[0]?.decision).toBe('kept');
+  });
+
+  it('does not start an evaluator after shutdown interrupts checkpoint hashing', async () => {
+    const { dir, wsp, experiment, processes } = await frozen();
+    const path = join(dir, 'wsp', 'experiments', experiment.id, 'experiment.json');
+    writeFileSync(path, JSON.stringify({ ...experiment, status: 'brief' }));
+    let starts = 0;
+    const evaluator = processes.evaluator;
+    processes.evaluator = (...args) => {
+      const process = evaluator(...args);
+      process.start = () => {
+        starts += 1;
+        return Promise.resolve();
+      };
+      return process;
+    };
+    wsp.start(experiment.id);
+    wsp.close();
+    for (let i = 0; i < 100 && wsp.get(experiment.id).status === 'running'; i += 1) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    expect(wsp.get(experiment.id).status).toBe('interrupted');
+    expect(starts).toBe(0);
+  });
+
+  it('refuses export when frozen tensor bytes no longer match their manifest', async () => {
+    const { dir, wsp, experiment } = await frozen();
+    writeFileSync(
+      join(
+        dir,
+        'wsp',
+        'experiments',
+        experiment.id,
+        'candidates',
+        experiment.frozen!.candidateId,
+        'tensors.safetensors',
+      ),
+      'tampered',
+    );
+    await expect(wsp.exportCandidate(experiment.id, join(dir, 'export'))).rejects.toThrow(
+      /tensors changed/,
+    );
+  });
+
+  it('refuses export against a changed base', async () => {
+    const { dir, model, wsp, experiment } = await frozen();
+    writeFileSync(join(model, 'config.json'), '{}');
+    await expect(wsp.exportCandidate(experiment.id, join(dir, 'export'))).rejects.toThrow(
+      /base checkpoint changed/,
+    );
+  });
+
+  it('refuses changed manifest metadata even when its stored digest is unchanged', async () => {
+    const { dir, wsp, experiment } = await frozen();
+    const path = join(
+      dir,
+      'wsp',
+      'experiments',
+      experiment.id,
+      'candidates',
+      experiment.frozen!.candidateId,
+      'manifest.json',
+    );
+    const manifest = JSON.parse(readFileSync(path, 'utf8')) as { changed: number };
+    manifest.changed = 999;
+    writeFileSync(path, JSON.stringify(manifest));
+    await expect(wsp.exportCandidate(experiment.id, join(dir, 'export'))).rejects.toThrow(
+      /frozen candidate changed/,
+    );
+  });
+
+  it('removes a partial export so the same destination can be retried', async () => {
+    const { dir, processes, wsp, experiment } = await frozen();
+    const evaluator = processes.evaluator;
+    processes.evaluator = (...args) => {
+      const process = evaluator(...args);
+      process.request = async (_op, payload) => {
+        mkdirSync(String(payload['out']), { recursive: true });
+        writeFileSync(join(String(payload['out']), 'partial.safetensors'), 'incomplete');
+        throw new Error('Disk write failed.');
+      };
+      return process;
+    };
+    const exports = join(dir, 'export');
+    await expect(wsp.exportCandidate(experiment.id, exports)).rejects.toThrow(/Disk write failed/);
+    expect(readdirSync(exports)).toEqual([]);
+    processes.evaluator = evaluator;
+    const exported = await wsp.exportCandidate(experiment.id, exports);
+    expect(readFileSync(join(exported.folder, 'model.safetensors'), 'utf8')).toBe('checkpoint');
+    expect(
+      JSON.parse(readFileSync(join(exported.folder, 'architect-wsp.json'), 'utf8')),
+    ).toMatchObject({
+      experiment: experiment.id,
+      candidate: { id: experiment.frozen!.candidateId },
+    });
+    expect(readdirSync(exports)).toEqual([`tiny-${experiment.frozen!.candidateId}`]);
   });
 });
 

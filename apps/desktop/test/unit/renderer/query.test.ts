@@ -3,6 +3,7 @@ import {
   fetchQuery,
   peekQuery,
   readsOnMount,
+  setQueryData,
   type QueryEntry,
 } from '../../../src/renderer/src/api/query';
 
@@ -188,6 +189,48 @@ describe('asking for a read while one is under way', () => {
       status: 'error',
       error: { message: 'The engine stopped.' },
     });
+  });
+});
+
+describe('a completed write while a read is under way', () => {
+  it.each(['success', 'failure'] as const)(
+    'keeps the write when the older read ends in %s',
+    async (outcome) => {
+      const older = gate();
+      const key = `write-before-${outcome}`;
+      const reading = fetchQuery(key, () => older.promise);
+      setQueryData(key, 'saved');
+      if (outcome === 'success') older.resolve('before the write');
+      else older.reject(new Error('The old read failed.'));
+      await reading;
+      expect(peekQuery(key)).toEqual({ status: 'success', data: 'saved' });
+    },
+  );
+
+  it('drops reloads requested before the write completed', async () => {
+    const older = gate();
+    const run = planned(older);
+    const reading = fetchQuery('write-drops-reload', run.fetcher);
+    void fetchQuery('write-drops-reload', run.fetcher);
+    setQueryData('write-drops-reload', 'saved');
+    older.resolve('before the write');
+    await reading;
+    expect(peekQuery('write-drops-reload')).toEqual({ status: 'success', data: 'saved' });
+    expect(run.started()).toBe(1);
+  });
+
+  it('still reads again for a reload requested after the write completed', async () => {
+    const [older, newer] = [gate(), gate()];
+    const run = planned(older, newer);
+    const reading = fetchQuery('write-then-reload', run.fetcher);
+    setQueryData('write-then-reload', 'saved');
+    void fetchQuery('write-then-reload', run.fetcher);
+    older.resolve('before the write');
+    await settled();
+    expect(peekQuery('write-then-reload')?.data).toBe('saved');
+    newer.resolve('after the write');
+    await reading;
+    expect(peekQuery('write-then-reload')).toEqual({ status: 'success', data: 'after the write' });
   });
 });
 
