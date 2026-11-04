@@ -64,7 +64,9 @@ export function wspResult(experiment: WspExperiment, split: 'dev' | 'qualificati
       summary:
         tried === 0
           ? 'No program made an edit the runner accepted, so there is no candidate.'
-          : `${tried === 1 ? 'The one candidate' : `None of the ${tried} candidates`} gained over the base on dev, so none was kept.`,
+          : tried === 1
+            ? "The one candidate didn't gain over the base on dev, so it wasn't kept."
+            : `None of the ${tried} candidates gained over the base on dev, so none was kept.`,
       candidateId: null,
       comparisons: [],
       regressions: [],

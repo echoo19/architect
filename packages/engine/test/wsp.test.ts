@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -15,7 +16,7 @@ import { Vault } from '../src/vault/vault';
 import { compare, measure, passes, repeats } from '../src/wsp/metrics';
 import { inspectModelFolder, safetensorsHeader } from '../src/wsp/models';
 import { wspResult } from '../src/wsp/result';
-import { WspService } from '../src/wsp/service';
+import { WspService, type WspProcesses } from '../src/wsp/service';
 import { standInMentor } from '../src/wsp/stand-in';
 import { splitExamples } from '../src/wsp/store';
 import { runKernel } from '../src/wsp/worker';
@@ -298,6 +299,125 @@ describe('the service without a worker', () => {
     const reopened = service(dir);
     reopened.recover();
     expect(reopened.get(drafted.id).status).toBe('interrupted');
+  });
+});
+
+/**
+ * Stand-in processes for the runner: a kernel whose every program saves one edit, and an
+ * evaluator under which the candidate answers every example right and anything else none.
+ */
+function fakeProcesses(): WspProcesses & { requests: string[] } {
+  const requests: string[] = [];
+  const answer = (prompt: string) => String(2 * Number(/what is (\d+) plus/.exec(prompt)![1]));
+  return {
+    requests,
+    status: () => ({ status: 'ready', python: '3.12.0' }),
+    kernel: () =>
+      Promise.resolve({
+        kind: 'done',
+        seconds: 0.1,
+        result: {
+          status: 'ok',
+          error: null,
+          output: 'Saved one edit.',
+          edits: { files: { 'model.layers.1.mlp.down_proj.weight': 'edit-0.npy' } },
+          reads: [],
+          refused: [],
+        },
+      }),
+    evaluator: () => ({
+      info: { python: '3.12.0' },
+      start: () => Promise.resolve(),
+      close: () => undefined,
+      request<T>(op: string, payload: Record<string, unknown>, schema: { parse(value: unknown): T }) {
+        requests.push(op);
+        if (op === 'compose') {
+          const bytes = Buffer.from('candidate tensors');
+          writeFileSync(String(payload['out']), bytes);
+          return Promise.resolve(
+            schema.parse({
+              edits: [
+                {
+                  tensor: 'model.layers.1.mlp.down_proj.weight',
+                  shape: [4, 6],
+                  dtype: 'F32',
+                  sha256: 'b'.repeat(64),
+                  changed: 4,
+                  total: 24,
+                  relativeChange: 0.1,
+                },
+              ],
+              sha256: createHash('sha256').update(bytes).digest('hex'),
+              parameters: 1_000_000,
+            }),
+          );
+        }
+        const prompts = payload['prompts'] as string[];
+        const outputs = prompts.map((prompt) => ({
+          text: payload['candidate'] ? `It is ${answer(prompt)}.` : 'I am not sure.',
+          tokens: 5,
+          cutOff: false,
+        }));
+        return Promise.resolve(schema.parse({ outputs, seconds: 0.5 }));
+      },
+    }),
+  };
+}
+
+describe('a run on stand-in processes', () => {
+  it('keeps a candidate that gains on dev, freezes it, and opens the sealed examples only to qualify it', async () => {
+    const dir = temp();
+    const model = tinyModel(join(dir, 'tiny'));
+    const processes = fakeProcesses();
+    const wsp = new WspService({
+      dir: join(dir, 'wsp'),
+      sourceDir: SOURCE,
+      vault: new Vault(dir),
+      processes,
+      connectMentor: () => Promise.resolve(standInMentor()),
+      mentorStatus: () =>
+        Promise.resolve({
+          mentor: { label: 'Stand-in mentor', provider: 'openai', model: 'scripted', reasoningEffort: 'high', standIn: true },
+          status: 'ready',
+        }),
+    });
+    const wait = async (id: string, busy: string[]) => {
+      for (let i = 0; i < 300 && busy.includes(wsp.get(id).status); i += 1) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      return wsp.get(id);
+    };
+    const drafted = await wsp.draft({
+      modelPath: model,
+      goal: { task: 'Add two numbers.', examples: examples(30) },
+      compute: 'local-cpu',
+      limits: { ...WSP_DEFAULT_LIMITS, maxChangedFraction: 0.01 },
+      reasoningEffort: 'high',
+    });
+    await wait(drafted.id, ['briefing']);
+    wsp.start(drafted.id);
+    const evaluated = await wait(drafted.id, ['running']);
+    expect(evaluated.status).toBe('evaluated');
+    expect(evaluated.iterations[0]?.decision).toBe('kept');
+    expect(evaluated.frozen?.candidateId).toBe(evaluated.incumbent);
+    expect(evaluated.measurements.some((item) => item.split === 'qualification')).toBe(false);
+    expect(evaluated.result?.verdict).toBe('improved');
+    const manifest = JSON.parse(
+      readFileSync(join(dir, 'wsp', 'experiments', drafted.id, 'candidates', evaluated.incumbent!, 'manifest.json'), 'utf8'),
+    ) as { id: string; digest: string; baseDigest: string; method: string };
+    expect(manifest.digest).toBe(evaluated.frozen?.digest);
+    expect(manifest.id).toBe(`wspc-${manifest.digest.slice(0, 20)}`);
+    expect(manifest.baseDigest).toBe(evaluated.base.digest);
+    expect(manifest.method).toBe('weight_program');
+
+    await wsp.qualify(drafted.id);
+    const qualified = await wait(drafted.id, ['qualifying']);
+    expect(qualified.status).toBe('qualified');
+    const sealed = qualified.measurements.filter((item) => item.split === 'qualification');
+    expect(sealed.map((item) => item.arm).sort()).toEqual(['base', 'candidate', 'decoding', 'instructions']);
+    expect(sealed.every((item) => item.n === qualified.split.qualification)).toBe(true);
+    expect(qualified.result?.comparisons.every((item) => item.split === 'qualification')).toBe(true);
+    expect(qualified.costs.forwardPasses).toBe(evaluated.costs.forwardPasses);
   });
 });
 

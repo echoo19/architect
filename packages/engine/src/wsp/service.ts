@@ -90,13 +90,36 @@ export interface WspServiceOptions {
   hubCache?: string;
   /** The worker's Python environment; `<dir>/python` when absent. */
   envDir?: string;
+  /** The evaluator and kernel processes; the real ones when absent. Tests pass stand-ins. */
+  processes?: WspProcesses;
   now?: () => Date;
   onError?: (error: unknown) => void;
 }
 
+/** What the runner asks of the evaluator: one request at a time, then close. */
+export interface WspEvaluator {
+  info: { python?: string | undefined } | null;
+  start(): Promise<void>;
+  request<T>(op: string, payload: Record<string, unknown>, schema: z.ZodType<T>): Promise<T>;
+  close(): void;
+}
+
+export interface WspProcesses {
+  evaluator(paths: WspWorkerPaths, base: string, session: string, memoryBytes: number): WspEvaluator;
+  kernel: typeof runKernel;
+  /** Whether the worker's environment is ready. */
+  status: typeof workerStatus;
+}
+
+const REAL_PROCESSES: WspProcesses = {
+  evaluator: (paths, base, session, memoryBytes) => new EvaluatorProcess(paths, base, session, memoryBytes),
+  kernel: runKernel,
+  status: workerStatus,
+};
+
 interface Active {
   abort: AbortController;
-  evaluator: EvaluatorProcess | null;
+  evaluator: WspEvaluator | null;
 }
 
 function canonical(value: unknown): string {
@@ -158,7 +181,10 @@ export class WspService {
     this.paths = { sourceDir: options.sourceDir, envDir: options.envDir ?? this.store.envDir };
     this.now = options.now ?? (() => new Date());
     this.onError = options.onError ?? ((error) => console.error(error));
+    this.processes = options.processes ?? REAL_PROCESSES;
   }
+
+  private readonly processes: WspProcesses;
 
   /** At start: whatever was working when the app closed stops where it was, to resume. */
   recover(): void {
@@ -207,7 +233,7 @@ export class WspService {
 
   worker(): WspWorkerStatus {
     if (this.settingUp !== null) return { status: 'setting-up' };
-    return workerStatus(this.paths);
+    return this.processes.status(this.paths);
   }
 
   setupWorker(): WspWorkerStatus {
@@ -455,10 +481,10 @@ export class WspService {
       if (changed.length > 0) {
         throw new Error(`The base checkpoint changed since the experiment was made (${changed.join(', ')}); start a new experiment.`);
       }
-      const worker = workerStatus(this.paths);
+      const worker = this.processes.status(this.paths);
       if (worker.status !== 'ready') throw new Error(worker.reason ?? 'The WSP worker is not set up.');
       update((experiment) => ({ ...experiment, activity: 'Loading the model' }));
-      const evaluator = new EvaluatorProcess(this.paths, start.base.path, this.store.dir(id), start.limits.memoryGb * GB);
+      const evaluator = this.processes.evaluator(this.paths, start.base.path, this.store.dir(id), start.limits.memoryGb * GB);
       active.evaluator = evaluator;
       await evaluator.start();
       update((experiment) => ({
@@ -687,7 +713,7 @@ export class WspService {
     rmSync(out, { recursive: true, force: true });
     mkdirSync(out, { recursive: true });
     const incumbent = experiment.incumbent === null ? null : this.candidatePath(id, experiment.incumbent);
-    const outcome = await runKernel(
+    const outcome = await this.processes.kernel(
       this.paths,
       {
         base: experiment.base.path,
@@ -865,7 +891,7 @@ export class WspService {
         const proof = this.released.get(id) ?? (await releaseMentor({ dispose: () => undefined }));
         this.released.set(id, proof);
         const sealed = this.options.vault.openWsp(id, proof);
-        const evaluator = new EvaluatorProcess(this.paths, experiment.base.path, this.store.dir(id), experiment.limits.memoryGb * GB);
+        const evaluator = this.processes.evaluator(this.paths, experiment.base.path, this.store.dir(id), experiment.limits.memoryGb * GB);
         active.evaluator = evaluator;
         await evaluator.start();
         const arms: [WspArm, string | undefined][] = [
@@ -903,7 +929,7 @@ export class WspService {
     if (experiment.frozen === null) throw new CodedError('experiment_state', 'There is no frozen candidate to export.');
     const folder = join(parentDir, `${experiment.base.name.split('/').pop()}-${experiment.frozen.candidateId}`);
     if (existsSync(folder)) throw new Error(`${folder} already exists.`);
-    const evaluator = new EvaluatorProcess(this.paths, experiment.base.path, this.store.dir(id), experiment.limits.memoryGb * GB);
+    const evaluator = this.processes.evaluator(this.paths, experiment.base.path, this.store.dir(id), experiment.limits.memoryGb * GB);
     try {
       await evaluator.start();
       const written = await evaluator.request(

@@ -4,9 +4,9 @@ import type { BriefContext, StepContext, WspMentorClient, WspStep } from './ment
 /*
  * A scripted mentor for Architect WSP's tests and its unbilled demonstrations (decision 109). It
  * writes the same kind of programs Astra is asked for, from a fixed recipe: read hidden states
- * of outputs that failed and that passed, then remove the direction between them from the MLP
- * output projections of a band of middle layers (W' = W - a u u^T W, the form of the published
- * 10-pass repair). It never calls a model, costs nothing, and every experiment it runs is
+ * of outputs that failed and that passed, then remove the direction between them from the 64
+ * output columns of each middle layer's MLP down projection that write most along it (the form
+ * of the published 50-pass repair, which touched 64 columns in two layers). It never calls a model, costs nothing, and every experiment it runs is
  * marked as a stand-in's, never as Astra's result.
  */
 
@@ -18,7 +18,7 @@ function brief(context: BriefContext): WspBrief {
     objective: `Move the model toward the goal by a targeted weight edit: ${context.experiment.goal.task}`,
     baseline: 'Measure the base on practice and dev at greedy decoding, with the two controls beside it.',
     investigation:
-      'Read hidden states for the outputs that fail and the ones that pass, find the direction that separates them in the middle layers, and remove it from those layers\' MLP output projections.',
+      'Read hidden states for the outputs that fail and the ones that pass, find the direction that separates them in the middle layers, and remove it from the 64 MLP output columns of each of those layers that write most along it.',
     successCriteria: [
       checked
         ? 'The candidate passes more dev examples than the base and than both controls.'
@@ -58,8 +58,10 @@ for layer in band:
     u = u / norm
     name = f"model.layers.{layer}.mlp.down_proj.weight"
     W = weights.get(name)
-    save_edit(name, W - torch.outer(u, u @ W))
-    print(f"layer {layer}: removed a direction of norm {norm:.3f}")
+    columns = torch.topk((u @ W).abs(), 64).indices
+    W[:, columns] -= torch.outer(u, u @ W[:, columns])
+    save_edit(name, W)
+    print(f"layer {layer}: removed a direction of norm {norm:.3f} from 64 columns")
 `;
 
 export function standInMentor(): WspMentorClient {
