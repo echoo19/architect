@@ -56,6 +56,12 @@ export function ModelStep({
   return (
     <StepBody
       title="Which model?"
+      lede={
+        <span className="flex items-center gap-2.5">
+          <Lock size={16} strokeWidth={1.8} aria-hidden />
+          Read only: nothing is ever written to the original checkpoint.
+        </span>
+      }
       end={
         <Button size="md" loading={inspecting} onClick={() => void chooseFolder()}>
           <FolderOpen size={16} strokeWidth={1.8} aria-hidden />
@@ -63,10 +69,6 @@ export function ModelStep({
         </Button>
       }
     >
-      <p className="-mt-4 mb-0 flex items-center gap-2.5 text-ui">
-        <Lock size={16} strokeWidth={1.8} aria-hidden />
-        Read only: nothing is ever written to the original checkpoint.
-      </p>
       {rows ? (
         <DataTable
           aria-label="Models"
@@ -109,7 +111,8 @@ export function ModelStep({
               key: 'parameters',
               header: 'Parameters',
               align: 'end',
-              cell: (model) => parametersText(model.parameters),
+              // A checkpoint whose tensors couldn't be read has no count, never a zero.
+              cell: (model) => (model.parameters === 0 ? null : parametersText(model.parameters)),
             },
             {
               key: 'dtype',
@@ -130,11 +133,12 @@ export function ModelStep({
               header: 'Memory',
               hint: 'Estimated peak memory on this computer while an experiment runs',
               align: 'end',
-              cell: (model) => (
-                <span className="whitespace-nowrap">
-                  {Number(model.memoryGb.toFixed(1)).toLocaleString('en-US')} GB
-                </span>
-              ),
+              cell: (model) =>
+                model.compatibility.supported ? (
+                  <span className="whitespace-nowrap">
+                    {Number(model.memoryGb.toFixed(1)).toLocaleString('en-US')} GB
+                  </span>
+                ) : null,
             },
             {
               key: 'compatibility',

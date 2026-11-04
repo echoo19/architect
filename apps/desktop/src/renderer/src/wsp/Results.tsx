@@ -55,18 +55,25 @@ function ComparisonPlot({ result, qualified }: { result: WspResult; qualified: b
   }));
   const [low, high] = pointsDomain(shown);
   return (
-    <IntervalPlot
-      aria-label="Candidate against each arm, in points"
-      groups={groups}
-      domain={[low, high]}
-      ticks={[low, low / 2, 0, high / 2, high]}
-      format={signedPoints}
-    />
+    <Card title="Candidate against each arm">
+      <div className="flex flex-col gap-5">
+        <p className="m-0 -mt-2 text-small">
+          The candidate&rsquo;s rate minus the other arm&rsquo;s, in points, with its 95% interval
+        </p>
+        <IntervalPlot
+          aria-label="Candidate against each arm, in points"
+          groups={groups}
+          domain={[low, high]}
+          ticks={[low, low / 2, 0, high / 2, high]}
+          format={signedPoints}
+        />
+      </div>
+    </Card>
   );
 }
 
-/** The verdict, what the measurements show, and the candidate against every arm. */
-export function ResultCard({
+/** The verdict and what the measurements show, then the candidate against every arm. */
+export function ResultSection({
   experiment,
   result,
 }: {
@@ -74,15 +81,13 @@ export function ResultCard({
   result: WspResult;
 }) {
   return (
-    <Card title="Result">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <p className="m-0 font-display text-h1 font-semibold">{VERDICT_WORDS[result.verdict]}</p>
-          <p className="m-0 max-w-[760px] text-body text-pretty">{result.summary}</p>
-        </div>
-        <ComparisonPlot result={result} qualified={experiment.status === 'qualified'} />
+    <section aria-label="Result" className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <p className="m-0 font-display text-h1 font-semibold">{VERDICT_WORDS[result.verdict]}</p>
+        <p className="m-0 max-w-[760px] text-body text-pretty">{result.summary}</p>
       </div>
-    </Card>
+      <ComparisonPlot result={result} qualified={experiment.status === 'qualified'} />
+    </section>
   );
 }
 

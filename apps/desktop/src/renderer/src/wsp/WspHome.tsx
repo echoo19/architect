@@ -90,8 +90,9 @@ export function WspHome() {
                 cell: (experiment) => {
                   const best = bestChange(experiment);
                   return best === null ? null : (
-                    <span className="whitespace-nowrap" title={METRIC_WORDS[metricOf(experiment)]}>
-                      {pointsText(best)}
+                    <span className="flex flex-col items-end whitespace-nowrap leading-5">
+                      <span>{pointsText(best)}</span>
+                      <span className="text-small">{METRIC_WORDS[metricOf(experiment)]}</span>
                     </span>
                   );
                 },

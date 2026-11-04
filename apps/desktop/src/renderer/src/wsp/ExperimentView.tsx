@@ -10,6 +10,7 @@ import {
   ErrorState,
   ProgressStepper,
   Spinner,
+  Tooltip,
 } from '@architect/ui';
 import { FolderOutput, Lightbulb, Play, ShieldCheck, Square } from 'lucide-react';
 import { flowApi } from '../api/client';
@@ -33,7 +34,7 @@ import {
   STATUS_WORDS,
 } from './model';
 import { ProgramDrawer } from './ProgramDrawer';
-import { CaveatCards, ResultCard } from './Results';
+import { CaveatCards, ResultSection } from './Results';
 import { StandInNote } from './StandInNote';
 
 const ARMS: readonly WspMeasurement['arm'][] = ['base', 'decoding', 'instructions', 'candidate'];
@@ -305,15 +306,17 @@ function Action({ experiment }: { experiment: WspExperiment }) {
   }
   if (status === 'evaluated') {
     return (
-      <Button
-        variant="primary"
-        size="md"
-        loading={busy}
-        onClick={() => void run("Couldn't qualify it", () => wspApi.qualify(id))}
-      >
-        <ShieldCheck size={16} strokeWidth={1.8} aria-hidden />
-        Qualify
-      </Button>
+      <Tooltip content="Measures the frozen candidate and the controls once on the sealed examples">
+        <Button
+          variant="primary"
+          size="md"
+          loading={busy}
+          onClick={() => void run("Couldn't qualify it", () => wspApi.qualify(id))}
+        >
+          <ShieldCheck size={16} strokeWidth={1.8} aria-hidden />
+          Qualify
+        </Button>
+      </Tooltip>
     );
   }
   return null;
@@ -372,7 +375,7 @@ export function ExperimentView({ experiment }: { experiment: WspExperiment }) {
         />
       )}
       <Stages experiment={experiment} />
-      {result && <ResultCard experiment={experiment} result={result} />}
+      {result && <ResultSection experiment={experiment} result={result} />}
       {!result && (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <Hypothesis experiment={experiment} />

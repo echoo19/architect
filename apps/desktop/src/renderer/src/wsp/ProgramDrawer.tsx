@@ -90,10 +90,7 @@ export function ProgramDrawer({
             <DetailList
               valueFont="text"
               items={[
-                {
-                  label: 'Candidate',
-                  value: <span className="font-mono">{iteration.candidateId}</span>,
-                },
+                { label: 'Id', value: <span className="font-mono">{iteration.candidateId}</span> },
                 ...(iteration.decision
                   ? [
                       {

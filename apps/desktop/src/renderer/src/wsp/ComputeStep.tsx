@@ -9,7 +9,6 @@ import {
 import {
   Button,
   ChoiceTiles,
-  DetailList,
   Disclosure,
   Heading,
   Panel,
@@ -24,10 +23,9 @@ import { useWspComputeTargets, useWspMentor, useWspWorker, wspApi, wspKeys } fro
 import { setQueryData } from '../api/query';
 import { ProblemState } from '../components/ProblemState';
 import { NumberRow } from '../experiments/NumberRow';
-import { formatCost } from '../flow/format';
 import { attempt } from '../lib/notify';
 import { useUi } from '../state/ui';
-import { mentorName, minutesText } from './model';
+import { mentorName } from './model';
 import { COMPUTE_ICONS, StepBody } from './parts';
 
 export type Effort = WspMentorStatus['mentor']['reasoningEffort'];
@@ -96,8 +94,13 @@ function WorkerLine({ worker }: { worker: WspWorkerStatus }) {
           />
         )
       }
-      title="Worker"
-      detail={worker.reason ?? (worker.python ? `Python ${worker.python}` : undefined)}
+      title="Program worker"
+      detail={
+        worker.reason ??
+        (worker.python
+          ? `Runs each program apart from the app, on Python ${worker.python}`
+          : undefined)
+      }
       state={words[worker.status]}
       action={
         worker.status === 'needs-setup' && (
@@ -125,7 +128,7 @@ function MentorLine({ mentor }: { mentor: WspMentorStatus }) {
       detail={
         mentor.mentor.standIn
           ? 'A scripted mentor for trying the app: nothing it finds is a result'
-          : mentor.reason
+          : (mentor.reason ?? 'Writes the programs and drafts the brief')
       }
       state={mentor.status === 'ready' ? 'Ready' : 'Needs a key'}
       action={
@@ -205,7 +208,11 @@ export function ComputeStep({
                 icon: <Icon size={16} strokeWidth={1.8} aria-hidden />,
                 ...(description === undefined ? {} : { description }),
                 ...(target.status === 'unsupported'
-                  ? { disabled: true, tip: target.reason ?? 'Not supported yet' }
+                  ? {
+                      disabled: true,
+                      description: 'Not supported yet',
+                      tip: target.reason ?? 'Not supported yet',
+                    }
                   : {}),
               };
             })}
@@ -254,53 +261,48 @@ export function ComputeStep({
         <Heading as="h2" size="title">
           Limits
         </Heading>
-        <Panel padded className="gap-4">
-          <DetailList
-            valueFont="text"
-            items={[
-              { label: 'Programs', value: limits.programs },
-              { label: 'Forward passes', value: limits.forwardPasses },
-              { label: 'Wall time', value: minutesText(limits.wallMinutes) },
-              { label: 'Mentor spend', value: `Up to ${formatCost(limits.mentorUsd)}` },
-            ]}
-          />
+        <Panel padded className="gap-2">
+          <div className="flex max-w-[480px] flex-col">
+            <NumberRow
+              label="Programs"
+              unit=""
+              value={limits.programs}
+              integer
+              min={1}
+              max={60}
+              onChange={(value) => setLimit('programs', value)}
+              onProblem={onProblem}
+            />
+            <NumberRow
+              label="Forward passes"
+              unit=""
+              value={limits.forwardPasses}
+              integer
+              min={2}
+              max={400}
+              onChange={(value) => setLimit('forwardPasses', value)}
+              onProblem={onProblem}
+            />
+            <NumberRow
+              label="Wall time"
+              unit="min"
+              value={limits.wallMinutes}
+              min={1}
+              max={1440}
+              onChange={(value) => setLimit('wallMinutes', value)}
+              onProblem={onProblem}
+            />
+            <NumberRow
+              label="Mentor spend"
+              unit="USD"
+              value={limits.mentorUsd}
+              max={500}
+              onChange={(value) => setLimit('mentorUsd', value)}
+              onProblem={onProblem}
+            />
+          </div>
           <Disclosure label="Advanced">
             <div className="flex max-w-[480px] flex-col">
-              <NumberRow
-                label="Programs"
-                value={limits.programs}
-                integer
-                min={1}
-                max={60}
-                onChange={(value) => setLimit('programs', value)}
-                onProblem={onProblem}
-              />
-              <NumberRow
-                label="Forward passes"
-                value={limits.forwardPasses}
-                integer
-                min={2}
-                max={400}
-                onChange={(value) => setLimit('forwardPasses', value)}
-                onProblem={onProblem}
-              />
-              <NumberRow
-                label="Wall time"
-                unit="min"
-                value={limits.wallMinutes}
-                min={1}
-                max={1440}
-                onChange={(value) => setLimit('wallMinutes', value)}
-                onProblem={onProblem}
-              />
-              <NumberRow
-                label="Mentor spend"
-                unit="USD"
-                value={limits.mentorUsd}
-                max={500}
-                onChange={(value) => setLimit('mentorUsd', value)}
-                onProblem={onProblem}
-              />
               <NumberRow
                 label="Seconds per program"
                 unit="s"

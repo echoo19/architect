@@ -273,7 +273,7 @@ export function pointsText(points: number): string {
 
 /** "0.6B", "1.7B", "135M": a model's size in parameters. */
 export function parametersText(count: number): string {
-  if (count >= 1e9) return `${Number((count / 1e9).toFixed(1))}B`;
+  if (count >= 1e8) return `${Number((count / 1e9).toFixed(1))}B`;
   if (count >= 1e6) return `${Math.round(count / 1e6)}M`;
   return count.toLocaleString('en-US');
 }

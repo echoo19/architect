@@ -18,10 +18,13 @@ export const COMPUTE_ICONS: Record<WspComputeId, LucideIcon> = {
 /** A step's column, at the width a form reads well in. */
 export function StepBody({
   title,
+  lede,
   end,
   children,
 }: {
   title: string;
+  /** One line under the title, where the step isn't plain without it. */
+  lede?: ReactNode;
   end?: ReactNode;
   children: ReactNode;
 }) {
@@ -33,6 +36,7 @@ export function StepBody({
         </Heading>
         {end}
       </div>
+      {lede && <div className="-mt-5 text-ui">{lede}</div>}
       {children}
     </div>
   );

@@ -206,7 +206,10 @@ export function BriefStep({
   };
   const { limits } = experiment;
   return (
-    <StepBody title="The brief">
+    <StepBody
+      title="The brief"
+      lede={`${mentorName(experiment.mentor)} drafted it from your goal. Change any part, then start the experiment.`}
+    >
       {experiment.mentor.standIn && <StandInNote />}
       <div className="flex flex-col gap-4">
         <Field label="Title" htmlFor="wsp-brief-title">

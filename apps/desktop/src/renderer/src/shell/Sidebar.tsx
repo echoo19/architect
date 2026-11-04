@@ -97,9 +97,17 @@ export function Sidebar({ route }: { route: Route }) {
         )}
       >
         <LogoMark size={20} />
-        <span className="text-body font-semibold">{EDITIONS[edition ?? 'personal'].name}</span>
-        {edition && <ExperimentalBadge edition={edition} />}
+        <span className="whitespace-nowrap text-body font-semibold">
+          {EDITIONS[edition ?? 'personal'].name}
+        </span>
       </div>
+      {/* An experimental edition's badge sits under its name, on the name's edge: beside it, the
+          name and the badge would not fit the strip past the macOS traffic lights. */}
+      {edition && EDITIONS[edition].experimental && (
+        <div className={cn('-mt-5 flex', isMac() ? 'pl-[94px]' : 'pl-9')}>
+          <ExperimentalBadge edition={edition} />
+        </div>
+      )}
 
       {places.length > 0 && (
         <nav aria-label="Places" className="flex flex-col gap-0.5">

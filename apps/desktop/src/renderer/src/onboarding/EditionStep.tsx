@@ -28,7 +28,7 @@ export function EditionStep({ edition, onChoose }: EditionStepProps) {
         aria-label="Edition"
         value={edition}
         onValueChange={onChoose}
-        className="w-full max-w-[720px] gap-3.5"
+        className="w-full max-w-[720px] grid-cols-1 gap-3"
       >
         {ORDER.map((option) => (
           <RadioCard
