@@ -103,6 +103,16 @@ import {
   type Job,
   type MentorConfig,
 } from '@architect/shared';
+import {
+  WspBriefSchema,
+  WspComputeTargetSchema,
+  WspDraftInputSchema,
+  WspExperimentSchema,
+  WspExportSchema,
+  WspMentorStatusSchema,
+  WspModelSchema,
+  WspWorkerStatusSchema,
+} from '@architect/shared';
 import { z } from 'zod';
 import { HubError, type HubErrorCode } from '../hub';
 
@@ -114,7 +124,15 @@ import { HubError, type HubErrorCode } from '../hub';
  */
 export type EngineApi = Pick<
   ArchitectApi,
-  'runs' | 'mentoring' | 'teach' | 'experiments' | 'compute' | 'reports' | 'graduates' | 'teams'
+  | 'runs'
+  | 'mentoring'
+  | 'teach'
+  | 'experiments'
+  | 'compute'
+  | 'wsp'
+  | 'reports'
+  | 'graduates'
+  | 'teams'
 > & {
   jobs: Omit<ArchitectApi['jobs'], 'draftStart' | 'draftReply' | 'draftField' | 'importFile'> & {
     importFile(path: string): Promise<Job>;
@@ -395,6 +413,51 @@ export const ENGINE_ROUTES = {
     WrittenTrainBundleSchema,
     (api, [request]) => api.compute.bundle(request),
   ),
+  'wsp.models': route(z.tuple([]), z.array(WspModelSchema), (api) => api.wsp.models()),
+  'wsp.inspectModel': route(z.tuple([path]), WspModelSchema, (api, [folder]) =>
+    api.wsp.inspectModel(folder),
+  ),
+  'wsp.computeTargets': route(z.tuple([]), z.array(WspComputeTargetSchema), (api) =>
+    api.wsp.computeTargets(),
+  ),
+  'wsp.worker': route(z.tuple([]), WspWorkerStatusSchema, (api) => api.wsp.worker()),
+  'wsp.setupWorker': route(z.tuple([]), WspWorkerStatusSchema, (api) => api.wsp.setupWorker()),
+  'wsp.mentor': route(z.tuple([]), WspMentorStatusSchema, (api) => api.wsp.mentor()),
+  'wsp.draft': route(z.tuple([WspDraftInputSchema]), WspExperimentSchema, (api, [input]) =>
+    api.wsp.draft(input),
+  ),
+  'wsp.redraft': route(z.tuple([id]), WspExperimentSchema, (api, [experimentId]) =>
+    api.wsp.redraft(experimentId),
+  ),
+  'wsp.revise': route(
+    z.tuple([id, WspBriefSchema, z.string().min(1).max(120)]),
+    WspExperimentSchema,
+    (api, [experimentId, brief, title]) => api.wsp.revise(experimentId, brief, title),
+  ),
+  'wsp.start': route(z.tuple([id]), WspExperimentSchema, (api, [experimentId]) =>
+    api.wsp.start(experimentId),
+  ),
+  'wsp.cancel': route(z.tuple([id]), WspExperimentSchema, (api, [experimentId]) =>
+    api.wsp.cancel(experimentId),
+  ),
+  'wsp.resume': route(z.tuple([id]), WspExperimentSchema, (api, [experimentId]) =>
+    api.wsp.resume(experimentId),
+  ),
+  'wsp.qualify': route(z.tuple([id]), WspExperimentSchema, (api, [experimentId]) =>
+    api.wsp.qualify(experimentId),
+  ),
+  'wsp.exportCandidate': route(
+    z.tuple([id, path]),
+    WspExportSchema,
+    (api, [experimentId, parentDir]) => api.wsp.exportCandidate(experimentId, parentDir),
+  ),
+  'wsp.program': route(z.tuple([id, versionNumber]), z.string(), (api, [experimentId, n]) =>
+    api.wsp.program(experimentId, n),
+  ),
+  'wsp.list': route(z.tuple([]), z.array(WspExperimentSchema), (api) => api.wsp.list()),
+  'wsp.get': route(z.tuple([id]), WspExperimentSchema, (api, [experimentId]) =>
+    api.wsp.get(experimentId),
+  ),
   'reports.get': route(
     z.tuple([id, StudentTargetSchema.nullable()]),
     ReportCardSchema,
@@ -624,6 +687,12 @@ export const EventMessageSchema = z.object({ kind: z.literal('event'), event: Ru
 export const ExperimentEventMessageSchema = z.object({
   kind: z.literal('experiment.event'),
   event: ExperimentEventSchema,
+});
+
+/** An Architect WSP experiment moved, or the worker's setup ended: a screen reads it again. */
+export const WspEventMessageSchema = z.object({
+  kind: z.literal('wsp.event'),
+  event: z.object({ experimentId: z.string().min(1) }),
 });
 
 /** A publication on its way to Hugging Face: sent beside run events while `publish` waits. */

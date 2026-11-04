@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ReasoningEffortSchema } from './job';
 
 /*
  * Architect WSP: weight-space programming experiments (decision 109). A mentor (GPT-6 Astra)
@@ -203,7 +204,8 @@ export const WspMentorSchema = z.strictObject({
   label: z.string().min(1),
   provider: z.literal('openai'),
   model: z.string().min(1),
-  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']),
+  /** Low, medium or high: what the mentor adapter sends as `reasoning_effort`. */
+  reasoningEffort: ReasoningEffortSchema,
   /** A scripted mentor for tests and unbilled demonstrations; never reported as Astra's work. */
   standIn: z.boolean(),
 });

@@ -16,6 +16,8 @@ import {
   type Organization,
   type SealedHashes,
   type Task,
+  WspExampleSchema,
+  type WspExample,
 } from '@architect/shared';
 import { z } from 'zod';
 import { writeFileAtomic } from '../data/atomic-write';
@@ -45,6 +47,16 @@ const ADDED_DIR = 'added';
 /** Written last in an added organization's folder, so its presence is what makes it sealed. */
 const ADDED_SEAL = 'seal.json';
 const ADDED_TASKS = 'tasks.jsonl';
+/** Architect WSP's sealed examples, one folder per experiment (decision 109). */
+const WSP_DIR = 'wsp';
+const WSP_FILE = 'qualification.jsonl';
+const WSP_ID = /^wsp-[0-9a-z]{6,40}$/;
+/** A sealed prompt shorter than this is not looked for in outgoing text: too likely by chance. */
+const WSP_MIN_PRINT = 12;
+
+function wspPrint(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
 
 /** An organization's seal beside the job's: its files' and tasks' hashes and its tasks' prints. */
 const AddedSealSchema = z.object({
@@ -788,6 +800,64 @@ export class Vault {
     }
     appendFileSync(join(dir, 'tasks.jsonl'), `${tests}${calibration}`);
     return transfer.map(({ org }) => org);
+  }
+
+  /**
+   * Seals an Architect WSP experiment's qualification examples, which only `openWsp` gives back,
+   * and only once the mentor is released. Returns the file's SHA-256.
+   */
+  sealWsp(experimentId: string, examples: readonly WspExample[]): string {
+    const dir = this.wspDir(experimentId);
+    if (existsSync(join(dir, WSP_FILE))) {
+      throw new GuardError('split', `The sealed examples of ${experimentId} are already sealed.`);
+    }
+    if (examples.length === 0) throw new Error('There are no examples to seal.');
+    const lines = examples.map((example) => JSON.stringify(WspExampleSchema.parse(example)));
+    const content = `${lines.join('\n')}\n`;
+    mkdirSync(dir, { recursive: true });
+    writeFileAtomic(join(dir, WSP_FILE), content);
+    return sha256(content);
+  }
+
+  isWspSealed(experimentId: string): boolean {
+    return existsSync(join(this.wspDir(experimentId), WSP_FILE));
+  }
+
+  /** The sealed examples, for the runner's qualification after the mentor was released. */
+  openWsp(experimentId: string, proof: MentorReleased): WspExample[] {
+    if (!isMentorReleased(proof)) {
+      throw new GuardError('split', 'The sealed examples open only once the mentor is released.');
+    }
+    return this.readWsp(experimentId);
+  }
+
+  /**
+   * Whether outgoing text carries a sealed example's prompt, so a request that does is refused
+   * before it is sent: the mentor never sees them, so one could only arrive by a leak.
+   */
+  wspLeaks(experimentId: string, text: string): boolean {
+    if (!this.isWspSealed(experimentId)) return false;
+    const haystack = wspPrint(text);
+    return this.readWsp(experimentId).some((example) => {
+      const print = wspPrint(example.prompt);
+      return print.length >= WSP_MIN_PRINT && haystack.includes(print);
+    });
+  }
+
+  private readWsp(experimentId: string): WspExample[] {
+    const path = join(this.wspDir(experimentId), WSP_FILE);
+    if (!existsSync(path)) {
+      throw new GuardError('split', `The sealed examples of ${experimentId} have not been sealed.`);
+    }
+    return readFileSync(path, 'utf8')
+      .split('\n')
+      .filter((line) => line.trim().length > 0)
+      .map((line) => WspExampleSchema.parse(JSON.parse(line)));
+  }
+
+  private wspDir(experimentId: string): string {
+    if (!WSP_ID.test(experimentId)) throw new Error(`"${experimentId}" is not a valid experiment id.`);
+    return join(this.rootDir, WSP_DIR, experimentId);
   }
 
   private transferDir(jobId: string, orgId: string): string {

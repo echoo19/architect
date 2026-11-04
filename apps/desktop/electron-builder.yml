@@ -85,13 +85,16 @@ extraResources:
     to: sample-agent/data
   # The pinned training recipe and the scripts a training job runs; the engine sends them with
   # each job and reads the recipe to price it. `architect train bundle` copies the experimental
-  # distributed trainer from experimental/.
+  # distributed trainer from experimental/. wsp/ is Architect WSP's worker (decision 109), run
+  # in an environment the app installs from its pinned requirements.
   - from: ../../trainer
     to: trainer
     filter:
       - recipe.json
       - '*.py'
       - experimental/*.py
+      - wsp/*.py
+      - wsp/requirements.txt
 
 win:
   target: nsis

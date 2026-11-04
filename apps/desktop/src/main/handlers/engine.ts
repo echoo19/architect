@@ -219,6 +219,36 @@ export function registerEngineHandlers(
       ),
   });
 
+  // Architect WSP (decision 109). A model folder is one the engine found in the Hugging Face cache
+  // or one the person chose; the folder an export goes in is one they chose.
+  const modelFolder = async (folder: string) =>
+    (await call((api) => api.wsp.models())).some((model) => model.path === folder)
+      ? folder
+      : picked.check(folder);
+  router.registerHandlers('wsp', {
+    models: () => call((api) => api.wsp.models()),
+    inspectModel: (folder) => call((api) => api.wsp.inspectModel(picked.check(folder))),
+    computeTargets: () => call((api) => api.wsp.computeTargets()),
+    worker: () => call((api) => api.wsp.worker()),
+    setupWorker: () => call((api) => api.wsp.setupWorker()),
+    mentor: () => call((api) => api.wsp.mentor()),
+    draft: async (input) => {
+      const modelPath = await modelFolder(input.modelPath);
+      return call((api) => api.wsp.draft({ ...input, modelPath }));
+    },
+    redraft: (experimentId) => call((api) => api.wsp.redraft(experimentId)),
+    revise: (experimentId, brief, title) => call((api) => api.wsp.revise(experimentId, brief, title)),
+    start: (experimentId) => call((api) => api.wsp.start(experimentId)),
+    cancel: (experimentId) => call((api) => api.wsp.cancel(experimentId)),
+    resume: (experimentId) => call((api) => api.wsp.resume(experimentId)),
+    qualify: (experimentId) => call((api) => api.wsp.qualify(experimentId)),
+    exportCandidate: (experimentId, parentDir) =>
+      call((api) => api.wsp.exportCandidate(experimentId, picked.check(parentDir))),
+    program: (experimentId, n) => call((api) => api.wsp.program(experimentId, n)),
+    list: () => call((api) => api.wsp.list()),
+    get: (experimentId) => call((api) => api.wsp.get(experimentId)),
+  });
+
   router.registerHandlers('reports', {
     get: (runId, target) => call((api) => api.reports.get(runId, target)),
     list: (runId) => call((api) => api.reports.list(runId)),
