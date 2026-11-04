@@ -76,8 +76,13 @@ class BaseWeights:
         return self._handles[self._where[name]].get_tensor(name)
 
     def parameters(self) -> int:
+        """Weights in the model, a head tied to the embedding counted once."""
+        config = self.base / "config.json"
+        tied = config.exists() and json.loads(config.read_text(encoding="utf-8")).get("tie_word_embeddings") is True
         total = 0
-        for _, shape in self._meta.values():
+        for name, (_, shape) in self._meta.items():
+            if tied and name == "lm_head.weight" and "model.embed_tokens.weight" in self._meta:
+                continue
             count = 1
             for dim in shape:
                 count *= dim

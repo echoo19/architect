@@ -163,6 +163,21 @@ describe('model folders', () => {
     expect(refused.compatibility.reasons.join(' ')).toMatch(/safetensors/);
   });
 
+  it('counts a head tied to the embedding once', () => {
+    const dir = join(temp(), 'tied');
+    mkdirSync(dir);
+    writeSafetensors(join(dir, 'model.safetensors'), {
+      'model.embed_tokens.weight': { shape: [8, 4], values: Array<number>(32).fill(1) },
+      'lm_head.weight': { shape: [8, 4], values: Array<number>(32).fill(1) },
+      'model.layers.0.mlp.down_proj.weight': { shape: [4, 6], values: Array<number>(24).fill(1) },
+    });
+    writeFileSync(
+      join(dir, 'config.json'),
+      JSON.stringify({ architectures: ['TinyForCausalLM'], tie_word_embeddings: true }),
+    );
+    expect(inspectModelFolder(dir, {}, 64).parameters).toBe(32 + 24);
+  });
+
   it('names a cache snapshot by its repository and revision', () => {
     const revision = 'c1899de289a04d12100db370d81485cdf75e47ca';
     const dir = tinyModel(join(temp(), 'models--Qwen--Qwen3-0.6B', 'snapshots', revision));

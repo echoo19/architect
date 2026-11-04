@@ -125,8 +125,13 @@ export function inspectModelFolder(
   let bytes = 0;
   let dtype: string | null = null;
   try {
-    for (const info of checkpointTensors(folder).values()) {
-      parameters += elements(info.shape);
+    const tensors = checkpointTensors(folder);
+    // A head tied to the embedding is one matrix, though some checkpoints store it twice.
+    const tied = config?.['tie_word_embeddings'] === true;
+    for (const [name, info] of tensors) {
+      if (!(tied && name === 'lm_head.weight' && tensors.has('model.embed_tokens.weight'))) {
+        parameters += elements(info.shape);
+      }
       dtype ??= info.dtype;
       if (!(info.dtype in DTYPE_BYTES))
         reasons.push(`It stores tensors as ${info.dtype}, which can't be edited here.`);

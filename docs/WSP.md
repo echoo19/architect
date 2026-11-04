@@ -59,7 +59,7 @@ A candidate (`architect.wsp-candidate/1`) is a set of whole replacement tensors 
 - What happened in that run:
   - The base passed 8 of 10 practice problems and 7 of 8 on dev. The decoding control also got 7 of 8 on dev, and the instruction control 5 of 8.
   - Program 1 read hidden states for the failing and passing outputs.
-  - Program 2 removed the direction between them from 64 columns of the down projections in layers 9 to 18: 643,841 weights, 0.09% of the model. The edit passed every check and became candidate `wspc-5a6f12443289dd3877ec`.
+  - Program 2 removed the direction between them from 64 columns of the down projections in layers 9 to 18: 643,841 weights, 0.11% of the model. The edit passed every check and became candidate `wspc-5a6f12443289dd3877ec`.
   - The candidate scored 7 of 8 on dev, no gain over the base, so the runner discarded it. With no candidate kept, no qualification ran.
   - The run took 6 minutes, with 8 forward passes and $0.
 - An earlier run removed the direction from whole matrices. That changed 26,756,603 weights, past the 1% cap, and the runner refused the edit.
