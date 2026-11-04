@@ -514,6 +514,7 @@ describe('a run on stand-in processes', () => {
     wsp.start(drafted.id);
     const evaluated = await wait(drafted.id, ['running']);
     expect(evaluated.status).toBe('evaluated');
+    expect(evaluated.activity).toBe('The scripted recipe has no further step.');
     expect(evaluated.iterations[0]?.decision).toBe('kept');
     expect(evaluated.frozen?.candidateId).toBe(evaluated.incumbent);
     expect(evaluated.measurements.some((item) => item.split === 'qualification')).toBe(false);

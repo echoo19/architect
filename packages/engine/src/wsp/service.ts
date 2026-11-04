@@ -1081,7 +1081,8 @@ export class WspService {
         ...done,
         status: 'evaluated',
         stage: 'results',
-        activity: '',
+        // Why the investigation ended: the mentor's summary, the cap it reached, or its stop.
+        activity: latest.activity,
         result: wspResult(done, 'dev'),
         endedAt: this.now().toISOString(),
       };
