@@ -60,9 +60,11 @@ class Weights:
         return self._base.dtype(name)
 
     def get(self, name: str) -> torch.Tensor:
+        # Always a copy: for a float32 base, .float() is the memory-mapped tensor itself, and an
+        # edit in place would change what the edit is then checked against.
         if name in self._incumbent:
             return self._incumbent[name].float().clone()
-        return self._base.load(name).float()
+        return self._base.load(name).float().clone()
 
     def __repr__(self) -> str:
         return f"<weights: {len(self.names())} tensors, {self._base.parameters():,} parameters>"
