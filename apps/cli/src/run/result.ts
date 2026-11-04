@@ -139,7 +139,11 @@ export function runResult(input: ResultInput): RunResult {
     steps: runSteps(steps),
     artifacts: steps
       .filter(
-        (step) => WRITE_TOOLS.has(step.name) && step.status === 'done' && step.meta !== 'declined',
+        (step) =>
+          WRITE_TOOLS.has(step.name) &&
+          step.status === 'done' &&
+          step.meta !== 'declined' &&
+          step.meta !== 'stopped',
       )
       .map((step) => ({ path: step.detail, tool: step.name, summary: step.meta ?? '' })),
     approval: approval

@@ -42,7 +42,7 @@ import { asDiskFull } from './disk';
 import { readPackageHarness } from './harness';
 import { contractFromManifest, legacyFacts } from './legacy';
 import type { GraduateLibrary } from './library';
-import { exists, freeAgentName, nextVersion, registerVersion } from './versions';
+import { exists, freeAgentName, nextVersion, registerVersion, seedDataFolder } from './versions';
 
 export interface ImportContext {
   library: GraduateLibrary;
@@ -416,93 +416,99 @@ export async function importPackage(
     const staged = await stageWithHarness(ctx, path, staging);
     const { manifest } = staged;
 
-    const installed = store.versions.withDigest(staged.digest);
-    if (installed) {
-      // The same bytes, from a hub this time: keep where they came from when nothing was before.
-      if (provenance.source !== undefined && installed.source === undefined) {
-        store.versions.update({ ...installed, source: provenance.source });
-      }
-      return {
-        graduate: library.summary(installed.graduateId),
-        version: installed.version,
-        installation: library.installation(installed.graduateId, installed.version),
-        alreadyInstalled: true,
-      };
-    }
-    const place = placeOf(ctx, manifest);
-    const { graduateId } = place;
-    return await library.lock.run(graduateId, async () => {
-      const { isNew } = place;
-      if (!isNew && (Object.keys(request.bindings).length > 0 || request.grants || request.model)) {
-        throw new Error(
-          `${library.agent(graduateId).name} is already installed here, with its own folders and permissions. Change those in its settings; this import only adds a version.`,
-        );
-      }
-      const resources = new Set(manifest.resources.map((resource) => resource.name));
-      const bindings: Record<string, string> = {};
-      for (const [name, folder] of Object.entries(request.bindings)) {
-        if (!resources.has(name)) throw new Error(`The package has no resource called "${name}".`);
-        const absolute = resolve(folder);
-        if (!(await stat(absolute).catch(() => null))?.isDirectory()) {
-          throw new Error(`${absolute} isn't a folder.`);
+    // Destination selection and registration must agree even when two imports finish staging
+    // together. An id alone never joins an agent, and identical bytes install only once.
+    return await library.lock.run(':import', async () => {
+      const installed = store.versions.withDigest(staged.digest);
+      if (installed) {
+        // The same bytes, from a hub this time: keep where they came from when nothing was before.
+        if (provenance.source !== undefined && installed.source === undefined) {
+          store.versions.update({ ...installed, source: provenance.source });
         }
-        bindings[name] = storedFolder(paths, absolute);
+        return {
+          graduate: library.summary(installed.graduateId),
+          version: installed.version,
+          installation: library.installation(installed.graduateId, installed.version),
+          alreadyInstalled: true,
+        };
       }
-
-      const version = nextVersion(store, graduateId);
-      const dir = paths.versionDir(graduateId, version);
-      await rm(dir, { recursive: true, force: true });
-      await mkdir(dirname(dir), { recursive: true });
-      await rename(staged.dir, dir);
-
-      if (isNew) {
-        for (const resource of manifest.resources) {
-          if (!resource.bundled || bindings[resource.name] !== undefined) continue;
-          const folder = join(paths.workspaceDir(graduateId), resource.name);
-          if (!(await exists(folder))) {
-            await mkdir(folder, { recursive: true });
-            for (const file of resource.files) {
-              const from = join(dir, ...resource.bundled.path.split('/'), file.name);
-              if (await exists(from)) await copyFile(from, join(folder, file.name));
-            }
+      const place = placeOf(ctx, manifest);
+      const { graduateId } = place;
+      return await library.lock.run(graduateId, async () => {
+        const { isNew } = place;
+        if (
+          !isNew &&
+          (Object.keys(request.bindings).length > 0 || request.grants || request.model)
+        ) {
+          throw new Error(
+            `${library.agent(graduateId).name} is already installed here, with its own folders and permissions. Change those in its settings; this import only adds a version.`,
+          );
+        }
+        const resources = new Set(manifest.resources.map((resource) => resource.name));
+        const bindings: Record<string, string> = {};
+        for (const [name, folder] of Object.entries(request.bindings)) {
+          if (!resources.has(name))
+            throw new Error(`The package has no resource called "${name}".`);
+          const absolute = resolve(folder);
+          if (!(await stat(absolute).catch(() => null))?.isDirectory()) {
+            throw new Error(`${absolute} isn't a folder.`);
           }
-          bindings[resource.name] = storedFolder(paths, folder);
+          bindings[name] = storedFolder(paths, absolute);
         }
-      }
 
-      const at = isoNow(library.ctx.clock);
-      store.transaction(() => {
-        registerVersion(store, paths, {
-          graduateId,
-          name: manifest.identity.name,
-          version,
-          written: { manifest, digest: staged.digest },
-          ...(place.parent === undefined ? {} : { parent: place.parent }),
-          origin: {
-            agentId: manifest.identity.agentId,
-            version: manifest.identity.version,
-            digest: staged.digest,
-          },
-          ...(provenance.source === undefined ? {} : { source: provenance.source }),
-          state: isNew ? 'accepted' : 'candidate',
-          installation: {
+        const version = nextVersion(store, graduateId);
+        const dir = paths.versionDir(graduateId, version);
+        await rm(dir, { recursive: true, force: true });
+        await mkdir(dirname(dir), { recursive: true });
+        await rename(staged.dir, dir);
+
+        if (isNew) {
+          for (const resource of manifest.resources) {
+            if (!resource.bundled || bindings[resource.name] !== undefined) continue;
+            const folder = join(paths.workspaceDir(graduateId), resource.name);
+            await seedDataFolder(
+              folder,
+              join(dir, ...resource.bundled.path.split('/')),
+              resource.files,
+            );
+            bindings[resource.name] = storedFolder(paths, folder);
+          }
+        }
+
+        const at = isoNow(library.ctx.clock);
+        store.transaction(() => {
+          registerVersion(store, paths, {
             graduateId,
-            model: request.model ?? defaultModel(ctx, manifest),
-            bindings,
-            grants: grantsFor(manifest, request.grants),
-            createdAt: at,
-            updatedAt: at,
-          },
-          at,
+            name: manifest.identity.name,
+            version,
+            written: { manifest, digest: staged.digest },
+            ...(place.parent === undefined ? {} : { parent: place.parent }),
+            origin: {
+              agentId: manifest.identity.agentId,
+              version: manifest.identity.version,
+              digest: staged.digest,
+            },
+            ...(provenance.source === undefined ? {} : { source: provenance.source }),
+            state: isNew ? 'accepted' : 'candidate',
+            installation: {
+              graduateId,
+              model: request.model ?? defaultModel(ctx, manifest),
+              bindings,
+              grants: grantsFor(manifest, request.grants),
+              createdAt: at,
+              updatedAt: at,
+            },
+            at,
+          });
         });
+        await library.checkNow(graduateId, { loadModel: request.loadModel, version });
+        return {
+          graduate: library.summary(graduateId),
+          version,
+          installation: library.installation(graduateId, version),
+          alreadyInstalled: false,
+        };
       });
-      await library.checkNow(graduateId, { loadModel: request.loadModel, version });
-      return {
-        graduate: library.summary(graduateId),
-        version,
-        installation: library.installation(graduateId, version),
-        alreadyInstalled: false,
-      };
     });
   } catch (error) {
     throw asDiskFull(error);

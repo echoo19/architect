@@ -243,6 +243,12 @@ export function baseDigest(files: readonly { name: string; sha256: string }[]): 
 /** The files that changed since the base was pinned; empty when it is as it was. */
 export async function baseChanges(base: WspBase): Promise<string[]> {
   const changed: string[] = [];
+  const pinned = new Set(base.files.map((file) => file.name));
+  if (existsSync(base.path)) {
+    for (const name of readdirSync(base.path)) {
+      if (!pinned.has(name) && statSync(join(base.path, name)).isFile()) changed.push(name);
+    }
+  }
   for (const file of base.files) {
     const path = join(base.path, file.name);
     if (

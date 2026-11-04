@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { PassThrough } from 'node:stream';
 import { RunResultSchema, type RunResult } from '@architect/shared';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanUp, cli, keyboard, machineWith, tempDir, type Machine } from './support';
+import { cleanUp, cli, keyboard, machineWith, tempDir, testEnv, type Machine } from './support';
 
 afterEach(cleanUp);
 
@@ -206,6 +206,54 @@ describe('A11: a batch run reads a JSON request and always writes a JSON result'
     expect(result).toMatchObject({ status: 'cancelled', exit_code: 130, answer: null });
   });
 
+  it.each(['interrupt', 'timeout'] as const)(
+    'ends an unfinished stdin request on %s without opening an agent',
+    async (ending) => {
+      const keys = keyboard();
+      let press = () => undefined as void;
+      const pending = cli(
+        [
+          'run',
+          'service-desk',
+          '--input',
+          '-',
+          ...(ending === 'timeout' ? ['--timeout', '1'] : []),
+        ],
+        {
+          env: await testEnv(),
+          stdin: keys,
+          interruptWith: (pressed) => (press = pressed),
+        },
+      );
+      keys.write('{"format":"architect.run-request/1",');
+      if (ending === 'interrupt') press();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let completed: boolean;
+      try {
+        completed = await Promise.race([
+          pending.then(() => true),
+          new Promise<false>((resolve) => {
+            timer = setTimeout(() => resolve(false), ending === 'timeout' ? 1500 : 250);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+        // Release the old implementation too, so a regression never leaves a waiting command.
+        keys.end();
+      }
+      const run = await pending;
+      expect(completed).toBe(true);
+      expect(run.guards).toBe(0);
+      expect(run.code).toBe(ending === 'timeout' ? 1 : 130);
+      expect(JSON.parse(run.stdout)).toMatchObject({
+        status: ending === 'timeout' ? 'runtime_error' : 'cancelled',
+        agent: null,
+        artifacts: [],
+        error: { code: ending === 'timeout' ? 'timeout' : 'cancelled' },
+      });
+    },
+  );
+
   it('exits 1 when the model runtime is not running', async () => {
     const machine = await machineWith([]);
     await machine.model.close();
@@ -276,7 +324,7 @@ describe('a request file run at a terminal', () => {
     const before = await invoices(machine);
     const { run, result } = await atTerminal(machine, (_keys, press) => press());
     expect(run.code).toBe(130);
-    expect(result).toMatchObject({ status: 'cancelled', answer: null });
+    expect(result).toMatchObject({ status: 'cancelled', answer: null, artifacts: [] });
     expect(await invoices(machine)).toBe(before);
     expect(machine.model.chats()).toHaveLength(1);
   });

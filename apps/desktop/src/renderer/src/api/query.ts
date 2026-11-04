@@ -67,6 +67,7 @@ async function attempt(fetcher: () => Promise<unknown>): Promise<Outcome> {
 async function readUntilCurrent(key: string, first: () => Promise<unknown>): Promise<void> {
   let fetcher = first;
   for (;;) {
+    const before = peekQuery(key);
     const outcome = await attempt(fetcher);
     const newer = waiting.get(key);
     if (newer) {
@@ -77,6 +78,8 @@ async function readUntilCurrent(key: string, first: () => Promise<unknown>): Pro
     // Nothing newer was asked for: this read is the current one. It stops being under way in the
     // same breath as it lands, so an ask from here on starts a read of its own.
     inflight.delete(key);
+    // A completed write supersedes a read that started before it, including a failed read.
+    if (peekQuery(key) !== before) return;
     useEntries.setState((entries) => ({
       [key]:
         'error' in outcome
@@ -89,6 +92,8 @@ async function readUntilCurrent(key: string, first: () => Promise<unknown>): Pro
 
 /** Replaces cached data after a write, so every reader sees the new value at once. */
 export function setQueryData(key: string, data: unknown): void {
+  // Only reloads requested after this write can be newer than the value it returned.
+  waiting.delete(key);
   useEntries.setState({ [key]: { status: 'success', data } });
 }
 
