@@ -43,6 +43,9 @@ import {
   THIRD_ROWS,
   THIRD_TEST_SIZE,
   TYPES,
+  WSP_BENCH,
+  WSP_FAULTS,
+  WSP_QWEN_RUNS,
   type Arm,
   type Comparison,
   type FieldArm,
@@ -52,6 +55,7 @@ import {
   type LocalRow,
   type Round,
   type SourceKey,
+  type WspFault,
 } from './evidence';
 import { Footer } from './components/Footer';
 import { Forest, type ForestRow } from './components/Forest';
@@ -71,9 +75,13 @@ const dollars = (value: number) => `$${value.toFixed(2)}`;
 const signed = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 
 /** The documents cited, in the order the page first cites them, with what each one is. */
-type RefKey = SourceKey | 'gepa' | 'ace' | 'taubench' | 'crc' | 'ltt' | 'abstention' | 'zeller';
+type RefKey =
+  SourceKey | 'gepa' | 'ace' | 'taubench' | 'crc' | 'ltt' | 'abstention' | 'zeller' | 'sparks';
 
-/** Published papers cited, by their arXiv number; the page links to no address but the repository. */
+/**
+ * Published work cited, by its arXiv number or its authors; the page links to no address but the
+ * repository.
+ */
 const PAPERS: Partial<Record<RefKey, string>> = {
   gepa: 'arXiv 2507.19457',
   ace: 'arXiv 2510.04618',
@@ -82,6 +90,7 @@ const PAPERS: Partial<Record<RefKey, string>> = {
   ltt: 'arXiv 2110.01052',
   abstention: 'arXiv 2405.01563',
   zeller: 'Zeller and Hildebrandt, 2002',
+  sparks: 'Takehi, Teoh, Zhang and Khattab, MIT CSAIL, 2026',
 };
 
 const REFERENCES: readonly { key: RefKey; what: string }[] = [
@@ -121,6 +130,12 @@ const REFERENCES: readonly { key: RefKey; what: string }[] = [
   { key: 'scale', what: 'The plan for going from a specialist to a field model.' },
   { key: 'second', what: "The returns desk comparison's report." },
   { key: 'hackathon', what: "The repair shop's demo run, recorded with the film." },
+  {
+    key: 'sparks',
+    what: 'Sparks of Weight-Space Programming: a model that edits weights through programs.',
+  },
+  { key: 'wspBench', what: "Architect WSP's benchmark of planted faults." },
+  { key: 'wsp', what: 'Architect WSP, with its two runs on Qwen3-0.6B.' },
   { key: 'third', what: 'The third Academy desk run.' },
   { key: 'thirdMisses', what: "Why the third run's Academy desk missed, checked after the test." },
   { key: 'cert', what: "The first live certificate run, on the third run's Academy desk." },
@@ -147,6 +162,7 @@ const SECTIONS = [
   'open',
   'scale',
   'returns',
+  'wsp',
   'limits',
 ] as const;
 const FIGURES = [
@@ -162,6 +178,7 @@ const FIGURES = [
   'open',
   'returns',
   'speed',
+  'wsp',
 ] as const;
 const TABLES = [
   'fieldPairs',
@@ -183,6 +200,8 @@ const TABLES = [
   'returnsPairs',
   'returnsRounds',
   'costs',
+  'wspRule',
+  'wspFaults',
 ] as const;
 
 const sec = (key: (typeof SECTIONS)[number]) => SECTIONS.indexOf(key) + 1;
@@ -239,8 +258,13 @@ function Panel({
   );
 }
 
-/** A figure in the running text, stepping out past the column where the window is wide. */
-function Exhibit(props: { label: string; caption: ReactNode; children: ReactNode }) {
+/** A figure or table in the running text, stepping out past the column where the window is wide. */
+function Exhibit(props: {
+  label: string;
+  caption: ReactNode;
+  children: ReactNode;
+  table?: boolean;
+}) {
   return (
     <Reveal className="exhibit my-6">
       <Panel {...props} />
@@ -878,6 +902,118 @@ function AdapterArmTable() {
   );
 }
 
+const faultName = (fault: WspFault) => `Fault ${Number(fault.id.slice(-2))}`;
+const faultPlace = (fault: WspFault) =>
+  `${fault.kind === 'spike' ? 'Spike' : 'Scaled row'}, layer ${fault.layer} ${fault.tensor}`;
+
+/** Each damaged model's sealed passes and its repair's: a line from the one to the other. */
+function WspFaultFigure() {
+  const of = WSP_BENCH.sealedPer;
+  const rows: ForestRow[] = WSP_FAULTS.map((fault) => ({
+    label: (
+      <span className="flex flex-col">
+        <span className="font-medium">{faultName(fault)}</span>
+        <span className="t-small text-pretty">{faultPlace(fault)}</span>
+      </span>
+    ),
+    value: fault.repaired,
+    low: fault.damaged,
+    high: fault.repaired,
+    tone: fault.repaired >= WSP_BENCH.repairAt ? 'student' : 'plain',
+    figure: (
+      <span className="whitespace-nowrap">
+        <span className="font-display text-h2 font-semibold">
+          {fault.damaged} to {fault.repaired}
+        </span>
+        <span className="t-body ml-1.5">of {of}</span>
+      </span>
+    ),
+    summary: `${faultName(fault)}, ${faultPlace(fault)}: ${fault.damaged} of ${of} sealed examples damaged, ${fault.repaired} of ${of} repaired.`,
+  }));
+  return (
+    <Forest
+      name="Sealed examples passed by each damaged model and by Astra's repair"
+      rows={rows}
+      min={0}
+      max={of}
+      ticks={[0, 3, 6, 9, 12]}
+      formatTick={(value) => String(value)}
+      figureWidth="10.5rem"
+    />
+  );
+}
+
+/** A count over the share or the total it is out of, read as one cell. */
+function Stacked({ top, under }: { top: string; under: string }) {
+  return (
+    <span className="flex flex-col items-end">
+      <span>{top}</span>
+      <span className="t-small">{under}</span>
+    </span>
+  );
+}
+
+/** Astra and the outlier rule on the same damaged copies. */
+function WspRuleTable() {
+  const { rule } = WSP_BENCH;
+  return (
+    <Table
+      fit
+      label="Astra and the outlier rule on the planted faults"
+      columns={['', 'Astra', 'Outlier rule']}
+      rows={[
+        [
+          'Damaged models repaired',
+          <Stacked
+            key="astra"
+            top={`${WSP_BENCH.repaired} of ${WSP_BENCH.tried}`}
+            under={`${WSP_BENCH.repairLow}% to ${WSP_BENCH.repairHigh}%`}
+          />,
+          <Stacked
+            key="rule"
+            top={`${rule.repaired} of ${WSP_BENCH.copies}`}
+            under={`${rule.low}% to ${rule.high}%`}
+          />,
+        ],
+        [`Of the ${WSP_BENCH.tried} both tried`, WSP_BENCH.repaired, rule.onBoth],
+        [
+          'Sealed examples passed',
+          <Stacked
+            key="astra"
+            top={`${WSP_BENCH.damagedPassed} to ${WSP_BENCH.repairedPassed}`}
+            under={`of ${WSP_BENCH.sealed}`}
+          />,
+          <Stacked
+            key="rule"
+            top={`${rule.damagedPassed} to ${rule.repairedPassed}`}
+            under={`of ${rule.sealed}`}
+          />,
+        ],
+        ['Told the kinds of fault', 'No', 'Yes'],
+        ['Cost', dollars(WSP_BENCH.usd), `$${rule.usd}`],
+      ]}
+    />
+  );
+}
+
+/** Each fault Astra took: how badly it hurt, what the repair changed, and what it cost. */
+function WspFaultTable() {
+  return (
+    <Table
+      label="Each planted fault and Astra's repair"
+      columns={['', 'Held-out, damaged', 'Weights changed', 'Damage left', 'Programs', 'Astra']}
+      rows={WSP_FAULTS.map((fault) => [
+        faultName(fault),
+        `${fault.heldOut}%`,
+        `${fault.changed.toLocaleString('en-US')} of ${fault.of.toLocaleString('en-US')}`,
+        `${fault.left.toFixed(1)}%`,
+        fault.programs,
+        dollars(fault.usd),
+      ])}
+    />
+  );
+}
+
 /** What is measured, what is built and tested on stand-ins, and what has not been done. */
 const SCALE_STATUS: readonly (readonly [string, string, string])[] = [
   [
@@ -999,6 +1135,11 @@ const LIMITS: readonly { title: string; text: string; from: readonly SourceKey[]
     title: 'Other desks.',
     text: `A budget stop or the counterexample check left Assay desk and Sweep desk on Spark's first draft, so their refinements are unmeasured. Assay desk's first run tied the base harness at 7 of 48 at Corvid Hill, and its second passed 14 against 5, and 16 against 8 under a second seed; Sweep desk passed ${SWEEP_RUN.taught} of ${SWEEP_RUN.tasks} against ${SWEEP_RUN.bare}. In an agent-team run, Assay desk's plate tool overflowed Glimmer's context, so no answer carried the plate list.`,
     from: ['assay', 'assay2', 'sweep2', 'team2'],
+  },
+  {
+    title: 'Architect WSP.',
+    text: "Its faults were planted and made to be found, in one small model trained here under one seed, and a rule written for them repaired all eight. No edit of Astra's has been measured on a model of practical size, and every candidate was measured in full precision on this computer's CPU, not as a local GGUF build.",
+    from: ['wspBench', 'wsp'],
   },
   {
     title: 'The repair shop.',
@@ -1661,6 +1802,103 @@ export function ResultsPage() {
                   each.glimmer === null ? '' : dollars(each.glimmer),
                 ])}
               />
+            </TableExhibit>
+          </Details>
+        </Section>
+
+        <Section
+          id="wsp"
+          number={sec('wsp')}
+          title="Editing weights directly: Architect WSP (experimental)"
+        >
+          <Text>
+            Architect WSP, an experimental edition, lets GPT-6 Astra edit a model&apos;s weights.
+            Astra writes programs that read the weights and propose an edit, the runner executes
+            each one in an isolated worker, and every candidate is checked on examples Astra never
+            sees. The idea comes from research at MIT CSAIL
+            <Cite to={['sparks']} />. On a small model with planted faults, Astra found the damaged
+            tensor in all {WSP_BENCH.tried} it tried ({fig('wsp')})
+            <Cite to={['wspBench']} />.
+          </Text>
+          <Headline figure={`${WSP_BENCH.repaired} of ${WSP_BENCH.tried}`}>
+            damaged models repaired from their weights alone, with a 95% interval of{' '}
+            {WSP_BENCH.repairLow}% to {WSP_BENCH.repairHigh}%
+          </Headline>
+          <Exhibit
+            label={fig('wsp')}
+            caption={`Sealed examples passed, of ${WSP_BENCH.sealedPer}, by each damaged model and by Astra's frozen repair; the line runs from the one to the other. A repair counts at ${WSP_BENCH.repairAt} of ${WSP_BENCH.sealedPer} or more. An eighth copy was not attempted, as the budget left could not cover one more call at its worst.`}
+          >
+            <WspFaultFigure />
+          </Exhibit>
+          <Text>
+            Pooled over the {WSP_BENCH.sealed} sealed examples, the damaged models passed{' '}
+            {WSP_BENCH.damagedPassed} and Astra&apos;s repairs {WSP_BENCH.repairedPassed}, a paired
+            gain of +{WSP_BENCH.diff} points (95% interval +{WSP_BENCH.diffLow} to +
+            {WSP_BENCH.diffHigh}). No sealed example a damaged model got right was lost
+            <Cite to={['wspBench']} />.
+          </Text>
+          <Text>
+            A rule with no model, written for the two kinds of fault, repaired{' '}
+            {WSP_BENCH.rule.repaired} of {WSP_BENCH.copies} for {`$${WSP_BENCH.rule.usd}`}, while
+            Astra was told only that some weights were damaged ({tab('wspRule')}). So the benchmark
+            shows that Astra finds and repairs damage from the weights alone, not that it beats a
+            rule made for that damage; with {WSP_BENCH.tried} faults, the difference between them is
+            not established
+            <Cite to={['wspBench']} />.
+          </Text>
+          <Exhibit
+            table
+            label={tab('wspRule')}
+            caption="Astra and an outlier rule, one scripted program, on the same damaged copies through the same runner. The rule finds the matrix whose top singular value or longest row stands out most and shrinks it to the next value or the median row. It also took the eighth copy."
+          >
+            <WspRuleTable />
+          </Exhibit>
+          <Details
+            method={
+              <>
+                <Text>
+                  The model is a Llama-architecture language model with {WSP_BENCH.model.layers}{' '}
+                  layers and about {WSP_BENCH.model.weights.toLocaleString('en-US')} weights,
+                  trained on this computer&apos;s CPU to reverse strings of six letters. It is right
+                  on all {WSP_BENCH.model.heldOut} held-out strings. Each damaged copy holds one
+                  fault in one tensor: a rank-1 spike 4 to 8 times the tensor&apos;s spectral norm,
+                  or one output row scaled by 25 to 60. Where each fault sits, and the healthy
+                  model, never reached Astra
+                  <Cite to={['wspBench']} />.
+                </Text>
+                <Text>
+                  Each experiment had {WSP_BENCH.model.examples} examples checked by exact match,
+                  split into {WSP_BENCH.model.split[0]} for practice, {WSP_BENCH.model.split[1]} for
+                  checks during the run and {WSP_BENCH.model.split[2]} sealed. It was held to{' '}
+                  {WSP_BENCH.limits.programs} programs, {WSP_BENCH.limits.passes} forward passes,{' '}
+                  {WSP_BENCH.limits.minutes} minutes and {WSP_BENCH.limits.share}% of the weights
+                  changed. The seven experiments cost {dollars(WSP_BENCH.usd)} of Astra
+                  <Cite to={['wspBench']} />.
+                </Text>
+                <Text>
+                  On a practical-size model, Astra has made no edit yet. In two runs on Qwen3-0.6B
+                  word problems, for {dollars(WSP_QWEN_RUNS[0])} and {dollars(WSP_QWEN_RUNS[1])},
+                  the failures were answers too long for the token limit, which an instruction fixed
+                  more cheaply. Astra found no localized defect and stopped without an edit
+                  <Cite to={['wsp']} />.
+                </Text>
+                <Text>
+                  The rule&apos;s first run found a bug in the worker. For a float32 model it handed
+                  a program the tensor itself rather than a copy, so an edit in place also changed
+                  the tensor it was checked against and was refused as changing nothing. The model
+                  files on disk were unchanged, each matching its pinned hash. The worker now hands
+                  programs a copy, a test covers it, and the rule&apos;s results are from the run
+                  after the fix
+                  <Cite to={['wspBench']} />.
+                </Text>
+              </>
+            }
+          >
+            <TableExhibit
+              label={tab('wspFaults')}
+              caption={`Each fault Astra took, as numbered in ${fig('wsp')}. Held-out is the damaged copy's accuracy on the model's held-out strings. Damage left is the distance from the repaired tensor to the healthy one, over the distance from the damaged tensor to the healthy one, measured against the healthy model, which Astra never saw.`}
+            >
+              <WspFaultTable />
             </TableExhibit>
           </Details>
         </Section>

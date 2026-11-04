@@ -35,6 +35,8 @@ export const SOURCES = {
   certify: { name: 'CERTIFY.md', path: 'docs/CERTIFY.md' },
   hackathon: { name: 'HACKATHON.md', path: 'docs/HACKATHON.md' },
   decisions: { name: 'DECISIONS.md', path: 'docs/DECISIONS.md' },
+  wspBench: { name: 'wsp-bench-1.md', path: 'docs/comparisons/wsp-bench-1.md' },
+  wsp: { name: 'WSP.md', path: 'docs/WSP.md' },
 } as const;
 
 export type SourceKey = keyof typeof SOURCES;
@@ -1338,3 +1340,168 @@ export const ADAPTER_RUN = {
   ifPassed: { diff: 25.0, low: 9.1, high: 42.1 },
   ifFailed: { diff: 31.3, low: 14.2, high: 48.6 },
 } as const;
+
+/**
+ * Architect WSP's planted-fault benchmark, from `wsp-bench-1.md`: a small model trained here,
+ * damaged copies with one fault each in one tensor, and GPT-6 Astra's frozen candidates on 12
+ * sealed examples per copy. The repair-rate interval is the report's Wilson interval, and the
+ * paired difference's is its Newcombe interval. The eighth copy was not attempted.
+ */
+export interface WspFault {
+  id: string;
+  /** A rank-1 spike added to the tensor, or one output row scaled up. */
+  kind: 'spike' | 'row';
+  layer: 0 | 1;
+  tensor: 'attention output' | 'MLP down projection';
+  /** Held-out accuracy of the damaged copy, in percent. */
+  heldOut: number;
+  /** Sealed examples passed, out of 12, by the damaged copy and by Astra's frozen candidate. */
+  damaged: number;
+  repaired: number;
+  /** Weights the candidate changed, out of the tensor's. */
+  changed: number;
+  of: number;
+  /** The distance left to the healthy tensor, as a share of the damage, in percent. */
+  left: number;
+  programs: number;
+  usd: number;
+}
+
+export const WSP_FAULTS: readonly WspFault[] = [
+  {
+    id: 'fault-01',
+    kind: 'spike',
+    layer: 0,
+    tensor: 'attention output',
+    heldOut: 8,
+    damaged: 1,
+    repaired: 12,
+    changed: 4096,
+    of: 4096,
+    left: 6.4,
+    programs: 4,
+    usd: 0.47,
+  },
+  {
+    id: 'fault-02',
+    kind: 'row',
+    layer: 0,
+    tensor: 'MLP down projection',
+    heldOut: 1,
+    damaged: 0,
+    repaired: 12,
+    changed: 128,
+    of: 8192,
+    left: 2.5,
+    programs: 4,
+    usd: 0.46,
+  },
+  {
+    id: 'fault-03',
+    kind: 'spike',
+    layer: 1,
+    tensor: 'attention output',
+    heldOut: 30,
+    damaged: 1,
+    repaired: 12,
+    changed: 4096,
+    of: 4096,
+    left: 8.6,
+    programs: 3,
+    usd: 0.4,
+  },
+  {
+    id: 'fault-04',
+    kind: 'row',
+    layer: 1,
+    tensor: 'attention output',
+    heldOut: 9.5,
+    damaged: 1,
+    repaired: 12,
+    changed: 64,
+    of: 4096,
+    left: 2.1,
+    programs: 2,
+    usd: 0.21,
+  },
+  {
+    id: 'fault-05',
+    kind: 'spike',
+    layer: 0,
+    tensor: 'attention output',
+    heldOut: 21.5,
+    damaged: 6,
+    repaired: 9,
+    changed: 1024,
+    of: 4096,
+    left: 53.5,
+    programs: 4,
+    usd: 0.55,
+  },
+  {
+    id: 'fault-06',
+    kind: 'row',
+    layer: 0,
+    tensor: 'attention output',
+    heldOut: 0,
+    damaged: 0,
+    repaired: 12,
+    changed: 64,
+    of: 4096,
+    left: 3.2,
+    programs: 2,
+    usd: 0.25,
+  },
+  {
+    id: 'fault-07',
+    kind: 'spike',
+    layer: 0,
+    tensor: 'attention output',
+    heldOut: 15.5,
+    damaged: 4,
+    repaired: 12,
+    changed: 4096,
+    of: 4096,
+    left: 8.0,
+    programs: 4,
+    usd: 0.43,
+  },
+];
+
+/**
+ * The benchmark's totals: sealed examples per copy and the least a repair must pass, the repair
+ * rate with its interval, the pooled sealed passes with the paired gain, and Astra's spend. The
+ * outlier rule is one scripted program with no model, written for the two kinds of fault, run on
+ * all eight copies through the same runner.
+ */
+export const WSP_BENCH = {
+  sealedPer: 12,
+  repairAt: 11,
+  tried: 7,
+  copies: 8,
+  repaired: 6,
+  repairLow: 49,
+  repairHigh: 97,
+  sealed: 84,
+  damagedPassed: 13,
+  repairedPassed: 81,
+  diff: 81,
+  diffLow: 70,
+  diffHigh: 88,
+  usd: 2.77,
+  rule: {
+    repaired: 8,
+    low: 68,
+    high: 100,
+    onBoth: 7,
+    sealed: 96,
+    damagedPassed: 13,
+    repairedPassed: 95,
+    usd: 0,
+  },
+  model: { layers: 2, weights: 85_000, heldOut: 200, examples: 40, split: [16, 12, 12] },
+  limits: { programs: 6, passes: 20, minutes: 25, share: 10 },
+} as const;
+
+/** The two Astra runs on Qwen3-0.6B word problems, from `WSP.md`: neither made an edit. */
+export const WSP_QWEN_RUNS = [0.28, 0.79] as const;
