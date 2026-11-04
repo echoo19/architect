@@ -74,12 +74,12 @@ Nov 3, on the same 26 word problems and Qwen3-0.6B, with a $5 cap the owner set 
 
 ## A benchmark of planted faults
 
-Nov 4: a 2-layer, 85,000-weight Llama-architecture model trained here to reverse letter strings, and eight copies of it, each with one fault planted in one tensor (`examples/wsp-bench`, `packages/engine/scripts/wsp-bench.ts`). Astra was given only the damaged copy and the goal. It repaired 6 of the 7 it tried, found the damaged tensor every time, and its frozen candidates passed 81 of 84 sealed examples against 13 for the damaged models: +81 points, 95% interval +70 to +88. The row repairs changed only the 64 or 128 weights of the damaged row. $2.77. The faults were made to be findable, and a simple heuristic wasn't compared; the full table and caveats are in `docs/comparisons/wsp-bench-1.md`.
+Nov 4: a 2-layer, 85,000-weight Llama-architecture model trained here to reverse letter strings, and eight copies of it, each with one fault planted in one tensor (`examples/wsp-bench`, `packages/engine/scripts/wsp-bench.ts`). Astra was given only the damaged copy and the goal. It repaired 6 of the 7 it tried, found the damaged tensor every time, and its frozen candidates passed 81 of 84 sealed examples against 13 for the damaged models: +81 points, 95% interval +70 to +88. The row repairs changed only the 64 or 128 weights of the damaged row. $2.77. A rule written for the two kinds of fault, run the same way with no model, repaired 8 of 8, so the benchmark shows that Astra finds and repairs this damage, not that it beats a purpose-built rule. The full tables and caveats are in `docs/comparisons/wsp-bench-1.md`.
 
 ## What isn't done
 
 - No Astra edit has been measured on a model of practical size: the Qwen3-0.6B runs made no candidate.
-- No simple, non-LLM repair heuristic has been compared on the planted-fault benchmark.
+- A benchmark where a simple rule fails, to tell what Astra adds over one.
 - A candidate is measured in full precision with transformers on the CPU. No GGUF or quantized build is made or checked on a local runtime, so a candidate is never a local agent.
 - Fine-tuning isn't compared inside an experiment: it learns from a field's verified lessons, which a WSP experiment doesn't have.
 - Astra's reasoning effort is capped at high, the most the mentor adapter sends. The research used max.

@@ -19,6 +19,22 @@ GPT-6 Astra repaired 6 of 7 damaged models, an 86% repair rate with a 95% Wilson
 
 "Repaired" means the frozen candidate passed at least 11 of the 12 sealed examples. "Damage left" is the distance from the candidate's tensor to the healthy one, over the distance from the damaged tensor to the healthy one. It is measured against the healthy checkpoint, which Astra never saw. fault-08 wasn't attempted: the run's $3.60 had $0.83 left, less than one call to Astra can cost at its worst.
 
+## Against a simple rule
+
+The same eight copies went through the same runner with no model at all: one scripted program, an outlier rule. For every matrix it finds how far the top singular value stands above the next one and how far the longest row stands above the median, takes the most extreme of these, and either shrinks that singular value to the next one or rescales that row to the median. It repaired **8 of 8** (95% interval 68% to 100%), for $0 and about 13 seconds each, with sealed accuracy from 13 of 96 to 95 of 96.
+
+| | Astra | Outlier rule |
+| --- | --- | --- |
+| Repaired | 6 of 7 | 8 of 8 |
+| On the 7 both tried | 6 | 7 |
+| Repaired by one and not the other | none | fault-05 |
+| Told what kind of fault to look for | no | yes: the rule was written for these two kinds |
+| Cost | $2.77 | $0 |
+
+So on these faults a rule written for them does at least as well as Astra. The difference between the two is not established with 7 faults, and the comparison is lopsided: the rule knew the two fault families in advance, while Astra was told only that some weights were damaged. The benchmark shows that Astra finds and repairs weight damage from the weights alone; it doesn't show that it beats a rule made for the damage.
+
+The rule's first run found a kernel bug. For a float32 base, the kernel handed a program the memory-mapped tensor itself, so an edit in place (`W[i] *= ...`) also changed the tensor it was checked against, and the edit was refused as changing nothing. The rule's four row fixes failed that way; Astra's programs built new tensors and never met it. The base files on disk were unchanged (each matched its pinned hash). The kernel now hands programs a copy, a test that edits a row in place covers it, and the rule's results above are from the run after the fix. The run with the bug is kept in `runs/wsp-bench-1/heuristic-aliasing-bug`.
+
 ## How it was run
 
 - **The model.** A Llama-architecture language model with 2 layers, a width of 64 and about 85,000 weights, trained on this CPU for 4,000 steps to reverse strings of six letters (`abcdef=` → `fedcba`). On 200 held-out strings it is right on all of them. `examples/wsp-bench/make_bench.py` makes it, seeded.
@@ -33,6 +49,6 @@ The first attempt gave each experiment $1. Before each call the runner charges t
 ## What this shows, and what it doesn't
 
 - It shows that, through Architect WSP's runner and its guard, Astra can read a small model's weights, find a planted fault from the tensors' statistics alone, and write a targeted repair the runner then verifies on examples it never saw. The repairs come close to the healthy weights, and the row repairs touch only the damaged row.
-- The faults are planted and made to be found: a spike or a scaled row stands out in a tensor's norms. A simple heuristic, such as removing a tensor's top singular direction or rescaling an outlying row, might repair many of them too. That wasn't measured, so nothing here says Astra beats one.
+- The faults are planted and made to be found: a spike or a scaled row stands out in a tensor's norms, and a rule written for them repairs all eight (above).
 - One small model, one task, one seed, 7 faults. The interval on the repair rate is wide (49% to 97%).
 - This is repair of damage, as in the research's own fixes. It is not evidence that a new skill can be written into a model, or that the same works on a large model or on Architect's own jobs. The two Qwen3-0.6B runs on word problems found no localized defect and made no edit (`docs/WSP.md`).
