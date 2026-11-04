@@ -162,7 +162,7 @@ test('a new experiment goes from its model to Start experiment', async () => {
   await expect(page.getByRole('group', { name: 'Example 24' })).toBeVisible();
   await expect(page.getByText(/1 line was left out: line 25 \(Not JSON\)/)).toBeVisible();
   await expect(page.getByRole('region', { name: 'Examples' })).toContainText(
-    '12 practice, 6 dev, 6 sealed',
+    '10 practice, 7 dev, 7 sealed',
   );
   await expect(continueButton).toBeEnabled();
   await capture('wsp-new-goal.png');

@@ -1,4 +1,9 @@
-import { GuardError, WSP_MENTOR, keyDestinationProblem, type WspMentorStatus } from '@architect/shared';
+import {
+  GuardError,
+  WSP_MENTOR,
+  keyDestinationProblem,
+  type WspMentorStatus,
+} from '@architect/shared';
 import type { EngineHostDeps } from '../loop/deps';
 import { astraClient, type WspMentorClient } from './mentor';
 import { standInMentor } from './stand-in';
@@ -11,7 +16,9 @@ import { standInMentor } from './stand-in';
 
 const standIn = () => process.env['ARCHITECT_WSP_MENTOR'] === 'stand-in';
 
-export async function wspMentorStatus(deps: Pick<EngineHostDeps, 'secrets'>): Promise<WspMentorStatus> {
+export async function wspMentorStatus(
+  deps: Pick<EngineHostDeps, 'secrets'>,
+): Promise<WspMentorStatus> {
   const mentor = {
     label: standIn() ? 'Stand-in mentor' : WSP_MENTOR.label,
     provider: WSP_MENTOR.provider,
@@ -38,7 +45,8 @@ export async function connectWspMentor(
   const problem = keyDestinationProblem(WSP_MENTOR.secretRef, WSP_MENTOR.baseUrl);
   if (problem !== null) throw new GuardError('permission', problem);
   const apiKey = await deps.secrets.get(WSP_MENTOR.secretRef);
-  if (!apiKey) throw new Error(`${WSP_MENTOR.label} needs an OpenAI key. Add it in Settings, Keys.`);
+  if (!apiKey)
+    throw new Error(`${WSP_MENTOR.label} needs an OpenAI key. Add it in Settings, Keys.`);
   const adapter = deps.adapters.createMentor(
     {
       kind: 'model',

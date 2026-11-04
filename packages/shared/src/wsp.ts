@@ -103,9 +103,26 @@ export type WspGoal = z.infer<typeof WspGoalSchema>;
 /** The fewest examples a run accepts: enough for practice, dev and a sealed qualification. */
 export const WSP_MIN_EXAMPLES = 12;
 
+/** How many examples each split gets: about 30% sealed, 30% dev and the rest practice, 4 at least. */
+export function wspSplitCounts(n: number): {
+  practice: number;
+  dev: number;
+  qualification: number;
+} {
+  const qualification = Math.max(4, Math.round(n * 0.3));
+  const dev = Math.max(4, Math.round(n * 0.3));
+  return { qualification, dev, practice: Math.max(0, n - qualification - dev) };
+}
+
 /* Compute and limits */
 
-export const WspComputeIdSchema = z.enum(['local-cpu', 'hf-jobs', 'slurm', 'kubernetes', 'skypilot']);
+export const WspComputeIdSchema = z.enum([
+  'local-cpu',
+  'hf-jobs',
+  'slurm',
+  'kubernetes',
+  'skypilot',
+]);
 export type WspComputeId = z.infer<typeof WspComputeIdSchema>;
 
 /**
@@ -146,7 +163,10 @@ export const WspLimitsSchema = z.strictObject({
   programs: z.number().int().min(1).max(60),
   /** Evaluations of a candidate on practice and dev, and activation reads, together. */
   forwardPasses: z.number().int().min(2).max(400),
-  wallMinutes: z.number().positive().max(24 * 60),
+  wallMinutes: z
+    .number()
+    .positive()
+    .max(24 * 60),
   mentorUsd: z.number().nonnegative().max(500),
   /** Compute dollars; zero on this computer. */
   computeUsd: z.number().nonnegative().max(500),
@@ -285,7 +305,13 @@ export type WspMeasurement = z.infer<typeof WspMeasurementSchema>;
 
 /* Iterations */
 
-export const WspStageSchema = z.enum(['baseline', 'investigation', 'edit', 'evaluation', 'results']);
+export const WspStageSchema = z.enum([
+  'baseline',
+  'investigation',
+  'edit',
+  'evaluation',
+  'results',
+]);
 export type WspStage = z.infer<typeof WspStageSchema>;
 
 /** One program Astra wrote, what it did, and what the runner made of it. */
@@ -301,6 +327,8 @@ export const WspIterationSchema = z.strictObject({
   /** Why its edit was refused, or how it failed. */
   reason: z.string().optional(),
   candidateId: WspCandidateIdSchema.optional(),
+  /** The candidate's tensors, as the evaluator checked them. */
+  edits: z.array(WspTensorEditSchema).optional(),
   /** Whether the candidate became the one later programs build on. */
   decision: z.enum(['kept', 'discarded']).optional(),
   dev: WspMeasurementSchema.optional(),
@@ -325,7 +353,12 @@ export const WspComparisonSchema = z.strictObject({
 });
 export type WspComparison = z.infer<typeof WspComparisonSchema>;
 
-export const WspVerdictSchema = z.enum(['improved', 'not-established', 'regressed', 'no-candidate']);
+export const WspVerdictSchema = z.enum([
+  'improved',
+  'not-established',
+  'regressed',
+  'no-candidate',
+]);
 export type WspVerdict = z.infer<typeof WspVerdictSchema>;
 
 export const WspResultSchema = z.strictObject({
@@ -433,7 +466,9 @@ export const WspExperimentSchema = z.strictObject({
   /** The candidate later programs build on; null while none was kept. */
   incumbent: WspCandidateIdSchema.nullable(),
   /** The candidate frozen for qualification, by digest, once dev evaluation ends. */
-  frozen: z.strictObject({ candidateId: WspCandidateIdSchema, digest: sha256Hex, at: z.iso.datetime() }).nullable(),
+  frozen: z
+    .strictObject({ candidateId: WspCandidateIdSchema, digest: sha256Hex, at: z.iso.datetime() })
+    .nullable(),
   costs: WspCostsSchema,
   worker: WspWorkerInfoSchema.nullable(),
   result: WspResultSchema.nullable(),

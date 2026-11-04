@@ -237,7 +237,8 @@ export function registerEngineHandlers(
       return call((api) => api.wsp.draft({ ...input, modelPath }));
     },
     redraft: (experimentId) => call((api) => api.wsp.redraft(experimentId)),
-    revise: (experimentId, brief, title) => call((api) => api.wsp.revise(experimentId, brief, title)),
+    revise: (experimentId, brief, title) =>
+      call((api) => api.wsp.revise(experimentId, brief, title)),
     start: (experimentId) => call((api) => api.wsp.start(experimentId)),
     cancel: (experimentId) => call((api) => api.wsp.cancel(experimentId)),
     resume: (experimentId) => call((api) => api.wsp.resume(experimentId)),

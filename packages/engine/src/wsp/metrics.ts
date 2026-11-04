@@ -77,7 +77,8 @@ export function repeats(text: string): boolean {
   if (words.length < 24) return false;
   const tail = words.slice(-60);
   const triples = new Set<string>();
-  for (let i = 0; i + 2 < tail.length; i += 1) triples.add(`${tail[i]} ${tail[i + 1]} ${tail[i + 2]}`);
+  for (let i = 0; i + 2 < tail.length; i += 1)
+    triples.add(`${tail[i]} ${tail[i + 1]} ${tail[i + 2]}`);
   return triples.size / (tail.length - 2) < 0.5;
 }
 
@@ -91,7 +92,9 @@ export function measure(
   candidateId?: string,
 ): WspMeasurement {
   if (outputs.length !== examples.length) {
-    throw new Error(`The evaluator returned ${outputs.length} outputs for ${examples.length} prompts.`);
+    throw new Error(
+      `The evaluator returned ${outputs.length} outputs for ${examples.length} prompts.`,
+    );
   }
   const outcomes = examples.map((example, index) => {
     const output = outputs[index]!;

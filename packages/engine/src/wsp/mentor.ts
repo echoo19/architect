@@ -129,7 +129,10 @@ function dev(measurement: WspMeasurement | undefined): string {
 }
 
 /** A compact account of the checkpoint's tensors: the first layer's, and the rest by pattern. */
-export function inventory(names: readonly string[], shapes: ReadonlyMap<string, readonly number[]>): string {
+export function inventory(
+  names: readonly string[],
+  shapes: ReadonlyMap<string, readonly number[]>,
+): string {
   const layered = new Map<string, number[]>();
   const other: string[] = [];
   for (const name of names) {
@@ -219,7 +222,10 @@ export interface StepContext {
   remaining: { programs: number; forwardPasses: number; minutes: number; mentorUsd: number };
 }
 
-function history(iterations: readonly WspIteration[], programs: ReadonlyMap<number, string>): string {
+function history(
+  iterations: readonly WspIteration[],
+  programs: ReadonlyMap<number, string>,
+): string {
   if (iterations.length === 0) return 'No program has run yet.';
   return iterations
     .map((item, index) => {
@@ -314,7 +320,9 @@ export function astraClient(
     },
     worstCaseUsd(inputChars, maxOutputTokens) {
       // A token is at least two characters of this text; reasoning bills as output.
-      return (inputChars / 2) * (pricing.inputPerM / 1e6) + maxOutputTokens * (pricing.outputPerM / 1e6);
+      return (
+        (inputChars / 2) * (pricing.inputPerM / 1e6) + maxOutputTokens * (pricing.outputPerM / 1e6)
+      );
     },
   };
 }

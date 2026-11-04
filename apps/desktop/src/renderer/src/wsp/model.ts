@@ -1,5 +1,6 @@
 import {
   WSP_MIN_EXAMPLES,
+  wspSplitCounts,
   WspExampleSchema,
   type WspCheck,
   type WspExample,
@@ -184,15 +185,9 @@ export interface SplitCounts {
   qualification: number;
 }
 
-/**
- * How many examples go to each split, before the engine splits them: a quarter sealed for
- * qualification, a quarter for dev, the rest for practice. Nothing below the minimum is split.
- */
+/** How many examples go to each split, as the engine splits them. Nothing below the minimum is split. */
 export function splitCounts(total: number): SplitCounts | null {
-  if (total < WSP_MIN_EXAMPLES) return null;
-  const qualification = Math.floor(total / 4);
-  const dev = Math.floor(total / 4);
-  return { practice: total - qualification - dev, dev, qualification };
+  return total < WSP_MIN_EXAMPLES ? null : wspSplitCounts(total);
 }
 
 /* The run */

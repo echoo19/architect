@@ -85,6 +85,18 @@ export function ProgramDrawer({
           </DrawerSection>
         )}
 
+        {iteration.edits && iteration.edits.length > 0 && (
+          <DrawerSection title="Tensors replaced">
+            <DetailList
+              valueFont="text"
+              items={iteration.edits.map((edit) => ({
+                label: edit.tensor,
+                value: `${edit.changed.toLocaleString('en-US')} of ${edit.total.toLocaleString('en-US')} changed, ${(edit.relativeChange * 100).toFixed(2)}% by norm`,
+              }))}
+            />
+          </DrawerSection>
+        )}
+
         {iteration.candidateId && (
           <DrawerSection title="Candidate">
             <DetailList

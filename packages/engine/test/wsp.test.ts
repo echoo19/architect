@@ -28,13 +28,20 @@ function temp(): string {
 }
 
 /** A safetensors file of float32 tensors, written byte by byte. */
-function writeSafetensors(path: string, tensors: Record<string, { shape: number[]; values: number[] }>): void {
+function writeSafetensors(
+  path: string,
+  tensors: Record<string, { shape: number[]; values: number[] }>,
+): void {
   const header: Record<string, unknown> = { __metadata__: { format: 'pt' } };
   let offset = 0;
   const parts: Buffer[] = [];
   for (const [name, tensor] of Object.entries(tensors)) {
     const data = Buffer.from(new Float32Array(tensor.values).buffer);
-    header[name] = { dtype: 'F32', shape: tensor.shape, data_offsets: [offset, offset + data.length] };
+    header[name] = {
+      dtype: 'F32',
+      shape: tensor.shape,
+      data_offsets: [offset, offset + data.length],
+    };
     offset += data.length;
     parts.push(data);
   }
@@ -90,7 +97,11 @@ describe('scoring outputs', () => {
 
   it('measures and compares arms example by example', () => {
     const items = examples(10);
-    const right = items.map((example) => ({ text: example.check!.value, tokens: 3, cutOff: false }));
+    const right = items.map((example) => ({
+      text: example.check!.value,
+      tokens: 3,
+      cutOff: false,
+    }));
     const wrong = items.map(() => ({ text: 'no idea', tokens: 2, cutOff: false }));
     const half = items.map((example, i) => (i < 5 ? right[i]! : wrong[i]!));
     const candidate = measure('candidate', 'dev', items, right, 1, 'wspc-00000000000000000000');
@@ -135,7 +146,9 @@ describe('sealed examples in the vault', () => {
 describe('model folders', () => {
   it('reads shapes from the safetensors header and says what keeps a folder out', () => {
     const dir = tinyModel(join(temp(), 'tiny'));
-    expect(safetensorsHeader(join(dir, 'model.safetensors'))['model.layers.0.mlp.down_proj.weight']).toEqual({
+    expect(
+      safetensorsHeader(join(dir, 'model.safetensors'))['model.layers.0.mlp.down_proj.weight'],
+    ).toEqual({
       dtype: 'F32',
       shape: [4, 6],
     });
@@ -159,13 +172,21 @@ describe('model folders', () => {
   });
 });
 
-function measured(arm: WspMeasurement['arm'], passed: boolean[], candidateId?: string): WspMeasurement {
+function measured(
+  arm: WspMeasurement['arm'],
+  passed: boolean[],
+  candidateId?: string,
+): WspMeasurement {
   const items = examples(passed.length);
   return measure(
     arm,
     'dev',
     items,
-    items.map((example, i) => ({ text: passed[i] ? example.check!.value : 'no', tokens: 1, cutOff: false })),
+    items.map((example, i) => ({
+      text: passed[i] ? example.check!.value : 'no',
+      tokens: 1,
+      cutOff: false,
+    })),
     1,
     candidateId,
   );
@@ -175,9 +196,15 @@ function evaluated(measurements: WspMeasurement[], frozen: string | null): WspEx
   return {
     brief: {
       target: { metric: 'pass_rate', minPoints: 10 },
-      controls: { decoding: { temperature: 0, topP: 1, repetitionPenalty: 1.1, maxNewTokens: 64 }, instructions: null },
+      controls: {
+        decoding: { temperature: 0, topP: 1, repetitionPenalty: 1.1, maxNewTokens: 64 },
+        instructions: null,
+      },
     },
-    frozen: frozen === null ? null : { candidateId: frozen, digest: 'a'.repeat(64), at: '2026-11-04T00:00:00.000Z' },
+    frozen:
+      frozen === null
+        ? null
+        : { candidateId: frozen, digest: 'a'.repeat(64), at: '2026-11-04T00:00:00.000Z' },
     measurements,
     iterations: [],
   } as unknown as WspExperiment;
@@ -189,21 +216,41 @@ describe('the verdict', () => {
   const quarter = all.map((_, i) => i < 5);
 
   it('calls a clear gain past the target, ahead of the controls, improved', () => {
-    const result = wspResult(evaluated([measured('base', quarter), measured('decoding', quarter), measured('candidate', all, id)], id), 'dev');
+    const result = wspResult(
+      evaluated(
+        [measured('base', quarter), measured('decoding', quarter), measured('candidate', all, id)],
+        id,
+      ),
+      'dev',
+    );
     expect(result.verdict).toBe('improved');
     expect(result.notRun.map((item) => item.arm)).toContain('Fine-tuning (QLoRA)');
     expect(result.deployment.status).toBe('not-verified');
   });
 
   it("doesn't credit the edit when a control does as well", () => {
-    const result = wspResult(evaluated([measured('base', quarter), measured('decoding', all), measured('candidate', all, id)], id), 'dev');
+    const result = wspResult(
+      evaluated(
+        [measured('base', quarter), measured('decoding', all), measured('candidate', all, id)],
+        id,
+      ),
+      'dev',
+    );
     expect(result.verdict).toBe('not-established');
     expect(result.summary).toMatch(/decoding control/);
   });
 
   it('says so when nothing was kept, and lists examples the candidate lost', () => {
-    expect(wspResult(evaluated([measured('base', quarter)], null), 'dev').verdict).toBe('no-candidate');
-    const worse = wspResult(evaluated([measured('base', all), measured('decoding', all), measured('candidate', quarter, id)], id), 'dev');
+    expect(wspResult(evaluated([measured('base', quarter)], null), 'dev').verdict).toBe(
+      'no-candidate',
+    );
+    const worse = wspResult(
+      evaluated(
+        [measured('base', all), measured('decoding', all), measured('candidate', quarter, id)],
+        id,
+      ),
+      'dev',
+    );
     expect(worse.verdict).toBe('regressed');
     expect(worse.regressions.join(' ')).toMatch(/15 examples the base passed/);
   });
@@ -218,7 +265,13 @@ describe('the service without a worker', () => {
       connectMentor: () => Promise.resolve(standInMentor()),
       mentorStatus: () =>
         Promise.resolve({
-          mentor: { label: 'Stand-in mentor', provider: 'openai', model: 'scripted', reasoningEffort: 'high', standIn: true },
+          mentor: {
+            label: 'Stand-in mentor',
+            provider: 'openai',
+            model: 'scripted',
+            reasoningEffort: 'high',
+            standIn: true,
+          },
           status: 'ready',
         }),
     });
@@ -251,12 +304,18 @@ describe('the service without a worker', () => {
     expect(experiment.mentor.standIn).toBe(true);
     expect(experiment.goal.examples).toEqual([]);
     expect(experiment.split.qualification).toBeGreaterThanOrEqual(4);
-    const stored = readFileSync(join(dir, 'wsp', 'experiments', drafted.id, 'examples.json'), 'utf8');
+    const stored = readFileSync(
+      join(dir, 'wsp', 'experiments', drafted.id, 'examples.json'),
+      'utf8',
+    );
     const sealed = readFileSync(join(dir, 'wsp', drafted.id, 'qualification.jsonl'), 'utf8');
     for (const line of sealed.trim().split('\n')) {
       expect(stored).not.toContain((JSON.parse(line) as WspExample).prompt);
     }
-    expect(experiment.base.files.map((file) => file.name)).toEqual(['config.json', 'model.safetensors']);
+    expect(experiment.base.files.map((file) => file.name)).toEqual([
+      'config.json',
+      'model.safetensors',
+    ]);
     expect(readFileSync(join(model, 'model.safetensors'))).toEqual(before);
   });
 
@@ -268,7 +327,9 @@ describe('the service without a worker', () => {
     const twice = draftInput(model);
     twice.goal.examples.push({ ...twice.goal.examples[0]! });
     await expect(wsp.draft(twice)).rejects.toThrow(/there twice/);
-    await expect(wsp.draft({ ...draftInput(model), compute: 'hf-jobs' as never })).rejects.toThrow(/turn by turn/);
+    await expect(wsp.draft({ ...draftInput(model), compute: 'hf-jobs' as never })).rejects.toThrow(
+      /turn by turn/,
+    );
   });
 
   it('fails a start plainly when the worker is missing, and freezes the brief once started', async () => {
@@ -285,7 +346,9 @@ describe('the service without a worker', () => {
     const failed = wsp.get(drafted.id);
     expect(failed.status).toBe('failed');
     expect(failed.error).toMatch(/WSP worker|carry the WSP worker/);
-    expect(wsp.computeTargets().find((target) => target.id === 'hf-jobs')?.status).toBe('unsupported');
+    expect(wsp.computeTargets().find((target) => target.id === 'hf-jobs')?.status).toBe(
+      'unsupported',
+    );
   });
 
   it('turns a run left running when the app closed into an interrupted one', async () => {
@@ -329,7 +392,11 @@ function fakeProcesses(): WspProcesses & { requests: string[] } {
       info: { python: '3.12.0' },
       start: () => Promise.resolve(),
       close: () => undefined,
-      request<T>(op: string, payload: Record<string, unknown>, schema: { parse(value: unknown): T }) {
+      request<T>(
+        op: string,
+        payload: Record<string, unknown>,
+        schema: { parse(value: unknown): T },
+      ) {
         requests.push(op);
         if (op === 'compose') {
           const bytes = Buffer.from('candidate tensors');
@@ -377,7 +444,13 @@ describe('a run on stand-in processes', () => {
       connectMentor: () => Promise.resolve(standInMentor()),
       mentorStatus: () =>
         Promise.resolve({
-          mentor: { label: 'Stand-in mentor', provider: 'openai', model: 'scripted', reasoningEffort: 'high', standIn: true },
+          mentor: {
+            label: 'Stand-in mentor',
+            provider: 'openai',
+            model: 'scripted',
+            reasoningEffort: 'high',
+            standIn: true,
+          },
           status: 'ready',
         }),
     });
@@ -403,7 +476,18 @@ describe('a run on stand-in processes', () => {
     expect(evaluated.measurements.some((item) => item.split === 'qualification')).toBe(false);
     expect(evaluated.result?.verdict).toBe('improved');
     const manifest = JSON.parse(
-      readFileSync(join(dir, 'wsp', 'experiments', drafted.id, 'candidates', evaluated.incumbent!, 'manifest.json'), 'utf8'),
+      readFileSync(
+        join(
+          dir,
+          'wsp',
+          'experiments',
+          drafted.id,
+          'candidates',
+          evaluated.incumbent!,
+          'manifest.json',
+        ),
+        'utf8',
+      ),
     ) as { id: string; digest: string; baseDigest: string; method: string };
     expect(manifest.digest).toBe(evaluated.frozen?.digest);
     expect(manifest.id).toBe(`wspc-${manifest.digest.slice(0, 20)}`);
@@ -414,9 +498,16 @@ describe('a run on stand-in processes', () => {
     const qualified = await wait(drafted.id, ['qualifying']);
     expect(qualified.status).toBe('qualified');
     const sealed = qualified.measurements.filter((item) => item.split === 'qualification');
-    expect(sealed.map((item) => item.arm).sort()).toEqual(['base', 'candidate', 'decoding', 'instructions']);
+    expect(sealed.map((item) => item.arm).sort()).toEqual([
+      'base',
+      'candidate',
+      'decoding',
+      'instructions',
+    ]);
     expect(sealed.every((item) => item.n === qualified.split.qualification)).toBe(true);
-    expect(qualified.result?.comparisons.every((item) => item.split === 'qualification')).toBe(true);
+    expect(qualified.result?.comparisons.every((item) => item.split === 'qualification')).toBe(
+      true,
+    );
     expect(qualified.costs.forwardPasses).toBe(evaluated.costs.forwardPasses);
   });
 });
@@ -426,19 +517,24 @@ describe('a run on stand-in processes', () => {
  * WSP_TEST_PYTHON_ENV to one (trainer/wsp/requirements.txt). CI has none, so it skips there.
  */
 const env = process.env['WSP_TEST_PYTHON_ENV'];
-const python = env === undefined ? undefined : join(env, process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
-describe.skipIf(python === undefined || !existsSync(python) || spawnSync(python, ['-c', 'import torch']).status !== 0)(
-  'the kernel and its guard',
-  () => {
-    it('refuses the network, processes, other files and protected tensors, and hands back a checked edit', async () => {
-      const dir = temp();
-      const model = tinyModel(join(dir, 'tiny'));
-      const out = join(dir, 'out');
-      mkdirSync(out);
-      const program = join(dir, 'program.py');
-      writeFileSync(
-        program,
-        `for attempt in ["import socket", "import subprocess", "import ctypes", "import os; os.system('echo hi')", "open('${join(dir, 'secret.txt').split('\\').join('/')}').read()", "open('../escape.txt', 'w')", "torch.save({}, 'x.pt')", "save_edit('model.embed_tokens.weight', weights.get('model.embed_tokens.weight') + 1)"]:
+const python =
+  env === undefined
+    ? undefined
+    : join(env, process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+describe.skipIf(
+  python === undefined ||
+    !existsSync(python) ||
+    spawnSync(python, ['-c', 'import torch']).status !== 0,
+)('the kernel and its guard', () => {
+  it('refuses the network, processes, other files and protected tensors, and hands back a checked edit', async () => {
+    const dir = temp();
+    const model = tinyModel(join(dir, 'tiny'));
+    const out = join(dir, 'out');
+    mkdirSync(out);
+    const program = join(dir, 'program.py');
+    writeFileSync(
+      program,
+      `for attempt in ["import socket", "import subprocess", "import ctypes", "import os; os.system('echo hi')", "open('${join(dir, 'secret.txt').split('\\').join('/')}').read()", "open('../escape.txt', 'w')", "torch.save({}, 'x.pt')", "save_edit('model.embed_tokens.weight', weights.get('model.embed_tokens.weight') + 1)"]:
     try:
         exec(attempt)
         print("ALLOWED", attempt)
@@ -448,54 +544,55 @@ W = weights.get("model.layers.1.mlp.down_proj.weight")
 u = torch.ones(4) / 2
 save_edit("model.layers.1.mlp.down_proj.weight", W - torch.outer(u, u @ W))
 `,
-      );
-      writeFileSync(join(dir, 'secret.txt'), 'a key');
-      const outcome = await runKernel(
-        { sourceDir: SOURCE, envDir: env! },
-        {
-          base: model,
-          program,
-          incumbent: null,
-          out,
-          scratch: join(dir, 'scratch'),
-          reads: join(dir, 'reads'),
-          practice: [],
-          memoryBytes: 4 * 1024 ** 3,
-        },
-        join(dir, 'request.json'),
-        { timeoutMs: 120_000, tempDir: join(dir, 'tmp') },
-      );
-      expect(outcome.kind).toBe('done');
-      if (outcome.kind !== 'done') return;
-      expect(outcome.result.error).toBeNull();
-      expect(outcome.result.output).not.toContain('ALLOWED');
-      expect(outcome.result.output.match(/refused/g)?.length).toBe(8);
-      expect(outcome.result.refused.join(' ')).toMatch(/embedding, output head and final norm/);
-      expect(Object.keys(outcome.result.edits!.files)).toEqual(['model.layers.1.mlp.down_proj.weight']);
-      expect(existsSync(join(dir, 'escape.txt'))).toBe(false);
-    }, 180_000);
+    );
+    writeFileSync(join(dir, 'secret.txt'), 'a key');
+    const outcome = await runKernel(
+      { sourceDir: SOURCE, envDir: env! },
+      {
+        base: model,
+        program,
+        incumbent: null,
+        out,
+        scratch: join(dir, 'scratch'),
+        reads: join(dir, 'reads'),
+        practice: [],
+        memoryBytes: 4 * 1024 ** 3,
+      },
+      join(dir, 'request.json'),
+      { timeoutMs: 120_000, tempDir: join(dir, 'tmp') },
+    );
+    expect(outcome.kind).toBe('done');
+    if (outcome.kind !== 'done') return;
+    expect(outcome.result.error).toBeNull();
+    expect(outcome.result.output).not.toContain('ALLOWED');
+    expect(outcome.result.output.match(/refused/g)?.length).toBe(8);
+    expect(outcome.result.refused.join(' ')).toMatch(/embedding, output head and final norm/);
+    expect(Object.keys(outcome.result.edits!.files)).toEqual([
+      'model.layers.1.mlp.down_proj.weight',
+    ]);
+    expect(existsSync(join(dir, 'escape.txt'))).toBe(false);
+  }, 180_000);
 
-    it('stops a program at its time limit', async () => {
-      const dir = temp();
-      const model = tinyModel(join(dir, 'tiny'));
-      const program = join(dir, 'program.py');
-      writeFileSync(program, 'while True:\n    pass\n');
-      const outcome = await runKernel(
-        { sourceDir: SOURCE, envDir: env! },
-        {
-          base: model,
-          program,
-          incumbent: null,
-          out: join(dir, 'out'),
-          scratch: join(dir, 'scratch'),
-          reads: join(dir, 'reads'),
-          practice: [],
-          memoryBytes: 4 * 1024 ** 3,
-        },
-        join(dir, 'request.json'),
-        { timeoutMs: 8_000, tempDir: join(dir, 'tmp') },
-      );
-      expect(outcome.kind).toBe('timeout');
-    }, 60_000);
-  },
-);
+  it('stops a program at its time limit', async () => {
+    const dir = temp();
+    const model = tinyModel(join(dir, 'tiny'));
+    const program = join(dir, 'program.py');
+    writeFileSync(program, 'while True:\n    pass\n');
+    const outcome = await runKernel(
+      { sourceDir: SOURCE, envDir: env! },
+      {
+        base: model,
+        program,
+        incumbent: null,
+        out: join(dir, 'out'),
+        scratch: join(dir, 'scratch'),
+        reads: join(dir, 'reads'),
+        practice: [],
+        memoryBytes: 4 * 1024 ** 3,
+      },
+      join(dir, 'request.json'),
+      { timeoutMs: 8_000, tempDir: join(dir, 'tmp') },
+    );
+    expect(outcome.kind).toBe('timeout');
+  }, 60_000);
+});

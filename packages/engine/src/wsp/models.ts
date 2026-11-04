@@ -1,5 +1,14 @@
 import { createHash } from 'node:crypto';
-import { createReadStream, existsSync, openSync, readFileSync, readSync, closeSync, readdirSync, statSync } from 'node:fs';
+import {
+  createReadStream,
+  existsSync,
+  openSync,
+  readFileSync,
+  readSync,
+  closeSync,
+  readdirSync,
+  statSync,
+} from 'node:fs';
 import { homedir, totalmem } from 'node:os';
 import { basename, join } from 'node:path';
 import type { WspBase, WspModel } from '@architect/shared';
@@ -38,7 +47,8 @@ export function safetensorsHeader(path: string): Record<string, TensorInfo> {
     const head = Buffer.alloc(8);
     readSync(fd, head, 0, 8, 0);
     const size = Number(head.readBigUInt64LE(0));
-    if (size <= 0 || size > 100 * 1024 * 1024) throw new Error(`${basename(path)} has no readable header.`);
+    if (size <= 0 || size > 100 * 1024 * 1024)
+      throw new Error(`${basename(path)} has no readable header.`);
     const json = Buffer.alloc(size);
     readSync(fd, json, 0, size, 8);
     const parsed = JSON.parse(json.toString('utf8')) as Record<string, unknown>;
@@ -109,7 +119,8 @@ export function inspectModelFolder(
   const config = readConfig(folder);
   if (config === null) reasons.push('It has no readable config.json.');
   const files = existsSync(folder) ? weightFiles(folder) : [];
-  if (files.length === 0) reasons.push('It has no .safetensors weights; GGUF and .bin files are not read.');
+  if (files.length === 0)
+    reasons.push('It has no .safetensors weights; GGUF and .bin files are not read.');
   let parameters = 0;
   let bytes = 0;
   let dtype: string | null = null;
@@ -117,16 +128,21 @@ export function inspectModelFolder(
     for (const info of checkpointTensors(folder).values()) {
       parameters += elements(info.shape);
       dtype ??= info.dtype;
-      if (!(info.dtype in DTYPE_BYTES)) reasons.push(`It stores tensors as ${info.dtype}, which can't be edited here.`);
+      if (!(info.dtype in DTYPE_BYTES))
+        reasons.push(`It stores tensors as ${info.dtype}, which can't be edited here.`);
     }
     for (const file of files) bytes += statSync(join(folder, file)).size;
   } catch (error) {
     reasons.push((error as Error).message);
   }
-  const architectures = Array.isArray(config?.['architectures']) ? (config['architectures'] as unknown[]) : [];
+  const architectures = Array.isArray(config?.['architectures'])
+    ? (config['architectures'] as unknown[])
+    : [];
   const architecture = typeof architectures[0] === 'string' ? architectures[0] : null;
   if (config !== null && (architecture === null || !architecture.endsWith('ForCausalLM'))) {
-    reasons.push('Only decoder-only language models (an architecture ending in ForCausalLM) are supported.');
+    reasons.push(
+      'Only decoder-only language models (an architecture ending in ForCausalLM) are supported.',
+    );
   }
   const layersValue = config?.['num_hidden_layers'];
   const layers = typeof layersValue === 'number' ? layersValue : null;
@@ -152,7 +168,9 @@ export function inspectModelFolder(
 
 /** The repository and revision of a folder that is a snapshot in the Hugging Face cache. */
 function cacheSource(folder: string): { repo?: string; revision?: string } {
-  const match = /models--([^\\/]+?)--([^\\/]+)[\\/]snapshots[\\/]([0-9a-f]{40})[\\/]?$/.exec(folder);
+  const match = /models--([^\\/]+?)--([^\\/]+)[\\/]snapshots[\\/]([0-9a-f]{40})[\\/]?$/.exec(
+    folder,
+  );
   return match === null ? {} : { repo: `${match[1]}/${match[2]}`, revision: match[3]! };
 }
 
@@ -222,7 +240,11 @@ export async function baseChanges(base: WspBase): Promise<string[]> {
   const changed: string[] = [];
   for (const file of base.files) {
     const path = join(base.path, file.name);
-    if (!existsSync(path) || statSync(path).size !== file.bytes || (await sha256File(path)) !== file.sha256) {
+    if (
+      !existsSync(path) ||
+      statSync(path).size !== file.bytes ||
+      (await sha256File(path)) !== file.sha256
+    ) {
       changed.push(file.name);
     }
   }

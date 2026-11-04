@@ -80,8 +80,8 @@ describe('WSP examples', () => {
 
   it('splits a quarter sealed, a quarter dev and the rest practice, from the minimum up', () => {
     expect(splitCounts(11)).toBeNull();
-    expect(splitCounts(12)).toEqual({ practice: 6, dev: 3, qualification: 3 });
-    expect(splitCounts(30)).toEqual({ practice: 16, dev: 7, qualification: 7 });
+    expect(splitCounts(12)).toEqual({ practice: 4, dev: 4, qualification: 4 });
+    expect(splitCounts(30)).toEqual({ practice: 12, dev: 9, qualification: 9 });
   });
 
   it('holds the goal until it is described and has enough finished examples', () => {

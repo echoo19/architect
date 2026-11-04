@@ -56,7 +56,9 @@ import {
 } from './worker';
 
 const GB = 1024 ** 3;
-const OutputsSchema = z.array(z.object({ text: z.string(), tokens: z.number(), cutOff: z.boolean() }));
+const OutputsSchema = z.array(
+  z.object({ text: z.string(), tokens: z.number(), cutOff: z.boolean() }),
+);
 const ComposeSchema = z.object({
   edits: z.array(
     z.object({
@@ -105,14 +107,20 @@ export interface WspEvaluator {
 }
 
 export interface WspProcesses {
-  evaluator(paths: WspWorkerPaths, base: string, session: string, memoryBytes: number): WspEvaluator;
+  evaluator(
+    paths: WspWorkerPaths,
+    base: string,
+    session: string,
+    memoryBytes: number,
+  ): WspEvaluator;
   kernel: typeof runKernel;
   /** Whether the worker's environment is ready. */
   status: typeof workerStatus;
 }
 
 const REAL_PROCESSES: WspProcesses = {
-  evaluator: (paths, base, session, memoryBytes) => new EvaluatorProcess(paths, base, session, memoryBytes),
+  evaluator: (paths, base, session, memoryBytes) =>
+    new EvaluatorProcess(paths, base, session, memoryBytes),
   kernel: runKernel,
   status: workerStatus,
 };
@@ -147,17 +155,20 @@ const UNSUPPORTED: Omit<WspComputeTarget, 'status'>[] = [
   {
     id: 'slurm',
     label: 'Slurm',
-    reason: 'Architect writes cluster bundles and never submits them, and a WSP experiment needs its worker to answer the runner while it runs.',
+    reason:
+      'Architect writes cluster bundles and never submits them, and a WSP experiment needs its worker to answer the runner while it runs.',
   },
   {
     id: 'kubernetes',
     label: 'Kubernetes',
-    reason: 'Architect writes cluster bundles and never submits them, and a WSP experiment needs its worker to answer the runner while it runs.',
+    reason:
+      'Architect writes cluster bundles and never submits them, and a WSP experiment needs its worker to answer the runner while it runs.',
   },
   {
     id: 'skypilot',
     label: 'SkyPilot',
-    reason: 'Architect writes cluster bundles and never submits them, and a WSP experiment needs its worker to answer the runner while it runs.',
+    reason:
+      'Architect writes cluster bundles and never submits them, and a WSP experiment needs its worker to answer the runner while it runs.',
   },
 ];
 
@@ -193,11 +204,17 @@ export class WspService {
         this.save({
           ...experiment,
           status: experiment.status === 'cancelling' ? 'cancelled' : 'interrupted',
-          activity: experiment.status === 'cancelling' ? 'Cancelled' : 'Stopped when Architect closed',
+          activity:
+            experiment.status === 'cancelling' ? 'Cancelled' : 'Stopped when Architect closed',
           iterations: experiment.iterations.filter((item) => item.endedAt !== undefined),
         });
       } else if (experiment.status === 'briefing') {
-        this.save({ ...experiment, status: 'brief', activity: '', error: 'Drafting stopped when Architect closed.' });
+        this.save({
+          ...experiment,
+          status: 'brief',
+          activity: '',
+          error: 'Drafting stopped when Architect closed.',
+        });
       } else if (experiment.status === 'qualifying') {
         this.save({
           ...experiment,
@@ -241,7 +258,10 @@ export class WspService {
       this.settingUp = setupWorker(this.paths)
         .catch((error: unknown) => {
           this.onError(error);
-          return { status: 'needs-setup' as const, reason: `Setup failed: ${(error as Error).message.slice(0, 400)}` };
+          return {
+            status: 'needs-setup' as const,
+            reason: `Setup failed: ${(error as Error).message.slice(0, 400)}`,
+          };
         })
         .finally(() => {
           this.settingUp = null;
@@ -256,7 +276,12 @@ export class WspService {
     const local: WspComputeTarget = {
       id: 'local-cpu',
       label: 'This computer',
-      status: worker.status === 'ready' ? 'ready' : worker.status === 'unavailable' ? 'unsupported' : 'needs-setup',
+      status:
+        worker.status === 'ready'
+          ? 'ready'
+          : worker.status === 'unavailable'
+            ? 'unsupported'
+            : 'needs-setup',
       ...(worker.reason === undefined ? {} : { reason: worker.reason }),
       threads: workerThreads(),
       memoryGb: Math.round(totalMemoryGb()),
@@ -280,14 +305,19 @@ export class WspService {
     }
     const examples = input.goal.examples;
     if (examples.length < WSP_MIN_EXAMPLES) {
-      throw new Error(`Add at least ${WSP_MIN_EXAMPLES} examples: some to practice on, some for dev and some sealed.`);
+      throw new Error(
+        `Add at least ${WSP_MIN_EXAMPLES} examples: some to practice on, some for dev and some sealed.`,
+      );
     }
-    const problem = examples.map((example) => example.check && checkProblem(example.check)).find(Boolean);
+    const problem = examples
+      .map((example) => example.check && checkProblem(example.check))
+      .find(Boolean);
     if (problem) throw new Error(problem);
     const prompts = new Set<string>();
     for (const example of examples) {
       const key = example.prompt.trim().toLowerCase();
-      if (prompts.has(key)) throw new Error(`The prompt "${example.prompt.slice(0, 60)}" is there twice.`);
+      if (prompts.has(key))
+        throw new Error(`The prompt "${example.prompt.slice(0, 60)}" is there twice.`);
       prompts.add(key);
     }
     const mentor = await this.options.mentorStatus();
@@ -315,7 +345,12 @@ export class WspService {
       mentor: { ...mentor.mentor, reasoningEffort: input.reasoningEffort },
       brief: null,
       approval: null,
-      split: { seed, practice: split.practice.length, dev: split.dev.length, qualification: split.qualification.length },
+      split: {
+        seed,
+        practice: split.practice.length,
+        dev: split.dev.length,
+        qualification: split.qualification.length,
+      },
       hypothesis: '',
       iterations: [],
       measurements: [],
@@ -332,24 +367,38 @@ export class WspService {
   async redraft(id: string): Promise<WspExperiment> {
     const experiment = this.store.get(id);
     if (experiment.status !== 'brief' || experiment.brief !== null) {
-      throw new CodedError('experiment_state', 'Only a brief that failed to draft is drafted again.');
+      throw new CodedError(
+        'experiment_state',
+        'Only a brief that failed to draft is drafted again.',
+      );
     }
     const { error: _error, ...rest } = experiment;
-    const saved = this.save({ ...rest, status: 'briefing', activity: `${experiment.mentor.label} is drafting the brief` });
+    const saved = this.save({
+      ...rest,
+      status: 'briefing',
+      activity: `${experiment.mentor.label} is drafting the brief`,
+    });
     void this.writeBrief(id);
     return saved;
   }
 
   private tensorText(experiment: WspExperiment): string {
     const tensors = checkpointTensors(experiment.base.path);
-    return inventory([...tensors.keys()].sort(), new Map([...tensors].map(([name, info]) => [name, info.shape])));
+    return inventory(
+      [...tensors.keys()].sort(),
+      new Map([...tensors].map(([name, info]) => [name, info.shape])),
+    );
   }
 
   private async writeBrief(id: string): Promise<void> {
     try {
       const experiment = this.store.get(id);
       const mentor = await this.options.connectMentor(experiment.mentor.reasoningEffort);
-      const context = { experiment, practice: this.store.examples(id).practice, tensors: this.tensorText(experiment) };
+      const context = {
+        experiment,
+        practice: this.store.examples(id).practice,
+        tensors: this.tensorText(experiment),
+      };
       const request = briefRequest(context);
       this.guardRequest(experiment, mentor, requestText(request), request.maxOutputTokens);
       const turn = await mentor.brief(context);
@@ -365,16 +414,28 @@ export class WspService {
     } catch (error) {
       this.onError(error);
       const latest = this.store.get(id);
-      this.save({ ...latest, status: 'brief', activity: '', error: `The brief couldn't be drafted: ${(error as Error).message}` });
+      this.save({
+        ...latest,
+        status: 'brief',
+        activity: '',
+        error: `The brief couldn't be drafted: ${(error as Error).message}`,
+      });
     }
   }
 
   revise(id: string, brief: WspBrief, title: string): WspExperiment {
     const experiment = this.store.get(id);
     if (experiment.status !== 'brief') {
-      throw new CodedError('experiment_frozen', 'The brief was approved when the experiment started; it no longer changes.');
+      throw new CodedError(
+        'experiment_frozen',
+        'The brief was approved when the experiment started; it no longer changes.',
+      );
     }
-    return this.save({ ...experiment, brief: WspBriefSchema.parse(brief), title: z.string().trim().min(1).max(120).parse(title) });
+    return this.save({
+      ...experiment,
+      brief: WspBriefSchema.parse(brief),
+      title: z.string().trim().min(1).max(120).parse(title),
+    });
   }
 
   /* Running */
@@ -402,7 +463,11 @@ export class WspService {
       throw new CodedError('experiment_state', 'Only an interrupted experiment resumes.');
     }
     this.oneAtATime();
-    const saved = this.save({ ...experiment, status: 'running', activity: 'Resuming from its last finished program' });
+    const saved = this.save({
+      ...experiment,
+      status: 'running',
+      activity: 'Resuming from its last finished program',
+    });
     this.launch(id);
     return saved;
   }
@@ -412,7 +477,12 @@ export class WspService {
     const active = this.active.get(id);
     if (active === undefined) {
       if (experiment.status === 'interrupted' || experiment.status === 'brief') {
-        return this.save({ ...experiment, status: 'cancelled', activity: 'Cancelled', endedAt: this.now().toISOString() });
+        return this.save({
+          ...experiment,
+          status: 'cancelled',
+          activity: 'Cancelled',
+          endedAt: this.now().toISOString(),
+        });
       }
       throw new CodedError('experiment_state', 'This experiment is not running.');
     }
@@ -423,7 +493,10 @@ export class WspService {
 
   private oneAtATime(): void {
     if (this.active.size > 0) {
-      throw new CodedError('experiment_state', 'Another experiment is running on this computer; wait for it or cancel it.');
+      throw new CodedError(
+        'experiment_state',
+        'Another experiment is running on this computer; wait for it or cancel it.',
+      );
     }
   }
 
@@ -438,12 +511,18 @@ export class WspService {
 
   /** The wall clock: what earlier runs used plus this one so far. */
   private clock(experiment: WspExperiment, since: number, before: number): WspExperiment {
-    return { ...experiment, costs: { ...experiment.costs, wallSeconds: before + (Date.now() - since) / 1000 } };
+    return {
+      ...experiment,
+      costs: { ...experiment.costs, wallSeconds: before + (Date.now() - since) / 1000 },
+    };
   }
 
   private charged(
     experiment: WspExperiment,
-    completion: { usage: { inputTokens: number; outputTokens: number; reasoningTokens?: number }; costUsd: number | null },
+    completion: {
+      usage: { inputTokens: number; outputTokens: number; reasoningTokens?: number };
+      costUsd: number | null;
+    },
   ): WspExperiment['costs'] {
     const output = completion.usage.outputTokens + (completion.usage.reasoningTokens ?? 0);
     const cost = completion.costUsd ?? 0;
@@ -457,9 +536,17 @@ export class WspService {
   }
 
   /** Refuses a request that would carry a sealed example or could pass the mentor's cap. */
-  private guardRequest(experiment: WspExperiment, mentor: WspMentorClient, text: string, maxOutput: number): void {
+  private guardRequest(
+    experiment: WspExperiment,
+    mentor: WspMentorClient,
+    text: string,
+    maxOutput: number,
+  ): void {
     if (this.options.vault.wspLeaks(experiment.id, text)) {
-      throw new GuardError('split', 'The request to the mentor carried a sealed example, so it was not sent.');
+      throw new GuardError(
+        'split',
+        'The request to the mentor carried a sealed example, so it was not sent.',
+      );
     }
     const worst = mentor.worstCaseUsd(text.length, maxOutput);
     if (experiment.costs.mentorUsd + worst > experiment.limits.mentorUsd) {
@@ -479,12 +566,20 @@ export class WspService {
       const start = this.store.get(id);
       const changed = await baseChanges(start.base);
       if (changed.length > 0) {
-        throw new Error(`The base checkpoint changed since the experiment was made (${changed.join(', ')}); start a new experiment.`);
+        throw new Error(
+          `The base checkpoint changed since the experiment was made (${changed.join(', ')}); start a new experiment.`,
+        );
       }
       const worker = this.processes.status(this.paths);
-      if (worker.status !== 'ready') throw new Error(worker.reason ?? 'The WSP worker is not set up.');
+      if (worker.status !== 'ready')
+        throw new Error(worker.reason ?? 'The WSP worker is not set up.');
       update((experiment) => ({ ...experiment, activity: 'Loading the model' }));
-      const evaluator = this.processes.evaluator(this.paths, start.base.path, this.store.dir(id), start.limits.memoryGb * GB);
+      const evaluator = this.processes.evaluator(
+        this.paths,
+        start.base.path,
+        this.store.dir(id),
+        start.limits.memoryGb * GB,
+      );
       active.evaluator = evaluator;
       await evaluator.start();
       update((experiment) => ({
@@ -497,12 +592,29 @@ export class WspService {
     } catch (error) {
       const latest = this.store.get(id);
       if (active.abort.signal.aborted) {
-        this.save(this.clock({ ...latest, status: 'cancelled', activity: 'Cancelled', endedAt: this.now().toISOString() }, since, before));
+        this.save(
+          this.clock(
+            {
+              ...latest,
+              status: 'cancelled',
+              activity: 'Cancelled',
+              endedAt: this.now().toISOString(),
+            },
+            since,
+            before,
+          ),
+        );
       } else {
         this.onError(error);
         this.save(
           this.clock(
-            { ...latest, status: 'failed', activity: 'Failed', error: (error as Error).message, endedAt: this.now().toISOString() },
+            {
+              ...latest,
+              status: 'failed',
+              activity: 'Failed',
+              error: (error as Error).message,
+              endedAt: this.now().toISOString(),
+            },
             since,
             before,
           ),
@@ -511,7 +623,12 @@ export class WspService {
     }
   }
 
-  private evaluated(experiment: WspExperiment, arm: WspArm, split: WspSplit, candidateId?: string): WspMeasurement | undefined {
+  private evaluated(
+    experiment: WspExperiment,
+    arm: WspArm,
+    split: WspSplit,
+    candidateId?: string,
+  ): WspMeasurement | undefined {
     return experiment.measurements.find(
       (item) => item.arm === arm && item.split === split && item.candidateId === candidateId,
     );
@@ -532,7 +649,10 @@ export class WspService {
   ): Promise<WspMeasurement> {
     const experiment = this.store.get(id);
     const brief = experiment.brief!;
-    const decoding: WspDecoding = arm === 'decoding' ? brief.controls.decoding : { ...brief.controls.decoding, temperature: 0, topP: 1, repetitionPenalty: 1 };
+    const decoding: WspDecoding =
+      arm === 'decoding'
+        ? brief.controls.decoding
+        : { ...brief.controls.decoding, temperature: 0, topP: 1, repetitionPenalty: 1 };
     const system = arm === 'instructions' ? brief.controls.instructions : null;
     let candidate: string | null = null;
     if (candidateId !== undefined) {
@@ -544,12 +664,26 @@ export class WspService {
     }
     const reply = await active.evaluator!.request(
       'generate',
-      { candidate, prompts: examples.map((example) => example.prompt), system, decoding, seed: experiment.split.seed, batch: 8 },
+      {
+        candidate,
+        prompts: examples.map((example) => example.prompt),
+        system,
+        decoding,
+        seed: experiment.split.seed,
+        batch: 8,
+      },
       z.object({ outputs: OutputsSchema, seconds: z.number() }),
     );
     const name = `${arm}-${split}${candidateId === undefined ? '' : `-${candidateId}`}`;
     this.store.saveOutputs(id, name, reply.outputs);
-    const result = measure(arm, split, examples, reply.outputs as WspOutput[], reply.seconds, candidateId);
+    const result = measure(
+      arm,
+      split,
+      examples,
+      reply.outputs as WspOutput[],
+      reply.seconds,
+      candidateId,
+    );
     const latest = this.store.get(id);
     this.save({
       ...latest,
@@ -563,7 +697,11 @@ export class WspService {
     return result;
   }
 
-  private async baseline(id: string, active: Active, update: (change: (e: WspExperiment) => WspExperiment) => WspExperiment): Promise<void> {
+  private async baseline(
+    id: string,
+    active: Active,
+    update: (change: (e: WspExperiment) => WspExperiment) => WspExperiment,
+  ): Promise<void> {
     const { practice, dev } = this.store.examples(id);
     const plan: [WspArm, WspSplit, WspExample[], string][] = [
       ['base', 'practice', practice, 'Measuring the base on practice'],
@@ -584,8 +722,16 @@ export class WspService {
   private practiceView(id: string, candidateId: string | null) {
     const { practice } = this.store.examples(id);
     const experiment = this.store.get(id);
-    const measured = candidateId === null ? this.evaluated(experiment, 'base', 'practice') : this.evaluated(experiment, 'candidate', 'practice', candidateId);
-    const outputs = this.store.outputs(id, candidateId === null ? 'base-practice' : `candidate-practice-${candidateId}`, OutputsSchema) ?? [];
+    const measured =
+      candidateId === null
+        ? this.evaluated(experiment, 'base', 'practice')
+        : this.evaluated(experiment, 'candidate', 'practice', candidateId);
+    const outputs =
+      this.store.outputs(
+        id,
+        candidateId === null ? 'base-practice' : `candidate-practice-${candidateId}`,
+        OutputsSchema,
+      ) ?? [];
     return practice.map((example, index) => ({
       prompt: example.prompt,
       output: outputs[index]?.text ?? '',
@@ -598,8 +744,10 @@ export class WspService {
   private exhausted(experiment: WspExperiment, since: number, before: number): string | null {
     const limits = experiment.limits;
     const wall = before + (Date.now() - since) / 1000;
-    if (experiment.iterations.length >= limits.programs) return `It ran all ${limits.programs} programs.`;
-    if (experiment.costs.forwardPasses + 2 > limits.forwardPasses) return `It used its ${limits.forwardPasses} forward passes.`;
+    if (experiment.iterations.length >= limits.programs)
+      return `It ran all ${limits.programs} programs.`;
+    if (experiment.costs.forwardPasses + 2 > limits.forwardPasses)
+      return `It used its ${limits.forwardPasses} forward passes.`;
     // The mentor's cap is held before each call, against the most that call could cost.
     if (wall >= limits.wallMinutes * 60) return `It ran for its ${limits.wallMinutes} minutes.`;
     return null;
@@ -660,7 +808,11 @@ export class WspService {
         throw error;
       }
       const turn = await mentor.step(context, active.abort.signal);
-      this.store.journal(id, { at: this.now().toISOString(), call: `step ${n}`, ...turn.completion });
+      this.store.journal(id, {
+        at: this.now().toISOString(),
+        call: `step ${n}`,
+        ...turn.completion,
+      });
       const step = turn.value;
       const startedAt = this.now().toISOString();
       if (step.action === 'finish' || step.program.trim().length === 0) {
@@ -694,7 +846,9 @@ export class WspService {
       const finished = await this.runProgram(id, active, n, iteration, practice, dev);
       update((latest) => ({
         ...latest,
-        iterations: latest.iterations.map((item) => (item.n === n ? { ...finished, endedAt: this.now().toISOString() } : item)),
+        iterations: latest.iterations.map((item) =>
+          item.n === n ? { ...finished, endedAt: this.now().toISOString() } : item,
+        ),
         incumbent: finished.decision === 'kept' ? finished.candidateId! : latest.incumbent,
       }));
     }
@@ -712,7 +866,8 @@ export class WspService {
     const out = this.store.sub(id, 'kernel', String(n));
     rmSync(out, { recursive: true, force: true });
     mkdirSync(out, { recursive: true });
-    const incumbent = experiment.incumbent === null ? null : this.candidatePath(id, experiment.incumbent);
+    const incumbent =
+      experiment.incumbent === null ? null : this.candidatePath(id, experiment.incumbent);
     const outcome = await this.processes.kernel(
       this.paths,
       {
@@ -726,20 +881,39 @@ export class WspService {
         memoryBytes: experiment.limits.memoryGb * GB,
       },
       join(out, '..', `${n}.request.json`),
-      { timeoutMs: experiment.limits.programSeconds * 1000, tempDir: this.store.sub(id, 'tmp'), signal: active.abort.signal },
+      {
+        timeoutMs: experiment.limits.programSeconds * 1000,
+        tempDir: this.store.sub(id, 'tmp'),
+        signal: active.abort.signal,
+      },
     );
     this.addCompute(id, outcome.seconds);
     if (active.abort.signal.aborted) throw new Error('Cancelled.');
     if (outcome.kind === 'timeout') {
-      return { ...iteration, outcome: 'timeout', reason: `It ran past its ${experiment.limits.programSeconds} seconds.`, output: '' };
+      return {
+        ...iteration,
+        outcome: 'timeout',
+        reason: `It ran past its ${experiment.limits.programSeconds} seconds.`,
+        output: '',
+      };
     }
-    if (outcome.kind === 'failed') return { ...iteration, outcome: 'error', reason: outcome.reason, output: '' };
+    if (outcome.kind === 'failed')
+      return { ...iteration, outcome: 'error', reason: outcome.reason, output: '' };
     const result = outcome.result;
     const output = this.screened(id, result.output);
     if (result.status === 'error') {
-      return { ...iteration, outcome: 'error', reason: result.error ?? 'The program failed.', output };
+      return {
+        ...iteration,
+        outcome: 'error',
+        reason: result.error ?? 'The program failed.',
+        output,
+      };
     }
-    let current: WspIteration = { ...iteration, output, outcome: result.reads.length > 0 ? 'read' : 'inspected' };
+    let current: WspIteration = {
+      ...iteration,
+      output,
+      outcome: result.reads.length > 0 ? 'read' : 'inspected',
+    };
     for (const read of result.reads) {
       if (this.store.get(id).costs.forwardPasses + 1 > experiment.limits.forwardPasses) {
         return { ...current, reason: 'A read was left out: the forward passes were used up.' };
@@ -747,17 +921,28 @@ export class WspService {
       this.updateActivity(id, `Reading hidden states for "${read.name}"`);
       const reply = await active.evaluator!.request(
         'read',
-        { candidate: incumbent, texts: read.texts, layers: read.layers, out: join(this.store.sub(id, 'reads'), `${read.name}.npz`) },
+        {
+          candidate: incumbent,
+          texts: read.texts,
+          layers: read.layers,
+          out: join(this.store.sub(id, 'reads'), `${read.name}.npz`),
+        },
         ReadSchema.extend({ seconds: z.number() }),
       );
       const latest = this.store.get(id);
       this.save({
         ...latest,
-        costs: { ...latest.costs, forwardPasses: latest.costs.forwardPasses + 1, computeSeconds: latest.costs.computeSeconds + reply.seconds },
+        costs: {
+          ...latest.costs,
+          forwardPasses: latest.costs.forwardPasses + 1,
+          computeSeconds: latest.costs.computeSeconds + reply.seconds,
+        },
       });
     }
     if (result.edits === null) {
-      return result.refused.length > 0 ? { ...current, outcome: 'refused', reason: result.refused.join(' ') } : current;
+      return result.refused.length > 0
+        ? { ...current, outcome: 'refused', reason: result.refused.join(' ') }
+        : current;
     }
     this.updateActivity(id, `Checking the edits of program ${n}`);
     let composed: z.infer<typeof ComposeSchema>;
@@ -779,18 +964,32 @@ export class WspService {
         reason: `It changes ${changed.toLocaleString('en-US')} weights, past the cap of ${(experiment.limits.maxChangedFraction * 100).toFixed(2)}% of the model.`,
       };
     }
-    const candidate = this.writeCandidate(id, experiment, iteration.programSha256, composed, staged, changed);
-    current = { ...current, outcome: 'edit', candidateId: candidate.id };
+    const candidate = this.writeCandidate(
+      id,
+      experiment,
+      iteration.programSha256,
+      composed,
+      staged,
+      changed,
+    );
+    current = { ...current, outcome: 'edit', candidateId: candidate.id, edits: candidate.edits };
     this.updateActivity(id, `Measuring candidate ${candidate.id.slice(5, 13)}`, 'evaluation');
     await this.evaluate(id, active, 'candidate', 'practice', practice, candidate.id);
     const measured = await this.evaluate(id, active, 'candidate', 'dev', dev, candidate.id);
     const latest = this.store.get(id);
     const metric = latest.brief!.target.metric;
     const reference =
-      latest.incumbent === null ? this.evaluated(latest, 'base', 'dev') : this.evaluated(latest, 'candidate', 'dev', latest.incumbent);
+      latest.incumbent === null
+        ? this.evaluated(latest, 'base', 'dev')
+        : this.evaluated(latest, 'candidate', 'dev', latest.incumbent);
     const score = (item: WspMeasurement | undefined) => {
       if (item === undefined) return null;
-      const value = metric === 'loop_rate' ? item.looped / Math.max(1, item.n) : item.passed === null ? null : item.passed / Math.max(1, item.checked);
+      const value =
+        metric === 'loop_rate'
+          ? item.looped / Math.max(1, item.n)
+          : item.passed === null
+            ? null
+            : item.passed / Math.max(1, item.checked);
       return value === null ? null : metric === 'loop_rate' ? -value : value;
     };
     const mine = score(measured);
@@ -813,7 +1012,10 @@ export class WspService {
 
   private addCompute(id: string, seconds: number): void {
     const latest = this.store.get(id);
-    this.save({ ...latest, costs: { ...latest.costs, computeSeconds: latest.costs.computeSeconds + seconds } });
+    this.save({
+      ...latest,
+      costs: { ...latest.costs, computeSeconds: latest.costs.computeSeconds + seconds },
+    });
   }
 
   private writeCandidate(
@@ -835,7 +1037,11 @@ export class WspService {
       tensorsSha256: composed.sha256,
     };
     const digest = sha256(canonical(body));
-    const candidate = WspCandidateSchema.parse({ ...body, id: `wspc-${digest.slice(0, 20)}`, digest });
+    const candidate = WspCandidateSchema.parse({
+      ...body,
+      id: `wspc-${digest.slice(0, 20)}`,
+      digest,
+    });
     const dir = this.store.sub(id, 'candidates', candidate.id);
     if (!existsSync(join(dir, 'manifest.json'))) {
       mkdirSync(dir, { recursive: true });
@@ -847,17 +1053,26 @@ export class WspService {
 
   private candidate(id: string, candidateId: string): WspCandidate {
     return WspCandidateSchema.parse(
-      JSON.parse(readFileSync(this.store.sub(id, 'candidates', candidateId, 'manifest.json'), 'utf8')),
+      JSON.parse(
+        readFileSync(this.store.sub(id, 'candidates', candidateId, 'manifest.json'), 'utf8'),
+      ),
     );
   }
 
   /** Freezes the incumbent, releases the mentor and files the dev result. */
-  private finish(id: string, update: (change: (e: WspExperiment) => WspExperiment) => WspExperiment): void {
+  private finish(
+    id: string,
+    update: (change: (e: WspExperiment) => WspExperiment) => WspExperiment,
+  ): void {
     const experiment = this.store.get(id);
     const frozen =
       experiment.incumbent === null
         ? null
-        : { candidateId: experiment.incumbent, digest: this.candidate(id, experiment.incumbent).digest, at: this.now().toISOString() };
+        : {
+            candidateId: experiment.incumbent,
+            digest: this.candidate(id, experiment.incumbent).digest,
+            at: this.now().toISOString(),
+          };
     update((latest) => {
       const done = { ...latest, frozen };
       return {
@@ -876,14 +1091,21 @@ export class WspService {
   async qualify(id: string): Promise<WspExperiment> {
     const experiment = this.store.get(id);
     if (experiment.status !== 'evaluated' || experiment.frozen === null) {
-      throw new CodedError('experiment_state', 'Only an evaluated experiment with a frozen candidate is qualified.');
+      throw new CodedError(
+        'experiment_state',
+        'Only an evaluated experiment with a frozen candidate is qualified.',
+      );
     }
     this.oneAtATime();
     const candidate = this.candidate(id, experiment.frozen.candidateId);
     if (candidate.digest !== experiment.frozen.digest) {
       throw new Error('The frozen candidate changed after it was frozen.');
     }
-    const saved = this.save({ ...experiment, status: 'qualifying', activity: 'Opening the sealed examples' });
+    const saved = this.save({
+      ...experiment,
+      status: 'qualifying',
+      activity: 'Opening the sealed examples',
+    });
     const active: Active = { abort: new AbortController(), evaluator: null };
     this.active.set(id, active);
     void (async () => {
@@ -891,21 +1113,36 @@ export class WspService {
         const proof = this.released.get(id) ?? (await releaseMentor({ dispose: () => undefined }));
         this.released.set(id, proof);
         const sealed = this.options.vault.openWsp(id, proof);
-        const evaluator = this.processes.evaluator(this.paths, experiment.base.path, this.store.dir(id), experiment.limits.memoryGb * GB);
+        const evaluator = this.processes.evaluator(
+          this.paths,
+          experiment.base.path,
+          this.store.dir(id),
+          experiment.limits.memoryGb * GB,
+        );
         active.evaluator = evaluator;
         await evaluator.start();
         const arms: [WspArm, string | undefined][] = [
           ['base', undefined],
           ['decoding', undefined],
-          ...(experiment.brief?.controls.instructions === null ? [] : [['instructions', undefined] as [WspArm, undefined]]),
+          ...(experiment.brief?.controls.instructions === null
+            ? []
+            : [['instructions', undefined] as [WspArm, undefined]]),
           ['candidate', experiment.frozen!.candidateId],
         ];
         for (const [arm, candidateId] of arms) {
-          this.updateActivity(id, `Qualifying: ${arm === 'candidate' ? 'the candidate' : `the ${arm} arm`}`);
+          this.updateActivity(
+            id,
+            `Qualifying: ${arm === 'candidate' ? 'the candidate' : `the ${arm} arm`}`,
+          );
           await this.evaluate(id, active, arm, 'qualification', sealed, candidateId);
         }
         const latest = this.store.get(id);
-        this.save({ ...latest, status: 'qualified', activity: '', result: wspResult(latest, 'qualification') });
+        this.save({
+          ...latest,
+          status: 'qualified',
+          activity: '',
+          result: wspResult(latest, 'qualification'),
+        });
       } catch (error) {
         this.onError(error);
         const latest = this.store.get(id);
@@ -926,10 +1163,19 @@ export class WspService {
 
   async exportCandidate(id: string, parentDir: string): Promise<WspExport> {
     const experiment = this.store.get(id);
-    if (experiment.frozen === null) throw new CodedError('experiment_state', 'There is no frozen candidate to export.');
-    const folder = join(parentDir, `${experiment.base.name.split('/').pop()}-${experiment.frozen.candidateId}`);
+    if (experiment.frozen === null)
+      throw new CodedError('experiment_state', 'There is no frozen candidate to export.');
+    const folder = join(
+      parentDir,
+      `${experiment.base.name.split('/').pop()}-${experiment.frozen.candidateId}`,
+    );
     if (existsSync(folder)) throw new Error(`${folder} already exists.`);
-    const evaluator = this.processes.evaluator(this.paths, experiment.base.path, this.store.dir(id), experiment.limits.memoryGb * GB);
+    const evaluator = this.processes.evaluator(
+      this.paths,
+      experiment.base.path,
+      this.store.dir(id),
+      experiment.limits.memoryGb * GB,
+    );
     try {
       await evaluator.start();
       const written = await evaluator.request(
@@ -946,7 +1192,11 @@ export class WspService {
         mentor: experiment.mentor,
         approval: experiment.approval,
         worker: experiment.worker,
-        programs: experiment.iterations.map((item) => ({ n: item.n, sha256: item.programSha256, source: this.store.program(id, item.n) })),
+        programs: experiment.iterations.map((item) => ({
+          n: item.n,
+          sha256: item.programSha256,
+          source: this.store.program(id, item.n),
+        })),
         measurements: experiment.measurements,
         result: experiment.result,
         costs: experiment.costs,
@@ -956,7 +1206,11 @@ export class WspService {
         folder,
         files: [
           ...written.files,
-          { name: 'architect-wsp.json', bytes: Buffer.byteLength(JSON.stringify(provenance, null, 2)), sha256: await sha256File(join(folder, 'architect-wsp.json')) },
+          {
+            name: 'architect-wsp.json',
+            bytes: Buffer.byteLength(JSON.stringify(provenance, null, 2)),
+            sha256: await sha256File(join(folder, 'architect-wsp.json')),
+          },
         ],
       };
     } finally {

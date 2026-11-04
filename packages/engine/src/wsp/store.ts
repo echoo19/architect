@@ -4,6 +4,7 @@ import {
   CodedError,
   WspExampleSchema,
   WspExperimentSchema,
+  wspSplitCounts,
   type WspExample,
   type WspExperiment,
 } from '@architect/shared';
@@ -79,11 +80,16 @@ export class WspStore {
   }
 
   saveExamples(id: string, examples: StoredExamples): void {
-    writeFileAtomic(join(this.dir(id), 'examples.json'), JSON.stringify(ExamplesSchema.parse(examples)));
+    writeFileAtomic(
+      join(this.dir(id), 'examples.json'),
+      JSON.stringify(ExamplesSchema.parse(examples)),
+    );
   }
 
   examples(id: string): StoredExamples {
-    return ExamplesSchema.parse(JSON.parse(readFileSync(join(this.dir(id), 'examples.json'), 'utf8')));
+    return ExamplesSchema.parse(
+      JSON.parse(readFileSync(join(this.dir(id), 'examples.json'), 'utf8')),
+    );
   }
 
   programFile(id: string, n: number): string {
@@ -97,7 +103,8 @@ export class WspStore {
 
   program(id: string, n: number): string {
     const path = this.programFile(id, n);
-    if (!existsSync(path)) throw new CodedError('record_not_found', `Program ${n} of ${id} isn't recorded.`);
+    if (!existsSync(path))
+      throw new CodedError('record_not_found', `Program ${n} of ${id} isn't recorded.`);
     return readFileSync(path, 'utf8');
   }
 
@@ -151,8 +158,7 @@ export function splitExamples(
   seed: number,
 ): { practice: WspExample[]; dev: WspExample[]; qualification: WspExample[] } {
   const order = shuffled(examples, seed);
-  const qualification = Math.max(4, Math.round(order.length * 0.3));
-  const dev = Math.max(4, Math.round(order.length * 0.3));
+  const { qualification, dev } = wspSplitCounts(order.length);
   return {
     qualification: order.slice(0, qualification),
     dev: order.slice(qualification, qualification + dev),

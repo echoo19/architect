@@ -36,9 +36,17 @@ const DEPLOYMENT = {
     "Measured on the evaluator: transformers on this computer's CPU, in full precision. No GGUF or quantized build of the candidate was made and checked on a local runtime, so it isn't a local agent yet.",
 };
 
-function find(experiment: WspExperiment, arm: WspArm, split: WspSplit, candidateId?: string): WspMeasurement | undefined {
+function find(
+  experiment: WspExperiment,
+  arm: WspArm,
+  split: WspSplit,
+  candidateId?: string,
+): WspMeasurement | undefined {
   return experiment.measurements.find(
-    (item) => item.arm === arm && item.split === split && (arm !== 'candidate' || item.candidateId === candidateId),
+    (item) =>
+      item.arm === arm &&
+      item.split === split &&
+      (arm !== 'candidate' || item.candidateId === candidateId),
   );
 }
 
@@ -52,7 +60,12 @@ export function wspResult(experiment: WspExperiment, split: 'dev' | 'qualificati
   const notRun = [
     ...NOT_RUN,
     ...(brief.controls.instructions === null
-      ? [{ arm: 'Instruction control', reason: 'The brief proposed no system instruction to compare with.' }]
+      ? [
+          {
+            arm: 'Instruction control',
+            reason: 'The brief proposed no system instruction to compare with.',
+          },
+        ]
       : []),
   ];
   const where = split === 'dev' ? 'on dev' : 'on the sealed examples';
@@ -84,7 +97,8 @@ export function wspResult(experiment: WspExperiment, split: 'dev' | 'qualificati
       if (item !== null) comparisons.push(item);
     }
   }
-  const target = (arm: WspArm) => comparisons.find((item) => item.against === arm && item.metric === metric);
+  const target = (arm: WspArm) =>
+    comparisons.find((item) => item.against === arm && item.metric === metric);
   const overBase = target('base');
   const regressions: string[] = [];
   const other = metric === 'pass_rate' ? 'loop_rate' : 'pass_rate';
@@ -96,8 +110,14 @@ export function wspResult(experiment: WspExperiment, split: 'dev' | 'qualificati
   }
   if (candidate !== undefined) {
     const base = find(experiment, 'base', split);
-    const lost = base?.outcomes.filter((outcome, index) => outcome.passed === true && candidate.outcomes[index]?.passed === false).length ?? 0;
-    if (lost > 0) regressions.push(`${lost} ${lost === 1 ? 'example' : 'examples'} the base passed ${where} now fail.`);
+    const lost =
+      base?.outcomes.filter(
+        (outcome, index) => outcome.passed === true && candidate.outcomes[index]?.passed === false,
+      ).length ?? 0;
+    if (lost > 0)
+      regressions.push(
+        `${lost} ${lost === 1 ? 'example' : 'examples'} the base passed ${where} now fail.`,
+      );
   }
   if (overBase === undefined) {
     return {
@@ -118,11 +138,15 @@ export function wspResult(experiment: WspExperiment, split: 'dev' | 'qualificati
     .filter((item): item is WspComparison => item !== undefined);
   const beaten = controls.find((item) => gain(metric, item.points) <= 0);
   const name = metric === 'pass_rate' ? 'pass rate' : 'loop rate';
-  const verdict = wrong ? 'regressed' : clear && gained >= brief.target.minPoints && beaten === undefined ? 'improved' : 'not-established';
+  const verdict = wrong
+    ? 'regressed'
+    : clear && gained >= brief.target.minPoints && beaten === undefined
+      ? 'improved'
+      : 'not-established';
   const lead = `The candidate's ${name} is ${signed(overBase.points)} points against the base ${where} (95% interval ${signed(overBase.low)} to ${signed(overBase.high)}, ${overBase.n} examples)`;
   const tail =
     verdict === 'improved'
-      ? ', past the brief\'s target, and ahead of every control.'
+      ? ", past the brief's target, and ahead of every control."
       : verdict === 'regressed'
         ? ', worse than the base.'
         : beaten !== undefined
@@ -140,4 +164,3 @@ export function wspResult(experiment: WspExperiment, split: 'dev' | 'qualificati
     deployment: DEPLOYMENT,
   };
 }
-

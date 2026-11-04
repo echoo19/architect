@@ -42,7 +42,9 @@ function requirementsSha(paths: WspWorkerPaths): string {
 /** SHA-256 over the worker's source files and requirements, in name order. */
 export function workerSourceSha(sourceDir: string): string {
   const hash = createHash('sha256');
-  for (const name of readdirSync(sourceDir).filter((n) => /\.(py|txt)$/.test(n)).sort()) {
+  for (const name of readdirSync(sourceDir)
+    .filter((n) => /\.(py|txt)$/.test(n))
+    .sort()) {
     hash.update(`${name}\n`).update(readFileSync(join(sourceDir, name)));
   }
   return hash.digest('hex');
@@ -53,7 +55,12 @@ export function workerInfo(paths: WspWorkerPaths, python: string): WspWorkerInfo
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith('#'));
-  return { version: WSP_WORKER_VERSION, python, packages, sourceSha256: workerSourceSha(paths.sourceDir) };
+  return {
+    version: WSP_WORKER_VERSION,
+    python,
+    packages,
+    sourceSha256: workerSourceSha(paths.sourceDir),
+  };
 }
 
 const InstalledSchema = z.object({ requirementsSha256: z.string(), python: z.string() });
@@ -61,7 +68,10 @@ const InstalledSchema = z.object({ requirementsSha256: z.string(), python: z.str
 /** Whether the environment matches the pinned packages. */
 export function workerStatus(paths: WspWorkerPaths): WspWorkerStatus {
   if (!existsSync(join(paths.sourceDir, 'kernel.py'))) {
-    return { status: 'unavailable', reason: "This build of Architect doesn't carry the WSP worker." };
+    return {
+      status: 'unavailable',
+      reason: "This build of Architect doesn't carry the WSP worker.",
+    };
   }
   const marker = join(paths.envDir, INSTALLED);
   if (existsSync(pythonOf(paths.envDir)) && existsSync(marker)) {
@@ -73,7 +83,8 @@ export function workerStatus(paths: WspWorkerPaths): WspWorkerStatus {
   }
   return {
     status: 'needs-setup',
-    reason: 'The worker needs Python packages: torch for the CPU, transformers and safetensors, about 400 MB.',
+    reason:
+      'The worker needs Python packages: torch for the CPU, transformers and safetensors, about 400 MB.',
   };
 }
 
@@ -86,7 +97,9 @@ function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<s
     child.stderr.on('data', (chunk: Buffer) => (output += chunk.toString()));
     child.on('error', reject);
     child.on('close', (code) =>
-      code === 0 ? resolve(output) : reject(new Error(`${command} ended with ${code}: ${output.slice(-600)}`)),
+      code === 0
+        ? resolve(output)
+        : reject(new Error(`${command} ended with ${code}: ${output.slice(-600)}`)),
     );
   });
 }
@@ -113,8 +126,18 @@ export async function setupWorker(paths: WspWorkerPaths): Promise<WspWorkerStatu
     await run(
       'uv',
       [
-        'pip', 'install', '--python', python, '-r', requirements,
-        '--index-url', TORCH_INDEX, '--extra-index-url', PYPI, '--index-strategy', 'unsafe-best-match',
+        'pip',
+        'install',
+        '--python',
+        python,
+        '-r',
+        requirements,
+        '--index-url',
+        TORCH_INDEX,
+        '--extra-index-url',
+        PYPI,
+        '--index-strategy',
+        'unsafe-best-match',
       ],
       process.env,
     );
@@ -123,17 +146,24 @@ export async function setupWorker(paths: WspWorkerPaths): Promise<WspWorkerStatu
     if (!(await found(system))) {
       return {
         status: 'unavailable',
-        reason: 'Neither uv nor Python 3.12 is on this computer. Install uv (docs.astral.sh/uv), then set up the worker.',
+        reason:
+          'Neither uv nor Python 3.12 is on this computer. Install uv (docs.astral.sh/uv), then set up the worker.',
       };
     }
-    await run(system, [...(system === 'py' ? ['-3.12'] : []), '-m', 'venv', paths.envDir], process.env);
+    await run(
+      system,
+      [...(system === 'py' ? ['-3.12'] : []), '-m', 'venv', paths.envDir],
+      process.env,
+    );
     await run(
       python,
       ['-m', 'pip', 'install', '-r', requirements, '--extra-index-url', TORCH_INDEX],
       process.env,
     );
   }
-  const version = (await run(python, ['-c', 'import platform;print(platform.python_version())'], {})).trim();
+  const version = (
+    await run(python, ['-c', 'import platform;print(platform.python_version())'], {})
+  ).trim();
   writeFileAtomic(
     join(paths.envDir, INSTALLED),
     JSON.stringify({ requirementsSha256: requirementsSha(paths), python: version }),
@@ -157,7 +187,14 @@ export function totalMemoryGb(): number {
  */
 export function workerEnvironment(tempDir: string): NodeJS.ProcessEnv {
   mkdirSync(tempDir, { recursive: true });
-  const keep = ['SYSTEMROOT', 'SystemRoot', 'WINDIR', 'windir', 'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE'];
+  const keep = [
+    'SYSTEMROOT',
+    'SystemRoot',
+    'WINDIR',
+    'windir',
+    'NUMBER_OF_PROCESSORS',
+    'PROCESSOR_ARCHITECTURE',
+  ];
   const env: NodeJS.ProcessEnv = {};
   for (const name of keep) if (process.env[name] !== undefined) env[name] = process.env[name];
   const root = process.env['SYSTEMROOT'] ?? process.env['SystemRoot'];
@@ -184,7 +221,10 @@ export function workerEnvironment(tempDir: string): NodeJS.ProcessEnv {
 function killTree(child: ChildProcess): void {
   if (child.pid === undefined || child.exitCode !== null) return;
   if (process.platform === 'win32') {
-    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }).on('error', () => undefined);
+    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }).on(
+      'error',
+      () => undefined,
+    );
   } else {
     child.kill('SIGKILL');
   }
@@ -197,7 +237,9 @@ export const KernelResultSchema = z.object({
   error: z.string().nullable(),
   output: z.string(),
   edits: z.object({ files: z.record(z.string(), z.string()) }).nullable(),
-  reads: z.array(z.object({ name: z.string(), texts: z.array(z.string()), layers: z.array(z.number().int()) })),
+  reads: z.array(
+    z.object({ name: z.string(), texts: z.array(z.string()), layers: z.array(z.number().int()) }),
+  ),
   refused: z.array(z.string()),
 });
 export type KernelResult = z.infer<typeof KernelResultSchema>;
@@ -225,7 +267,8 @@ export function runKernel(
   requestFile: string,
   options: { timeoutMs: number; tempDir: string; signal?: AbortSignal },
 ): Promise<KernelOutcome> {
-  for (const dir of [request.scratch, request.out, request.reads]) mkdirSync(dir, { recursive: true });
+  for (const dir of [request.scratch, request.out, request.reads])
+    mkdirSync(dir, { recursive: true });
   writeFileSync(requestFile, JSON.stringify(request));
   const started = Date.now();
   return new Promise((resolve) => {
@@ -238,7 +281,10 @@ export function runKernel(
     let stderr = '';
     let timedOut = false;
     child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
-    child.stderr.on('data', (chunk: Buffer) => (stderr = (stderr + chunk.toString()).slice(-4_000)));
+    child.stderr.on(
+      'data',
+      (chunk: Buffer) => (stderr = (stderr + chunk.toString()).slice(-4_000)),
+    );
     const timer = setTimeout(() => {
       timedOut = true;
       killTree(child);
@@ -254,9 +300,14 @@ export function runKernel(
       clearTimeout(timer);
       options.signal?.removeEventListener('abort', abort);
       if (timedOut) return resolve({ kind: 'timeout', seconds: seconds(), stderr });
-      if (options.signal?.aborted) return resolve({ kind: 'failed', reason: 'Cancelled.', seconds: seconds() });
+      if (options.signal?.aborted)
+        return resolve({ kind: 'failed', reason: 'Cancelled.', seconds: seconds() });
       if (stderr.includes('WSP_MEMORY_LIMIT')) {
-        return resolve({ kind: 'failed', reason: 'The program went over its memory limit.', seconds: seconds() });
+        return resolve({
+          kind: 'failed',
+          reason: 'The program went over its memory limit.',
+          seconds: seconds(),
+        });
       }
       const line = stdout.trim().split('\n').pop() ?? '';
       const parsed = (() => {
@@ -311,12 +362,18 @@ export class EvaluatorProcess {
       ['-I', '-B', join(this.paths.sourceDir, 'evaluator.py'), this.base, this.session],
       {
         cwd: this.session,
-        env: { ...workerEnvironment(join(this.session, 'tmp')), WSP_MEMORY_BYTES: String(this.memoryBytes) },
+        env: {
+          ...workerEnvironment(join(this.session, 'tmp')),
+          WSP_MEMORY_BYTES: String(this.memoryBytes),
+        },
         windowsHide: true,
       },
     );
     this.child = child;
-    child.stderr!.on('data', (chunk: Buffer) => (this.stderr = (this.stderr + chunk.toString()).slice(-4_000)));
+    child.stderr!.on(
+      'data',
+      (chunk: Buffer) => (this.stderr = (this.stderr + chunk.toString()).slice(-4_000)),
+    );
     const lines = createInterface({ input: child.stdout! });
     const ready = new Promise<z.infer<typeof ReadySchema>>((resolve, reject) => {
       let first = true;
@@ -331,7 +388,11 @@ export class EvaluatorProcess {
           first = false;
           const parsed = ReadySchema.safeParse(message);
           if (!parsed.success || !parsed.data.ready) {
-            reject(new Error(`The evaluator couldn't load the model: ${parsed.success ? parsed.data.error : line}`));
+            reject(
+              new Error(
+                `The evaluator couldn't load the model: ${parsed.success ? parsed.data.error : line}`,
+              ),
+            );
           } else resolve(parsed.data);
           return;
         }

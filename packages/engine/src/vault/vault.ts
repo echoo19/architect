@@ -856,7 +856,8 @@ export class Vault {
   }
 
   private wspDir(experimentId: string): string {
-    if (!WSP_ID.test(experimentId)) throw new Error(`"${experimentId}" is not a valid experiment id.`);
+    if (!WSP_ID.test(experimentId))
+      throw new Error(`"${experimentId}" is not a valid experiment id.`);
     return join(this.rootDir, WSP_DIR, experimentId);
   }
 

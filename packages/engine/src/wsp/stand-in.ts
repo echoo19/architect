@@ -16,7 +16,8 @@ function brief(context: BriefContext): WspBrief {
   const checked = context.practice.some((example) => example.check !== undefined);
   return {
     objective: `Move the model toward the goal by a targeted weight edit: ${context.experiment.goal.task}`,
-    baseline: 'Measure the base on practice and dev at greedy decoding, with the two controls beside it.',
+    baseline:
+      'Measure the base on practice and dev at greedy decoding, with the two controls beside it.',
     investigation:
       'Read hidden states for the outputs that fail and the ones that pass, find the direction that separates them in the middle layers, and remove it from the 64 MLP output columns of each of those layers that write most along it.',
     successCriteria: [
@@ -25,7 +26,8 @@ function brief(context: BriefContext): WspBrief {
         : 'The candidate repeats itself on fewer dev examples than the base and both controls.',
     ],
     regressionChecks: ['No dev example the base passed is failed by the candidate.'],
-    expectedOutput: 'A candidate of a few replaced tensors over the read-only base, or no candidate if no edit gains.',
+    expectedOutput:
+      'A candidate of a few replaced tensors over the read-only base, or no candidate if no edit gains.',
     target: { metric: checked ? 'pass_rate' : 'loop_rate', minPoints: 5 },
     controls: {
       decoding: { temperature: 0, topP: 1, repetitionPenalty: 1.15, maxNewTokens: 192 },
@@ -74,7 +76,8 @@ export function standInMentor(): WspMentorClient {
       let value: WspStep;
       if (done.length === 0) {
         value = {
-          hypothesis: 'Failing and passing outputs differ along one direction in the middle layers.',
+          hypothesis:
+            'Failing and passing outputs differ along one direction in the middle layers.',
           expected: 'Hidden states for both groups, to find that direction.',
           action: 'program',
           program: READ,
@@ -82,7 +85,8 @@ export function standInMentor(): WspMentorClient {
         };
       } else if (done.length === 1 && last?.outcome === 'read') {
         value = {
-          hypothesis: 'Removing that direction from the MLP outputs of the middle layers moves outputs toward the passing ones.',
+          hypothesis:
+            'Removing that direction from the MLP outputs of the middle layers moves outputs toward the passing ones.',
           expected: 'A candidate that gains on the target over the base on dev.',
           action: 'program',
           program: EDIT,
@@ -90,7 +94,10 @@ export function standInMentor(): WspMentorClient {
         };
       } else {
         value = {
-          hypothesis: last?.decision === 'kept' ? 'The edit helped on dev.' : 'This recipe found no edit that helps.',
+          hypothesis:
+            last?.decision === 'kept'
+              ? 'The edit helped on dev.'
+              : 'This recipe found no edit that helps.',
           expected: 'Nothing more from this recipe.',
           action: 'finish',
           program: '',
