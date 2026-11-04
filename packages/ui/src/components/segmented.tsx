@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { ToggleGroup } from 'radix-ui';
 import { cn } from '../lib/cn';
@@ -11,6 +11,8 @@ export interface SegmentedOption<T extends string> {
   disabled?: boolean;
   /** What the choice means, in a sentence, shown on hover or focus of the segment. */
   hint?: string;
+  /** A small badge after the label, such as one that marks the choice experimental. */
+  badge?: ReactNode;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -65,7 +67,10 @@ export function Segmented<T extends string>({
                 className="absolute inset-0 rounded-full bg-raised shadow-edge-strong"
               />
             )}
-            <span className="relative">{option.label}</span>
+            <span className="relative flex items-center gap-2">
+              {option.label}
+              {option.badge}
+            </span>
           </ToggleGroup.Item>
         );
         return option.hint ? (

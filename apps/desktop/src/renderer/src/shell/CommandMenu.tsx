@@ -1,5 +1,5 @@
 import { AgentAvatar, CommandGroup, CommandItem, CommandPalette, Shortcut } from '@architect/ui';
-import type { GraduateSummary } from '@architect/shared';
+import type { Edition, GraduateSummary } from '@architect/shared';
 import {
   ClipboardList,
   FlaskConical,
@@ -12,6 +12,7 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 import { useExperiments } from '../api/experiments';
 import { useGraduates, useJobs } from '../api/hooks';
+import { useWspExperiments } from '../api/wsp';
 import { isMac } from '../lib/platform';
 import { chatPath, navigate, paths } from '../lib/router';
 import { SHORTCUT_KEYS } from '../lib/shortcuts';
@@ -31,8 +32,6 @@ export function CommandMenu() {
   );
   const graduates = useGraduates();
   const edition = useEdition();
-  const places = edition ? placesOf(edition) : [];
-  const mac = isMac();
 
   const run = (action: () => void) => {
     setOpen(false);
@@ -45,8 +44,89 @@ export function CommandMenu() {
       onOpenChange={setOpen}
       {...(edition === 'lab'
         ? { placeholder: 'Search actions, agents, fields and experiments' }
-        : {})}
+        : edition === 'wsp'
+          ? { placeholder: 'Search actions and experiments' }
+          : {})}
     >
+      {edition === 'wsp' ? (
+        <WspItems run={run} onSettings={openSettings} />
+      ) : (
+        <AgentItems
+          edition={edition}
+          graduates={graduates.status === 'success' ? graduates.data : null}
+          run={run}
+          onSettings={openSettings}
+        />
+      )}
+    </CommandPalette>
+  );
+}
+
+/** Architect WSP's palette: a new experiment, Settings, and each experiment by its title. */
+function WspItems({
+  run,
+  onSettings,
+}: {
+  run: (action: () => void) => void;
+  onSettings: () => void;
+}) {
+  const experiments = useWspExperiments();
+  const mac = isMac();
+  return (
+    <>
+      <CommandGroup heading="Actions">
+        <CommandItem
+          icon={<Plus aria-hidden />}
+          shortcut={<Shortcut keys={SHORTCUT_KEYS['new-agent']} mac={mac} />}
+          keywords={['create', 'weights', 'program']}
+          onSelect={() => run(() => navigate(paths.wspNew()))}
+        >
+          New experiment
+        </CommandItem>
+        <CommandItem
+          icon={<Settings aria-hidden />}
+          shortcut={<Shortcut keys={SHORTCUT_KEYS.settings} mac={mac} />}
+          keywords={['preferences', 'options']}
+          onSelect={() => run(onSettings)}
+        >
+          Settings
+        </CommandItem>
+      </CommandGroup>
+      {experiments.data && experiments.data.length > 0 && (
+        <CommandGroup heading="Experiments">
+          {experiments.data.map((experiment) => (
+            <CommandItem
+              key={experiment.id}
+              value={`wsp-${experiment.id}`}
+              keywords={[experiment.title, experiment.base.name, 'experiment']}
+              icon={<FlaskConical aria-hidden />}
+              onSelect={() => run(() => navigate(paths.wspExperiment(experiment.id)))}
+            >
+              {experiment.title}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
+    </>
+  );
+}
+
+/** The agents' palette, in the personal edition and the Lab. */
+function AgentItems({
+  edition,
+  graduates,
+  run,
+  onSettings,
+}: {
+  edition: Edition | null;
+  graduates: GraduateSummary[] | null;
+  run: (action: () => void) => void;
+  onSettings: () => void;
+}) {
+  const places = edition ? placesOf(edition) : [];
+  const mac = isMac();
+  return (
+    <>
       <CommandGroup heading="Actions">
         <CommandItem
           icon={<Plus aria-hidden />}
@@ -56,35 +136,33 @@ export function CommandMenu() {
         >
           New agent
         </CommandItem>
-        {graduates.status === 'success' &&
-          graduates.data.map((graduate) => (
-            <CommandItem
-              key={graduate.id}
-              value={`open-${graduate.id}`}
-              keywords={[graduate.name, 'open', 'home', 'sessions']}
-              icon={<AgentAvatar name={graduate.name} size="md" />}
-              onSelect={() => run(() => navigate(paths.agent(graduate.id)))}
-            >
-              Open {graduate.name}
-            </CommandItem>
-          ))}
-        {graduates.status === 'success' &&
-          graduates.data.map((graduate) => (
-            <CommandItem
-              key={graduate.id}
-              value={`results-${graduate.id}`}
-              keywords={[graduate.name, 'results', 'report', 'training', 'score', 'final test']}
-              icon={<Trophy aria-hidden />}
-              onSelect={() => run(() => useAgentSettingsUi.getState().show(graduate.id, 'report'))}
-            >
-              Results of {graduate.name}
-            </CommandItem>
-          ))}
+        {graduates?.map((graduate) => (
+          <CommandItem
+            key={graduate.id}
+            value={`open-${graduate.id}`}
+            keywords={[graduate.name, 'open', 'home', 'sessions']}
+            icon={<AgentAvatar name={graduate.name} size="md" />}
+            onSelect={() => run(() => navigate(paths.agent(graduate.id)))}
+          >
+            Open {graduate.name}
+          </CommandItem>
+        ))}
+        {graduates?.map((graduate) => (
+          <CommandItem
+            key={graduate.id}
+            value={`results-${graduate.id}`}
+            keywords={[graduate.name, 'results', 'report', 'training', 'score', 'final test']}
+            icon={<Trophy aria-hidden />}
+            onSelect={() => run(() => useAgentSettingsUi.getState().show(graduate.id, 'report'))}
+          >
+            Results of {graduate.name}
+          </CommandItem>
+        ))}
         <CommandItem
           icon={<Settings aria-hidden />}
           shortcut={<Shortcut keys={SHORTCUT_KEYS.settings} mac={mac} />}
           keywords={['preferences', 'options']}
-          onSelect={() => run(() => openSettings())}
+          onSelect={() => run(onSettings)}
         >
           Settings
         </CommandItem>
@@ -105,14 +183,14 @@ export function CommandMenu() {
         </CommandGroup>
       )}
       {edition === 'lab' ? <LabItems run={run} /> : <JobItems run={run} />}
-      {graduates.status === 'success' && graduates.data.length > 0 && (
+      {graduates && graduates.length > 0 && (
         <CommandGroup heading="Chats">
-          {graduates.data.map((graduate) => (
+          {graduates.map((graduate) => (
             <ChatItems key={graduate.id} graduate={graduate} run={run} />
           ))}
         </CommandGroup>
       )}
-    </CommandPalette>
+    </>
   );
 }
 

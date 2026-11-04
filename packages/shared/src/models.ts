@@ -619,6 +619,25 @@ export function readsReasoningStrengthLine(model: string): boolean {
  * OpenAI models that take `reasoning_effort`: the o-series and GPT-5 onward, except the chat
  * snapshots. Older models reject the field.
  */
+/**
+ * GPT-6 Astra, the mentor of Architect WSP and nowhere else (decision 109): `gpt-6-astra` in
+ * OpenAI's `GET /v1/models` on Nov 3, priced from its model page. It is kept out of
+ * `MENTOR_PRESETS`, so the ordinary mentor's choices are unchanged.
+ */
+export const WSP_MENTOR = {
+  label: 'GPT-6 Astra',
+  provider: 'openai',
+  baseUrl: PROVIDERS.openai.baseUrl,
+  model: 'gpt-6-astra',
+  secretRef: 'openai',
+  pricing: {
+    inputPerM: 10,
+    cachedInputPerM: 1,
+    outputPerM: 50,
+    longContext: { aboveInputTokens: 272_000, inputPerM: 20, cachedInputPerM: 2, outputPerM: 75 },
+  },
+} as const satisfies Omit<MentorPreset, 'key' | 'note'>;
+
 export function openAiTakesReasoningEffort(model: string): boolean {
   return /^(o\d|gpt-(?:[5-9]|\d{2,}))/i.test(model) && !/chat/i.test(model);
 }

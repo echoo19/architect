@@ -1,12 +1,12 @@
 import type { Measured } from '../lab/film';
 import { inOutCubic, mix, span } from '../lab/time';
-import { DURATION, T } from './timeline';
+import { T } from './timeline';
 import { Words } from './words';
 
 /**
  * The end, full size, on the film's ground once the window has flown out: the line is said large
  * in the middle of the frame, then Architect's mark draws itself beside where the name rises, and
- * the line moves under the name.
+ * the line moves under the name. It then lifts away for Architect WSP (wsp.tsx).
  */
 
 const FRAME = { width: 1920, height: 1080 } as const;
@@ -33,7 +33,6 @@ export function Ending({ t, measured }: { t: number; measured: Measured }) {
   const square = inOutCubic(span(t, T.architect - 0.3, 0.6));
   const draw = inOutCubic(span(t, T.architect + 0.05, 0.6));
   const line = inOutCubic(span(t, T.architect - 0.5, 0.75));
-  const cover = inOutCubic(span(t, T.fade, DURATION - T.fade));
   // Said alone, the line sits centered over the lockup's middle; it moves under the name.
   const lineLeft = mix(at.nameLeft - (MARK + NAME.gap) / 2, at.nameLeft, line);
   const lineTop = mix(at.top + MARK / 2 - NAME.size * 0.5, at.top + MARK + 32, line);
@@ -97,10 +96,6 @@ export function Ending({ t, measured }: { t: number; measured: Measured }) {
           />
         </div>
       )}
-      <div
-        className="absolute inset-0 bg-ground"
-        style={{ opacity: cover, zIndex: 60, pointerEvents: 'none' }}
-      />
     </>
   );
 }

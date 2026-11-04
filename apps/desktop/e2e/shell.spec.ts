@@ -56,6 +56,7 @@ test('opens a hidden, sandboxed window', async () => {
       'teach',
       'teams',
       'workspace',
+      'wsp',
     ],
   });
   const csp = await page

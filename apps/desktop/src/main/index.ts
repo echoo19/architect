@@ -193,6 +193,7 @@ async function start(): Promise<void> {
         router.emit('runs', 'onEvent', event);
       });
       client.experiments.onEvent((event) => router.emit('experiments', 'onEvent', event));
+      client.wsp.onEvent((event) => router.emit('wsp', 'onEvent', event));
       client.graduates.onPublishProgress((progress) =>
         router.emit('graduates', 'onPublishProgress', progress),
       );
