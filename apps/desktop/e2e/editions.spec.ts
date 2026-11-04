@@ -59,7 +59,7 @@ test('a fresh install chooses its edition first on the welcome screen', async ()
   await expect(page).toHaveURL(/#\/welcome$/);
   await expect(page.getByRole('heading', { name: 'Welcome to Architect' })).toBeVisible();
   const choice = page.getByRole('radiogroup', { name: 'Edition' });
-  const personal = choice.getByRole('radio', { name: /^Architect\b(?! Lab)/ });
+  const personal = choice.getByRole('radio', { name: /^Architect\b(?! Lab| WSP)/ });
   const lab = choice.getByRole('radio', { name: /Architect Lab/ });
   await expect(personal).toHaveAttribute('aria-checked', 'true');
   await expect(personal).toContainText('Teach an agent one job');

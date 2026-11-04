@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GraduateSummary, JobSummary, Team, WorkspaceChat } from '@architect/shared';
+import type { Edition, GraduateSummary, JobSummary, Team, WorkspaceChat } from '@architect/shared';
 import {
   AgentAvatar,
   cn,
@@ -32,6 +32,7 @@ import {
   Users,
 } from 'lucide-react';
 import { EDITIONS, placesOf, useEdition } from './edition';
+import { ExperimentalBadge } from './ExperimentalBadge';
 import { placeOf } from './places';
 import { api } from '../api/client';
 import { queryKeys, useGraduates, useJobs } from '../api/hooks';
@@ -74,14 +75,13 @@ function useTrainingRefresh(): void {
 }
 
 export function Sidebar({ route }: { route: Route }) {
-  const graduates = useGraduates();
-  const jobs = useJobs();
   const openSettings = useUi((state) => state.openSettings);
-  useTrainingRefresh();
 
-  const place = placeOf(route);
   const edition = useEdition();
-  // The personal edition has its agents only; the Lab leads with its places.
+  // Architect WSP's one place is its home.
+  const place = edition === 'wsp' && route.name === 'home' ? 'wsp' : placeOf(route);
+  // The personal edition has its agents only; the Lab leads with its places; WSP has its own
+  // experiments and no agents.
   const places = edition ? placesOf(edition) : [];
 
   return (
@@ -97,8 +97,17 @@ export function Sidebar({ route }: { route: Route }) {
         )}
       >
         <LogoMark size={20} />
-        <span className="text-body font-semibold">{EDITIONS[edition ?? 'personal'].name}</span>
+        <span className="whitespace-nowrap text-body font-semibold">
+          {EDITIONS[edition ?? 'personal'].name}
+        </span>
       </div>
+      {/* An experimental edition's badge sits under its name, on the name's edge: beside it, the
+          name and the badge would not fit the strip past the macOS traffic lights. */}
+      {edition && EDITIONS[edition].experimental && (
+        <div className={cn('-mt-5 flex', isMac() ? 'pl-[94px]' : 'pl-9')}>
+          <ExperimentalBadge edition={edition} />
+        </div>
+      )}
 
       {places.length > 0 && (
         <nav aria-label="Places" className="flex flex-col gap-0.5">
@@ -116,70 +125,7 @@ export function Sidebar({ route }: { route: Route }) {
         </nav>
       )}
 
-      <nav
-        aria-label="Agents"
-        className={cn(
-          'flex min-h-0 flex-col gap-4',
-          places.length > 0 && 'border-t border-line pt-4',
-        )}
-      >
-        <div className="flex items-center gap-0.5">
-          <NavItem
-            icon={<Plus size={16} strokeWidth={1.8} aria-hidden />}
-            current={route.name === 'new'}
-            onClick={() => navigate(paths.newAgent())}
-            className="flex-1"
-          >
-            New agent
-          </NavItem>
-          <AgentMenu />
-        </div>
-
-        {/* Padded so a focused row's ring isn't cut by the scrolling edge. */}
-        <div className="-m-1 flex min-h-0 flex-col gap-5 overflow-y-auto p-1 scroll-quiet">
-          {graduates.data ? (
-            <>
-              <AgentList graduates={graduates.data} route={route} />
-              {edition === 'lab' && <TeamList route={route} />}
-            </>
-          ) : graduates.status === 'error' ? (
-            <ProblemState
-              layout="inline"
-              error={graduates.error}
-              title="Couldn't load your agents"
-              onRetry={() => {
-                graduates.reload();
-                jobs.reload();
-              }}
-              className="px-2.5"
-            />
-          ) : (
-            <AgentListSkeleton />
-          )}
-        </div>
-
-        {/*
-          The runs keep their own place under the agents, whole, so one that ends while the person
-          is elsewhere stays in view however many agents and teams there are; the agents scroll.
-        */}
-        {graduates.data && (
-          <div className="flex shrink-0 flex-col">
-            {jobs.data ? (
-              <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
-            ) : (
-              jobs.status === 'error' && (
-                <ProblemState
-                  layout="inline"
-                  error={jobs.error}
-                  title="Couldn't load training"
-                  onRetry={jobs.reload}
-                  className="px-2.5"
-                />
-              )
-            )}
-          </div>
-        )}
-      </nav>
+      {edition !== 'wsp' && <AgentsNav route={route} edition={edition} />}
 
       <div className="flex-1" />
 
@@ -190,6 +136,80 @@ export function Sidebar({ route }: { route: Route }) {
         Settings
       </NavItem>
     </aside>
+  );
+}
+
+/** The agents and their chats, the Lab's teams, and the runs under them. */
+function AgentsNav({ route, edition }: { route: Route; edition: Edition | null }) {
+  const graduates = useGraduates();
+  const jobs = useJobs();
+  useTrainingRefresh();
+  const places = edition ? placesOf(edition) : [];
+  return (
+    <nav
+      aria-label="Agents"
+      className={cn(
+        'flex min-h-0 flex-col gap-4',
+        places.length > 0 && 'border-t border-line pt-4',
+      )}
+    >
+      <div className="flex items-center gap-0.5">
+        <NavItem
+          icon={<Plus size={16} strokeWidth={1.8} aria-hidden />}
+          current={route.name === 'new'}
+          onClick={() => navigate(paths.newAgent())}
+          className="flex-1"
+        >
+          New agent
+        </NavItem>
+        <AgentMenu />
+      </div>
+
+      {/* Padded so a focused row's ring isn't cut by the scrolling edge. */}
+      <div className="-m-1 flex min-h-0 flex-col gap-5 overflow-y-auto p-1 scroll-quiet">
+        {graduates.data ? (
+          <>
+            <AgentList graduates={graduates.data} route={route} />
+            {edition === 'lab' && <TeamList route={route} />}
+          </>
+        ) : graduates.status === 'error' ? (
+          <ProblemState
+            layout="inline"
+            error={graduates.error}
+            title="Couldn't load your agents"
+            onRetry={() => {
+              graduates.reload();
+              jobs.reload();
+            }}
+            className="px-2.5"
+          />
+        ) : (
+          <AgentListSkeleton />
+        )}
+      </div>
+
+      {/*
+          The runs keep their own place under the agents, whole, so one that ends while the person
+          is elsewhere stays in view however many agents and teams there are; the agents scroll.
+        */}
+      {graduates.data && (
+        <div className="flex shrink-0 flex-col">
+          {jobs.data ? (
+            <TrainingList jobs={jobs.data} route={route} drafts={edition !== 'lab'} />
+          ) : (
+            jobs.status === 'error' && (
+              <ProblemState
+                layout="inline"
+                error={jobs.error}
+                title="Couldn't load training"
+                onRetry={jobs.reload}
+                className="px-2.5"
+              />
+            )
+          )}
+        </div>
+      )}
+    </nav>
   );
 }
 

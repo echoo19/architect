@@ -18,6 +18,7 @@ import { attempt } from '../lib/notify';
 import { mentorName } from '../lib/names';
 import { currentPlatform, deviceInSentence, deviceLabel } from '../lib/platform';
 import { EDITIONS } from '../shell/edition';
+import { ExperimentalBadge } from '../shell/ExperimentalBadge';
 import { ClosedNetworkRows } from './ClosedNetwork';
 import type { TabProps } from './SettingsModal';
 
@@ -29,6 +30,7 @@ const STEPS = [
 const EDITION_OPTIONS = [
   { value: 'personal', label: EDITIONS.personal.name },
   { value: 'lab', label: EDITIONS.lab.name },
+  { value: 'wsp', label: EDITIONS.wsp.name, badge: <ExperimentalBadge edition="wsp" /> },
 ] as const;
 
 const EFFORTS = [
@@ -42,7 +44,7 @@ export function GeneralTab({ settings, update }: TabProps) {
     <>
       <SettingsRow
         label="Edition"
-        info="Architect teaches an agent one job. Architect Lab is an R&D platform for specialist models: fields, experiments, LoRA fine-tuning plans and cluster launch bundles. Your agents and their training stay in both."
+        info="Architect teaches an agent one job. Architect Lab is an R&D platform for specialist models: fields, experiments, LoRA fine-tuning plans and cluster launch bundles. Your agents and their training stay in both. Architect WSP, an experiment of its own, edits a model's weights through programs and measures every change."
       >
         <Segmented
           aria-label="Edition"

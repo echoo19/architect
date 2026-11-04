@@ -107,12 +107,20 @@ export function Setup({ settings, update }: SetupProps) {
     return (
       <SetupShell
         step={step}
+        {...(settings.edition === 'wsp' ? { steps: ['Edition'] as const } : {})}
         footer={
           <>
             {spacer}
-            <Button variant="primary" onClick={go('Model')}>
-              Continue
-            </Button>
+            {settings.edition === 'wsp' ? (
+              // WSP needs neither the agent's model nor a teacher: an experiment sets up its own.
+              <Button variant="primary" loading={finishing} onClick={() => void finish()}>
+                Get started
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={go('Model')}>
+                Continue
+              </Button>
+            )}
           </>
         }
       >

@@ -23,17 +23,18 @@ import { NotFoundScreen } from '../screens/NotFoundScreen';
 import { ReportScreen } from '../screens/ReportScreen';
 import { TrainScreen } from '../screens/TrainScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
+import { WspExperimentScreen, WspHomeScreen, WspNewScreen } from '../screens/WspScreens';
 import { SettingsModal } from '../settings/SettingsModal';
 import { CommandMenu } from '../shell/CommandMenu';
-import { EDITIONS, isLabOnly, readsTeams, useEdition } from '../shell/edition';
+import { EDITIONS, inEdition, readsTeams, useEdition } from '../shell/edition';
 import { WorkspaceShell } from '../shell/WorkspaceShell';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 function Screen({ route }: { route: Route }) {
   const edition = useEdition();
-  // The personal edition has none of the Lab's places; it is sent home (useEditionShell).
-  if (edition === 'personal' && isLabOnly(route)) return null;
+  // A route this edition doesn't have is sent home (useEditionShell).
+  if (edition !== null && !inEdition(route, edition)) return null;
   if (readsTeams(route) && edition !== 'lab') return null;
   switch (route.name) {
     case 'home':
@@ -41,8 +42,13 @@ function Screen({ route }: { route: Route }) {
         <WorkspaceShell route={route}>
           {edition === 'lab' && <LabScreen />}
           {edition === 'personal' && <HomeScreen />}
+          {edition === 'wsp' && <WspHomeScreen />}
         </WorkspaceShell>
       );
+    case 'wsp-new':
+      return <WspNewScreen />;
+    case 'wsp-experiment':
+      return <WspExperimentScreen key={route.experimentId} experimentId={route.experimentId} />;
     case 'fields':
       return (
         <WorkspaceShell route={route}>
@@ -139,10 +145,10 @@ function useFirstRunRedirect(route: Route): void {
   }, [needsSetup, route.name]);
 }
 
-/** Sends a Lab place home in the personal edition, which doesn't have it, and names the window. */
+/** Sends a route home in an edition that doesn't have it, and names the window. */
 function useEditionShell(route: Route): void {
   const edition = useEdition();
-  const away = edition === 'personal' && isLabOnly(route);
+  const away = edition !== null && !inEdition(route, edition);
   useEffect(() => {
     if (away) navigate(paths.home(), { replace: true });
   }, [away]);

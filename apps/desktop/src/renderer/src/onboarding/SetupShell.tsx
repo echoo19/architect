@@ -15,6 +15,8 @@ export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export interface SetupShellProps {
   step: SetupStep;
+  /** The steps the pills show, when an edition sets up in fewer: Architect WSP has the first alone. */
+  steps?: readonly SetupStep[];
   /** Buttons pinned under the content, such as Back and Continue. */
   footer?: ReactNode;
   children: ReactNode;
@@ -27,7 +29,7 @@ let lastStep = -1;
  * First-run setup in the flow's language: the step pills in the header, the flat ground below.
  * Each step slides in from its side as the pill slides to it, as the flow's steps do.
  */
-export function SetupShell({ step, footer, children }: SetupShellProps) {
+export function SetupShell({ step, steps = SETUP_STEPS, footer, children }: SetupShellProps) {
   const index = SETUP_STEPS.indexOf(step);
   const direction = useTravel(step, index, travel(lastStep, index));
   useEffect(() => {
@@ -40,7 +42,7 @@ export function SetupShell({ step, footer, children }: SetupShellProps) {
           <LogoMark size={20} />
           <span className="truncate font-medium">Architect</span>
         </div>
-        <ProgressStepper aria-label="Setup" steps={SETUP_STEPS} current={index} />
+        <ProgressStepper aria-label="Setup" steps={steps} current={steps.indexOf(step)} />
         <div className="pr-window-controls" />
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scroll-quiet">
