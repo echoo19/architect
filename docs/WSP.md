@@ -17,7 +17,7 @@ What the research showed:
 What Architect WSP adds, and has not yet shown:
 
 - An app that runs this kind of experiment on your own goal, with a deterministic check, a sealed qualification and the runner's caps.
-- Two real Astra experiments have run (below), and in both Astra found no edit worth making. Nothing here shows that weight edits help Architect's own jobs, or that a skill can be put into a model by editing it.
+- On a small model with planted faults, Astra repaired 6 of 7 (86%, 95% interval 49% to 97%) through Architect WSP's runner, and sealed accuracy went from 15% to 96% (`docs/comparisons/wsp-bench-1.md`). On Qwen3-0.6B word problems, two runs found no localized defect and made no edit (below). Nothing here shows that weight edits help Architect's own jobs, or that a skill can be put into a model by editing it.
 
 ## The flow
 
@@ -72,9 +72,14 @@ Nov 3, on the same 26 word problems and Qwen3-0.6B, with a $5 cap the owner set 
 - **The second run, $0.79.** The base passed 1 of 8 on dev, the decoding control 1 of 8 and the instruction control 4 of 8. Astra ran four programs. Two read hidden states for 30 matched contexts across every layer and then for 40 independent instructions. One failed on the guard: Python's `namedtuple` checks its caller's module, which the guard refused (fixed after the run, with a test). The last program checked whether the direction that separated verbose from short answers held across the independent instructions. It didn't (cosine agreement from about -0.43 to 0.28), so Astra judged that the evidence didn't support a sparse edit and stopped. No candidate.
 - **What it shows.** The pipeline works with the real mentor: brief, baseline, controls, Astra's programs, hidden-state reads, the caps and a stop. On this task the failures were answers too long for the token limit, which the instruction control fixes far more cheaply. Astra declined to edit weights. That is the behavior the research's caution asks for, and it isn't evidence for or against weight edits in general.
 
+## A benchmark of planted faults
+
+Nov 4: a 2-layer, 85,000-weight Llama-architecture model trained here to reverse letter strings, and eight copies of it, each with one fault planted in one tensor (`examples/wsp-bench`, `packages/engine/scripts/wsp-bench.ts`). Astra was given only the damaged copy and the goal. It repaired 6 of the 7 it tried, found the damaged tensor every time, and its frozen candidates passed 81 of 84 sealed examples against 13 for the damaged models: +81 points, 95% interval +70 to +88. The row repairs changed only the 64 or 128 weights of the damaged row. $2.77. The faults were made to be findable, and a simple heuristic wasn't compared; the full table and caveats are in `docs/comparisons/wsp-bench-1.md`.
+
 ## What isn't done
 
-- Neither Astra run produced a candidate, so no edit made by Astra has been measured on dev or qualified.
+- No Astra edit has been measured on a model of practical size: the Qwen3-0.6B runs made no candidate.
+- No simple, non-LLM repair heuristic has been compared on the planted-fault benchmark.
 - A candidate is measured in full precision with transformers on the CPU. No GGUF or quantized build is made or checked on a local runtime, so a candidate is never a local agent.
 - Fine-tuning isn't compared inside an experiment: it learns from a field's verified lessons, which a WSP experiment doesn't have.
 - Astra's reasoning effort is capped at high, the most the mentor adapter sends. The research used max.
