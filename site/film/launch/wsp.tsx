@@ -10,8 +10,10 @@ import { riseIn, Words } from './words';
  * After the lockup, Architect WSP. The lockup lifts away as the research that inspired it rises:
  * its title block as published, in a window at the right, its line and credit at the left. On the
  * name, the page pushes up out of that window and Architect WSP's new-experiment flow pushes in:
- * a model, a goal, the brief and Start experiment, then the experiment's stages to a candidate
- * under evaluation. It is marked Preview: no result is shown.
+ * a model, a goal, the brief and Start experiment, then the experiment's stages to its candidate,
+ * kept, and the result. What it shows is Architect WSP's first real benchmark
+ * (docs/comparisons/wsp-bench-1.md, Nov 4): the flow and the experiment are fault-01's, as the
+ * runner recorded them (runs/wsp-bench-1), and the result is the benchmark's, across its 7 faults.
  */
 
 const FRAME = { width: 1920, height: 1080 } as const;
@@ -31,6 +33,12 @@ const PUSH = 1.1;
 
 /** When Start experiment is pressed: once the brief is in, before the run page comes in. */
 const PRESS = T.wspAstra + 0.12;
+
+/** The experiment's title, as it is set on the brief. */
+const TITLE = 'Repair a damaged model';
+
+/** When the result comes in: the candidate kept, the stages done, the figures. */
+const RESULT = T.wspWeight + 0.25;
 export const tailPush = (t: number) => inOutCubic(span(t, T.wsp, PUSH));
 
 /** How far the lockup has lifted, in frame pixels. */
@@ -40,7 +48,7 @@ const STEPS = ['Model', 'Goal', 'Compute', 'Brief'] as const;
 const STEP_W = [74, 62, 90, 62] as const;
 const STEP_X = STEP_W.map((_, i) => STEP_W.slice(0, i).reduce((a, b) => a + b, 0) + i * 4);
 const STAGES = ['Baseline', 'Investigation', 'Proposed edit', 'Candidate evaluation', 'Results'];
-const STAGE_W = [92, 118, 120, 172, 78] as const;
+const STAGE_W = [88, 114, 116, 166, 74] as const;
 const STAGE_X = STAGE_W.map((_, i) => STAGE_W.slice(0, i).reduce((a, b) => a + b, 0) + i * 4);
 
 /** A pill that slides from one position to the next over a product-speed move. */
@@ -52,15 +60,49 @@ function pill(
 ) {
   let x = xs[moves[0]![1]]!;
   let w = ws[moves[0]![1]]!;
-  let at = moves[0]![1];
+  let pos = moves[0]![1];
   for (const [when, to] of moves.slice(1)) {
     const k = outQuart(span(t, when, 0.3));
     if (k <= 0) break;
     x = mix(x, xs[to]!, k);
     w = mix(w, ws[to]!, k);
-    if (k >= 0.5) at = to;
+    pos = mix(pos, to, k);
   }
-  return { x, w, at };
+  return { x, w, pos };
+}
+
+/**
+ * A row of steps under a sliding pill. Every label keeps its place and weight whatever its state,
+ * with its check's room kept beside it: a step turns done by its check fading in as the pill leaves
+ * it, so no label ever moves or shows twice.
+ */
+function StepLabels({
+  names,
+  xs,
+  ws,
+  pos,
+  size,
+  height,
+}: {
+  names: readonly string[];
+  xs: readonly number[];
+  ws: readonly number[];
+  pos: number;
+  size: number;
+  height: number;
+}) {
+  return names.map((name, index) => (
+    <span
+      key={name}
+      className="absolute top-0 flex items-center justify-center gap-1.5 whitespace-nowrap"
+      style={{ left: xs[index], width: ws[index], height, fontSize: size }}
+    >
+      <span className="flex" style={{ opacity: clamp((pos - index) * 1.6) }}>
+        <Check size={13} strokeWidth={2.2} aria-hidden />
+      </span>
+      {name}
+    </span>
+  ));
 }
 
 function Field({ label, text, focus }: { label: string; text: string; focus: number }) {
@@ -81,7 +123,7 @@ function Field({ label, text, focus }: { label: string; text: string; focus: num
 
 function StepPage({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-3.5 px-7 pt-5">
+    <div className="flex flex-col gap-3 px-7 pt-4">
       <h1 className={`m-0 ${TYPE} text-[27px] leading-none`}>{title}</h1>
       {children}
     </div>
@@ -121,10 +163,10 @@ function Flow({ t }: { t: number }) {
                 <Check size={15} strokeWidth={2.2} aria-hidden />
               </span>
               <span className="flex flex-1 flex-col gap-0.5">
-                <span className="font-medium">Qwen3-0.6B</span>
-                <span className="font-mono text-[12px]">Qwen/Qwen3-0.6B</span>
+                <span className="font-medium">fault-01</span>
+                <span className="font-mono text-[12px]">models/fault-01</span>
               </span>
-              <span className="w-24 text-right tabular-nums">596M</span>
+              <span className="w-24 text-right tabular-nums">84,288</span>
               <span className="flex w-32 items-center gap-2 pl-6">
                 <CircleCheck size={15} strokeWidth={1.8} className="text-student" aria-hidden />
                 Supported
@@ -140,14 +182,10 @@ function Flow({ t }: { t: number }) {
         <StepPage title="What should change?">
           <Field
             label="Goal"
-            text="Stop repeating the same sentence in long answers"
+            text="Find the damage in its weights and repair it, so it reverses strings correctly again."
             focus={outQuart(span(t, T.wspGoal + 0.1, 0.25))}
           />
-          <Field
-            label="Constraints"
-            text="Short answers to arithmetic stay as they are"
-            focus={0}
-          />
+          <Field label="Constraints" text="Change as few weights as the repair needs." focus={0} />
         </StepPage>
       ),
     },
@@ -155,14 +193,10 @@ function Flow({ t }: { t: number }) {
       at: T.wspAstra - 0.2,
       node: (
         <StepPage title="The brief">
+          <Field label="Title" text={TITLE} focus={0} />
           <Field
             label="Objective"
-            text="Cut the share of long answers that repeat a sentence."
-            focus={0}
-          />
-          <Field
-            label="Baseline"
-            text="Measure the base, a repetition penalty and a system instruction."
+            text="Restore exact six-letter reversal in fault-01 by repairing damaged weights with the fewest scalar changes."
             focus={0}
           />
         </StepPage>
@@ -189,16 +223,7 @@ function Flow({ t }: { t: number }) {
             className="absolute top-0 h-[34px] rounded-full bg-selected"
             style={{ left: step.x, width: step.w }}
           />
-          {STEPS.map((name, index) => (
-            <span
-              key={name}
-              className={`absolute top-0 flex h-[34px] items-center justify-center gap-1 text-[14px] ${index === step.at ? 'font-medium' : ''}`}
-              style={{ left: STEP_X[index], width: STEP_W[index] }}
-            >
-              {index < step.at && <Check size={13} strokeWidth={2.2} aria-hidden />}
-              {name}
-            </span>
-          ))}
+          <StepLabels names={STEPS} xs={STEP_X} ws={STEP_W} pos={step.pos} size={14} height={34} />
         </div>
       </header>
       <div className="absolute inset-x-0 overflow-hidden" style={{ top: 48, bottom: 56 }}>
@@ -233,71 +258,133 @@ function Flow({ t }: { t: number }) {
   );
 }
 
-/** The experiment once started: its title, its stages, Astra's hypothesis and the candidate. */
+/** A figure of the result, as the experiment's result cards set one: its name, then the figure. */
+function Figure({ label, value, at, t }: { label: string; value: string; at: number; t: number }) {
+  const k = outQuart(span(t, at, 0.4));
+  return (
+    <div
+      className="flex flex-1 flex-col gap-1 rounded-card bg-card px-5 py-3.5 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
+      style={{ opacity: k, transform: `translateY(${(1 - k) * 8}px)` }}
+    >
+      <span className="text-[14px] font-medium">{label}</span>
+      <span className={`${TYPE} whitespace-nowrap text-[36px] leading-none tabular-nums`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * fault-01's experiment once started: its title, its stages, GPT-6 Astra's hypothesis and the
+ * candidate; then the candidate kept and, in the hypothesis's place, the benchmark's result.
+ */
 function Experiment({ t }: { t: number }) {
   const stage = pill(
     t,
     [
       [0, 2],
       [T.wspTest - 0.1, 3],
+      [RESULT, 4],
     ],
     STAGE_X,
     STAGE_W,
   );
   const hypothesis = outQuart(span(t, T.wspPropose + 0.15, 0.35));
-  const candidate = outQuart(span(t, T.wspEdits - 0.05, 0.35));
-  const evaluating = t >= T.wspTest - 0.1;
+  const candidate = outQuart(span(t, T.wspTest, 0.35));
+  const result = inOutCubic(span(t, RESULT, 0.5));
+  const measuring = t >= T.wspTest - 0.1;
   return (
-    <div className="absolute inset-0 flex flex-col gap-3.5 bg-ground px-7 pt-5">
+    <div className="absolute inset-0 flex flex-col bg-ground px-7 pt-5">
       <div className="flex items-center gap-3">
-        <h1 className={`m-0 ${TYPE} text-[30px] leading-none`}>Loops in long answers</h1>
-        <Badge>Running</Badge>
+        <h1 className={`m-0 ${TYPE} text-[30px] leading-none`}>{TITLE}</h1>
+        <Badge>{result > 0.5 ? 'Qualified' : 'Running'}</Badge>
       </div>
-      <div className="relative -ml-3 h-8 text-[13px]">
+      <div className="relative -ml-3 mt-3.5 h-8 text-[13px]">
         <span
           aria-hidden
           className="absolute top-0 h-8 rounded-full bg-selected"
           style={{ left: stage.x, width: stage.w }}
         />
-        {STAGES.map((name, index) => (
-          <span
-            key={name}
-            className={`absolute top-0 flex h-8 items-center justify-center gap-1.5 whitespace-nowrap ${index === stage.at ? 'font-medium' : ''}`}
-            style={{ left: STAGE_X[index], width: STAGE_W[index] }}
+        <StepLabels
+          names={STAGES}
+          xs={STAGE_X}
+          ws={STAGE_W}
+          pos={stage.pos}
+          size={13}
+          height={32}
+        />
+      </div>
+      <div className="overflow-hidden" style={{ height: mix(34, 0, result), opacity: 1 - result }}>
+        <p className="m-0 mt-3.5 flex items-center gap-2.5 text-[14px]">
+          <Spinner tone="mentor" size={15} />
+          {measuring ? 'Measuring candidate e275d438' : 'GPT-6 Astra is writing program 4'}
+        </p>
+      </div>
+      <div className="relative mt-3.5" style={{ height: mix(100, 118, result) }}>
+        {result < 1 && (
+          <div
+            className="absolute inset-x-0 top-0 flex flex-col gap-2 rounded-card bg-card px-5 py-4 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
+            style={{
+              opacity: hypothesis * (1 - clamp(result * 2)),
+              transform: `translateY(${(1 - hypothesis) * 8 - result * 14}px)`,
+            }}
           >
-            {index < stage.at && <Check size={13} strokeWidth={2.2} aria-hidden />}
-            {name}
-          </span>
-        ))}
+            <span className="flex items-center gap-2 text-[14px] font-medium">
+              <Lightbulb size={15} strokeWidth={1.8} className="text-mentor" aria-hidden />
+              GPT-6 Astra&apos;s hypothesis
+            </span>
+            <span className="text-[14px] leading-snug">
+              Layer-0 attention&apos;s output projection contains a dense rank-one additive fault.
+            </span>
+          </div>
+        )}
+        {result > 0 && (
+          <div className="absolute inset-x-0 top-0 flex flex-col gap-2.5">
+            <span
+              className={`${TYPE} text-[22px] leading-[24px]`}
+              style={{
+                opacity: clamp(result * 1.6 - 0.4),
+                transform: `translateY(${(1 - result) * 10}px)`,
+              }}
+            >
+              A small model with planted faults
+            </span>
+            <div className="flex gap-3">
+              <Figure t={t} at={RESULT + 0.15} label="Planted faults repaired" value="6 of 7" />
+              <Figure t={t} at={RESULT + 0.27} label="Sealed accuracy" value="15% → 96%" />
+            </div>
+          </div>
+        )}
       </div>
-      <p className="m-0 flex items-center gap-2.5 text-[14px]">
-        <Spinner tone="mentor" size={15} />
-        {evaluating ? 'Evaluating the candidate on dev' : 'Program 1 is proposing an edit'}
-      </p>
       <div
-        className="flex flex-col gap-2 rounded-card bg-card px-5 py-4 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
-        style={{ opacity: hypothesis, transform: `translateY(${(1 - hypothesis) * 8}px)` }}
-      >
-        <span className="flex items-center gap-2 text-[14px] font-medium">
-          <Lightbulb size={15} strokeWidth={1.8} className="text-mentor" aria-hidden />
-          GPT-6 Astra&apos;s hypothesis
-        </span>
-        <span className="text-[14px] leading-snug">
-          Repetition comes from a few late heads that copy the previous sentence.
-        </span>
-      </div>
-      <div
-        className="flex h-[52px] items-center gap-4 rounded-card bg-card px-5 text-[14px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
+        className="mt-3.5 flex h-[52px] shrink-0 items-center gap-4 rounded-card bg-card px-5 text-[14px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]"
         style={{ opacity: candidate, transform: `translateY(${(1 - candidate) * 8}px)` }}
       >
         <span className="flex flex-1 flex-col gap-0.5">
           <span className="font-medium">Candidate</span>
-          <span className="font-mono text-[12px]">wspc-a7937b64b8ca</span>
+          <span className="font-mono text-[12px]">wspc-e275d4384395c912ea65</span>
         </span>
-        <span className="flex items-center gap-2">
-          <Spinner tone="mentor" size={14} />
-          Evaluating
-        </span>
+        {/* Evaluating goes before Kept comes in, so the two never sit on one spot. */}
+        {t < T.wspWeight + 0.1 ? (
+          <span
+            className="flex items-center gap-2"
+            style={{ opacity: 1 - outQuart(span(t, T.wspWeight - 0.02, 0.1)) }}
+          >
+            <Spinner tone="mentor" size={14} />
+            Evaluating
+          </span>
+        ) : (
+          <span
+            className="flex items-center gap-2 font-medium text-student"
+            style={{
+              opacity: outQuart(span(t, T.wspWeight + 0.1, 0.2)),
+              transform: `translateY(${(1 - outQuart(span(t, T.wspWeight + 0.1, 0.25))) * 4}px)`,
+            }}
+          >
+            <Check size={15} strokeWidth={2.2} aria-hidden />
+            Kept
+          </span>
+        )}
       </div>
     </div>
   );
@@ -436,12 +523,9 @@ export function WspTail({ t }: { t: number }) {
                 className={`${TYPE} text-[112px] leading-none`}
               />
             </span>
-            <span className="flex items-center gap-5" style={{ zoom: 2 }}>
+            <span className="flex items-center" style={{ zoom: 2 }}>
               <span style={riseIn(t, T.wspName + 0.75)}>
                 <Badge>Experimental</Badge>
-              </span>
-              <span style={riseIn(t, T.wspChoose - 0.35)}>
-                <Badge>Preview</Badge>
               </span>
             </span>
           </div>

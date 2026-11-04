@@ -203,12 +203,13 @@ export const BEATS: readonly Beat[] = [
   { name: 'the brief, Start experiment', at: 177.79, played: 160.57, section: 13, word: 'Astra' },
   { name: 'Proposed edit', at: 178.17, played: 160.95, section: 13, word: 'propose' },
   { name: 'Candidate evaluation', at: 178.8, played: 161.58, section: 13, word: 'test' },
-  { name: 'the candidate', at: 179.37, played: 162.15, section: 13, word: 'edits' },
-  { name: 'end', at: 181.72, played: 164.5, section: 13, word: '(the score has ended)' },
+  { name: 'the candidate kept', at: 179.12, played: 161.9, section: 13, word: 'weight' },
+  { name: 'the result', at: 179.37, played: 162.15, section: 13, word: 'edits' },
+  { name: 'end', at: 182.22, played: 165, section: 13, word: '(the score has ended)' },
 ];
 
 /** The film's length as played, in seconds, from its own start: to the end of Architect WSP's scene. */
-export const RUNTIME = 164.5;
+export const RUNTIME = 165.0;
 
 /** How long before its own start the film's page begins: the founder's last second. */
 export const PREROLL = 1.3;

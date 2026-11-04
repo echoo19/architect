@@ -105,7 +105,7 @@ const architect = morph + 3.0;
 // 13. After the lockup, Architect WSP: "Inspired by MIT research: Architect W-S-P. Choose a model,
 // set a goal, and let Astra propose and test weight edits." The lockup lifts away as the research
 // page rises; on the name the page pushes up out of its window and the new-experiment flow pushes
-// in, then runs to a candidate under evaluation. Each moment sits on its word in the recorded line
+// in, then runs to its candidate, kept, and the benchmark's result (docs/comparisons/wsp-bench-1.md). Each moment sits on its word in the recorded line
 // (audio/final10/wsp.json: the line's own word times, from its first word).
 const wsp = architect + 2.37;
 const said = wsp + 0.8;
@@ -226,8 +226,9 @@ export const T = {
   wspAstra: said + 5.82,
   wspPropose: said + 6.2,
   wspTest: said + 6.83,
+  wspWeight: said + 7.15,
   wspEdits: said + 7.4,
-  fade: said + 8.65,
+  fade: said + 9.15,
 } as const;
 
 /** The film's length on its own clock. */
