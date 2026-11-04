@@ -48,3 +48,4 @@ export * from './training-plan';
 export * from './trace';
 export * from './versions';
 export * from './workspace';
+export * from './wsp';
