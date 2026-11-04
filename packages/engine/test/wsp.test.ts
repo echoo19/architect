@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { releaseMentor } from '../src/vault/gate';
 import { Vault } from '../src/vault/vault';
+import { stepRequest } from '../src/wsp/mentor';
 import { compare, measure, passes, repeats } from '../src/wsp/metrics';
 import { inspectModelFolder, safetensorsHeader } from '../src/wsp/models';
 import { wspResult } from '../src/wsp/result';
@@ -112,6 +113,33 @@ describe('scoring outputs', () => {
     expect(difference.points).toBe(50);
     expect(difference.low).toBeGreaterThan(0);
     expect(difference.n).toBe(10);
+  });
+});
+
+describe("the mentor's turn", () => {
+  it('shows the controls measured on dev, and never a sealed example', () => {
+    const decoding = measured('decoding', [true, false, false, false]);
+    const instructions = measured('instructions', [true, true, true, false]);
+    const request = stepRequest({
+      experiment: {
+        base: { name: 'Tiny', parameters: 80 },
+        goal: { task: 'Add.' },
+        brief: { controls: { instructions: 'Answer briefly.' } },
+        incumbent: null,
+        iterations: [],
+      } as unknown as WspExperiment,
+      tensors: 'model.layers.{i}.mlp.down_proj.weight for i in 0..1 [4,6]',
+      practice: [],
+      baseDev: measured('base', [false, false, false, false]),
+      currentDev: undefined,
+      decodingDev: decoding,
+      instructionsDev: instructions,
+      programs: new Map(),
+      remaining: { programs: 8, forwardPasses: 20, minutes: 100, mentorUsd: 4 },
+    });
+    const text = request.messages[0]!.content;
+    expect(text).toMatch(/decoding control on dev, already measured: pass rate 25\.0%/);
+    expect(text).toMatch(/instruction control on dev, already measured: pass rate 75\.0%/);
   });
 });
 

@@ -20,7 +20,7 @@ import { points } from './metrics';
  * split only as overall rates. The sealed examples are never in reach.
  */
 
-export const STEP_MAX_OUTPUT = 12_000;
+export const STEP_MAX_OUTPUT = 16_000;
 export const BRIEF_MAX_OUTPUT = 4_000;
 
 const nullableString = { type: ['string', 'null'] } as const;
@@ -218,6 +218,9 @@ export interface StepContext {
   practice: readonly { prompt: string; output: string; passed: boolean | null; looped: boolean }[];
   baseDev: WspMeasurement | undefined;
   currentDev: WspMeasurement | undefined;
+  /** The brief's controls on dev, measured before any program ran. */
+  decodingDev: WspMeasurement | undefined;
+  instructionsDev: WspMeasurement | undefined;
   programs: ReadonlyMap<number, string>;
   remaining: { programs: number; forwardPasses: number; minutes: number; mentorUsd: number };
 }
@@ -266,6 +269,8 @@ Model: ${experiment.base.name}, ${experiment.base.parameters.toLocaleString('en-
 ${context.tensors}
 
 The base on dev: ${dev(context.baseDev)}.
+The decoding control on dev, already measured: ${dev(context.decodingDev)}.
+The instruction control on dev, already measured: ${brief.controls.instructions === null ? 'none in the brief' : dev(context.instructionsDev)}.
 The current candidate (${experiment.incumbent ?? 'the base'}) on dev: ${dev(context.currentDev)}.
 Its practice outputs:
 ${practice}

@@ -779,6 +779,8 @@ export class WspService {
         tensors,
         practice: this.practiceView(id, experiment.incumbent),
         baseDev: this.evaluated(experiment, 'base', 'dev'),
+        decodingDev: this.evaluated(experiment, 'decoding', 'dev'),
+        instructionsDev: this.evaluated(experiment, 'instructions', 'dev'),
         currentDev:
           experiment.incumbent === null
             ? this.evaluated(experiment, 'base', 'dev')

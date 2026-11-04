@@ -11,12 +11,23 @@
  * written to <dataDir>/wsp/experiments/<id>, and the result is printed as JSON.
  */
 import { resolve } from 'node:path';
-import { WSP_DEFAULT_LIMITS, type WspExample } from '@architect/shared';
+import { createMentor } from '@architect/adapters';
+import { WSP_DEFAULT_LIMITS, type MentorConfig, type WspExample } from '@architect/shared';
 import { Vault } from '../src/vault/vault';
-import { standInMentor, WspService, wspMentorStatus } from '../src/wsp';
+import { connectWspMentor, standInMentor, WspService, wspMentorStatus } from '../src/wsp';
 
 const [dataDir, modelFolder, envDir] = process.argv.slice(2);
-if (!dataDir || !modelFolder || !envDir || process.env['ARCHITECT_WSP_MENTOR'] !== 'stand-in') {
+const astra = process.argv.includes('--astra');
+const capFlag = process.argv.indexOf('--mentor-usd');
+const mentorUsd = capFlag === -1 ? 0 : Number(process.argv[capFlag + 1]);
+if (
+  !dataDir ||
+  !modelFolder ||
+  !envDir ||
+  (astra
+    ? !(mentorUsd > 0) || !process.env['OPENAI_API_KEY']
+    : process.env['ARCHITECT_WSP_MENTOR'] !== 'stand-in')
+) {
   console.error(
     'Usage: ARCHITECT_WSP_MENTOR=stand-in tsx scripts/wsp-demo.ts <dataDir> <modelFolder> <envDir> [--qualify]',
   );
@@ -121,14 +132,27 @@ const examples: WspExample[] = PROBLEMS.map(([prompt, answer]) => ({
   check: { kind: 'number', value: String(answer) },
 }));
 
+/** The key by name from the environment, for the OpenAI host alone; never printed. */
+const deps = {
+  secrets: {
+    get: (ref: string) =>
+      Promise.resolve(astra && ref === 'openai' ? process.env['OPENAI_API_KEY'] : undefined),
+  },
+  adapters: {
+    createMentor: (config: MentorConfig, options: { apiKey?: string }) =>
+      createMentor(config, options.apiKey === undefined ? {} : { apiKey: options.apiKey }),
+  },
+} as unknown as Parameters<typeof connectWspMentor>[0];
+
 const root = resolve(dataDir);
 const service = new WspService({
   dir: resolve(root, 'wsp'),
   sourceDir: resolve(import.meta.dirname, '..', '..', '..', 'trainer', 'wsp'),
   vault: new Vault(root),
   envDir: resolve(envDir),
-  connectMentor: () => Promise.resolve(standInMentor()),
-  mentorStatus: () => wspMentorStatus({ secrets: { get: () => Promise.resolve(undefined) } }),
+  connectMentor: (effort) =>
+    astra ? connectWspMentor(deps, effort) : Promise.resolve(standInMentor()),
+  mentorStatus: () => wspMentorStatus(deps),
 });
 
 const wait = (id: string, done: (status: string) => boolean) =>
@@ -156,7 +180,9 @@ const drafted = await service.draft({
     examples,
   },
   compute: 'local-cpu',
-  limits: { ...WSP_DEFAULT_LIMITS, programs: 4, forwardPasses: 16, wallMinutes: 60, mentorUsd: 0 },
+  limits: astra
+    ? { ...WSP_DEFAULT_LIMITS, programs: 8, forwardPasses: 24, wallMinutes: 120, mentorUsd }
+    : { ...WSP_DEFAULT_LIMITS, programs: 4, forwardPasses: 16, wallMinutes: 60, mentorUsd: 0 },
   reasoningEffort: 'high',
 });
 process.stdout.write(
