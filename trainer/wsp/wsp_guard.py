@@ -85,8 +85,6 @@ DENIED_EVENTS = (
     "gc.get_objects",
     "gc.get_referrers",
     "gc.get_referents",
-    "sys._getframe",
-    "sys._current_frames",
     "sys.addaudithook",
     "sys.setprofile",
     "sys.settrace",
@@ -94,6 +92,9 @@ DENIED_EVENTS = (
     "_thread.start_new_thread",
     "mmap.",
 )
+
+# Matched whole: sys._getframemodulename, which namedtuple and dataclasses call, only names a module.
+EXACT_DENIED = frozenset({"sys._getframe", "sys._current_frames"})
 
 WRITE_EVENTS = frozenset(
     {
@@ -251,7 +252,7 @@ def install(read_roots: list[str], write_roots: list[str], watcher_thread: int |
             return
         if event == "object.__setattr__" and len(args) > 1 and args[1] in PROTECTED_ATTRS:
             raise GuardRefusal(f"setting {args[1]} is not allowed")
-        if event.startswith(DENIED_EVENTS):
+        if event in EXACT_DENIED or event.startswith(DENIED_EVENTS):
             raise GuardRefusal(f"{event} is not allowed here")
 
     sys.addaudithook(audit_hook)

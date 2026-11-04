@@ -583,6 +583,9 @@ describe.skipIf(
         print("ALLOWED", attempt)
     except Exception as error:
         print("refused", type(error).__name__)
+import collections, dataclasses
+Point = collections.namedtuple("Point", "x y")
+print("library ok", Point(1, 2).x)
 W = weights.get("model.layers.1.mlp.down_proj.weight")
 u = torch.ones(4) / 2
 save_edit("model.layers.1.mlp.down_proj.weight", W - torch.outer(u, u @ W))

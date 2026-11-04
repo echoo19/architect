@@ -17,7 +17,7 @@ What the research showed:
 What Architect WSP adds, and has not yet shown:
 
 - An app that runs this kind of experiment on your own goal, with a deterministic check, a sealed qualification and the runner's caps.
-- No real Astra experiment has run in Architect yet. Nothing here shows that weight edits help Architect's own jobs, or that a skill can be put into a model by editing it.
+- Two real Astra experiments have run (below), and in both Astra found no edit worth making. Nothing here shows that weight edits help Architect's own jobs, or that a skill can be put into a model by editing it.
 
 ## The flow
 
@@ -64,9 +64,17 @@ A candidate (`architect.wsp-candidate/1`) is a set of whole replacement tensors 
   - The run took 6 minutes, with 8 forward passes and $0.
 - An earlier run removed the direction from whole matrices. That changed 26,756,603 weights, past the 1% cap, and the runner refused the edit.
 
+## Two real runs with Astra
+
+Nov 3, on the same 26 word problems and Qwen3-0.6B, with a $5 cap the owner set for both. Records are in `runs/wsp-astra-1` and `runs/wsp-astra-2`.
+
+- **The first run, $0.28.** Astra's brief set a 128-token limit and a +12.5-point target. The base passed 1 of 8 dev problems, 7 of them cut off at the limit. The decoding control passed 0 of 8 and the instruction control ("Return only the final numeric answer") 5 of 8. Astra ran one program, read the practice outputs, found verbosity and an arithmetic slip but no localized defect, and stopped without an edit. Its prompt didn't show it the controls' results; that was fixed before the second run.
+- **The second run, $0.79.** The base passed 1 of 8 on dev, the decoding control 1 of 8 and the instruction control 4 of 8. Astra ran four programs. Two read hidden states for 30 matched contexts across every layer and then for 40 independent instructions. One failed on the guard: Python's `namedtuple` checks its caller's module, which the guard refused (fixed after the run, with a test). The last program checked whether the direction that separated verbose from short answers held across the independent instructions. It didn't (cosine agreement from about -0.43 to 0.28), so Astra judged that the evidence didn't support a sparse edit and stopped. No candidate.
+- **What it shows.** The pipeline works with the real mentor: brief, baseline, controls, Astra's programs, hidden-state reads, the caps and a stop. On this task the failures were answers too long for the token limit, which the instruction control fixes far more cheaply. Astra declined to edit weights. That is the behavior the research's caution asks for, and it isn't evidence for or against weight edits in general.
+
 ## What isn't done
 
-- No real Astra experiment has run. Running one costs money, and it waits on an approved spending limit.
+- Neither Astra run produced a candidate, so no edit made by Astra has been measured on dev or qualified.
 - A candidate is measured in full precision with transformers on the CPU. No GGUF or quantized build is made or checked on a local runtime, so a candidate is never a local agent.
 - Fine-tuning isn't compared inside an experiment: it learns from a field's verified lessons, which a WSP experiment doesn't have.
 - Astra's reasoning effort is capped at high, the most the mentor adapter sends. The research used max.
