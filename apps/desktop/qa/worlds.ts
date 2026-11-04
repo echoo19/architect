@@ -19,7 +19,8 @@ import {
   type WorkspaceMessage,
 } from '@architect/shared';
 import { launchApp, type LaunchedApp } from '../e2e/app';
-import { LLAMA_SERVER_READY, STORY_EVIDENCE, stubEngine } from '../e2e/fixtures';
+import { EMPTY_ENGINE, LLAMA_SERVER_READY, STORY_EVIDENCE, stubEngine } from '../e2e/fixtures';
+import { stubWsp } from '../e2e/fixtures-wsp';
 import { stubFieldTasks } from '../e2e/fixtures-browse';
 import {
   ACTIVITY_PLANS,
@@ -114,7 +115,7 @@ import {
  * real engine with real keys and spends real money.
  */
 
-export const WORLDS = ['first-run', 'personal', 'lab', 'live'] as const;
+export const WORLDS = ['first-run', 'personal', 'lab', 'wsp', 'live'] as const;
 export type WorldName = (typeof WORLDS)[number];
 
 export interface World {
@@ -866,6 +867,20 @@ async function lab(out: string): Promise<World> {
   };
 }
 
+/**
+ * Architect WSP (decision 109), set up, on its fixtures: models found on this computer, where an
+ * experiment can run, a ready worker and mentor, and an experiment in each state, the stand-in
+ * mentor's among them. Every WSP channel is stubbed, so no worker starts and no mentor is called;
+ * Draft brief, Start experiment and the rest answer with the fixtures.
+ */
+async function wsp(): Promise<World> {
+  const launched = await launch({ settings: { onboarded: true, edition: 'wsp' } });
+  await stubEngine(launched.app, EMPTY_ENGINE);
+  await stubWsp(launched.app);
+  await reload(launched);
+  return { launched, notes: [], close: () => launched.close() };
+}
+
 /** The keys the live world passes through from the tester's environment: Spark's and OpenRouter's. */
 const LIVE_KEYS = ['META_API_TOKEN', 'OPENROUTER_API_KEY'] as const;
 
@@ -911,6 +926,8 @@ export function startWorld(name: WorldName, out: string, data?: string): Promise
       return personal(out);
     case 'lab':
       return lab(out);
+    case 'wsp':
+      return wsp();
     case 'live':
       return live(out, data);
   }

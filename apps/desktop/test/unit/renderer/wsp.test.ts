@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WspIteration, WspMeasurement } from '@architect/shared';
+import type { WspBrief, WspIteration, WspMeasurement } from '@architect/shared';
 import {
   devChange,
   examplesOf,
@@ -156,7 +156,7 @@ describe('a WSP run', () => {
   });
 
   it('holds a brief with a part left empty, naming the part', () => {
-    const brief = {
+    const brief: WspBrief = {
       objective: 'Stop loops',
       baseline: 'Base loops on 4 of 10',
       investigation: 'Read the last layers',
@@ -168,7 +168,7 @@ describe('a WSP run', () => {
         decoding: { temperature: 0, topP: 1, repetitionPenalty: 1.1, maxNewTokens: 192 },
         instructions: null,
       },
-    } as const;
+    };
     expect(briefHeld({ ...brief }, 'Loops')).toBeNull();
     expect(briefHeld({ ...brief }, ' ')).toBe('Give it a title');
     expect(briefHeld({ ...brief, objective: '' }, 'Loops')).toBe('Fill in the objective');
