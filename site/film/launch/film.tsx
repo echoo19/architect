@@ -2,6 +2,7 @@ import type { Measured } from '../lab/film';
 import { WINDOW } from '../lab/shell';
 import { Chapters } from './chapters';
 import { Ending, Wordmark } from './ending';
+import { lockupLift, WspTail } from './wsp';
 import {
   BriefFigure,
   CertFigure,
@@ -28,7 +29,8 @@ import { LAUNCH_LABELS, SHOW_OPEN_TEACHER } from './data';
  * Architect's launch film, in segments. It opens in depth (the training screen and its score, the
  * requests) and lands on the Lab's window; each section after is one moment of the app, opened by
  * a whip and, where a section starts, its line on the ground: the field, the study, the teaching,
- * the reveal, the platform, the team, Offline and the two editions. It ends on the full lockup.
+ * the reveal, the platform, the team, Offline and the two editions. It ends on the full lockup,
+ * then Architect WSP.
  * Every frame is drawn from the film's authored time alone.
  */
 
@@ -80,7 +82,16 @@ export function LaunchFilm({ t, measured }: { t: number; measured: Measured }) {
         <>
           {/* The window glides out as the end's line rises: the two share a moment. */}
           {t < LOCKUP_OUT + OUT && <Walk t={t} measured={measured} />}
-          {t >= LOCKUP_OUT && <Ending t={t} measured={measured} />}
+          {t >= LOCKUP_OUT && t < T.wsp + 1.2 && (
+            <div
+              className="absolute inset-0"
+              style={{ transform: `translateY(${-lockupLift(t)}px)` }}
+            >
+              <Ending t={t} measured={measured} />
+            </div>
+          )}
+          {/* After the lockup, Architect WSP rises as the lockup lifts away. */}
+          {t >= T.wsp && <WspTail t={t} />}
         </>
       )}
     </LabelsContext.Provider>

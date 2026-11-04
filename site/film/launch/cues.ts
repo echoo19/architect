@@ -12,7 +12,7 @@ export interface Beat {
   at: number;
   /** When it is played: on its word. */
   played: number;
-  /** The script's section (1 to 12; 0 is the founder's clip), and the word it lands on. */
+  /** The script's section (1 to 13; 0 is the founder's clip, 13 Architect WSP), and the word it lands on. */
   section: number;
   word: string;
 }
@@ -189,11 +189,26 @@ export const BEATS: readonly Beat[] = [
   },
   { name: 'Your own AI.', at: 166.8, played: 149.91, section: 12, word: 'Your' },
   { name: 'Architect', at: 168.8, played: 151.58, section: 12, word: '(just before) Architect' },
-  { name: 'end', at: 173, played: 157.09, section: 12, word: '(the score has faded)' },
+  {
+    name: 'the lockup lifts, the research rises',
+    at: 171.17,
+    played: 153.95,
+    section: 13,
+    word: '(before) Inspired',
+  },
+  { name: 'Inspired by MIT research', at: 171.97, played: 154.75, section: 13, word: 'Inspired' },
+  { name: 'Architect WSP', at: 174.06, played: 156.84, section: 13, word: 'Architect' },
+  { name: 'the new experiment: a model', at: 175.93, played: 158.71, section: 13, word: 'Choose' },
+  { name: 'a goal', at: 177.01, played: 159.79, section: 13, word: 'goal' },
+  { name: 'the brief, Start experiment', at: 177.79, played: 160.57, section: 13, word: 'Astra' },
+  { name: 'Proposed edit', at: 178.17, played: 160.95, section: 13, word: 'propose' },
+  { name: 'Candidate evaluation', at: 178.8, played: 161.58, section: 13, word: 'test' },
+  { name: 'the candidate', at: 179.37, played: 162.15, section: 13, word: 'edits' },
+  { name: 'end', at: 181.72, played: 164.5, section: 13, word: '(the score has ended)' },
 ];
 
-/** The film's length as played, in seconds, from its own start: the lockup held to the score's fade. */
-export const RUNTIME = 157.09;
+/** The film's length as played, in seconds, from its own start: to the end of Architect WSP's scene. */
+export const RUNTIME = 164.5;
 
 /** How long before its own start the film's page begins: the founder's last second. */
 export const PREROLL = 1.3;

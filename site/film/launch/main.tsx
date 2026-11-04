@@ -5,6 +5,7 @@ import type { Measured } from '../lab/film';
 import { smoothMap } from '../lab/time';
 import { PREROLL, RUNTIME, TIMING } from './cues';
 import { LaunchFilm, MeasuringFilm } from './film';
+import { RESEARCH_IMAGE } from './wsp';
 import './launch.css';
 
 /**
@@ -92,6 +93,9 @@ async function founder() {
     ...Array.from({ length: FOUNDER_FRAMES }, (_, k) => `${String(k).padStart(4, '0')}.jpg`),
     'caption.png',
   ];
+  const research = new Image();
+  research.src = RESEARCH_IMAGE;
+  await research.decode();
   await Promise.all(
     files.map((file) => {
       const image = new Image();

@@ -52,7 +52,7 @@ A candidate (`architect.wsp-candidate/1`) is a set of whole replacement tensors 
 
 ## What has been verified
 
-- `packages/engine/test/wsp.test.ts`, 17 tests. Two of them need a worker environment (`WSP_TEST_PYTHON_ENV`) and run the real kernel: its guard refuses eight escape attempts and hands back a checked edit, and a program that runs too long is stopped. The other 15 run without Python and cover the scoring, the split, the vault, model folders, the verdicts, drafting, refusals, interruption, and a whole run on stand-in processes through freeze and qualification.
+- `packages/engine/test/wsp.test.ts`, 18 tests. Two of them need a worker environment (`WSP_TEST_PYTHON_ENV`) and run the real kernel: its guard refuses eight escape attempts and hands back a checked edit, and a program that runs too long is stopped. The other 16 run without Python and cover the scoring, the split, the vault, model folders (a tied head counted once), the verdicts, drafting, refusals, interruption, and a whole run on stand-in processes through freeze and qualification.
 - A real experiment end to end on this computer, unbilled (`packages/engine/scripts/wsp-demo.ts`, Nov 3, record in `runs/wsp-demo-1`). It used the scripted stand-in mentor, not Astra. The setup:
   - Model: Qwen/Qwen3-0.6B at revision `c1899de2`, on the CPU.
   - Examples: 26 multi-step word problems with number checks, split into 10 practice, 8 dev and 8 sealed.

@@ -48,7 +48,7 @@ Read in the owner's signed-in browser on Nov 1. What it adds to the notes above:
 - [x] Installers attached to a GitHub release (0.9.1, Nov 2: Windows, Mac on Apple silicon and Intel; the Mac app signed and notarized, the Windows installer not signed)
 - [x] Sample job and one shipped graduate in the repo
 - [x] README results filled from real runs
-- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 50 s with the founder's intro, is `renders/launch-final-10.mp4` in the launch film's folder outside the repo (its record is that folder's `BRIEF.md`) and plays on the site's home page; it still needs uploading where the platform can link to it (the owner's account)
+- [ ] Demo video (3 minutes or less) uploaded and link checked. The final cut, 2 min 57 s (177.2 s) with the founder's intro and a closing scene on Architect WSP, is `renders/launch-final-11.mp4` in the launch film's folder outside the repo (its record is that folder's `BRIEF.md`) and plays on the site's home page; it still needs uploading where the platform can link to it (the owner's account)
 - [ ] Submission made on the Cerebral Valley platform by Wed Nov 4, 9:00 PM ET, with the problem statement, the track (indie), the repository and video links, and everyone who contributed listed
 - [ ] Optional: the demo posted on X, its link added on the platform
 
