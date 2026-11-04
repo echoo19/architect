@@ -1,6 +1,6 @@
 # Persona testing driver
 
-`qa/driver.ts` opens the built app, hidden, in a ready-made world and keeps it open, so a tester (a person or an agent) can use it step by step over a small JSON API on 127.0.0.1. In the three mock worlds (first-run, personal, lab) nothing real runs: the models are the e2e suite's stand-ins on 127.0.0.1 and its IPC stubs. No remote model, Hugging Face, GPU, or this computer's Ollama or llama-server is reached, and every provider key variable is blanked in the app's environment. The live world is the exception, and real: see its section below.
+`qa/driver.ts` opens the built app, hidden, in a ready-made world and keeps it open, so a tester (a person or an agent) can use it step by step over a small JSON API on 127.0.0.1. In the four mock worlds (first-run, personal, lab, wsp) nothing real runs: the models are the e2e suite's stand-ins on 127.0.0.1 and its IPC stubs. No remote model, Hugging Face, GPU, or this computer's Ollama or llama-server is reached, and every provider key variable is blanked in the app's environment. The live world is the exception, and real: see its section below.
 
 ## Build once
 
@@ -19,6 +19,7 @@ From `apps/desktop`, one app per driver:
 node --import tsx qa/driver.ts --world first-run --port 4801 --out C:\tmp\qa-first-run
 node --import tsx qa/driver.ts --world personal  --port 4802 --out C:\tmp\qa-personal
 node --import tsx qa/driver.ts --world lab       --port 4803 --out C:\tmp\qa-lab
+node --import tsx qa/driver.ts --world wsp       --port 4805 --out C:\tmp\qa-wsp
 node --import tsx qa/driver.ts --world live      --port 4804 --out C:\tmp\qa-live
 ```
 

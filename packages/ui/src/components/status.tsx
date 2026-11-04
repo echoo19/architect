@@ -89,8 +89,8 @@ export function VersionTag({ version, active = false, className }: VersionTagPro
 
 export interface BadgeProps {
   tone?: BadgeTone;
-  /** `md` is 28px, `lg` is 32px. */
-  size?: 'md' | 'lg';
+  /** `sm` is 20px, to sit inside a control or beside a name; `md` is 28px, `lg` is 32px. */
+  size?: 'sm' | 'md' | 'lg';
   /** A leading 14px icon. */
   icon?: ReactNode;
   children: ReactNode;
@@ -102,8 +102,8 @@ export function Badge({ tone = 'outline', size = 'md', icon, children, className
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 text-small',
-        size === 'md' ? 'h-7' : 'h-8',
+        'inline-flex shrink-0 items-center whitespace-nowrap rounded-full text-small',
+        size === 'sm' ? 'h-5 px-2' : size === 'md' ? 'h-7 px-3' : 'h-8 px-3',
         icon && (tone === 'student' || tone === 'alert' ? 'gap-1.5 pl-2.5' : 'gap-2'),
         badgeTone[tone],
         className,

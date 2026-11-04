@@ -1,4 +1,4 @@
-import type { ExperimentEvent, PublishProgress, RunEvent } from '@architect/shared';
+import type { ExperimentEvent, PublishProgress, RunEvent, WspEvent } from '@architect/shared';
 import type { EnginePort } from './port';
 import {
   ENGINE_ROUTES,
@@ -7,6 +7,7 @@ import {
   fromErrorPayload,
   PublishProgressMessageSchema,
   ResponseMessageSchema,
+  WspEventMessageSchema,
   type EngineApi,
   type EngineMethod,
   type EngineParams,
@@ -36,6 +37,7 @@ export function connectEngine(
   const listeners = new Set<(event: RunEvent) => void>();
   const publishListeners = new Set<(progress: PublishProgress) => void>();
   const experimentListeners = new Set<(event: ExperimentEvent) => void>();
+  const wspListeners = new Set<(event: WspEvent) => void>();
   let nextId = 1;
   let closed = false;
 
@@ -49,6 +51,11 @@ export function connectEngine(
     const experiment = ExperimentEventMessageSchema.safeParse(message);
     if (experiment.success) {
       for (const listener of experimentListeners) listener(experiment.data.event);
+      return;
+    }
+    const wsp = WspEventMessageSchema.safeParse(message);
+    if (wsp.success) {
+      for (const listener of wspListeners) listener(wsp.data.event);
       return;
     }
     const progress = PublishProgressMessageSchema.safeParse(message);
@@ -184,6 +191,32 @@ export function connectEngine(
         experimentListeners.add(listener);
         return () => {
           experimentListeners.delete(listener);
+        };
+      },
+    },
+    wsp: {
+      models: () => request('wsp.models', []),
+      inspectModel: (folder) => request('wsp.inspectModel', [folder]),
+      computeTargets: () => request('wsp.computeTargets', []),
+      worker: () => request('wsp.worker', []),
+      setupWorker: () => request('wsp.setupWorker', []),
+      mentor: () => request('wsp.mentor', []),
+      draft: (input) => request('wsp.draft', [input]),
+      redraft: (experimentId) => request('wsp.redraft', [experimentId]),
+      revise: (experimentId, brief, title) => request('wsp.revise', [experimentId, brief, title]),
+      start: (experimentId) => request('wsp.start', [experimentId]),
+      cancel: (experimentId) => request('wsp.cancel', [experimentId]),
+      resume: (experimentId) => request('wsp.resume', [experimentId]),
+      qualify: (experimentId) => request('wsp.qualify', [experimentId]),
+      exportCandidate: (experimentId, parentDir) =>
+        request('wsp.exportCandidate', [experimentId, parentDir]),
+      program: (experimentId, n) => request('wsp.program', [experimentId, n]),
+      list: () => request('wsp.list', []),
+      get: (experimentId) => request('wsp.get', [experimentId]),
+      onEvent(listener) {
+        wspListeners.add(listener);
+        return () => {
+          wspListeners.delete(listener);
         };
       },
     },

@@ -35,6 +35,10 @@ export type Route =
   | { name: 'report'; runId: string }
   /** What an improvement of an agent changed, and whether its new version may be promoted. */
   | { name: 'improvement'; runId: string }
+  /** Architect WSP: a new weight-space programming experiment, from its model to its brief. */
+  | { name: 'wsp-new' }
+  /** An experiment of Architect WSP: its brief until it starts, then its run and results. */
+  | { name: 'wsp-experiment'; experimentId: string }
   | { name: 'not-found'; path: string };
 
 const segment = (value: string) => encodeURIComponent(value);
@@ -68,6 +72,8 @@ export const paths = {
   train: (runId: string) => `/runs/${segment(runId)}/train`,
   report: (runId: string) => `/runs/${segment(runId)}/report`,
   improvement: (runId: string) => `/runs/${segment(runId)}/improvement`,
+  wspNew: () => '/wsp/new',
+  wspExperiment: (experimentId: string) => `/wsp/${segment(experimentId)}`,
 };
 
 /** Where a chat opens: a team's chats under the team, every other chat under its agent. */
@@ -129,6 +135,8 @@ export function parsePath(path: string): Route {
   if (first === 'jobs' && third === 'define' && id && exactly(3)) {
     return { name: 'define', jobId: id };
   }
+  if (first === 'wsp' && id === 'new' && exactly(2)) return { name: 'wsp-new' };
+  if (first === 'wsp' && id && exactly(2)) return { name: 'wsp-experiment', experimentId: id };
   if (first === 'runs' && id && exactly(3)) {
     if (third === 'train') return { name: 'train', runId: id };
     if (third === 'report') return { name: 'report', runId: id };

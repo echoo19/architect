@@ -1,8 +1,8 @@
 import { Boxes, Cpu, FlaskConical, LayoutGrid, Library, type LucideIcon } from 'lucide-react';
 import { paths, type Route } from '../lib/router';
 
-/** Architect's places, in the sidebar's order (docs/PLATFORM.md). */
-export type PlaceId = 'lab' | 'fields' | 'experiments' | 'models' | 'compute';
+/** Architect's places, in the sidebar's order (docs/PLATFORM.md), and Architect WSP's one. */
+export type PlaceId = 'lab' | 'fields' | 'experiments' | 'models' | 'compute' | 'wsp';
 
 export interface Place {
   id: PlaceId;
@@ -51,6 +51,17 @@ export const PLACES: readonly Place[] = [
   },
 ];
 
+/** Architect WSP's one place: its experiments, at home. */
+export const WSP_PLACES: readonly Place[] = [
+  {
+    id: 'wsp',
+    label: 'Experiments',
+    Icon: FlaskConical,
+    path: paths.home(),
+    keywords: ['weights', 'programs', 'candidates'],
+  },
+];
+
 /** The place a route belongs to, for the sidebar's selected row; none for a chat or the flow. */
 export function placeOf(route: Route): PlaceId | null {
   switch (route.name) {
@@ -67,6 +78,9 @@ export function placeOf(route: Route): PlaceId | null {
       return 'models';
     case 'compute':
       return 'compute';
+    case 'wsp-new':
+    case 'wsp-experiment':
+      return 'wsp';
     default:
       return null;
   }

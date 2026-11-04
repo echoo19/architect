@@ -20,6 +20,8 @@ import { openEngineStore } from '../store/engine-store';
 import { ContractBook } from '../graduates/contracts';
 import { GraduateLibrary } from '../graduates/library';
 import { HubClient, hubTokenResolver } from '../hub';
+import { Vault } from '../vault/vault';
+import { connectWspMentor, wspMentorStatus, WspService } from '../wsp';
 import { createEngineApi } from './api';
 import type { EnginePort } from './port';
 import {
@@ -174,6 +176,15 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
       ? {}
       : { environment: options.experimentEnvironment }),
   });
+  const wsp = new WspService({
+    dir: join(paths.root, 'wsp'),
+    sourceDir: join(options.trainerDir ?? join(paths.root, 'no-trainer'), 'wsp'),
+    vault: new Vault(paths.root),
+    connectMentor: (effort) => connectWspMentor(options.deps, effort),
+    mentorStatus: () => wspMentorStatus(options.deps),
+    onError,
+  });
+  wsp.recover();
   const api = createEngineApi({
     store,
     paths,
@@ -184,6 +195,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
     clock,
     hub,
     experiments,
+    wsp,
     localRuntime,
     ...(options.trainerDir === undefined ? {} : { trainerDir: options.trainerDir }),
   });
@@ -196,6 +208,10 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
   });
   experiments.onEvent((event) => {
     const message = { kind: 'experiment.event', event: ExperimentEventSchema.parse(event) };
+    for (const port of ports) port.postMessage(message);
+  });
+  wsp.onEvent((event) => {
+    const message = { kind: 'wsp.event', event };
     for (const port of ports) port.postMessage(message);
   });
   // A publication's progress goes to every port, like run events; a malformed one is reported,
@@ -232,6 +248,7 @@ export async function createEngineHost(options: EngineHostOptions): Promise<Engi
       closed = true;
       ports.clear();
       await experiments.close();
+      wsp.close();
       await Promise.all([controller.close(), adapterRuntime.stop()]);
       options.deps.training?.worker.close();
       store.close();

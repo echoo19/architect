@@ -4,7 +4,7 @@ Start every session by reading, in order: this file, `docs/PROGRESS.md`, `docs/P
 
 ## What this is
 
-A desktop app (Electron, React, TypeScript). A **mentor** model watches a **student** model attempt a job, diagnoses its failures, and edits the student's **harness** until the student passes a locked test on its own. The result, a **graduate** (pinned model + harness folder), runs offline in the app's agent workspace. A job can cover a whole field: several **organizations** (for example test-prep academies, with Academy desk as their staff-facing agent) where the student is taught on some and qualified on sealed ones it never saw, one of them real; see `docs/FIELD.md`.
+A desktop app (Electron, React, TypeScript). A **mentor** model watches a **student** model attempt a job, diagnoses its failures, and edits the student's **harness** until the student passes a locked test on its own. The result, a **graduate** (pinned model + harness folder), runs offline in the app's agent workspace. Architect WSP, a third edition, has GPT-6 Astra edit a base model's weights in an isolated worker, experimentally (decision 109). A job can cover a whole field: several **organizations** (for example test-prep academies, with Academy desk as their staff-facing agent) where the student is taught on some and qualified on sealed ones it never saw, one of them real; see `docs/FIELD.md`.
 
 In code and docs say `mentor` and `student`. The UI shows the chosen model's short name (for example "Spark", "Glimmer").
 
@@ -13,9 +13,9 @@ In code and docs say `mentor` and `student`. The UI shows the chosen model's sho
 These are enforced in code and covered by tests. Never weaken one to make something else pass.
 
 1. **The mentor never sees the locked test split.** No path, no content, no scores before graduation. Only the runner's vault (`packages/engine/src/vault`) reads or writes it.
-2. **The checker is deterministic**, and the mentor cannot edit the checker, the splits, the student weights, or the tool permissions.
+2. **The checker is deterministic**, and the mentor cannot edit the checker, the splits, the student weights, or the tool permissions. In Architect WSP (decision 109), Astra's programs write only a new candidate through the isolated WSP worker; the base checkpoint stays read only and no graduate is touched.
 3. **A graduate makes zero network calls** except to the local model runtime. The offline test must keep passing.
-4. **Mentor-written tools run sandboxed** (QuickJS inside a child process), limited to the job's declared data and permissions. Writes need user approval in the workspace.
+4. **Mentor-written tools run sandboxed** (QuickJS inside a child process), limited to the job's declared data and permissions. Writes need user approval in the workspace. WSP's weight programs run in its own guarded kernel instead (decision 109).
 5. **Every harness change is logged in lineage** with the failure that caused it, the predicted effect and the measured effect, and every change can be reverted.
 6. **Budgets are hard caps**: rounds, mentor dollars, wall clock.
 

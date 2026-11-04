@@ -19,6 +19,7 @@ How to read this page:
 | Transcribes a taught organization's recordings for the study | Meta Model API | `muse-voice-transcribe-1.0` | `https://api.meta.ai/v1/asr/transcribe` | WAV, 10 minutes and 32 MB a request | $0.18 an hour of audio |
 | Mentor, open weights, hosted | Baseten Model APIs | `meta-models/muse-spark-open-1026` (dated snapshot from Baseten's partner notes; public pages show `meta-models/muse-spark-open`) | `https://inference.baseten.co/v1` | 1,048,576 for the model; Baseten's served limit unverified | $1.25 / $0.15 / $4.25 |
 | Mentor, open weights, hosted | Modal Shared Endpoint | endpoint created from `meta-models/Muse-Spark-Open-816B-A42B`; request `model` comes from the dashboard | `https://inference.us-west.modal.direct/v1` (confirm in the dashboard) | 1,000,000 | $1.25 / $0.15 / $4.25 |
+| Mentor of Architect WSP only (decision 109) | OpenAI | `gpt-6-astra` | `https://api.openai.com/v1` | 1,050,000 (922,000 input), 128,000 output | $10 / $1 / $50, $20 / $2 / $75 above 272K input tokens |
 | Mentor, other providers | OpenAI | `gpt-6.1-sol`, `gpt-6-luna` | `https://api.openai.com/v1` | not recorded | $2 / $0.10 / $10 and $0.10 / $0.01 / $0.50, more above 272K input tokens |
 | Mentor, other providers | Anthropic | `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` | `https://api.anthropic.com/v1` | read from `GET /v1/models` | $4 / $0.20 / $20, $2 / $0.10 / $10, $0.10 / $0.01 / $0.50 (Haiku more above 100K) |
 | Mentor, other providers | Google Gemini, OpenAI-compatible endpoint | `gemini-3.1-pro-preview`, `gemini-3.5-flash-lite` | `https://generativelanguage.googleapis.com/v1beta/openai` | not recorded | $2 / $0.20 / $12 (more above 200K) and $0.30 / $0.03 / $2.50 |
@@ -509,8 +510,9 @@ Meta stays the default. Every mentor below goes through the same loop, budget ga
 | --- | --- | --- |
 | `gpt-6.1-sol` | $2 / $0.10 / $10 | $4 / $0.20 / $15 |
 | `gpt-6-luna` | $0.10 / $0.01 / $0.50 | $0.20 / $0.02 / $0.75 |
+| `gpt-6-astra` (Architect WSP only) | $10 / $1 / $50 | $20 / $2 / $75 |
 
-Chat Completions on `https://api.openai.com/v1`, with the `developer` role, `max_completion_tokens`, `prompt_cache_key`, and `reasoning_effort` for reasoning models. Replies are held to the loop's schema with `response_format` `json_schema`, `strict: true` when the schema fits OpenAI's strict subset. Sources: https://developers.openai.com/api/docs/pricing, https://platform.openai.com/docs/pricing.
+Chat Completions on `https://api.openai.com/v1`, with the `developer` role, `max_completion_tokens`, `prompt_cache_key`, and `reasoning_effort` for reasoning models. Replies are held to the loop's schema with `response_format` `json_schema`, `strict: true` when the schema fits OpenAI's strict subset. Sources: https://developers.openai.com/api/docs/pricing, https://platform.openai.com/docs/pricing. `gpt-6-astra` was listed by `GET /v1/models` with the project's key on Nov 3; its model page (https://developers.openai.com/api/docs/models/gpt-6-astra) gives the context window, Chat Completions, Responses and Batch, structured outputs, function calling and reasoning efforts low to max. Architect sends low, medium or high, the efforts its mentor adapter carries.
 
 ### Anthropic
 

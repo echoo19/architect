@@ -36,6 +36,9 @@ import {
   TEST_SIZE,
   THIRD_ROWS,
   THIRD_TEST_SIZE,
+  WSP_BENCH,
+  WSP_FAULTS,
+  WSP_QWEN_RUNS,
 } from '../src/evidence';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -387,6 +390,74 @@ describe('the results page', () => {
       `${point(ifFailed.diff)} (${point(ifFailed.low)} to ${point(ifFailed.high)}) if it had failed both`,
     );
     expect(report).toContain(`GPU: at most $${ADAPTER_RUN.gpuUsd.toFixed(2)}`);
+  });
+
+  it('adds up the planted-fault benchmark and gives the report and WSP.md their numbers', () => {
+    const report = readFileSync(join(ROOT, SOURCES.wspBench.path), 'utf8').replaceAll('**', '');
+    const wsp = readFileSync(join(ROOT, SOURCES.wsp.path), 'utf8').replaceAll('**', '');
+    const bench = WSP_BENCH;
+    const planted = { spike: 'rank-1 spike', row: 'one row ×' } as const;
+    const count = (value: number) => value.toLocaleString('en-US');
+    for (const fault of WSP_FAULTS) {
+      expect(report).toContain(
+        `| ${fault.id} | ${planted[fault.kind]}, layer ${fault.layer} ${fault.tensor} | ${fault.heldOut}% | ${fault.damaged} of ${bench.sealedPer} | ${fault.repaired} of ${bench.sealedPer} | ${count(fault.changed)} of ${count(fault.of)} | ${fault.left.toFixed(1)}% | ${fault.programs} | $${fault.usd.toFixed(2)} |`,
+      );
+    }
+    expect(WSP_FAULTS.length).toBe(bench.tried);
+    expect(WSP_FAULTS.filter((fault) => fault.repaired >= bench.repairAt).length).toBe(
+      bench.repaired,
+    );
+    expect(WSP_FAULTS.reduce((sum, fault) => sum + fault.damaged, 0)).toBe(bench.damagedPassed);
+    expect(WSP_FAULTS.reduce((sum, fault) => sum + fault.repaired, 0)).toBe(bench.repairedPassed);
+    expect(WSP_FAULTS.reduce((sum, fault) => sum + fault.usd, 0)).toBeCloseTo(bench.usd, 2);
+    expect(bench.tried * bench.sealedPer).toBe(bench.sealed);
+    expect(bench.copies * bench.sealedPer).toBe(bench.rule.sealed);
+    expect(Math.round(((bench.repairedPassed - bench.damagedPassed) / bench.sealed) * 100)).toBe(
+      bench.diff,
+    );
+    expect(report).toContain(`repaired ${bench.repaired} of ${bench.tried} damaged models`);
+    expect(report).toContain(
+      `95% Wilson interval of ${bench.repairLow}% to ${bench.repairHigh}%. In all ${bench.tried} it found and edited the tensor that held the fault`,
+    );
+    expect(report).toContain(
+      `the ${bench.tried} damaged models passed ${bench.damagedPassed} (15%) and Astra's frozen candidates passed ${bench.repairedPassed} (96%)`,
+    );
+    expect(report).toContain(
+      `a paired gain of ${bench.diff} points, with a 95% interval of ${bench.diffLow} to ${bench.diffHigh}`,
+    );
+    expect(report).toContain(
+      `| Repaired | ${bench.repaired} of ${bench.tried} | ${bench.rule.repaired} of ${bench.copies} |`,
+    );
+    expect(report).toContain(
+      `On the ${bench.tried} both tried | ${bench.repaired} | ${bench.rule.onBoth} |`,
+    );
+    expect(report).toContain(
+      `It repaired ${bench.rule.repaired} of ${bench.copies} (95% interval ${bench.rule.low}% to ${bench.rule.high}%), for $${bench.rule.usd}`,
+    );
+    expect(report).toContain(
+      `sealed accuracy from ${bench.rule.damagedPassed} of ${bench.rule.sealed} to ${bench.rule.repairedPassed} of ${bench.rule.sealed}`,
+    );
+    expect(report).toContain(`| Cost | $${bench.usd.toFixed(2)} | $${bench.rule.usd} |`);
+    expect(report).toContain(`$${bench.usd.toFixed(2)} for the ${bench.tried} experiments`);
+    const { model, limits } = bench;
+    expect(report).toContain(
+      `with ${model.layers} layers, a width of 64 and about ${count(model.weights)} weights`,
+    );
+    expect(report).toContain(`On ${model.heldOut} held-out strings it is right on all of them`);
+    expect(report).toContain(
+      `It had ${model.examples} examples checked by exact match, split by seed into ${model.split[0]} practice, ${model.split[1]} dev and ${model.split[2]} sealed`,
+    );
+    expect(report).toContain(
+      `The limits were ${limits.programs} programs, ${limits.passes} forward passes, ${limits.minutes} minutes, at most ${limits.share}% of the weights changed`,
+    );
+    expect(report).toContain('4 to 8 times the tensor');
+    expect(report).toContain('multiplies one output row by 25 to 60');
+    expect(report).toContain('each matched its pinned hash');
+    const [first, second] = WSP_QWEN_RUNS;
+    expect(wsp).toContain(`The first run, $${first.toFixed(2)}.`);
+    expect(wsp).toContain(`The second run, $${second.toFixed(2)}.`);
+    expect(wsp).toContain('found no localized defect and made no edit');
+    expect(wsp).toContain('No Astra edit has been measured on a model of practical size');
   });
 
   it('cites documents that exist', () => {

@@ -38,6 +38,8 @@ export function RadioCardGroup<T extends string>({
 export interface RadioCardProps {
   value: string;
   title: string;
+  /** A small badge after the title, such as one that marks the choice experimental. */
+  badge?: ReactNode;
   /** Supporting lines under the title, such as time and where the data goes. */
   children?: ReactNode;
   /** Locked for now, such as while a test runs: the whole card fades. */
@@ -59,6 +61,7 @@ export interface RadioCardProps {
 export function RadioCard({
   value,
   title,
+  badge,
   children,
   disabled,
   unavailable,
@@ -86,6 +89,7 @@ export function RadioCard({
       >
         <span className="flex min-w-0 items-center gap-1.5">
           {title}
+          {badge}
           {info && <Info size={14} strokeWidth={1.8} aria-hidden className="shrink-0" />}
         </span>
         <span

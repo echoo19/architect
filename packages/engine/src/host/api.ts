@@ -61,6 +61,7 @@ import { isoNow } from '../loop/time';
 import type { RunController } from '../loop/controller';
 import type { EngineStore } from '../store/engine-store';
 import type { StoredRun } from '../store/records';
+import type { WspService } from '../wsp';
 import type { EngineApi } from './protocol';
 
 /** Train and dev attempts shown on the training view, newest first. */
@@ -88,6 +89,8 @@ export interface EngineApiContext {
   /** Hugging Face, for publishing and installing versions. */
   hub: HubClient;
   experiments: ExperimentService;
+  /** Architect WSP's experiments (decision 109). */
+  wsp: WspService;
   /** The repository's trainer folder, whose pins and experimental script a bundle carries. */
   trainerDir?: string;
   /** The local runtime settings, read at each use: imports serve their model on its Ollama. */
@@ -96,7 +99,7 @@ export interface EngineApiContext {
 
 /** The engine API for callers in the host's own process; `serve` exposes it over a port. */
 export function createEngineApi(ctx: EngineApiContext): EngineApi {
-  const { store, paths, jobs, controller, graduates, deps, experiments } = ctx;
+  const { store, paths, jobs, controller, graduates, deps, experiments, wsp } = ctx;
 
   const run = (runId: string): StoredRun =>
     found(store.runs.get(runId), `There is no run "${runId}".`, 'run_not_found');
@@ -529,6 +532,26 @@ export function createEngineApi(ctx: EngineApiContext): EngineApi {
       readConfig: (source) => readModelConfig(ctx.hub, source),
       plan: async (request) => planFromRequest(request),
       bundle: async (request) => bundleFromRequest(request, ctx.trainerDir),
+    },
+    wsp: {
+      models: async () => wsp.models(),
+      inspectModel: async (folder) => wsp.inspectModel(folder),
+      computeTargets: async () => wsp.computeTargets(),
+      worker: async () => wsp.worker(),
+      setupWorker: async () => wsp.setupWorker(),
+      mentor: () => wsp.mentor(),
+      draft: (input) => wsp.draft(input),
+      redraft: (experimentId) => wsp.redraft(experimentId),
+      revise: async (experimentId, brief, title) => wsp.revise(experimentId, brief, title),
+      start: async (experimentId) => wsp.start(experimentId),
+      cancel: async (experimentId) => wsp.cancel(experimentId),
+      resume: async (experimentId) => wsp.resume(experimentId),
+      qualify: (experimentId) => wsp.qualify(experimentId),
+      exportCandidate: (experimentId, parentDir) => wsp.exportCandidate(experimentId, parentDir),
+      program: async (experimentId, n) => wsp.program(experimentId, n),
+      list: async () => wsp.list(),
+      get: async (experimentId) => wsp.get(experimentId),
+      onEvent: (listener) => wsp.onEvent(listener),
     },
     reports: {
       get: async (runId, target) => reportOf(run(runId), target),

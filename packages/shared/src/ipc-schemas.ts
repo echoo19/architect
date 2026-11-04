@@ -63,7 +63,7 @@ export const CustomEndpointSchema = z.object({
   label: z.string().min(1).max(200),
 }) satisfies z.ZodType<CustomEndpoint>;
 
-export const EditionSchema = z.enum(['personal', 'lab']) satisfies z.ZodType<Edition>;
+export const EditionSchema = z.enum(['personal', 'lab', 'wsp']) satisfies z.ZodType<Edition>;
 
 export const FieldExportRecordSchema = z.object({
   jobId: z.string().min(1),
