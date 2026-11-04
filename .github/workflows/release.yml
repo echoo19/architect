@@ -29,6 +29,8 @@ permissions:
 
 jobs:
   windows:
+    # This recovery dispatch reuses the Windows artifact that already passed on v0.9.2.
+    if: github.event_name != 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -73,19 +75,20 @@ jobs:
           if-no-files-found: ignore
 
   macos:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     # Notarization waits on Apple, often for several minutes per image.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: v0.9.2
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The runner is Apple silicon, so its Electron goes where the app is built from and the
-      # Intel one beside it, for the second build to point at.
+      # Build both architectures from the unchanged tag; the smoke checks run the Intel build.
       - name: Install Electron
         run: |
           bash scripts/install-electron.sh darwin arm64
@@ -106,8 +109,8 @@ jobs:
           name: macos-installers
           path: apps/desktop/release/Architect-*.dmg
           if-no-files-found: error
-      # The runner can start only the Apple silicon build.
-      - name: Start the unpacked Apple silicon app and run the packaging specs
+      # This recovery runner starts the Intel build; the Apple silicon image is cross-built.
+      - name: Start the unpacked Intel app and run the packaging specs
         run: pnpm e2e:packaged
       - name: Keep the traces of a failed run
         if: failure()
